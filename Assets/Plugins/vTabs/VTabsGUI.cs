@@ -496,6 +496,9 @@ namespace VTabs
             menu.AddDisabledItem(new GUIContent("vTabs hidden menu"));
 
             menu.AddSeparator("");
+            menu.AddItem(new GUIContent("Don't hide left column"), disableWrapping, () => disableWrapping = !disableWrapping);
+
+            menu.AddSeparator("");
             menu.AddItem(new GUIContent("Select cache"), false, () => Selection.activeObject = VTabsCache.instance);
             menu.AddItem(new GUIContent("Clear cache"), false, VTabsCache.Clear);
 
@@ -504,7 +507,11 @@ namespace VTabs
 
         }
 
-
+        public static bool disableWrapping
+        {
+            get => EditorPrefsCached.GetBool("vTabs-disableWrapping", defaultValue: false);
+            set => EditorPrefsCached.SetBool("vTabs-disableWrapping", value);
+        }
 
 
 
@@ -596,14 +603,12 @@ namespace VTabs
 
 
                     var iid = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(tabInfo.folderGuid)).GetInstanceID();
-                    var listAreaState = window.GetFieldValue("m_ListAreaState");
+
 #if UNITY_6000_3_OR_NEWER
-                    var selectedInstanceIdsField = listAreaState.GetType().GetFieldInfo("m_SelectedInstanceIDs");
-                    if (selectedInstanceIdsField?.FieldType == typeof(List<EntityId>))
-                        selectedInstanceIdsField.SetValue(listAreaState, new List<EntityId> { (EntityId)iid });
-                    else
+                    window.GetFieldValue("m_ListAreaState").SetFieldValue("m_SelectedInstanceIDs", new List<EntityId> { (EntityId)iid });
+#else
+                    window.GetFieldValue("m_ListAreaState").SetFieldValue("m_SelectedInstanceIDs", new List<int> { iid });
 #endif
-                        listAreaState.SetFieldValue("m_SelectedInstanceIDs", new List<int> { iid });
 
                     t_ProjectBrowser.InvokeMethod("OpenSelectedFolders");
 
@@ -624,7 +629,11 @@ namespace VTabs
                     var folderPath = tabInfo.folderGuid.ToPath();
                     var folderIid = AssetDatabase.LoadAssetAtPath<Object>(folderPath).GetInstanceID();
 
+#if UNITY_6000_3_OR_NEWER
+                    data.SetMemberValue("m_rootInstanceID", (EntityId)folderIid);
+#else
                     data.SetMemberValue("m_rootInstanceID", folderIid);
+#endif
 
                     m_AssetTree.InvokeMethod("ReloadData");
 
@@ -655,7 +664,6 @@ namespace VTabs
             void setupPropertyEditor()
             {
                 if (!tabInfo.isPropertyEditor) return;
-                if (tabInfo.globalId.isNull) return;
 
 
                 var lockTo = tabInfo.globalId.GetObject();
@@ -668,7 +676,15 @@ namespace VTabs
 
                 window.GetMemberValue("tracker").InvokeMethod("SetObjectsLockedByThisTracker", (new List<Object> { lockTo }));
 
-                window.SetMemberValue("m_GlobalObjectId", tabInfo.globalId.ToString());
+
+                if (StageUtility.GetCurrentStage() is PrefabStage && tabInfo.globalId.isNull)
+                    window.SetMemberValue("m_GlobalObjectId", GlobalID.GetForPrefabStageObject(lockTo).ToString());
+                else
+                    window.SetMemberValue("m_GlobalObjectId", tabInfo.globalId.ToString());
+
+
+
+
                 window.SetMemberValue("m_InspectedObject", lockTo);
 
                 VTabs.UpdateTitle(window);

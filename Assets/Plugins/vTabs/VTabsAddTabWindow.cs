@@ -822,6 +822,8 @@ namespace VTabs
 
                 allEntries.Add(new TabEntry() { name = "Shortcuts", iconName = "", typeString = "UnityEditor.ShortcutManagement.ShortcutManagerWindow, UnityEditor.CoreModule, Version = 0.0.0.0, Culture = neutral, PublicKeyToken = null" });
 
+                allEntries.Add(new TabEntry() { name = "IMGUI Debugger", iconName = "", typeString = "UnityEditor.GUIViewDebuggerWindow, UnityEditor.CoreModule, Version = 0.0.0.0, Culture = neutral, PublicKeyToken = null" });
+
 
 
                 allEntries.RemoveAll(r => allEntries.Count(rr => rr.name == r.name) > 1);

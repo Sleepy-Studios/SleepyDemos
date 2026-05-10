@@ -548,7 +548,12 @@ namespace VTabs
                 if (browser.GetMemberValue("m_AssetTree") is not object m_AssetTree) return;
                 if (m_AssetTree.GetMemberValue("data") is not object data) return;
 
+#if UNITY_6000_3_OR_NEWER
+                var m_rootInstanceID = data.GetMemberValue<EntityId>("m_rootInstanceID");
+#else
                 var m_rootInstanceID = data.GetMemberValue<int>("m_rootInstanceID");
+#endif
+
 
                 void setInitial()
                 {
@@ -557,7 +562,11 @@ namespace VTabs
                     var folderPath = browser.GetLockedFolderPath_oneColumn();
                     var folderIid = AssetDatabase.LoadAssetAtPath<Object>(folderPath).GetInstanceID();
 
+#if UNITY_6000_3_OR_NEWER
+                    data.SetMemberValue("m_rootInstanceID", (EntityId)folderIid);
+#else
                     data.SetMemberValue("m_rootInstanceID", folderIid);
+#endif
 
                     m_AssetTree.InvokeMethod("ReloadData");
 
@@ -578,7 +587,11 @@ namespace VTabs
                 {
                     if (browser.GetMemberValue<bool>("isLocked")) return;
 
+#if UNITY_6000_3_OR_NEWER
+                    data.SetMemberValue("m_rootInstanceID", (EntityId)0);
+#else
                     data.SetMemberValue("m_rootInstanceID", 0);
+#endif
                     browser.SetLockedFolderPath_oneColumn("Assets");
 
                     m_AssetTree.InvokeMethod("ReloadData");
@@ -634,15 +647,9 @@ namespace VTabs
 
 
                         var folderIid = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(delayedFolderGuid)).GetInstanceID();
+
 #if UNITY_6000_3_OR_NEWER
-                        var setFolderSelectionMethod = t_ProjectBrowser.GetMethod("SetFolderSelection", maxBindingFlags, null, new[] { typeof(int[]), typeof(bool) }, null);
-                        if (setFolderSelectionMethod != null)
-                            setFolderSelectionMethod.Invoke(browser, new object[] { new[] { folderIid }, false });
-                        else
-                        {
-                            setFolderSelectionMethod = t_ProjectBrowser.GetMethod("SetFolderSelection", maxBindingFlags, null, new[] { typeof(EntityId[]), typeof(bool) }, null);
-                            setFolderSelectionMethod?.Invoke(browser, new object[] { new[] { (EntityId)folderIid }, false });
-                        }
+                        browser.InvokeMethod("SetFolderSelection", new[] { (EntityId)folderIid }, false);
 #else
                         browser.InvokeMethod("SetFolderSelection", new[] { folderIid }, false);
 #endif
@@ -825,13 +832,15 @@ namespace VTabs
             if (!browser.hasFocus) return;
             if (mi_VFavorites_CanBrowserBeWrapped != null && mi_VFavorites_CanBrowserBeWrapped.Invoke(null, new[] { browser }).Equals(false)) return;
 
-            var isLocked = browser.GetMemberValue<bool>("isLocked");
             var isWrapped = browser.GetMemberValue("m_Parent").GetMemberValue<Delegate>("m_OnGUI").Method == mi_WrappedBrowserOnGUI;
+
+            var isLocked = browser.GetMemberValue<bool>("isLocked");
+            var shouldBeWrapped = isLocked && !VTabsGUI.disableWrapping;
 
             void wrap()
             {
-                if (!isLocked) return;
                 if (isWrapped) return;
+                if (!shouldBeWrapped) return;
 
                 var hostView = browser.GetMemberValue("m_Parent");
 
@@ -847,8 +856,8 @@ namespace VTabs
             }
             void unwrap()
             {
-                if (isLocked) return;
                 if (!isWrapped) return;
+                if (shouldBeWrapped) return;
 
                 var hostView = browser.GetMemberValue("m_Parent");
 
@@ -947,11 +956,18 @@ namespace VTabs
 
 
 
-        static void ClosePropertyEditorsWithNonLoadableObjects()
+        static void ReplaceUnloadedPropertyEditors_withPlaceholderWIndows()
         {
-            foreach (var propertyEditor in allPropertyEditors)
-                if (propertyEditor.GetMemberValue<Object>("m_InspectedObject") == null)
-                    propertyEditor.Close();
+            // closes non-prefabs too because m_InspectedObject is set to null when changing title
+            // and doesn't work that reliably anyway
+            // so I just commented it 
+
+
+            // foreach (var propertyEditor in allPropertyEditors)
+            //     if (propertyEditor.GetMemberValue<Object>("m_InspectedObject") == null)
+
+            //         ScriptableObject.CreateInstance<VTabsPlaceholderWindow>()
+            //                         .Open_andReplacePropertyEditor(propertyEditor);
 
         }
 
@@ -1014,9 +1030,14 @@ namespace VTabs
         static void OnSceneOpened(Scene _, OpenSceneMode __)
         {
             LoadPropertyEditorInspectedObjects();
-            ClosePropertyEditorsWithNonLoadableObjects();
+            ReplaceUnloadedPropertyEditors_withPlaceholderWIndows();
             UpdateAllPropertyEditorTitles();
 
+        }
+
+        static void OnPrefabStageClosing(PrefabStage _)
+        {
+            ReplaceUnloadedPropertyEditors_withPlaceholderWIndows();
         }
 
         static void OnProjectLoaded()
@@ -1479,6 +1500,9 @@ namespace VTabs
             EditorApplication.quitting += VTabsCache.Save;
 
 
+            PrefabStage.prefabStageClosing += OnPrefabStageClosing;
+
+
 
             // EditorApplication.delayCall += () => VTabsAddTabWindow.UpdateAllEntries();
 
@@ -1540,7 +1564,7 @@ namespace VTabs
 
 
 
-        const string version = "2.1.4";
+        const string version = "2.1.6";
 
     }
 }

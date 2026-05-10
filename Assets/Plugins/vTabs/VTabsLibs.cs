@@ -921,6 +921,53 @@ namespace VTabs.Libs
 
             }
 
+
+            public static GlobalID GetForPrefabStageObject(Object o)
+            {
+                if (UnityEditor.SceneManagement.StageUtility.GetCurrentStage() is not UnityEditor.SceneManagement.PrefabStage prefabStage)
+                {
+                    Debug.LogError("GetForPrefabAssetObject() got called outside of prefab stgage!");
+
+                    return o.GetGlobalID();
+
+                }
+
+
+
+                var rawGlobalId = o.GetGlobalID();
+
+
+#if UNITY_2023_2_OR_NEWER
+
+                var so = new SerializedObject(o);
+
+                so.SetPropertyValue("inspectorMode", UnityEditor.InspectorMode.Debug);
+
+                var rawFileId = so.FindProperty("m_LocalIdentfierInFile").longValue;
+
+                if (rawFileId == 0) // happens for prefab variants in unity 6
+                    rawFileId = (long)typeof(Editor).Assembly.GetType("UnityEditor.Unsupported").InvokeMethod<ulong>("GetOrGenerateFileIDHint", o);
+
+#else
+                var rawFileId = rawGlobalId.fileId;
+#endif
+
+                // fixes fileId for prefab variants
+                // also works for getting prefab's unpacked fileId
+                var fileId = ((long)rawFileId ^ (long)rawGlobalId.globalObjectId.targetPrefabId) & 0x7fffffffffffffff;
+
+
+                var prefabGuid = prefabStage.assetPath.ToGuid();
+
+
+
+
+                var sourceGlobalId = new GlobalID($"GlobalObjectId_V1-1-{prefabGuid}-{fileId}-0");
+
+                return sourceGlobalId;
+
+            }
+
         }
 
         public static GlobalID GetGlobalID(this Object o) => new(o);
@@ -1139,9 +1186,18 @@ namespace VTabs.Libs
         static void _GlobalObjectId_GlobalObjectIdentifiersToInstanceIDsSlow(GlobalObjectId[] identifiers, int[] outputInstanceIDs)
         {
 #if UNITY_6000_3_OR_NEWER
-            GlobalObjectId.GlobalObjectIdentifiersToEntityIdsSlow(identifiers, outputInstanceIDs.Select(r => (EntityId)r).ToArray());
+
+            var outputEntityIds = new EntityId[outputInstanceIDs.Length];
+
+            GlobalObjectId.GlobalObjectIdentifiersToEntityIdsSlow(identifiers, outputEntityIds);
+
+            for (int i = 0; i < outputEntityIds.Length; i++)
+                outputInstanceIDs[i] = (int)outputEntityIds[i];
+
 #else
+
             GlobalObjectId.GlobalObjectIdentifiersToInstanceIDsSlow(identifiers, outputInstanceIDs);
+
 #endif
 
         }

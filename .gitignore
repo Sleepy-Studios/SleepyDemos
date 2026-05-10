@@ -1,4 +1,4 @@
-# Unity generated folders
+# Unity generated folders / Unity 生成目录
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -9,10 +9,10 @@
 [Mm]emoryCaptures/
 [Rr]ecords/
 
-# Asset import cache
+# Asset import cache / 资源导入缓存
 Assets/AssetStoreTools*
 
-# Visual Studio / Rider / VS Code
+# Visual Studio / Rider / VS Code / IDE 工程文件
 .vs/
 .vscode/
 .idea/
@@ -31,20 +31,22 @@ Assets/AssetStoreTools*
 *.opendb
 *.VC.db
 
-# Unity auto-generated files
+# Unity auto-generated files / Unity 自动生成文件
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
 *.opendb.meta
 *.unitypackage
 
-# Addressables and generated caches
+# Addressables and generated caches / Addressables 与生成缓存
 Assets/AddressableAssetsData/*/*.bin*
+# HybridCLR generated data / HybridCLR 生成数据
+HybridCLRData/
 
-# Crash reports
+# Crash reports / 崩溃报告
 sysinfo.txt
 
-# OS files
+# OS files / 操作系统文件
 .DS_Store
 Thumbs.db
 Desktop.ini
