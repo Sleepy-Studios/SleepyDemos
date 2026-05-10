@@ -634,8 +634,18 @@ namespace VTabs
 
 
                         var folderIid = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(delayedFolderGuid)).GetInstanceID();
-
+#if UNITY_6000_3_OR_NEWER
+                        var setFolderSelectionMethod = t_ProjectBrowser.GetMethod("SetFolderSelection", maxBindingFlags, null, new[] { typeof(int[]), typeof(bool) }, null);
+                        if (setFolderSelectionMethod != null)
+                            setFolderSelectionMethod.Invoke(browser, new object[] { new[] { folderIid }, false });
+                        else
+                        {
+                            setFolderSelectionMethod = t_ProjectBrowser.GetMethod("SetFolderSelection", maxBindingFlags, null, new[] { typeof(EntityId[]), typeof(bool) }, null);
+                            setFolderSelectionMethod?.Invoke(browser, new object[] { new[] { (EntityId)folderIid }, false });
+                        }
+#else
                         browser.InvokeMethod("SetFolderSelection", new[] { folderIid }, false);
+#endif
 
                         UpdateBrowserTitle(browser);
 

@@ -596,8 +596,14 @@ namespace VTabs
 
 
                     var iid = AssetDatabase.LoadAssetAtPath<Object>(AssetDatabase.GUIDToAssetPath(tabInfo.folderGuid)).GetInstanceID();
-
-                    window.GetFieldValue("m_ListAreaState").SetFieldValue("m_SelectedInstanceIDs", new List<int> { iid });
+                    var listAreaState = window.GetFieldValue("m_ListAreaState");
+#if UNITY_6000_3_OR_NEWER
+                    var selectedInstanceIdsField = listAreaState.GetType().GetFieldInfo("m_SelectedInstanceIDs");
+                    if (selectedInstanceIdsField?.FieldType == typeof(List<EntityId>))
+                        selectedInstanceIdsField.SetValue(listAreaState, new List<EntityId> { (EntityId)iid });
+                    else
+#endif
+                        listAreaState.SetFieldValue("m_SelectedInstanceIDs", new List<int> { iid });
 
                     t_ProjectBrowser.InvokeMethod("OpenSelectedFolders");
 
