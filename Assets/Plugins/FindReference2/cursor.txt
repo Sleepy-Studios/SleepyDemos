@@ -1,0 +1,7 @@
+- Clean code
+- Improve readability by using internal extension methods
+- Strictly early return
+- No comment unless absolutely neccessary
+- No try-catch
+- No #region
+- No fallback handling, straight forward logic

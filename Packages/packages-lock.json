@@ -22,14 +22,14 @@
       "hash": "419759ee3b6bb17a65cba1348c084d41680184ea"
     },
     "com.singularitygroup.hotreload": {
-      "version": "https://gitlab.hotreload.net/root/hot-reload-releases.git",
+      "version": "git+https://gitlab.hotreload.net/root/hot-reload-releases.git#1.13.20",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.unity.ugui": "1.0.0",
         "com.unity.modules.unitywebrequest": "1.0.0"
       },
-      "hash": "8e4d443a5944e1611f6069f4003595b83e97e5a8"
+      "hash": "6386a762a5f2a49b7fb0a620ed4ca1f9fd5413e4"
     },
     "com.tuyoogame.yooasset": {
       "version": "2.3.18",
