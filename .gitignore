@@ -40,6 +40,10 @@ Assets/AssetStoreTools*
 
 # Addressables and generated caches / Addressables 与生成缓存
 Assets/AddressableAssetsData/*/*.bin*
+
+# YooAssets build output / YooAssets 构建输出
+Bundles/
+
 # HybridCLR generated data / HybridCLR 生成数据
 HybridCLRData/
 

@@ -1,3 +1,17 @@
 {
-	"name": "Hotfix"
+    "name": "Hotfix",
+    "rootNamespace": "Hotfix",
+    "references": [
+        "Core.Runtime",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

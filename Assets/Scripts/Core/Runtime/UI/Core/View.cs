@@ -1,0 +1,189 @@
+using System;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace Core.Runtime
+{
+    public class View
+    {
+        private IResourceLoader loader;
+        private readonly List<IDisposable> bindings = new List<IDisposable>();
+        private readonly List<View> subViews = new List<View>();
+
+        public virtual string Address => string.Empty;
+        public virtual UILayer Level => UILayer.Base;
+        public virtual bool EnableOnInit => true;
+        public virtual bool IsAsync => true;
+        public virtual string Name => GetType().Name;
+        public virtual MaskType Mask => MaskType.None;
+        public virtual bool DestroyOnHide => true;
+
+        public IResourceLoader Loader
+        {
+            get => loader ??= new YooAssetResourceLoader();
+            set => loader = value;
+        }
+
+        public GameObject gameObject { get; private set; }
+        public Transform transform { get; private set; }
+        public ViewState State { get; private set; }
+        public bool IsEnable => (State & ViewState.Enabled) != 0;
+        public int Reference { get; set; }
+        public bool ForceDisable { get; set; }
+        public int OpenOrder { get; set; }
+        public virtual ICameraAnimation CameraAnimation { get; set; }
+        public virtual IUIAnimation UIAnimation { get; set; }
+        public bool IsWidget => Level >= UILayer.Decorate;
+
+        public IDisposable AddBinding(IDisposable binding)
+        {
+            if (binding != null && !bindings.Contains(binding))
+            {
+                bindings.Add(binding);
+            }
+
+            return binding;
+        }
+
+        public void AddSubView(View view)
+        {
+            if (view != null && !subViews.Contains(view))
+            {
+                subViews.Add(view);
+            }
+        }
+
+        public virtual void OnBeforeInit()
+        {
+        }
+
+        public async UniTask InitAsync(Transform parent)
+        {
+            if ((State & ViewState.FirstInit) != 0)
+            {
+                return;
+            }
+
+            State |= ViewState.FirstInit;
+            if (string.IsNullOrEmpty(Address))
+            {
+                Debug.LogError($"{GetType().FullName} 的 Address 为空");
+                return;
+            }
+
+            gameObject = await Loader.InstantiateAsync(Address, parent);
+            CompleteInit();
+        }
+
+        public void InitWithGameObject(GameObject target)
+        {
+            if ((State & ViewState.FirstInit) != 0 || target == null)
+            {
+                return;
+            }
+
+            State |= ViewState.FirstInit;
+            gameObject = target;
+            CompleteInit();
+        }
+
+        private void CompleteInit()
+        {
+            if (gameObject == null)
+            {
+                return;
+            }
+
+            State |= ViewState.Loaded;
+            transform = gameObject.transform;
+            UIRootManager.Instance.AttachViewCanvas(this);
+            gameObject.SetActive(EnableOnInit && !ForceDisable);
+            InitComponent();
+            UIAnimation?.Init(transform);
+            OnGameObjectInitialize();
+        }
+
+        public async UniTask Show(bool animation = true)
+        {
+            if (gameObject == null)
+            {
+                return;
+            }
+
+            ForceDisable = false;
+            gameObject.SetActive(true);
+            State &= ~ViewState.Disabled;
+            State |= ViewState.Enabled;
+            OnShow();
+            if (animation && UIAnimation != null)
+            {
+                await UIAnimation.Show();
+            }
+        }
+
+        public async UniTask Hide(bool animation = true)
+        {
+            if (gameObject == null)
+            {
+                return;
+            }
+
+            if (animation && UIAnimation != null)
+            {
+                await UIAnimation.Hide();
+            }
+
+            gameObject.SetActive(false);
+            State &= ~ViewState.Enabled;
+            State |= ViewState.Disabled;
+            OnHide();
+        }
+
+        public async UniTask Destroy()
+        {
+            foreach (var subView in subViews)
+            {
+                await subView.Destroy();
+            }
+            subViews.Clear();
+
+            foreach (var binding in bindings)
+            {
+                binding.Dispose();
+            }
+            bindings.Clear();
+
+            OnDestroy();
+            if (gameObject != null)
+            {
+                Loader.ReleaseInstance(gameObject);
+            }
+
+            Loader.Dispose();
+            gameObject = null;
+            transform = null;
+            State = ViewState.Destroyed;
+        }
+
+        protected virtual void InitComponent()
+        {
+        }
+
+        protected virtual void OnGameObjectInitialize()
+        {
+        }
+
+        protected virtual void OnShow()
+        {
+        }
+
+        protected virtual void OnHide()
+        {
+        }
+
+        protected virtual void OnDestroy()
+        {
+        }
+    }
+}

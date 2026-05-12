@@ -1,0 +1,76 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+namespace Core.Runtime
+{
+    public static class HotUpdateAssemblyLoader
+    {
+        public static async UniTask<List<Assembly>> LoadAsync(IEnumerable<string> hotUpdateAssemblies)
+        {
+            var assemblies = new List<Assembly>();
+            if (hotUpdateAssemblies == null)
+            {
+                return assemblies;
+            }
+
+#if UNITY_EDITOR
+            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+#endif
+            foreach (var assemblyName in hotUpdateAssemblies)
+            {
+                if (string.IsNullOrWhiteSpace(assemblyName))
+                {
+                    continue;
+                }
+
+#if UNITY_EDITOR
+                var editorAssembly = FindLoadedAssembly(loadedAssemblies, assemblyName);
+                if (editorAssembly != null)
+                {
+                    assemblies.Add(editorAssembly);
+                    Debug.Log($"[HotUpdate] 编辑器复用已加载程序集: {editorAssembly.GetName().Name}");
+                    continue;
+                }
+#endif
+                var asset = await YooAssetResourceSystem.LoadTextAssetAsync(assemblyName);
+                if (asset == null)
+                {
+                    Debug.LogWarning($"[HotUpdate] 跳过热更程序集，未找到资源: {assemblyName}");
+                    continue;
+                }
+
+                var assembly = Assembly.Load(asset.bytes);
+                assemblies.Add(assembly);
+                Debug.Log($"[HotUpdate] 加载热更程序集: {assembly.GetName().Name}");
+            }
+
+            return assemblies;
+        }
+
+#if UNITY_EDITOR
+        private static Assembly FindLoadedAssembly(IEnumerable<Assembly> assemblies, string assemblyName)
+        {
+            var normalized = NormalizeAssemblyName(assemblyName);
+            foreach (var assembly in assemblies)
+            {
+                if (assembly.GetName().Name == normalized)
+                {
+                    return assembly;
+                }
+            }
+
+            return null;
+        }
+#endif
+
+        private static string NormalizeAssemblyName(string assemblyName)
+        {
+            return assemblyName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                ? assemblyName.Substring(0, assemblyName.Length - 4)
+                : assemblyName;
+        }
+    }
+}

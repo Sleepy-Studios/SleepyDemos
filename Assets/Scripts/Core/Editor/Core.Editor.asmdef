@@ -1,3 +1,23 @@
 {
-	"name": "Core.Editor"
+    "name": "Core.Editor",
+    "rootNamespace": "Core.Editor",
+    "references": [
+        "Core.Runtime",
+        "UnityEngine.UI",
+        "UnityEditor.UI",
+        "YooAsset",
+        "YooAsset.Editor",
+        "HybridCLR.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

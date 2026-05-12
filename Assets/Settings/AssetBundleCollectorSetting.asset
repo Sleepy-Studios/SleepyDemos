@@ -12,16 +12,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 185f6993d5150494d98da50e26cb1c25, type: 3}
   m_Name: AssetBundleCollectorSetting
   m_EditorClassIdentifier: YooAsset.Editor::YooAsset.Editor.AssetBundleCollectorSetting
-  ShowPackageView: 1
+  ShowPackageView: 0
   ShowEditorAlias: 1
   UniqueBundleName: 1
   Packages:
   - PackageName: DefaultPackage
     PackageDesc: "\u9ED8\u8BA4"
     EnableAddressable: 1
-    SupportExtensionless: 1
+    SupportExtensionless: 0
     LocationToLower: 0
     IncludeAssetGUID: 1
     AutoCollectShaders: 1
     IgnoreRuleName: NormalIgnoreRule
-    Groups: []
+    Groups:
+    - GroupName: UI
+      GroupDesc: "UI\u76F8\u5173"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/UI
+        CollectorGUID: 0548402bdb0c9d34fa5847d0f975b2bc
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Dll
+      GroupDesc: 
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Codes
+        CollectorGUID: c56507930d007774392623af98b5382e
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
