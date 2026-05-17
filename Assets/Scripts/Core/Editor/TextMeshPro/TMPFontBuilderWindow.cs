@@ -22,6 +22,7 @@ namespace Core.Editor.TextMeshPro
         private const string DefaultEnSource = SourceRoot + "/EN/BebasNeue_EN.OTF";
         private const string DefaultCnCharacters = FallbackRoot + "/Default_CN_Characters.txt";
         private const string DefaultEnCharacters = FallbackRoot + "/Default_EN_Characters.txt";
+        private const string EditorPrefsRoot = "SleepyDemos.TMPFontBuilder";
 
         private Font sourceFont;
         private TextAsset characterSetAsset;
@@ -30,10 +31,10 @@ namespace Core.Editor.TextMeshPro
         private string inlineCharacters = string.Empty;
         private int samplingPointSize = 90;
         private int atlasPadding = 9;
-        private int cnAtlasSize = 4096;
-        private int enAtlasSize = 1024;
+        private int atlasSize = 4096;
         private bool exportExternalAtlas = true;
         private bool useAstcPlatformSettings = true;
+        private string lastActionMessage = string.Empty;
 
         private enum FontLanguage
         {
@@ -98,6 +99,25 @@ namespace Core.Editor.TextMeshPro
             sourceFont = (Font)EditorGUILayout.ObjectField("Font File", sourceFont, typeof(Font), false);
             language = (FontLanguage)EditorGUILayout.EnumPopup("Language", language);
 
+            EditorGUILayout.Space(6);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button(GetPresetButtonLabel()))
+                {
+                    ApplyLanguagePreset();
+                }
+
+                if (GUILayout.Button(GetSavePresetButtonLabel()))
+                {
+                    SaveCurrentAsLanguageDefault();
+                }
+            }
+
+            if (!string.IsNullOrEmpty(lastActionMessage))
+            {
+                EditorGUILayout.HelpBox(lastActionMessage, MessageType.Info);
+            }
+
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Characters", EditorStyles.boldLabel);
             characterSetAsset = (TextAsset)EditorGUILayout.ObjectField("Character Set Text", characterSetAsset, typeof(TextAsset), false);
@@ -106,17 +126,13 @@ namespace Core.Editor.TextMeshPro
 
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Fallback", EditorStyles.boldLabel);
-            using (new EditorGUI.DisabledScope(language != FontLanguage.CN))
-            {
-                fallbackFontAsset = (TMP_FontAsset)EditorGUILayout.ObjectField("CN Fallback Font", fallbackFontAsset, typeof(TMP_FontAsset), false);
-            }
+            fallbackFontAsset = (TMP_FontAsset)EditorGUILayout.ObjectField("Fallback Font", fallbackFontAsset, typeof(TMP_FontAsset), false);
 
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Generation", EditorStyles.boldLabel);
             samplingPointSize = EditorGUILayout.IntField("Sampling Point Size", samplingPointSize);
             atlasPadding = EditorGUILayout.IntField("Atlas Padding", atlasPadding);
-            cnAtlasSize = EditorGUILayout.IntField("CN Atlas Size", cnAtlasSize);
-            enAtlasSize = EditorGUILayout.IntField("EN Atlas Size", enAtlasSize);
+            atlasSize = EditorGUILayout.IntField("Atlas Size", atlasSize);
             exportExternalAtlas = EditorGUILayout.Toggle("Export External Atlas", exportExternalAtlas);
             useAstcPlatformSettings = EditorGUILayout.Toggle("ASTC Platform Settings", useAstcPlatformSettings);
 
@@ -128,20 +144,13 @@ namespace Core.Editor.TextMeshPro
                     BuildFromWindow();
                 }
             }
-
-            if (GUILayout.Button("Build Default CN EN Fonts", GUILayout.Height(28)))
-            {
-                BuildDefaultProjectFonts();
-            }
         }
 
         private void LoadDefaults()
         {
             EnsureFolders();
 
-            sourceFont = AssetDatabase.LoadAssetAtPath<Font>(language == FontLanguage.CN ? DefaultCnSource : DefaultEnSource);
-            characterSetAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(language == FontLanguage.CN ? DefaultCnCharacters : DefaultEnCharacters);
-            fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/BebasNeue_EN.asset");
+            LoadSavedOrBuiltinLanguagePreset(preserveSourceFont: false, preserveGenerationSettings: false);
         }
 
         private void BuildFromWindow()
@@ -156,10 +165,10 @@ namespace Core.Editor.TextMeshPro
                 CharacterSetPath = characterSetPath,
                 InlineCharacters = characters,
                 Language = language,
-                FallbackFontAsset = language == FontLanguage.CN ? fallbackFontAsset : null,
+                FallbackFontAsset = GetValidatedFallback(),
                 SamplingPointSize = samplingPointSize,
                 AtlasPadding = atlasPadding,
-                AtlasSize = language == FontLanguage.CN ? cnAtlasSize : enAtlasSize,
+                AtlasSize = atlasSize,
                 ExportExternalAtlas = exportExternalAtlas,
                 UseAstcPlatformSettings = useAstcPlatformSettings
             });
@@ -223,7 +232,7 @@ namespace Core.Editor.TextMeshPro
 
             var addedAll = fontAsset.TryAddCharacters(characters, out var missingCharacters);
             fontAsset.atlasPopulationMode = AtlasPopulationMode.Static;
-            fontAsset.fallbackFontAssetTable = request.Language == FontLanguage.CN && request.FallbackFontAsset != null
+            fontAsset.fallbackFontAssetTable = request.FallbackFontAsset != null
                 ? new List<TMP_FontAsset> { request.FallbackFontAsset }
                 : new List<TMP_FontAsset>();
 
@@ -457,6 +466,114 @@ namespace Core.Editor.TextMeshPro
         private static string ToFullPath(string assetPath)
         {
             return Path.GetFullPath(Path.Combine(Application.dataPath, assetPath.Substring("Assets/".Length)));
+        }
+
+        private void ApplyLanguagePreset()
+        {
+            LoadSavedOrBuiltinLanguagePreset(preserveSourceFont: false, preserveGenerationSettings: false);
+            lastActionMessage = $"已加载 {language} 默认预设。优先使用你保存过的默认值；如果还没保存过，就使用内置预设。";
+        }
+
+        private void SyncLanguageDefaults(bool preserveSourceFont, bool preserveGenerationSettings)
+        {
+            if (!preserveGenerationSettings)
+            {
+                atlasSize = language == FontLanguage.CN ? 4096 : 1024;
+            }
+
+            characterSetAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(language == FontLanguage.CN ? DefaultCnCharacters : DefaultEnCharacters);
+
+            if (!preserveSourceFont || sourceFont == null)
+            {
+                sourceFont = AssetDatabase.LoadAssetAtPath<Font>(language == FontLanguage.CN ? DefaultCnSource : DefaultEnSource);
+            }
+
+            if (fallbackFontAsset == null)
+            {
+                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/BebasNeue_EN.asset");
+            }
+        }
+
+        private void LoadSavedOrBuiltinLanguagePreset(bool preserveSourceFont, bool preserveGenerationSettings)
+        {
+            SyncLanguageDefaults(preserveSourceFont, preserveGenerationSettings);
+
+            var prefix = GetLanguagePrefsPrefix();
+            if (!EditorPrefs.HasKey(prefix + ".SourceFontPath"))
+            {
+                return;
+            }
+
+            if (!preserveSourceFont || sourceFont == null)
+            {
+                sourceFont = AssetDatabase.LoadAssetAtPath<Font>(EditorPrefs.GetString(prefix + ".SourceFontPath", string.Empty)) ?? sourceFont;
+            }
+
+            characterSetAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(EditorPrefs.GetString(prefix + ".CharacterSetPath", string.Empty)) ?? characterSetAsset;
+
+            if (!preserveGenerationSettings)
+            {
+                samplingPointSize = EditorPrefs.GetInt(prefix + ".SamplingPointSize", samplingPointSize);
+                atlasPadding = EditorPrefs.GetInt(prefix + ".AtlasPadding", atlasPadding);
+                atlasSize = EditorPrefs.GetInt(prefix + ".AtlasSize", atlasSize);
+                exportExternalAtlas = EditorPrefs.GetBool(prefix + ".ExportExternalAtlas", exportExternalAtlas);
+                useAstcPlatformSettings = EditorPrefs.GetBool(prefix + ".UseAstcPlatformSettings", useAstcPlatformSettings);
+            }
+
+            var savedFallbackPath = EditorPrefs.GetString(prefix + ".FallbackFontPath", string.Empty);
+            fallbackFontAsset = string.IsNullOrEmpty(savedFallbackPath) ? fallbackFontAsset : AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(savedFallbackPath);
+        }
+
+        private void SaveCurrentAsLanguageDefault()
+        {
+            var prefix = GetLanguagePrefsPrefix();
+
+            EditorPrefs.SetString(prefix + ".SourceFontPath", AssetDatabase.GetAssetPath(sourceFont));
+            EditorPrefs.SetString(prefix + ".CharacterSetPath", AssetDatabase.GetAssetPath(characterSetAsset));
+            EditorPrefs.SetInt(prefix + ".SamplingPointSize", samplingPointSize);
+            EditorPrefs.SetInt(prefix + ".AtlasPadding", atlasPadding);
+            EditorPrefs.SetInt(prefix + ".AtlasSize", atlasSize);
+            EditorPrefs.SetBool(prefix + ".ExportExternalAtlas", exportExternalAtlas);
+            EditorPrefs.SetBool(prefix + ".UseAstcPlatformSettings", useAstcPlatformSettings);
+
+            EditorPrefs.SetString(prefix + ".FallbackFontPath", AssetDatabase.GetAssetPath(fallbackFontAsset));
+
+            lastActionMessage = $"已把当前 {language} 参数保存为默认值。下次打开窗口或加载默认预设时会优先使用这套配置。";
+        }
+
+        private string GetPresetButtonLabel()
+        {
+            return language == FontLanguage.CN ? "Load CN Preset" : "Load EN Preset";
+        }
+
+        private string GetSavePresetButtonLabel()
+        {
+            return language == FontLanguage.CN ? "Save CN Preset" : "Save EN Preset";
+        }
+
+        private string GetLanguagePrefsPrefix()
+        {
+            return $"{EditorPrefsRoot}.{language}";
+        }
+
+        private TMP_FontAsset GetValidatedFallback()
+        {
+            if (fallbackFontAsset == null || sourceFont == null)
+            {
+                return fallbackFontAsset;
+            }
+
+            var fallbackPath = AssetDatabase.GetAssetPath(fallbackFontAsset);
+            var targetName = GetTargetAssetName(AssetDatabase.GetAssetPath(sourceFont), language);
+            var expectedTargetPath = $"{FontAssetRoot}/{language}/{targetName}.asset";
+
+            if (string.Equals(fallbackPath, expectedTargetPath, StringComparison.OrdinalIgnoreCase))
+            {
+                lastActionMessage = "当前 fallback 指向了正在生成的同一份字体，已自动忽略这个 fallback。";
+                return null;
+            }
+
+            return fallbackFontAsset;
         }
 
         private sealed class BuildRequest

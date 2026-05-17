@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: HotReloadSettingsObject
   m_EditorClassIdentifier: SingularityGroup.HotReload.Runtime::SingularityGroup.HotReload.HotReloadSettingsObject
   IncludeInBuild: 0
-  AllowAndroidAppToMakeHttpRequests: 0
+  AllowAndroidAppToMakeHttpRequests: 1
   PromptsPrefab: {fileID: 4967086677379066170, guid: 0dc8d7047b14c44b7970c5d35665dbe1, type: 3}
