@@ -170,13 +170,10 @@
       }
     },
     "com.unity.scriptablebuildpipeline": {
-      "version": "2.6.1",
-      "depth": 1,
+      "version": "1.21.25",
+      "depth": 0,
       "source": "registry",
-      "dependencies": {
-        "com.unity.test-framework": "1.4.5",
-        "com.unity.modules.assetbundle": "1.0.0"
-      },
+      "dependencies": {},
       "url": "https://packages.unity.com"
     },
     "com.unity.searcher": {

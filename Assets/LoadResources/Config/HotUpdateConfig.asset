@@ -15,7 +15,8 @@ MonoBehaviour:
   PlayMode: 0
   PackageName: DefaultPackage
   BaseServerURL: 
-  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-05-13-134
+  RemoteBaseServerURL: 
+  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/Simulate
   AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/StandaloneWindows64
   AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/StandaloneWindows64
   AotTargetPath: Assets/LoadResources/Codes/Aot
@@ -28,3 +29,12 @@ MonoBehaviour:
   HotUpdateTargetPath: Assets/LoadResources/Codes/HotUpdate
   HotUpdateAssemblies:
   - Hotfix.dll
+  SshHost: 13.75.121.163
+  SshPort: 22
+  SshUser: root
+  KeyFilePath: Assets/LoadResources/Config/key
+  ServerBasePath: /www/wwwroot/13.75.121.163/Sleepy_Framework
+  UseLocalMockServer: 0
+  MockServerFolderPath: 
+  LocalServerHost: 127.0.0.1
+  LocalServerPort: 8083

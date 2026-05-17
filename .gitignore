@@ -43,6 +43,8 @@ Assets/AddressableAssetsData/*/*.bin*
 
 # YooAssets build output / YooAssets 构建输出
 Bundles/
+/yoo/
+/Assets/StreamingAssets/yoo/
 
 # HybridCLR generated data / HybridCLR 生成数据
 HybridCLRData/
