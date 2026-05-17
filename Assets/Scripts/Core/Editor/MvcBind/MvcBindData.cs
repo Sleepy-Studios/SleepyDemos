@@ -220,7 +220,7 @@ namespace Core.Editor.MvcBind
 
     public static class MvcBindToolConfig
     {
-        public const string ScriptRoot = "Assets/Scripts/Hofix";
+        public const string ScriptRoot = "Assets/Scripts/Hotfix";
         public const string ModuleRoot = ScriptRoot + "/Module";
         public const string DefaultNamespace = "Hotfix";
         public const string DefaultModuleName = "";
