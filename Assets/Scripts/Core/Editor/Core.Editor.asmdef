@@ -5,6 +5,7 @@
         "Core.Runtime",
         "UnityEngine.UI",
         "UnityEditor.UI",
+        "Unity.TextMeshPro",
         "YooAsset",
         "YooAsset.Editor",
         "HybridCLR.Editor"
