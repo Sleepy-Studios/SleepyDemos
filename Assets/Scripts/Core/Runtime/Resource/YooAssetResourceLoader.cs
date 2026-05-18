@@ -6,16 +6,32 @@ using Object = UnityEngine.Object;
 
 namespace Core.Runtime
 {
-    public sealed class YooAssetResourceLoader : IResourceLoader
+    internal sealed class YooAssetResourceLoader : IResourceLoader
     {
+        private readonly IResourceService service;
         private readonly List<AssetHandle> handles = new List<AssetHandle>();
         private readonly Dictionary<GameObject, AssetHandle> instanceHandles = new Dictionary<GameObject, AssetHandle>();
+        private readonly Dictionary<Object, AssetHandle> assetHandles = new Dictionary<Object, AssetHandle>();
+
+        public YooAssetResourceLoader() : this(ResourceServices.Default)
+        {
+        }
+
+        public YooAssetResourceLoader(IResourceService service)
+        {
+            this.service = service;
+        }
 
         public async UniTask<GameObject> InstantiateAsync(string address, Transform parent)
         {
+            return await InstantiateAsync(address, parent, false);
+        }
+
+        public async UniTask<GameObject> InstantiateAsync(string address, Transform parent, bool worldPositionStays)
+        {
             if (!YooAssetResourceSystem.IsInitialized)
             {
-                await YooAssetResourceSystem.InitializeAsync();
+                await service.InitializeAsync(ResourceInitializeOptions.Default);
             }
 
             if (!YooAssetResourceSystem.IsInitialized || YooAssetResourceSystem.DefaultPackage == null)
@@ -24,7 +40,7 @@ namespace Core.Runtime
                 return null;
             }
 
-            var location = NormalizeLocation(address);
+            var location = service.NormalizeAddress(address);
             var handle = YooAssetResourceSystem.DefaultPackage.LoadAssetAsync<GameObject>(location);
             handles.Add(handle);
             await handle.Task.AsUniTask();
@@ -32,14 +48,18 @@ namespace Core.Runtime
             if (handle.Status != EOperationStatus.Succeed)
             {
                 Debug.LogError($"加载 UI 预制体失败: {address}, {handle.LastError}");
+                handle.Release();
+                handles.Remove(handle);
                 return null;
             }
 
-            var operation = handle.InstantiateAsync(parent);
+            var operation = handle.InstantiateAsync(parent, worldPositionStays);
             await operation.Task.AsUniTask();
             if (operation.Status != EOperationStatus.Succeed)
             {
                 Debug.LogError($"实例化 UI 预制体失败: {address}, {operation.Error}");
+                handle.Release();
+                handles.Remove(handle);
                 return null;
             }
 
@@ -55,7 +75,7 @@ namespace Core.Runtime
         {
             if (!YooAssetResourceSystem.IsInitialized)
             {
-                await YooAssetResourceSystem.InitializeAsync();
+                await service.InitializeAsync(ResourceInitializeOptions.Default);
             }
 
             if (!YooAssetResourceSystem.IsInitialized || YooAssetResourceSystem.DefaultPackage == null)
@@ -64,17 +84,40 @@ namespace Core.Runtime
                 return null;
             }
 
-            var location = NormalizeLocation(address);
+            var location = service.NormalizeAddress(address);
             var handle = YooAssetResourceSystem.DefaultPackage.LoadAssetAsync<T>(location);
             handles.Add(handle);
             await handle.Task.AsUniTask();
             if (handle.Status != EOperationStatus.Succeed)
             {
                 Debug.LogError($"加载资源失败: {address}, {handle.LastError}");
+                handle.Release();
+                handles.Remove(handle);
                 return null;
             }
 
-            return handle.GetAssetObject<T>();
+            var asset = handle.GetAssetObject<T>();
+            if (asset != null)
+            {
+                assetHandles[asset] = handle;
+            }
+
+            return asset;
+        }
+
+        public void ReleaseAsset(Object asset)
+        {
+            if (asset == null)
+            {
+                return;
+            }
+
+            if (assetHandles.TryGetValue(asset, out var handle))
+            {
+                assetHandles.Remove(asset);
+                handle.Release();
+                handles.Remove(handle);
+            }
         }
 
         public void ReleaseInstance(GameObject instance)
@@ -106,6 +149,7 @@ namespace Core.Runtime
                 }
             }
             instanceHandles.Clear();
+            assetHandles.Clear();
 
             for (int i = handles.Count - 1; i >= 0; i--)
             {
@@ -114,14 +158,5 @@ namespace Core.Runtime
             handles.Clear();
         }
 
-        private static string NormalizeLocation(string address)
-        {
-            if (string.IsNullOrEmpty(address))
-            {
-                return address;
-            }
-
-            return address.Replace('\\', '/');
-        }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Core.Runtime
 {
@@ -36,6 +37,16 @@ namespace Core.Runtime
         public void Remove(Type type)
         {
             views.Remove(type);
+        }
+
+        public List<View> GetAllViews()
+        {
+            return views.Values.Where(view => view != null).ToList();
+        }
+
+        public void Clear()
+        {
+            views.Clear();
         }
     }
 }

@@ -14,14 +14,15 @@ namespace Core.Runtime
             var config = Context.Config;
             if (config != null)
             {
-                await YooAssetResourceSystem.InitializeAsync(config.PackageName, config.PlayMode, config.BaseServerURL);
+                var options = new ResourceInitializeOptions(config.PackageName, config.PlayMode, config.BaseServerURL);
+                await ResourceServices.Default.InitializeAsync(options);
             }
             else
             {
-                await YooAssetResourceSystem.InitializeAsync();
+                await ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default);
             }
 
-            if (!YooAssetResourceSystem.IsInitialized)
+            if (!ResourceServices.Default.IsInitialized)
             {
                 throw new System.InvalidOperationException("YooAssets 初始化失败，未获得可用资源清单。");
             }

@@ -26,10 +26,10 @@ namespace Core.Runtime
 
         private static async UniTaskVoid LoadAtlasAsync(string atlasName, Action<SpriteAtlas> callback)
         {
-            var atlas = await YooAssetResourceSystem.LoadAssetAsync<SpriteAtlas>(atlasName);
-            if (atlas != null)
+            var result = await ResourceServices.Default.LoadAssetAsync<SpriteAtlas>(atlasName);
+            if (result.Success)
             {
-                callback?.Invoke(atlas);
+                callback?.Invoke(result.Asset);
             }
         }
     }

@@ -30,12 +30,14 @@
 ### 阶段 2：Resource
 
 职责：
-- 初始化 YooAsset
+- 通过 Core 资源服务初始化当前资源实现
 - 执行资源下载或资源准备
 
 当前系统：
 - `YooAssetInitializeSystem`
 - `ResourceDownloadSystem`
+
+当前底层实现仍是 YooAssets，但启动系统通过 `ResourceServices.Default` 访问资源服务；上层不应直接依赖 YooAssets 的包、句柄或操作类型。
 
 ### 阶段 3：BeforeHotfix
 
@@ -68,6 +70,7 @@ Hotfix 入口位于：
 - 不要把业务 UI 初始化提前塞进 Core 的低层系统里
 - 改状态顺序时，要同步检查资源、程序集和 UI 的前置依赖
 - 改 Hotfix 入口时，要同步检查 MvcBind 生成代码、预制体地址和主菜单可见性
+- 改资源底层实现时，优先替换 `IResourceService` 注册点和实现层，不要把具体资源框架类型扩散到 UI 或 Hotfix
 - 只要启动链路变化，就必须同步更新本文档
 
 ## 排障定位建议

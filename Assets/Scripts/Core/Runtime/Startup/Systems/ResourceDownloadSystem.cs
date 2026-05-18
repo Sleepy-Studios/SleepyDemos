@@ -12,7 +12,7 @@ namespace Core.Runtime
         public override async UniTask ExecuteAsync()
         {
             Report(0f, "检查资源更新");
-            var report = await YooAssetResourceSystem.DownloadPackageAsync(10, 3, progress =>
+            var report = await ResourceServices.Default.DownloadPackageAsync(10, 3, progress =>
             {
                 var size = progress.TotalBytes <= 0
                     ? "无需下载"

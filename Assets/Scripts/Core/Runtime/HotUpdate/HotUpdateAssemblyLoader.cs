@@ -35,14 +35,24 @@ namespace Core.Runtime
                     continue;
                 }
 #endif
-                var asset = await YooAssetResourceSystem.LoadTextAssetAsync(assemblyName);
-                if (asset == null)
+                var result = await ResourceServices.Default.LoadTextAssetAsync(assemblyName);
+                if (!result.Success)
                 {
                     Debug.LogWarning($"[HotUpdate] 跳过热更程序集，未找到资源: {assemblyName}");
                     continue;
                 }
 
-                var assembly = Assembly.Load(asset.bytes);
+                var bytes = result.Asset.bytes;
+                Assembly assembly;
+                try
+                {
+                    assembly = Assembly.Load(bytes);
+                }
+                finally
+                {
+                    ResourceServices.Default.ReleaseAsset(result.Asset);
+                }
+
                 assemblies.Add(assembly);
                 Debug.Log($"[HotUpdate] 加载热更程序集: {assembly.GetName().Name}");
             }

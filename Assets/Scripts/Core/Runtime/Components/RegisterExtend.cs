@@ -54,6 +54,18 @@ namespace Core.Runtime
             list.Register(action);
         }
 
+        [ComponentAttribute("On{0}ValueChanged", true)]
+        public static void RegisterUIDropdown(this View view, UIDropdown dropdown, Action<int> action)
+        {
+            dropdown.Register(action);
+        }
+
+        [ComponentAttribute("On{0}ValueChanged", true)]
+        public static void RegisterUIBtnSwitch(this View view, UIBtnSwitch btnSwitch, Action<bool> action)
+        {
+            btnSwitch.Register(action);
+        }
+
         [ComponentAttribute("On{0}Click", true)]
         public static void RegisterButton(this ItemView view, Button button, UnityAction onClick)
         {
@@ -100,6 +112,18 @@ namespace Core.Runtime
         public static void RegisterViewList(this ItemView view, ViewList list, Action<int> action)
         {
             list.Register(action);
+        }
+
+        [ComponentAttribute("On{0}ValueChanged", true)]
+        public static void RegisterUIDropdown(this ItemView view, UIDropdown dropdown, Action<int> action)
+        {
+            dropdown.Register(action);
+        }
+
+        [ComponentAttribute("On{0}ValueChanged", true)]
+        public static void RegisterUIBtnSwitch(this ItemView view, UIBtnSwitch btnSwitch, Action<bool> action)
+        {
+            btnSwitch.Register(action);
         }
     }
 }

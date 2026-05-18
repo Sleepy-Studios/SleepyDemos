@@ -19,8 +19,13 @@
   - 全局规则、分层边界、启动流程、文档维护规则
 - `modules/`
   - 关键模块的职责、入口、常见改法、注意事项
+  - [Core.Runtime](./modules/core-runtime.md)
+  - [Core 资源运行时](./modules/resource-runtime.md)
+  - [Core UI 运行时](./modules/ui-runtime.md)
+  - [Hotfix 主入口](./modules/hotfix-main.md)
 - `runbooks/`
   - 新增 Demo、构建热更、排障等操作步骤
+  - [验证 Core 运行时基础设施](./runbooks/validate-core-runtime-infrastructure.md)
 
 ## 如何判断文档该写到哪里
 - 这是全局规则或边界：写到 `architecture/`

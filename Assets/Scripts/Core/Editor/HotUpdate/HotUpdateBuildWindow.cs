@@ -155,7 +155,7 @@ namespace Core.Editor.HotUpdate
             }
 
             EditorGUI.indentLevel++;
-            config.PlayMode = (YooAssetPlayMode)EditorGUILayout.EnumPopup(
+            config.PlayMode = (ResourcePlayMode)EditorGUILayout.EnumPopup(
                 new GUIContent("PlayMode", "资源运行模式。远端下载请选择 HostPlayMode，本地编辑器预览通常用 EditorSimulateMode。"),
                 config.PlayMode);
             config.PackageName = EditorGUILayout.TextField(
@@ -741,7 +741,7 @@ namespace Core.Editor.HotUpdate
         private static void ApplyPlatformDefaults(HotUpdateConfig target, bool pc)
         {
             string platform = pc ? "StandaloneWindows64" : "Android";
-            target.PackageName = string.IsNullOrWhiteSpace(target.PackageName) ? YooAssetResourceSystem.DefaultPackageName : target.PackageName;
+            target.PackageName = string.IsNullOrWhiteSpace(target.PackageName) ? ResourceInitializeOptions.DefaultPackageName : target.PackageName;
             target.AotSourcePath = $"HybridCLRData/AssembliesPostIl2CppStrip/{platform}";
             target.AotStrippedSourcePath = $"HybridCLRData/StrippedAOTAssembly2/{platform}";
             target.HotUpdateSourcePath = $"HybridCLRData/HotUpdateDlls/{platform}";

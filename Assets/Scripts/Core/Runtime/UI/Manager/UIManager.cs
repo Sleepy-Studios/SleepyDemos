@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -7,11 +8,13 @@ namespace Core.Runtime
     public sealed class UIManager : Singleton<UIManager>
     {
         private UIStack layerStack;
+        private readonly HashSet<Type> openingTypes = new HashSet<Type>();
+        private readonly HashSet<Type> closingTypes = new HashSet<Type>();
 
         public UICache cacheStack { get; private set; }
         public string LastCloseName { get; private set; }
         public string CurrentUIName { get; private set; }
-        public int StackCount => layerStack.TotalCount;
+        public int StackCount => layerStack?.TotalCount ?? 0;
 
         public event Action<View> OnBeginOpen;
         public event Action<View> OnOpen;
@@ -43,6 +46,11 @@ namespace Core.Runtime
             if (view == null)
             {
                 return null;
+            }
+
+            if (openingTypes.Contains(type))
+            {
+                return view;
             }
 
             OnBeginOpen?.Invoke(view);
@@ -99,7 +107,7 @@ namespace Core.Runtime
         public void Close(Type type, bool animation = true)
         {
             var view = cacheStack.GetView(type);
-            if (view == null || layerStack == null || !layerStack.PrepareRemove(view))
+            if (view == null || layerStack == null || closingTypes.Contains(type) || !layerStack.PrepareRemove(view))
             {
                 return;
             }
@@ -113,6 +121,70 @@ namespace Core.Runtime
             {
                 Close(layerStack.StackTopView.GetType());
             }
+        }
+
+        public async UniTask Preload<T>() where T : View
+        {
+            await InitializeAsync();
+            var view = cacheStack.GetOrCreateView<T>();
+            if (view == null || (view.State & ViewState.Loaded) != 0)
+            {
+                return;
+            }
+
+            await view.InitAsync(UIRootManager.Instance.GetRoot(view.Level));
+            if (!view.IsEnable)
+            {
+                await view.Hide(false);
+            }
+        }
+
+        public async UniTask Preload<T, TData>(TData data) where T : View<TData>
+        {
+            var view = cacheStack.GetOrCreateView<T>();
+            view.SetData(data);
+            await Preload<T>();
+        }
+
+        public async UniTask CloseAll(bool animation = false)
+        {
+            if (layerStack == null)
+            {
+                return;
+            }
+
+            var views = cacheStack.GetAllViews();
+            for (int i = 0; i < views.Count; i++)
+            {
+                var view = views[i];
+                if (view == null)
+                {
+                    continue;
+                }
+
+                view.Reference = 0;
+                if ((view.State & ViewState.Loaded) != 0)
+                {
+                    await view.Hide(animation);
+                }
+
+                await view.Destroy();
+            }
+
+            cacheStack.Clear();
+            layerStack.Clear();
+            CurrentUIName = null;
+            LastCloseName = null;
+        }
+
+        public View GetStackTopView()
+        {
+            return layerStack?.StackTopView;
+        }
+
+        public Type GetStackTopViewType()
+        {
+            return layerStack?.StackTopView?.GetType();
         }
 
         public void NewStack(string stackName)
@@ -140,72 +212,91 @@ namespace Core.Runtime
 
         private async UniTaskVoid ShowAsync(View view, bool hidePrevious)
         {
+            var type = view.GetType();
+            openingTypes.Add(type);
+            closingTypes.Remove(type);
             await InitializeAsync();
 
-            if (layerStack.StackTopView == view)
+            try
             {
-                return;
-            }
+                if (layerStack.StackTopView == view)
+                {
+                    return;
+                }
 
-            view.OnBeforeInit();
-            var lastView = layerStack.Add(view);
-            if (lastView != null && lastView != view)
-            {
-                LastCloseName = lastView.Name;
-                view.ForceDisable = hidePrevious;
-                OnBehind?.Invoke(lastView);
-            }
+                view.OnBeforeInit();
+                var lastView = layerStack.Add(view);
+                if (lastView != null && lastView != view)
+                {
+                    LastCloseName = lastView.Name;
+                    view.ForceDisable = hidePrevious;
+                    OnBehind?.Invoke(lastView);
+                }
 
-            var beforeOpen = OnBeforeOpen?.Invoke(view);
-            if ((view.State & ViewState.Loaded) == 0)
-            {
-                await view.InitAsync(UIRootManager.Instance.GetRoot(view.Level));
-            }
+                var beforeOpen = OnBeforeOpen?.Invoke(view);
+                if ((view.State & ViewState.Loaded) == 0)
+                {
+                    await view.InitAsync(UIRootManager.Instance.GetRoot(view.Level));
+                }
 
-            if (beforeOpen.HasValue)
-            {
-                await beforeOpen.Value;
-            }
+                if (beforeOpen.HasValue)
+                {
+                    await beforeOpen.Value;
+                }
 
-            if (hidePrevious && lastView != null && lastView != view)
-            {
-                await lastView.Hide();
-            }
+                if (hidePrevious && lastView != null && lastView != view)
+                {
+                    await lastView.Hide();
+                }
 
-            if (view.CameraAnimation != null)
-            {
-                await view.CameraAnimation.Show(view);
-            }
+                if (view.CameraAnimation != null)
+                {
+                    await view.CameraAnimation.Show(view);
+                }
 
-            await view.Show();
-            if (!view.IsWidget)
-            {
-                CurrentUIName = view.Name;
-            }
+                await view.Show();
+                if (!view.IsWidget)
+                {
+                    CurrentUIName = view.Name;
+                }
 
-            if (view.transform != null)
-            {
-                view.transform.SetAsLastSibling();
+                if (view.transform != null)
+                {
+                    view.transform.SetAsLastSibling();
+                }
+                layerStack.CheckNeedMask(view);
+                OnOpen?.Invoke(view);
             }
-            layerStack.CheckNeedMask(view);
-            OnOpen?.Invoke(view);
+            finally
+            {
+                openingTypes.Remove(type);
+            }
         }
 
         private async UniTaskVoid HideAsync(View view, bool animation)
         {
-            if (view.CameraAnimation != null)
+            var type = view.GetType();
+            closingTypes.Add(type);
+            try
             {
-                await view.CameraAnimation.Hide(view);
+                if (view.CameraAnimation != null)
+                {
+                    await view.CameraAnimation.Hide(view);
+                }
+
+                await view.Hide(animation);
+                await layerStack.Remove(view);
+                OnClose?.Invoke(view);
+
+                if (view.DestroyOnHide && view.Reference <= 0)
+                {
+                    await view.Destroy();
+                    cacheStack.Remove(view.GetType());
+                }
             }
-
-            await view.Hide(animation);
-            await layerStack.Remove(view);
-            OnClose?.Invoke(view);
-
-            if (view.DestroyOnHide && view.Reference <= 0)
+            finally
             {
-                await view.Destroy();
-                cacheStack.Remove(view.GetType());
+                closingTypes.Remove(type);
             }
         }
     }

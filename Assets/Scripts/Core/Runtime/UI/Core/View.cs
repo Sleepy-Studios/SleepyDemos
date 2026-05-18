@@ -10,6 +10,8 @@ namespace Core.Runtime
         private IResourceLoader loader;
         private readonly List<IDisposable> bindings = new List<IDisposable>();
         private readonly List<View> subViews = new List<View>();
+        private UniTask<GameObject> loadingTask;
+        private bool isLoading;
 
         public virtual string Address => string.Empty;
         public virtual UILayer Level => UILayer.Base;
@@ -21,7 +23,7 @@ namespace Core.Runtime
 
         public IResourceLoader Loader
         {
-            get => loader ??= new YooAssetResourceLoader();
+            get => loader ??= ResourceServices.CreateLoader();
             set => loader = value;
         }
 
@@ -62,6 +64,11 @@ namespace Core.Runtime
         {
             if ((State & ViewState.FirstInit) != 0)
             {
+                if (isLoading)
+                {
+                    await loadingTask;
+                }
+
                 return;
             }
 
@@ -72,7 +79,24 @@ namespace Core.Runtime
                 return;
             }
 
-            gameObject = await Loader.InstantiateAsync(Address, parent);
+            isLoading = true;
+            loadingTask = Loader.InstantiateAsync(Address, parent);
+            gameObject = await loadingTask;
+            isLoading = false;
+            if (gameObject == null)
+            {
+                State &= ~ViewState.FirstInit;
+                return;
+            }
+
+            if ((State & ViewState.Destroyed) != 0)
+            {
+                Loader.ReleaseInstance(gameObject);
+                gameObject = null;
+
+                return;
+            }
+
             CompleteInit();
         }
 
@@ -106,7 +130,7 @@ namespace Core.Runtime
 
         public async UniTask Show(bool animation = true)
         {
-            if (gameObject == null)
+            if (gameObject == null || (State & ViewState.Destroyed) != 0)
             {
                 return;
             }
@@ -124,7 +148,7 @@ namespace Core.Runtime
 
         public async UniTask Hide(bool animation = true)
         {
-            if (gameObject == null)
+            if (gameObject == null || (State & ViewState.Destroyed) != 0)
             {
                 return;
             }
@@ -142,6 +166,17 @@ namespace Core.Runtime
 
         public async UniTask Destroy()
         {
+            if ((State & ViewState.Destroyed) != 0)
+            {
+                return;
+            }
+
+            State = ViewState.Destroyed;
+            if (isLoading)
+            {
+                await loadingTask;
+            }
+
             foreach (var subView in subViews)
             {
                 await subView.Destroy();
@@ -163,7 +198,6 @@ namespace Core.Runtime
             Loader.Dispose();
             gameObject = null;
             transform = null;
-            State = ViewState.Destroyed;
         }
 
         protected virtual void InitComponent()

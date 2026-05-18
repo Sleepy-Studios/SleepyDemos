@@ -26,15 +26,25 @@ namespace Core.Runtime
                     continue;
                 }
 
-                var asset = await YooAssetResourceSystem.LoadTextAssetAsync(assemblyName);
-                if (asset == null)
+                var result = await ResourceServices.Default.LoadTextAssetAsync(assemblyName);
+                if (!result.Success)
                 {
                     Debug.LogWarning($"[HybridCLR] 跳过 AOT 元数据，未找到资源: {assemblyName}");
                     continue;
                 }
 
-                var errorCode = RuntimeApi.LoadMetadataForAOTAssembly(asset.bytes, mode);
-                Debug.Log($"[HybridCLR] 加载 AOT 元数据: {assemblyName}, mode: {mode}, result: {errorCode}, size: {FormatBytes(asset.bytes.Length)}");
+                var bytes = result.Asset.bytes;
+                LoadImageErrorCode errorCode;
+                try
+                {
+                    errorCode = RuntimeApi.LoadMetadataForAOTAssembly(bytes, mode);
+                }
+                finally
+                {
+                    ResourceServices.Default.ReleaseAsset(result.Asset);
+                }
+
+                Debug.Log($"[HybridCLR] 加载 AOT 元数据: {assemblyName}, mode: {mode}, result: {errorCode}, size: {FormatBytes(bytes.Length)}");
             }
         }
 

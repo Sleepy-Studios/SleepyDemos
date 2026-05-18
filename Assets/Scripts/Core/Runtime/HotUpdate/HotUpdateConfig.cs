@@ -5,9 +5,9 @@ namespace Core.Runtime
     [CreateAssetMenu(fileName = "HotUpdateConfig", menuName = "Sleepy/Hot Update Config")]
     public sealed class HotUpdateConfig : ScriptableObject
     {
-        [Header("YooAssets")]
-        public YooAssetPlayMode PlayMode = YooAssetPlayMode.EditorSimulateMode;
-        public string PackageName = YooAssetResourceSystem.DefaultPackageName;
+        [Header("Resources")]
+        public ResourcePlayMode PlayMode = ResourcePlayMode.EditorSimulateMode;
+        public string PackageName = ResourceInitializeOptions.DefaultPackageName;
         public string BaseServerURL = string.Empty;
         public string RemoteBaseServerURL = string.Empty;
         public string LocalBundlePath = "Bundles/StandaloneWindows64/DefaultPackage";
@@ -35,10 +35,4 @@ namespace Core.Runtime
         public int LocalServerPort = 18080;
     }
 
-    public enum YooAssetPlayMode
-    {
-        EditorSimulateMode,
-        OfflinePlayMode,
-        HostPlayMode
-    }
 }

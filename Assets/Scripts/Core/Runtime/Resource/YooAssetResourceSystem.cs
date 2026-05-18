@@ -6,22 +6,22 @@ using Object = UnityEngine.Object;
 
 namespace Core.Runtime
 {
-    public static class YooAssetResourceSystem
+    internal static class YooAssetResourceSystem
     {
-        public const string DefaultPackageName = "DefaultPackage";
+        public const string DefaultPackageName = ResourceInitializeOptions.DefaultPackageName;
 
         private static bool initializing;
         private static bool packageInitialized;
         private static UniTask initializeTask;
         private static string initializedPackageName;
-        private static YooAssetPlayMode initializedPlayMode;
+        private static ResourcePlayMode initializedPlayMode;
 
         public static bool IsInitialized { get; private set; }
         public static ResourcePackage DefaultPackage { get; private set; }
 
         public static UniTask InitializeAsync(
             string packageName = DefaultPackageName,
-            YooAssetPlayMode playMode = YooAssetPlayMode.EditorSimulateMode,
+            ResourcePlayMode playMode = ResourcePlayMode.EditorSimulateMode,
             string hostServerURL = null)
         {
             return InitializeInternalWithPlayModeAsync(packageName, playMode, ToYooAssetPlayMode(playMode), hostServerURL);
@@ -29,7 +29,7 @@ namespace Core.Runtime
 
         private static UniTask InitializeInternalWithPlayModeAsync(
             string packageName,
-            YooAssetPlayMode requestedPlayMode,
+            ResourcePlayMode requestedPlayMode,
 #if UNITY_EDITOR
             EPlayMode playMode = EPlayMode.EditorSimulateMode,
 #else
@@ -55,15 +55,15 @@ namespace Core.Runtime
             return initializeTask;
         }
 
-        private static EPlayMode ToYooAssetPlayMode(YooAssetPlayMode playMode)
+        private static EPlayMode ToYooAssetPlayMode(ResourcePlayMode playMode)
         {
             switch (playMode)
             {
-                case YooAssetPlayMode.HostPlayMode:
+                case ResourcePlayMode.HostPlayMode:
                     return EPlayMode.HostPlayMode;
-                case YooAssetPlayMode.OfflinePlayMode:
+                case ResourcePlayMode.OfflinePlayMode:
                     return EPlayMode.OfflinePlayMode;
-                case YooAssetPlayMode.EditorSimulateMode:
+                case ResourcePlayMode.EditorSimulateMode:
                 default:
                     return EPlayMode.EditorSimulateMode;
             }
@@ -123,6 +123,14 @@ namespace Core.Runtime
             return asset;
         }
 
+        public static void ReleaseAsset(Object asset)
+        {
+            if (asset != null)
+            {
+                Resources.UnloadAsset(asset);
+            }
+        }
+
         public static async UniTask<DownloadReport> DownloadPackageAsync(
             int downloadingMaxNum,
             int failedTryAgain,
@@ -174,7 +182,7 @@ namespace Core.Runtime
                 downloader.Status == EOperationStatus.Succeed ? string.Empty : downloader.Error);
         }
 
-        private static async UniTask InitializeInternalAsync(string packageName, YooAssetPlayMode requestedPlayMode, EPlayMode playMode, string hostServerURL)
+        private static async UniTask InitializeInternalAsync(string packageName, ResourcePlayMode requestedPlayMode, EPlayMode playMode, string hostServerURL)
         {
             if (!YooAssets.Initialized)
             {
@@ -269,7 +277,7 @@ namespace Core.Runtime
             }
         }
 
-        private static string NormalizeLocation(string location)
+        public static string NormalizeLocation(string location)
         {
             if (string.IsNullOrEmpty(location))
             {

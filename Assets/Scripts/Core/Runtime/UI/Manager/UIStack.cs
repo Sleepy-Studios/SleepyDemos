@@ -29,6 +29,7 @@ namespace Core.Runtime
 
         public int TotalCount => currentStack.Count + widgetList.Count;
         public View StackTopView => currentStack.showList.Count == 0 ? null : currentStack.showList[currentStack.showList.Count - 1];
+        public IReadOnlyList<View> ShowList => currentStack.showList;
 
         public int GetLayerCount(UILayer layer)
         {
@@ -182,6 +183,14 @@ namespace Core.Runtime
             {
                 currentStack = jumpList.Pop();
             }
+        }
+
+        public void Clear()
+        {
+            widgetList.Clear();
+            currentStack.Clear();
+            jumpList.Clear();
+            HideMask();
         }
     }
 }
