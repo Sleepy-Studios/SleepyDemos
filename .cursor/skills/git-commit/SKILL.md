@@ -1,7 +1,7 @@
 ---
 name: git-commit
 description: >-
-  根据 staged changes 生成 Conventional Commits 格式提交信息，执行 commit 并 push 到远端。
+  根据 staged changes 生成 Conventional Commits 格式提交信息（中文 subject/body），执行 commit 并 push 到远端。
   用户说提交代码、生成 commit、commit 并推送、push staged changes、帮我 commit 时使用。
 ---
 
@@ -27,19 +27,22 @@ description: >-
 ## 提交格式
 
 ```plaintext
-<type>(<scope>): <subject>
+<type>(<scope>): <中文 subject>
 
-[optional body — 说明 why，Unity 场景/Prefab/热更上下文写这里]
+[optional body — 中文，说明 why，Unity 场景/Prefab/热更上下文写这里]
 
-[optional footer — Fixes: #123]
+[optional footer — 修复: #123 / 关联: #456]
 ```
+
+- **type / scope 保持英文**（便于工具解析与分类）
+- **subject / body 优先中文**（团队阅读友好）
 
 ### 基本规则
 
-- **祈使语气**：Add / Fix / Refactor，不用 Added / Fixing
-- **subject ≤ 50 字符**，不加句号
+- **祈使语气**：用「添加 / 修复 / 重构」，不用「添加了 / 正在修复 / 已修复」
+- **subject ≤ 50 字符**（中文按字计），不加句号
 - **body 每行 ≤ 72 字符**
-- 自检：「If applied, this commit will **\<subject\>**」读起来通顺
+- 自检：「这次提交将会 **\<subject\>**」读起来通顺
 
 ### type
 
@@ -75,6 +78,7 @@ description: >-
 | `docs/` | `docs` |
 | `Packages/`、`ProjectSettings/` | `build` |
 | `Assets/Plugins/` | `deps` |
+| `.claude/skills/`、`.cursor/skills/`、`.codex/skills/` | `skills` |
 
 多 scope 时选**主要变更**；确实无法拆分且跨层时可用 `core,hotfix` 或省略 scope。
 
@@ -100,14 +104,14 @@ git branch -vv
 
 - **无 staged**：停止，提示用户先 `git add`
 - **无关改动混在一起**：列出文件，建议拆成多次 commit；用户坚持则在一个 body 里分 bullet 说明
-- **与最近 commit 风格对齐**（`git log`），但优先 Conventional Commits
+- **与最近 commit 风格对齐**（`git log`），但优先 Conventional Commits + 中文 subject
 
 ### Step 3 — 生成 commit message
 
 1. 定 **type**（用户视角：新能力→feat，修 bug→fix）
 2. 定 **scope**（上表）
-3. 写 **subject**（一条清晰变更，不用「修正」「更新一下」）
-4. 复杂变更写 **body**；有关联 issue 写 `Fixes: #N`
+3. 写**中文 subject**（一条清晰变更；避免空泛的「修正」「更新一下」）
+4. 复杂变更写**中文 body**；有关联 issue 写 `修复: #N` 或 `关联: #N`
 
 向用户**展示**拟用的完整 message（subject + body），再执行 commit。
 
@@ -116,18 +120,18 @@ git branch -vv
 PowerShell 多行 message：
 
 ```powershell
-git commit -m "feat(hotfix): add demo entry list to main menu" -m "Wire DemoRegistry into MainMenuView.`n`nRelated to: #42"
+git commit -m "feat(hotfix): 主菜单接入 Demo 入口列表" -m "将 DemoRegistry 接入 MainMenuView，从配置加载入口项。`n`n关联: #42"
 ```
 
 或 here-string：
 
 ```powershell
 @'
-feat(hotfix): add demo entry list to main menu
+feat(hotfix): 主菜单接入 Demo 入口列表
 
-Wire DemoRegistry into MainMenuView.
+将 DemoRegistry 接入 MainMenuView，从配置加载入口项。
 
-Related to: #42
+关联: #42
 '@ | git commit -F -
 ```
 
@@ -157,38 +161,47 @@ git log -1 --format=fuller
 **Staged**：`Assets/Scripts/Core/Runtime/Startup/StartupPipeline.cs` 新增状态
 
 ```
-feat(core): add resource startup state to pipeline
+feat(core): 启动流水线新增资源初始化状态
 
-Insert ResourceStartupState before hotfix assembly load.
+在热更程序集加载前插入 ResourceStartupState。
 
-Related to: #12
+关联: #12
 ```
 
 **Staged**：`Assets/Scenes/Hub.unity` + Prefab 引用修复
 
 ```
-fix(scene): restore hub spawn point after prefab merge
+fix(scene): 修复 Prefab 合并后 Hub 出生点丢失
 
-Re-applied missing Transform on SpawnRoot after Smart Merge.
+Smart Merge 后补回 SpawnRoot 缺失的 Transform。
 ```
 
 **Staged**：仅 `docs/architecture/code-layout.md`
 
 ```
-docs: clarify LoadResources vs Scenes ownership
+docs: 明确 LoadResources 与 Scenes 的职责边界
 ```
 
 **Staged**：`Packages/manifest.json` 升级 YooAsset
 
 ```
-build(deps): upgrade YooAsset to 2.x
+build(deps): 升级 YooAsset 至 2.x
+```
+
+**Staged**：`.claude/skills/git-commit/SKILL.md` 等 Agent 技能
+
+```
+chore(skills): 新增 git-commit 提交技能
+
+定义 staged 分析、中文 Conventional Commits 格式与 push 流程。
 ```
 
 ## 禁止的 message
 
-- `修正`、`更新`、`TMP`、`misc`、`WIP`
+- 空泛标题：`修正`、`更新`、`TMP`、`misc`、`WIP`
 - 纯 emoji 标题（`:sparkles: 添加插件`）
 - 无 type 的长句标题
+- 中英混排且语义不清（如 `fix: 修正bug`）
 
 ## 可选参考
 
