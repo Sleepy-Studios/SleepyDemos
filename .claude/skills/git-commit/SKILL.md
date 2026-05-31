@@ -100,11 +100,36 @@ git log --oneline -10
 git branch -vv
 ```
 
-### Step 2 — 分析 staged
+### Step 2 — 分析 staged 与 scope
 
-- **无 staged**：停止，提示用户先 `git add`
-- **无关改动混在一起**：列出文件，建议拆成多次 commit；用户坚持则在一个 body 里分 bullet 说明
+- **无 staged**：
+  - 用户**未**指定提交范围 → 停止，提示先 `git add`
+  - 用户**已**指定 scope（如「只提交菜单项更改」）→ 进入下方「按 scope 提取改动」，提取后再 stage
+- **无关改动混在一起**（跨文件或同文件多 hunk）：
+  - 默认拆成多次 commit；列出各 scope 对应文件/hunk
+  - 同文件混合时**必须提取**，不得整文件跳过或整文件混入
 - **与最近 commit 风格对齐**（`git log`），但优先 Conventional Commits + 中文 subject
+
+### 按 scope 从混合文件提取改动（必须执行）
+
+当用户指定提交范围，但某文件同时含有**无关 hunk** 时：
+
+- **禁止**整文件 `git add` 把无关改动一并提交
+- **禁止**因文件混合而整文件放弃提交、导致文档/代码不同步
+- **必须**只 stage 本次 scope 内的 hunk，其余改动留在工作区
+
+提取手法（Windows / 非交互环境，按优先级）：
+
+1. **`git add -p <file>`**：终端支持交互时逐 hunk 选择
+2. **临时拆文件**（非交互时推荐）：
+   - 备份当前文件全文
+   - `git checkout HEAD -- <file>` 还原到上次提交
+   - 只写回本次 scope 需要的改动
+   - `git add <file>` → 进入 Step 3～4 提交
+   - 将备份中**未提交**的 hunk 写回工作区（恢复「已提交 + 仍待提交」状态）
+3. **手工 patch**：从 `git diff` 截取目标 hunk 生成 patch，`git apply --cached`（提交前核对路径与上下文）
+
+提交前用 `git diff --staged` **复核**：staged 内容仅含用户要求的 scope；向用户说明哪些文件/hunk 留待下次提交。
 
 ### Step 3 — 生成 commit message
 
@@ -195,6 +220,10 @@ chore(skills): 新增 git-commit 提交技能
 
 定义 staged 分析、中文 Conventional Commits 格式与 push 流程。
 ```
+
+**用户要求**：「只提交菜单项更改」；`docs/architecture/asset-naming.md` 同文件还含字体命名文档改动
+
+→ 用「临时拆文件」只写回 YooAsset 菜单路径段落并 stage，字体相关 hunk 保留在工作区，**不要**整文件跳过或整文件提交。
 
 ## 禁止的 message
 
