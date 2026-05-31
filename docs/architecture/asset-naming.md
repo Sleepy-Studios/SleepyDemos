@@ -29,7 +29,7 @@
 | `so_` | ScriptableObject | `so_HotUpdateConfig.asset` |
 | `font_` | 源字体 | `font_HarmonyOS_CN.ttf` |
 | `fonttmp_` | TMP 字体 | `fonttmp_HarmonyOS_CN.asset` |
-| `atl_` | 图集（可选） | `atl_Common_UI.png` |
+| `atl_` | 图集 | `atl_Common_UI.png`、`atl_HarmonyOS_CN.png`（TMP 外部图集） |
 
 校验菜单：`Tools/SleepyDemos/校验 LoadResources 资源命名`。
 
@@ -89,7 +89,8 @@ anc_Player.controller
 | `LoadResources/Scenes/` | `scn_` |
 | `LoadResources/Config/` | `so_` |
 | `LoadResources/Fonts/Source/` | `font_` |
-| `LoadResources/Fonts/TMP_FontAssets/` | `fonttmp_` |
+| `LoadResources/Fonts/TMP_FontAssets/` | `fonttmp_`（`.asset`）；`atl_{名称}.png`（图集） |
+| `LoadResources/Fonts/Materials/` | `mat_` |
 | `LoadResources/Codes/` | 不校验 |
 
 ### anim_ 与 anc_
@@ -126,7 +127,7 @@ Hotfix 中 `View.Address`、`[Source(...)]` 必须与上一致。改名资产后
 - `LoadResources/Fonts/Fallbacks/**`（字符集文本）
 - `.meta`、`.cs`、`.md`、`.bytes` 等非规范校验扩展名
 
-已完成迁移示例：UI `ui_MainMenuView` / `ui_TestView`，配置 `so_HotUpdateConfig`，字体 `font_*` / `fonttmp_*`。
+已完成迁移示例：UI `ui_MainMenuView` / `ui_TestView`，配置 `so_HotUpdateConfig`，字体 `font_*` / `fonttmp_*`，TMP 图集 `atl_*`，字体材质 `mat_*`。
 
 ## 新增 Demo 时的命名检查
 
@@ -139,4 +140,4 @@ Hotfix 中 `View.Address`、`[Source(...)]` 必须与上一致。改名资产后
 
 ## YooAsset 采集
 
-除 `UI`、`Codes` 外，公共与 Demo 资源组也应使用 `YooAssetFullPathAddressRule`，与地址规范一致。当前配置见 `Assets/Settings/AssetBundleCollectorSetting.asset`；扩展 Demos / Art / Audio / VFX 时同步更新本段说明。配置缺失或需校正时：`Tools/SleepyDemos/同步 LoadResources 的 YooAsset 打包采集`（一般拉代码后不必重复点）。
+除 `UI`、`Codes` 外，公共与 Demo 资源组也应使用 `YooAssetFullPathAddressRule`，与地址规范一致。当前配置见 `Assets/Settings/AssetBundleCollectorSetting.asset`；扩展 Demos / Art / Audio / VFX / Scenes / Config / Fonts 时同步更新本段说明。配置缺失或需校正时：`Tools/SleepyDemos/把 LoadResources 下的目录加入 YooAsset 打包采集配置`（一般拉代码后不必重复点）。

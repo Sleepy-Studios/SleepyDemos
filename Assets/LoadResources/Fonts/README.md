@@ -6,7 +6,8 @@
 
 - 源字体：`font_{名称}.ttf` / `.otf`，放在 `Source/CN` 或 `Source/EN`
 - TMP 资产：`fonttmp_{名称}.asset`，放在 `TMP_FontAssets/CN` 或 `EN`
-- 材质：`fonttmp_{名称}.mat`，放在 `Materials/`
+- TMP 图集：`atl_{名称}.png`（与对应 `.asset` 同目录）
+- 材质：`mat_{名称}.mat`，放在 `Materials/`
 
 目录职责：
 
@@ -26,4 +27,4 @@
 2. 准备字符集文本，可直接使用 `Fallbacks/Default_CN_Characters.txt` 或 `Fallbacks/Default_EN_Characters.txt`
 3. 打开 Font Builder，选择字体、语言和字符集
 4. 点击 `Build TMP Font Asset`
-5. 生成结果会以 `fonttmp_*` 命名并落到 `TMP_FontAssets`、`Materials`，并导出外部 atlas PNG
+5. 生成结果会落到 `TMP_FontAssets`（`fonttmp_*.asset`、`atl_*.png`）与 `Materials`（`mat_*.mat`）

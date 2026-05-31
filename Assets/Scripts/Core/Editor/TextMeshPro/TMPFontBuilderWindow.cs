@@ -200,13 +200,18 @@ namespace Core.Editor.TextMeshPro
                 return null;
             }
 
-            var targetName = GetTargetAssetName(request.SourceFontPath, request.Language);
+            var targetName = GetTargetAssetName(request.SourceFontPath);
+            if (targetName == null)
+            {
+                return null;
+            }
+
             var targetFolder = $"{FontAssetRoot}/{request.Language}";
             EnsureFolder(targetFolder);
 
             var targetAssetPath = $"{targetFolder}/{targetName}.asset";
-            var targetMaterialPath = $"{MaterialRoot}/{targetName}.mat";
-            var targetAtlasPath = $"{targetFolder}/{targetName}.png";
+            var targetMaterialPath = $"{MaterialRoot}/{GetTargetMaterialAssetName(targetName)}.mat";
+            var targetAtlasPath = $"{targetFolder}/{GetTargetAtlasAssetName(targetName)}.png";
 
             var fontAsset = TMP_FontAsset.CreateFontAsset(
                 sourceFont,
@@ -414,31 +419,29 @@ namespace Core.Editor.TextMeshPro
             return new string(input.Where(c => !char.IsControl(c) || c == '\n' || c == '\r' || c == '\t').Distinct().ToArray());
         }
 
-        private static string GetTargetAssetName(string sourceFontPath, FontLanguage language)
+        private const string FontSourcePrefix = "font_";
+        private const string FontTmpPrefix = "fonttmp_";
+
+        private static string GetTargetAssetName(string sourceFontPath)
         {
             var name = Path.GetFileNameWithoutExtension(sourceFontPath);
-            if (name.StartsWith("fonttmp_", StringComparison.OrdinalIgnoreCase))
+            if (!name.StartsWith(FontSourcePrefix, StringComparison.Ordinal))
             {
-                return name;
+                Debug.LogError($"[TMPFontBuilder] 源字体须命名为 font_*.ttf / .otf: {sourceFontPath}");
+                return null;
             }
 
-            if (name.StartsWith("font_", StringComparison.OrdinalIgnoreCase))
-            {
-                name = name.Substring(5);
-            }
+            return FontTmpPrefix + name.Substring(FontSourcePrefix.Length);
+        }
 
-            var suffix = "_" + language;
-            if (name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-            {
-                return "fonttmp_" + name;
-            }
+        private static string GetTargetAtlasAssetName(string targetFontAssetName)
+        {
+            return "atl_" + targetFontAssetName.Substring(FontTmpPrefix.Length);
+        }
 
-            if (name.EndsWith(" SDF", StringComparison.OrdinalIgnoreCase))
-            {
-                name = name.Substring(0, name.Length - 4);
-            }
-
-            return "fonttmp_" + name + suffix;
+        private static string GetTargetMaterialAssetName(string targetFontAssetName)
+        {
+            return "mat_" + targetFontAssetName.Substring(FontTmpPrefix.Length);
         }
 
         private static void EnsureFolders()
@@ -573,7 +576,12 @@ namespace Core.Editor.TextMeshPro
             }
 
             var fallbackPath = AssetDatabase.GetAssetPath(fallbackFontAsset);
-            var targetName = GetTargetAssetName(AssetDatabase.GetAssetPath(sourceFont), language);
+            var targetName = GetTargetAssetName(AssetDatabase.GetAssetPath(sourceFont));
+            if (targetName == null)
+            {
+                return fallbackFontAsset;
+            }
+
             var expectedTargetPath = $"{FontAssetRoot}/{language}/{targetName}.asset";
 
             if (string.Equals(fallbackPath, expectedTargetPath, StringComparison.OrdinalIgnoreCase))

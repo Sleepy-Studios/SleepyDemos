@@ -67,7 +67,7 @@ namespace Core.Editor.AssetNaming
                 { "VFX", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "vfx_", "tex_", "mat_", "mati_" } },
                 { "Scenes", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "scn_" } },
                 { "Config", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "so_" } },
-                { "Fonts", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "font_", "fonttmp_" } }
+                { "Fonts", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "font_", "fonttmp_", "atl_", "mat_" } }
             };
 
         private static readonly HashSet<string> DemosAllowedPrefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -178,6 +178,37 @@ namespace Core.Editor.AssetNaming
                 return false;
             }
 
+            if (prefix.Equals("fonttmp_", StringComparison.Ordinal) &&
+                assetPath.IndexOf("/Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "TMP 外部图集须使用 atl_ 前缀，例如 atl_HarmonyOS_CN.png。";
+                return false;
+            }
+
+            if (prefix.Equals("atl_", StringComparison.Ordinal) &&
+                assetPath.IndexOf("/Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                !assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "Fonts/TMP_FontAssets 下的 atl_ 前缀仅用于 TMP 图集 .png。";
+                return false;
+            }
+
+            if (prefix.Equals("fonttmp_", StringComparison.Ordinal) &&
+                assetPath.IndexOf("/Fonts/Materials/", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                error = "字体材质须使用 mat_ 前缀，例如 mat_HarmonyOS_CN.mat。";
+                return false;
+            }
+
+            if (prefix.Equals("mat_", StringComparison.Ordinal) &&
+                assetPath.IndexOf("/Fonts/Materials/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                !assetPath.EndsWith(".mat", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "Fonts/Materials 下的 mat_ 前缀仅用于 .mat 材质。";
+                return false;
+            }
+
             if (string.IsNullOrEmpty(remainder))
             {
                 error = "前缀后至少需要一个 PascalCase 语义段。";
@@ -247,10 +278,19 @@ namespace Core.Editor.AssetNaming
                     return prefix.Equals("font_", StringComparison.Ordinal);
                 }
 
-                if (relative.StartsWith("Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) ||
-                    relative.StartsWith("Fonts/Materials/", StringComparison.OrdinalIgnoreCase))
+                if (relative.StartsWith("Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase))
                 {
+                    if (assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return prefix.Equals("atl_", StringComparison.Ordinal);
+                    }
+
                     return prefix.Equals("fonttmp_", StringComparison.Ordinal);
+                }
+
+                if (relative.StartsWith("Fonts/Materials/", StringComparison.OrdinalIgnoreCase))
+                {
+                    return prefix.Equals("mat_", StringComparison.Ordinal);
                 }
 
                 return FolderPrefixRules["Fonts"].Contains(prefix);
