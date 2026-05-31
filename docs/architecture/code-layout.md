@@ -55,6 +55,8 @@
 
 ## 资源布局
 
+可加载资源的**文件名、前缀、分段规则**见 [资源命名规范](./asset-naming.md)。`DemoId` 目录名使用小写 + 下划线（如 `gravity_well`）。
+
 ### `Assets/LoadResources/Demos/<DemoId>/`
 
 适合放：

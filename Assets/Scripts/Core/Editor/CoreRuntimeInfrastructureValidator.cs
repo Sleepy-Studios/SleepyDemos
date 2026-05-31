@@ -91,10 +91,10 @@ namespace Core.Editor
 
             loader.Dispose();
 
-            var normalized = service.NormalizeAddress("UI\\TestView");
-            if (normalized != "UI/TestView")
+            var normalized = service.NormalizeAddress("LoadResources/UI\\ui_TestView");
+            if (normalized != "LoadResources/UI/ui_TestView")
             {
-                errors.Add($"资源地址标准化失败：期望 UI/TestView，实际 {normalized}。");
+                errors.Add($"资源地址标准化失败：期望 LoadResources/UI/ui_TestView，实际 {normalized}。");
             }
         }
 

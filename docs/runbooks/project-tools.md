@@ -27,7 +27,7 @@
 窗口内嵌能力（无独立菜单）：
 
 - **本地 Bundle HTTP 服务**：`HotUpdate/LocalBundleHttpServer.cs`，在 HotUpdate 窗口「Mock Server」区启停，用于本机调试资源包。
-- **配置资产**：默认 `Assets/LoadResources/Config/HotUpdateConfig.asset`。
+- **配置资产**：默认 `Assets/LoadResources/Config/so_HotUpdateConfig.asset`。
 
 ### 2. UI 绑定（MvcBind）
 
@@ -43,14 +43,24 @@
 | `Tools/SleepyDemos/TextMesh Pro/Build Default CN EN Fonts` | 一键构建默认中英字体 | 同上 |
 | — | 详细步骤 | [TMP 字体生产流程](./tmp-font-workflow.md) |
 
-### 4. 运行时基础设施校验
+### 4. 资源命名校验
+
+| 菜单路径 | 说明 | 源码 / 文档 |
+|----------|------|-------------|
+| `Tools/SleepyDemos/校验 LoadResources 资源命名` | 扫描 `Assets/LoadResources` 是否符合前缀与 PascalCase 分段规则 | `AssetNaming/LoadResourcesAssetNamingValidator.cs` |
+| `Tools/SleepyDemos/同步 LoadResources 的 YooAsset 打包采集` | 把 Demos/Art/Audio 等公共目录写入 YooAsset 采集配置并统一全路径地址；拉分支或 Setting 被改乱时点一次即可 | `AssetNaming/LoadResourcesYooAssetCollectorSetup.cs` |
+| — | 规则说明 | [资源命名规范](../architecture/asset-naming.md) |
+
+新导入到 `LoadResources` 的资产若违反规则会在 Console 输出 Error。
+
+### 5. 运行时基础设施校验
 
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
 | `Tools/SleepyDemos/Validate Core Runtime Infrastructure` | 检查 Core 资源/UI 分层、禁止引用、文档入口等 | `CoreRuntimeInfrastructureValidator.cs` |
 | — | Editor / 命令行 / UnitySkills 验证步骤 | [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md) |
 
-### 5. Hot Reload 辅助（项目封装）
+### 6. Hot Reload 辅助（项目封装）
 
 在官方 Hot Reload 包之上，仓库内增加了排障与授权查看工具（`Assets/Scripts/Core/Editor/HotReload/`）：
 

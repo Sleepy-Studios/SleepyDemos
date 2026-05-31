@@ -18,8 +18,8 @@ namespace Core.Editor.TextMeshPro
         private const string MaterialRoot = FontRoot + "/Materials";
         private const string FallbackRoot = FontRoot + "/Fallbacks";
 
-        private const string DefaultCnSource = SourceRoot + "/CN/HarmonyOS.ttf";
-        private const string DefaultEnSource = SourceRoot + "/EN/BebasNeue_EN.OTF";
+        private const string DefaultCnSource = SourceRoot + "/CN/font_HarmonyOS_CN.ttf";
+        private const string DefaultEnSource = SourceRoot + "/EN/font_BebasNeue_EN.otf";
         private const string DefaultCnCharacters = FallbackRoot + "/Default_CN_Characters.txt";
         private const string DefaultEnCharacters = FallbackRoot + "/Default_EN_Characters.txt";
         private const string EditorPrefsRoot = "SleepyDemos.TMPFontBuilder";
@@ -417,11 +417,20 @@ namespace Core.Editor.TextMeshPro
         private static string GetTargetAssetName(string sourceFontPath, FontLanguage language)
         {
             var name = Path.GetFileNameWithoutExtension(sourceFontPath);
-            var suffix = "_" + language;
-
-            if (name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            if (name.StartsWith("fonttmp_", StringComparison.OrdinalIgnoreCase))
             {
                 return name;
+            }
+
+            if (name.StartsWith("font_", StringComparison.OrdinalIgnoreCase))
+            {
+                name = name.Substring(5);
+            }
+
+            var suffix = "_" + language;
+            if (name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return "fonttmp_" + name;
             }
 
             if (name.EndsWith(" SDF", StringComparison.OrdinalIgnoreCase))
@@ -429,7 +438,7 @@ namespace Core.Editor.TextMeshPro
                 name = name.Substring(0, name.Length - 4);
             }
 
-            return name + suffix;
+            return "fonttmp_" + name + suffix;
         }
 
         private static void EnsureFolders()
@@ -490,7 +499,7 @@ namespace Core.Editor.TextMeshPro
 
             if (fallbackFontAsset == null)
             {
-                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/BebasNeue_EN.asset");
+                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/fonttmp_BebasNeue_EN.asset");
             }
         }
 

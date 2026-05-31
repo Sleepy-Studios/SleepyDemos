@@ -11,30 +11,37 @@
 ## 推荐步骤
 
 1. 确定 `DemoId`
-   - 建议使用英文小写加短横线
-   - 例如 `gravity-well`
+   - 使用英文小写 + **下划线**（禁止短横线）
+   - 例如 `gravity_well`
 
 2. 创建资源目录
    - 在 `Assets/LoadResources/Demos/<DemoId>/` 下建立该 Demo 的根目录
-   - 按需要拆出 `Scenes/`、预制体、材质、音效等子目录
+   - 按需要拆出 `Scenes/`、`Prefabs/`、材质、音效等子目录
 
 3. 创建或复制场景
    - 从模板场景或现有 Demo 复制起步
-   - 如果是可加载场景资源，优先放在该 Demo 自己的资源目录中
-   - 如果是启动入口层相关场景，谨慎评估是否应位于 `Assets/Scenes`
+   - 可加载场景命名：`scn_Main.unity` 等，见 [资源命名规范](../architecture/asset-naming.md)
+   - 场景放在 `Demos/<DemoId>/Scenes/` 或项目约定的 Demo 子目录
+   - 启动入口层场景仍放在 `Assets/Scenes`，不要与 Demo 可加载场景混淆
 
-4. 接入业务代码
+4. 按命名规范添加资源
+   - 预制体：`pfb_{主体}_{01}_{可选尾段}.prefab`
+   - 贴图、材质、动画等使用对应前缀（`tex_`、`mat_`、`anim_`、`anc_` 等）
+   - 完整表见 [资源命名规范](../architecture/asset-naming.md)
+
+5. 接入业务代码
    - 若是具体玩法或页面逻辑，优先放在 `Assets/Scripts/Hotfix/Module/`
    - 不要因为方便把业务逻辑塞进 `Core.Runtime`
 
-5. 接入主入口
+6. 接入主入口
    - 根据项目当前首页方案，将 Demo 暴露到主菜单或 Catalog
    - 如果接入方式变化，要同步更新相关架构文档和 runbook
 
-6. 检查公共沉淀点
+7. 检查公共沉淀点
    - 只有确认多个 Demo 稳定复用的能力，才上提到 `Core`
 
-7. 手动验证
+8. 手动验证
+   - 运行 `Tools/SleepyDemos/校验 LoadResources 资源命名`，LoadResources 下无 Error
    - 启动是否能进入主菜单
    - Demo 是否能从主入口进入
    - 场景和资源引用是否正常
@@ -43,6 +50,7 @@
 ## 新增 Demo 时常见错误
 
 - 资源放进公共目录，导致归属不清
+- 文件名含短横线 `-` 或未使用登记前缀（如 `prefab_`）
 - 玩法逻辑误塞进 `Core.Runtime`
 - 直接改启动链路接玩法，绕过主入口
 - 接入步骤变了却没更新文档

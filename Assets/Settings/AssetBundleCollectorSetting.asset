@@ -51,3 +51,94 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
+    - GroupName: Demos
+      GroupDesc: "Demo \u53EF\u52A0\u8F7D\u8D44\u6E90"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Demos
+        CollectorGUID: 282270f04a560de4496a8d805c4a392d
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Art
+      GroupDesc: "\u516C\u5171\u7F8E\u672F"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Art
+        CollectorGUID: 163d3d1e70e65d248b7e7e82fc297ad7
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Audio
+      GroupDesc: "\u97F3\u9891"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Audio
+        CollectorGUID: a7bde5a925d13b749a4dfbcf0918e522
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: VFX
+      GroupDesc: "\u7279\u6548"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/VFX
+        CollectorGUID: fe1e261a64cf27a4ca2dbfb0890ffa4f
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Scenes
+      GroupDesc: "\u53EF\u52A0\u8F7D\u573A\u666F"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Scenes
+        CollectorGUID: 4d323683b029f474280622b9e261511b
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Config
+      GroupDesc: "\u914D\u7F6E"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Config
+        CollectorGUID: 0a6cdba3692855c42bd2a6611cf589ef
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 
+    - GroupName: Fonts
+      GroupDesc: "\u5B57\u4F53"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Fonts
+        CollectorGUID: b6052bd79054eb345a0d18e36f082b57
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 

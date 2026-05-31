@@ -12,11 +12,13 @@
 2. [代码与资源布局](./architecture/code-layout.md)
 3. [启动与热更流程](./architecture/startup-flow.md)
 4. [Core / Hotfix 边界](./architecture/hotfix-boundary.md)
-5. 根据任务类型继续查对应模块说明或 runbook
+5. [资源命名规范](./architecture/asset-naming.md)
+6. 根据任务类型继续查对应模块说明或 runbook
 
 ## 文档结构
 - `architecture/`
   - 全局规则、分层边界、启动流程、文档维护规则
+  - [资源命名规范](./architecture/asset-naming.md)
 - `modules/`
   - 关键模块的职责、入口、常见改法、注意事项
   - [Core.Runtime](./modules/core-runtime.md)
