@@ -48,7 +48,7 @@
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
 | `Tools/SleepyDemos/校验 LoadResources 资源命名` | 扫描 `Assets/LoadResources` 是否符合前缀与 PascalCase 分段规则 | `AssetNaming/LoadResourcesAssetNamingValidator.cs` |
-| `Tools/SleepyDemos/同步 LoadResources 的 YooAsset 打包采集` | 把 Demos/Art/Audio 等公共目录写入 YooAsset 采集配置并统一全路径地址；拉分支或 Setting 被改乱时点一次即可 | `AssetNaming/LoadResourcesYooAssetCollectorSetup.cs` |
+| `Tools/SleepyDemos/把 LoadResources 下的目录加入 YooAsset 打包采集配置` | 把 Demos/Art/Audio/VFX/Scenes/Config/Fonts 等公共目录写入 YooAsset 采集配置并统一全路径地址；拉分支或 Setting 被改乱时点一次即可 | `AssetNaming/LoadResourcesYooAssetCollectorSetup.cs` |
 | — | 规则说明 | [资源命名规范](../architecture/asset-naming.md) |
 
 新导入到 `LoadResources` 的资产若违反规则会在 Console 输出 Error。

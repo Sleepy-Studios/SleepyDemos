@@ -24,7 +24,7 @@ namespace Core.Editor.AssetNaming
             new CollectorEntry("Fonts", "Assets/LoadResources/Fonts", "字体")
         };
 
-        [MenuItem("Tools/SleepyDemos/同步 LoadResources 的 YooAsset 打包采集")]
+        [MenuItem("Tools/SleepyDemos/把 LoadResources 下的目录加入 YooAsset 打包采集配置")]
         public static void EnsureFromMenu()
         {
             EnsureCollectors();
