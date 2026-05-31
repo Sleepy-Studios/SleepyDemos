@@ -25,6 +25,7 @@
   - [Hotfix 主入口](./modules/hotfix-main.md)
 - `runbooks/`
   - 新增 Demo、构建热更、排障等操作步骤
+  - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
   - [验证 Core 运行时基础设施](./runbooks/validate-core-runtime-infrastructure.md)
 
 ## 如何判断文档该写到哪里

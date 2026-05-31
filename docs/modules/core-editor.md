@@ -4,6 +4,10 @@
 
 `Core.Editor` 负责 Unity 编辑器内的工程化工具，目标是减少手工重复操作并提升协作稳定性。
 
+## 工具入口总览
+
+所有自研菜单、插件入口、UPM 工具包与 Agent Skill 的索引见 [项目工具与 Agent 技能总览](../runbooks/project-tools.md)。
+
 ## 当前可见子域
 
 - `HotUpdate/`
