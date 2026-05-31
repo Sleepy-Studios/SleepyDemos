@@ -15,7 +15,7 @@
 
 1. 打开项目并等待脚本编译完成。
 2. 运行菜单：
-   - `Sleepy/Validate/Core Runtime Infrastructure`
+   - `Tools/SleepyDemos/Validate Core Runtime Infrastructure`
 3. Console 中应看到：
    - `[SleepyDemos] Core Runtime Infrastructure 校验通过`
 4. 如果 Console 出现错误，先按错误中的路径修复，不要继续 PlayMode 验证。
@@ -50,7 +50,7 @@
 可执行检查：
 
 ```powershell
-$body = @{ menuPath = 'Sleepy/Validate/Core Runtime Infrastructure' } | ConvertTo-Json
+$body = @{ menuPath = 'Tools/SleepyDemos/Validate Core Runtime Infrastructure' } | ConvertTo-Json
 Invoke-RestMethod `
   -Uri 'http://localhost:8090/skill/editor_execute_menu' `
   -Method Post `

@@ -35,7 +35,7 @@ namespace Core.Editor
             "Assets/Scripts/Hotfix"
         };
 
-        [MenuItem("Sleepy/Validate/Core Runtime Infrastructure")]
+        [MenuItem("Tools/SleepyDemos/Validate Core Runtime Infrastructure")]
         public static void Validate()
         {
             ValidateInternal(exitEditor: false);

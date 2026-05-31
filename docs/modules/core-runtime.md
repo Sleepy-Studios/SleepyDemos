@@ -40,7 +40,7 @@
 - 调整资源初始化顺序
 - 扩展公共 UI 基类或管理器
 - 增加通用运行时服务
-- 在 Unity Editor 运行 `Sleepy/Validate/Core Runtime Infrastructure` 检查资源抽象、基础 UI 组件、外层引用约束和文档入口
+- 在 Unity Editor 运行 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 检查资源抽象、基础 UI 组件、外层引用约束和文档入口
 - 在命令行或 CI 中使用 Unity `-executeMethod Core.Editor.CoreRuntimeInfrastructureValidator.ValidateForBatchMode` 执行同一套检查
 
 ## 相关模块文档

@@ -47,7 +47,7 @@
 
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
-| `Sleepy/Validate/Core Runtime Infrastructure` | 检查 Core 资源/UI 分层、禁止引用、文档入口等 | `CoreRuntimeInfrastructureValidator.cs` |
+| `Tools/SleepyDemos/Validate Core Runtime Infrastructure` | 检查 Core 资源/UI 分层、禁止引用、文档入口等 | `CoreRuntimeInfrastructureValidator.cs` |
 | — | Editor / 命令行 / UnitySkills 验证步骤 | [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md) |
 
 ### 5. Hot Reload 辅助（项目封装）
@@ -106,7 +106,7 @@
 
 - **启动服务**：`Window > UnitySkills > Start Server`
 - **健康检查**：`http://localhost:8090/health` 返回 `ok`
-- **示例**：对 `Sleepy/Validate/Core Runtime Infrastructure` 的 REST 调用见 [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md#unityskills-自动化验证)
+- **示例**：对 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 的 REST 调用见 [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md#unityskills-自动化验证)
 
 ---
 

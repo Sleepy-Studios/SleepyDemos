@@ -43,7 +43,7 @@
 ## 验证入口
 
 在 Unity Editor 中可以运行：
-- `Sleepy/Validate/Core Runtime Infrastructure`
+- `Tools/SleepyDemos/Validate Core Runtime Infrastructure`
 
 该菜单会检查默认资源服务、loader 创建、地址规范化、外层 YooAssets 具体类型引用和相关文档入口。
 

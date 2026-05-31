@@ -48,7 +48,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 ## 验证入口
 
 在 Unity Editor 中可以运行：
-- `Sleepy/Validate/Core Runtime Infrastructure`
+- `Tools/SleepyDemos/Validate Core Runtime Infrastructure`
 
 该菜单会检查基础组件类型是否存在，并扫描 UI/Startup/HotUpdate/Hotfix 外层代码是否混入资源底层类型、循环列表或 fishinggameplay 业务依赖。
 
