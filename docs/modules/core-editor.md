@@ -15,6 +15,8 @@
   - 本地 Bundle HTTP 服务
 - `MvcBind/`
   - 绑定数据、窗口、树视图、层级面板辅助
+- `AssetNaming/`
+  - LoadResources 命名校验与 YooAsset Collector 同步
 - `HotReload/`
   - Hot Reload 相关编辑器支持
 
