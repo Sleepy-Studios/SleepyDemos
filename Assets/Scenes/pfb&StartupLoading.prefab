@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 200004}
   - component: {fileID: 200005}
   m_Layer: 5
-  m_Name: StartupLoading
+  m_Name: pfb&StartupLoading
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
