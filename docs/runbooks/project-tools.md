@@ -28,6 +28,7 @@
 
 - **本地 Bundle HTTP 服务**：`HotUpdate/LocalBundleHttpServer.cs`，在 HotUpdate 窗口「Mock Server」区启停，用于本机调试资源包。
 - **配置资产**：默认 `Assets/LoadResources/Config/so&HotUpdateConfig.asset`。
+- **SSH 私钥**：默认 `Assets/Settings/HotUpdate/key`（不进 YooAsset 采集，勿放回 `LoadResources/Config`）。
 
 ### 2. UI 绑定（MvcBind）
 

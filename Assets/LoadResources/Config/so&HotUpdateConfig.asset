@@ -32,7 +32,7 @@ MonoBehaviour:
   SshHost: 13.75.121.163
   SshPort: 22
   SshUser: root
-  KeyFilePath: Assets/LoadResources/Config/key
+  KeyFilePath: Assets/Settings/HotUpdate/key
   ServerBasePath: /www/wwwroot/13.75.121.163/Sleepy_Framework
   UseLocalMockServer: 0
   MockServerFolderPath: 

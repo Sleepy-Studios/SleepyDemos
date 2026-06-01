@@ -25,7 +25,7 @@ namespace Core.Runtime
         public string SshHost = string.Empty;
         public int SshPort = 22;
         public string SshUser = "root";
-        public string KeyFilePath = "Assets/LoadResources/Config/key";
+        public string KeyFilePath = "Assets/Settings/HotUpdate/key";
         public string ServerBasePath = string.Empty;
 
         [Header("Mock Remote Server")]

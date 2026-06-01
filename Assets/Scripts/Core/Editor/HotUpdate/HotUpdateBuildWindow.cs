@@ -749,7 +749,7 @@ namespace Core.Editor.HotUpdate
 
             if (string.IsNullOrWhiteSpace(target.KeyFilePath))
             {
-                target.KeyFilePath = "Assets/LoadResources/Config/key";
+                target.KeyFilePath = "Assets/Settings/HotUpdate/key";
             }
         }
 
@@ -1041,7 +1041,7 @@ namespace Core.Editor.HotUpdate
 
             if (string.IsNullOrWhiteSpace(config.KeyFilePath))
             {
-                config.KeyFilePath = "Assets/LoadResources/Config/key";
+                config.KeyFilePath = "Assets/Settings/HotUpdate/key";
             }
         }
 
