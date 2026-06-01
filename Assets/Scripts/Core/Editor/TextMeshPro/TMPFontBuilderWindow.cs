@@ -18,8 +18,8 @@ namespace Core.Editor.TextMeshPro
         private const string MaterialRoot = FontRoot + "/Materials";
         private const string FallbackRoot = FontRoot + "/Fallbacks";
 
-        private const string DefaultCnSource = SourceRoot + "/CN/font_HarmonyOS_CN.ttf";
-        private const string DefaultEnSource = SourceRoot + "/EN/font_BebasNeue_EN.otf";
+        private const string DefaultCnSource = SourceRoot + "/CN/font&HarmonyOS_CN.ttf";
+        private const string DefaultEnSource = SourceRoot + "/EN/font&BebasNeue_EN.otf";
         private const string DefaultCnCharacters = FallbackRoot + "/Default_CN_Characters.txt";
         private const string DefaultEnCharacters = FallbackRoot + "/Default_EN_Characters.txt";
         private const string EditorPrefsRoot = "SleepyDemos.TMPFontBuilder";
@@ -419,29 +419,29 @@ namespace Core.Editor.TextMeshPro
             return new string(input.Where(c => !char.IsControl(c) || c == '\n' || c == '\r' || c == '\t').Distinct().ToArray());
         }
 
-        private const string FontSourcePrefix = "font_";
-        private const string FontTmpPrefix = "fonttmp_";
+        private const string FontPrefix = "font&";
 
         private static string GetTargetAssetName(string sourceFontPath)
         {
             var name = Path.GetFileNameWithoutExtension(sourceFontPath);
-            if (!name.StartsWith(FontSourcePrefix, StringComparison.Ordinal))
+            if (!name.StartsWith(FontPrefix, StringComparison.Ordinal))
             {
-                Debug.LogError($"[TMPFontBuilder] 源字体须命名为 font_*.ttf / .otf: {sourceFontPath}");
+                Debug.LogError($"[TMPFontBuilder] 源字体须命名为 font&*.ttf / .otf: {sourceFontPath}");
                 return null;
             }
 
-            return FontTmpPrefix + name.Substring(FontSourcePrefix.Length);
+            return name;
         }
 
         private static string GetTargetAtlasAssetName(string targetFontAssetName)
         {
-            return "atl_" + targetFontAssetName.Substring(FontTmpPrefix.Length);
+            var semantic = Core.Editor.AssetNaming.LoadResourcesAssetNamingRules.GetSemanticName(targetFontAssetName);
+            return $"font&{semantic}_Atlas";
         }
 
         private static string GetTargetMaterialAssetName(string targetFontAssetName)
         {
-            return "mat_" + targetFontAssetName.Substring(FontTmpPrefix.Length);
+            return targetFontAssetName;
         }
 
         private static void EnsureFolders()
@@ -502,7 +502,7 @@ namespace Core.Editor.TextMeshPro
 
             if (fallbackFontAsset == null)
             {
-                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/fonttmp_BebasNeue_EN.asset");
+                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/font&BebasNeue_EN.asset");
             }
         }
 

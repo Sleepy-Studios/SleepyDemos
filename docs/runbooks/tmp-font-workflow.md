@@ -11,12 +11,14 @@ Unity 菜单：
 
 字体资源统一放在 `Assets/LoadResources/Fonts`：
 
-- `Source/CN`、`Source/EN`：原始 `.ttf`、`.otf`
-- `TMP_FontAssets/CN`、`TMP_FontAssets/EN`：生成后的 TMP 字体（`fonttmp_*.asset`）与图集（`atl_*.png`）
-- `Materials`：字体材质（`mat_*.mat`）
+- `Source/CN`、`Source/EN`：原始 `.ttf`、`.otf`（`font&*`）
+- `TMP_FontAssets/CN`、`TMP_FontAssets/EN`：TMP 字体（`font&*.asset`）与图集（`font&*_Atlas.png`）
+- `Materials`：字体材质（`font&*.mat`）
 - `Fallbacks`：字符集文本与 fallback 相关资源
 
 不要把业务字体放进 `Temp`、`Assets/TextMesh Pro` 或 `Assets/Plugins`。
+
+命名细节见 [资源命名规范](../architecture/asset-naming.md)。
 
 ## 新增字体
 

@@ -10,7 +10,7 @@ namespace Hotfix
 
     public partial class TestView : View
     {
-        public override string Address => "LoadResources/UI/ui_TestView";
+        public override string Address => "LoadResources/UI/pfb&TestView";
         public override UILayer Level => UILayer.Base;
         public override MaskType Mask => MaskType.None;
         public override bool IsAsync => true;

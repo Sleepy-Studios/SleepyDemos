@@ -20,13 +20,14 @@
 
 3. 创建或复制场景
    - 从模板场景或现有 Demo 复制起步
-   - 可加载场景命名：`scn_Main.unity` 等，见 [资源命名规范](../architecture/asset-naming.md)
+   - 可加载场景命名：`scn&Main.unity` 等，见 [资源命名规范](../architecture/asset-naming.md)
    - 场景放在 `Demos/<DemoId>/Scenes/` 或项目约定的 Demo 子目录
    - 启动入口层场景仍放在 `Assets/Scenes`，不要与 Demo 可加载场景混淆
 
-4. 按命名规范添加资源
-   - 预制体：`pfb_{主体}_{01}_{可选尾段}.prefab`
-   - 贴图、材质、动画等使用对应前缀（`tex_`、`mat_`、`anim_`、`anc_` 等）
+4. 按命名规范添加资源（`{前缀}&{语义名}`）
+   - 预制体：`pfb&{主体}_{01}_{可选尾段}.prefab`（玩法、特效、UI 均用 `pfb&`）
+   - Sprite：`spr&`；材质贴图：`tex&`；材质：`mat&`；动画：`anim&` / `anc&` 等
+   - 玩法表/数据：`json&` / `txt&` / `so&`（见规范中的边界说明）
    - 完整表见 [资源命名规范](../architecture/asset-naming.md)
 
 5. 接入业务代码
@@ -50,7 +51,7 @@
 ## 新增 Demo 时常见错误
 
 - 资源放进公共目录，导致归属不清
-- 文件名含短横线 `-` 或未使用登记前缀（如 `prefab_`）
+- 文件名含短横线 `-` 或未使用登记前缀（如 `prefab&`）
 - 玩法逻辑误塞进 `Core.Runtime`
 - 直接改启动链路接玩法，绕过主入口
 - 接入步骤变了却没更新文档

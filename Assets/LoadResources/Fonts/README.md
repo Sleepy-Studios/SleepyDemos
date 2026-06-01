@@ -4,10 +4,10 @@
 
 命名规范见 [资源命名规范](../../../docs/architecture/asset-naming.md)：
 
-- 源字体：`font_{名称}.ttf` / `.otf`，放在 `Source/CN` 或 `Source/EN`
-- TMP 资产：`fonttmp_{名称}.asset`，放在 `TMP_FontAssets/CN` 或 `EN`
-- TMP 图集：`atl_{名称}.png`（与对应 `.asset` 同目录）
-- 材质：`mat_{名称}.mat`，放在 `Materials/`
+- 源字体：`font&{名称}.ttf` / `.otf`，放在 `Source/CN` 或 `Source/EN`
+- TMP 资产：`font&{名称}.asset`，放在 `TMP_FontAssets/CN` 或 `EN`
+- TMP 图集：`font&{名称}_Atlas.png`（与 `.asset` 同目录；`_Atlas` 避免 YooAsset 地址冲突）
+- 材质：`font&{名称}.mat`，放在 `Materials/`
 
 目录职责：
 
@@ -23,8 +23,8 @@
 
 新增字体流程：
 
-1. 把源字体命名为 `font_*.ttf` / `.otf` 后放入 `Source/CN` 或 `Source/EN`
+1. 把源字体命名为 `font&*.ttf` / `.otf` 后放入 `Source/CN` 或 `Source/EN`
 2. 准备字符集文本，可直接使用 `Fallbacks/Default_CN_Characters.txt` 或 `Fallbacks/Default_EN_Characters.txt`
 3. 打开 Font Builder，选择字体、语言和字符集
 4. 点击 `Build TMP Font Asset`
-5. 生成结果会落到 `TMP_FontAssets`（`fonttmp_*.asset`、`atl_*.png`）与 `Materials`（`mat_*.mat`）
+5. 生成结果会落到 `TMP_FontAssets`（`font&*.asset`、`font&*_Atlas.png`）与 `Materials`（`font&*.mat`）

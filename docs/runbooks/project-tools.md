@@ -27,7 +27,7 @@
 窗口内嵌能力（无独立菜单）：
 
 - **本地 Bundle HTTP 服务**：`HotUpdate/LocalBundleHttpServer.cs`，在 HotUpdate 窗口「Mock Server」区启停，用于本机调试资源包。
-- **配置资产**：默认 `Assets/LoadResources/Config/so_HotUpdateConfig.asset`。
+- **配置资产**：默认 `Assets/LoadResources/Config/so&HotUpdateConfig.asset`。
 
 ### 2. UI 绑定（MvcBind）
 
@@ -47,7 +47,7 @@
 
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
-| `Tools/SleepyDemos/校验 LoadResources 资源命名` | 扫描 `Assets/LoadResources` 是否符合前缀与 PascalCase 分段规则 | `AssetNaming/LoadResourcesAssetNamingValidator.cs` |
+| `Tools/SleepyDemos/校验 LoadResources 资源命名` | 扫描 `Assets/LoadResources` 是否符合前缀与 `&` 分隔规则 | `AssetNaming/LoadResourcesAssetNamingValidator.cs` |
 | `Tools/SleepyDemos/把 LoadResources 下的目录加入 YooAsset 打包采集配置` | 把 Demos/Art/Audio/VFX/Scenes/Config/Fonts 等公共目录写入 YooAsset 采集配置并统一全路径地址；拉分支或 Setting 被改乱时点一次即可 | `AssetNaming/LoadResourcesYooAssetCollectorSetup.cs` |
 | — | 规则说明 | [资源命名规范](../architecture/asset-naming.md) |
 

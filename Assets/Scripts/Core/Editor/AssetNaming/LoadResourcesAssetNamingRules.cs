@@ -2,18 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace Core.Editor.AssetNaming
 {
     public static class LoadResourcesAssetNamingRules
     {
         public const string LoadResourcesRoot = "Assets/LoadResources";
+        public const char PrefixSeparator = '&';
 
         private static readonly string[] SkippedTopFolders =
         {
-            "Codes",
-            "Fallbacks"
+            "Codes"
         };
 
         private static readonly string[] SkippedExtensions =
@@ -21,9 +20,6 @@ namespace Core.Editor.AssetNaming
             ".meta",
             ".cs",
             ".md",
-            ".json",
-            ".txt",
-            ".bytes",
             ".dll",
             ".asmdef",
             ".spriteatlasv2"
@@ -34,46 +30,45 @@ namespace Core.Editor.AssetNaming
             ".gitkeep"
         };
 
-        private static readonly Regex VariantSegmentRegex = new Regex(@"^\d{2}$", RegexOptions.Compiled);
-        private static readonly Regex PascalSegmentRegex = new Regex(@"^[A-Z][a-zA-Z0-9]*$", RegexOptions.Compiled);
-
-        public static readonly IReadOnlyList<string> RegisteredPrefixes = new[]
+        public static readonly IReadOnlyList<string> RegisteredPrefixKeys = new[]
         {
-            "fonttmp_",
-            "mati_",
-            "tex_",
-            "mat_",
-            "pfb_",
-            "ui_",
-            "scn_",
-            "mdl_",
-            "anim_",
-            "anc_",
-            "vfx_",
-            "sfx_",
-            "bgm_",
-            "font_",
-            "atl_",
-            "sk_",
-            "so_"
+            "font",
+            "time",
+            "json",
+            "anim",
+            "spr",
+            "tex",
+            "mat",
+            "pfb",
+            "mdl",
+            "anc",
+            "scn",
+            "shd",
+            "phy",
+            "vid",
+            "bgm",
+            "sfx",
+            "so",
+            "txt"
+        };
+
+        private static readonly HashSet<string> DemosAllowedPrefixKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "spr", "tex", "mat", "pfb", "mdl", "anim", "anc", "scn", "so", "font",
+            "sfx", "bgm", "shd", "phy", "vid", "time", "json", "txt"
         };
 
         private static readonly Dictionary<string, HashSet<string>> FolderPrefixRules =
             new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase)
             {
-                { "UI", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "ui_" } },
-                { "Art", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "tex_", "mat_", "mati_", "mdl_", "sk_", "anim_", "anc_", "atl_" } },
-                { "Audio", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sfx_", "bgm_" } },
-                { "VFX", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "vfx_", "tex_", "mat_", "mati_" } },
-                { "Scenes", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "scn_" } },
-                { "Config", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "so_" } },
-                { "Fonts", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "font_", "fonttmp_", "atl_", "mat_" } }
+                { "UI", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "pfb" } },
+                { "Art", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "spr", "tex", "mat", "mdl", "anim", "anc", "shd" } },
+                { "Audio", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "sfx", "bgm" } },
+                { "VFX", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "pfb", "tex", "mat", "shd" } },
+                { "Scenes", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "scn" } },
+                { "Config", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "so", "json", "txt" } },
+                { "Fonts", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "font" } }
             };
-
-        private static readonly HashSet<string> DemosAllowedPrefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "pfb_", "scn_", "tex_", "mat_", "mati_", "mdl_", "sk_", "anim_", "anc_", "vfx_", "sfx_", "bgm_", "so_", "atl_"
-        };
 
         public static bool ShouldSkipAssetPath(string assetPath)
         {
@@ -143,124 +138,196 @@ namespace Core.Editor.AssetNaming
                 return false;
             }
 
-            if (!TryMatchPrefix(nameWithoutExtension, out var prefix, out var remainder))
+            if (!TryMatchPrefix(nameWithoutExtension, out var prefixKey, out var remainder))
             {
-                error = $"未识别的类型前缀。允许的前缀见 docs/architecture/asset-naming.md（如 tex_、pfb_、ui_）。文件名: {fileName}";
-                return false;
-            }
-
-            if (!IsPrefixAllowedForPath(assetPath, prefix))
-            {
-                error = $"前缀 '{prefix}' 不允许出现在当前目录: {assetPath}";
-                return false;
-            }
-
-            if (prefix.Equals("ui_", StringComparison.Ordinal))
-            {
-                if (!nameWithoutExtension.EndsWith("View", StringComparison.Ordinal))
-                {
-                    error = "UI Prefab 文件名须以 View 结尾，例如 ui_MainMenuView.prefab。";
-                    return false;
-                }
-            }
-
-            if (prefix.Equals("anc_", StringComparison.Ordinal) &&
-                !assetPath.EndsWith(".controller", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "anc_ 前缀仅用于 .controller 文件。";
-                return false;
-            }
-
-            if (prefix.Equals("anim_", StringComparison.Ordinal) &&
-                !assetPath.EndsWith(".anim", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "anim_ 前缀仅用于 .anim 文件。";
-                return false;
-            }
-
-            if (prefix.Equals("fonttmp_", StringComparison.Ordinal) &&
-                assetPath.IndexOf("/Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "TMP 外部图集须使用 atl_ 前缀，例如 atl_HarmonyOS_CN.png。";
-                return false;
-            }
-
-            if (prefix.Equals("atl_", StringComparison.Ordinal) &&
-                assetPath.IndexOf("/Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                !assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "Fonts/TMP_FontAssets 下的 atl_ 前缀仅用于 TMP 图集 .png。";
-                return false;
-            }
-
-            if (prefix.Equals("fonttmp_", StringComparison.Ordinal) &&
-                assetPath.IndexOf("/Fonts/Materials/", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                error = "字体材质须使用 mat_ 前缀，例如 mat_HarmonyOS_CN.mat。";
-                return false;
-            }
-
-            if (prefix.Equals("mat_", StringComparison.Ordinal) &&
-                assetPath.IndexOf("/Fonts/Materials/", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                !assetPath.EndsWith(".mat", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "Fonts/Materials 下的 mat_ 前缀仅用于 .mat 材质。";
+                error = $"未识别的类型前缀。允许的前缀见 docs/architecture/asset-naming.md（如 tex&、pfb&）。文件名: {fileName}";
                 return false;
             }
 
             if (string.IsNullOrEmpty(remainder))
             {
-                error = "前缀后至少需要一个 PascalCase 语义段。";
+                error = "前缀 '&' 后须有语义命名。";
                 return false;
             }
 
-            var segments = remainder.Split('_');
-            for (var i = 0; i < segments.Length; i++)
+            if (!IsPrefixAllowedForPath(assetPath, prefixKey))
             {
-                var segment = segments[i];
-                if (string.IsNullOrEmpty(segment))
-                {
-                    error = "存在空的下划线分段。";
-                    return false;
-                }
+                error = $"前缀 '{prefixKey}{PrefixSeparator}' 不允许出现在当前目录: {assetPath}";
+                return false;
+            }
 
-                if (VariantSegmentRegex.IsMatch(segment))
-                {
-                    continue;
-                }
+            if (!TryValidateExtensionBinding(assetPath, prefixKey, out error))
+            {
+                return false;
+            }
 
-                if (!PascalSegmentRegex.IsMatch(segment))
-                {
-                    error = $"语义段 '{segment}' 须为 PascalCase（首字母大写，仅字母数字）。";
-                    return false;
-                }
+            if (prefixKey.Equals("pfb", StringComparison.Ordinal) &&
+                assetPath.IndexOf("/UI/", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                assetPath.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase) &&
+                !nameWithoutExtension.EndsWith("View", StringComparison.Ordinal))
+            {
+                error = "UI Prefab 文件名须以 View 结尾，例如 pfb&MainMenuView.prefab。";
+                return false;
             }
 
             return true;
         }
 
-        private static bool TryMatchPrefix(string nameWithoutExtension, out string prefix, out string remainder)
+        public static string GetSemanticName(string fileNameWithoutExtension)
         {
-            prefix = null;
-            remainder = null;
-
-            foreach (var candidate in RegisteredPrefixes.OrderByDescending(item => item.Length))
+            if (string.IsNullOrEmpty(fileNameWithoutExtension))
             {
-                if (!nameWithoutExtension.StartsWith(candidate, StringComparison.Ordinal))
-                {
-                    continue;
-                }
+                return fileNameWithoutExtension;
+            }
 
-                prefix = candidate;
-                remainder = nameWithoutExtension.Substring(candidate.Length);
+            var separatorIndex = fileNameWithoutExtension.IndexOf(PrefixSeparator);
+            if (separatorIndex < 0 || separatorIndex >= fileNameWithoutExtension.Length - 1)
+            {
+                return fileNameWithoutExtension;
+            }
+
+            return fileNameWithoutExtension.Substring(separatorIndex + 1);
+        }
+
+        private static bool TryValidateExtensionBinding(string assetPath, string prefixKey, out string error)
+        {
+            error = null;
+            var extension = Path.GetExtension(assetPath);
+            if (string.IsNullOrEmpty(extension))
+            {
+                error = "缺少文件扩展名。";
+                return false;
+            }
+
+            extension = extension.ToLowerInvariant();
+
+            switch (prefixKey)
+            {
+                case "pfb":
+                    return RequireExtension(extension, out error, ".prefab");
+                case "mdl":
+                    return RequireExtension(extension, out error, ".fbx", ".obj", ".blend", ".dae", ".3ds", ".dxf", ".skp");
+                case "anim":
+                    return RequireExtension(extension, out error, ".anim");
+                case "anc":
+                    return RequireExtension(extension, out error, ".controller", ".overridecontroller");
+                case "scn":
+                    return RequireExtension(extension, out error, ".unity");
+                case "mat":
+                    return RequireExtension(extension, out error, ".mat");
+                case "font":
+                    return RequireFontExtension(assetPath, extension, out error);
+                case "so":
+                    return RequireExtension(extension, out error, ".asset");
+                case "json":
+                    return RequireExtension(extension, out error, ".json");
+                case "txt":
+                    return RequireExtension(extension, out error, ".txt", ".bytes");
+                case "sfx":
+                case "bgm":
+                    return RequireExtension(extension, out error, ".wav", ".ogg", ".mp3", ".aiff", ".aif", ".flac");
+                case "shd":
+                    return RequireExtension(extension, out error, ".shader", ".shadergraph", ".shadersubgraph", ".cginc", ".hlsl");
+                case "phy":
+                    return RequireExtension(extension, out error, ".physicmaterial");
+                case "vid":
+                    return RequireExtension(extension, out error, ".mp4", ".webm", ".mov", ".avi", ".asf");
+                case "time":
+                    return RequireExtension(extension, out error, ".playable");
+                case "spr":
+                case "tex":
+                    return RequireExtension(extension, out error,
+                        ".png", ".jpg", ".jpeg", ".tga", ".psd", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".exr", ".hdr");
+                default:
+                    error = $"未配置扩展名校验的前缀: {prefixKey}{PrefixSeparator}";
+                    return false;
+            }
+        }
+
+        private static bool RequireFontExtension(string assetPath, string extension, out string error)
+        {
+            if (extension.Equals(".ttf", StringComparison.Ordinal) ||
+                extension.Equals(".otf", StringComparison.Ordinal))
+            {
+                error = null;
                 return true;
             }
 
+            if (extension.Equals(".asset", StringComparison.Ordinal))
+            {
+                if (assetPath.IndexOf("/Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    error = null;
+                    return true;
+                }
+
+                error = "font& 的 .asset 仅用于 Fonts/TMP_FontAssets。";
+                return false;
+            }
+
+            if (extension.Equals(".png", StringComparison.Ordinal))
+            {
+                if (assetPath.IndexOf("/Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    error = null;
+                    return true;
+                }
+
+                error = "font& 的 .png 仅用于 Fonts/TMP_FontAssets 外部图集。";
+                return false;
+            }
+
+            if (extension.Equals(".mat", StringComparison.Ordinal))
+            {
+                if (assetPath.IndexOf("/Fonts/Materials/", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    error = null;
+                    return true;
+                }
+
+                error = "font& 的 .mat 仅用于 Fonts/Materials。";
+                return false;
+            }
+
+            error = "font& 仅用于 .ttf / .otf / TMP .asset / TMP 图集 .png / Fonts/Materials 下 .mat。";
             return false;
         }
 
-        private static bool IsPrefixAllowedForPath(string assetPath, string prefix)
+        private static bool RequireExtension(string extension, out string error, params string[] allowed)
+        {
+            if (allowed.Any(item => extension.Equals(item, StringComparison.OrdinalIgnoreCase)))
+            {
+                error = null;
+                return true;
+            }
+
+            error = $"扩展名 '{extension}' 与当前前缀不匹配。";
+            return false;
+        }
+
+        private static bool TryMatchPrefix(string nameWithoutExtension, out string prefixKey, out string remainder)
+        {
+            prefixKey = null;
+            remainder = null;
+
+            var separatorIndex = nameWithoutExtension.IndexOf(PrefixSeparator);
+            if (separatorIndex <= 0)
+            {
+                return false;
+            }
+
+            prefixKey = nameWithoutExtension.Substring(0, separatorIndex);
+            if (!RegisteredPrefixKeys.Contains(prefixKey))
+            {
+                prefixKey = null;
+                return false;
+            }
+
+            remainder = nameWithoutExtension.Substring(separatorIndex + 1);
+            return true;
+        }
+
+        private static bool IsPrefixAllowedForPath(string assetPath, string prefixKey)
         {
             var relative = assetPath.Substring(LoadResourcesRoot.Length + 1);
             var parts = relative.Split('/');
@@ -268,40 +335,28 @@ namespace Core.Editor.AssetNaming
 
             if (topFolder.Equals("Demos", StringComparison.OrdinalIgnoreCase))
             {
-                return DemosAllowedPrefixes.Contains(prefix);
+                if (parts.Length >= 3 &&
+                    parts[2].Equals("Data", StringComparison.OrdinalIgnoreCase))
+                {
+                    return prefixKey.Equals("json", StringComparison.Ordinal) ||
+                           prefixKey.Equals("txt", StringComparison.Ordinal) ||
+                           prefixKey.Equals("so", StringComparison.Ordinal);
+                }
+
+                return DemosAllowedPrefixKeys.Contains(prefixKey);
             }
 
             if (topFolder.Equals("Fonts", StringComparison.OrdinalIgnoreCase))
             {
-                if (relative.StartsWith("Fonts/Source/", StringComparison.OrdinalIgnoreCase))
-                {
-                    return prefix.Equals("font_", StringComparison.Ordinal);
-                }
-
-                if (relative.StartsWith("Fonts/TMP_FontAssets/", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return prefix.Equals("atl_", StringComparison.Ordinal);
-                    }
-
-                    return prefix.Equals("fonttmp_", StringComparison.Ordinal);
-                }
-
-                if (relative.StartsWith("Fonts/Materials/", StringComparison.OrdinalIgnoreCase))
-                {
-                    return prefix.Equals("mat_", StringComparison.Ordinal);
-                }
-
-                return FolderPrefixRules["Fonts"].Contains(prefix);
+                return prefixKey.Equals("font", StringComparison.Ordinal);
             }
 
             if (!FolderPrefixRules.TryGetValue(topFolder, out var allowed))
             {
-                return RegisteredPrefixes.Contains(prefix);
+                return RegisteredPrefixKeys.Contains(prefixKey);
             }
 
-            return allowed.Contains(prefix);
+            return allowed.Contains(prefixKey);
         }
     }
 }
