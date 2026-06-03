@@ -7,8 +7,10 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
+    using TMPro;
 
-    public partial class TestView : View
+    [Source("LoadResources/UI/pfb&TestView")]
+    public partial class TestView
     {
         public override string Address => "LoadResources/UI/pfb&TestView";
         public override UILayer Level => UILayer.Base;
@@ -17,7 +19,9 @@ namespace Hotfix
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
 
-        private Button buttonCloseButton;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
+        private Button Button_AddButton;
+        private Button Button_CloseButton;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -29,8 +33,11 @@ namespace Hotfix
                 return;
             }
 
-            buttonCloseButton = componentItemIndex.Get<Button>(0);
-            this.RegisterButton(buttonCloseButton, OnCloseButtonClick);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(0);
+            Button_AddButton = componentItemIndex.Get<Button>(1);
+            Button_CloseButton = componentItemIndex.Get<Button>(2);
+            this.RegisterButton(Button_AddButton, OnAddButtonClick);
+            this.RegisterButton(Button_CloseButton, OnCloseButtonClick);
         }
     }
 }

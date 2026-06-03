@@ -14,7 +14,7 @@ namespace Hotfix.AppDelegate
             await UniTask.Yield();
 
             hotfixContext.LoadingView?.SetProgress(0.95f, "进入界面", "显示主界面");
-            var view = UIManager.Instance.Show<Hotfix.MainMenuView>();
+            var view = UIManager.Instance.Show<MainMenuView>();
             if (view == null)
             {
                 Debug.LogWarning("[HotfixEntry] MainMenuView 未注册，检查 MvcBind 生成代码和预制体地址。");

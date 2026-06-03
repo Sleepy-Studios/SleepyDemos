@@ -36,6 +36,12 @@
 |----------|------|------|
 | `Tools/UI Framework/MvcBind` | View / Prefab 绑定扫描与编辑；Prefab 模式下可打开组件绑定子窗口 | `MvcBind/MvcBindWindow.cs`、`MvcPrefabScanner.cs`（`MvcComponentBindWindow`） |
 
+使用要点：
+
+- 在 Prefab Mode 中新增 UI 节点后，Hierarchy 右侧的绑定勾选和组件下拉会自动延迟刷新。
+- 点击 `Create` 会先把 `ComponentItemIndex` 绑定保存到当前 Prefab，再生成 View 脚本，避免脚本重编译导致绑定未落盘。
+- 手动点击 Prefab Mode 的 `Save` 时，如果当前 Hierarchy 已有勾选组件，也会按当前选择同步绑定并重新生成脚本。
+
 ### 3. TextMesh Pro 字体
 
 | 菜单路径 | 说明 | 源码 / 文档 |

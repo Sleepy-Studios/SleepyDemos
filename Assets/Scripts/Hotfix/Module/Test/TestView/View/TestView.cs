@@ -13,5 +13,9 @@ namespace Hotfix
         private void OnCloseButtonClick()
         {
         }
-    }
+    
+        private void OnAddButtonClick()
+        {
+        }
+}
 }

@@ -143,7 +143,7 @@ namespace Core.Editor.MvcBind
                         continue;
                     }
 
-                    var fieldName = ToUniqueFieldName(ToCamel(GetTypeName(componentType) + node.name), fieldNames);
+                    var fieldName = ToUniqueFieldName(ToFieldName(componentType, node.name), fieldNames);
                     var info = new MvcBindComponentInfo
                     {
                         index = components.Count,
@@ -346,12 +346,7 @@ namespace Core.Editor.MvcBind
                 return "Component";
             }
 
-            if (type.Namespace == "UnityEngine.UI")
-            {
-                return type.Name;
-            }
-
-            return string.IsNullOrEmpty(type.Namespace) ? type.Name : type.FullName.Replace('+', '.');
+            return type.Name.Replace('+', '.');
         }
 
         public static List<MvcBindMethodInfo> GetRegisterMethods(System.Type componentType, string gameObjectName)
@@ -505,15 +500,35 @@ namespace Core.Editor.MvcBind
             return null;
         }
 
-        private static string ToCamel(string value)
+        private static string ToFieldName(System.Type componentType, string gameObjectName)
         {
-            if (string.IsNullOrEmpty(value))
+            return $"{ToIdentifierPart(GetTypeName(componentType))}_{ToIdentifierPart(gameObjectName)}";
+        }
+
+        private static string ToIdentifierPart(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
             {
-                return "field";
+                return "GameObject";
             }
 
-            var clean = value.Replace(" ", string.Empty).Replace("-", string.Empty);
-            return char.ToLowerInvariant(clean[0]) + clean.Substring(1);
+            var builder = new StringBuilder(value.Length);
+            foreach (var ch in value)
+            {
+                builder.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
+            }
+
+            if (builder.Length == 0)
+            {
+                return "GameObject";
+            }
+
+            if (char.IsDigit(builder[0]))
+            {
+                builder.Insert(0, '_');
+            }
+
+            return builder.ToString();
         }
 
         private static string ToUniqueFieldName(string value, HashSet<string> used)

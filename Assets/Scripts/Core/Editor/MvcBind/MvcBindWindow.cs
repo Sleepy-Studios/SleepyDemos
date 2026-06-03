@@ -21,6 +21,7 @@ namespace Core.Editor.MvcBind
         private MvcBindModuleTreeView moduleTree;
         private IMGUIContainer moduleTreeContainer;
         private GameObject targetPrefabRoot;
+        private static MvcBindWindow activeWindow;
 
         [MenuItem("Tools/UI Framework/MvcBind")]
         public static void Open()
@@ -30,6 +31,7 @@ namespace Core.Editor.MvcBind
 
         private void OnEnable()
         {
+            activeWindow = this;
             PrefabStage.prefabStageOpened += OnPrefabStageOpened;
             PrefabStage.prefabStageClosing += OnPrefabStageClosing;
             BuildUI();
@@ -39,6 +41,11 @@ namespace Core.Editor.MvcBind
 
         private void OnDisable()
         {
+            if (activeWindow == this)
+            {
+                activeWindow = null;
+            }
+
             PrefabStage.prefabStageOpened -= OnPrefabStageOpened;
             PrefabStage.prefabStageClosing -= OnPrefabStageClosing;
         }
@@ -255,18 +262,15 @@ namespace Core.Editor.MvcBind
                 return;
             }
 
-            MvcBindComponentWindowBridge.BindPrefabComponents(targetPrefabRoot, components);
-            try
+            if (!MvcBindComponentWindowBridge.GenerateAndBind(targetPrefabRoot, settings, nodes, true, out var path, out var message))
             {
-                var path = MvcCodeGenerator.Generate(settings, nodes);
-                Debug.Log($"MvcBind generated: {path}");
-                RefreshModuleList();
+                ShowNotification(new GUIContent(message));
+                Debug.LogWarning(message);
+                return;
             }
-            catch (InvalidDataException exception)
-            {
-                ShowNotification(new GUIContent(exception.Message));
-                Debug.LogWarning(exception.Message);
-            }
+
+            Debug.Log($"MvcBind generated: {path}");
+            RefreshModuleList();
         }
 
         private bool TryResolveCurrentPrefabPath(out string prefabPath)
@@ -281,7 +285,7 @@ namespace Core.Editor.MvcBind
             return MvcBindPathUtility.TryGetPrefabAssetPath(targetPrefabRoot, out prefabPath);
         }
 
-        private static string ResolveModuleName(string prefabPath, string address)
+        internal static string ResolveModuleName(string prefabPath, string address)
         {
             var records = BuildViewRecords(MvcBindToolConfig.ModuleRoot);
             var viewName = MvcBindPathUtility.ToViewClassName(prefabPath);
@@ -323,7 +327,7 @@ namespace Core.Editor.MvcBind
                 : DisplayStyle.None;
         }
 
-        private static List<MvcBindViewRecord> BuildViewRecords(string root)
+        internal static List<MvcBindViewRecord> BuildViewRecords(string root)
         {
             var records = new Dictionary<string, MvcBindViewRecord>();
             foreach (var path in Directory.GetFiles(root, "*Component.cs", SearchOption.AllDirectories))
@@ -485,6 +489,46 @@ namespace Core.Editor.MvcBind
             }
 
             return choices;
+        }
+
+        internal static MvcBindSettings CreateSettingsForPrefabSave(GameObject prefabRoot, string prefabPath)
+        {
+            var source = activeWindow != null && activeWindow.targetPrefabRoot == prefabRoot
+                ? activeWindow.settings
+                : null;
+
+            var result = source != null
+                ? CopySettings(source)
+                : new MvcBindSettings();
+
+            result.ApplyPrefabPath(prefabPath);
+            result.moduleName = source != null
+                ? source.moduleName
+                : ResolveModuleName(result.prefabPath, result.address);
+            result.outputFolder = MvcBindPathUtility.ToOutputFolder(result.moduleName, result.viewName);
+            return result;
+        }
+
+        private static MvcBindSettings CopySettings(MvcBindSettings source)
+        {
+            return new MvcBindSettings
+            {
+                prefabPath = source.prefabPath,
+                moduleName = source.moduleName,
+                viewName = source.viewName,
+                namespaceName = source.namespaceName,
+                outputFolder = source.outputFolder,
+                address = source.address,
+                viewType = source.viewType,
+                layer = source.layer,
+                mask = source.mask,
+                isHotfix = source.isHotfix,
+                isAsync = source.isAsync,
+                enableOnInit = source.enableOnInit,
+                destroyOnHide = source.destroyOnHide,
+                uiAnimationType = source.uiAnimationType,
+                cameraAnimationType = source.cameraAnimationType
+            };
         }
     }
 }

@@ -7,6 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
+    using TMPro;
 
     [Source("LoadResources/UI/pfb&MainMenuView")]
     public partial class MainMenuView
@@ -16,10 +17,12 @@ namespace Hotfix
         public override MaskType Mask => MaskType.None;
         public override bool IsAsync => true;
         public override bool EnableOnInit => true;
-        public override bool DestroyOnHide => false;
+        public override bool DestroyOnHide => true;
 
-        private Image imageBackground;
-        private Text textTitle;
+        private Image Image_Background;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
+        private CanvasRenderer CanvasRenderer_Title;
+        private RectTransform RectTransform_Title;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -31,8 +34,10 @@ namespace Hotfix
                 return;
             }
 
-            imageBackground = componentItemIndex.Get<Image>(0);
-            textTitle = componentItemIndex.Get<Text>(1);
+            Image_Background = componentItemIndex.Get<Image>(0);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
+            CanvasRenderer_Title = componentItemIndex.Get<CanvasRenderer>(2);
+            RectTransform_Title = componentItemIndex.Get<RectTransform>(3);
         }
     }
 }

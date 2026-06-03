@@ -1,3 +1,5 @@
+using System;
+
 namespace Core.Runtime
 {
     public enum UILayer
@@ -23,6 +25,7 @@ namespace Core.Runtime
         ItemView
     }
 
+    [Flags]
     public enum ViewState
     {
         None = 0,

@@ -3,7 +3,8 @@
     "rootNamespace": "Hotfix",
     "references": [
         "Core.Runtime",
-        "UniTask"
+        "UniTask",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

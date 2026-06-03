@@ -69,6 +69,7 @@ namespace Core.Editor.MvcBind
         private readonly List<MvcBindNode> nodes = new List<MvcBindNode>();
         private ListView listView;
         private GameObject targetPrefabRoot;
+        private bool refreshScheduled;
 
         public static void OpenWindow(MvcBindSettings bindSettings)
         {
@@ -81,6 +82,7 @@ namespace Core.Editor.MvcBind
         {
             PrefabStage.prefabStageOpened += OnPrefabStageOpened;
             PrefabStage.prefabStageClosing += OnPrefabStageClosing;
+            EditorApplication.hierarchyChanged += ScheduleRefreshFromHierarchy;
             BuildUI();
             RefreshFromSelection();
         }
@@ -89,6 +91,8 @@ namespace Core.Editor.MvcBind
         {
             PrefabStage.prefabStageOpened -= OnPrefabStageOpened;
             PrefabStage.prefabStageClosing -= OnPrefabStageClosing;
+            EditorApplication.hierarchyChanged -= ScheduleRefreshFromHierarchy;
+            EditorApplication.delayCall -= DelayedRefreshFromHierarchy;
         }
 
         private void BuildUI()
@@ -111,29 +115,36 @@ namespace Core.Editor.MvcBind
         private VisualElement MakeItem()
         {
             var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-            row.Add(new Label { name = "name", style = { minWidth = 180, flexGrow = 1 } });
-            row.Add(new PopupField<string> { name = "component", style = { minWidth = 260, flexGrow = 1 } });
-            row.Add(new PopupField<string> { name = "method", style = { minWidth = 180, flexGrow = 1 } });
             return row;
         }
 
         private void BindItem(VisualElement element, int index)
         {
+            element.Clear();
             var node = nodes[index];
-            var name = element.Q<Label>("name");
+            var name = new Label { name = "name", style = { minWidth = 180, flexGrow = 1 } };
+            element.Add(name);
             name.text = $"{new string(' ', node.depth * 2)}{node.name}";
 
-            var component = element.Q<PopupField<string>>("component");
-            var choices = new List<string> { "None", "Mixed" };
+            var choices = new List<string> { MvcBindComponentWindowBridge.NoneChoice, MvcBindComponentWindowBridge.MixedChoice };
             foreach (var type in node.componentTypes)
             {
                 choices.Add(MvcBindComponentWindowBridge.GetComponentDisplayName(type));
             }
-            component.choices = choices;
-            component.index = MvcBindComponentWindowBridge.GetComponentChoiceIndex(node, choices);
+
+            var component = new PopupField<string>(choices, MvcBindComponentWindowBridge.GetComponentChoiceIndex(node, choices))
+            {
+                name = "component",
+                style = { minWidth = 260, flexGrow = 1 }
+            };
+            element.Add(component);
             component.RegisterValueChangedCallback(evt =>
             {
                 MvcBindComponentWindowBridge.ApplyComponentChoice(node, evt.newValue);
+                if (MvcBindComponentWindowBridge.IsMixedSelected(node))
+                {
+                    component.SetValueWithoutNotify(MvcBindComponentWindowBridge.MixedChoice);
+                }
                 BindMethodPopup(element, node);
             });
 
@@ -174,16 +185,10 @@ namespace Core.Editor.MvcBind
                 return;
             }
 
-            BindPrefabComponents(components);
-            string path;
-            try
+            if (!MvcBindComponentWindowBridge.GenerateAndBind(targetPrefabRoot, settings, nodes, true, out var path, out var message))
             {
-                path = MvcCodeGenerator.Generate(settings, nodes);
-            }
-            catch (InvalidDataException exception)
-            {
-                ShowNotification(new GUIContent(exception.Message));
-                Debug.LogWarning(exception.Message);
+                ShowNotification(new GUIContent(message));
+                Debug.LogWarning(message);
                 return;
             }
 
@@ -204,8 +209,10 @@ namespace Core.Editor.MvcBind
 
         private void BindMethodPopup(VisualElement element, MvcBindNode node)
         {
-            var method = element.Q<PopupField<string>>("method");
-            var choices = new List<string> { "None" };
+            var oldMethod = element.Q<PopupField<string>>("method");
+            oldMethod?.RemoveFromHierarchy();
+
+            var choices = new List<string> { MvcBindComponentWindowBridge.NoneChoice };
             var componentType = node.selectedComponentType;
             if (componentType != null)
             {
@@ -215,13 +222,18 @@ namespace Core.Editor.MvcBind
                 }
             }
 
-            method.choices = choices;
-            method.index = node.selectedMethodNames.Count == 0 ? 0 : Mathf.Max(0, choices.IndexOf(node.selectedMethodNames[0]));
+            var selectedIndex = node.selectedMethodNames.Count == 0 ? 0 : Mathf.Max(0, choices.IndexOf(node.selectedMethodNames[0]));
+            var method = new PopupField<string>(choices, selectedIndex)
+            {
+                name = "method",
+                style = { minWidth = 180, flexGrow = 1 }
+            };
+            element.Add(method);
             method.RegisterValueChangedCallback(evt =>
             {
                 var selectedMethods = GetSelectedMethodNames(node);
                 selectedMethods.Clear();
-                if (evt.newValue != "None")
+                if (evt.newValue != MvcBindComponentWindowBridge.NoneChoice)
                 {
                     selectedMethods.Add(evt.newValue);
                 }
@@ -256,10 +268,39 @@ namespace Core.Editor.MvcBind
             nodes.Clear();
             listView?.Rebuild();
         }
+
+        private void ScheduleRefreshFromHierarchy()
+        {
+            if (refreshScheduled || PrefabStageUtility.GetCurrentPrefabStage() == null)
+            {
+                return;
+            }
+
+            refreshScheduled = true;
+            EditorApplication.delayCall += DelayedRefreshFromHierarchy;
+        }
+
+        private void DelayedRefreshFromHierarchy()
+        {
+            refreshScheduled = false;
+            if (this == null || PrefabStageUtility.GetCurrentPrefabStage() == null)
+            {
+                return;
+            }
+
+            RefreshFromSelection();
+        }
     }
 
     public static class MvcBindComponentWindowBridge
     {
+        public const string NoneChoice = "None";
+        public const string MixedChoice = "Mixed";
+
+        private static bool suppressAutoGenerateOnPrefabSave;
+
+        public static bool SuppressAutoGenerateOnPrefabSave => suppressAutoGenerateOnPrefabSave;
+
         public static void Open(MvcBindSettings settings)
         {
             MvcComponentBindWindow.OpenWindow(settings);
@@ -268,6 +309,42 @@ namespace Core.Editor.MvcBind
         public static void BindPrefabComponents(GameObject targetPrefabRoot, IReadOnlyList<MvcBindNode> nodes)
         {
             BindPrefabComponents(targetPrefabRoot, MvcCodeGenerator.CollectComponents(nodes));
+        }
+
+        public static bool GenerateAndBind(
+            GameObject targetPrefabRoot,
+            MvcBindSettings settings,
+            IReadOnlyList<MvcBindNode> nodes,
+            bool savePrefabStage,
+            out string generatedPath,
+            out string message)
+        {
+            generatedPath = string.Empty;
+            message = string.Empty;
+
+            var components = MvcCodeGenerator.CollectComponents(nodes);
+            if (components.Count == 0)
+            {
+                message = "MvcBind 生成失败：请先勾选至少一个要绑定的组件。";
+                return false;
+            }
+
+            BindPrefabComponents(targetPrefabRoot, components);
+            if (savePrefabStage)
+            {
+                SavePrefabStageIfOpen(targetPrefabRoot);
+            }
+
+            try
+            {
+                generatedPath = MvcCodeGenerator.Generate(settings, nodes);
+                return true;
+            }
+            catch (InvalidDataException exception)
+            {
+                message = exception.Message;
+                return false;
+            }
         }
 
         public static void BindPrefabComponents(GameObject targetPrefabRoot, IReadOnlyList<MvcBindComponentInfo> components)
@@ -302,21 +379,49 @@ namespace Core.Editor.MvcBind
             }
         }
 
+        public static void SavePrefabStageIfOpen(GameObject targetPrefabRoot)
+        {
+            var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage == null ||
+                prefabStage.prefabContentsRoot == null ||
+                targetPrefabRoot != prefabStage.prefabContentsRoot ||
+                string.IsNullOrEmpty(prefabStage.assetPath))
+            {
+                return;
+            }
+
+            try
+            {
+                suppressAutoGenerateOnPrefabSave = true;
+                PrefabUtility.SaveAsPrefabAsset(prefabStage.prefabContentsRoot, prefabStage.assetPath);
+                AssetDatabase.SaveAssets();
+            }
+            finally
+            {
+                suppressAutoGenerateOnPrefabSave = false;
+            }
+        }
+
         public static string GetComponentDisplayName(Type type)
         {
             if (type == null)
             {
-                return "None";
+                return NoneChoice;
             }
 
-            return string.IsNullOrEmpty(type.Namespace) ? type.Name : $"{type.Name} ({type.Namespace})";
+            return type.Name;
         }
 
         public static int GetComponentChoiceIndex(MvcBindNode node, List<string> choices)
         {
+            if (IsMixedSelected(node))
+            {
+                return Mathf.Max(0, choices.IndexOf(MixedChoice));
+            }
+
             if (node.selectedComponentType == null)
             {
-                return node.selectedComponentTypes.Count > 1 ? 1 : 0;
+                return Mathf.Max(0, choices.IndexOf(NoneChoice));
             }
 
             var selected = GetComponentDisplayName(node.selectedComponentType);
@@ -326,21 +431,42 @@ namespace Core.Editor.MvcBind
 
         public static void ApplyComponentChoice(MvcBindNode node, string choice)
         {
+            if (IsMixedSelected(node) && choice != NoneChoice && choice != MixedChoice)
+            {
+                ToggleMixedComponentChoice(node, choice);
+                return;
+            }
+
+            var previousSelectedComponentType = node.selectedComponentType;
+            var previousSelectedComponentTypes = node.selectedComponentTypes.ToArray();
             node.selectedMethodNames.Clear();
             node.selectedComponentTypes.Clear();
             node.selectedMethodNamesByComponentTypeName.Clear();
-            if (choice == "None")
+            if (choice == NoneChoice)
             {
                 node.selectedComponentType = null;
                 node.selectedComponentTypeName = null;
                 return;
             }
 
-            if (choice == "Mixed")
+            if (choice == MixedChoice)
             {
                 node.selectedComponentType = null;
-                node.selectedComponentTypeName = "Mixed";
-                node.selectedComponentTypes.AddRange(node.componentTypes);
+                node.selectedComponentTypeName = MixedChoice;
+                if (previousSelectedComponentType != null)
+                {
+                    node.selectedComponentTypes.Add(previousSelectedComponentType);
+                    return;
+                }
+
+                foreach (var type in previousSelectedComponentTypes)
+                {
+                    if (type != null && node.componentTypes.Contains(type) && !node.selectedComponentTypes.Contains(type))
+                    {
+                        node.selectedComponentTypes.Add(type);
+                    }
+                }
+
                 return;
             }
 
@@ -420,7 +546,53 @@ namespace Core.Editor.MvcBind
 
             if (node.selectedComponentTypes.Count > 1)
             {
-                node.selectedComponentTypeName = "Mixed";
+                node.selectedComponentTypeName = MixedChoice;
+            }
+        }
+
+        public static bool IsMixedSelected(MvcBindNode node)
+        {
+            return node != null &&
+                   (node.selectedComponentTypeName == MixedChoice || node.selectedComponentTypes.Count > 1);
+        }
+
+        public static bool IsComponentSelected(MvcBindNode node, Type componentType)
+        {
+            if (node == null || componentType == null)
+            {
+                return false;
+            }
+
+            return IsMixedSelected(node)
+                ? node.selectedComponentTypes.Contains(componentType)
+                : node.selectedComponentType == componentType;
+        }
+
+        private static void ToggleMixedComponentChoice(MvcBindNode node, string choice)
+        {
+            var componentType = node.componentTypes.Find(type => GetComponentDisplayName(type) == choice);
+            if (componentType == null)
+            {
+                return;
+            }
+
+            node.selectedComponentType = null;
+            node.selectedComponentTypeName = MixedChoice;
+            node.selectedMethodNames.Clear();
+            node.selectedMethodNamesByComponentTypeName.Remove(componentType.FullName);
+
+            if (node.selectedComponentTypes.Contains(componentType))
+            {
+                node.selectedComponentTypes.Remove(componentType);
+            }
+            else
+            {
+                node.selectedComponentTypes.Add(componentType);
+            }
+
+            if (node.selectedComponentTypes.Count == 0)
+            {
+                node.selectedComponentTypeName = null;
             }
         }
 
