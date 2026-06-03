@@ -24,6 +24,7 @@
   - [Core.Runtime](./modules/core-runtime.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
+  - [Core 事件系统](./modules/eventing/README.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)
 - `runbooks/`
   - 新增 Demo、构建热更、排障等操作步骤
