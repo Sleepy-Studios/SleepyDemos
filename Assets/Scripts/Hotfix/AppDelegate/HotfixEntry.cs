@@ -11,6 +11,7 @@ namespace Hotfix.AppDelegate
         {
             hotfixContext.LoadingView?.SetProgress(0.85f, "热更初始化", "扫描热更 View 类型");
             UITypeReflection.Scan(typeof(HotfixEntry).Assembly);
+            await HotfixBootService.RunBootSystems(hotfixContext);
             await UniTask.Yield();
 
             hotfixContext.LoadingView?.SetProgress(0.95f, "进入界面", "显示主界面");

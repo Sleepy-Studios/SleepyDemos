@@ -106,6 +106,7 @@
 - [docs/README.md](docs/README.md)：文档总导航
 - [docs/architecture/](docs/architecture/)：架构地图、边界、流程
 - [docs/modules/](docs/modules/)：关键模块说明
+- [docs/agent/](docs/agent/)：Agent 协作入口与项目级技能说明
 - [docs/runbooks/](docs/runbooks/)：操作步骤和排障指南
 
 如果代码、流程、模块入口变化了，文档需要和代码一起更新，不靠人工额外提醒。

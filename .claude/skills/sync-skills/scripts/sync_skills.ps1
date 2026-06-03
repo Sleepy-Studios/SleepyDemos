@@ -1,200 +1,252 @@
 param(
+    [string]$SkillName,
+
+    [ValidateSet("claude", "codex")]
+    [string]$From,
+
+    [ValidateSet("claude", "codex")]
+    [string]$To,
+
+    [switch]$NoRules,
+    [switch]$UseLinks,
     [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
 
-function Find-ProjectRoot {
-    $current = (Get-Location).Path
+function Test-SkillDirectory {
+    param([System.IO.DirectoryInfo]$Directory)
 
-    while ($current) {
-        if ((Test-Path -LiteralPath (Join-Path $current ".codex")) -or
-            (Test-Path -LiteralPath (Join-Path $current ".claude")) -or
-            (Test-Path -LiteralPath (Join-Path $current ".agents")) -or
-            (Test-Path -LiteralPath (Join-Path $current ".git"))) {
-            return $current
-        }
-
-        $parent = Split-Path -Parent $current
-        if ($parent -eq $current) {
-            break
-        }
-        $current = $parent
-    }
-
-    throw "Cannot find project root. Run this script inside the project."
+    return Test-Path -LiteralPath (Join-Path $Directory.FullName "SKILL.md")
 }
 
-function Ensure-Directory {
-    param([string]$Path)
+function Get-SideRoot {
+    param([string]$ProjectRoot, [string]$Side)
 
-    if (Test-Path -LiteralPath $Path) {
-        return
-    }
-
-    if ($DryRun) {
-        Write-Host "[dry-run] create directory: $Path"
-        return
-    }
-
-    New-Item -ItemType Directory -Force -Path $Path | Out-Null
+    return Join-Path $ProjectRoot ".$Side"
 }
 
 function Get-SkillMap {
-    param([string]$SkillsPath)
+    param([string]$Root)
 
     $map = @{}
-
-    if (-not (Test-Path -LiteralPath $SkillsPath)) {
+    if (-not (Test-Path -LiteralPath $Root)) {
         return $map
     }
 
-    Get-ChildItem -LiteralPath $SkillsPath -Directory | ForEach-Object {
-        if ($_.Name -eq "sync-skills") {
-            return
-        }
-
-        $skillFile = Join-Path $_.FullName "SKILL.md"
-        if (Test-Path -LiteralPath $skillFile) {
-            $map[$_.Name] = $_.FullName
-        }
+    Get-ChildItem -LiteralPath $Root -Directory | Where-Object {
+        $_.Name -ne "sync-skills" -and (Test-SkillDirectory $_)
+    } | ForEach-Object {
+        $map[$_.Name] = $_.FullName
     }
 
     return $map
 }
 
-function Copy-MissingDirectory {
-    param(
-        [string]$Name,
-        [string]$SourcePath,
-        [string]$DestinationRoot,
-        [string]$DestinationLabel
-    )
+function Get-RuleMap {
+    param([string]$Root)
 
-    $destination = Join-Path $DestinationRoot $Name
-
-    if (Test-Path -LiteralPath $destination) {
-        return $false
+    $map = @{}
+    if (-not (Test-Path -LiteralPath $Root)) {
+        return $map
     }
 
-    if ($DryRun) {
-        Write-Host "[dry-run] copy missing '$Name' -> $DestinationLabel"
-        return $true
+    Get-ChildItem -LiteralPath $Root -Force | ForEach-Object {
+        $map[$_.Name] = $_.FullName
     }
 
-    Copy-Item -LiteralPath $SourcePath -Destination $destination -Recurse -Force
-    Write-Host "Copied missing '$Name' -> $DestinationLabel"
-    return $true
+    return $map
 }
 
-function Copy-MissingRules {
+function Copy-Directory {
     param(
-        [string]$SourceRoot,
-        [string]$DestinationRoot,
-        [string]$SourceLabel,
-        [hashtable]$KnownRuleMap
+        [string]$Source,
+        [string]$Destination,
+        [bool]$Overwrite
     )
 
-    if (-not (Test-Path -LiteralPath $SourceRoot)) {
-        return
-    }
-
-    Get-ChildItem -LiteralPath $SourceRoot -File | ForEach-Object {
-        if ($KnownRuleMap.ContainsKey($_.Name)) {
+    if (Test-Path -LiteralPath $Destination) {
+        if (-not $Overwrite) {
+            Write-Host "Skip existing: $Destination"
             return
         }
 
-        $destination = Join-Path $DestinationRoot $_.Name
-
         if ($DryRun) {
-            Write-Host "[dry-run] copy rule '$($_.Name)' from $SourceLabel -> .codex/rules"
-        }
-        else {
-            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
-            Write-Host "Copied rule '$($_.Name)' from $SourceLabel -> .codex/rules"
+            Write-Host "[dry-run] replace $Destination with $Source"
+            return
         }
 
-        $KnownRuleMap[$_.Name] = $destination
-        $script:copiedRules++
-    }
-}
-
-function Remove-LegacyAgentsDirectory {
-    param([string]$AgentsPath)
-
-    if (-not (Test-Path -LiteralPath $AgentsPath)) {
-        return $false
+        Remove-Item -LiteralPath $Destination -Recurse -Force
     }
 
     if ($DryRun) {
-        Write-Host "[dry-run] remove legacy directory: $AgentsPath"
-        return $true
+        if ($UseLinks) {
+            Write-Host "[dry-run] link $Destination -> $Source"
+        }
+        else {
+            Write-Host "[dry-run] copy $Source -> $Destination"
+        }
+        return
     }
 
-    Remove-Item -LiteralPath $AgentsPath -Recurse -Force
-    Write-Host "Removed legacy directory: $AgentsPath"
-    return $true
-}
-
-$projectRoot = Find-ProjectRoot
-
-$claudeSkills = Join-Path $projectRoot ".claude\skills"
-$agentsSkills = Join-Path $projectRoot ".agents\skills"
-$codexSkills = Join-Path $projectRoot ".codex\skills"
-
-$claudeRules = Join-Path $projectRoot ".claude\rules"
-$agentsRules = Join-Path $projectRoot ".agents\rules"
-$codexRules = Join-Path $projectRoot ".codex\rules"
-$agentsRoot = Join-Path $projectRoot ".agents"
-
-Ensure-Directory -Path $codexSkills
-Ensure-Directory -Path $codexRules
-
-$sourceSkillMaps = @(
-    @{ Label = ".claude/skills"; Map = Get-SkillMap -SkillsPath $claudeSkills },
-    @{ Label = ".agents/skills"; Map = Get-SkillMap -SkillsPath $agentsSkills }
-)
-
-$codexMap = Get-SkillMap -SkillsPath $codexSkills
-$codexRuleMap = @{}
-$codexRulesExists = Test-Path -LiteralPath $codexRules
-if ($codexRulesExists) {
-    Get-ChildItem -LiteralPath $codexRules -File | ForEach-Object {
-        $codexRuleMap[$_.Name] = $_.FullName
+    if ($UseLinks) {
+        New-Item -ItemType Junction -Path $Destination -Target $Source | Out-Null
+        Write-Host "Linked $Destination -> $Source"
+    }
+    else {
+        Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
+        Write-Host "Copied $Source -> $Destination"
     }
 }
-$copiedSkills = 0
-$script:copiedRules = 0
 
-Write-Host "Project: $projectRoot"
-Write-Host "Codex skills: $($codexMap.Count)"
-Write-Host "Claude skills: $($sourceSkillMaps[0].Map.Count)"
-Write-Host "Agents skills: $($sourceSkillMaps[1].Map.Count)"
+function Copy-RuleItem {
+    param(
+        [string]$Source,
+        [string]$Destination,
+        [bool]$Overwrite
+    )
 
-foreach ($source in $sourceSkillMaps) {
-    foreach ($name in ($source.Map.Keys | Sort-Object)) {
-        if ($codexMap.ContainsKey($name)) {
-            continue
+    if (Test-Path -LiteralPath $Destination) {
+        if (-not $Overwrite) {
+            Write-Host "Skip existing: $Destination"
+            return
         }
 
-        $copied = Copy-MissingDirectory -Name $name -SourcePath $source.Map[$name] -DestinationRoot $codexSkills -DestinationLabel ".codex/skills"
-        if ($copied) {
-            $copiedSkills++
-            $codexMap[$name] = Join-Path $codexSkills $name
+        if ($DryRun) {
+            Write-Host "[dry-run] replace $Destination with $Source"
+            return
+        }
+
+        Remove-Item -LiteralPath $Destination -Recurse -Force
+    }
+
+    if ($DryRun) {
+        Write-Host "[dry-run] copy $Source -> $Destination"
+        return
+    }
+
+    Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
+    Write-Host "Copied $Source -> $Destination"
+}
+
+function Sync-MissingMapItems {
+    param(
+        [hashtable]$SourceMap,
+        [hashtable]$TargetMap,
+        [string]$TargetRoot,
+        [string]$Label,
+        [string]$Kind
+    )
+
+    $missing = $SourceMap.Keys | Where-Object { -not $TargetMap.ContainsKey($_) } | Sort-Object
+    if (-not $missing) {
+        Write-Host "${Label}: no missing $Kind."
+        return 0
+    }
+
+    foreach ($name in $missing) {
+        $destination = Join-Path $TargetRoot $name
+        if ($Kind -eq "skills") {
+            Copy-Directory -Source $SourceMap[$name] -Destination $destination -Overwrite $false
+        }
+        else {
+            Copy-RuleItem -Source $SourceMap[$name] -Destination $destination -Overwrite $false
+        }
+    }
+
+    return $missing.Count
+}
+
+function Sync-RulesOneWay {
+    param([string]$SourceRoot, [string]$TargetRoot)
+
+    $rules = Get-RuleMap -Root $SourceRoot
+    if ($rules.Count -eq 0) {
+        Write-Host "Rules: no source rules found."
+        return 0
+    }
+
+    foreach ($name in ($rules.Keys | Sort-Object)) {
+        Copy-RuleItem -Source $rules[$name] -Destination (Join-Path $TargetRoot $name) -Overwrite $true
+    }
+
+    return $rules.Count
+}
+
+$SkillRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$ProjectRoot = Split-Path -Parent (Split-Path -Parent $SkillRoot)
+$claudeRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side "claude"
+$codexRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side "codex"
+$claudeSkills = Join-Path $claudeRoot "skills"
+$codexSkills = Join-Path $codexRoot "skills"
+$claudeRules = Join-Path $claudeRoot "rules"
+$codexRules = Join-Path $codexRoot "rules"
+
+foreach ($path in @($claudeSkills, $codexSkills, $claudeRules, $codexRules)) {
+    if (-not (Test-Path -LiteralPath $path)) {
+        if ($DryRun) {
+            Write-Host "[dry-run] create $path"
+        }
+        else {
+            New-Item -ItemType Directory -Force -Path $path | Out-Null
         }
     }
 }
 
-Copy-MissingRules -SourceRoot $claudeRules -DestinationRoot $codexRules -SourceLabel ".claude/rules" -KnownRuleMap $codexRuleMap
-Copy-MissingRules -SourceRoot $agentsRules -DestinationRoot $codexRules -SourceLabel ".agents/rules" -KnownRuleMap $codexRuleMap
+Write-Host "Project: $ProjectRoot"
 
-$removedAgents = Remove-LegacyAgentsDirectory -AgentsPath $agentsRoot
+if ($SkillName) {
+    if (-not $From -or -not $To) {
+        throw "When -SkillName is used, pass both -From claude|codex and -To claude|codex."
+    }
+    if ($From -eq $To) {
+        throw "-From and -To must be different."
+    }
+    if ($SkillName -eq "sync-skills") {
+        throw "sync-skills itself is not synced by this script."
+    }
 
-Write-Host "Summary: $copiedSkills skills copied to .codex, $script:copiedRules rules copied to .codex."
-if ($removedAgents) {
-    Write-Host "Legacy .agents directory scheduled for removal."
+    $sourceRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side $From
+    $targetRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side $To
+    $sourceSkill = Join-Path (Join-Path $sourceRoot "skills") $SkillName
+    $targetSkill = Join-Path (Join-Path $targetRoot "skills") $SkillName
+
+    if (-not (Test-Path -LiteralPath (Join-Path $sourceSkill "SKILL.md"))) {
+        throw "Source skill not found or invalid: $sourceSkill"
+    }
+
+    Write-Host "Sync skill: $SkillName ($From -> $To)"
+    Copy-Directory -Source $sourceSkill -Destination $targetSkill -Overwrite $true
+
+    if (-not $NoRules) {
+        Write-Host "Sync rules: $From -> $To"
+        $count = Sync-RulesOneWay -SourceRoot (Join-Path $sourceRoot "rules") -TargetRoot (Join-Path $targetRoot "rules")
+        Write-Host "Rules synced: $count"
+    }
+
+    Write-Host "Done. Restart Claude/Codex or start a new session if synced changes do not appear."
+    return
 }
 
-if ($copiedSkills -gt 0 -or $script:copiedRules -gt 0 -or $removedAgents) {
-    Write-Host "Restart Codex or start a new session if newly synced skills or rules do not appear."
+if ($From -or $To) {
+    throw "-From and -To are only valid with -SkillName."
 }
+
+$claudeSkillMap = Get-SkillMap -Root $claudeSkills
+$codexSkillMap = Get-SkillMap -Root $codexSkills
+$claudeRuleMap = Get-RuleMap -Root $claudeRules
+$codexRuleMap = Get-RuleMap -Root $codexRules
+
+Write-Host "Claude skills: $($claudeSkillMap.Count)"
+Write-Host "Codex skills:  $($codexSkillMap.Count)"
+Write-Host "Claude rules:  $($claudeRuleMap.Count)"
+Write-Host "Codex rules:   $($codexRuleMap.Count)"
+
+$addedSkillsToCodex = Sync-MissingMapItems -SourceMap $claudeSkillMap -TargetMap $codexSkillMap -TargetRoot $codexSkills -Label "Missing in .codex/skills" -Kind "skills"
+$addedSkillsToClaude = Sync-MissingMapItems -SourceMap $codexSkillMap -TargetMap $claudeSkillMap -TargetRoot $claudeSkills -Label "Missing in .claude/skills" -Kind "skills"
+$addedRulesToCodex = Sync-MissingMapItems -SourceMap $claudeRuleMap -TargetMap $codexRuleMap -TargetRoot $codexRules -Label "Missing in .codex/rules" -Kind "rules"
+$addedRulesToClaude = Sync-MissingMapItems -SourceMap $codexRuleMap -TargetMap $claudeRuleMap -TargetRoot $claudeRules -Label "Missing in .claude/rules" -Kind "rules"
+
+Write-Host "Done. Added skills to Codex: $addedSkillsToCodex; added skills to Claude: $addedSkillsToClaude."
+Write-Host "Done. Added rules to Codex: $addedRulesToCodex; added rules to Claude: $addedRulesToClaude."
+Write-Host "Restart Claude/Codex or start a new session if newly synced items do not appear."

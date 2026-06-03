@@ -9,7 +9,7 @@
 - `Common/`：通用基础能力
 - `Components/`：可复用基础 UI 组件和通用组件
 - `Eventing/`：全局同步事件分发，用于临时事件通知
-- `Flux/`：状态与流程辅助
+- `Flux/`：轻量单向数据流，负责 Action 派发、Data 状态、Handler 处理和订阅通知
 - `HotUpdate/`：热更相关运行时能力
 - `Resource/`：资源相关能力
 - `Startup/`：启动状态机与系统
@@ -41,6 +41,7 @@
 - 调整资源初始化顺序
 - 扩展公共 UI 基类或管理器
 - 增加通用运行时服务
+- 补充或接入 Flux 状态流
 - 在 Unity Editor 运行 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 检查资源抽象、基础 UI 组件、外层引用约束和文档入口
 - 在命令行或 CI 中使用 Unity `-executeMethod Core.Editor.CoreRuntimeInfrastructureValidator.ValidateForBatchMode` 执行同一套检查
 
@@ -49,4 +50,6 @@
 - [Core 资源运行时](./resource-runtime.md)
 - [Core UI 运行时](./ui-runtime.md)
 - [Core 事件系统](./eventing/README.md)
+- [Core Flux 状态流](./flux.md)
+- [热更新模块](./hot-update.md)
 - [验证 Core 运行时基础设施](../runbooks/validate-core-runtime-infrastructure.md)

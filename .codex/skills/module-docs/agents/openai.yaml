@@ -1,0 +1,4 @@
+interface:
+  display_name: "Module Docs"
+  short_description: "Split module docs into architecture, module, and runbook layers"
+  default_prompt: "Use the three-layer documentation rules to update docs for the current module."

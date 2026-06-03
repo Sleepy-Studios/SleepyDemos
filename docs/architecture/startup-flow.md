@@ -62,8 +62,12 @@ Hotfix 入口位于：
 
 当前行为：
 - 扫描 Hotfix 程序集内的 View 类型
+- 运行 `HotfixBootService.RunBootSystems`
+- 通过 `GlobalDataSystem` / `FluxService` 注册 Hotfix 全局 Flux Data
 - 显示 `MainMenuView`
 - 销毁启动加载界面
+
+当前 Hotfix 启动系统说明见 [Hotfix 启动系统](../modules/hotfix-boot-systems.md)。
 
 ## 修改这里时必须注意
 

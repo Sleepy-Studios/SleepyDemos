@@ -26,15 +26,21 @@ namespace Core.Runtime
 
         public void Remove(Action<T> action)
         {
+            if (action == null)
+            {
+                return;
+            }
+
             actions.Remove(action);
             refCount = actions.Count;
         }
 
         public void Invoke(T data)
         {
-            for (int i = 0; i < actions.Count; i++)
+            var snapshot = actions.ToArray();
+            for (int i = 0; i < snapshot.Length; i++)
             {
-                actions[i]?.Invoke(data);
+                snapshot[i]?.Invoke(data);
             }
         }
 
@@ -61,14 +67,20 @@ namespace Core.Runtime
 
         public void Remove(Action<T, U> action)
         {
+            if (action == null)
+            {
+                return;
+            }
+
             actions.Remove(action);
         }
 
         public void Invoke(T data1, U data2)
         {
-            for (int i = 0; i < actions.Count; i++)
+            var snapshot = actions.ToArray();
+            for (int i = 0; i < snapshot.Length; i++)
             {
-                actions[i]?.Invoke(data1, data2);
+                snapshot[i]?.Invoke(data1, data2);
             }
         }
     }

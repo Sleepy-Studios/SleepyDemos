@@ -21,8 +21,14 @@ namespace Core.Runtime
         void ReduceAny(IAction action);
     }
 
+    public interface INetworkServiceReceiver
+    {
+        void SetNetworkService(INetworkService networkService);
+    }
+
     public interface INetworkService
     {
         UniTask<TResponse> SendAsync<TRequest, TResponse>(TRequest request);
+        UniTask<object> SendAsync(string command, object request, Type responseType);
     }
 }

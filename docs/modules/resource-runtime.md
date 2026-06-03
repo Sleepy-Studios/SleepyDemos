@@ -1,51 +1,107 @@
 # Core 资源运行时
 
-## 目标
+## 负责什么
 
-资源运行时负责给 Core 和 Hotfix 提供统一资源语义。上层代码不直接依赖 YooAssets 的 `ResourcePackage`、`AssetHandle` 或操作类型，而是通过 Core 的资源服务和局部 loader 访问资源。
+资源运行时维护 Core 资源抽象和当前 YooAssets 适配实现，为启动流程、热更新加载、UI 框架和 Hotfix 业务提供统一资源入口。
 
-## 当前结构
+它负责：
 
-- `IResourceService`：全局资源服务契约，负责初始化、下载、地址规范化、创建 loader、加载全局资源。
-- `ResourceServices`：默认资源服务注册点。当前默认实现是 `YooAssetResourceService`，未来替换底层实现时优先从这里切换。
-- `IResourceLoader`：局部生命周期 loader，通常由 `View` 或具体调用方持有，负责加载资源、实例化对象、释放实例和释放本 loader 持有的资源。
-- `YooAssetResourceService`：YooAssets 适配层。
-- `YooAssetResourceLoader`：YooAssets 局部 loader 实现，内部维护资源句柄和实例到句柄的映射。
-- `YooAssetResourceSystem`：YooAssets 初始化、清单刷新、下载和底层加载的实现细节。
+- 注册和访问默认资源服务
+- 初始化默认资源包
+- 下载资源补丁
+- 规范化资源地址
+- 创建局部 loader
+- 加载资源和 `TextAsset`
+- 实例化与释放 GameObject
 
-## 生命周期规则
+它不负责：
 
-- `View.Loader` 默认通过 `ResourceServices.CreateLoader()` 创建，不直接 new 某个具体资源框架实现。
-- `IResourceLoader` 的所有权属于创建它的对象；`View.Destroy()` 会释放 View 内部 loader。
-- 通过 loader 实例化出的 GameObject 应由同一个 loader 的 `ReleaseInstance` 释放。
-- 通过 loader 加载出的资源应由同一个 loader 的 `ReleaseAsset` 或 `Dispose` 释放。
-- 全局资源服务加载出的共享资源由服务内部共享 loader 持有，需要显式释放时调用 `ResourceServices.Default.ReleaseAsset(asset)`。
+- 具体 Demo 的资源目录规划
+- 资源命名规则本身
+- UI 页面展示逻辑
+- 热更新程序集装载策略
 
-## 地址与错误
+设计原则见 `docs/architecture/resource-system.md`。
 
-- 上层传入地址后统一经过 `IResourceService.NormalizeAddress` 标准化。
-- 加载结果可使用 `ResourceLoadResult<T>` 表示成功、地址和错误信息。
-- 初始化失败、资源缺失、下载失败时，底层实现负责输出日志；启动系统根据初始化结果决定是否中断。
+## 代码位置
 
-## 扩展点
+- `Assets/Scripts/Core/Runtime/Resource/IResourceService.cs`
+- `Assets/Scripts/Core/Runtime/Resource/IResourceLoader.cs`
+- `Assets/Scripts/Core/Runtime/Resource/ResourceServices.cs`
+- `Assets/Scripts/Core/Runtime/Resource/ResourceInitializeOptions.cs`
+- `Assets/Scripts/Core/Runtime/Resource/ResourceLoadResult.cs`
+- `Assets/Scripts/Core/Runtime/Resource/YooAssetResourceService.cs`
+- `Assets/Scripts/Core/Runtime/Resource/YooAssetResourceLoader.cs`
+- `Assets/Scripts/Core/Runtime/Resource/YooAssetResourceSystem.cs`
+- `Assets/Scripts/Core/Runtime/Startup/States/ResourceStartupState.cs`
+- `Assets/Scripts/Core/Runtime/Startup/Systems/YooAssetInitializeSystem.cs`
+- `Assets/Scripts/Core/Runtime/Startup/Systems/ResourceDownloadSystem.cs`
 
-当前最小闭环覆盖：
-- 初始化资源系统
-- 下载资源包
-- 加载资源
-- 加载 `TextAsset`
-- 实例化 GameObject
-- 释放实例和资源句柄
-- SpriteAtlas 运行时请求
+相关调用入口：
 
-将来如果要支持场景加载、原生文件、预加载批次、缓存策略或其它资源框架，应优先扩展 `IResourceService` / `IResourceLoader`，避免让业务层直接感知具体实现。
+- `Assets/Scripts/Core/Runtime/UI/Core/View.cs`
+- `Assets/Scripts/Core/Runtime/HotUpdate/HybridAotAssemblyLoader.cs`
+- `Assets/Scripts/Core/Runtime/HotUpdate/HotUpdateAssemblyLoader.cs`
+- `Assets/Scripts/Core/Runtime/Startup/Systems/RuntimeServiceRegisterSystem.cs`
 
-## 验证入口
+## 主链路
 
-在 Unity Editor 中可以运行：
-- `Tools/SleepyDemos/Validate Core Runtime Infrastructure`
+启动资源链路：
 
-该菜单会检查默认资源服务、loader 创建、地址规范化、外层 YooAssets 具体类型引用和相关文档入口。
+1. `ResourceStartupState`
+2. `YooAssetInitializeSystem`
+3. `ResourceServices.Default.InitializeAsync(options)`
+4. `YooAssetResourceService`
+5. `YooAssetResourceSystem.InitializeAsync(...)`
+6. `ResourceDownloadSystem`
+7. `ResourceServices.Default.DownloadPackageAsync(...)`
+8. 进入 `BeforeHotfixStartupState`
 
-命令行或 CI 可以使用 Unity 参数：
-- `-executeMethod Core.Editor.CoreRuntimeInfrastructureValidator.ValidateForBatchMode`
+资源初始化参数来自启动配置。配置缺失时使用 `ResourceInitializeOptions.Default`。
+
+## 生命周期
+
+`ResourceServices.Default` 是全局资源服务入口，默认实现是 `YooAssetResourceService`。
+
+`IResourceLoader` 是局部生命周期入口。当前主要由 `View` 持有：
+
+- `View.Loader` 通过 `ResourceServices.CreateLoader()` 创建。
+- `View` 销毁时释放自身 loader。
+- 某个 loader 实例化出的 GameObject，应由同一个 loader 释放。
+- 某个 loader 加载出的资源，应由同一个 loader 释放或随 loader `Dispose` 释放。
+- 全局服务加载出的共享资源由服务内部共享 loader 持有。
+
+## 边界规则
+
+- Hotfix 和 UI 业务层不直接依赖 YooAssets。
+- 业务层不直接持有 YooAssets 句柄。
+- 资源地址进入加载前由资源服务统一规范化。
+- 热更新加载程序集时走 `ResourceServices.Default.LoadTextAssetAsync(...)`。
+- UI 实例化 View 时走 `IResourceLoader.InstantiateAsync(...)`。
+
+## 修改这里时注意什么
+
+- 替换资源框架时，优先新增 `IResourceService` / `IResourceLoader` 实现，再改注册点。
+- 新增场景加载、原生文件、预加载批次、缓存策略时，优先扩展资源抽象，不新增并行入口。
+- 改资源初始化或下载流程时，同步检查 `docs/architecture/startup-flow.md`。
+- 改资源系统设计原则时，同步检查 `docs/architecture/resource-system.md`。
+- 改资源使用步骤时，同步检查 `docs/runbooks/use-resource-loader.md`。
+
+## 验证重点
+
+- 启动阶段能完成 YooAssets 初始化。
+- 无补丁时能进入后续 Hotfix 流程。
+- 有补丁时加载界面能显示下载进度。
+- UI 能通过 loader 正常实例化。
+- 热更新程序集能通过资源服务读取 `TextAsset`。
+- Unity 菜单 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 检查通过。
+
+## 相关文档
+
+- `docs/architecture/resource-system.md`
+- `docs/architecture/startup-flow.md`
+- `docs/architecture/asset-naming.md`
+- `docs/modules/ui-runtime.md`
+- `docs/modules/hot-update.md`
+- `docs/runbooks/use-resource-loader.md`
+- `docs/runbooks/validate-core-runtime-infrastructure.md`

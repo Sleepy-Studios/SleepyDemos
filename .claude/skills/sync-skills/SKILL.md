@@ -1,44 +1,63 @@
 ---
 name: sync-skills
-description: "把项目里的 Claude/Agents 技能与规则迁移到 Codex，并清理旧的 .agents 目录。用户说同步技能、补齐技能、同步 Claude/Codex skills 时使用。"
+description: "同步项目级共享技能和规则。检查 .claude 与 .codex 两边是否缺失 skills/rules 并补齐，或指定单个技能从一边覆盖同步到另一边时使用。"
 ---
 
 # Sync Skills
 
-这是 Codex 专用技能，用来把项目内 `.claude` / `.agents` 中 Codex 需要的内容同步到 `.codex`。
+项目级同步范围明确限定为 `.claude` 与 `.codex`：
 
-当前约定：
+- `skills`：技能目录，目录内必须包含 `SKILL.md`。
+- `rules`：规则文件或规则目录。
 
-- Codex 侧最终只使用 `.codex/skills`
-- Claude / Agents 中已有的技能，只在 `.codex/skills` 缺失时复制过去
-- Claude / Agents 中已有的规则，只在 `.codex/rules` 缺失时复制过去
-- 已存在于 `.codex` 的内容不覆盖
-- `sync-skills` 自己跳过，不从旧目录反向复制
-- 同步完成后删除整个 `.agents` 目录
-- `.claude` 整体保留，不做删除
+默认逻辑是双向查漏补缺：如果一边缺少另一边已有的技能或规则，就补齐缺失项。
 
-说明：
+同名技能或同名规则默认不覆盖、不合并、不比较内容差异。
 
-- `.claude` 是项目组目录，继续保留；脚本只读取其中的技能和规则，不会删除或覆盖 `.claude`
+指定 `-SkillName`、`-From`、`-To` 时进入单技能方向同步模式：覆盖同步指定技能，并默认把 `rules` 也按同方向覆盖同步。
 
-## 使用
+## 常用命令
 
-预览将要同步和删除的内容：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -DryRun
-```
-
-执行迁移：
+检查两边 `skills` 和 `rules` 并补齐缺失项：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1
 ```
 
-如果当前仍是通过旧入口触发，也可以临时使用：
+预览将要补齐哪些技能：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .agents/skills/sync-skills/scripts/sync_skills.ps1 -DryRun
+powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -DryRun
 ```
 
-迁移后如 Codex 没有立刻识别新规则或技能，重启客户端或开启新会话。
+把 Claude 中改过的单个技能同步到 Codex，并同步 Claude 的 rules 到 Codex：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -SkillName 技能名 -From claude -To codex
+```
+
+把 Codex 中改过的单个技能同步到 Claude，并同步 Codex 的 rules 到 Claude：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -SkillName 技能名 -From codex -To claude
+```
+
+只同步指定技能，不同步 rules：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -SkillName 技能名 -From claude -To codex -NoRules
+```
+
+需要本机链接而不是复制时，加 `-UseLinks`：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -UseLinks
+```
+
+## 规则
+
+- `sync-skills` 自己不会发布或覆盖。
+- 只有包含 `SKILL.md` 的目录会被当作技能。
+- 默认模式只复制缺失的技能目录和规则项，已存在的同名项不会被覆盖。
+- 单技能方向同步模式会覆盖目标侧同名技能；未加 `-NoRules` 时也会覆盖目标侧同名 rules。
+- 同步新技能后，通常需要重启 Codex 或开启新会话。

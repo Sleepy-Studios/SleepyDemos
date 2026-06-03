@@ -9,7 +9,7 @@
 | 项目自研编辑器工具 | `Assets/Scripts/Core/Editor` | 本文 + 必要时单独 `runbooks/*.md` |
 | 仓库内插件（随项目提交） | `Assets/Plugins/` | 本文「第三方插件」 |
 | UPM 开发依赖 | `Packages/manifest.json` | 本文「UPM 包」+ 上游链接 |
-| Agent Skill / Rule | `.claude/`、`.codex/`、`.cursor/` | 本文「Agent」 |
+| Agent Skill / Rule | `.claude/`、`.codex/`、`.cursor/` | 本文「Agent」+ [项目 Skill 入口](../agent/skills.md) |
 
 ---
 
@@ -139,19 +139,27 @@
 
 ## 五、Agent Skill（仓库内）
 
+项目级技能的入口和自动扫描方式见 [项目 Skill 入口](../agent/skills.md)。完整清单不在本文手写维护，以脚本输出为准：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/agent/list_skills.ps1
+```
+
 项目约定：
 
-- **主维护目录**：`.claude/skills/`（项目组共享）
-- **Codex**：`.codex/skills/`（可与 Claude 同步，见 `sync-skills`）
+- **Codex**：`.codex/skills/`
+- **Claude**：`.claude/skills/`
 - **Cursor**：`.cursor/skills/`（当前仅同步部分技能，以目录实际文件为准）
 
-触发方式：在对话中说 skill `description` 中的关键词，或将对应 `SKILL.md` 手动附带到消息。
+当前需要特别知道的仓库内 Skill：
 
 | Skill | 路径 | 适用 Agent | 何时使用 |
 |-------|------|------------|----------|
 | **git-commit** | `.claude/skills/git-commit/`<br>`.cursor/skills/git-commit/`<br>`.codex/skills/git-commit/` | Claude、Cursor、Codex | 根据 **staged** 变更生成 Conventional Commits（中文 subject）、commit、push |
-| **sync-skills** | `.claude/skills/sync-skills/`<br>`.codex/skills/sync-skills/` | 以 Codex 为主 | 将 `.claude` 中缺失的 skill/rule 复制到 `.codex`，并清理旧 `.agents` |
+| **sync-skills** | `.claude/skills/sync-skills/`<br>`.codex/skills/sync-skills/` | Claude、Codex | 双向查漏补缺 `.claude` / `.codex` 的 skill 和 rule；单技能模式可方向覆盖同步 |
 | **task-retrospective** | `.claude/skills/task-retrospective/`<br>`.codex/skills/task-retrospective/` | Claude、Codex | 任务结束后复盘、沉淀最优提示词（保存路径见 skill 内说明） |
+| **gen-module** | `.claude/skills/gen-module/`<br>`.codex/skills/gen-module/` | Claude、Codex | 生成或修改 Flux 模块 Action / Data / Handler；从钓鱼项目迁入，使用前确认当前模块结构、协议类型和网络发送方式匹配 |
+| **module-docs** | `.claude/skills/module-docs/`<br>`.codex/skills/module-docs/` | Claude、Codex | 做完大型模块或调整模块文档边界时，按 architecture / modules / runbooks 三层体系补齐文档 |
 
 ### 远程 / 非仓库 Skill
 
@@ -162,7 +170,7 @@
 | **Unity-Skills** | UPM 包（Editor REST） | [github.com/Besty0728/Unity-Skills](https://github.com/Besty0728/Unity-Skills) — 见上文「UnitySkills 常用入口」 |
 | **Cursor 内置 / 用户级 Skills** | 本机 `~/.cursor/skills*` 或插件缓存 | 不在仓库内；不写入本表，避免与项目 Skill 混淆 |
 
-同步 Codex 技能（预览 / 执行）：
+同步 Claude / Codex 技能（预览 / 执行）：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -DryRun
@@ -191,7 +199,7 @@ powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_
 在以下情况**必须**更新本文（同一 PR / 任务内）：
 
 - 新增或删除 `Core.Editor` 的 `[MenuItem]` 入口
-- 新增/变更仓库内 Agent Skill 或 Rule
+- 新增/变更仓库内 Agent Skill 或 Rule，并同步检查 [项目 Skill 入口](../agent/skills.md)
 - 新增常用 UPM 工具包或更换其 Git 地址
 - Runbook 更名或职责变化导致上表链接失效
 

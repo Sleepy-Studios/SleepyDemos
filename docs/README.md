@@ -13,28 +13,38 @@
 3. [启动与热更流程](./architecture/startup-flow.md)
 4. [Core / Hotfix 边界](./architecture/hotfix-boundary.md)
 5. [资源命名规范](./architecture/asset-naming.md)
-6. 根据任务类型继续查对应模块说明或 runbook
+6. 根据任务类型继续查对应模块说明、Agent 技能入口或 runbook
 
 ## 文档结构
 - `architecture/`
-  - 全局规则、分层边界、启动流程、文档维护规则
+  - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
   - [资源命名规范](./architecture/asset-naming.md)
+  - [资源系统设计原则](./architecture/resource-system.md)
+  - [文档维护规则](./architecture/documentation-rules.md)
 - `modules/`
-  - 关键模块的职责、入口、常见改法、注意事项
+  - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
   - [Core.Runtime](./modules/core-runtime.md)
+  - [热更新模块](./modules/hot-update.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
   - [Core 事件系统](./modules/eventing/README.md)
+  - [Core Flux 状态流](./modules/flux.md)
+  - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)
+- `agent/`
+  - Agent 协作入口与项目级技能说明
+  - [项目 Skill 入口](./agent/skills.md)
 - `runbooks/`
-  - 新增 Demo、构建热更、排障等操作步骤
+  - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
+  - [使用资源 Loader](./runbooks/use-resource-loader.md)
   - [验证 Core 运行时基础设施](./runbooks/validate-core-runtime-infrastructure.md)
 
 ## 如何判断文档该写到哪里
-- 这是全局规则或边界：写到 `architecture/`
-- 这是关键模块的局部说明：写到 `modules/`
-- 这是可执行步骤：写到 `runbooks/`
+- 这是全局规则、设计原则或架构边界：写到 `architecture/`
+- 这是关键模块维护说明：写到 `modules/`
+- 这是 Agent 技能入口、技能发现或技能同步约定：写到 `agent/`
+- 这是使用者接入步骤或可执行流程：写到 `runbooks/`
 - 只是单个函数实现细节：优先留在代码和注释里，不额外建 md
 
 ## 文档维护规则

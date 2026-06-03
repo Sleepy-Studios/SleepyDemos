@@ -44,11 +44,12 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 4. `ResourceStartupState`
 5. `BeforeHotfixStartupState`
 6. `HotfixEntry`
-7. `MainMenuView`
+7. `HotfixBootService`
+8. `MainMenuView`
 
 也就是说：
 - Core 先完成准备、资源初始化、元数据和程序集装配
-- Hotfix 再接管业务入口和界面显示
+- Hotfix 再运行启动系统，注册全局 Flux Data，接管业务入口和界面显示
 
 ## 设计原则
 
