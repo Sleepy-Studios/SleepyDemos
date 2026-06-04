@@ -9,10 +9,10 @@ namespace Hotfix
     using UnityEngine.UI;
     using TMPro;
 
-    [Source("LoadResources/UI/pfb&MainMenuView")]
+    [Source("LoadResources/UI/Views/MainMenuView")]
     public partial class MainMenuView
     {
-        public override string Address => "LoadResources/UI/pfb&MainMenuView";
+        public override string Address => "LoadResources/UI/Views/MainMenuView";
         public override UILayer Level => UILayer.Base;
         public override MaskType Mask => MaskType.None;
         public override bool IsAsync => true;

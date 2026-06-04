@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Core.Editor.AssetNaming;
 using UnityEditor;
 using UnityEngine;
 
@@ -153,8 +152,7 @@ namespace Core.Editor.MvcBind
         public static string ToViewClassName(string assetPath)
         {
             var fileName = Path.GetFileNameWithoutExtension(NormalizeAssetPath(assetPath));
-            var semanticName = LoadResourcesAssetNamingRules.GetSemanticName(fileName);
-            var className = ToPascalIdentifier(semanticName);
+            var className = ToPascalIdentifier(fileName);
             return className.EndsWith("View", StringComparison.Ordinal) ? className : $"{className}View";
         }
 

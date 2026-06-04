@@ -3,5 +3,8 @@ guid: 1e291510c2939a04386b74cd6992a4ba
 PrefabImporter:
   externalObjects: {}
   userData: 
+  labels:
+  - ui
+  - view
   assetBundleName: 
   assetBundleVariant: 

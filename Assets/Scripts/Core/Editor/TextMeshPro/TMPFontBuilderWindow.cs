@@ -18,8 +18,8 @@ namespace Core.Editor.TextMeshPro
         private const string MaterialRoot = FontRoot + "/Materials";
         private const string FallbackRoot = FontRoot + "/Fallbacks";
 
-        private const string DefaultCnSource = SourceRoot + "/CN/font&HarmonyOS_CN.ttf";
-        private const string DefaultEnSource = SourceRoot + "/EN/font&BebasNeue_EN.otf";
+        private const string DefaultCnSource = SourceRoot + "/CN/HarmonyOS_CN.ttf";
+        private const string DefaultEnSource = SourceRoot + "/EN/BebasNeue_EN.otf";
         private const string DefaultCnCharacters = FallbackRoot + "/Default_CN_Characters.txt";
         private const string DefaultEnCharacters = FallbackRoot + "/Default_EN_Characters.txt";
         private const string EditorPrefsRoot = "SleepyDemos.TMPFontBuilder";
@@ -419,14 +419,12 @@ namespace Core.Editor.TextMeshPro
             return new string(input.Where(c => !char.IsControl(c) || c == '\n' || c == '\r' || c == '\t').Distinct().ToArray());
         }
 
-        private const string FontPrefix = "font&";
-
         private static string GetTargetAssetName(string sourceFontPath)
         {
             var name = Path.GetFileNameWithoutExtension(sourceFontPath);
-            if (!name.StartsWith(FontPrefix, StringComparison.Ordinal))
+            if (string.IsNullOrEmpty(name))
             {
-                Debug.LogError($"[TMPFontBuilder] 源字体须命名为 font&*.ttf / .otf: {sourceFontPath}");
+                Debug.LogError($"[TMPFontBuilder] 无法解析源字体文件名: {sourceFontPath}");
                 return null;
             }
 
@@ -435,8 +433,7 @@ namespace Core.Editor.TextMeshPro
 
         private static string GetTargetAtlasAssetName(string targetFontAssetName)
         {
-            var semantic = Core.Editor.AssetNaming.LoadResourcesAssetNamingRules.GetSemanticName(targetFontAssetName);
-            return $"font&{semantic}_Atlas";
+            return $"{targetFontAssetName}_Atlas";
         }
 
         private static string GetTargetMaterialAssetName(string targetFontAssetName)
@@ -502,7 +499,7 @@ namespace Core.Editor.TextMeshPro
 
             if (fallbackFontAsset == null)
             {
-                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/font&BebasNeue_EN.asset");
+                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/BebasNeue_EN.asset");
             }
         }
 

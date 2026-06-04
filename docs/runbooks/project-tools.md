@@ -27,7 +27,7 @@
 窗口内嵌能力（无独立菜单）：
 
 - **本地 Bundle HTTP 服务**：`HotUpdate/LocalBundleHttpServer.cs`，在 HotUpdate 窗口「Mock Server」区启停，用于本机调试资源包。
-- **配置资产**：默认 `Assets/LoadResources/Config/so&HotUpdateConfig.asset`。
+- **配置资产**：默认 `Assets/LoadResources/Config/HotUpdateConfig.asset`。
 - **SSH 私钥**：默认 `Assets/Settings/HotUpdate/key`（不进 YooAsset 采集，勿放回 `LoadResources/Config`）。
 
 ### 2. UI 绑定（MvcBind）
@@ -54,11 +54,12 @@
 
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
-| `Tools/SleepyDemos/校验 LoadResources 资源命名` | 扫描 `Assets/LoadResources` 是否符合前缀与 `&` 分隔规则 | `AssetNaming/LoadResourcesAssetNamingValidator.cs` |
+| `Tools/SleepyDemos/校验 LoadResources 资源命名` | 扫描 `Assets/LoadResources` 是否符合目录矩阵、扩展名绑定与三级命名规则 | `AssetNaming/LoadResourcesAssetNamingValidator.cs`、`AssetNaming/LoadResourcesNamingSpec.cs` |
+| `Tools/SleepyDemos/同步 LoadResources 资产 Label` | 扫描既有 `Assets/LoadResources` 资产，按目录矩阵补齐 Unity Asset Label；会移除过期托管标签并保留人工标签 | `AssetNaming/LoadResourcesAssetNamingPostprocessor.cs`、`AssetNaming/LoadResourcesNamingSpec.cs` |
 | `Tools/SleepyDemos/把 LoadResources 下的目录加入 YooAsset 打包采集配置` | 把 Demos/Art/Audio/VFX/Scenes/Config/Fonts 等公共目录写入 YooAsset 采集配置并统一全路径地址；拉分支或 Setting 被改乱时点一次即可 | `AssetNaming/LoadResourcesYooAssetCollectorSetup.cs` |
 | — | 规则说明 | [资源命名规范](../architecture/asset-naming.md) |
 
-新导入到 `LoadResources` 的资产若违反规则会在 Console 输出 Error。
+新导入到 `LoadResources` 的资产若违反规则会在 Console 输出 Error；导入、移动或 Reimport 时会自动同步 Unity Asset Label。从 git 拉取或批量改名后，可手动运行 Label 同步菜单补齐既有资产。
 
 ### 5. 运行时基础设施校验
 

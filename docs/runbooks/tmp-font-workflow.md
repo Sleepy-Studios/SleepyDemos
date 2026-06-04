@@ -11,9 +11,9 @@ Unity 菜单：
 
 字体资源统一放在 `Assets/LoadResources/Fonts`：
 
-- `Source/CN`、`Source/EN`：原始 `.ttf`、`.otf`（`font&*`）
-- `TMP_FontAssets/CN`、`TMP_FontAssets/EN`：TMP 字体（`font&*.asset`）与图集（`font&*_Atlas.png`）
-- `Materials`：字体材质（`font&*.mat`）
+- `Source/CN`、`Source/EN`：原始 `.ttf`、`.otf`（纯语义名，如 `HarmonyOS_CN.ttf`）
+- `TMP_FontAssets/CN`、`TMP_FontAssets/EN`：TMP 字体（如 `HarmonyOS_CN.asset`）与图集（如 `HarmonyOS_CN_Atlas.png`）
+- `Materials`：字体材质（如 `HarmonyOS_CN.mat`）
 - `Fallbacks`：字符集文本与 fallback 相关资源
 
 不要把业务字体放进 `Temp`、`Assets/TextMesh Pro` 或 `Assets/Plugins`。

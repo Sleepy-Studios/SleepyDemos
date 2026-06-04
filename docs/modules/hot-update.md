@@ -21,7 +21,7 @@
 
 配置与资源：
 
-- 默认配置资产：`Assets/LoadResources/Config/so&HotUpdateConfig.asset`
+- 默认配置资产：`Assets/LoadResources/Config/HotUpdateConfig.asset`
 - 热更 DLL 构建产物：`Assets/LoadResources/Codes/**`
 - SSH 私钥默认位置：`Assets/Settings/HotUpdate/key`
 

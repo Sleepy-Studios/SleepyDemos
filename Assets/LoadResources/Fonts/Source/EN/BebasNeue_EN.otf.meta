@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: ddf22378860d40643bc451a80e66363f
+guid: 451b6a490156f3b448416e4af3405bed
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -9,14 +9,17 @@ TrueTypeFontImporter:
   characterPadding: 1
   includeFontData: 1
   fontNames:
-  - HarmonyOS Sans SC
+  - Bebas Neue Pro
   fallbackFontReferences:
-  - {fileID: 12800000, guid: 5340d8f8959609c4f80eb1f005de8c87, type: 3}
+  - {fileID: 12800000, guid: b410436b23b089946b4482e021d3bbcc, type: 3}
+  - {fileID: 12800000, guid: 23c5264eff365924c8882b7470519f93, type: 3}
   customCharacters: 
   fontRenderingMode: 0
   ascentCalculationMode: 1
   useLegacyBoundsCalculation: 0
   shouldRoundAdvanceValue: 1
   userData: 
+  labels:
+  - font
   assetBundleName: 
   assetBundleVariant: 

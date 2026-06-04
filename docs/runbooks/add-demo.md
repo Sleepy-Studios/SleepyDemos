@@ -16,19 +16,19 @@
 
 2. 创建资源目录
    - 在 `Assets/LoadResources/Demos/<DemoId>/` 下建立该 Demo 的根目录
-   - 按需要拆出 `Scenes/`、`Prefabs/`、材质、音效等子目录
+   - 按目录矩阵拆出 `Scenes/`、`Prefabs/`、`Art/`、`Data/`、`VFX/` 等子目录
+   - 资产必须落在功能子目录里，不要直接堆在 Demo 根目录
 
 3. 创建或复制场景
    - 从模板场景或现有 Demo 复制起步
-   - 可加载场景命名：`scn&Main.unity` 等，见 [资源命名规范](../architecture/asset-naming.md)
-   - 场景放在 `Demos/<DemoId>/Scenes/` 或项目约定的 Demo 子目录
+   - 可加载场景：纯语义名如 `Main.unity`，放在 `Demos/<DemoId>/Scenes/`
    - 启动入口层场景仍放在 `Assets/Scenes`，不要与 Demo 可加载场景混淆
 
-4. 按命名规范添加资源（`{前缀}&{语义名}`）
-   - 预制体：`pfb&{主体}_{01}_{可选尾段}.prefab`（玩法、特效、UI 均用 `pfb&`）
-   - Sprite：`spr&`；材质贴图：`tex&`；材质：`mat&`；动画：`anim&` / `anc&` 等
-   - 玩法表/数据：`json&` / `txt&` / `so&`（见规范中的边界说明）
-   - 完整表见 [资源命名规范](../architecture/asset-naming.md)
+4. 按命名规范添加资源（纯语义文件名，类型靠目录决定）
+   - 预制体：`Prefabs/Crate_01.prefab`；特效：`VFX/HitSparks_01.prefab`
+   - 美术：`Art/Textures/Rock_01_BaseColor.png`、`Art/Materials/Rock_01.mat`
+   - 数据：`Data/Levels.json`、`Data/ItemTable.bytes`、`Data/GameConfig.asset`
+   - 文件名遵循 PascalCase 语义规范，无 `-`/空格/特殊字符；完整目录矩阵见 [资源命名规范](../architecture/asset-naming.md)
 
 5. 接入业务代码
    - 若是具体玩法或页面逻辑，优先放在 `Assets/Scripts/Hotfix/Module/`
@@ -43,6 +43,7 @@
 
 8. 手动验证
    - 运行 `Tools/SleepyDemos/校验 LoadResources 资源命名`，LoadResources 下无 Error
+   - 若资源来自 git 拉取、批量复制或外部改名，运行 `Tools/SleepyDemos/同步 LoadResources 资产 Label`，确认 Project 搜索 `l:demo` 能筛出 Demo 资源
    - 启动是否能进入主菜单
    - Demo 是否能从主入口进入
    - 场景和资源引用是否正常
@@ -51,7 +52,7 @@
 ## 新增 Demo 时常见错误
 
 - 资源放进公共目录，导致归属不清
-- 文件名含短横线 `-` 或未使用登记前缀（如 `prefab&`）
+- 文件名含短横线 `-`、空格或其它非法字符，或资产没放进登记的功能子目录
 - 玩法逻辑误塞进 `Core.Runtime`
 - 直接改启动链路接玩法，绕过主入口
 - 接入步骤变了却没更新文档

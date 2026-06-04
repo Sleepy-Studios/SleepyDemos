@@ -16,7 +16,7 @@ namespace Core.Editor.HotUpdate
 {
     public sealed class HotUpdateBuildWindow : EditorWindow
     {
-        private const string ConfigAssetPath = "Assets/LoadResources/Config/so&HotUpdateConfig.asset";
+        private const string ConfigAssetPath = "Assets/LoadResources/Config/HotUpdateConfig.asset";
         private const string AotGenericReferencesPath = "Assets/HybridCLRGenerate/AOTGenericReferences.cs";
 
         private HotUpdateConfig config;
