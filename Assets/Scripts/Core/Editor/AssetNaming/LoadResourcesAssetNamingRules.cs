@@ -160,13 +160,6 @@ namespace Core.Editor.AssetNaming
                     $"扩展名 '{extension}' 不允许出现在 {string.Join("/", rule.Segments)}（允许：{string.Join(" ", rule.Extensions)}）。"));
             }
 
-            // UI 视图 View 后缀
-            if (rule.RequireViewSuffix && extension.Equals(".prefab", StringComparison.OrdinalIgnoreCase) &&
-                !nameWithoutExtension.EndsWith("View", StringComparison.Ordinal))
-            {
-                issues.Add(Error(assetPath, "UI 视图预制体文件名须以 View 结尾，例如 MainMenuView.prefab。"));
-            }
-
             // Importer 类型（图片 Sprite / Default）
             AppendTextureImporterIssue(assetPath, extension, rule, issues);
 
@@ -199,13 +192,22 @@ namespace Core.Editor.AssetNaming
                     continue;
                 }
 
-                if (best == null || rule.Segments.Length > best.Segments.Length)
+                if (best == null ||
+                    rule.Segments.Length > best.Segments.Length ||
+                    (rule.Segments.Length == best.Segments.Length && GetSpecificity(rule) > GetSpecificity(best)))
                 {
                     best = rule;
                 }
             }
 
             return best;
+        }
+
+        private static int GetSpecificity(FolderRule rule)
+        {
+            return rule.Segments.Count(segment =>
+                segment != LoadResourcesNamingSpec.DemoIdToken &&
+                segment != LoadResourcesNamingSpec.UiModuleToken);
         }
 
         private static bool IsPrefixMatch(string[] ruleSegments, string[] dirSegments)
@@ -220,6 +222,16 @@ namespace Core.Editor.AssetNaming
                 if (ruleSegments[i] == LoadResourcesNamingSpec.DemoIdToken)
                 {
                     if (!DemoIdRegex.IsMatch(dirSegments[i]))
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+
+                if (ruleSegments[i] == LoadResourcesNamingSpec.UiModuleToken)
+                {
+                    if (string.IsNullOrWhiteSpace(dirSegments[i]))
                     {
                         return false;
                     }

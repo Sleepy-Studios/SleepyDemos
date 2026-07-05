@@ -38,7 +38,7 @@ namespace Core.Editor.AssetNaming
                 switch (issue.Severity)
                 {
                     case NamingSeverity.Error:
-                        Debug.LogError($"[AssetNaming] {issue}");
+                        Debug.LogWarning($"[AssetNaming] {issue}");
                         break;
                     case NamingSeverity.Warning:
                         Debug.LogWarning($"[AssetNaming] {issue}");
@@ -71,7 +71,7 @@ namespace Core.Editor.AssetNaming
             var root = LoadResourcesAssetNamingRules.LoadResourcesRoot;
             if (!AssetDatabase.IsValidFolder(root))
             {
-                Debug.LogError($"[AssetNaming] 未找到目录: {root}");
+                Debug.LogWarning($"[AssetNaming] 未找到目录: {root}");
                 return 0;
             }
 
@@ -93,7 +93,7 @@ namespace Core.Editor.AssetNaming
         /// <summary>
         /// 按目录矩阵给资产同步托管 Label：移除旧托管标签，写入新托管标签，并保留人工标签。
         /// </summary>
-        /// <param name="assetPath">Unity 资产路径，例如 `Assets/LoadResources/UI/Views/MainMenuView.prefab`。</param>
+        /// <param name="assetPath">Unity 资产路径，例如 `Assets/LoadResources/UI/Main/MainMenuView.prefab`。</param>
         /// <returns>如果本次写入了 Label，返回 true；否则返回 false。</returns>
         public static bool ApplyLabels(string assetPath)
         {

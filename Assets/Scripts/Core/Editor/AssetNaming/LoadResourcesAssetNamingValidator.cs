@@ -64,7 +64,7 @@ namespace Core.Editor.AssetNaming
 
             foreach (var issue in errors)
             {
-                UnityEngine.Debug.LogError($"[AssetNaming] {issue}");
+                UnityEngine.Debug.LogWarning($"[AssetNaming] {issue}");
             }
 
             foreach (var issue in warnings)
@@ -84,7 +84,7 @@ namespace Core.Editor.AssetNaming
                 return;
             }
 
-            UnityEngine.Debug.LogError(
+            UnityEngine.Debug.LogWarning(
                 $"[AssetNaming] 共 {errors.Count} 项 Error、{warnings.Count} 项 Warning。规则见 docs/architecture/asset-naming.md");
         }
 

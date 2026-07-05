@@ -17,6 +17,9 @@ namespace Core.Editor.AssetNaming
         /// <summary>Demo 目录段在目录矩阵中的占位符，匹配任意合法 demo_id。</summary>
         public const string DemoIdToken = "{demo_id}";
 
+        /// <summary>UI 模块目录段在目录矩阵中的占位符，匹配任意单级模块目录。</summary>
+        public const string UiModuleToken = "{module}";
+
         /// <summary>demo_id（Demos 下一级目录名）格式：小写字母开头 + 小写字母/数字/下划线。</summary>
         public const string DemoIdPattern = "^[a-z][a-z0-9_]*$";
 
@@ -82,10 +85,12 @@ namespace Core.Editor.AssetNaming
         public static readonly IReadOnlyList<FolderRule> FolderRules = new List<FolderRule>
         {
             // UI
-            new FolderRule("UI/Views", new[] { ".prefab" })
-                { RequireViewSuffix = true, Labels = new[] { "ui", "view" }, Description = "UI 视图预制体（MvcBind 专用）" },
-            new FolderRule("UI/Widgets", new[] { ".prefab" })
-                { Labels = new[] { "ui", "widget" }, Description = "可复用 UI 控件预制体" },
+            new FolderRule("UI/{module}", new[] { ".prefab" })
+                { Labels = new[] { "ui", "prefab" }, Description = "UI 模块预制体" },
+            new FolderRule("UI/{module}/Sprites", ImageExtensions)
+                { TextureKind = TextureKind.Sprite, Labels = new[] { "ui", "sprite" }, Description = "UI 模块散图（Sprite）" },
+            new FolderRule("UI/{module}/Texture", ImageExtensions)
+                { TextureKind = TextureKind.Sprite, Labels = new[] { "ui", "texture" }, Description = "UI 模块贴图（Sprite）" },
             new FolderRule("UI/Atlas", Concat(new[] { ".spriteatlas" }, ImageExtensions))
                 { TextureKind = TextureKind.Sprite, Labels = new[] { "ui", "atlas" }, Description = "UI 图集与切图（Sprite）" },
 
@@ -202,14 +207,11 @@ namespace Core.Editor.AssetNaming
             Extensions = extensions;
         }
 
-        /// <summary>相对 LoadResources 的目录分段，可含 {demo_id} 占位符。</summary>
+        /// <summary>相对 LoadResources 的目录分段，可含 {demo_id} / {module} 占位符。</summary>
         public string[] Segments { get; }
 
         /// <summary>允许的扩展名（含点，小写）。</summary>
         public string[] Extensions { get; }
-
-        /// <summary>是否要求语义名以 View 结尾（UI 视图）。</summary>
-        public bool RequireViewSuffix { get; set; }
 
         /// <summary>图片类资产期望的 TextureImporter 类型。</summary>
         public TextureKind TextureKind { get; set; } = TextureKind.Any;

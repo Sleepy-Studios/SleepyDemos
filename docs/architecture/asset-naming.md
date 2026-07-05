@@ -32,7 +32,6 @@
 | 只允许字母、数字、下划线；不能以数字开头 | Error |
 | 禁止 `-`、空格及其它特殊字符 | Error |
 | 语义段建议 PascalCase，分段用 `_`，变体用两位数字（`_01`），贴图通道后缀 PascalCase（`_BaseColor` / `_Normal` / `_ORM`） | Warning |
-| UI 视图预制体语义名须以 `View` 结尾 | Error |
 
 正例：`MainMenuView.prefab`、`Rock_01_BaseColor.png`、`HarmonyOS_CN.ttf`、`HotUpdateConfig.asset`、`UI_Click_01.wav`。
 
@@ -40,8 +39,9 @@
 
 | 目录 | 允许扩展名 | 说明 / Importer | 自动 Label |
 | ---- | ---------- | --------------- | ---------- |
-| `UI/Views/` | `.prefab` | 须以 `View` 结尾，MvcBind 专用 | `ui` `view` |
-| `UI/Widgets/` | `.prefab` | 可复用 UI 控件 | `ui` `widget` |
+| `UI/<Module>/` | `.prefab` | UI 模块预制体，可继续按模块内部习惯细分子目录 | `ui` `prefab` |
+| `UI/<Module>/Sprites/` | 图片 | UI 模块散图，图片须 `Sprite` | `ui` `sprite` |
+| `UI/<Module>/Texture/` | 图片 | UI 模块贴图，图片须 `Sprite` | `ui` `texture` |
 | `UI/Atlas/` | `.spriteatlas` + 图片 | 图片须 `Sprite` | `ui` `atlas` |
 | `Art/Textures/` | 图片 | 须 `Default`（非 Sprite） | `art` `texture` |
 | `Art/Materials/` | `.mat` | | `art` `material` |
@@ -73,10 +73,11 @@
 ## 决策树
 
 - 这是界面预制体吗？
-  - 走 MvcBind 的视图 → `UI/Views/`，文件名以 `View` 结尾。
-  - 可复用控件 → `UI/Widgets/`。
+  - 放到所属模块 → `UI/<Module>/`，模块内可继续细分子目录。
 - 这是一张图？
-  - UI 用图 / 图集 → `UI/Atlas/`（Sprite）。
+  - UI 模块散图 → `UI/<Module>/Sprites/`（Sprite）。
+  - UI 模块贴图 → `UI/<Module>/Texture/`（Sprite）。
+  - UI 图集 → `UI/Atlas/`（Sprite）。
   - 模型贴图 → `Art/Textures/`（Default），通道后缀 `_BaseColor` 等。
 - 这是配置数据？
   - ScriptableObject → `Config/` 或 `Demos/<demo_id>/Data/`（`.asset`）。
@@ -89,8 +90,8 @@
 地址 = `Assets/` 之后、去扩展名的路径：
 
 ```text
-Assets/LoadResources/UI/Views/MainMenuView.prefab
-→ 地址 LoadResources/UI/Views/MainMenuView
+Assets/LoadResources/UI/Main/MainMenuView.prefab
+→ 地址 LoadResources/UI/Main/MainMenuView
 ```
 
 - 地址只含 `[A-Za-z0-9/_]`。
@@ -129,9 +130,9 @@ Assets/LoadResources/UI/Views/MainMenuView.prefab
 导入后处理器按目录矩阵「目录 → Label」自动维护托管标签：
 
 - `VFX/**` 与 `Demos/<id>/VFX/**` → `vfx`
-- `UI/Views/**` → `ui` `view`；`Audio/SFX/**` → `audio` `sfx`，依此类推。
+- `UI/<Module>/**/*.prefab` → `ui` `prefab`；`Audio/SFX/**` → `audio` `sfx`，依此类推。
 
-托管标签范围来自 [`LoadResourcesNamingSpec.ManagedLabels`](../../Assets/Scripts/Core/Editor/AssetNaming/LoadResourcesNamingSpec.cs)：`ui`、`view`、`widget`、`atlas`、`art`、`texture`、`material`、`model`、`anim`、`shader`、`audio`、`sfx`、`bgm`、`vfx`、`scene`、`config`、`font`、`demo`、`prefab`、`data`。
+托管标签范围来自 [`LoadResourcesNamingSpec.ManagedLabels`](../../Assets/Scripts/Core/Editor/AssetNaming/LoadResourcesNamingSpec.cs)：`ui`、`prefab`、`sprite`、`atlas`、`art`、`texture`、`material`、`model`、`anim`、`shader`、`audio`、`sfx`、`bgm`、`vfx`、`scene`、`config`、`font`、`demo`、`data`。
 
 移动资产时会移除旧的托管标签并写入新托管标签；人工添加的非托管标签会保留。不要手动维护这些托管标签，规则变化时先改 `LoadResourcesNamingSpec.cs`，再同步本文档。
 
@@ -141,13 +142,13 @@ Assets/LoadResources/UI/Views/MainMenuView.prefab
 
 | 级别 | 行为 | 典型项 |
 | ---- | ---- | ---- |
-| Error | 阻断（导入时 LogError，菜单计数） | 目录白名单、扩展名↔目录、UI `View` 后缀、`demo_id` 格式、非法字符、地址冲突、Importer 类型 |
+| Error | 严重问题（导入与菜单均以 Warning 日志提示，菜单仍会计数） | 目录白名单、扩展名↔目录、`demo_id` 格式、非法字符、地址冲突、Importer 类型 |
 | Warning | 提示，不阻断 | 语义名非 PascalCase、Unity Asset Label 缺失或存在过期托管标签 |
 | Info | 建议 | 预留 |
 
 ## MvcBind 与 UI 命名
 
-- UI 视图预制体放 `Assets/LoadResources/UI/Views/`，文件名 `{Name}View.prefab`（如 `MainMenuView.prefab`）。
+- UI 预制体放 `Assets/LoadResources/UI/<Module>/`，文件名遵循通用 PascalCase 语义规则。
 - View 类名直接取文件名（已是 PascalCase）。
 - 详见 [项目工具 - MvcBind](../runbooks/project-tools.md)。
 
@@ -168,7 +169,7 @@ Assets/LoadResources/UI/Views/MainMenuView.prefab
 
 - [ ] 资产落在目录矩阵登记的功能子目录下
 - [ ] 文件名纯语义 PascalCase，无 `-`/空格/特殊字符
-- [ ] UI 视图以 `View` 结尾；`demo_id` 为小写 + 下划线
+- [ ] `demo_id` 为小写 + 下划线
 - [ ] 图片的 Importer 类型与目录一致（UI=Sprite，Art=Default）
 - [ ] Unity Asset Label 与目录矩阵一致；必要时运行 `Tools/SleepyDemos/同步 LoadResources 资产 Label`
 - [ ] 代码中的加载地址与新路径一致

@@ -24,13 +24,7 @@ namespace Core.Runtime
     public sealed class UIStateProperty
     {
         public UIStatePropertyType propertyType;
-        public GameObject gameObject;
-        public Graphic graphic;
-        public CanvasGroup canvasGroup;
-        public Selectable selectable;
-        public Text text;
-        public RectTransform rectTransform;
-        public Transform transform;
+        public UnityEngine.Object target;
         public bool boolValue;
         public float floatValue;
         public string stringValue;
@@ -161,121 +155,172 @@ namespace Core.Runtime
             switch (property.propertyType)
             {
                 case UIStatePropertyType.GameObjectActive:
-                    if (property.gameObject != null)
+                    var gameObject = ResolveGameObject(property.target);
+                    if (gameObject != null)
                     {
-                        property.gameObject.SetActive(property.boolValue);
+                        gameObject.SetActive(property.boolValue);
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.gameObject));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.GraphicColor:
-                    if (property.graphic != null)
+                    var graphic = ResolveComponent<Graphic>(property.target);
+                    if (graphic != null)
                     {
-                        property.graphic.color = property.colorValue;
+                        graphic.color = property.colorValue;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.graphic));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.CanvasGroupAlpha:
-                    if (property.canvasGroup != null)
+                    var alphaGroup = ResolveComponent<CanvasGroup>(property.target);
+                    if (alphaGroup != null)
                     {
-                        property.canvasGroup.alpha = property.floatValue;
+                        alphaGroup.alpha = property.floatValue;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.canvasGroup));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.CanvasGroupInteractable:
-                    if (property.canvasGroup != null)
+                    var interactableGroup = ResolveComponent<CanvasGroup>(property.target);
+                    if (interactableGroup != null)
                     {
-                        property.canvasGroup.interactable = property.boolValue;
+                        interactableGroup.interactable = property.boolValue;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.canvasGroup));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.CanvasGroupBlocksRaycasts:
-                    if (property.canvasGroup != null)
+                    var raycastGroup = ResolveComponent<CanvasGroup>(property.target);
+                    if (raycastGroup != null)
                     {
-                        property.canvasGroup.blocksRaycasts = property.boolValue;
+                        raycastGroup.blocksRaycasts = property.boolValue;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.canvasGroup));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.SelectableInteractable:
-                    if (property.selectable != null)
+                    var selectable = ResolveComponent<Selectable>(property.target);
+                    if (selectable != null)
                     {
-                        property.selectable.interactable = property.boolValue;
+                        selectable.interactable = property.boolValue;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.selectable));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.TextContent:
-                    if (property.text != null)
+                    var text = ResolveComponent<Text>(property.target);
+                    if (text != null)
                     {
-                        property.text.text = property.stringValue ?? string.Empty;
+                        text.text = property.stringValue ?? string.Empty;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.text));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.RectTransformAnchoredPosition:
-                    if (property.rectTransform != null)
+                    var anchoredRect = ResolveComponent<RectTransform>(property.target);
+                    if (anchoredRect != null)
                     {
-                        property.rectTransform.anchoredPosition = property.vector2Value;
+                        anchoredRect.anchoredPosition = property.vector2Value;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.rectTransform));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.RectTransformSizeDelta:
-                    if (property.rectTransform != null)
+                    var sizeRect = ResolveComponent<RectTransform>(property.target);
+                    if (sizeRect != null)
                     {
-                        property.rectTransform.sizeDelta = property.vector2Value;
+                        sizeRect.sizeDelta = property.vector2Value;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.rectTransform));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.TransformLocalScale:
-                    if (property.transform != null)
+                    var scaleTransform = ResolveTransform(property.target);
+                    if (scaleTransform != null)
                     {
-                        property.transform.localScale = property.vector3Value;
+                        scaleTransform.localScale = property.vector3Value;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.transform));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
                 case UIStatePropertyType.TransformLocalEulerAngles:
-                    if (property.transform != null)
+                    var rotationTransform = ResolveTransform(property.target);
+                    if (rotationTransform != null)
                     {
-                        property.transform.localEulerAngles = property.vector3Value;
+                        rotationTransform.localEulerAngles = property.vector3Value;
                     }
                     else
                     {
-                        WarnMissingTarget(stateName, property.propertyType, nameof(property.transform));
+                        WarnMissingTarget(stateName, property.propertyType);
                     }
                     break;
             }
         }
 
-        private void WarnMissingTarget(string stateName, UIStatePropertyType propertyType, string fieldName)
+        private static GameObject ResolveGameObject(UnityEngine.Object target)
         {
-            Debug.LogWarning($"[UIState] {name}.{stateName} 状态项 {propertyType} 缺少目标引用: {fieldName}");
+            if (target is GameObject gameObject)
+            {
+                return gameObject;
+            }
+
+            return target is Component component ? component.gameObject : null;
+        }
+
+        private static T ResolveComponent<T>(UnityEngine.Object target) where T : Component
+        {
+            if (target is T typedComponent)
+            {
+                return typedComponent;
+            }
+
+            if (target is GameObject gameObject)
+            {
+                return gameObject.GetComponent<T>();
+            }
+
+            return target is Component component ? component.GetComponent<T>() : null;
+        }
+
+        private static Transform ResolveTransform(UnityEngine.Object target)
+        {
+            if (target is Transform transform)
+            {
+                return transform;
+            }
+
+            if (target is GameObject gameObject)
+            {
+                return gameObject.transform;
+            }
+
+            return target is Component component ? component.transform : null;
+        }
+
+        private void WarnMissingTarget(string stateName, UIStatePropertyType propertyType)
+        {
+            Debug.LogWarning($"[UIState] {name}.{stateName} 状态项 {propertyType} 缺少可用目标: {nameof(UIStateProperty.target)}");
         }
     }
 }

@@ -8,7 +8,7 @@
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.timeline": "1.7.7"
       },
-      "hash": "338b15f564917aed0917a5ef410451d457739e2f"
+      "hash": "ec9f8708b65fc6085f909affea7651d83f8a718b"
     },
     "com.code-philosophy.hybridclr": {
       "version": "https://github.com/focus-creative-games/hybridclr_unity.git",
@@ -32,14 +32,14 @@
       "hash": "e7eee2fa33dbc1f8630ee23b41241cf12ebc3987"
     },
     "com.singularitygroup.hotreload": {
-      "version": "git+https://gitlab.hotreload.net/root/hot-reload-releases.git#1.13.21",
+      "version": "git+https://gitlab.hotreload.net/root/hot-reload-releases.git#1.13.23",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.unity.ugui": "1.0.0",
         "com.unity.modules.unitywebrequest": "1.0.0"
       },
-      "hash": "5e1dc051f44306bc753fa7b46b2fa30fa36a1338"
+      "hash": "4fed345deaaa9f54a3f780ffe5132ff5a7159b5f"
     },
     "com.tuyoogame.yooasset": {
       "version": "2.3.19",
@@ -52,6 +52,12 @@
         "com.unity.scriptablebuildpipeline": "1.21.25"
       },
       "url": "https://package.openupm.com"
+    },
+    "com.unity.2d.sprite": {
+      "version": "1.0.0",
+      "depth": 0,
+      "source": "builtin",
+      "dependencies": {}
     },
     "com.unity.ai.navigation": {
       "version": "2.0.13",
