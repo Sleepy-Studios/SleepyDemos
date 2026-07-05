@@ -35,12 +35,16 @@
 | 菜单路径 | 说明 | 源码 |
 |----------|------|------|
 | `Tools/UI Framework/MvcBind` | View / Prefab 绑定扫描与编辑；Prefab 模式下可打开组件绑定子窗口 | `MvcBind/MvcBindWindow.cs`、`MvcPrefabScanner.cs`（`MvcComponentBindWindow`） |
+| `Tools/SleepyDemos/UI Framework Validation/Build Validation Prefabs` | 生成基础 UI 框架验证预制体，并复用 MvcBind 生成 View Component | `UIFrameworkValidation/UIFrameworkValidationPrefabBuilder.cs` |
+| `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` | 检查验证预制体绑定数量，并自动覆盖 `UITab`、`UIBtnSwitch`、`UIDropdown`、`ViewTab`、`AccordionTab`、`AccordionViewTab` 基础交互 | 同上 |
 
 使用要点：
 
 - 在 Prefab Mode 中新增 UI 节点后，Hierarchy 右侧的绑定勾选和组件下拉会自动延迟刷新。
 - 点击 `Create` 会先把 `ComponentItemIndex` 绑定保存到当前 Prefab，再生成 View 脚本，避免脚本重编译导致绑定未落盘。
 - 手动点击 Prefab Mode 的 `Save` 时，如果当前 Hierarchy 已有勾选组件，也会按当前选择同步绑定并重新生成脚本。
+- 基础 UI 验证预制体位于 `Assets/LoadResources/UI/UIFrameworkValidation/`，验证入口从 `MainMenuView` 的「基础 UI 验证」按钮打开。
+- `ViewTab` 验证使用 `UITab + ViewRoot/Parent` 结构；`UIDropdown` 可滚动验证使用外层 `ScrollRect / Content`；手风琴模板位于 `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Accordion/`。
 
 ### 3. TextMesh Pro 字体
 

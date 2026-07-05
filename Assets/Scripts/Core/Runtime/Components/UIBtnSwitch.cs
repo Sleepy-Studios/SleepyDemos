@@ -9,6 +9,7 @@ namespace Core.Runtime
     {
         [SerializeField] private GameObject onState;
         [SerializeField] private GameObject offState;
+        [SerializeField] private UIState uiState;
         [SerializeField] private bool defaultState;
 
         private Button button;
@@ -57,18 +58,12 @@ namespace Core.Runtime
 
         public void Set(bool value, bool notify = false)
         {
-            Initialize();
-            IsOn = value;
-            Refresh();
-            if (notify)
-            {
-                onValueChanged?.Invoke(IsOn);
-            }
+            SetInternal(value, notify);
         }
 
         private void Toggle()
         {
-            Set(!IsOn, true);
+            SetInternal(!IsOn, true);
         }
 
         private void Initialize()
@@ -81,15 +76,29 @@ namespace Core.Runtime
             initialized = true;
             IsOn = defaultState;
             button = GetComponent<Button>();
+            uiState = uiState != null ? uiState : GetComponentInChildren<UIState>(true);
+
             clickHandler = Toggle;
             if (button != null)
             {
                 button.onClick.AddListener(clickHandler);
             }
+
+            Refresh();
         }
 
         private void Refresh()
         {
+            if (uiState != null)
+            {
+                var targetState = IsOn ? "On" : "Off";
+                if (uiState.GetState(targetState) != null)
+                {
+                    uiState.SetState(targetState);
+                    return;
+                }
+            }
+
             if (onState != null)
             {
                 onState.SetActive(IsOn);
@@ -98,6 +107,17 @@ namespace Core.Runtime
             if (offState != null)
             {
                 offState.SetActive(!IsOn);
+            }
+        }
+
+        private void SetInternal(bool value, bool notify)
+        {
+            Initialize();
+            IsOn = value;
+            Refresh();
+            if (notify)
+            {
+                onValueChanged?.Invoke(IsOn);
             }
         }
     }

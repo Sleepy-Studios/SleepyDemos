@@ -46,5 +46,10 @@ namespace Hotfix
 
             Debug.Log($"[MainMenuView] {data.GetHardwareSummary()}");
         }
+
+        private void OnUIFrameworkValidationButtonClick()
+        {
+            //UIManager.Instance.Show<UIFrameworkValidationLauncherView>();
+        }
     }
 }

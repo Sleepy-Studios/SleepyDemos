@@ -1,10 +1,11 @@
 fileFormatVersion: 2
 guid: 1e291510c2939a04386b74cd6992a4ba
+labels:
+- prefab
+- ui
+- view
 PrefabImporter:
   externalObjects: {}
   userData: 
-  labels:
-  - ui
-  - view
   assetBundleName: 
   assetBundleVariant: 

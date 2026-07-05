@@ -18,8 +18,10 @@ namespace Core.Editor
             "AssetHandle",
             "YooAssetPlayMode",
             "Addressables",
-            "LoopScroll",
+            "Game.Main",
+            "UnityEngine.UI.LoopScrollRect",
             "MultiTypeViewList",
+            "SuperScrollView",
             "GTask",
             "GAsync",
             "GalaDebugger",
@@ -106,6 +108,10 @@ namespace Core.Editor
             RequireComponentType<UIDropdown>(errors);
             RequireComponentType<UIState>(errors);
             RequireComponentType<ViewTab>(errors);
+            RequireComponentType<LoopVerticalScrollRect>(errors);
+            RequireComponentType<LoopHorizontalScrollRect>(errors);
+            RequireComponentType<LoopGridView>(errors);
+            RequireComponentType<LoopStaggeredGridView>(errors);
         }
 
         private static void RequireComponentType<T>(List<string> errors)

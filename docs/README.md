@@ -27,6 +27,7 @@
   - [热更新模块](./modules/hot-update.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
+  - [LoopScroll 运行时](./modules/loop-scroll-runtime.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
@@ -38,6 +39,7 @@
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
+  - [使用 LoopScroll 循环列表](./runbooks/use-loop-scroll.md)
   - [验证 Core 运行时基础设施](./runbooks/validate-core-runtime-infrastructure.md)
 
 ## 如何判断文档该写到哪里

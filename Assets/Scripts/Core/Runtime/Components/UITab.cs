@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
@@ -9,20 +10,18 @@ namespace Core.Runtime
 {
     public sealed class UITab : MonoBehaviour
     {
+        private const string NormalStateId = "Normal";
+        private const string SelectedStateId = "Selected";
+
         [SerializeField] private List<GameObject> items = new List<GameObject>();
         [SerializeField] private GameObject prefab;
         [SerializeField] private Transform parent;
-        [SerializeField] private List<string> labels = new List<string>();
-        [SerializeField] private List<GameObject> selectedStates = new List<GameObject>();
         [SerializeField] private int currentIndex;
         [SerializeField] private bool initializeHiddenItems;
         [SerializeField] private bool clearExistingButtonListeners;
 
         private Action<int> onSelected;
         private readonly Dictionary<Button, UnityAction> buttonHandlers = new Dictionary<Button, UnityAction>();
-        private readonly Dictionary<Toggle, UnityAction<bool>> toggleHandlers = new Dictionary<Toggle, UnityAction<bool>>();
-        private UIState lastState;
-        private ToggleGroup toggleGroup;
         private bool initialized;
         private bool initializing;
 
@@ -33,7 +32,6 @@ namespace Core.Runtime
 
         private void Awake()
         {
-            toggleGroup = GetComponentInChildren<ToggleGroup>(true);
             InitializeExistingItems();
         }
 
@@ -47,7 +45,6 @@ namespace Core.Runtime
             ClearHandlers();
             onSelected = null;
             TrySelect = null;
-            lastState = null;
             initialized = false;
             initializing = false;
         }
@@ -66,9 +63,14 @@ namespace Core.Runtime
             IList<string> desc,
             int initIndex = 0,
             bool notify = true,
-            bool splitFrames = false)
+            bool splitFrames = false,
+            IReadOnlyList<Sprite> itemSprites = null,
+            IReadOnlyList<string> tmpLabels = null,
+            IReadOnlyList<string> itemImages = null,
+            IReadOnlyList<float> itemImageScales = null)
         {
-            if (desc == null || initializing)
+            IReadOnlyList<string> activeTexts = desc != null ? (desc as IReadOnlyList<string> ?? new List<string>(desc)) : tmpLabels;
+            if (activeTexts == null || initializing)
             {
                 return items;
             }
@@ -76,10 +78,10 @@ namespace Core.Runtime
             initializing = true;
             try
             {
-                EnsureItemList(desc.Count);
-                if (desc.Count == 0)
+                var requiredCount = Mathf.Max(desc != null ? desc.Count : 0, tmpLabels != null ? tmpLabels.Count : 0);
+                EnsureItemList(requiredCount);
+                if (requiredCount == 0)
                 {
-                    labels.Clear();
                     for (int i = 0; i < items.Count; i++)
                     {
                         if (items[i] != null)
@@ -92,25 +94,34 @@ namespace Core.Runtime
                     return items;
                 }
 
-                if (items.Count < desc.Count)
+                if (items.Count < requiredCount)
                 {
-                    Debug.LogWarning($"[UITab] {name} 可用 Item 数量不足：需要 {desc.Count}，实际 {items.Count}。请配置 prefab 或至少一个模板项。");
+                    Debug.LogWarning($"[UITab] {name} 可用 Item 数量不足：需要 {requiredCount}，实际 {items.Count}。请配置 prefab 或至少一个模板项。");
                 }
 
-                labels.Clear();
-                var visibleCount = Mathf.Min(desc.Count, items.Count);
+                var visibleCount = Mathf.Min(requiredCount, items.Count);
                 for (int i = 0; i < visibleCount; i++)
                 {
-                    labels.Add(desc[i]);
                     var item = items[i];
                     if (item == null)
                     {
                         continue;
                     }
 
+                    var itemText = tmpLabels != null && i < tmpLabels.Count
+                        ? tmpLabels[i]
+                        : activeTexts[i];
+
                     item.SetActive(true);
-                    SetItemText(item, desc[i]);
+                    SetItemText(item, itemText);
+                    var sprite = itemSprites != null && i < itemSprites.Count ? itemSprites[i] : null;
+                    SetItemImage(item, sprite);
+                    SetItemImage(
+                        item,
+                        itemImages != null && i < itemImages.Count ? itemImages[i] : null,
+                        itemImageScales != null && i < itemImageScales.Count ? itemImageScales[i] : 1f);
                     InitItem(item, i);
+
                     if (splitFrames)
                     {
                         await UniTask.Yield();
@@ -159,11 +170,10 @@ namespace Core.Runtime
         {
             if (currentIndex >= 0 && currentIndex < items.Count)
             {
-                SetItemState(items[currentIndex], "Normal");
+                SetItemState(items[currentIndex], NormalStateId);
             }
 
             currentIndex = -1;
-            lastState = null;
             Refresh();
         }
 
@@ -221,7 +231,6 @@ namespace Core.Runtime
 
             if (TrySelect != null && !TrySelect(index))
             {
-                RefreshToggleValues();
                 return;
             }
 
@@ -235,39 +244,11 @@ namespace Core.Runtime
 
         private void Refresh()
         {
-            for (int i = 0; i < selectedStates.Count; i++)
-            {
-                if (selectedStates[i] != null)
-                {
-                    selectedStates[i].SetActive(i == currentIndex);
-                }
-            }
-
             for (int i = 0; i < items.Count; i++)
             {
                 if (items[i] != null)
                 {
-                    SetItemState(items[i], i == currentIndex ? "Selected" : "Normal");
-                }
-            }
-
-            RefreshToggleValues();
-        }
-
-        private void RefreshToggleValues()
-        {
-            for (int i = 0; i < items.Count; i++)
-            {
-                var item = items[i];
-                if (item == null)
-                {
-                    continue;
-                }
-
-                var toggle = item.GetComponentInChildren<Toggle>(true);
-                if (toggle != null)
-                {
-                    toggle.SetIsOnWithoutNotify(i == currentIndex);
+                    SetItemState(items[i], i == currentIndex ? SelectedStateId : NormalStateId);
                 }
             }
         }
@@ -323,18 +304,6 @@ namespace Core.Runtime
             if (button != null)
             {
                 RegisterButton(button, index);
-                return;
-            }
-
-            var toggle = item.GetComponentInChildren<Toggle>(true);
-            if (toggle != null)
-            {
-                if (toggleGroup != null)
-                {
-                    toggle.group = toggleGroup;
-                }
-
-                RegisterToggle(toggle, index);
             }
         }
 
@@ -355,24 +324,6 @@ namespace Core.Runtime
             button.onClick.AddListener(handler);
         }
 
-        private void RegisterToggle(Toggle toggle, int index)
-        {
-            if (toggleHandlers.TryGetValue(toggle, out var oldHandler))
-            {
-                toggle.onValueChanged.RemoveListener(oldHandler);
-            }
-
-            UnityAction<bool> handler = isOn =>
-            {
-                if (isOn)
-                {
-                    Select(index, true);
-                }
-            };
-            toggleHandlers[toggle] = handler;
-            toggle.onValueChanged.AddListener(handler);
-        }
-
         private void ClearHandlers()
         {
             foreach (var pair in buttonHandlers)
@@ -382,22 +333,21 @@ namespace Core.Runtime
                     pair.Key.onClick.RemoveListener(pair.Value);
                 }
             }
-            buttonHandlers.Clear();
 
-            foreach (var pair in toggleHandlers)
-            {
-                if (pair.Key != null)
-                {
-                    pair.Key.onValueChanged.RemoveListener(pair.Value);
-                }
-            }
-            toggleHandlers.Clear();
+            buttonHandlers.Clear();
         }
 
         private static void SetItemText(GameObject item, string textValue)
         {
             if (string.IsNullOrEmpty(textValue))
             {
+                return;
+            }
+
+            var tmpText = item.GetComponentInChildren<TextMeshProUGUI>(true);
+            if (tmpText != null)
+            {
+                tmpText.text = textValue;
                 return;
             }
 
@@ -408,25 +358,75 @@ namespace Core.Runtime
             }
         }
 
-        private void SetItemState(GameObject item, string stateName)
+        private static void SetItemImage(GameObject item, Sprite sprite)
         {
-            var state = item.GetComponent<UIState>();
-            if (state == null)
+            var imageLoader = FindItemImageLoader(item);
+            if (imageLoader == null)
             {
                 return;
             }
 
-            if (stateName == "Selected")
+            if (sprite == null)
             {
-                if (lastState != null && lastState != state)
-                {
-                    lastState.SetState("Normal");
-                }
-
-                lastState = state;
+                imageLoader.Clear();
+                return;
             }
 
-            state.SetState(stateName);
+            imageLoader.SetImage(sprite);
+        }
+
+        private void SetItemImage(GameObject item, string imagePath, float scale)
+        {
+            var imageLoader = FindItemImageLoader(item);
+            if (imageLoader == null)
+            {
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    Debug.LogWarning($"[UITab] {item?.name} 未找到 ItemImageLoader，图片路径已忽略: {imagePath}");
+                }
+
+                return;
+            }
+
+            if (string.IsNullOrEmpty(imagePath))
+            {
+                imageLoader.Clear();
+                return;
+            }
+
+            imageLoader.SetImage(imagePath, scale);
+        }
+
+        private static ItemImageLoader FindItemImageLoader(GameObject item)
+        {
+            if (item == null)
+            {
+                return null;
+            }
+
+            return item.GetComponentInChildren<ItemImageLoader>(true);
+        }
+
+        private static void SetItemState(GameObject item, string stateName)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            var state = item.GetComponentInChildren<UIState>(true);
+            if (state != null)
+            {
+                state.SetState(stateName);
+                return;
+            }
+
+            var selectedState = item.transform.Find("SelectedState");
+            if (selectedState != null)
+            {
+                var isSelected = stateName == SelectedStateId;
+                selectedState.gameObject.SetActive(isSelected);
+            }
         }
     }
 }

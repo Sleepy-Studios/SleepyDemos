@@ -346,6 +346,36 @@ namespace Core.Editor.MvcBind
                 return "Component";
             }
 
+            if (type == typeof(int))
+            {
+                return "int";
+            }
+
+            if (type == typeof(bool))
+            {
+                return "bool";
+            }
+
+            if (type == typeof(float))
+            {
+                return "float";
+            }
+
+            if (type == typeof(double))
+            {
+                return "double";
+            }
+
+            if (type == typeof(string))
+            {
+                return "string";
+            }
+
+            if (type == typeof(void))
+            {
+                return "void";
+            }
+
             return type.Name.Replace('+', '.');
         }
 

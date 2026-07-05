@@ -21,8 +21,7 @@ namespace Hotfix
 
         private Image Image_Background;
         private TextMeshProUGUI TextMeshProUGUI_Title;
-        private CanvasRenderer CanvasRenderer_Title;
-        private RectTransform RectTransform_Title;
+        private Button Button_UIFrameworkValidationButton;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -36,8 +35,8 @@ namespace Hotfix
 
             Image_Background = componentItemIndex.Get<Image>(0);
             TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
-            CanvasRenderer_Title = componentItemIndex.Get<CanvasRenderer>(2);
-            RectTransform_Title = componentItemIndex.Get<RectTransform>(3);
+            Button_UIFrameworkValidationButton = componentItemIndex.Get<Button>(2);
+            this.RegisterButton(Button_UIFrameworkValidationButton, OnUIFrameworkValidationButtonClick);
         }
     }
 }

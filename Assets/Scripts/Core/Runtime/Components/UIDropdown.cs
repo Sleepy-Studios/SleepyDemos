@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Core.Runtime
@@ -16,14 +15,15 @@ namespace Core.Runtime
         [SerializeField] private bool rotateArrow = true;
         [SerializeField] private float expandedArrowZ = 180f;
 
-        private readonly List<RaycastResult> raycastResults = new List<RaycastResult>();
         private Button button;
         private List<string> options = new List<string>();
         private Action<int> onSelected;
         private bool isExpanded;
 
         public static event Action<Transform> TabViewShown;
+        public event Action<bool> ShowStateChanged;
         public int CurrentIndex => tabView != null ? tabView.Index : -1;
+        public bool IsExpanded => isExpanded;
 
         private void Awake()
         {
@@ -62,31 +62,13 @@ namespace Core.Runtime
             onSelected = null;
         }
 
-        private void Update()
-        {
-            if (!isExpanded || !Input.GetMouseButtonDown(0))
-            {
-                return;
-            }
-
-            if (EventSystem.current == null || !EventSystem.current.enabled)
-            {
-                return;
-            }
-
-            raycastResults.Clear();
-            var eventData = new PointerEventData(EventSystem.current)
-            {
-                position = Input.mousePosition
-            };
-            EventSystem.current.RaycastAll(eventData, raycastResults);
-            if (!IsPointerInsideDropdown(raycastResults))
-            {
-                Collapse(true);
-            }
-        }
-
-        public async UniTask SetDataAsync(IList<string> values, Action<int> action, int selectedIndex = 0, string selectedText = null)
+        public async UniTask SetDataAsync(
+            IList<string> values,
+            Action<int> action,
+            int selectedIndex = 0,
+            string selectedText = null,
+            IReadOnlyList<string> itemImages = null,
+            IReadOnlyList<float> itemImageScales = null)
         {
             if (values == null || tabView == null)
             {
@@ -95,20 +77,37 @@ namespace Core.Runtime
 
             options = new List<string>(values);
             onSelected = action;
-            await tabView.InitAsync(options, selectedIndex, false);
+            await tabView.InitAsync(options, selectedIndex, false, false, null, null, itemImages, itemImageScales);
             SetSelectedText(string.IsNullOrEmpty(selectedText) && options.Count > selectedIndex ? options[selectedIndex] : selectedText);
             tabView.SetIndex(selectedIndex, false);
             Collapse(false);
         }
 
-        public void SetData(IList<string> values, Action<int> action, int selectedIndex = 0, string selectedText = null)
+        public void SetData(
+            IList<string> values,
+            Action<int> action,
+            int selectedIndex = 0,
+            string selectedText = null,
+            IReadOnlyList<string> itemImages = null,
+            IReadOnlyList<float> itemImageScales = null)
         {
-            SetDataAsync(values, action, selectedIndex, selectedText).Forget();
+            SetDataAsync(values, action, selectedIndex, selectedText, itemImages, itemImageScales).Forget();
         }
 
         public void Register(Action<int> action)
         {
             onSelected += action;
+        }
+
+        public void SetSelectedIndex(int index)
+        {
+            if (index < 0 || index >= options.Count || tabView == null)
+            {
+                return;
+            }
+
+            tabView.SetIndex(index, false);
+            SetSelectedText(options[index]);
         }
 
         private void Toggle()
@@ -125,6 +124,7 @@ namespace Core.Runtime
 
         private void Expand()
         {
+            var changed = !isExpanded;
             isExpanded = true;
             if (tabView != null)
             {
@@ -133,10 +133,15 @@ namespace Core.Runtime
 
             RefreshArrow();
             TabViewShown?.Invoke(transform);
+            if (changed)
+            {
+                ShowStateChanged?.Invoke(true);
+            }
         }
 
         private void Collapse(bool refreshArrow)
         {
+            var changed = isExpanded;
             isExpanded = false;
             if (tabView != null)
             {
@@ -146,6 +151,11 @@ namespace Core.Runtime
             if (refreshArrow)
             {
                 RefreshArrow();
+            }
+
+            if (changed)
+            {
+                ShowStateChanged?.Invoke(false);
             }
         }
 
@@ -166,35 +176,6 @@ namespace Core.Runtime
             {
                 defaultText.text = value;
             }
-        }
-
-        private bool IsPointerInsideDropdown(List<RaycastResult> results)
-        {
-            if (results.Count == 0)
-            {
-                return false;
-            }
-
-            for (int i = 0; i < results.Count; i++)
-            {
-                var hit = results[i].gameObject;
-                if (hit == null)
-                {
-                    continue;
-                }
-
-                if (hit.transform == transform || hit.transform.IsChildOf(transform))
-                {
-                    return true;
-                }
-
-                if (tabView != null && (hit.transform == tabView.transform || hit.transform.IsChildOf(tabView.transform)))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private void RefreshArrow()

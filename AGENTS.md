@@ -55,3 +55,23 @@
 - 改动位于 `Core.Runtime`、`Core.Editor`、`Hotfix` 还是某个 Demo 资源目录
 - 是否同步更新了文档；如果没有，为什么不需要
 - 需要在 Unity 中手动验证什么
+
+
+
+## 测试
+
+
+运行 Unity 测试时，优先使用项目技能 `.codex/skills/unity-skills/SKILL.md`。在第一次调用任何 UnitySkills REST 接口前，必须先主动确认当前实例端口：优先从 `~/.unity_skills/registry.json` 按项目路径读取；若 registry 缺失或不可信，再扫描 `http://localhost:8090-8100/health`，以 `/health` 返回的 `projectName`、`unityVersion`、`instanceId` 确认目标实例。禁止想当然写死 `8090` 或 `8091`。确认端口后，再调用 `test_run` / `test_run_by_name` 并用 `test_get_result` 轮询结果；不要在 Unity Editor 已打开同一项目时另起 batchmode Unity 实例。
+
+禁止使用 `dotnet build`、`msbuild` 或类似方式构建 Unity 自动生成的 `.sln` / `.csproj` 解决方案；这些项目文件不能作为本仓库的编译验证入口。需要编译验证时，通过 Unity Editor 编译/控制台或项目既有 Unity 测试入口确认。
+
+### Hot Reload 开发验证
+
+项目已安装 Hot Reload 插件。Unity 处于 Play 模式且 Hot Reload 功能开启时，修改 C# 代码后应先查看 Hot Reload 面板或 Unity Console 的最新热重载日志。
+
+- 如果日志明确显示改动已热重载成功（例如 `Reload finished`、`Changes applied`，或列表中包含本次修改的方法且已应用），直接按最新代码继续验证，不要为了重新编译而停止 Play 模式。
+- 如果日志显示热重载失败、改动未应用、存在 unsupported changes，或 `Changes partially applied` 中没有覆盖本次修改的关键方法，才停止 Play 模式并让 Unity 重新编译。
+- 不确定日志含义时，先把 Hot Reload 最新日志作为证据说明，不要臆测已经生效。
+
+Hot Reload 面板 Timeline 不一定完整写入 Unity Console。需要让 AI/脚本判断本次改动是否已应用时，使用项目技能 `.codex/skills/hotreload-log/SKILL.md`，重点读取 `Library/com.singularitygroup.hotreload/patches.json` 中的 `modifiedMethods`、`failures`、`newFields`、`deletedFields`。
+
