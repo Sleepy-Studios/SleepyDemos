@@ -11,8 +11,8 @@
 - 下载资源补丁
 - 规范化资源地址
 - 创建局部 loader
-- 加载资源和 `TextAsset`
-- 实例化与释放 GameObject
+- 同步/异步加载资源和 `TextAsset`
+- 同步/异步实例化与释放 GameObject
 
 它不负责：
 
@@ -77,7 +77,7 @@
 - 业务层不直接持有 YooAssets 句柄。
 - 资源地址进入加载前由资源服务统一规范化。
 - 热更新加载程序集时走 `ResourceServices.Default.LoadTextAssetAsync(...)`。
-- UI 实例化 View 时走 `IResourceLoader.InstantiateAsync(...)`。
+- UI 实例化 View 时走 `IResourceLoader.Instantiate(...)` 或 `IResourceLoader.InstantiateAsync(...)`；基础 UI 组件通过 `isAsync` 决定使用哪条路径。
 
 ## 修改这里时注意什么
 

@@ -17,6 +17,7 @@ namespace Core.Runtime
         private System.Action<bool> onValueChanged;
         private bool initialized;
 
+        /// 当前开关状态。
         public bool IsOn { get; private set; }
 
         private void Awake()
@@ -36,26 +37,54 @@ namespace Core.Runtime
             initialized = false;
         }
 
+        /// <summary>
+        /// 覆盖当前状态变化回调。
+        /// </summary>
+        /// <param name="action">新的状态变化回调，参数为当前状态。</param>
         public void SetAction(System.Action<bool> action)
         {
             onValueChanged = action;
         }
 
+        /// <summary>
+        /// 追加注册状态变化回调。
+        /// </summary>
+        /// <param name="action">状态变化回调，参数为当前状态。</param>
         public void Register(System.Action<bool> action)
         {
             onValueChanged += action;
         }
 
+        /// <summary>
+        /// 移除已注册的状态变化回调。
+        /// </summary>
+        /// <param name="action">需要移除的回调。</param>
+        public void Unregister(System.Action<bool> action)
+        {
+            onValueChanged -= action;
+        }
+
+        /// 获取当前开关状态。
         public bool GetStatus()
         {
             return IsOn;
         }
 
+        /// <summary>
+        /// 设置当前开关状态。
+        /// </summary>
+        /// <param name="value">目标状态。</param>
+        /// <param name="notify">是否触发状态变化回调。</param>
         public void SetStatus(bool value, bool notify = false)
         {
             Set(value, notify);
         }
 
+        /// <summary>
+        /// 设置当前开关状态。
+        /// </summary>
+        /// <param name="value">目标状态。</param>
+        /// <param name="notify">是否触发状态变化回调。</param>
         public void Set(bool value, bool notify = false)
         {
             SetInternal(value, notify);

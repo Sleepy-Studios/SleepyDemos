@@ -39,7 +39,7 @@
 - 如果当前改动不足以影响架构或流程，可不改文档，但需要显式判断“本次无需同步文档”。
 - 启动系统、热更新、Flux、资源运行时、公共 UI 等大型模块必须形成完整模块文档；小型 Data 三件套可先不单独建文档，等形成独立入口或复杂规则后再补。
 - 文档按三层落点：`docs/architecture/` 给开发人员看设计思路，`docs/modules/*.md` 给维护模块的人看边界和生命周期，`docs/runbooks/*.md` 给使用者或接入者看具体步骤。
-- `Core.Runtime` / `Core.Editor` 中会被业务侧直接调用的底层公共方法，尤其是带 bool、command、Type、回调、异步返回值等参数的方法，必须补完整 C# XML 注释；纯标记接口、内部容器和显而易见属性不机械补注释。
+- C# 注释与命名按 `docs/architecture/documentation-rules.md` 执行：只有带参数的公开方法使用完整 XML 注释；无参公开方法、公开字段/属性/事件只写简短 `///`；私有成员用 `//`；命名遵循 PascalCase / camelCase，不使用 `_` 私有字段前缀，避免拼音和无意义缩写。
 - 如果规则变化影响入口判断或协作约定，要同时更新 `CLAUDE.md`，保持两份入口文件同步。
 
 ## 文档地图
@@ -74,4 +74,3 @@
 - 不确定日志含义时，先把 Hot Reload 最新日志作为证据说明，不要臆测已经生效。
 
 Hot Reload 面板 Timeline 不一定完整写入 Unity Console。需要让 AI/脚本判断本次改动是否已应用时，使用项目技能 `.codex/skills/hotreload-log/SKILL.md`，重点读取 `Library/com.singularitygroup.hotreload/patches.json` 中的 `modifiedMethods`、`failures`、`newFields`、`deletedFields`。
-

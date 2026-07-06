@@ -20,7 +20,7 @@
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
   - [资源命名规范](./architecture/asset-naming.md)
   - [资源系统设计原则](./architecture/resource-system.md)
-  - [文档维护规则](./architecture/documentation-rules.md)
+  - [文档维护与 C# 规范](./architecture/documentation-rules.md)
 - `modules/`
   - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
   - [Core.Runtime](./modules/core-runtime.md)
@@ -38,6 +38,7 @@
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
+  - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
   - [使用 LoopScroll 循环列表](./runbooks/use-loop-scroll.md)
   - [验证 Core 运行时基础设施](./runbooks/validate-core-runtime-infrastructure.md)

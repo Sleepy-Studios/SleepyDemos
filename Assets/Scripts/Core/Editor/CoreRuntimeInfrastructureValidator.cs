@@ -25,13 +25,13 @@ namespace Core.Editor
             "GTask",
             "GAsync",
             "GalaDebugger",
-            "ListPool",
-            "UIImageLoader"
+            "ListPool"
         };
 
         private static readonly string[] OuterRuntimeScanRoots =
         {
             "Assets/Scripts/Core/Runtime/UI",
+            "Assets/Scripts/Core/Runtime/Components",
             "Assets/Scripts/Core/Runtime/Startup",
             "Assets/Scripts/Core/Runtime/HotUpdate",
             "Assets/Scripts/Hotfix"
@@ -108,6 +108,9 @@ namespace Core.Editor
             RequireComponentType<UIDropdown>(errors);
             RequireComponentType<UIState>(errors);
             RequireComponentType<ViewTab>(errors);
+            RequireComponentType<AccordionTab>(errors);
+            RequireComponentType<AccordionViewTab>(errors);
+            RequireComponentType<UIImageLoader>(errors);
             RequireComponentType<LoopVerticalScrollRect>(errors);
             RequireComponentType<LoopHorizontalScrollRect>(errors);
             RequireComponentType<LoopGridView>(errors);
@@ -134,6 +137,11 @@ namespace Core.Editor
 
                 foreach (var file in Directory.GetFiles(fullRoot, "*.cs", SearchOption.AllDirectories))
                 {
+                    if (NormalizePath(file).Contains("/Components/LoopScroll/", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
                     var text = File.ReadAllText(file);
                     foreach (var term in ForbiddenOuterRuntimeTerms)
                     {
@@ -150,6 +158,7 @@ namespace Core.Editor
         {
             RequireFile("docs/modules/resource-runtime.md", errors);
             RequireFile("docs/modules/ui-runtime.md", errors);
+            RequireFile("docs/runbooks/use-core-ui-components.md", errors);
             RequireFile("docs/architecture/startup-flow.md", errors);
             RequireFile("docs/architecture/hotfix-boundary.md", errors);
         }

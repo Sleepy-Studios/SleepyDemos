@@ -56,10 +56,51 @@ namespace Core.Runtime
             }
         }
 
+        /// <summary>
+        /// 同步初始化 View 资源并挂载到指定父节点。资源已初始化时会直接返回；加载失败时保持未加载状态。
+        /// </summary>
+        /// <param name="parent">View 根对象挂载父节点。</param>
+        public void Init(Transform parent)
+        {
+            if ((State & ViewState.FirstInit) != 0)
+            {
+                return;
+            }
+
+            State |= ViewState.FirstInit;
+            if (string.IsNullOrEmpty(Address))
+            {
+                Debug.LogError($"{GetType().FullName} 的 Address 为空");
+                State &= ~ViewState.FirstInit;
+                return;
+            }
+
+            gameObject = Loader.Instantiate(Address, parent);
+            if (gameObject == null)
+            {
+                State &= ~ViewState.FirstInit;
+                return;
+            }
+
+            if ((State & ViewState.Destroyed) != 0)
+            {
+                Loader.ReleaseInstance(gameObject);
+                gameObject = null;
+                return;
+            }
+
+            CompleteInit();
+        }
+
         public virtual void OnBeforeInit()
         {
         }
 
+        /// <summary>
+        /// 异步初始化 View 资源并挂载到指定父节点。重复调用会复用正在进行的加载任务。
+        /// </summary>
+        /// <param name="parent">View 根对象挂载父节点。</param>
+        /// <returns>初始化异步任务。</returns>
         public async UniTask InitAsync(Transform parent)
         {
             if ((State & ViewState.FirstInit) != 0)

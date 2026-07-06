@@ -115,31 +115,141 @@
 - 本次改动是否触发了文档同步条件
 - 如果没有改文档，是否能明确说明“为何不需要”
 
-## 代码注释规范
+## C# 注释风格
 
-底层公共调用入口需要使用 C# XML 风格注释，重点不是“所有 public 都写”，而是让调用者不用猜参数语义。
+注释目标是解释调用语义、维护意图和容易误用的地方，不要机械复述代码。代码里优先让命名和结构自解释，注释只补调用者容易误解的部分。
 
-必须补完整 XML 注释的情况：
+### XML 注释
 
-- `Core.Runtime`、`Core.Editor` 中会被业务侧直接调用的 public / protected 方法
-- 带参数、泛型参数、返回值，且调用者需要理解语义或副作用的方法
-- 带 bool、string command、Type、回调、异步返回值等容易误用的参数
-- 框架扩展点，例如 Handler 基类的可重写方法、网络请求封装、订阅入口
+只有“公开方法且带参数”时使用完整 C# XML 注释：
 
-可以不写或只在必要时写简短注释的情况：
+- `public` / `protected` 方法带普通参数、可选参数、泛型参数、返回值或异步返回值
+- 参数包含 bool、string command、Type、回调、索引、路径、异步开关等容易误用的语义
+- 框架扩展点，例如 Handler 基类可重写方法、网络请求封装、订阅入口、公共 UI 组件入口
 
-- 纯标记接口、契约接口中的显而易见成员
-- 内部容器、私有辅助方法、简单属性
-- 业务层一次性小方法，除非参数或副作用不直观
-
-XML 注释必须写出真实语义，不允许空壳：
+完整 XML 注释必须写真实语义，包括参数默认值、是否触发回调、副作用、生命周期、异步行为等，不允许空壳模板。
 
 ```csharp
 /// <summary>
-/// 订阅指定 Data 的状态变化。
+/// 设置当前选中项。
 /// </summary>
-/// <param name="action">状态变化时触发的回调。</param>
-/// <param name="triggerOnSub">是否在订阅成功后立即回调当前状态；true 表示立即通知当前状态，false 表示只接收后续变化。</param>
-/// <typeparam name="T">要订阅的 Data 类型。</typeparam>
-public static void Subscribe<T>(Action<T> action, bool triggerOnSub = true) where T : IData
+/// <param name="index">目标索引；非法索引会被忽略。</param>
+/// <param name="notify">是否触发选中回调。</param>
+public void SetIndex(int index, bool notify = true)
 ```
+
+泛型方法补 `<typeparam>`；返回值语义不直观时补 `<returns>`。
+
+### 简短 `///` 注释
+
+公开方法没有参数时，只写简短 `///` 概括用途，不补完整 `<summary>` 块。
+
+公开字段、公开属性、公开事件也只写简短 `///`，说明它代表什么；不要为了简单属性补完整 XML 模板。
+
+```csharp
+/// 当前选中索引；未选中时为 -1。
+public int Index => currentIndex;
+
+/// 清空当前选择。
+public void ClearSelection()
+```
+
+### 私有成员
+
+私有字段和私有方法使用普通 `//` 注释，只在命名无法表达意图、状态机分支复杂或有特殊副作用时补充。
+
+不要给私有字段、私有方法机械补 `///` XML 注释。
+
+### 大段说明
+
+较长的维护说明可以按场景使用：
+
+- `#region`：同一文件内存在多组明显职责分区，且分区能提高阅读效率时使用。
+- `/* ... */`：需要保留一段多行背景说明、协议约定或算法解释时使用。
+
+不要用大段注释替代拆分方法、提取类型或改进命名。
+
+## C# 命名规范
+
+### 总原则
+
+命名优先表达业务语义和生命周期含义，避免缩写、拼音、无意义前后缀。项目不使用下划线 `_` 作为私有字段前缀。
+
+### 类型与成员
+
+- 类型、方法、属性、事件：PascalCase，例如 `PlayerController`、`LoadAssetAsync`、`CurrentIndex`、`OnValueChanged`。
+- 接口：`I` + PascalCase，例如 `IResourceLoader`、`IUIAnimation`。
+- 局部变量、参数、私有字段、序列化私有字段：camelCase，例如 `currentIndex`、`targetImage`、`initIndex`、`isAsync`。
+- 常量：PascalCase，例如 `DefaultTimeout`、`SelectedStateId`。
+- 静态只读字段：PascalCase 或按既有文件风格；不要使用 `_` 前缀。
+- 枚举类型和枚举值：PascalCase，例如 `ViewState`、`FirstInit`。
+
+### Unity 字段
+
+Unity Inspector 暴露字段优先使用序列化私有字段：
+
+```csharp
+[SerializeField] private Image targetImage;
+[SerializeField] private bool initializeOnAwake;
+```
+
+避免为了 Inspector 直接使用 public 字段。需要外部读取时提供只读属性：
+
+```csharp
+[SerializeField] private int currentIndex;
+
+/// 当前选中索引；未选中时为 -1。
+public int Index => currentIndex;
+```
+
+### Bool 命名
+
+bool 命名要表达判断语义：
+
+- `isAsync`
+- `isExpanded`
+- `hasChildren`
+- `canCollapseFirstLevel`
+- `shouldNotify`
+- `enableAnimation`
+
+避免含糊的 `flag`、`state`、`check`。
+
+### 异步命名
+
+返回 `Task` / `UniTask` / 异步语义的方法使用 `Async` 后缀：
+
+- `LoadAssetAsync`
+- `InitAsync`
+- `DownloadPackageAsync`
+
+同步方法不加 `Sync` 后缀，除非同一类型中必须同时暴露同步和异步同名能力且会产生歧义。
+
+### 回调与事件命名
+
+- 注册方法：`Register`
+- 取消注册：`Unregister`
+- 覆盖回调：`SetAction`
+- 事件或回调字段按语义命名，例如 `onSelected`、`onValueChanged`、`ShowStateChanged`
+
+`Register` 必须表示追加，`Unregister` 必须表示移除，`SetAction` 必须表示覆盖。
+
+### Unity 生命周期方法
+
+Unity 生命周期方法保持官方名称，不额外包装命名：
+
+- `Awake`
+- `Start`
+- `OnEnable`
+- `OnDisable`
+- `OnDestroy`
+
+生命周期方法一般不写 XML 注释；逻辑复杂时用 `//` 写关键维护意图。
+
+### 禁止项
+
+- 尽量不使用 `_camelCase` 私有字段前缀。
+- 不使用拼音命名。
+- 不使用无意义缩写，如 `mgr`、`btns`、`cfg`，除非是项目内已稳定约定。
+- 不用注释解释糟糕命名；优先改名。
+- 不给显而易见成员堆模板注释。

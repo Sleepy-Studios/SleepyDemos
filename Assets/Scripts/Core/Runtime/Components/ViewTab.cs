@@ -18,25 +18,24 @@ namespace Core.Runtime
         private List<View> currentTabList;
         private View currentClickView;
 
-        /// <summary>
         /// 当前驱动 View 切换的 Tab 组件。Prefab 可直接序列化引用，也可运行时赋值。
-        /// </summary>
         public UITab UiTab
         {
             get => uiTab;
             set => uiTab = value;
         }
 
-        /// <summary>
         /// View 实例化或本地内容显示的公共挂载根节点；未配置时回退到当前 Transform。
-        /// </summary>
         public Transform Parent
         {
             get => parent != null ? parent : transform;
             set => parent = value;
         }
 
+        /// 当前选中的 Tab 索引。
         public int Index => currentIndex;
+
+        /// 当前显示的 View；本地 GameObject 分页模式下始终为 null。
         public View CurrentClickView => currentClickView;
 
         private void Awake()
@@ -78,12 +77,57 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 使用已有本地 GameObject 作为页面内容，适合验证页或不走 View 生命周期的轻量分页。
+        /// 初始化 Tab 与分页内容。传入 views 时走 View 生命周期；只传 localViewInstances 时仅切换本地对象显隐。
         /// </summary>
-        public void Init(GameObject[] localViewInstances, int index = 0)
+        /// <param name="desc">Tab 文案；为空时不重建内部 UITab。</param>
+        /// <param name="views">与 Tab 一一对应的 View 列表；为空时使用 localViewInstances。</param>
+        /// <param name="localViewInstances">本地分页对象数组，不走 View 生命周期。</param>
+        /// <param name="itemImages">Tab 图标 Sprite 资源路径；为空时清空图标。</param>
+        /// <param name="index">初始化后选中的索引；负数表示不主动选择。</param>
+        /// <param name="action">Tab 初始化完成回调。</param>
+        /// <param name="enableAnimation">切换 View 时是否播放 UI 动画。</param>
+        /// <param name="isAsync">是否异步初始化 Tab 图标和 View 资源。</param>
+        public void Init(
+            IList<string> desc = null,
+            List<View> views = null,
+            GameObject[] localViewInstances = null,
+            IReadOnlyList<string> itemImages = null,
+            int index = 0,
+            Action action = null,
+            bool enableAnimation = true,
+            bool isAsync = false)
         {
-            viewInstances = localViewInstances;
-            currentTabList = null;
+            ReleaseViewList().Forget();
+            viewInstances = localViewInstances ?? viewInstances;
+            currentTabList = views;
+            uiAnimation = enableAnimation;
+            this.isAsync = isAsync;
+
+            if (views != null && desc != null && desc.Count != views.Count)
+            {
+                Debug.LogError($"[ViewTab] {name} 初始化错误：Tab 和 View 数量不对应。");
+                return;
+            }
+
+            if (views != null && viewInstances != null && viewInstances.Length > 0 && viewInstances.Length != views.Count)
+            {
+                Debug.LogError($"[ViewTab] {name} 初始化错误：本地实例和 View 数量不对应。");
+                return;
+            }
+
+            if (desc != null)
+            {
+                if (uiTab == null)
+                {
+                    Debug.LogError($"[ViewTab] {name} 缺少 UITab 引用。");
+                    return;
+                }
+
+                uiTab.Init(desc, itemImages, index, true, action, isAsync);
+                return;
+            }
+
+            action?.Invoke();
             if (index >= 0)
             {
                 Select(index);
@@ -91,44 +135,6 @@ namespace Core.Runtime
             else
             {
                 Refresh();
-            }
-        }
-
-        /// <summary>
-        /// 初始化 Tab 文案与对应 View 列表，View 会挂载到 Parent 下。
-        /// </summary>
-        public void Init(IList<string> desc, List<View> views, int index = 0, Action action = null, bool asyncLoad = false)
-        {
-            ReleaseViewList().Forget();
-            currentTabList = views;
-            isAsync = asyncLoad;
-
-            if (uiTab == null)
-            {
-                Debug.LogError($"[ViewTab] {name} 缺少 UITab 引用。");
-                return;
-            }
-
-            if (desc == null || views == null || desc.Count != views.Count)
-            {
-                Debug.LogError($"[ViewTab] {name} 初始化错误：Tab 和 View 数量不对应。");
-                return;
-            }
-
-            uiTab.InitAsync(desc, index, true).Forget();
-            action?.Invoke();
-        }
-
-        /// <summary>
-        /// 初始化已有 Tab 与对应 View 列表，不重建 Tab 文案。
-        /// </summary>
-        public void Init(List<View> views, int index = 0)
-        {
-            ReleaseViewList().Forget();
-            currentTabList = views;
-            if (index >= 0)
-            {
-                Select(index);
             }
         }
 
@@ -183,7 +189,14 @@ namespace Core.Runtime
             var viewName = currentClickView.Name;
             if ((currentClickView.State & ViewState.FirstInit) == 0)
             {
-                await currentClickView.InitAsync(Parent);
+                if (isAsync)
+                {
+                    await currentClickView.InitAsync(Parent);
+                }
+                else
+                {
+                    currentClickView.Init(Parent);
+                }
             }
 
             if (viewName == currentClickView.Name)

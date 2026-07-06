@@ -24,10 +24,11 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `ViewTab`：通过一个 `UITab` 驱动多个 View 或本地 ViewRoot 子节点切换，公共 `Parent/ViewRoot` 用于挂载 View。
 - `AccordionTab`：两级手风琴 Tab，一级负责展开/收起，回调使用扁平化叶子索引。
 - `AccordionViewTab`：通过 `AccordionTab` 叶子索引驱动多个 View 或本地 ViewRoot 子节点切换。
+- `UIImageLoader`：按 Sprite 资源路径加载图片，支持同步/异步和 `SetNativeSize`。
 - `UIState`：序列化状态切换组件，用于 Normal/Selected 等轻量状态；状态项使用固定枚举和强类型组件引用，不使用反射属性名或字符串解析。
 
 明确不在这里混入：
-- 业务图片加载器
+- 业务图片加载器或图集拆分规则
 - 具体 Demo 或页面业务状态
 
 循环列表已经独立收口在 [LoopScroll 运行时](./loop-scroll-runtime.md)，不要把无限滚动逻辑塞回 `ViewList`。
@@ -57,6 +58,14 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 `ViewTab` 模板和验证页遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
 
 验证入口从 `MainMenuView` 的「基础 UI 验证」按钮打开，后续页面仍通过 `UIManager.Show<T>()` 进入，不绕过 View 生命周期或资源 Loader。当前入口包含 `UITab`、`UIBtnSwitch`、`UIDropdown`、`ViewTab`、`AccordionTab`、`AccordionViewTab` 六个验证页。
+
+基础组件公共入口统一收口在一个主方法上：
+- `UITab`、`AccordionTab`、`ViewTab`、`AccordionViewTab`、`ViewList` 使用 `Init(...)`。
+- `UIDropdown` 使用 `SetData(...)`。
+- `UIBtnSwitch` 使用 `Set(...)` / `SetStatus(...)`，`SetAction` 为覆盖回调，`Register` 为追加回调。
+- `UIImageLoader` 使用 `SetImage(string key, bool setNativeSize = true, bool isAsync = false)`。
+
+所有基础组件默认 `isAsync = false`，即同步初始化或同步资源加载；需要分帧初始化、异步图片加载或异步 View 加载时显式传 `isAsync: true`。图片参数统一为 Sprite 资源路径，不传图集名和缩放值。完整调用规则见 [使用 Core 基础 UI 组件](../runbooks/use-core-ui-components.md)。
 
 ## 修改注意
 

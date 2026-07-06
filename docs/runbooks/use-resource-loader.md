@@ -23,6 +23,12 @@ View 内优先使用自身 `Loader`：
 var instance = await Loader.InstantiateAsync(address, parent);
 ```
 
+需要同步实例化时：
+
+```csharp
+var instance = Loader.Instantiate(address, parent);
+```
+
 需要保持世界坐标时：
 
 ```csharp
@@ -37,6 +43,12 @@ View 销毁时会释放自身 loader。通过该 loader 实例化的对象，应
 
 ```csharp
 var sprite = await Loader.LoadAssetAsync<Sprite>(address);
+```
+
+需要同步加载时：
+
+```csharp
+var sprite = Loader.LoadAsset<Sprite>(address);
 ```
 
 使用完单个资源后可以释放：
@@ -60,6 +72,12 @@ if (!result.Success)
 }
 
 var atlas = result.Asset;
+```
+
+需要同步加载全局共享资源时：
+
+```csharp
+var result = ResourceServices.Default.LoadAsset<Sprite>(address);
 ```
 
 全局服务加载出的共享资源需要显式释放时：
@@ -89,6 +107,7 @@ var bytes = result.Asset.bytes;
 - 不要直接 new `YooAssetResourceLoader`。
 - 不要跨 loader 释放资源或实例。
 - 不要绕过 `ResourceServices.Default.NormalizeAddress(...)` 自己拼接底层 location。
+- 不要在资源系统未初始化前依赖同步加载；正常流程应先完成 `ResourceStartupState`。
 
 ## 常见问题
 

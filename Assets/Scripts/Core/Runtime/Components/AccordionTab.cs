@@ -10,10 +10,16 @@ namespace Core.Runtime
     [Serializable]
     public sealed class AccordionTabData
     {
+        /// 业务标识。组件本身只保存并在 GetCurrentId 中返回，不参与排序。
         public int Id;
+
+        /// 页签显示文案。
         public string Desc;
+
+        /// 页签图标 Sprite 资源路径；为空时清空图标。
         public string Image;
-        public float IconScale = 1f;
+
+        /// 二级页签数据。为空时当前数据本身作为叶子页签。
         public List<AccordionTabData> Children = new List<AccordionTabData>();
     }
 
@@ -31,14 +37,22 @@ namespace Core.Runtime
         private bool canCollapseFirstLevel;
         private TabGroup expandedGroup;
 
+        /// 叶子页签选中前拦截回调。返回 false 时阻止本次选择和通知。
         public Func<int, bool> TryClick { get; set; }
+
+        /// 叶子页签选中事件，参数为扁平化后的叶子索引。
         public event Action<int> OnClick;
+
+        /// 当前选中的叶子索引；未选中时为 -1。
         public int Index => currentIndex;
+
+        /// 当前叶子页签数量。
         public int Count => leafInfos.Count;
 
         /// <summary>
         /// 注册叶子页签点击回调。回调参数为扁平化后的叶子索引。
         /// </summary>
+        /// <param name="onTabClick">需要追加的叶子页签点击回调。</param>
         public void Register(Action<int> onTabClick)
         {
             OnClick += onTabClick;
@@ -47,6 +61,7 @@ namespace Core.Runtime
         /// <summary>
         /// 取消注册叶子页签点击回调。
         /// </summary>
+        /// <param name="onTabClick">需要移除的叶子页签点击回调。</param>
         public void Unregister(Action<int> onTabClick)
         {
             OnClick -= onTabClick;
@@ -55,12 +70,35 @@ namespace Core.Runtime
         /// <summary>
         /// 初始化两级手风琴 Tab；带子项的一级负责展开，最终选中和回调均落在叶子页签索引。
         /// </summary>
-        public async UniTask InitAsync(
+        /// <param name="data">手风琴数据；一级有 Children 时 Children 作为叶子，否则一级本身作为叶子。</param>
+        /// <param name="initLeafIndex">初始化后选中的叶子索引；非法索引不会触发回调。</param>
+        /// <param name="notify">初始化选中时是否触发 <see cref="OnClick"/>。</param>
+        /// <param name="action">初始化完成回调；在项创建和初始选择后触发。</param>
+        /// <param name="canCollapseFirstLevel">点击已展开的一级页签时是否允许收起。</param>
+        /// <param name="isAsync">是否逐帧创建页签并异步加载图标。</param>
+        public void Init(
             IList<AccordionTabData> data,
             int initLeafIndex = 0,
+            bool notify = true,
             Action action = null,
-            bool splitFrames = false,
-            bool canCollapseFirstLevel = false)
+            bool canCollapseFirstLevel = false,
+            bool isAsync = false)
+        {
+            if (isAsync)
+            {
+                InitAsyncInternal(data, initLeafIndex, notify, action, canCollapseFirstLevel).Forget();
+                return;
+            }
+
+            InitImmediate(data, initLeafIndex, notify, action, canCollapseFirstLevel);
+        }
+
+        private void InitImmediate(
+            IList<AccordionTabData> data,
+            int initLeafIndex,
+            bool notify,
+            Action action,
+            bool canCollapseFirstLevel)
         {
             if (isInitializing)
             {
@@ -85,21 +123,65 @@ namespace Core.Runtime
                 {
                     for (int i = 0; i < data.Count; i++)
                     {
-                        CreateGroup(data[i], i);
-                        if (splitFrames)
+                        CreateGroup(data[i], i, false);
+                    }
+                }
+
+                if (initLeafIndex >= 0 && initLeafIndex < leafInfos.Count)
+                {
+                    SetIndex(initLeafIndex, notify);
+                }
+
+                action?.Invoke();
+            }
+            finally
+            {
+                isInitializing = false;
+            }
+        }
+
+        private async UniTaskVoid InitAsyncInternal(
+            IList<AccordionTabData> data,
+            int initLeafIndex,
+            bool notify,
+            Action action,
+            bool canCollapseFirstLevel)
+        {
+            if (isInitializing)
+            {
+                Debug.LogWarning($"[AccordionTab] {name} 正在初始化，忽略重复请求。");
+                return;
+            }
+
+            try
+            {
+                isInitializing = true;
+                this.canCollapseFirstLevel = canCollapseFirstLevel;
+                ClearGroups();
+
+                parent = parent != null ? parent : transform;
+                if (firstLevelPrefab == null)
+                {
+                    Debug.LogError($"[AccordionTab] {name} 缺少一级 Tab 模板。");
+                    return;
+                }
+
+                if (data != null)
+                {
+                    for (int i = 0; i < data.Count; i++)
+                    {
+                        CreateGroup(data[i], i, true);
+                        await UniTask.Yield();
+                        if (this == null || gameObject == null)
                         {
-                            await UniTask.Yield();
-                            if (this == null || gameObject == null)
-                            {
-                                return;
-                            }
+                            return;
                         }
                     }
                 }
 
-                if (initLeafIndex >= 0)
+                if (initLeafIndex >= 0 && initLeafIndex < leafInfos.Count)
                 {
-                    SetIndex(initLeafIndex, true);
+                    SetIndex(initLeafIndex, notify);
                 }
 
                 action?.Invoke();
@@ -111,21 +193,16 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 同步入口包装，适合 Hotfix 页面初始化时直接调用。
-        /// </summary>
-        public void Init(IList<AccordionTabData> data, int initLeafIndex = 0, Action action = null, bool canCollapseFirstLevel = false)
-        {
-            InitAsync(data, initLeafIndex, action, false, canCollapseFirstLevel).Forget();
-        }
-
-        /// <summary>
         /// 选中指定叶子页签。
         /// </summary>
-        public void SetIndex(int leafIndex, bool actionInvoke = true)
+        /// <param name="leafIndex">目标叶子索引；非法索引会被忽略。</param>
+        /// <param name="notify">是否触发 <see cref="OnClick"/>。</param>
+        public void SetIndex(int leafIndex, bool notify = true)
         {
-            SelectLeaf(leafIndex, actionInvoke);
+            SelectLeaf(leafIndex, notify);
         }
 
+        /// 清空当前选中态，不触发回调。
         public void UnSetIndex()
         {
             if (currentIndex < 0 || currentIndex >= leafInfos.Count)
@@ -140,6 +217,7 @@ namespace Core.Runtime
             currentIndex = -1;
         }
 
+        /// 对当前选中叶子页签主动触发一次回调，不改变当前索引。
         public void ExecuteEvent()
         {
             if (currentIndex < 0 || currentIndex >= leafInfos.Count)
@@ -151,22 +229,29 @@ namespace Core.Runtime
             SelectLeaf(currentIndex, false);
         }
 
+        /// <summary>
+        /// 获取指定叶子索引对应的数据。
+        /// </summary>
+        /// <param name="leafIndex">扁平化叶子索引。</param>
+        /// <returns>叶子数据；索引非法时返回 null。</returns>
         public AccordionTabData GetLeafData(int leafIndex)
         {
             return leafIndex >= 0 && leafIndex < leafInfos.Count ? leafInfos[leafIndex].Data : null;
         }
 
+        /// 获取当前选中的叶子数据；未选中时返回 null。
         public AccordionTabData GetCurrentData()
         {
             return GetLeafData(currentIndex);
         }
 
+        /// 获取当前选中叶子的业务 Id；未选中时返回 0。
         public int GetCurrentId()
         {
             return GetCurrentData()?.Id ?? 0;
         }
 
-        private void CreateGroup(AccordionTabData data, int groupIndex)
+        private void CreateGroup(AccordionTabData data, int groupIndex, bool isAsync)
         {
             data = data ?? new AccordionTabData();
             var groupRoot = new GameObject($"AccordionGroup{groupIndex + 1}", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
@@ -177,7 +262,7 @@ namespace Core.Runtime
             var firstItem = Instantiate(firstLevelPrefab, groupRoot.transform);
             firstItem.name = $"FirstLevelTab{groupIndex + 1}";
             firstItem.SetActive(true);
-            InitItem(firstItem, data);
+            InitItem(firstItem, data, isAsync);
 
             var subRoot = new GameObject("SubRoot", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
             subRoot.transform.SetParent(groupRoot.transform, false);
@@ -230,7 +315,7 @@ namespace Core.Runtime
                     var childItem = Instantiate(secondLevelPrefab, subRoot.transform);
                     childItem.name = $"SecondLevelTab{i + 1}";
                     childItem.SetActive(true);
-                    InitItem(childItem, childData);
+                    InitItem(childItem, childData, isAsync);
 
                     var leafIndex = leafInfos.Count;
                     group.SecondItems.Add(childItem);
@@ -262,7 +347,7 @@ namespace Core.Runtime
             subRoot.SetActive(false);
         }
 
-        private bool SelectLeaf(int leafIndex, bool actionInvoke)
+        private bool SelectLeaf(int leafIndex, bool notify)
         {
             if (leafIndex < 0 || leafIndex >= leafInfos.Count)
             {
@@ -290,7 +375,7 @@ namespace Core.Runtime
             }
 
             SetItemSelected(selected.Item, true);
-            if (actionInvoke)
+            if (notify)
             {
                 OnClick?.Invoke(leafIndex);
             }
@@ -355,7 +440,7 @@ namespace Core.Runtime
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         }
 
-        private void InitItem(GameObject item, AccordionTabData data)
+        private void InitItem(GameObject item, AccordionTabData data, bool isAsync)
         {
             if (!string.IsNullOrEmpty(data.Desc))
             {
@@ -367,23 +452,23 @@ namespace Core.Runtime
                 }
             }
 
-            SetItemImage(item, data?.Image, data?.IconScale ?? 1f);
+            SetItemImage(item, data?.Image, isAsync);
             SetItemSelected(item, false);
         }
 
-        private void SetItemImage(GameObject item, string imagePath, float scale)
+        private void SetItemImage(GameObject item, string imagePath, bool isAsync)
         {
             if (item == null)
             {
                 return;
             }
 
-            var imageLoader = FindItemImageLoader(item);
+            var imageLoader = FindUIImageLoader(item);
             if (imageLoader == null)
             {
                 if (!string.IsNullOrEmpty(imagePath))
                 {
-                    Debug.LogWarning($"[AccordionTab] {item.name} 未找到 ItemImageLoader，图片路径已忽略: {imagePath}");
+                    Debug.LogWarning($"[AccordionTab] {item.name} 未找到 UIImageLoader，图片路径已忽略: {imagePath}");
                 }
 
                 return;
@@ -395,17 +480,17 @@ namespace Core.Runtime
                 return;
             }
 
-            imageLoader.SetImage(imagePath, scale);
+            imageLoader.SetImage(imagePath, true, isAsync);
         }
 
-        private static ItemImageLoader FindItemImageLoader(GameObject item)
+        private static UIImageLoader FindUIImageLoader(GameObject item)
         {
             if (item == null)
             {
                 return null;
             }
 
-            return item.GetComponentInChildren<ItemImageLoader>(true);
+            return item.GetComponentInChildren<UIImageLoader>(true);
         }
 
         private void RegisterClick(GameObject item, Action action)

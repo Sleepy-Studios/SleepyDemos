@@ -36,6 +36,14 @@ namespace Core.Runtime
             return new YooAssetResourceLoader(this);
         }
 
+        public ResourceLoadResult<T> LoadAsset<T>(string address) where T : Object
+        {
+            var asset = sharedLoader.LoadAsset<T>(address);
+            return asset != null
+                ? ResourceLoadResult<T>.SuccessResult(asset, NormalizeAddress(address))
+                : ResourceLoadResult<T>.Failure(NormalizeAddress(address), $"资源加载失败: {address}");
+        }
+
         public async UniTask<ResourceLoadResult<T>> LoadAssetAsync<T>(string address) where T : Object
         {
             var asset = await sharedLoader.LoadAssetAsync<T>(address);
