@@ -22,11 +22,41 @@ namespace Core.Runtime
             this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
         }
 
+        internal bool HasCloseAllBarrier
+        {
+            get
+            {
+                lock (stateGate)
+                {
+                    return HasCloseAllBarrierLocked();
+                }
+            }
+        }
+
         internal UniTask<UIOperationResult> Enqueue(
             UINavigationAction action,
             Type targetType,
             bool animated,
             CancellationToken callerCancellation,
+            Action<View> configure = null,
+            View targetView = null)
+        {
+            return Enqueue(
+                action,
+                targetType,
+                animated,
+                callerCancellation,
+                out _,
+                configure,
+                targetView);
+        }
+
+        internal UniTask<UIOperationResult> Enqueue(
+            UINavigationAction action,
+            Type targetType,
+            bool animated,
+            CancellationToken callerCancellation,
+            out bool closeAllBarrier,
             Action<View> configure = null,
             View targetView = null)
         {
@@ -38,6 +68,7 @@ namespace Core.Runtime
 
             lock (stateGate)
             {
+                closeAllBarrier = HasCloseAllBarrierLocked();
                 operation = new QueuedUIOperation(
                     ++nextOperationId,
                     action,
@@ -90,6 +121,25 @@ namespace Core.Runtime
             }
 
             return operation.Completion.Task;
+        }
+
+        private bool HasCloseAllBarrierLocked()
+        {
+            if (current?.Action == UINavigationAction.CloseAll)
+            {
+                return true;
+            }
+
+            foreach (var operation in operations)
+            {
+                if (operation.State == QueuedUIOperationState.Pending &&
+                    operation.Action == UINavigationAction.CloseAll)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void Dispose()

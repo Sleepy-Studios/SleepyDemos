@@ -118,8 +118,10 @@ await UIManager.Instance.CloseAsync<ExampleView>();
 - `Canceled` 表示调用方取消、反向操作抢占，或目标已不存在，不应当作错误日志。
 - `Failed` 表示加载、Hook 或过渡异常；框架会回滚正式栈并清理 Faulted View。
 - `Show<T>()` / `Close<T>()` 同步外观仅用于旧代码迁移，新业务不要依赖其 fire-and-forget 完成时机。
+- CloseAll 并发窗口内同步 `Show<T>()` 会安全返回 null，但 Show operation 仍排在 CloseAll 后执行；新业务必须优先 `await ShowAsync<T>()`。
 - 数据泛型兼容入口的 `SetData` 会随导航 operation 按 FIFO 应用；不要在调用 Show/Preload 前自行修改缓存 View 的数据。
 - `CloseAllAsync()` 即使返回 Failed 也会完成全量清理；其 `Exception` 可能是包含多个 View 销毁异常的 `AggregateException`。
+- CloseAll 在执行期间收到取消也会完成全量清理，最终返回 Canceled；不要把 Canceled 理解为“没有执行清理”。
 
 1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
 2. 修改 View 生命周期或 Transition 时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。

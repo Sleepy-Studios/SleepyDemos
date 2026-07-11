@@ -16,6 +16,7 @@ namespace Core.Runtime
         public string LastCloseName { get; private set; }
         public string CurrentUIName { get; private set; }
         public int StackCount => layerStack?.TotalCount ?? 0;
+        public bool HasCloseAllBarrier => navigationCoordinator.HasCloseAllBarrier;
 
         public event Action<View> OnBeginOpen;
         public event Action<View> OnOpen;
@@ -130,18 +131,20 @@ namespace Core.Runtime
 
         private View Show(Type type, bool hidePrevious, Action<View> configure)
         {
-            var view = cacheStack.GetOrCreateView(type);
-            if (view == null)
-            {
-                return null;
-            }
-
-            ObserveOperationAsync(navigationCoordinator.Enqueue(
+            var task = navigationCoordinator.Enqueue(
                 UINavigationAction.Push,
                 type,
                 true,
                 CancellationToken.None,
-                configure)).Forget(LogOperationFailure);
+                out var closeAllBarrier,
+                configure);
+            ObserveOperationAsync(task).Forget(LogOperationFailure);
+            if (closeAllBarrier)
+            {
+                return null;
+            }
+
+            var view = cacheStack.GetOrCreateView(type);
             return view;
         }
 
@@ -197,21 +200,24 @@ namespace Core.Runtime
 
         public async UniTask Preload<T>() where T : View
         {
-            await navigationCoordinator.Enqueue(
-                UINavigationAction.Preload,
-                typeof(T),
-                false,
-                CancellationToken.None);
+            await PreloadAsync<T>(null);
         }
 
         public async UniTask Preload<T, TData>(TData data) where T : View<TData>
         {
-            await navigationCoordinator.Enqueue(
+            await PreloadAsync<T>(target => target.SetData(data));
+        }
+
+        internal UniTask<UIOperationResult> PreloadAsync<T>(
+            Action<T> configure,
+            CancellationToken cancellationToken = default) where T : View
+        {
+            return navigationCoordinator.Enqueue(
                 UINavigationAction.Preload,
                 typeof(T),
                 false,
-                CancellationToken.None,
-                target => ((T)target).SetData(data));
+                cancellationToken,
+                configure == null ? null : target => configure((T)target));
         }
 
         public async UniTask CloseAll(bool animation = false)
@@ -273,10 +279,11 @@ namespace Core.Runtime
                     new InvalidOperationException("Replace 首版仅支持 Page View。"));
             }
 
+            View previous = null;
             try
             {
                 operation.Configure?.Invoke(view);
-                var previous = GetPreviousView(view);
+                previous = GetPreviousView(view);
                 if (previous == view && view.State == ViewState.Visible)
                 {
                     return UIOperationResult.Ignored(operation.OperationId, operation.Action, view);
@@ -326,30 +333,10 @@ namespace Core.Runtime
                     operation.Animated), cancellationToken);
                 PlaceOnTopAndApplyMask(view);
 
-                if (replace && previous != null && previous != view && previous.DestroyOnHide)
-                {
-                    await DestroyAndRemoveAsync(previous);
-                }
-
                 if (replace && previous != null && previous != view)
                 {
                     previous.Reference = Math.Max(0, previous.Reference - 1);
                 }
-
-                if (previous != null && previous != view)
-                {
-                    LastCloseName = previous.Name;
-                    SafeInvoke(OnBehind, previous);
-                }
-
-                if (view.ViewMode != UIViewMode.Widget)
-                {
-                    CurrentUIName = view.Name;
-                }
-
-                SafeInvoke(OnOpen, view);
-
-                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
             }
             catch (OperationCanceledException)
             {
@@ -361,6 +348,26 @@ namespace Core.Runtime
                 await TryRollbackAsync(snapshot, presentation, view);
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
+
+            // Commit point 之后的旧 View 销毁是 best-effort，不再回滚已提交的新栈。
+            if (replace && previous != null && previous != view && previous.DestroyOnHide)
+            {
+                await TryPostCommitDestroyAndRemoveAsync(previous);
+            }
+
+            if (previous != null && previous != view)
+            {
+                LastCloseName = previous.Name;
+                SafeInvoke(OnBehind, previous);
+            }
+
+            if (view.ViewMode != UIViewMode.Widget)
+            {
+                CurrentUIName = view.Name;
+            }
+
+            SafeInvoke(OnOpen, view);
+            return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
         }
 
         private async UniTask<UIOperationResult> ExecuteCloseAsync(
@@ -375,8 +382,23 @@ namespace Core.Runtime
 
             if (!layerStack.Contains(view))
             {
-                await DestroyAndRemoveAsync(view);
-                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
+                try
+                {
+                    await view.DestroyAsync();
+                    return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
+                }
+                catch (Exception exception)
+                {
+                    return UIOperationResult.Failed(
+                        operation.OperationId,
+                        operation.Action,
+                        view,
+                        exception);
+                }
+                finally
+                {
+                    cacheStack.Remove(view);
+                }
             }
 
             var snapshot = layerStack.Capture();
@@ -413,15 +435,6 @@ namespace Core.Runtime
                     CurrentUIName = null;
                 }
 
-                if (view.DestroyOnHide && view.Reference <= 0)
-                {
-                    await DestroyAndRemoveAsync(view);
-                }
-
-                LastCloseName = view.Name;
-                SafeInvoke(OnClose, view);
-
-                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
             }
             catch (OperationCanceledException)
             {
@@ -433,6 +446,16 @@ namespace Core.Runtime
                 await TryRollbackAsync(snapshot, presentation, view);
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
+
+            // Commit point 之后的关闭目标销毁失败只记录，不复活已移栈 View。
+            if (view.DestroyOnHide && view.Reference <= 0)
+            {
+                await TryPostCommitDestroyAndRemoveAsync(view);
+            }
+
+            LastCloseName = view.Name;
+            SafeInvoke(OnClose, view);
+            return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
         }
 
         private UniTask<UIOperationResult> ExecuteBackAsync(
@@ -470,12 +493,12 @@ namespace Core.Runtime
             }
             catch (OperationCanceledException)
             {
-                await DestroyAndRemoveAsync(view);
+                await TryCleanupAndRemoveAsync(view);
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
             }
             catch (Exception exception)
             {
-                await DestroyAndRemoveAsync(view);
+                await TryCleanupAndRemoveAsync(view);
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
         }
@@ -487,10 +510,12 @@ namespace Core.Runtime
             var views = cacheStack.GetAllViews();
             var exceptions = new System.Collections.Generic.List<Exception>();
             View failedView = null;
+            var cancellationRequested = cancellationToken.IsCancellationRequested;
             try
             {
                 foreach (var view in views)
                 {
+                    cancellationRequested |= cancellationToken.IsCancellationRequested;
                     view.Reference = 0;
                     try
                     {
@@ -501,6 +526,8 @@ namespace Core.Runtime
                         failedView ??= view;
                         exceptions.Add(exception);
                     }
+
+                    cancellationRequested |= cancellationToken.IsCancellationRequested;
                 }
             }
             finally
@@ -510,6 +537,17 @@ namespace Core.Runtime
                 HideMask();
                 CurrentUIName = null;
                 LastCloseName = null;
+            }
+
+            cancellationRequested |= cancellationToken.IsCancellationRequested;
+            if (cancellationRequested)
+            {
+                foreach (var exception in exceptions)
+                {
+                    LogOperationFailure(exception);
+                }
+
+                return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);
             }
 
             if (exceptions.Count > 0)
@@ -541,7 +579,10 @@ namespace Core.Runtime
             }
 
             var removeFailedView = failedView != null &&
-                                   (failedView.State == ViewState.Faulted || !snapshot.Contains(failedView));
+                                   (failedView.State == ViewState.Faulted ||
+                                    failedView.State == ViewState.Destroying ||
+                                    failedView.State == ViewState.Destroyed ||
+                                    !snapshot.Contains(failedView));
             if (removeFailedView)
             {
                 try
@@ -572,16 +613,47 @@ namespace Core.Runtime
             LastCloseName = presentation.LastCloseName;
         }
 
-        private async UniTask DestroyAndRemoveAsync(View view)
+        private async UniTask TryPostCommitDestroyAndRemoveAsync(View view)
         {
             if (view == null)
             {
                 return;
             }
 
-            layerStack?.CommitClose(view);
-            await view.DestroyAsync();
-            cacheStack.Remove(view);
+            try
+            {
+                await view.DestroyAsync();
+            }
+            catch (Exception exception)
+            {
+                LogOperationFailure(exception);
+            }
+            finally
+            {
+                cacheStack.Remove(view);
+            }
+        }
+
+        private async UniTask TryCleanupAndRemoveAsync(View view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            try
+            {
+                layerStack?.CommitClose(view);
+                await view.DestroyAsync();
+            }
+            catch (Exception exception)
+            {
+                LogOperationFailure(exception);
+            }
+            finally
+            {
+                cacheStack.Remove(view);
+            }
         }
 
         private UINavigationPresentationSnapshot CapturePresentation()

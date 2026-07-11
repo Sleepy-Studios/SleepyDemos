@@ -122,6 +122,11 @@ namespace Core.Runtime
                     return;
                 }
 
+                if (View.State == ViewState.Destroying || View.State == ViewState.Destroyed)
+                {
+                    return;
+                }
+
                 View.transform.SetParent(Parent, false);
                 View.transform.SetSiblingIndex(SiblingIndex);
                 View.Reference = Reference;

@@ -497,6 +497,156 @@ namespace Core.Tests.UI
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
 
+        [UnityTest]
+        public IEnumerator ClosePostCommitDestroyFailure_DoesNotRestoreDestroyedGhost()
+        {
+            TestViewRegistry.Register<FirstPage>();
+            TestViewRegistry.Register<DestroyThrowPage>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            var oldPage = UIManager.Instance.Get<FirstPage>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), _ => { });
+
+            LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.CloseAsync<DestroyThrowPage>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(UIManager.Instance.Get<DestroyThrowPage>(), Is.Null);
+            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
+            Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator ReplacePostCommitDestroyFailure_KeepsNewPageAndRemovesOld()
+        {
+            TestViewRegistry.Register<DestroyThrowPage>();
+            TestViewRegistry.Register<SecondPage>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), _ => { });
+
+            LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.ReplaceAsync<SecondPage>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(UIManager.Instance.Get<DestroyThrowPage>(), Is.Null);
+            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(result.View));
+            Assert.That(result.View.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator PreloadConfigureFailure_PreservesPrimaryWhenCleanupThrowsAndRemovesCache()
+        {
+            TestViewRegistry.Register<ConfigureDestroyThrowPage>();
+            LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
+
+            UIOperationResult result = default;
+            yield return AwaitResult(
+                UIManager.Instance.PreloadAsync<ConfigureDestroyThrowPage>(
+                    target => target.SetData("bad")),
+                value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.Exception, Is.SameAs(ConfigureDestroyThrowPage.PrimaryException));
+            Assert.That(UIManager.Instance.Get<ConfigureDestroyThrowPage>(), Is.Null);
+            Assert.That(UIManager.Instance.StackCount, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator CacheOnlyCloseDestroyFailure_ReturnsPrimaryAndAlwaysRemovesCache()
+        {
+            TestViewRegistry.Register<DestroyThrowPage>();
+            yield return UIManager.Instance.Preload<DestroyThrowPage>().ToCoroutine();
+            var cached = UIManager.Instance.Get<DestroyThrowPage>();
+
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.CloseAsync<DestroyThrowPage>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.View, Is.SameAs(cached));
+            Assert.That(result.Exception.Message, Is.EqualTo("destroy failed"));
+            Assert.That(UIManager.Instance.Get<DestroyThrowPage>(), Is.Null);
+            Assert.That(UIManager.Instance.StackCount, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator CloseAllCallerCancellation_StillCleansEverythingAndReturnsCanceled()
+        {
+            var loader = TestViewRegistry.Register<SlowPage>(delay: true);
+            var view = UIManager.Instance.cacheStack.GetOrCreateView<SlowPage>();
+            var loadTask = view.LoadAsync(
+                UIRootManager.Instance.GetRoot(view.Level), CancellationToken.None)
+                .SuppressCancellationThrow();
+            yield return null;
+            using var cancellation = new CancellationTokenSource();
+            var closeAllTask = UIManager.Instance.CloseAllAsync(cancellation.Token);
+            yield return null;
+            cancellation.Cancel();
+            loader.Complete(new GameObject(nameof(SlowPage)));
+            yield return loadTask.ToCoroutine();
+
+            UIOperationResult result = default;
+            yield return AwaitResult(closeAllTask, value => result = value);
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(UIManager.Instance.cacheStack.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.StackCount, Is.Zero);
+            Assert.That(loader.ReleaseCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator SecondCloseAll_CancelsFirstAfterCleanupWithoutDoubleRelease()
+        {
+            var loader = TestViewRegistry.Register<SlowPage>(delay: true);
+            var view = UIManager.Instance.cacheStack.GetOrCreateView<SlowPage>();
+            var loadTask = view.LoadAsync(
+                UIRootManager.Instance.GetRoot(view.Level), CancellationToken.None)
+                .SuppressCancellationThrow();
+            yield return null;
+            var firstTask = UIManager.Instance.CloseAllAsync();
+            yield return null;
+            var secondTask = UIManager.Instance.CloseAllAsync();
+            loader.Complete(new GameObject(nameof(SlowPage)));
+            yield return loadTask.ToCoroutine();
+
+            UIOperationResult first = default;
+            UIOperationResult second = default;
+            yield return AwaitResult(firstTask, value => first = value);
+            yield return AwaitResult(secondTask, value => second = value);
+            Assert.That(first.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(second.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(loader.ReleaseCount, Is.EqualTo(1));
+            Assert.That(UIManager.Instance.cacheStack.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.StackCount, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator LegacyShowDuringCloseAllBarrier_ReturnsNullThenCreatesFreshVisibleView()
+        {
+            var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
+            var firstLaterLoader = TestViewRegistry.Register<SecondPage>();
+            var unusedLoader = TestViewRegistry.Register<SecondPage>();
+            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            yield return null;
+            var closeAllTask = UIManager.Instance.CloseAllAsync();
+
+            Assert.That(UIManager.Instance.HasCloseAllBarrier, Is.True);
+            var legacyReturned = UIManager.Instance.Show<SecondPage>();
+            slowLoader.Complete(new GameObject(nameof(SlowPage)));
+            yield return AwaitResult(showTask, _ => { });
+            yield return AwaitResult(closeAllTask, _ => { });
+            for (int i = 0; i < 60 && UIManager.Instance.Get<SecondPage>()?.State != ViewState.Visible; i++)
+            {
+                yield return null;
+            }
+
+            Assert.That(legacyReturned, Is.Null);
+            Assert.That(UIManager.Instance.Get<SecondPage>()?.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(firstLaterLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
+            Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
+        }
+
         private static IEnumerator AwaitResult(UniTask<UIOperationResult> task, Action<UIOperationResult> receive)
         {
             yield return task.ToCoroutine(receive);
@@ -565,6 +715,30 @@ namespace Core.Tests.UI
 
         private sealed class DestroyThrowPage : NavigationTestPage
         {
+            protected override void OnDestroy()
+            {
+                throw new InvalidOperationException("destroy failed");
+            }
+        }
+
+        private sealed class ConfigureDestroyThrowPage : View<string>
+        {
+            internal static readonly Exception PrimaryException =
+                new InvalidOperationException("configure failed");
+
+            public ConfigureDestroyThrowPage()
+            {
+                var entry = TestViewRegistry.Take(GetType());
+                Loader = entry.Item1;
+            }
+
+            public override string Address => nameof(ConfigureDestroyThrowPage);
+
+            public override View<string> SetData(string data)
+            {
+                throw PrimaryException;
+            }
+
             protected override void OnDestroy()
             {
                 throw new InvalidOperationException("destroy failed");
@@ -657,6 +831,7 @@ namespace Core.Tests.UI
             }
 
             internal int ReleaseCount { get; private set; }
+            internal int InstantiateCount { get; private set; }
             internal TestTransition Transition { get; }
 
             public GameObject Instantiate(string address, Transform parent) => Instantiate(address, parent, false);
@@ -667,6 +842,7 @@ namespace Core.Tests.UI
 
             public UniTask<GameObject> InstantiateAsync(string address, Transform parent, bool worldPositionStays)
             {
+                InstantiateCount++;
                 events.Add($"{name}.load");
                 if (!delay)
                 {
