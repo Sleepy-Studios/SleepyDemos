@@ -322,21 +322,22 @@ namespace Core.Editor.MvcBind
             generatedPath = string.Empty;
             message = string.Empty;
 
-            var components = MvcCodeGenerator.CollectComponents(nodes);
-            if (components.Count == 0)
-            {
-                message = "MvcBind 生成失败：请先勾选至少一个要绑定的组件。";
-                return false;
-            }
-
-            BindPrefabComponents(targetPrefabRoot, components);
-            if (savePrefabStage)
-            {
-                SavePrefabStageIfOpen(targetPrefabRoot);
-            }
-
             try
             {
+                MvcCodeGenerator.ValidateSettings(settings);
+                var components = MvcCodeGenerator.CollectComponents(nodes);
+                if (components.Count == 0)
+                {
+                    message = "MvcBind 生成失败：请先勾选至少一个要绑定的组件。";
+                    return false;
+                }
+
+                BindPrefabComponents(targetPrefabRoot, components);
+                if (savePrefabStage)
+                {
+                    SavePrefabStageIfOpen(targetPrefabRoot);
+                }
+
                 generatedPath = MvcCodeGenerator.Generate(settings, nodes);
                 return true;
             }

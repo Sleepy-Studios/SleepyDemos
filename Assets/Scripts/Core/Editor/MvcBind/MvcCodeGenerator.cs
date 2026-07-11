@@ -13,10 +13,7 @@ namespace Core.Editor.MvcBind
     {
         public static string Generate(MvcBindSettings settings, IReadOnlyList<MvcBindNode> nodes)
         {
-            if (string.IsNullOrEmpty(settings.prefabPath))
-            {
-                throw new InvalidDataException("MvcBind 生成失败：没有检测到 Prefab 资源路径。");
-            }
+            ValidateSettings(settings);
 
             var components = CollectComponents(nodes);
             if (components.Count == 0)
@@ -34,6 +31,24 @@ namespace Core.Editor.MvcBind
             AssetDatabase.ImportAsset(viewPath);
             AssetDatabase.ImportAsset(componentPath);
             return $"{viewPath}, {componentPath}";
+        }
+
+        internal static void ValidateSettings(MvcBindSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new InvalidDataException("MvcBind 生成失败：生成设置为空。");
+            }
+
+            if (string.IsNullOrEmpty(settings.prefabPath))
+            {
+                throw new InvalidDataException("MvcBind 生成失败：没有检测到 Prefab 资源路径。");
+            }
+
+            if (!string.IsNullOrEmpty(settings.uiTransitionType) && settings.uiTransitionType != "null")
+            {
+                MvcBindTransitionTypePolicy.ResolveCSharpTypeName(settings.uiTransitionType);
+            }
         }
 
         private static void WriteComponentScript(MvcBindSettings settings, IReadOnlyList<MvcBindComponentInfo> components, string path)
