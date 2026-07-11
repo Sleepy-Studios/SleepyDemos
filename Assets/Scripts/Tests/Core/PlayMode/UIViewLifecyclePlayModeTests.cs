@@ -232,6 +232,61 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator InitWithGameObject_WhenFailureCleanupIsPending_DestroyWaitsSameCleanupOperation()
+        {
+            var parentView = new InitializationFailureView();
+            var parentRoot = CreateObject("SynchronousFailureParent");
+            var parentLoader = new FakeResourceLoader();
+            var parentTransition = new FakeTransition(new List<string>());
+            var parentBinding = new CountingBinding();
+            var expected = new InvalidOperationException("Synchronous transition initialize failed");
+            parentTransition.InitializeException = expected;
+
+            var childLoader = new FakeResourceLoader { DelayAsyncResult = true };
+            var childTransition = new FakeTransition(new List<string>());
+            var childView = new FakeView(childLoader, childTransition, new List<string>());
+            var childBinding = new CountingBinding();
+            childView.AddBinding(childBinding);
+            var childParent = CreateObject("DelayedChildParent");
+            var childRoot = CreateObject("DelayedOwnedChild");
+            var childLoad = childView.LoadAsync(childParent.transform, CancellationToken.None);
+            parentView.Configure(parentLoader, parentTransition, parentBinding, childView);
+
+            Exception actual = null;
+            try
+            {
+                parentView.InitWithGameObject(parentRoot);
+            }
+            catch (Exception exception)
+            {
+                actual = exception;
+            }
+
+            Assert.That(actual, Is.SameAs(expected));
+            Assert.That(parentView.State, Is.EqualTo(ViewState.Faulted));
+            var destroy = parentView.DestroyAsync();
+            Assert.That(destroy.Status, Is.EqualTo(UniTaskStatus.Pending));
+
+            childLoader.CompleteAsync(childRoot);
+            yield return childLoad.ToCoroutine();
+            yield return destroy.ToCoroutine();
+            yield return null;
+
+            Assert.That(parentView.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(parentBinding.DisposeCount, Is.EqualTo(1));
+            Assert.That(parentTransition.InitializeCount, Is.EqualTo(1));
+            Assert.That(parentTransition.DisposeCount, Is.EqualTo(1));
+            Assert.That(parentLoader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(parentLoader.DisposeCount, Is.EqualTo(1));
+            Assert.That(childView.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(childBinding.DisposeCount, Is.EqualTo(1));
+            Assert.That(childTransition.InitializeCount, Is.EqualTo(0));
+            Assert.That(childLoader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(childLoader.DisposeCount, Is.EqualTo(1));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
         public IEnumerator DestroyAsync_WhenCalledConcurrently_OverlapsAndReleasesOwnedResourcesOnce()
         {
             var events = new List<string>();

@@ -39,6 +39,7 @@ Loading --加载失败或取消--> Faulted
 - `ExitAsync` 先进入 `Exiting`，完成退出过渡后关闭根对象并调用 `OnHide()`；最终回到 `LoadedHidden`。
 - Enter/Exit 的非取消生命周期异常会进入 `Faulted` 并原样传播；取消仍保留当前进行态，由后续导航 Coordinator 决定完成到进入端还是退出端。
 - `DestroyAsync` 是幂等且可并发等待的唯一清理入口。加载中的销毁会等待同一加载结果，并回收晚到实例；subViews、bindings、Transition、资源实例和 Loader 各自最多清理一次。
+- 同步 `Init` / `InitWithGameObject` 失败时会启动唯一的 owned-resource cleanup operation；后续 `DestroyAsync` 等待同一 operation，不会并发重复枚举或释放资源。
 - 地址为空、加载结果为 null 或非取消异常会进入 `Faulted` 并释放 Loader。取消会清理已返回的晚到实例并继续抛出 `OperationCanceledException`，由导航协调层决定回滚结果。
 - `Init`、`InitAsync`、`InitWithGameObject`、`Show`、`Hide`、`Destroy` 暂时保留为旧调用兼容外观，底层复用同一生命周期和清理路径，不构成第二套状态机。
 

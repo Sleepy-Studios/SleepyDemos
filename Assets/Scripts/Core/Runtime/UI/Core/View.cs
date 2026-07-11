@@ -13,10 +13,13 @@ namespace Core.Runtime
         private readonly List<View> subViews = new List<View>();
         private UniTask<bool> loadingTask;
         private UniTask destroyingTask;
+        private UniTask<Exception> ownedCleanupTask;
         private UniTaskCompletionSource<bool> loadingCompletionSource;
         private UniTaskCompletionSource destroyingCompletionSource;
+        private UniTaskCompletionSource<Exception> ownedCleanupCompletionSource;
         private bool hasLoadingTask;
         private bool hasDestroyingTask;
+        private bool hasOwnedCleanupTask;
         private bool instanceReleased;
         private bool loaderDisposed;
         private bool transitionDisposed;
@@ -426,8 +429,17 @@ namespace Core.Runtime
                 }
             }
 
-            var ownedCleanupException = await CleanupOwnedResourcesAsync(true);
+            var ownedCleanupException = await WaitForOwnedCleanupAsync();
             cleanupException ??= ownedCleanupException;
+            try
+            {
+                OnDestroy();
+            }
+            catch (Exception exception)
+            {
+                cleanupException ??= exception;
+            }
+
             State = ViewState.Destroyed;
             if (cleanupException != null)
             {
@@ -442,7 +454,7 @@ namespace Core.Runtime
                 State = ViewState.Faulted;
             }
 
-            var cleanupException = await CleanupOwnedResourcesAsync(false, instance);
+            var cleanupException = await WaitForOwnedCleanupAsync(instance);
             if (cleanupException != null)
             {
                 Debug.LogException(cleanupException);
@@ -451,19 +463,44 @@ namespace Core.Runtime
 
         private async UniTask CleanupSynchronousFailureAsync(GameObject instance)
         {
-            var cleanupException = await CleanupOwnedResourcesAsync(false, instance);
+            var cleanupException = await WaitForOwnedCleanupAsync(instance);
             if (cleanupException != null)
             {
                 Debug.LogException(cleanupException);
             }
         }
 
-        private async UniTask<Exception> CleanupOwnedResourcesAsync(
-            bool invokeDestroyHook,
-            GameObject instance = null)
+        private async UniTask<Exception> WaitForOwnedCleanupAsync(GameObject instance = null)
+        {
+            try
+            {
+                return await GetOrStartOwnedCleanupAsync(instance);
+            }
+            catch (Exception exception)
+            {
+                return exception;
+            }
+        }
+
+        private UniTask<Exception> GetOrStartOwnedCleanupAsync(GameObject instance)
+        {
+            if (!hasOwnedCleanupTask)
+            {
+                ownedCleanupTask = CleanupOwnedResourcesCoreAsync(instance).Preserve();
+                ownedCleanupCompletionSource = new UniTaskCompletionSource<Exception>();
+                hasOwnedCleanupTask = true;
+                PublishOwnedCleanupResultAsync().Forget();
+            }
+
+            return ownedCleanupCompletionSource.Task;
+        }
+
+        private async UniTask<Exception> CleanupOwnedResourcesCoreAsync(GameObject instance)
         {
             Exception cleanupException = null;
-            foreach (var subView in subViews)
+            var ownedSubViews = subViews.ToArray();
+            subViews.Clear();
+            foreach (var subView in ownedSubViews)
             {
                 try
                 {
@@ -474,9 +511,10 @@ namespace Core.Runtime
                     cleanupException ??= exception;
                 }
             }
-            subViews.Clear();
 
-            foreach (var binding in bindings)
+            var ownedBindings = bindings.ToArray();
+            bindings.Clear();
+            foreach (var binding in ownedBindings)
             {
                 try
                 {
@@ -487,20 +525,6 @@ namespace Core.Runtime
                     cleanupException ??= exception;
                 }
             }
-            bindings.Clear();
-
-            if (invokeDestroyHook)
-            {
-                try
-                {
-                    OnDestroy();
-                }
-                catch (Exception exception)
-                {
-                    cleanupException ??= exception;
-                }
-            }
-
             try
             {
                 DisposeTransitionOnce();
@@ -532,6 +556,18 @@ namespace Core.Runtime
             transform = null;
             UITransition = null;
             return cleanupException;
+        }
+
+        private async UniTask PublishOwnedCleanupResultAsync()
+        {
+            try
+            {
+                ownedCleanupCompletionSource.TrySetResult(await ownedCleanupTask);
+            }
+            catch (Exception exception)
+            {
+                ownedCleanupCompletionSource.TrySetException(exception);
+            }
         }
 
         private async UniTask PublishLoadingResultAsync()
