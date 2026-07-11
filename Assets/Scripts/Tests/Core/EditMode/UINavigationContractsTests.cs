@@ -45,12 +45,31 @@ namespace Core.Tests.UI
         public void DefaultShowOptions_EnablesAnimation()
         {
             Assert.That(default(UIShowOptions).Animated, Is.True);
+            Assert.That(default(UIShowOptions).HidePrevious, Is.True);
         }
 
         [Test]
         public void ExplicitFalseShowOptions_DisablesAnimation()
         {
             Assert.That(new UIShowOptions(false).Animated, Is.False);
+        }
+
+        [Test]
+        public void ExplicitHidePreviousFalse_PreservesAnimatedValue()
+        {
+            var options = new UIShowOptions(animated: true, hidePrevious: false);
+
+            Assert.That(options.Animated, Is.True);
+            Assert.That(options.HidePrevious, Is.False);
+        }
+
+        [Test]
+        public void CloseAllSucceeded_AllowsNullView()
+        {
+            var result = UIOperationResult.Succeeded(8, UINavigationAction.CloseAll, null);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(result.View, Is.Null);
         }
 
         [Test]

@@ -76,6 +76,7 @@ namespace Core.Runtime
     public readonly struct UIShowOptions
     {
         private readonly bool? animated;
+        private readonly bool? hidePrevious;
 
         /// <summary>
         /// 创建 View 显示选项。
@@ -84,10 +85,25 @@ namespace Core.Runtime
         public UIShowOptions(bool animated)
         {
             this.animated = animated;
+            hidePrevious = null;
+        }
+
+        /// <summary>
+        /// 创建 View 显示选项。
+        /// </summary>
+        /// <param name="animated">是否播放显示动画。</param>
+        /// <param name="hidePrevious">是否隐藏同层级的上一 View。</param>
+        public UIShowOptions(bool animated, bool hidePrevious)
+        {
+            this.animated = animated;
+            this.hidePrevious = hidePrevious;
         }
 
         /// 是否播放显示动画；默认值为 true。
         public bool Animated => animated ?? true;
+
+        /// 是否隐藏同层级的上一 View；默认值为 true。
+        public bool HidePrevious => hidePrevious ?? true;
     }
 
     public readonly struct UIOperationResult
@@ -128,14 +144,21 @@ namespace Core.Runtime
         /// <param name="action">导航操作类型。</param>
         /// <param name="view">导航操作关联的 View。</param>
         /// <returns>成功状态的导航操作结果。</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="view"/> 为 null。</exception>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="view"/> 为 null，且 <paramref name="action"/> 不是 CloseAll。
+        /// </exception>
         public static UIOperationResult Succeeded(long id, UINavigationAction action, View view)
         {
+            if (view == null && action != UINavigationAction.CloseAll)
+            {
+                throw new ArgumentNullException(nameof(view));
+            }
+
             return new UIOperationResult(
                 id,
                 action,
                 UIOperationStatus.Succeeded,
-                view ?? throw new ArgumentNullException(nameof(view)),
+                view,
                 null);
         }
 

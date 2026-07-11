@@ -114,14 +114,24 @@ if (result.Status == UIOperationStatus.Failed)
 await UIManager.Instance.CloseAsync<ExampleView>();
 ```
 
+需要让同层旧 View 保持可见时，显式传入：
+
+```csharp
+await UIManager.Instance.ShowAsync<ExampleView>(
+    new UIShowOptions(animated: true, hidePrevious: false));
+```
+
 - `Succeeded` 表示事务已提交；`Ignored` 表示同一单实例已稳定处于目标位置。
 - `Canceled` 表示调用方取消、反向操作抢占，或目标已不存在，不应当作错误日志。
 - `Failed` 表示加载、Hook 或过渡异常；框架会回滚正式栈并清理 Faulted View。
+- `OnBeforeOpen` 多个订阅者按注册顺序串行等待；前一个失败后不会调用后续订阅者。
+- 旧 `ICameraAnimation` / `IUIAnimation` 仍由导航事务等待执行；不要在 `OnShow` / `OnHide` 中再次手动调用，避免重复动画。
 - `Show<T>()` / `Close<T>()` 同步外观仅用于旧代码迁移，新业务不要依赖其 fire-and-forget 完成时机。
 - CloseAll 并发窗口内同步 `Show<T>()` 及数据泛型重载会安全返回 null，但 Show operation 仍排在 CloseAll 后执行；新业务必须优先 `await ShowAsync<T>()`。
 - 数据泛型兼容入口的 `SetData` 会随导航 operation 按 FIFO 应用；不要在调用 Show/Preload 前自行修改缓存 View 的数据。
 - `CloseAllAsync()` 即使返回 Failed 也会完成全量清理；其 `Exception` 可能是包含多个 View 销毁异常的 `AggregateException`。
 - CloseAll 在执行期间收到取消也会完成全量清理，最终返回 Canceled；不要把 Canceled 理解为“没有执行清理”。
+- 空 Cache 上的 `CloseAllAsync()` 返回 `Succeeded` 且 `View == null`，调用方应按 `Status` 判断，不要把空 View 当作失败。
 
 1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
 2. 修改 View 生命周期或 Transition 时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。

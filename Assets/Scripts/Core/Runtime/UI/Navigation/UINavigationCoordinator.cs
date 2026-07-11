@@ -39,7 +39,8 @@ namespace Core.Runtime
             bool animated,
             CancellationToken callerCancellation,
             Action<View> configure = null,
-            View targetView = null)
+            View targetView = null,
+            bool hidePrevious = true)
         {
             return Enqueue(
                 action,
@@ -48,7 +49,8 @@ namespace Core.Runtime
                 callerCancellation,
                 out _,
                 configure,
-                targetView);
+                targetView,
+                hidePrevious);
         }
 
         internal UniTask<UIOperationResult> Enqueue(
@@ -58,7 +60,33 @@ namespace Core.Runtime
             CancellationToken callerCancellation,
             out bool closeAllBarrier,
             Action<View> configure = null,
-            View targetView = null)
+            View targetView = null,
+            bool hidePrevious = true)
+        {
+            return Enqueue(
+                action,
+                targetType,
+                animated,
+                callerCancellation,
+                out closeAllBarrier,
+                out _,
+                configure,
+                targetView,
+                null,
+                hidePrevious);
+        }
+
+        internal UniTask<UIOperationResult> Enqueue(
+            UINavigationAction action,
+            Type targetType,
+            bool animated,
+            CancellationToken callerCancellation,
+            out bool closeAllBarrier,
+            out View reservedTarget,
+            Action<View> configure,
+            View targetView,
+            Func<View> reserveTarget,
+            bool hidePrevious = true)
         {
             QueuedUIOperation operation;
             List<QueuedUIOperation> canceledPending = null;
@@ -69,6 +97,9 @@ namespace Core.Runtime
             lock (stateGate)
             {
                 closeAllBarrier = HasCloseAllBarrierLocked();
+                reservedTarget = !closeAllBarrier && !disposed
+                    ? reserveTarget?.Invoke()
+                    : null;
                 operation = new QueuedUIOperation(
                     ++nextOperationId,
                     action,
@@ -76,7 +107,8 @@ namespace Core.Runtime
                     animated,
                     callerCancellation,
                     configure,
-                    targetView);
+                    reservedTarget ?? targetView,
+                    hidePrevious);
                 if (disposed)
                 {
                     operation.State = QueuedUIOperationState.Completed;
@@ -404,7 +436,8 @@ namespace Core.Runtime
             bool animated,
             CancellationToken callerCancellation,
             Action<View> configure,
-            View targetView)
+            View targetView,
+            bool hidePrevious)
         {
             OperationId = operationId;
             Action = action;
@@ -413,6 +446,7 @@ namespace Core.Runtime
             CallerCancellation = callerCancellation;
             Configure = configure;
             TargetView = targetView;
+            HidePrevious = hidePrevious;
             Completion = new UniTaskCompletionSource<UIOperationResult>();
         }
 
@@ -423,6 +457,7 @@ namespace Core.Runtime
         internal CancellationToken CallerCancellation { get; }
         internal Action<View> Configure { get; }
         internal View TargetView { get; }
+        internal bool HidePrevious { get; }
         internal UniTaskCompletionSource<UIOperationResult> Completion { get; }
         internal QueuedUIOperationState State { get; set; }
         internal CancellationTokenRegistration CancellationRegistration { get; set; }

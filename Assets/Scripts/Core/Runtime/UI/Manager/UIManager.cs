@@ -52,7 +52,8 @@ namespace Core.Runtime
                 UINavigationAction.Push,
                 typeof(T),
                 options.Animated,
-                cancellationToken);
+                cancellationToken,
+                hidePrevious: options.HidePrevious);
         }
 
         /// <summary>
@@ -137,15 +138,13 @@ namespace Core.Runtime
                 true,
                 CancellationToken.None,
                 out var closeAllBarrier,
-                configure);
+                out var reservedView,
+                configure,
+                null,
+                () => cacheStack.GetOrCreateView(type),
+                hidePrevious);
             ObserveOperationAsync(task).Forget(LogOperationFailure);
-            if (closeAllBarrier)
-            {
-                return null;
-            }
-
-            var view = cacheStack.GetOrCreateView(type);
-            return view;
+            return closeAllBarrier ? null : reservedView;
         }
 
         public T Show<T>(bool hidePrevious = true) where T : View
@@ -262,7 +261,7 @@ namespace Core.Runtime
         {
             var snapshot = layerStack.Capture();
             var presentation = CapturePresentation();
-            var view = cacheStack.GetOrCreateView(operation.TargetType);
+            var view = operation.TargetView ?? cacheStack.GetOrCreateView(operation.TargetType);
             if (view == null)
             {
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, null,
@@ -271,8 +270,9 @@ namespace Core.Runtime
 
             if (replace && view.ViewMode != UIViewMode.Page)
             {
-                return UIOperationResult.Failed(operation.OperationId, operation.Action, view,
-                    new InvalidOperationException("Replace 首版仅支持 Page View。"));
+                var exception = new InvalidOperationException("Replace 首版仅支持 Page View。");
+                await TryCleanupAndRemoveAsync(view);
+                return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
 
             View previous = null;
@@ -295,14 +295,11 @@ namespace Core.Runtime
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                if (OnBeforeOpen != null)
-                {
-                    await OnBeforeOpen(view);
-                }
+                await InvokeBeforeOpenAsync(view);
 
-                if (previous != null && previous != view)
+                if (operation.HidePrevious && previous != null && previous != view)
                 {
-                    await previous.ExitAsync(new UITransitionContext(
+                    await ExitViewAsync(previous, new UITransitionContext(
                         operation.OperationId,
                         operation.Action,
                         view,
@@ -321,7 +318,7 @@ namespace Core.Runtime
                     view.Reference++;
                 }
 
-                await view.EnterAsync(new UITransitionContext(
+                await EnterViewAsync(view, new UITransitionContext(
                     operation.OperationId,
                     operation.Action,
                     view,
@@ -351,7 +348,7 @@ namespace Core.Runtime
                 await TryPostCommitDestroyAndRemoveAsync(previous);
             }
 
-            if (previous != null && previous != view)
+            if (operation.HidePrevious && previous != null && previous != view)
             {
                 LastCloseName = previous.Name;
                 SafeInvoke(OnBehind, previous);
@@ -401,7 +398,7 @@ namespace Core.Runtime
             var presentation = CapturePresentation();
             try
             {
-                await view.ExitAsync(new UITransitionContext(
+                await ExitViewAsync(view, new UITransitionContext(
                     operation.OperationId,
                     operation.Action,
                     null,
@@ -416,7 +413,7 @@ namespace Core.Runtime
                 var revealed = layerStack.StackTopView;
                 if (revealed != null)
                 {
-                    await revealed.EnterAsync(new UITransitionContext(
+                    await EnterViewAsync(revealed, new UITransitionContext(
                         operation.OperationId,
                         operation.Action,
                         revealed,
@@ -468,7 +465,8 @@ namespace Core.Runtime
                     operation.Animated,
                     cancellationToken,
                     null,
-                    target), cancellationToken);
+                    target,
+                    true), cancellationToken);
         }
 
         private async UniTask<UIOperationResult> ExecutePreloadAsync(
@@ -555,9 +553,72 @@ namespace Core.Runtime
                     new AggregateException(exceptions));
             }
 
-            return views.Count == 0
-                ? UIOperationResult.Canceled(operation.OperationId, operation.Action, null)
-                : UIOperationResult.Succeeded(operation.OperationId, operation.Action, views[0]);
+            return UIOperationResult.Succeeded(operation.OperationId, operation.Action, null);
+        }
+
+        private static async UniTask EnterViewAsync(
+            View view,
+            UITransitionContext context,
+            CancellationToken cancellationToken)
+        {
+            if (view.State == ViewState.Visible)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return;
+            }
+
+            if (view.CameraAnimation != null)
+            {
+                await view.CameraAnimation.Show(view);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            await view.EnterAsync(context, cancellationToken);
+            if (view.State == ViewState.Visible && context.Animated && view.UIAnimation != null)
+            {
+                await view.UIAnimation.Show();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+
+        private static async UniTask ExitViewAsync(
+            View view,
+            UITransitionContext context,
+            CancellationToken cancellationToken)
+        {
+            if (!view.IsLoaded || view.State == ViewState.LoadedHidden)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return;
+            }
+
+            if (view.CameraAnimation != null)
+            {
+                await view.CameraAnimation.Hide(view);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            if (view.State == ViewState.Visible && context.Animated && view.UIAnimation != null)
+            {
+                await view.UIAnimation.Hide();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            await view.ExitAsync(context, cancellationToken);
+        }
+
+        private async UniTask InvokeBeforeOpenAsync(View view)
+        {
+            var handlers = OnBeforeOpen;
+            if (handlers == null)
+            {
+                return;
+            }
+
+            foreach (Func<View, UniTask> handler in handlers.GetInvocationList())
+            {
+                await handler(view);
+            }
         }
 
         private async UniTask TryRollbackAsync(
