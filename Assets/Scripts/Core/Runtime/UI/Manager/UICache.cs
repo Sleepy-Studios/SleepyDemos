@@ -12,13 +12,18 @@ namespace Core.Runtime
         {
             if (views.TryGetValue(type, out var view))
             {
-                return view;
+                if (view != null && view.State != ViewState.Destroyed && view.State != ViewState.Faulted)
+                {
+                    return view;
+                }
+
+                views.Remove(type);
             }
 
             view = Activator.CreateInstance(type) as View;
             if (view != null)
             {
-                views.Add(type, view);
+                views[type] = view;
             }
 
             return view;

@@ -18,7 +18,28 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `IUITransition` 定义单个 View 的初始化、进入、退出、立即完成和释放契约；`EmptyUITransition` 是无副作用、立即完成的默认实现。
 - `IUIWorldTransition` 定义跨 View 的世界表现过渡，`IUIWorldTransitionProvider` 按 `View` 解析具体实现。业务生成代码只声明 `WorldTransitionKey`，不直接实例化世界过渡。
 - `UITransitionContext` 统一携带操作标识、导航动作、进入/退出 View 和是否播放过渡。
-- `View` 当前只提供 `CreateUITransition()` 工厂扩展点和 `WorldTransitionKey` 声明。每个 View 生命周期内的稳定实例缓存、`Initialize` 调用和 `Dispose` 清理尚未接入，将由后续生命周期任务完成；当前不能依赖这些行为已经生效。
+- `View` 在资源加载成功后调用一次 `CreateUITransition()`，缓存为该 View 生命周期内稳定的 `UITransition` 实例，并使用 View 根节点调用一次 `Initialize()`。
+- `EnterAsync` / `ExitAsync` 始终使用缓存实例。`DestroyAsync` 负责调用一次 `Dispose()`；业务 View 不自行创建、替换或释放 Transition。
+
+## View 生命周期
+
+`ViewState` 是真实单值状态，不再表示可组合标记。主链路如下：
+
+```text
+Created -> Loading -> LoadedHidden -> Entering -> Visible
+                              ^                    |
+                              |---- Exiting <------|
+
+Loading --加载失败或取消--> Faulted
+任一可清理状态 -> Destroying -> Destroyed
+```
+
+- `LoadAsync` 在调用 `OnBeforeInit()` 前进入 `Loading`。资源加载成功后先进入 `LoadedHidden`，再初始化组件与 Transition；根对象保持 inactive。
+- `EnterAsync` 先进入 `Entering`，激活根对象并调用 `OnShow()`；过渡完成后进入 `Visible`。
+- `ExitAsync` 先进入 `Exiting`，完成退出过渡后关闭根对象并调用 `OnHide()`；最终回到 `LoadedHidden`。
+- `DestroyAsync` 是幂等且可并发等待的唯一清理入口。加载中的销毁会等待同一加载结果，并回收晚到实例；subViews、bindings、Transition、资源实例和 Loader 各自最多清理一次。
+- 地址为空、加载结果为 null 或非取消异常会进入 `Faulted` 并释放 Loader。取消会清理已返回的晚到实例并继续抛出 `OperationCanceledException`，由导航协调层决定回滚结果。
+- `Init`、`InitAsync`、`InitWithGameObject`、`Show`、`Hide`、`Destroy` 暂时保留为旧调用兼容外观，底层复用同一生命周期和清理路径，不构成第二套状态机。
 
 ## 导航状态与表现边界
 
@@ -108,6 +129,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `Core.Tests.UI.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
 - `Core.Tests.UI.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
+- `Core.Tests.UI.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、取消、加载中销毁、稳定 Transition、幂等释放和不可复用缓存替换。
 - `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

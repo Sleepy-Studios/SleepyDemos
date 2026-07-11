@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -10,8 +11,15 @@ namespace Core.Runtime
         private IResourceLoader loader;
         private readonly List<IDisposable> bindings = new List<IDisposable>();
         private readonly List<View> subViews = new List<View>();
-        private UniTask<GameObject> loadingTask;
-        private bool isLoading;
+        private UniTask<bool> loadingTask;
+        private UniTask destroyingTask;
+        private UniTaskCompletionSource<bool> loadingCompletionSource;
+        private UniTaskCompletionSource destroyingCompletionSource;
+        private bool hasLoadingTask;
+        private bool hasDestroyingTask;
+        private bool instanceReleased;
+        private bool loaderDisposed;
+        private bool transitionDisposed;
 
         public virtual string Address => string.Empty;
         public virtual UILayer Level => UILayer.Base;
@@ -31,8 +39,20 @@ namespace Core.Runtime
 
         public GameObject gameObject { get; private set; }
         public Transform transform { get; private set; }
-        public ViewState State { get; private set; }
-        public bool IsEnable => (State & ViewState.Enabled) != 0;
+        public ViewState State { get; private set; } = ViewState.Created;
+
+        /// View 是否持有已完成初始化且尚未销毁的根对象。
+        public bool IsLoaded => State == ViewState.LoadedHidden ||
+                                State == ViewState.Entering ||
+                                State == ViewState.Visible ||
+                                State == ViewState.Exiting;
+
+        /// 兼容旧调用方的启用态判断；进入中与可见态均视为启用。
+        public bool IsEnable => State == ViewState.Entering || State == ViewState.Visible;
+
+        /// 当前 View 生命周期内稳定持有的 UI Transition。
+        public IUITransition UITransition { get; private set; }
+
         public int Reference { get; set; }
         public bool ForceDisable { get; set; }
         public virtual ICameraAnimation CameraAnimation { get; set; }
@@ -64,39 +84,72 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 同步初始化 View 资源并挂载到指定父节点。资源已初始化时会直接返回；加载失败时保持未加载状态。
+        /// 加载 View 资源并完成组件与 Transition 初始化。重复调用会等待同一加载任务。
+        /// </summary>
+        /// <param name="parent">View 根对象挂载父节点。</param>
+        /// <param name="cancellationToken">取消令牌；取消会继续抛给导航协调层。</param>
+        /// <returns>成功完成初始化时返回 true；资源无效或加载失败时返回 false。</returns>
+        public async UniTask<bool> LoadAsync(Transform parent, CancellationToken cancellationToken)
+        {
+            if (IsLoaded)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return true;
+            }
+
+            if (State == ViewState.Destroying || State == ViewState.Destroyed || State == ViewState.Faulted)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return false;
+            }
+
+            if (!hasLoadingTask)
+            {
+                loadingTask = LoadCoreAsync(parent, cancellationToken).Preserve();
+                loadingCompletionSource = new UniTaskCompletionSource<bool>();
+                hasLoadingTask = true;
+                PublishLoadingResultAsync().Forget();
+            }
+
+            var loaded = await loadingCompletionSource.Task;
+            cancellationToken.ThrowIfCancellationRequested();
+            return loaded;
+        }
+
+        /// <summary>
+        /// 同步初始化 View 资源并挂载到指定父节点；兼容旧调用方，迁移方向为 LoadAsync。
         /// </summary>
         /// <param name="parent">View 根对象挂载父节点。</param>
         public void Init(Transform parent)
         {
-            if ((State & ViewState.FirstInit) != 0)
+            if (State != ViewState.Created)
             {
                 return;
             }
 
-            State |= ViewState.FirstInit;
+            State = ViewState.Loading;
+            OnBeforeInit();
             if (string.IsNullOrEmpty(Address))
             {
-                Debug.LogError($"{GetType().FullName} 的 Address 为空");
-                State &= ~ViewState.FirstInit;
+                FailLoad();
                 return;
             }
 
-            gameObject = Loader.Instantiate(Address, parent);
-            if (gameObject == null)
+            try
             {
-                State &= ~ViewState.FirstInit;
-                return;
-            }
+                var instance = Loader.Instantiate(Address, parent);
+                if (instance == null)
+                {
+                    FailLoad();
+                    return;
+                }
 
-            if ((State & ViewState.Destroyed) != 0)
+                CompleteLoad(instance);
+            }
+            catch (Exception)
             {
-                Loader.ReleaseInstance(gameObject);
-                gameObject = null;
-                return;
+                FailLoad(gameObject);
             }
-
-            CompleteInit();
         }
 
         public virtual void OnBeforeInit()
@@ -104,147 +157,140 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 异步初始化 View 资源并挂载到指定父节点。重复调用会复用正在进行的加载任务。
+        /// 异步初始化 View；兼容旧调用方，底层复用可取消的 LoadAsync 生命周期。
         /// </summary>
         /// <param name="parent">View 根对象挂载父节点。</param>
         /// <returns>初始化异步任务。</returns>
         public async UniTask InitAsync(Transform parent)
         {
-            if ((State & ViewState.FirstInit) != 0)
-            {
-                if (isLoading)
-                {
-                    await loadingTask;
-                }
-
-                return;
-            }
-
-            State |= ViewState.FirstInit;
-            if (string.IsNullOrEmpty(Address))
-            {
-                Debug.LogError($"{GetType().FullName} 的 Address 为空");
-                return;
-            }
-
-            isLoading = true;
-            loadingTask = Loader.InstantiateAsync(Address, parent);
-            gameObject = await loadingTask;
-            isLoading = false;
-            if (gameObject == null)
-            {
-                State &= ~ViewState.FirstInit;
-                return;
-            }
-
-            if ((State & ViewState.Destroyed) != 0)
-            {
-                Loader.ReleaseInstance(gameObject);
-                gameObject = null;
-
-                return;
-            }
-
-            CompleteInit();
+            await LoadAsync(parent, CancellationToken.None);
         }
 
+        /// <summary>
+        /// 使用已有根对象完成 View 初始化；兼容列表组件创建的本地实例。
+        /// </summary>
+        /// <param name="target">由调用方创建并交给 View 生命周期管理的根对象。</param>
         public void InitWithGameObject(GameObject target)
         {
-            if ((State & ViewState.FirstInit) != 0 || target == null)
+            if (State != ViewState.Created)
             {
                 return;
             }
 
-            State |= ViewState.FirstInit;
-            gameObject = target;
-            CompleteInit();
-        }
-
-        private void CompleteInit()
-        {
-            if (gameObject == null)
+            State = ViewState.Loading;
+            OnBeforeInit();
+            if (target == null)
             {
+                FailLoad();
                 return;
             }
 
-            State |= ViewState.Loaded;
-            transform = gameObject.transform;
-            gameObject.SetActive(EnableOnInit && !ForceDisable);
-            InitComponent();
-            UIAnimation?.Init(transform);
-            OnGameObjectInitialize();
+            try
+            {
+                CompleteLoad(target);
+            }
+            catch (Exception)
+            {
+                FailLoad(target);
+            }
         }
 
+        /// <summary>
+        /// 显示 View；兼容旧调用方，底层转发到 EnterAsync。
+        /// </summary>
+        /// <param name="animation">是否播放 Transition 与旧 IUIAnimation。</param>
+        /// <returns>显示异步任务。</returns>
         public async UniTask Show(bool animation = true)
         {
-            if (gameObject == null || (State & ViewState.Destroyed) != 0)
-            {
-                return;
-            }
-
-            ForceDisable = false;
-            gameObject.SetActive(true);
-            State &= ~ViewState.Disabled;
-            State |= ViewState.Enabled;
-            OnShow();
-            if (animation && UIAnimation != null)
+            var context = new UITransitionContext(0, UINavigationAction.Push, this, null, animation);
+            await EnterAsync(context, CancellationToken.None);
+            if (State == ViewState.Visible && animation && UIAnimation != null)
             {
                 await UIAnimation.Show();
             }
         }
 
+        /// <summary>
+        /// 隐藏 View；兼容旧调用方，底层转发到 ExitAsync。
+        /// </summary>
+        /// <param name="animation">是否播放 Transition 与旧 IUIAnimation。</param>
+        /// <returns>隐藏异步任务。</returns>
         public async UniTask Hide(bool animation = true)
         {
-            if (gameObject == null || (State & ViewState.Destroyed) != 0)
-            {
-                return;
-            }
-
-            if (animation && UIAnimation != null)
+            if (State == ViewState.Visible && animation && UIAnimation != null)
             {
                 await UIAnimation.Hide();
             }
 
-            gameObject.SetActive(false);
-            State &= ~ViewState.Enabled;
-            State |= ViewState.Disabled;
-            OnHide();
+            var context = new UITransitionContext(0, UINavigationAction.Close, null, this, animation);
+            await ExitAsync(context, CancellationToken.None);
         }
 
-        public async UniTask Destroy()
+        /// 销毁 View；兼容旧调用方，底层复用 DestroyAsync 的同一清理任务。
+        public UniTask Destroy()
         {
-            if ((State & ViewState.Destroyed) != 0)
+            return DestroyAsync();
+        }
+
+        /// 幂等销毁 View，并释放其持有的全部生命周期资源。
+        public UniTask DestroyAsync()
+        {
+            if (!hasDestroyingTask)
             {
+                destroyingTask = DestroyCoreAsync().Preserve();
+                destroyingCompletionSource = new UniTaskCompletionSource();
+                hasDestroyingTask = true;
+                PublishDestroyResultAsync().Forget();
+            }
+
+            return destroyingCompletionSource.Task;
+        }
+
+        internal async UniTask EnterAsync(
+            UITransitionContext context,
+            CancellationToken cancellationToken)
+        {
+            if (!IsLoaded || State == ViewState.Visible)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 return;
             }
 
-            State = ViewState.Destroyed;
-            if (isLoading)
+            State = ViewState.Entering;
+            ForceDisable = false;
+            gameObject.SetActive(true);
+            OnShow();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (context.Animated)
             {
-                await loadingTask;
+                await UITransition.EnterAsync(context, cancellationToken);
             }
 
-            foreach (var subView in subViews)
-            {
-                await subView.Destroy();
-            }
-            subViews.Clear();
+            cancellationToken.ThrowIfCancellationRequested();
+            State = ViewState.Visible;
+        }
 
-            foreach (var binding in bindings)
+        internal async UniTask ExitAsync(
+            UITransitionContext context,
+            CancellationToken cancellationToken)
+        {
+            if (!IsLoaded || State == ViewState.LoadedHidden)
             {
-                binding.Dispose();
-            }
-            bindings.Clear();
-
-            OnDestroy();
-            if (gameObject != null)
-            {
-                Loader.ReleaseInstance(gameObject);
+                cancellationToken.ThrowIfCancellationRequested();
+                return;
             }
 
-            Loader.Dispose();
-            gameObject = null;
-            transform = null;
+            State = ViewState.Exiting;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (context.Animated)
+            {
+                await UITransition.ExitAsync(context, cancellationToken);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            gameObject.SetActive(false);
+            OnHide();
+            State = ViewState.LoadedHidden;
         }
 
         protected virtual void InitComponent()
@@ -265,6 +311,256 @@ namespace Core.Runtime
 
         protected virtual void OnDestroy()
         {
+        }
+
+        private async UniTask<bool> LoadCoreAsync(Transform parent, CancellationToken cancellationToken)
+        {
+            State = ViewState.Loading;
+            GameObject instance = null;
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                OnBeforeInit();
+                if (string.IsNullOrEmpty(Address))
+                {
+                    FailLoad();
+                    return false;
+                }
+
+                instance = await Loader.InstantiateAsync(Address, parent);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (State == ViewState.Destroying || State == ViewState.Destroyed)
+                {
+                    ReleaseInstanceOnce(instance);
+                    return false;
+                }
+
+                if (instance == null)
+                {
+                    FailLoad();
+                    return false;
+                }
+
+                CompleteLoad(instance);
+                cancellationToken.ThrowIfCancellationRequested();
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                DisposeTransitionOnce();
+                ReleaseInstanceOnce(instance ?? gameObject);
+                gameObject = null;
+                transform = null;
+                UITransition = null;
+                if (State != ViewState.Destroying && State != ViewState.Destroyed)
+                {
+                    State = ViewState.Faulted;
+                }
+
+                DisposeLoaderOnce();
+                throw;
+            }
+            catch (Exception)
+            {
+                DisposeTransitionOnce();
+                ReleaseInstanceOnce(instance ?? gameObject);
+                gameObject = null;
+                transform = null;
+                UITransition = null;
+                if (State != ViewState.Destroying && State != ViewState.Destroyed)
+                {
+                    State = ViewState.Faulted;
+                }
+
+                DisposeLoaderOnce();
+                return false;
+            }
+        }
+
+        private void CompleteLoad(GameObject instance)
+        {
+            gameObject = instance;
+            transform = instance.transform;
+            gameObject.SetActive(false);
+            State = ViewState.LoadedHidden;
+            InitComponent();
+            UIAnimation?.Init(transform);
+            UITransition = CreateUITransition() ?? new EmptyUITransition();
+            UITransition.Initialize(transform);
+            OnGameObjectInitialize();
+        }
+
+        private void FailLoad(GameObject instance = null)
+        {
+            DisposeTransitionOnce();
+            ReleaseInstanceOnce(instance ?? gameObject);
+            gameObject = null;
+            transform = null;
+            UITransition = null;
+            State = ViewState.Faulted;
+            DisposeLoaderOnce();
+        }
+
+        private async UniTask DestroyCoreAsync()
+        {
+            if (State == ViewState.Destroyed)
+            {
+                return;
+            }
+
+            State = ViewState.Destroying;
+            Exception cleanupException = null;
+            if (hasLoadingTask)
+            {
+                try
+                {
+                    await loadingCompletionSource.Task;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+                catch (Exception exception)
+                {
+                    cleanupException = exception;
+                }
+            }
+
+            foreach (var subView in subViews)
+            {
+                try
+                {
+                    await subView.DestroyAsync();
+                }
+                catch (Exception exception)
+                {
+                    cleanupException ??= exception;
+                }
+            }
+            subViews.Clear();
+
+            foreach (var binding in bindings)
+            {
+                try
+                {
+                    binding.Dispose();
+                }
+                catch (Exception exception)
+                {
+                    cleanupException ??= exception;
+                }
+            }
+            bindings.Clear();
+
+            try
+            {
+                OnDestroy();
+            }
+            catch (Exception exception)
+            {
+                cleanupException ??= exception;
+            }
+
+            try
+            {
+                DisposeTransitionOnce();
+            }
+            catch (Exception exception)
+            {
+                cleanupException ??= exception;
+            }
+
+            try
+            {
+                ReleaseInstanceOnce(gameObject);
+            }
+            catch (Exception exception)
+            {
+                cleanupException ??= exception;
+            }
+
+            try
+            {
+                DisposeLoaderOnce();
+            }
+            catch (Exception exception)
+            {
+                cleanupException ??= exception;
+            }
+
+            gameObject = null;
+            transform = null;
+            UITransition = null;
+            State = ViewState.Destroyed;
+            if (cleanupException != null)
+            {
+                throw cleanupException;
+            }
+        }
+
+        private async UniTask PublishLoadingResultAsync()
+        {
+            try
+            {
+                loadingCompletionSource.TrySetResult(await loadingTask);
+            }
+            catch (OperationCanceledException exception)
+            {
+                loadingCompletionSource.TrySetCanceled(exception.CancellationToken);
+            }
+            catch (Exception exception)
+            {
+                loadingCompletionSource.TrySetException(exception);
+            }
+        }
+
+        private async UniTask PublishDestroyResultAsync()
+        {
+            try
+            {
+                await destroyingTask;
+                destroyingCompletionSource.TrySetResult();
+            }
+            catch (OperationCanceledException exception)
+            {
+                destroyingCompletionSource.TrySetCanceled(exception.CancellationToken);
+            }
+            catch (Exception exception)
+            {
+                destroyingCompletionSource.TrySetException(exception);
+            }
+        }
+
+        private void DisposeTransitionOnce()
+        {
+            if (transitionDisposed || UITransition == null)
+            {
+                return;
+            }
+
+            transitionDisposed = true;
+            UITransition.Dispose();
+        }
+
+        private void ReleaseInstanceOnce(GameObject instance)
+        {
+            if (instanceReleased || instance == null)
+            {
+                return;
+            }
+
+            instanceReleased = true;
+            Loader.ReleaseInstance(instance);
+        }
+
+        private void DisposeLoaderOnce()
+        {
+            if (loaderDisposed || loader == null)
+            {
+                return;
+            }
+
+            loaderDisposed = true;
+            loader.Dispose();
         }
     }
 }

@@ -24,6 +24,27 @@
 7. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段是 Provider 的解析键，不填写类型名，也不会在生成代码中实例化世界过渡。
 8. 完成组件和回调绑定后生成 View 与 Component 代码。生成的 Component 会显式覆盖 `ViewMode`，并通过 `CreateUITransition()` 工厂创建 UI Transition。
 
+## Transition 生命周期
+
+生成的 `CreateUITransition()` 只负责返回该 View 使用的 Transition 类型：
+
+```csharp
+protected override IUITransition CreateUITransition()
+{
+    return new ExampleUITransition();
+}
+```
+
+资源加载成功后，`View` 会缓存这一个实例，并使用 View 根节点调用一次 `Initialize()`。进入和退出都复用该实例，销毁 View 时由 `View.DestroyAsync()` 调用一次 `Dispose()`。
+
+业务 View 必须遵守以下规则：
+
+- 不在 `OnShow()`、`OnHide()` 或其它业务回调中重复 `new` Transition。
+- 不自行调用 Transition 的 `Initialize()` 或 `Dispose()`。
+- 不缓存第二份 Transition 引用；需要扩展时只覆写 `CreateUITransition()`。
+- 加载或过渡收到取消时，让 `OperationCanceledException` 继续返回框架层，不在业务 View 中吞掉。
+- 旧 `Show()` / `Hide()` 调用暂时仍可使用；它们是生命周期兼容外观，不代表业务侧拥有 Transition。
+
 固定层的用途如下：
 
 | 层级 | 用途 |
@@ -82,7 +103,8 @@ ViewRoot
 ## 验证方式
 
 1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
-2. 运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
-3. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
-4. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
-5. 在 `16:9`、超宽和窄屏 Game View 下检查布局。
+2. 修改 View 生命周期或 Transition 时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。
+3. 运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
+4. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
+5. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
+6. 在 `16:9`、超宽和窄屏 Game View 下检查布局。

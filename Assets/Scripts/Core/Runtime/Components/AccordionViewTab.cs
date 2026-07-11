@@ -148,7 +148,7 @@ namespace Core.Runtime
 
             currentClickView = clickView;
             var viewName = currentClickView.Name;
-            if ((currentClickView.State & ViewState.FirstInit) == 0)
+            if (!currentClickView.IsLoaded)
             {
                 if (isAsync)
                 {

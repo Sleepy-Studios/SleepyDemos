@@ -130,7 +130,7 @@ namespace Core.Runtime
         {
             await InitializeAsync();
             var view = cacheStack.GetOrCreateView<T>();
-            if (view == null || (view.State & ViewState.Loaded) != 0)
+            if (view == null || view.IsLoaded)
             {
                 return;
             }
@@ -166,7 +166,7 @@ namespace Core.Runtime
                 }
 
                 view.Reference = 0;
-                if ((view.State & ViewState.Loaded) != 0)
+                if (view.IsLoaded)
                 {
                     await view.Hide(animation);
                 }
@@ -229,7 +229,6 @@ namespace Core.Runtime
                     return;
                 }
 
-                view.OnBeforeInit();
                 var wasContained = layerStack.Contains(view);
                 layerStack.CommitShow(view);
                 if (!wasContained && view.ViewMode != UIViewMode.Widget)
@@ -245,7 +244,7 @@ namespace Core.Runtime
                 }
 
                 var beforeOpen = OnBeforeOpen?.Invoke(view);
-                if ((view.State & ViewState.Loaded) == 0)
+                if (!view.IsLoaded)
                 {
                     await view.InitAsync(UIRootManager.Instance.GetRoot(view.Level));
                 }
