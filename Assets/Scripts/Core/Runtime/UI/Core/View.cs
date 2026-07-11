@@ -16,6 +16,7 @@ namespace Core.Runtime
         public virtual string Address => string.Empty;
         public virtual UILayer Level => UILayer.Base;
         public virtual UIViewMode ViewMode => UIViewModeResolver.Resolve(Level);
+        public virtual string WorldTransitionKey => string.Empty;
         public virtual bool EnableOnInit => true;
         public virtual bool IsAsync => true;
         public virtual string Name => GetType().Name;
@@ -37,6 +38,12 @@ namespace Core.Runtime
         public virtual ICameraAnimation CameraAnimation { get; set; }
         public virtual IUIAnimation UIAnimation { get; set; }
         public bool IsWidget => Level >= UILayer.Decorate;
+
+        /// 创建当前 View 使用的 UI Transition。
+        protected virtual IUITransition CreateUITransition()
+        {
+            return new EmptyUITransition();
+        }
 
         public IDisposable AddBinding(IDisposable binding)
         {

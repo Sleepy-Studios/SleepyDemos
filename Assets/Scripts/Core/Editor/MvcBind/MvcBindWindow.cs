@@ -73,6 +73,10 @@ namespace Core.Editor.MvcBind
             typeField.RegisterValueChangedCallback(evt => settings.viewType = (ViewType)evt.newValue);
             bindPanel.Add(typeField);
 
+            var viewModeField = new EnumField("ViewMode", settings.viewMode);
+            viewModeField.RegisterValueChangedCallback(evt => settings.viewMode = (UIViewMode)evt.newValue);
+            bindPanel.Add(viewModeField);
+
             var layerField = new EnumField("Level", settings.layer);
             layerField.RegisterValueChangedCallback(evt => settings.layer = (UILayer)evt.newValue);
             bindPanel.Add(layerField);
@@ -81,8 +85,8 @@ namespace Core.Editor.MvcBind
             maskField.RegisterValueChangedCallback(evt => settings.mask = (MaskType)evt.newValue);
             bindPanel.Add(maskField);
 
-            bindPanel.Add(CreatePopup("UIAnimation", settings.uiAnimationType, GetTypeChoices<IUIAnimation>(), value => settings.uiAnimationType = value));
-            bindPanel.Add(CreatePopup("CameraAnimation", settings.cameraAnimationType, GetTypeChoices<ICameraAnimation>(), value => settings.cameraAnimationType = value));
+            bindPanel.Add(CreatePopup("UI Transition", settings.uiTransitionType, GetTypeChoices<IUITransition>(), value => settings.uiTransitionType = value));
+            bindPanel.Add(CreateTextField("World Transition Key", settings.worldTransitionKey, value => settings.worldTransitionKey = value));
 
             var createRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.FlexEnd } };
             createRow.Add(new Button(CreateFromHierarchy) { text = "Create", style = { width = 70 } });
@@ -521,13 +525,14 @@ namespace Core.Editor.MvcBind
                 address = source.address,
                 viewType = source.viewType,
                 layer = source.layer,
+                viewMode = source.viewMode,
                 mask = source.mask,
                 isHotfix = source.isHotfix,
                 isAsync = source.isAsync,
                 enableOnInit = source.enableOnInit,
                 destroyOnHide = source.destroyOnHide,
-                uiAnimationType = source.uiAnimationType,
-                cameraAnimationType = source.cameraAnimationType
+                uiTransitionType = source.uiTransitionType,
+                worldTransitionKey = source.worldTransitionKey
             };
         }
     }

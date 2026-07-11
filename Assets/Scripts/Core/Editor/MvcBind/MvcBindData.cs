@@ -18,13 +18,14 @@ namespace Core.Editor.MvcBind
         public string address = string.Empty;
         public Core.Runtime.ViewType viewType = Core.Runtime.ViewType.View;
         public Core.Runtime.UILayer layer = Core.Runtime.UILayer.Base;
+        public Core.Runtime.UIViewMode viewMode = Core.Runtime.UIViewMode.Page;
         public Core.Runtime.MaskType mask = Core.Runtime.MaskType.None;
         public bool isHotfix = true;
         public bool isAsync = true;
         public bool enableOnInit = true;
         public bool destroyOnHide = true;
-        public string uiAnimationType = "null";
-        public string cameraAnimationType = "null";
+        public string uiTransitionType = "null";
+        public string worldTransitionKey = string.Empty;
 
         public string componentScriptName => $"{viewName}Component.cs";
         public string viewScriptName => $"{viewName}.cs";

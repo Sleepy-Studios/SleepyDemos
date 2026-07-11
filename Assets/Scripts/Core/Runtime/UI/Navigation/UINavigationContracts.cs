@@ -33,6 +33,46 @@ namespace Core.Runtime
         Exit
     }
 
+    public readonly struct UITransitionContext
+    {
+        /// <summary>
+        /// 创建 UI Transition 上下文。
+        /// </summary>
+        /// <param name="operationId">导航操作标识。</param>
+        /// <param name="action">导航操作类型。</param>
+        /// <param name="enteringView">正在进入的 View；没有时为 null。</param>
+        /// <param name="exitingView">正在退出的 View；没有时为 null。</param>
+        /// <param name="animated">是否播放过渡效果。</param>
+        public UITransitionContext(
+            long operationId,
+            UINavigationAction action,
+            View enteringView,
+            View exitingView,
+            bool animated)
+        {
+            OperationId = operationId;
+            Action = action;
+            EnteringView = enteringView;
+            ExitingView = exitingView;
+            Animated = animated;
+        }
+
+        /// 导航操作标识。
+        public long OperationId { get; }
+
+        /// 导航操作类型。
+        public UINavigationAction Action { get; }
+
+        /// 正在进入的 View；没有时为 null。
+        public View EnteringView { get; }
+
+        /// 正在退出的 View；没有时为 null。
+        public View ExitingView { get; }
+
+        /// 是否播放过渡效果。
+        public bool Animated { get; }
+    }
+
     public readonly struct UIShowOptions
     {
         private readonly bool? animated;

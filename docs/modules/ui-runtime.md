@@ -13,6 +13,13 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `Components/`：公共基础组件，如 `UITab`、`ViewList`、`UIBtnSwitch`、`UIDropdown`、`UIState`。
 
+## Transition 契约边界
+
+- `IUITransition` 定义单个 View 的初始化、进入、退出、立即完成和释放契约；`EmptyUITransition` 是无副作用、立即完成的默认实现。
+- `IUIWorldTransition` 定义跨 View 的世界表现过渡，`IUIWorldTransitionProvider` 按 `View` 解析具体实现。业务生成代码只声明 `WorldTransitionKey`，不直接实例化世界过渡。
+- `UITransitionContext` 统一携带操作标识、导航动作、进入/退出 View 和是否播放过渡。
+- `View` 当前只提供 `CreateUITransition()` 工厂扩展点和 `WorldTransitionKey` 声明。每个 View 生命周期内的稳定实例缓存、`Initialize` 调用和 `Dispose` 清理尚未接入，将由后续生命周期任务完成；当前不能依赖这些行为已经生效。
+
 ## 导航状态与表现边界
 
 - `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
@@ -99,6 +106,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 - `Core.Tests.UI.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
 - `Core.Tests.UI.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
+- `Core.Tests.UI.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
 - `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 

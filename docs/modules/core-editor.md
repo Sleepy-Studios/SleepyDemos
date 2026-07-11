@@ -15,6 +15,8 @@
   - 本地 Bundle HTTP 服务
 - `MvcBind/`
   - 绑定数据、窗口、树视图、层级面板辅助
+  - View 配置显式选择 `ViewMode` 和 `IUITransition` 实现，并按需填写 `World Transition Key`
+  - 生成的 partial View 通过 `CreateUITransition()` 工厂创建 UI Transition；不再生成每次读取都会创建实例的动画表达式属性，也不直接实例化世界过渡
 - `AssetNaming/`
   - LoadResources 命名校验与 YooAsset Collector 同步
 - `HotReload/`

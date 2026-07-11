@@ -18,8 +18,11 @@
    - `Canvas`
    - `CanvasScaler`
    - `GraphicRaycaster`
-4. 按现有 MvcBind 流程生成组件绑定和 View 代码。
-5. 在生成的 View Component 中选择正确的 `UILayer`。
+4. 打开现有 MvcBind 工具并选择正确的 `UILayer`。
+5. 显式选择 `ViewMode`：主页面用 `Page`，弹窗用 `Modal`，常驻挂件或 HUD 用 `Widget`。不要只依赖 `UILayer` 推导。
+6. 选择该 View 使用的 `UI Transition` 类型；不需要过渡时选择 `EmptyUITransition`。
+7. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段是 Provider 的解析键，不填写类型名，也不会在生成代码中实例化世界过渡。
+8. 完成组件和回调绑定后生成 View 与 Component 代码。生成的 Component 会显式覆盖 `ViewMode`，并通过 `CreateUITransition()` 工厂创建 UI Transition。
 
 固定层的用途如下：
 
