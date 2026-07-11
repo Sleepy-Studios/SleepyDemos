@@ -15,6 +15,7 @@ namespace Core.Runtime
 
         public virtual string Address => string.Empty;
         public virtual UILayer Level => UILayer.Base;
+        public virtual UIViewMode ViewMode => UIViewModeResolver.Resolve(Level);
         public virtual bool EnableOnInit => true;
         public virtual bool IsAsync => true;
         public virtual string Name => GetType().Name;

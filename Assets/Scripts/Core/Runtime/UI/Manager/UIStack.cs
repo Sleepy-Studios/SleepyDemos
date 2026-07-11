@@ -1,182 +1,114 @@
+using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace Core.Runtime
 {
     internal sealed class UIStack
     {
-        internal readonly List<View> widgetList = new List<View>();
-        internal StackData currentStack = new StackData();
-        internal readonly Stack<StackData> jumpList = new Stack<StackData>();
+        private readonly List<View> widgets = new List<View>();
+        private readonly Stack<StackData> jumpList = new Stack<StackData>();
+        private StackData currentStack = new StackData();
 
-        private readonly Graphic mask;
-        private readonly Button maskButton;
+        internal View CurrentPage => GetTop(currentStack.Pages);
+        internal View TopModal => GetTop(currentStack.Modals);
+        internal IReadOnlyList<View> Pages => currentStack.Pages;
+        internal IReadOnlyList<View> Modals => currentStack.Modals;
+        internal IReadOnlyList<View> Widgets => widgets;
 
-        public UIStack()
+        // 任务 5 删除：同步 UIManager 兼容入口。
+        internal int TotalCount => currentStack.Count + widgets.Count;
+        internal View StackTopView => TopModal ?? CurrentPage;
+        internal string CurrentStackName => currentStack.CustomName;
+
+        internal void CommitShow(View view)
         {
-            mask = UIRootManager.Instance.Mask;
-            if (mask != null)
+            if (view == null)
             {
-                maskButton = mask.GetComponent<Button>();
-                if (maskButton != null)
-                {
-                    maskButton.onClick.AddListener(() => UIManager.Instance.Back());
-                }
+                throw new ArgumentNullException(nameof(view));
             }
+
+            RemoveFromCollections(view);
+            GetCollection(view.ViewMode).Add(view);
         }
 
-        public int TotalCount => currentStack.Count + widgetList.Count;
-        public View StackTopView => currentStack.showList.Count == 0 ? null : currentStack.showList[currentStack.showList.Count - 1];
-        public IReadOnlyList<View> ShowList => currentStack.showList;
-
-        public int GetLayerCount(UILayer layer)
+        internal bool CommitClose(View view)
         {
-            return currentStack.layerData.TryGetValue(layer, out var list) ? list.Count : 0;
+            return view != null && RemoveFromCollections(view);
         }
 
-        public bool Contains(View view)
+        internal View CommitBack()
         {
-            return currentStack.showList.Contains(view) || widgetList.Contains(view);
+            var view = TopModal ?? CurrentPage;
+            if (view != null)
+            {
+                CommitClose(view);
+            }
+
+            return view;
         }
 
-        public bool CurrentStack(string stackName)
+        internal UIStackSnapshot Capture()
         {
-            return currentStack.customName == stackName;
+            return new UIStackSnapshot(Pages, Modals, Widgets);
         }
 
-        public View Add(View view)
+        internal void Restore(UIStackSnapshot snapshot)
         {
-            var list = view.IsWidget ? widgetList : currentStack.showList;
-            if (list.Contains(view))
+            if (snapshot == null)
             {
-                list.Remove(view);
-            }
-            else if (!view.IsWidget)
-            {
-                view.Reference++;
+                throw new ArgumentNullException(nameof(snapshot));
             }
 
-            list.Add(view);
-            if (view.IsWidget)
-            {
-                return null;
-            }
-
-            if (!currentStack.layerData.TryGetValue(view.Level, out var layerStack))
-            {
-                layerStack = new List<View>();
-                currentStack.layerData.Add(view.Level, layerStack);
-            }
-
-            var lastView = layerStack.Count > 0 ? layerStack[layerStack.Count - 1] : null;
-            layerStack.Remove(view);
-            layerStack.Add(view);
-            return lastView;
+            currentStack.Pages.Clear();
+            currentStack.Pages.AddRange(snapshot.Pages);
+            currentStack.Modals.Clear();
+            currentStack.Modals.AddRange(snapshot.Modals);
+            widgets.Clear();
+            widgets.AddRange(snapshot.Widgets);
         }
 
-        public bool PrepareRemove(View view)
+        internal void Clear()
         {
-            if (view.IsWidget)
-            {
-                widgetList.Remove(view);
-                return true;
-            }
-
-            if (!currentStack.showList.Contains(view))
-            {
-                return false;
-            }
-
-            view.Reference--;
-            currentStack.showList.Remove(view);
-            return true;
+            widgets.Clear();
+            currentStack.Clear();
+            jumpList.Clear();
         }
 
-        public async UniTask<View> Remove(View view)
+        // 任务 5 删除：同步 UIManager 兼容入口。
+        internal bool Contains(View view)
         {
-            View nextView = null;
-            if (currentStack.layerData.TryGetValue(view.Level, out var layerStack))
-            {
-                var index = layerStack.IndexOf(view);
-                if (index >= 0)
-                {
-                    layerStack.RemoveAt(index);
-                    if (index == layerStack.Count && layerStack.Count > 0)
-                    {
-                        nextView = layerStack[layerStack.Count - 1];
-                    }
-                }
-            }
-
-            nextView ??= StackTopView;
-            if (nextView != null && nextView.gameObject != null)
-            {
-                nextView.transform.SetAsLastSibling();
-                CheckNeedMask(nextView, true);
-                await nextView.Show();
-            }
-            else
-            {
-                HideMask();
-            }
-
-            return nextView;
+            return view != null &&
+                (currentStack.Pages.Contains(view) || currentStack.Modals.Contains(view) || widgets.Contains(view));
         }
 
-        public void CheckNeedMask(View view, bool autoHide = false)
+        // 任务 5 删除：同步 UIManager 兼容入口。
+        internal int GetLayerCount(UILayer layer)
         {
-            if (mask == null)
-            {
-                return;
-            }
-
-            if (view.Mask == MaskType.None)
-            {
-                if (autoHide)
-                {
-                    HideMask();
-                }
-                return;
-            }
-
-            if (view.transform == null)
-            {
-                return;
-            }
-
-            mask.transform.SetParent(view.transform.parent, false);
-            mask.transform.SetSiblingIndex(Mathf.Max(0, view.transform.GetSiblingIndex()));
-            mask.transform.localScale = Vector3.one;
-            mask.transform.localPosition = Vector3.zero;
-            if (maskButton != null)
-            {
-                maskButton.interactable = view.Mask == MaskType.CloseRaycast;
-                var colors = maskButton.colors;
-                colors.disabledColor = Color.white;
-                maskButton.colors = colors;
-            }
+            var count = 0;
+            CountLayer(currentStack.Pages, layer, ref count);
+            CountLayer(currentStack.Modals, layer, ref count);
+            return count;
         }
 
-        private void HideMask()
+        // 任务 5 删除：同步 UIManager 兼容入口。
+        internal bool CurrentStack(string stackName)
         {
-            if (mask != null)
-            {
-                mask.transform.localScale = Vector3.zero;
-            }
+            return currentStack.CustomName == stackName;
         }
 
-        public void NewStack(string stackName)
+        // 任务 5 删除：同步 UIManager 兼容入口。
+        internal void NewStack(string stackName)
         {
             if (currentStack.Count > 0)
             {
                 jumpList.Push(currentStack);
             }
-            currentStack = new StackData { customName = stackName };
+
+            currentStack = new StackData { CustomName = stackName };
         }
 
-        public void RemoveStack()
+        // 任务 5 删除：同步 UIManager 兼容入口。
+        internal void RemoveStack()
         {
             currentStack.Clear();
             if (jumpList.Count > 0)
@@ -185,12 +117,39 @@ namespace Core.Runtime
             }
         }
 
-        public void Clear()
+        private List<View> GetCollection(UIViewMode viewMode)
         {
-            widgetList.Clear();
-            currentStack.Clear();
-            jumpList.Clear();
-            HideMask();
+            return viewMode switch
+            {
+                UIViewMode.Page => currentStack.Pages,
+                UIViewMode.Modal => currentStack.Modals,
+                UIViewMode.Widget => widgets,
+                _ => throw new ArgumentOutOfRangeException(nameof(viewMode), viewMode, null)
+            };
+        }
+
+        private bool RemoveFromCollections(View view)
+        {
+            var removed = currentStack.Pages.Remove(view);
+            removed |= currentStack.Modals.Remove(view);
+            removed |= widgets.Remove(view);
+            return removed;
+        }
+
+        private static View GetTop(IReadOnlyList<View> views)
+        {
+            return views.Count == 0 ? null : views[views.Count - 1];
+        }
+
+        private static void CountLayer(IReadOnlyList<View> views, UILayer layer, ref int count)
+        {
+            for (int i = 0; i < views.Count; i++)
+            {
+                if (views[i].Level == layer)
+                {
+                    count++;
+                }
+            }
         }
     }
 }

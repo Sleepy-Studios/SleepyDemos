@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Core.Runtime
 {
     public sealed class UIManager : Singleton<UIManager>
     {
         private UIStack layerStack;
+        private Button maskButton;
         private readonly HashSet<Type> openingTypes = new HashSet<Type>();
         private readonly HashSet<Type> closingTypes = new HashSet<Type>();
 
@@ -32,6 +34,7 @@ namespace Core.Runtime
         {
             await UIRootManager.Instance.BuildUIRoot();
             layerStack ??= new UIStack();
+            ConfigureMask();
         }
 
         public View Show(string uiName, bool hidePrevious = true)
@@ -107,7 +110,7 @@ namespace Core.Runtime
         public void Close(Type type, bool animation = true)
         {
             var view = cacheStack.GetView(type);
-            if (view == null || layerStack == null || closingTypes.Contains(type) || !layerStack.PrepareRemove(view))
+            if (view == null || layerStack == null || closingTypes.Contains(type) || !layerStack.Contains(view))
             {
                 return;
             }
@@ -195,7 +198,7 @@ namespace Core.Runtime
 
         public void RemoveStack()
         {
-            var name = layerStack?.currentStack.customName;
+            var name = layerStack?.CurrentStackName;
             layerStack?.RemoveStack();
             OnStackChange?.Invoke(name, false);
         }
@@ -219,13 +222,20 @@ namespace Core.Runtime
 
             try
             {
-                if (layerStack.StackTopView == view)
+                var lastView = GetPreviousView(view);
+                if (lastView == view)
                 {
                     return;
                 }
 
                 view.OnBeforeInit();
-                var lastView = layerStack.Add(view);
+                var wasContained = layerStack.Contains(view);
+                layerStack.CommitShow(view);
+                if (!wasContained && view.ViewMode != UIViewMode.Widget)
+                {
+                    view.Reference++;
+                }
+
                 if (lastView != null && lastView != view)
                 {
                     LastCloseName = lastView.Name;
@@ -255,7 +265,7 @@ namespace Core.Runtime
                 }
 
                 await view.Show();
-                if (!view.IsWidget)
+                if (view.ViewMode != UIViewMode.Widget)
                 {
                     CurrentUIName = view.Name;
                 }
@@ -264,7 +274,7 @@ namespace Core.Runtime
                 {
                     view.transform.SetAsLastSibling();
                 }
-                layerStack.CheckNeedMask(view);
+                ApplyMask(view);
                 OnOpen?.Invoke(view);
             }
             finally
@@ -285,7 +295,31 @@ namespace Core.Runtime
                 }
 
                 await view.Hide(animation);
-                await layerStack.Remove(view);
+                if (layerStack.CommitClose(view) && view.ViewMode != UIViewMode.Widget)
+                {
+                    view.Reference--;
+                }
+
+                var nextView = layerStack.StackTopView;
+                if (nextView != null)
+                {
+                    if (!nextView.IsEnable)
+                    {
+                        await nextView.Show();
+                    }
+
+                    if (nextView.transform != null)
+                    {
+                        nextView.transform.SetAsLastSibling();
+                    }
+
+                    ApplyMask(nextView, true);
+                }
+                else
+                {
+                    HideMask();
+                }
+
                 OnClose?.Invoke(view);
 
                 if (view.DestroyOnHide && view.Reference <= 0)
@@ -297,6 +331,82 @@ namespace Core.Runtime
             finally
             {
                 closingTypes.Remove(type);
+            }
+        }
+
+        private View GetPreviousView(View view)
+        {
+            return view.ViewMode switch
+            {
+                UIViewMode.Page => layerStack.CurrentPage,
+                UIViewMode.Modal => layerStack.TopModal,
+                UIViewMode.Widget => null,
+                _ => null
+            };
+        }
+
+        private void ConfigureMask()
+        {
+            var nextButton = UIRootManager.Instance.Mask?.GetComponent<Button>();
+            if (maskButton == nextButton)
+            {
+                return;
+            }
+
+            if (maskButton != null)
+            {
+                maskButton.onClick.RemoveListener(Back);
+            }
+
+            maskButton = nextButton;
+            if (maskButton != null)
+            {
+                maskButton.onClick.AddListener(Back);
+            }
+        }
+
+        private void ApplyMask(View view, bool autoHide = false)
+        {
+            var mask = UIRootManager.Instance.Mask;
+            if (mask == null)
+            {
+                return;
+            }
+
+            if (view.Mask == MaskType.None)
+            {
+                if (autoHide)
+                {
+                    HideMask();
+                }
+
+                return;
+            }
+
+            if (view.transform == null)
+            {
+                return;
+            }
+
+            mask.transform.SetParent(view.transform.parent, false);
+            mask.transform.SetSiblingIndex(Mathf.Max(0, view.transform.GetSiblingIndex()));
+            mask.transform.localScale = Vector3.one;
+            mask.transform.localPosition = Vector3.zero;
+            if (maskButton != null)
+            {
+                maskButton.interactable = view.Mask == MaskType.CloseRaycast;
+                var colors = maskButton.colors;
+                colors.disabledColor = Color.white;
+                maskButton.colors = colors;
+            }
+        }
+
+        private void HideMask()
+        {
+            var mask = UIRootManager.Instance.Mask;
+            if (mask != null)
+            {
+                mask.transform.localScale = Vector3.zero;
             }
         }
     }

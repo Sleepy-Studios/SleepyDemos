@@ -4,17 +4,49 @@ namespace Core.Runtime
 {
     internal sealed class StackData
     {
-        public readonly List<View> showList = new List<View>();
-        public readonly Dictionary<UILayer, List<View>> layerData = new Dictionary<UILayer, List<View>>();
-        public string customName;
+        internal readonly List<View> Pages = new List<View>();
+        internal readonly List<View> Modals = new List<View>();
+        internal string CustomName;
 
-        public int Count => showList.Count;
+        internal int Count => Pages.Count + Modals.Count;
 
-        public void Clear()
+        internal void Clear()
         {
-            showList.Clear();
-            layerData.Clear();
-            customName = null;
+            Pages.Clear();
+            Modals.Clear();
+            CustomName = null;
+        }
+    }
+
+    internal sealed class UIStackSnapshot
+    {
+        private readonly View[] pages;
+        private readonly View[] modals;
+        private readonly View[] widgets;
+
+        internal UIStackSnapshot(
+            IReadOnlyList<View> pages,
+            IReadOnlyList<View> modals,
+            IReadOnlyList<View> widgets)
+        {
+            this.pages = Copy(pages);
+            this.modals = Copy(modals);
+            this.widgets = Copy(widgets);
+        }
+
+        internal IReadOnlyList<View> Pages => pages;
+        internal IReadOnlyList<View> Modals => modals;
+        internal IReadOnlyList<View> Widgets => widgets;
+
+        private static View[] Copy(IReadOnlyList<View> source)
+        {
+            var result = new View[source.Count];
+            for (int i = 0; i < source.Count; i++)
+            {
+                result[i] = source[i];
+            }
+
+            return result;
         }
     }
 }
