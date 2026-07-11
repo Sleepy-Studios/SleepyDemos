@@ -353,15 +353,32 @@ namespace Core.Runtime
         // 导航事务回滚专用：过渡异常后恢复快照中原本可见的 View。
         internal void RestoreVisibleAfterNavigationFailure()
         {
+            RestoreAfterNavigationFailure(ViewState.Visible, true);
+        }
+
+        // 导航事务根据表现快照恢复稳定状态，不重复触发生命周期 Hook。
+        internal void RestoreAfterNavigationFailure(ViewState snapshotState, bool active)
+        {
             if (gameObject == null || State == ViewState.Destroying || State == ViewState.Destroyed)
             {
                 return;
             }
 
-            UITransition?.CompleteImmediately(UITransitionDirection.Enter);
-            ForceDisable = false;
-            gameObject.SetActive(true);
-            State = ViewState.Visible;
+            try
+            {
+                var direction = snapshotState == ViewState.Visible
+                    ? UITransitionDirection.Enter
+                    : UITransitionDirection.Exit;
+                UITransition?.CompleteImmediately(direction);
+            }
+            finally
+            {
+                ForceDisable = false;
+                gameObject.SetActive(active);
+                State = snapshotState == ViewState.Visible
+                    ? ViewState.Visible
+                    : ViewState.LoadedHidden;
+            }
         }
 
         protected virtual void InitComponent()

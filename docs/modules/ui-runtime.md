@@ -50,9 +50,11 @@ Loading --加载失败或取消--> Faulted
 
 - `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
 - `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 必须由 `UIManager` 事务先移栈、等待 `DestroyAsync`，再从 Cache 移除；Cache 不持有 Stack，也不自行等待销毁。
-- Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。调用方令牌在排队期取消时不会产生 View 副作用。
-- `CloseAllAsync` 会取消 current、把调用时 pending 完成为 Canceled，再作为唯一后续操作清理全部 View、Cache、Stack、Mask 与名称状态。
-- 加载成功前不修改正式栈。Show/Replace/Close/Back 捕获 `UIStackSnapshot`；取消或异常时恢复正式栈、原可见 View、Mask 与 sibling，并销毁、移除未提交或 Faulted 的目标 View。
+- Coordinator 使用单一状态锁保护 queue、current、current CTS、Pump 与 Dispose 状态；锁内只做状态切换，取消、TCS 完成、registration 释放和异步执行都在锁外。executor 总是在 Unity 主线程串行运行。
+- Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。pending 调用方取消会立即返回 Canceled，不等待队首，也不产生 View 副作用。
+- `CloseAllAsync` 会原子取消 current 和调用时的 pending，再作为后续唯一清理操作执行。单个 View 销毁异常不会中断其它 View，最终仍清空 Cache、Stack、Mask 和名称，并通过 Failed + `AggregateException` 返回清理异常。
+- 加载成功前不修改正式栈。Show/Replace/Close/Back 同时捕获 `UIStackSnapshot` 与表现快照；取消或异常时精确恢复 View parent、sibling、active、稳定状态、Reference、Mask 字段及名称。事务中进入 Faulted 的目标即使原本在栈内也会移栈、销毁并移出 Cache。
+- `OnBehind`、`OnOpen`、`OnClose` 只在核心事务步骤全部成功后发布；单个订阅者异常会统一记录，但不回滚已提交导航，也不阻止其它订阅者。
 - 旧 `NewStack` / `RemoveStack` 命名栈兼容实现已移除；命名栈不属于当前导航模型。
 
 ## 基础组件边界
@@ -79,7 +81,8 @@ Loading --加载失败或取消--> Faulted
 - Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
 - 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
 - `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
-- `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态。
+- 数据泛型 Show/Preload 把 `SetData` 作为 operation 配置载荷，在轮到该 operation 时才应用，避免后一次调用提前覆盖前一次仍在加载的 View 数据。
+- `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
 
 ## 渲染结构与生命周期
 
