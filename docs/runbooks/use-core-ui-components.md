@@ -78,7 +78,7 @@ imageLoader.Clear();
 - 不要给 Tab、Dropdown 或 Accordion 传图片缩放参数；需要布局尺寸时改 prefab 布局。
 - 不要把 `Register` 当覆盖回调用；重复打开页面时应成对 `Unregister`，或使用组件提供的覆盖入口。
 - 不要在 `ViewList` 初始化回调里依赖外部循环变量；使用 `Action<TView, TData, int>` 的 index 参数。
-- 不要把无限滚动需求塞进 `ViewList`；大量列表使用 LoopScroll 组件。
+- `ViewList` 仅适合有限数量的 View 项；大量数据列表需要重新评估并单独设计。
 
 ## 验证
 

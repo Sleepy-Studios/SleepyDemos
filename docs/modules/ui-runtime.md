@@ -12,13 +12,12 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UICache`：按 View 类型缓存 View 实例。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `Components/`：公共基础组件，如 `UITab`、`ViewList`、`UIBtnSwitch`、`UIDropdown`、`UIState`。
-- `Components/LoopScroll/`：独立循环列表模块，提供 `LoopVerticalScrollRect`、`LoopHorizontalScrollRect`、`LoopGridView`、`LoopStaggeredGridView`。
 
 ## 基础组件边界
 
 本模块只承载基础有限 UI 组件：
 - `UITab`：有限 Tab，支持静态项和基于 prefab 的动态项，支持 Button/Toggle、UIState 状态驱动（`Normal/Selected`）和拦截回调。文本优先使用 TMP（`TextMeshProUGUI`），可附带图标配置。
-- `ViewList`：有限列表，复用已创建 View 项，不包含循环列表或无限滚动。
+- `ViewList`：有限列表，复用已创建 View 项，不承担大量数据虚拟化滚动。
 - `UIBtnSwitch`：按钮开关状态组件，视觉状态优先由 `UIState`（`On/Off`）驱动，必要时兼容旧的 On/Off 节点。
 - `UIDropdown`：基于 `UITab` 的基础下拉选择组件。
 - `ViewTab`：通过一个 `UITab` 驱动多个 View 或本地 ViewRoot 子节点切换，公共 `Parent/ViewRoot` 用于挂载 View。
@@ -30,8 +29,6 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 明确不在这里混入：
 - 业务图片加载器或图集拆分规则
 - 具体 Demo 或页面业务状态
-
-循环列表已经独立收口在 [LoopScroll 运行时](./loop-scroll-runtime.md)，不要把无限滚动逻辑塞回 `ViewList`。
 
 ## UIManager 使用规则
 
@@ -88,7 +85,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - 不要让 Core UI 依赖 Hotfix。
 - 不要让业务页面直接依赖 YooAssets 句柄或包类型。
 - 新组件优先放在 `Assets/Scripts/Core/Runtime/Components`。
-- 循环列表使用 `Components/LoopScroll/`，`ViewList` 仍只承担有限列表。
+- `ViewList` 只承担有限列表，不在其中扩展大量数据虚拟化滚动能力。
 - View Prefab 根节点不得携带 `Canvas`、`CanvasScaler` 或 `GraphicRaycaster`。
 - 只有 Profiler 证明有必要时才增加局部 Sub-Canvas，并保持 `overrideSorting=false`。
 

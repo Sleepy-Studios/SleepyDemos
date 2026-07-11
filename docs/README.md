@@ -29,7 +29,6 @@
   - [热更新模块](./modules/hot-update.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
-  - [LoopScroll 运行时](./modules/loop-scroll-runtime.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
@@ -43,7 +42,6 @@
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
-  - [使用 LoopScroll 循环列表](./runbooks/use-loop-scroll.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
 
 ## 如何判断文档该写到哪里
