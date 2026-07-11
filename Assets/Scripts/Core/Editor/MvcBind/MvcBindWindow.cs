@@ -85,7 +85,7 @@ namespace Core.Editor.MvcBind
             maskField.RegisterValueChangedCallback(evt => settings.mask = (MaskType)evt.newValue);
             bindPanel.Add(maskField);
 
-            bindPanel.Add(CreatePopup("UI Transition", settings.uiTransitionType, GetTypeChoices<IUITransition>(), value => settings.uiTransitionType = value));
+            bindPanel.Add(CreatePopup("UI Transition", settings.uiTransitionType, GetUITransitionTypeChoices(), value => settings.uiTransitionType = value));
             bindPanel.Add(CreateTextField("World Transition Key", settings.worldTransitionKey, value => settings.worldTransitionKey = value));
 
             var createRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.FlexEnd } };
@@ -479,20 +479,9 @@ namespace Core.Editor.MvcBind
             return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
-        private static List<string> GetTypeChoices<T>()
+        internal static List<string> GetUITransitionTypeChoices()
         {
-            var choices = new List<string> { "null" };
-            foreach (var type in TypeCache.GetTypesDerivedFrom<T>())
-            {
-                if (type.IsAbstract || type.IsInterface)
-                {
-                    continue;
-                }
-
-                choices.Add(type.FullName);
-            }
-
-            return choices;
+            return MvcBindTransitionTypePolicy.GetTypeChoices();
         }
 
         internal static MvcBindSettings CreateSettingsForPrefabSave(GameObject prefabRoot, string prefabPath)

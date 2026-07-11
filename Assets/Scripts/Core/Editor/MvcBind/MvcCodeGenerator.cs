@@ -191,9 +191,10 @@ namespace Core.Editor.MvcBind
         {
             if (!string.IsNullOrEmpty(settings.uiTransitionType) && settings.uiTransitionType != "null")
             {
+                var transitionTypeName = MvcBindTransitionTypePolicy.ResolveCSharpTypeName(settings.uiTransitionType);
                 builder.AppendLine("        protected override IUITransition CreateUITransition()");
                 builder.AppendLine("        {");
-                builder.AppendLine("            return new " + settings.uiTransitionType + "();");
+                builder.AppendLine("            return new " + transitionTypeName + "();");
                 builder.AppendLine("        }");
             }
 

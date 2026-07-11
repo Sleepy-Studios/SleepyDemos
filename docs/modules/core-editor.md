@@ -17,6 +17,7 @@
   - 绑定数据、窗口、树视图、层级面板辅助
   - View 配置显式选择 `ViewMode` 和 `IUITransition` 实现，并按需填写 `World Transition Key`
   - 生成的 partial View 通过 `CreateUITransition()` 工厂创建 UI Transition；不再生成每次读取都会创建实例的动画表达式属性，也不直接实例化世界过渡
+  - UI Transition 类型必须是 Player 可用的顶级 `public` 非泛型 class，并提供 `public` 无参构造；Editor/Test-only 或不可直接构造的类型不会出现在列表中，手工写入非法类型时生成器会直接报错
 - `AssetNaming/`
   - LoadResources 命名校验与 YooAsset Collector 同步
 - `HotReload/`
