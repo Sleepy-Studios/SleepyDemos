@@ -24,6 +24,7 @@ namespace Core.Tests.UI
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(result.OperationId, Is.EqualTo(7));
+            Assert.That(result.Action, Is.EqualTo(UINavigationAction.Push));
             Assert.That(result.View, Is.SameAs(view));
             Assert.That(result.Exception, Is.Null);
         }
