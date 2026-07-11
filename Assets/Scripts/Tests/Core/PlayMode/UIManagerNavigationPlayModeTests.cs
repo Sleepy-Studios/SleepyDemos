@@ -375,8 +375,8 @@ namespace Core.Tests.UI
             yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
             var loader = TestViewRegistry.Register<DestroyThrowPage>(throwEnter: true);
 
-            LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
             LogAssert.Expect(LogType.Exception, "InvalidOperationException: restore failed");
+            LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
             UIOperationResult result = default;
             yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), value => result = value);
 
@@ -643,8 +643,8 @@ namespace Core.Tests.UI
 
             Assert.That(legacyReturned, Is.Null);
             Assert.That(UIManager.Instance.Get<SecondPage>()?.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(firstLaterLoader.InstantiateCount, Is.EqualTo(1));
-            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
+            Assert.That(firstLaterLoader.InstantiateCount, Is.Zero);
+            Assert.That(unusedLoader.InstantiateCount, Is.EqualTo(1));
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
@@ -675,8 +675,8 @@ namespace Core.Tests.UI
             Assert.That(loadedEarly, Is.False);
             Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
             Assert.That(TestViewRegistry.Events, Does.Contain("show:one"));
-            Assert.That(actualLoader.InstantiateCount, Is.EqualTo(1));
-            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
+            Assert.That(actualLoader.InstantiateCount, Is.Zero);
+            Assert.That(unusedLoader.InstantiateCount, Is.EqualTo(1));
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
@@ -707,8 +707,8 @@ namespace Core.Tests.UI
             Assert.That(loadedEarly, Is.False);
             Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
             Assert.That(TestViewRegistry.Events, Does.Contain("show:two:2"));
-            Assert.That(actualLoader.InstantiateCount, Is.EqualTo(1));
-            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
+            Assert.That(actualLoader.InstantiateCount, Is.Zero);
+            Assert.That(unusedLoader.InstantiateCount, Is.EqualTo(1));
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
@@ -771,6 +771,86 @@ namespace Core.Tests.UI
             Assert.That(UIManager.Instance.Get<LegacyAnimatedPage>(), Is.Null);
             Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
             Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(TestViewRegistry.Events, Does.Contain("ui.hide"));
+            Assert.That(TestViewRegistry.Events, Does.Contain("camera.hide"));
+        }
+
+        [UnityTest]
+        public IEnumerator LegacyExitFailure_CompensatesAnimationsInReverseAndPreservesOriginal()
+        {
+            var events = TestViewRegistry.Events;
+            LegacyAnimatedPage.Configure(new TestUIAnimation(events), new TestCameraAnimation(events));
+            var loader = TestViewRegistry.Register<LegacyAnimatedPage>(throwExit: true);
+            yield return AwaitResult(UIManager.Instance.ShowAsync<LegacyAnimatedPage>(), _ => { });
+            var view = UIManager.Instance.Get<LegacyAnimatedPage>();
+            events.Clear();
+
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.CloseAsync<LegacyAnimatedPage>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.Exception, Is.SameAs(loader.Transition.ExitException));
+            Assert.That(UIManager.Instance.Get<LegacyAnimatedPage>(), Is.SameAs(view));
+            Assert.That(view.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(events, Is.EqualTo(new[] { "camera.hide", "ui.hide", "ui.show", "camera.show" }));
+        }
+
+        [UnityTest]
+        public IEnumerator LegacyCameraShowCanceledByClose_CompensatesWithoutEntering()
+        {
+            var events = TestViewRegistry.Events;
+            var camera = new DelayedCameraAnimation(events);
+            LegacyAnimatedPage.Configure(new TestUIAnimation(events), camera);
+            TestViewRegistry.Register<LegacyAnimatedPage>();
+            var showTask = UIManager.Instance.ShowAsync<LegacyAnimatedPage>();
+            yield return null;
+
+            var closeTask = UIManager.Instance.CloseAsync<LegacyAnimatedPage>();
+            camera.CompleteShow();
+            UIOperationResult showResult = default;
+            yield return AwaitResult(showTask, value => showResult = value);
+            yield return AwaitResult(closeTask, _ => { });
+
+            Assert.That(showResult.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(events, Does.Contain("camera.hide"));
+            Assert.That(events, Does.Not.Contain("ui.show"));
+            Assert.That(events, Does.Not.Contain("LegacyAnimatedPage.enter"));
+            Assert.That(UIManager.Instance.Get<LegacyAnimatedPage>(), Is.Null);
+            Assert.That(UIManager.Instance.StackCount, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator LegacySyncShow_ConstructsOutsideCoordinatorGate()
+        {
+            LockProbePage.Reset();
+            TestViewRegistry.Register<LockProbePage>();
+
+            UIManager.Instance.Show<LockProbePage>();
+            yield return null;
+
+            Assert.That(LockProbePage.CoordinatorGateWasAvailable, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator LegacySyncShowFromWorker_ReturnsNullAndConstructsOnMainThread()
+        {
+            var mainThreadId = Thread.CurrentThread.ManagedThreadId;
+            WorkerPage.Reset();
+            TestViewRegistry.Register<WorkerPage>();
+            var workerTask = System.Threading.Tasks.Task.Run(
+                () => UIManager.Instance.Show<WorkerPage>());
+            while (!workerTask.IsCompleted)
+            {
+                yield return null;
+            }
+
+            for (int i = 0; i < 30 && WorkerPage.ConstructorThreadId == 0; i++)
+            {
+                yield return null;
+            }
+
+            Assert.That(workerTask.Result, Is.Null);
+            Assert.That(WorkerPage.ConstructorThreadId, Is.EqualTo(mainThreadId));
         }
 
         [UnityTest]
@@ -946,6 +1026,39 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator OnBeforeOpenCancellation_StopsLaterSubscriberAndEnter()
+        {
+            using var cancellation = new CancellationTokenSource();
+            var gate = new UniTaskCompletionSource();
+            var secondCalled = false;
+            TestViewRegistry.Register<SecondPage>();
+            async UniTask First(View _)
+            {
+                await gate.Task;
+            }
+            UniTask Second(View _)
+            {
+                secondCalled = true;
+                return UniTask.CompletedTask;
+            }
+            UIManager.Instance.OnBeforeOpen += First;
+            UIManager.Instance.OnBeforeOpen += Second;
+            var task = UIManager.Instance.ShowAsync<SecondPage>(cancellationToken: cancellation.Token);
+            yield return null;
+            cancellation.Cancel();
+            gate.TrySetResult();
+            UIOperationResult result = default;
+            yield return AwaitResult(task, value => result = value);
+            UIManager.Instance.OnBeforeOpen -= First;
+            UIManager.Instance.OnBeforeOpen -= Second;
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(secondCalled, Is.False);
+            Assert.That(TestViewRegistry.Events, Does.Not.Contain("SecondPage.enter"));
+            Assert.That(UIManager.Instance.Get<SecondPage>(), Is.Null);
+        }
+
+        [UnityTest]
         public IEnumerator EmptyCloseAll_ReturnsSucceededWithNullView()
         {
             UIOperationResult result = default;
@@ -1032,6 +1145,36 @@ namespace Core.Tests.UI
             {
                 Instances.Clear();
             }
+        }
+
+        private sealed class LockProbePage : NavigationTestPage
+        {
+            internal static bool CoordinatorGateWasAvailable { get; private set; }
+
+            public LockProbePage()
+            {
+                var completed = new ManualResetEventSlim();
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    _ = UIManager.Instance.HasCloseAllBarrier;
+                    completed.Set();
+                });
+                CoordinatorGateWasAvailable = completed.Wait(500);
+            }
+
+            internal static void Reset() => CoordinatorGateWasAvailable = false;
+        }
+
+        private sealed class WorkerPage : NavigationTestPage
+        {
+            internal static int ConstructorThreadId { get; private set; }
+
+            public WorkerPage()
+            {
+                ConstructorThreadId = Thread.CurrentThread.ManagedThreadId;
+            }
+
+            internal static void Reset() => ConstructorThreadId = 0;
         }
 
         private sealed class DataPage : View<string>
@@ -1325,6 +1468,7 @@ namespace Core.Tests.UI
             }
 
             internal Exception EnterException { get; }
+            internal Exception ExitException { get; } = new InvalidOperationException("exit failed");
 
             public void Initialize(Transform root) { }
 
@@ -1342,7 +1486,7 @@ namespace Core.Tests.UI
                 cancellationToken.ThrowIfCancellationRequested();
                 exitCalls++;
                 return throwExit || throwExitOnCall == exitCalls
-                    ? UniTask.FromException(new InvalidOperationException("exit failed"))
+                    ? UniTask.FromException(ExitException)
                     : UniTask.CompletedTask;
             }
 
@@ -1400,6 +1544,31 @@ namespace Core.Tests.UI
             {
                 events.Add("camera.show");
                 return UniTask.CompletedTask;
+            }
+
+            public UniTask Hide(View view)
+            {
+                events.Add("camera.hide");
+                return UniTask.CompletedTask;
+            }
+        }
+
+        private sealed class DelayedCameraAnimation : ICameraAnimation
+        {
+            private readonly List<string> events;
+            private readonly UniTaskCompletionSource showCompletion = new();
+
+            internal DelayedCameraAnimation(List<string> events)
+            {
+                this.events = events;
+            }
+
+            internal void CompleteShow() => showCompletion.TrySetResult();
+
+            public UniTask Show(View view)
+            {
+                events.Add("camera.show");
+                return showCompletion.Task;
             }
 
             public UniTask Hide(View view)

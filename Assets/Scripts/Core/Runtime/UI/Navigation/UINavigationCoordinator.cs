@@ -42,15 +42,17 @@ namespace Core.Runtime
             View targetView = null,
             bool hidePrevious = true)
         {
-            return Enqueue(
+            return EnqueueCore(
                 action,
                 targetType,
                 animated,
                 callerCancellation,
                 out _,
+                out _,
                 configure,
                 targetView,
-                hidePrevious);
+                hidePrevious,
+                false);
         }
 
         internal UniTask<UIOperationResult> Enqueue(
@@ -63,7 +65,7 @@ namespace Core.Runtime
             View targetView = null,
             bool hidePrevious = true)
         {
-            return Enqueue(
+            return EnqueueCore(
                 action,
                 targetType,
                 animated,
@@ -72,21 +74,43 @@ namespace Core.Runtime
                 out _,
                 configure,
                 targetView,
-                null,
-                hidePrevious);
+                hidePrevious,
+                false);
         }
 
-        internal UniTask<UIOperationResult> Enqueue(
+        internal UniTask<UIOperationResult> EnqueueLegacyShow(
+            Type targetType,
+            bool animated,
+            out bool closeAllBarrier,
+            out bool candidateAdopted,
+            Action<View> configure,
+            View candidate,
+            bool hidePrevious = true)
+        {
+            return EnqueueCore(
+                UINavigationAction.Push,
+                targetType,
+                animated,
+                CancellationToken.None,
+                out closeAllBarrier,
+                out candidateAdopted,
+                configure,
+                candidate,
+                hidePrevious,
+                true);
+        }
+
+        private UniTask<UIOperationResult> EnqueueCore(
             UINavigationAction action,
             Type targetType,
             bool animated,
             CancellationToken callerCancellation,
             out bool closeAllBarrier,
-            out View reservedTarget,
+            out bool targetAdopted,
             Action<View> configure,
             View targetView,
-            Func<View> reserveTarget,
-            bool hidePrevious = true)
+            bool hidePrevious,
+            bool requireBarrierFreeAdoption)
         {
             QueuedUIOperation operation;
             List<QueuedUIOperation> canceledPending = null;
@@ -97,9 +121,8 @@ namespace Core.Runtime
             lock (stateGate)
             {
                 closeAllBarrier = HasCloseAllBarrierLocked();
-                reservedTarget = !closeAllBarrier && !disposed
-                    ? reserveTarget?.Invoke()
-                    : null;
+                targetAdopted = targetView != null &&
+                                (!requireBarrierFreeAdoption || (!closeAllBarrier && !disposed));
                 operation = new QueuedUIOperation(
                     ++nextOperationId,
                     action,
@@ -107,7 +130,7 @@ namespace Core.Runtime
                     animated,
                     callerCancellation,
                     configure,
-                    reservedTarget ?? targetView,
+                    targetAdopted ? targetView : null,
                     hidePrevious);
                 if (disposed)
                 {
