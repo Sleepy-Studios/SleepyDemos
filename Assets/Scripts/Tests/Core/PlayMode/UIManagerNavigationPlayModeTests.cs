@@ -643,8 +643,8 @@ namespace Core.Tests.UI
 
             Assert.That(legacyReturned, Is.Null);
             Assert.That(UIManager.Instance.Get<SecondPage>()?.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(firstLaterLoader.InstantiateCount, Is.Zero);
-            Assert.That(unusedLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(firstLaterLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
@@ -675,8 +675,8 @@ namespace Core.Tests.UI
             Assert.That(loadedEarly, Is.False);
             Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
             Assert.That(TestViewRegistry.Events, Does.Contain("show:one"));
-            Assert.That(actualLoader.InstantiateCount, Is.Zero);
-            Assert.That(unusedLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(actualLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
@@ -707,8 +707,8 @@ namespace Core.Tests.UI
             Assert.That(loadedEarly, Is.False);
             Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
             Assert.That(TestViewRegistry.Events, Does.Contain("show:two:2"));
-            Assert.That(actualLoader.InstantiateCount, Is.Zero);
-            Assert.That(unusedLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(actualLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
@@ -851,6 +851,74 @@ namespace Core.Tests.UI
 
             Assert.That(workerTask.Result, Is.Null);
             Assert.That(WorkerPage.ConstructorThreadId, Is.EqualTo(mainThreadId));
+        }
+
+        [UnityTest]
+        public IEnumerator LegacySyncShowDuringCurrentCacheOnlyClose_RejectsDestroyingCandidate()
+        {
+            RacePage.Reset();
+            var oldLoader = TestViewRegistry.Register<RacePage>();
+            var old = UIManager.Instance.cacheStack.GetOrCreateView<RacePage>();
+            var childLoader = TestViewRegistry.Register<DelayedChildPage>(delay: true);
+            var child = new DelayedChildPage();
+            var childLoad = child.LoadAsync(
+                    UIRootManager.Instance.GetRoot(child.Level), CancellationToken.None)
+                .SuppressCancellationThrow();
+            yield return null;
+            old.AddSubView(child);
+            var newLoader = TestViewRegistry.Register<RacePage>();
+            var closeTask = UIManager.Instance.CloseAsync<RacePage>();
+            yield return null;
+            Assert.That(old.State, Is.EqualTo(ViewState.Destroying));
+
+            var returned = UIManager.Instance.Show<RacePage>();
+            childLoader.Complete(new GameObject(nameof(DelayedChildPage)));
+            yield return childLoad.ToCoroutine();
+            yield return AwaitResult(closeTask, _ => { });
+            for (int i = 0; i < 60 && UIManager.Instance.Get<RacePage>()?.State != ViewState.Visible; i++)
+            {
+                yield return null;
+            }
+
+            var actual = UIManager.Instance.Get<RacePage>();
+            Assert.That(returned, Is.Null);
+            Assert.That(old.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(actual, Is.Not.Null.And.Not.SameAs(old));
+            Assert.That(actual.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(RacePage.Instances.Count, Is.EqualTo(2));
+            Assert.That(oldLoader.DisposeCount, Is.EqualTo(1));
+            Assert.That(newLoader.InstantiateCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator LegacySyncShowBehindPendingClose_RejectsCachedCandidate()
+        {
+            RacePage.Reset();
+            var oldLoader = TestViewRegistry.Register<RacePage>();
+            var old = UIManager.Instance.cacheStack.GetOrCreateView<RacePage>();
+            var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
+            var slowShow = UIManager.Instance.ShowAsync<SlowPage>();
+            yield return null;
+            var closeTask = UIManager.Instance.CloseAsync<RacePage>();
+            var newLoader = TestViewRegistry.Register<RacePage>();
+
+            var returned = UIManager.Instance.Show<RacePage>();
+            slowLoader.Complete(new GameObject(nameof(SlowPage)));
+            yield return AwaitResult(slowShow, _ => { });
+            yield return AwaitResult(closeTask, _ => { });
+            for (int i = 0; i < 60 && UIManager.Instance.Get<RacePage>()?.State != ViewState.Visible; i++)
+            {
+                yield return null;
+            }
+
+            var actual = UIManager.Instance.Get<RacePage>();
+            Assert.That(returned, Is.Null);
+            Assert.That(old.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(actual, Is.Not.Null.And.Not.SameAs(old));
+            Assert.That(actual.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(RacePage.Instances.Count, Is.EqualTo(2));
+            Assert.That(oldLoader.DisposeCount, Is.EqualTo(1));
+            Assert.That(newLoader.InstantiateCount, Is.EqualTo(1));
         }
 
         [UnityTest]
@@ -1177,6 +1245,20 @@ namespace Core.Tests.UI
             internal static void Reset() => ConstructorThreadId = 0;
         }
 
+        private sealed class RacePage : NavigationTestPage
+        {
+            internal static readonly List<RacePage> Instances = new();
+
+            public RacePage()
+            {
+                Instances.Add(this);
+            }
+
+            internal static void Reset() => Instances.Clear();
+        }
+
+        private sealed class DelayedChildPage : NavigationTestPage { }
+
         private sealed class DataPage : View<string>
         {
             private readonly List<string> events;
@@ -1367,6 +1449,7 @@ namespace Core.Tests.UI
 
             internal int ReleaseCount { get; private set; }
             internal int InstantiateCount { get; private set; }
+            internal int DisposeCount { get; private set; }
             internal TestTransition Transition { get; }
 
             public GameObject Instantiate(string address, Transform parent) => Instantiate(address, parent, false);
@@ -1421,6 +1504,7 @@ namespace Core.Tests.UI
                 }
 
                 disposed = true;
+                DisposeCount++;
                 if (!released && result != null)
                 {
                     Object.Destroy(result);

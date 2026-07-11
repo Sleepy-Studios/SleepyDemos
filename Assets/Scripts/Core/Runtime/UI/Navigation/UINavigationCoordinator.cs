@@ -121,8 +121,11 @@ namespace Core.Runtime
             lock (stateGate)
             {
                 closeAllBarrier = HasCloseAllBarrierLocked();
+                var hasEarlierDestructiveOperation = requireBarrierFreeAdoption &&
+                                                    HasDestructiveOperationLocked(targetType);
                 targetAdopted = targetView != null &&
-                                (!requireBarrierFreeAdoption || (!closeAllBarrier && !disposed));
+                                (!requireBarrierFreeAdoption ||
+                                 (!closeAllBarrier && !hasEarlierDestructiveOperation && !disposed));
                 operation = new QueuedUIOperation(
                     ++nextOperationId,
                     action,
@@ -195,6 +198,38 @@ namespace Core.Runtime
             }
 
             return false;
+        }
+
+        private bool HasDestructiveOperationLocked(Type targetType)
+        {
+            if (IsDestructiveOperation(current, targetType))
+            {
+                return true;
+            }
+
+            foreach (var operation in operations)
+            {
+                if (operation.State == QueuedUIOperationState.Pending &&
+                    IsDestructiveOperation(operation, targetType))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsDestructiveOperation(QueuedUIOperation operation, Type targetType)
+        {
+            if (operation == null)
+            {
+                return false;
+            }
+
+            return operation.Action == UINavigationAction.CloseAll ||
+                   operation.Action == UINavigationAction.Back ||
+                   operation.Action == UINavigationAction.Replace ||
+                   (operation.Action == UINavigationAction.Close && operation.TargetType == targetType);
         }
 
         public void Dispose()

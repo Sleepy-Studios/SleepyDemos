@@ -87,7 +87,7 @@ Loading --加载失败或取消--> Faulted
 - 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
 - `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
 - 旧同步 `Show<T>()` 只在 Unity 主线程锁外准备 candidate，再由 Coordinator 原子接纳；后台线程调用不会构造 View 或访问 Unity 对象，只排队并返回 null，实际实例由 executor 回到主线程后创建。
-- CloseAll 处于 current 或 pending 时，同步 `Show<T>()` 及其数据泛型重载仍会把 Show 排在 barrier 后，但为避免返回即将销毁的旧实例会安全降级返回 null；数据也只在 operation 实际执行时应用，后续通过 `Get<T>()` 可取得实际新实例。
+- 更早的同类型 Close 或任意 Back、Replace、CloseAll 处于 current/pending 时，同步 `Show<T>()` 及数据泛型重载不会接纳可能被销毁的 candidate，而是返回 null 并继续把 Show 排在 FIFO 后执行；执行时会清理 Faulted/Destroying/Destroyed 旧目标并取得可用实例。已发现 CloseAll barrier 时还会跳过 candidate 构造快速路径。
 - 数据泛型 Show/Preload 把 `SetData` 作为 operation 配置载荷，在轮到该 operation 时才应用，避免后一次调用提前覆盖前一次仍在加载的 View 数据。
 - `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
 - Replace 收到 Modal 或 Widget 时返回 Failed；只有本次 operation 新建的目标才会销毁并移出 Cache，已显示或已预加载的既有实例、栈、Mask 和名称保持不变。

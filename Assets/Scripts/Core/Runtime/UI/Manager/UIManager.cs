@@ -132,8 +132,9 @@ namespace Core.Runtime
 
         private View Show(Type type, bool hidePrevious, Action<View> configure)
         {
+            var closeAllBarrierBeforeCreation = navigationCoordinator.HasCloseAllBarrier;
             var created = false;
-            var candidate = PlayerLoopHelper.IsMainThread
+            var candidate = PlayerLoopHelper.IsMainThread && !closeAllBarrierBeforeCreation
                 ? cacheStack.GetOrCreateView(type, out created)
                 : null;
             var task = navigationCoordinator.EnqueueLegacyShow(
@@ -265,17 +266,30 @@ namespace Core.Runtime
             bool replace,
             CancellationToken cancellationToken)
         {
-            var snapshot = layerStack.Capture();
-            var presentation = CapturePresentation();
-            var legacyAnimations = new UILegacyAnimationTransaction();
             var created = false;
-            var view = operation.TargetView ??
-                       cacheStack.GetOrCreateView(operation.TargetType, out created);
+            var view = operation.TargetView;
+            if (view != null &&
+                (view.State == ViewState.Destroying || view.State == ViewState.Destroyed))
+            {
+                cacheStack.Remove(view);
+                view = null;
+            }
+            else if (view?.State == ViewState.Faulted)
+            {
+                await TryCleanupAndRemoveAsync(view);
+                view = null;
+            }
+
+            view ??= cacheStack.GetOrCreateView(operation.TargetType, out created);
             if (view == null)
             {
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, null,
                     new InvalidOperationException($"无法创建 View: {operation.TargetType}"));
             }
+
+            var snapshot = layerStack.Capture();
+            var presentation = CapturePresentation();
+            var legacyAnimations = new UILegacyAnimationTransaction();
 
             if (replace && view.ViewMode != UIViewMode.Page)
             {
