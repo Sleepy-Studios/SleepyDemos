@@ -12,7 +12,7 @@ namespace Core.Runtime
         {
             if (views.TryGetValue(type, out var view))
             {
-                if (view != null && view.State != ViewState.Destroyed && view.State != ViewState.Faulted)
+                if (view != null && view.State != ViewState.Destroyed)
                 {
                     return view;
                 }

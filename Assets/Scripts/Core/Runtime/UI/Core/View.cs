@@ -11,15 +11,20 @@ namespace Core.Runtime
         private IResourceLoader loader;
         private readonly List<IDisposable> bindings = new List<IDisposable>();
         private readonly List<View> subViews = new List<View>();
+        private readonly object loadWaiterGate = new object();
         private UniTask<bool> loadingTask;
         private UniTask destroyingTask;
         private UniTask<Exception> ownedCleanupTask;
         private UniTaskCompletionSource<bool> loadingCompletionSource;
         private UniTaskCompletionSource destroyingCompletionSource;
         private UniTaskCompletionSource<Exception> ownedCleanupCompletionSource;
+        private CancellationTokenSource loadLifetimeCancellation;
         private bool hasLoadingTask;
         private bool hasDestroyingTask;
         private bool hasOwnedCleanupTask;
+        private bool loadOperationCompleted;
+        private bool loadLifetimeCancellationRequested;
+        private int activeLoadWaiters;
         private bool instanceReleased;
         private bool loaderDisposed;
         private bool transitionDisposed;
@@ -78,12 +83,35 @@ namespace Core.Runtime
             return binding;
         }
 
+        /// <summary>
+        /// 注册由当前 View 持有生命周期的子 View；重复注册同一实例会被忽略。
+        /// </summary>
+        /// <param name="view">需要随当前 View 一起销毁的子 View。</param>
+        /// <exception cref="ArgumentException"><paramref name="view"/> 是当前 View 自身。</exception>
+        /// <exception cref="InvalidOperationException">注册后会形成直接或间接所有权环。</exception>
         public void AddSubView(View view)
         {
-            if (view != null && !subViews.Contains(view))
+            if (view == null)
             {
-                subViews.Add(view);
+                return;
             }
+
+            if (ReferenceEquals(view, this))
+            {
+                throw new ArgumentException("View 不能将自身注册为 subView。", nameof(view));
+            }
+
+            if (subViews.Contains(view))
+            {
+                return;
+            }
+
+            if (ContainsSubView(view, this, new HashSet<View>()))
+            {
+                throw new InvalidOperationException("添加 subView 会形成生命周期所有权环。");
+            }
+
+            subViews.Add(view);
         }
 
         /// <summary>
@@ -106,17 +134,16 @@ namespace Core.Runtime
                 return false;
             }
 
-            if (!hasLoadingTask)
+            EnsureLoadOperationStarted(parent);
+            RegisterLoadWaiter();
+            try
             {
-                loadingTask = LoadCoreAsync(parent, cancellationToken).Preserve();
-                loadingCompletionSource = new UniTaskCompletionSource<bool>();
-                hasLoadingTask = true;
-                PublishLoadingResultAsync().Forget();
+                return await loadingCompletionSource.Task.AttachExternalCancellation(cancellationToken);
             }
-
-            var loaded = await loadingCompletionSource.Task;
-            cancellationToken.ThrowIfCancellationRequested();
-            return loaded;
+            finally
+            {
+                UnregisterLoadWaiter();
+            }
         }
 
         /// <summary>
@@ -242,10 +269,12 @@ namespace Core.Runtime
         {
             if (!hasDestroyingTask)
             {
-                destroyingTask = DestroyCoreAsync().Preserve();
-                destroyingCompletionSource = new UniTaskCompletionSource();
+                var completionSource = new UniTaskCompletionSource();
+                destroyingCompletionSource = completionSource;
                 hasDestroyingTask = true;
-                PublishDestroyResultAsync().Forget();
+                var task = DestroyCoreAsync().Preserve();
+                destroyingTask = task;
+                PublishDestroyResultAsync(task, completionSource).Forget();
             }
 
             return destroyingCompletionSource.Task;
@@ -413,7 +442,17 @@ namespace Core.Runtime
             }
 
             State = ViewState.Destroying;
+            CancelLoadLifetime();
             Exception cleanupException = null;
+            try
+            {
+                OnDestroy();
+            }
+            catch (Exception exception)
+            {
+                cleanupException = exception;
+            }
+
             if (hasLoadingTask)
             {
                 try
@@ -431,15 +470,6 @@ namespace Core.Runtime
 
             var ownedCleanupException = await WaitForOwnedCleanupAsync();
             cleanupException ??= ownedCleanupException;
-            try
-            {
-                OnDestroy();
-            }
-            catch (Exception exception)
-            {
-                cleanupException ??= exception;
-            }
-
             State = ViewState.Destroyed;
             if (cleanupException != null)
             {
@@ -486,10 +516,12 @@ namespace Core.Runtime
         {
             if (!hasOwnedCleanupTask)
             {
-                ownedCleanupTask = CleanupOwnedResourcesCoreAsync(instance).Preserve();
-                ownedCleanupCompletionSource = new UniTaskCompletionSource<Exception>();
+                var completionSource = new UniTaskCompletionSource<Exception>();
+                ownedCleanupCompletionSource = completionSource;
                 hasOwnedCleanupTask = true;
-                PublishOwnedCleanupResultAsync().Forget();
+                var task = CleanupOwnedResourcesCoreAsync(instance).Preserve();
+                ownedCleanupTask = task;
+                PublishOwnedCleanupResultAsync(task, completionSource).Forget();
             }
 
             return ownedCleanupCompletionSource.Task;
@@ -558,49 +590,170 @@ namespace Core.Runtime
             return cleanupException;
         }
 
-        private async UniTask PublishOwnedCleanupResultAsync()
+        private async UniTask PublishOwnedCleanupResultAsync(
+            UniTask<Exception> task,
+            UniTaskCompletionSource<Exception> completionSource)
         {
             try
             {
-                ownedCleanupCompletionSource.TrySetResult(await ownedCleanupTask);
+                completionSource.TrySetResult(await task);
             }
             catch (Exception exception)
             {
-                ownedCleanupCompletionSource.TrySetException(exception);
+                completionSource.TrySetException(exception);
             }
         }
 
-        private async UniTask PublishLoadingResultAsync()
+        private async UniTask PublishLoadingResultAsync(
+            UniTask<bool> task,
+            UniTaskCompletionSource<bool> completionSource,
+            CancellationTokenSource lifetimeCancellation)
         {
             try
             {
-                loadingCompletionSource.TrySetResult(await loadingTask);
+                var result = await task;
+                MarkLoadOperationCompleted();
+                completionSource.TrySetResult(result);
             }
             catch (OperationCanceledException exception)
             {
-                loadingCompletionSource.TrySetCanceled(exception.CancellationToken);
+                MarkLoadOperationCompleted();
+                completionSource.TrySetCanceled(exception.CancellationToken);
             }
             catch (Exception exception)
             {
-                loadingCompletionSource.TrySetException(exception);
+                MarkLoadOperationCompleted();
+                completionSource.TrySetException(exception);
+            }
+            finally
+            {
+                lifetimeCancellation.Dispose();
             }
         }
 
-        private async UniTask PublishDestroyResultAsync()
+        private async UniTask PublishDestroyResultAsync(
+            UniTask task,
+            UniTaskCompletionSource completionSource)
         {
             try
             {
-                await destroyingTask;
-                destroyingCompletionSource.TrySetResult();
+                await task;
+                completionSource.TrySetResult();
             }
             catch (OperationCanceledException exception)
             {
-                destroyingCompletionSource.TrySetCanceled(exception.CancellationToken);
+                completionSource.TrySetCanceled(exception.CancellationToken);
             }
             catch (Exception exception)
             {
-                destroyingCompletionSource.TrySetException(exception);
+                completionSource.TrySetException(exception);
             }
+        }
+
+        private void EnsureLoadOperationStarted(Transform parent)
+        {
+            if (hasLoadingTask)
+            {
+                return;
+            }
+
+            var completionSource = new UniTaskCompletionSource<bool>();
+            var lifetimeCancellation = new CancellationTokenSource();
+            loadingCompletionSource = completionSource;
+            loadLifetimeCancellation = lifetimeCancellation;
+            hasLoadingTask = true;
+            var task = LoadCoreAsync(parent, lifetimeCancellation.Token).Preserve();
+            loadingTask = task;
+            PublishLoadingResultAsync(task, completionSource, lifetimeCancellation).Forget();
+        }
+
+        private void RegisterLoadWaiter()
+        {
+            lock (loadWaiterGate)
+            {
+                activeLoadWaiters++;
+            }
+        }
+
+        private void UnregisterLoadWaiter()
+        {
+            CancellationTokenSource cancellationToSignal = null;
+            lock (loadWaiterGate)
+            {
+                activeLoadWaiters--;
+                if (activeLoadWaiters == 0 &&
+                    !loadOperationCompleted &&
+                    !loadLifetimeCancellationRequested)
+                {
+                    loadLifetimeCancellationRequested = true;
+                    cancellationToSignal = loadLifetimeCancellation;
+                }
+            }
+
+            SignalLoadCancellation(cancellationToSignal);
+        }
+
+        private void CancelLoadLifetime()
+        {
+            CancellationTokenSource cancellationToSignal = null;
+            lock (loadWaiterGate)
+            {
+                if (!loadOperationCompleted && !loadLifetimeCancellationRequested)
+                {
+                    loadLifetimeCancellationRequested = true;
+                    cancellationToSignal = loadLifetimeCancellation;
+                }
+            }
+
+            SignalLoadCancellation(cancellationToSignal);
+        }
+
+        private void MarkLoadOperationCompleted()
+        {
+            lock (loadWaiterGate)
+            {
+                loadOperationCompleted = true;
+            }
+        }
+
+        private static void SignalLoadCancellation(CancellationTokenSource cancellation)
+        {
+            if (cancellation == null)
+            {
+                return;
+            }
+
+            try
+            {
+                cancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Publisher 已完成并释放生命周期 CTS 时，无需再次发送取消信号。
+            }
+        }
+
+        private static bool ContainsSubView(View root, View target, HashSet<View> visited)
+        {
+            if (ReferenceEquals(root, target))
+            {
+                return true;
+            }
+
+            if (!visited.Add(root))
+            {
+                return false;
+            }
+
+            foreach (var child in root.subViews)
+            {
+                if (child != null && ContainsSubView(child, target, visited))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void DisposeTransitionOnce()

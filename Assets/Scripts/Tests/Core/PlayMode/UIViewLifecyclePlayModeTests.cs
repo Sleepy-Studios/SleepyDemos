@@ -61,6 +61,32 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator LoadAsync_WhenOnBeforeInitReenters_ReusesSingleOperation()
+        {
+            var events = new List<string>();
+            var root = CreateObject("ReentrantLoadView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { AsyncResult = root };
+            var transition = new FakeTransition(events);
+            var view = new ReentrantLoadView(loader, transition, events, parent.transform);
+
+            bool loaded = false;
+            yield return CaptureResult(
+                view.LoadAsync(parent.transform, CancellationToken.None),
+                result => loaded = result).ToCoroutine();
+            bool reenteredLoaded = false;
+            yield return CaptureResult(
+                view.ReenteredLoad,
+                result => reenteredLoaded = result).ToCoroutine();
+
+            Assert.That(loaded, Is.True);
+            Assert.That(reenteredLoaded, Is.True);
+            Assert.That(loader.InstantiateAsyncCount, Is.EqualTo(1));
+            Assert.That(transition.InitializeCount, Is.EqualTo(1));
+            yield return view.DestroyAsync().ToCoroutine();
+        }
+
+        [UnityTest]
         public IEnumerator LoadAsync_WhenResourceIsNull_ReturnsFalseAndDisposesLoader()
         {
             var loader = new FakeResourceLoader { AsyncResult = null };
@@ -222,9 +248,11 @@ namespace Core.Tests.UI
             Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
             Assert.That(loader.DisposeCount, Is.EqualTo(1));
 
+            var sameFaultedView = cache.GetOrCreateView<InitializationFailureView>();
+            Assert.That(sameFaultedView, Is.SameAs(view));
+            yield return view.DestroyAsync().ToCoroutine();
             var replacement = cache.GetOrCreateView<InitializationFailureView>();
             Assert.That(replacement, Is.Not.SameAs(view));
-            yield return view.DestroyAsync().ToCoroutine();
             Assert.That(binding.DisposeCount, Is.EqualTo(1));
             Assert.That(transition.DisposeCount, Is.EqualTo(1));
             Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
@@ -249,7 +277,8 @@ namespace Core.Tests.UI
             childView.AddBinding(childBinding);
             var childParent = CreateObject("DelayedChildParent");
             var childRoot = CreateObject("DelayedOwnedChild");
-            var childLoad = childView.LoadAsync(childParent.transform, CancellationToken.None);
+            var childLoad = CaptureException(
+                childView.LoadAsync(childParent.transform, CancellationToken.None)).Preserve();
             parentView.Configure(parentLoader, parentTransition, parentBinding, childView);
 
             Exception actual = null;
@@ -268,7 +297,8 @@ namespace Core.Tests.UI
             Assert.That(destroy.Status, Is.EqualTo(UniTaskStatus.Pending));
 
             childLoader.CompleteAsync(childRoot);
-            yield return childLoad.ToCoroutine();
+            Exception childLoadException = null;
+            yield return CaptureResult(childLoad, result => childLoadException = result).ToCoroutine();
             yield return destroy.ToCoroutine();
             yield return null;
 
@@ -279,10 +309,45 @@ namespace Core.Tests.UI
             Assert.That(parentLoader.ReleaseInstanceCount, Is.EqualTo(1));
             Assert.That(parentLoader.DisposeCount, Is.EqualTo(1));
             Assert.That(childView.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(childLoadException, Is.TypeOf<OperationCanceledException>());
             Assert.That(childBinding.DisposeCount, Is.EqualTo(1));
             Assert.That(childTransition.InitializeCount, Is.EqualTo(0));
             Assert.That(childLoader.ReleaseInstanceCount, Is.EqualTo(1));
             Assert.That(childLoader.DisposeCount, Is.EqualTo(1));
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [UnityTest]
+        public IEnumerator InitWithGameObject_WhenBindingReentersDestroy_ReusesPublishedCleanupLatch()
+        {
+            var view = new InitializationFailureView();
+            var root = CreateObject("SynchronousCleanupReentryView");
+            var loader = new FakeResourceLoader();
+            var transition = new FakeTransition(new List<string>());
+            var binding = new ReentrantDestroyBinding(view);
+            var expected = new InvalidOperationException("Synchronous cleanup reentry");
+            transition.InitializeException = expected;
+            view.Configure(loader, transition, binding, null);
+
+            Exception actual = null;
+            try
+            {
+                view.InitWithGameObject(root);
+            }
+            catch (Exception exception)
+            {
+                actual = exception;
+            }
+
+            Assert.That(actual, Is.SameAs(expected));
+            yield return binding.ReenteredDestroy.ToCoroutine();
+            yield return null;
+
+            Assert.That(binding.DisposeCount, Is.EqualTo(1));
+            Assert.That(view.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(transition.DisposeCount, Is.EqualTo(1));
+            Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(loader.DisposeCount, Is.EqualTo(1));
             LogAssert.NoUnexpectedReceived();
         }
 
@@ -302,7 +367,8 @@ namespace Core.Tests.UI
             var childTransition = new FakeTransition(childEvents);
             var childView = new FakeView(childLoader, childTransition, childEvents);
             var childRoot = CreateObject("DelayedChildView");
-            var childLoad = childView.LoadAsync(parent.transform, CancellationToken.None);
+            var childLoad = CaptureException(
+                childView.LoadAsync(parent.transform, CancellationToken.None)).Preserve();
             view.AddSubView(childView);
 
             var first = view.DestroyAsync();
@@ -311,7 +377,8 @@ namespace Core.Tests.UI
             Assert.That(second.Status, Is.EqualTo(UniTaskStatus.Pending));
 
             childLoader.CompleteAsync(childRoot);
-            yield return childLoad.ToCoroutine();
+            Exception childLoadException = null;
+            yield return CaptureResult(childLoad, result => childLoadException = result).ToCoroutine();
             yield return UniTask.WhenAll(first, second).ToCoroutine();
             yield return view.DestroyAsync().ToCoroutine();
 
@@ -320,9 +387,33 @@ namespace Core.Tests.UI
             Assert.That(loader.DisposeCount, Is.EqualTo(1));
             Assert.That(transition.DisposeCount, Is.EqualTo(1));
             Assert.That(childView.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(childLoadException, Is.TypeOf<OperationCanceledException>());
             Assert.That(childLoader.ReleaseInstanceCount, Is.EqualTo(1));
             Assert.That(childLoader.DisposeCount, Is.EqualTo(1));
             Assert.That(childTransition.InitializeCount, Is.EqualTo(0));
+        }
+
+        [UnityTest]
+        public IEnumerator DestroyAsync_WhenOnDestroyReenters_ReusesLatchAndKeepsLegacyHookOrder()
+        {
+            var events = new List<string>();
+            var root = CreateObject("ReentrantDestroyView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { AsyncResult = root };
+            var transition = new FakeTransition(events);
+            var view = new ReentrantDestroyView(loader, transition, events);
+            yield return view.LoadAsync(parent.transform, CancellationToken.None).ToCoroutine();
+
+            yield return view.DestroyAsync().ToCoroutine();
+            yield return view.ReenteredDestroy.ToCoroutine();
+
+            Assert.That(view.OnDestroyCount, Is.EqualTo(1));
+            Assert.That(view.HadOwnedResourcesDuringOnDestroy, Is.True);
+            Assert.That(view.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(loader.DisposeCount, Is.EqualTo(1));
+            Assert.That(transition.DisposeCount, Is.EqualTo(1));
+            LogAssert.NoUnexpectedReceived();
         }
 
         [UnityTest]
@@ -339,15 +430,56 @@ namespace Core.Tests.UI
             var exceptionTask = CaptureException(
                 InvokeLoadAsync(view, parent.transform, cancellation.Token)).Preserve();
             cancellation.Cancel();
+            yield return null;
+            var canceledPromptly = exceptionTask.Status == UniTaskStatus.Succeeded;
             loader.CompleteAsync(root);
             Exception exception = null;
             yield return CaptureResult(exceptionTask, result => exception = result).ToCoroutine();
+            yield return null;
 
+            Assert.That(canceledPromptly, Is.True);
             Assert.That(exception, Is.TypeOf<OperationCanceledException>());
             Assert.That(view.State, Is.EqualTo(ViewState.Faulted));
             Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
             Assert.That(loader.DisposeCount, Is.EqualTo(1));
             Assert.That(transition.InitializeCount, Is.EqualTo(0));
+        }
+
+        [UnityTest]
+        public IEnumerator LoadAsync_WhenOneOfTwoWaitersCancels_OtherWaiterStillCompletesSharedLoad()
+        {
+            var events = new List<string>();
+            var root = CreateObject("SharedLoadView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { DelayAsyncResult = true };
+            var transition = new FakeTransition(events);
+            var view = new FakeView(loader, transition, events);
+            using var firstCancellation = new CancellationTokenSource();
+
+            var first = CaptureException(
+                view.LoadAsync(parent.transform, firstCancellation.Token)).Preserve();
+            var second = CaptureException(
+                view.LoadAsync(parent.transform, CancellationToken.None)).Preserve();
+            firstCancellation.Cancel();
+            yield return null;
+
+            var firstCanceledPromptly = first.Status == UniTaskStatus.Succeeded;
+            var secondWasPending = second.Status == UniTaskStatus.Pending;
+            loader.CompleteAsync(root);
+            Exception firstException = null;
+            yield return CaptureResult(first, result => firstException = result).ToCoroutine();
+            Exception secondException = null;
+            yield return CaptureResult(second, result => secondException = result).ToCoroutine();
+
+            Assert.That(firstCanceledPromptly, Is.True);
+            Assert.That(secondWasPending, Is.True);
+            Assert.That(firstException, Is.TypeOf<OperationCanceledException>());
+            Assert.That(secondException, Is.Null);
+            Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
+            Assert.That(loader.InstantiateAsyncCount, Is.EqualTo(1));
+            Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(0));
+            Assert.That(loader.DisposeCount, Is.EqualTo(0));
+            yield return view.DestroyAsync().ToCoroutine();
         }
 
         [UnityTest]
@@ -364,10 +496,53 @@ namespace Core.Tests.UI
             replacementAfterDestroy.Loader = loader;
             var parent = CreateObject("ViewParent");
             yield return InvokeLoadAsync(replacementAfterDestroy, parent.transform, CancellationToken.None).ToCoroutine();
-            var replacementAfterFault = cache.GetOrCreateView<CacheTestView>();
+            var sameFaultedView = cache.GetOrCreateView<CacheTestView>();
 
-            Assert.That(replacementAfterFault, Is.Not.SameAs(replacementAfterDestroy));
-            Assert.That(replacementAfterFault.State, Is.EqualTo(ViewState.Created));
+            Assert.That(sameFaultedView, Is.SameAs(replacementAfterDestroy));
+            yield return replacementAfterDestroy.DestroyAsync().ToCoroutine();
+            var replacementAfterFaultDestroy = cache.GetOrCreateView<CacheTestView>();
+            Assert.That(replacementAfterFaultDestroy, Is.Not.SameAs(replacementAfterDestroy));
+            Assert.That(replacementAfterFaultDestroy.State, Is.EqualTo(ViewState.Created));
+        }
+
+        [Test]
+        public void AddSubView_WhenAddingSelf_ThrowsArgumentException()
+        {
+            var view = new CacheTestView();
+
+            Assert.Throws<ArgumentException>(() => view.AddSubView(view));
+        }
+
+        [Test]
+        public void AddSubView_WhenAddingTwoNodeCycle_ThrowsAndDestroyCompletes()
+        {
+            var first = new CacheTestView();
+            var second = new CacheTestView();
+            first.AddSubView(second);
+
+            Assert.Throws<InvalidOperationException>(() => second.AddSubView(first));
+            var destroy = first.DestroyAsync();
+            Assert.That(destroy.Status, Is.EqualTo(UniTaskStatus.Succeeded));
+            Assert.That(first.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(second.State, Is.EqualTo(ViewState.Destroyed));
+        }
+
+        [Test]
+        public void AddSubView_WhenAddingThreeNodeCycle_ThrowsAndDuplicateRemainsIdempotent()
+        {
+            var first = new CacheTestView();
+            var second = new CacheTestView();
+            var third = new CacheTestView();
+            first.AddSubView(second);
+            first.AddSubView(second);
+            second.AddSubView(third);
+
+            Assert.Throws<InvalidOperationException>(() => third.AddSubView(first));
+            var destroy = first.DestroyAsync();
+            Assert.That(destroy.Status, Is.EqualTo(UniTaskStatus.Succeeded));
+            Assert.That(first.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(second.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(third.State, Is.EqualTo(ViewState.Destroyed));
         }
 
         private GameObject CreateObject(string name)
@@ -442,7 +617,7 @@ namespace Core.Tests.UI
             capture(await task);
         }
 
-        private sealed class FakeView : View
+        private class FakeView : View
         {
             private readonly IUITransition transition;
             private readonly List<string> events;
@@ -492,6 +667,67 @@ namespace Core.Tests.UI
             }
         }
 
+        private sealed class ReentrantLoadView : FakeView
+        {
+            private readonly Transform parent;
+            private bool reentered;
+
+            public ReentrantLoadView(
+                IResourceLoader loader,
+                IUITransition transition,
+                List<string> events,
+                Transform parent)
+                : base(loader, transition, events)
+            {
+                this.parent = parent;
+            }
+
+            public UniTask<bool> ReenteredLoad { get; private set; }
+
+            public override void OnBeforeInit()
+            {
+                base.OnBeforeInit();
+                if (reentered)
+                {
+                    return;
+                }
+
+                reentered = true;
+                ReenteredLoad = LoadAsync(parent, CancellationToken.None);
+            }
+        }
+
+        private sealed class ReentrantDestroyView : FakeView
+        {
+            private bool reentered;
+
+            public ReentrantDestroyView(
+                IResourceLoader loader,
+                IUITransition transition,
+                List<string> events)
+                : base(loader, transition, events)
+            {
+            }
+
+            public int OnDestroyCount { get; private set; }
+            public bool HadOwnedResourcesDuringOnDestroy { get; private set; }
+            public UniTask ReenteredDestroy { get; private set; }
+
+            protected override void OnDestroy()
+            {
+                OnDestroyCount++;
+                HadOwnedResourcesDuringOnDestroy = gameObject != null && UITransition != null;
+                base.OnDestroy();
+                if (reentered)
+                {
+                    return;
+                }
+
+                reentered = true;
+                ReenteredDestroy = DestroyAsync();
+            }
+        }
+
         private sealed class CacheTestView : View
         {
             public override string Address => "Fake/CacheView";
@@ -536,6 +772,25 @@ namespace Core.Tests.UI
             public void Dispose()
             {
                 DisposeCount++;
+            }
+        }
+
+        private sealed class ReentrantDestroyBinding : IDisposable
+        {
+            private readonly View owner;
+
+            public ReentrantDestroyBinding(View owner)
+            {
+                this.owner = owner;
+            }
+
+            public int DisposeCount { get; private set; }
+            public UniTask ReenteredDestroy { get; private set; }
+
+            public void Dispose()
+            {
+                DisposeCount++;
+                ReenteredDestroy = owner.DestroyAsync();
             }
         }
 

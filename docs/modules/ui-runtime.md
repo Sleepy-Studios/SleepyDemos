@@ -35,17 +35,20 @@ Loading --加载失败或取消--> Faulted
 ```
 
 - `LoadAsync` 在调用 `OnBeforeInit()` 前进入 `Loading`。资源加载成功后先进入 `LoadedHidden`，再初始化组件与 Transition；根对象保持 inactive。
+- 同一 View 的并发 `LoadAsync` 只启动一次底层加载。每个调用者独立响应自己的取消令牌；取消单个 waiter 不影响其它 waiter，全部 waiter 取消或 View 开始销毁时才取消内部加载生命周期并回收晚到实例。
 - `EnterAsync` 先进入 `Entering`，激活根对象并调用 `OnShow()`；过渡完成后进入 `Visible`。
 - `ExitAsync` 先进入 `Exiting`，完成退出过渡后关闭根对象并调用 `OnHide()`；最终回到 `LoadedHidden`。
 - Enter/Exit 的非取消生命周期异常会进入 `Faulted` 并原样传播；取消仍保留当前进行态，由后续导航 Coordinator 决定完成到进入端还是退出端。
 - `DestroyAsync` 是幂等且可并发等待的唯一清理入口。加载中的销毁会等待同一加载结果，并回收晚到实例；subViews、bindings、Transition、资源实例和 Loader 各自最多清理一次。
 - 同步 `Init` / `InitWithGameObject` 失败时会启动唯一的 owned-resource cleanup operation；后续 `DestroyAsync` 等待同一 operation，不会并发重复枚举或释放资源。
+- `AddSubView()` 只接受无环的生命周期所有权关系：拒绝持有自身，也拒绝直接或间接祖先环；重复添加同一合法 child 保持幂等。
 - 地址为空、加载结果为 null 或非取消异常会进入 `Faulted` 并释放 Loader。取消会清理已返回的晚到实例并继续抛出 `OperationCanceledException`，由导航协调层决定回滚结果。
 - `Init`、`InitAsync`、`InitWithGameObject`、`Show`、`Hide`、`Destroy` 暂时保留为旧调用兼容外观，底层复用同一生命周期和清理路径，不构成第二套状态机。
 
 ## 导航状态与表现边界
 
 - `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
+- `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 仍可能被 UIStack 引用并持有根对象、Transition 或 Loader，必须先由 UIManager 或后续任务 5 Coordinator 移栈并执行 `DestroyAsync` / `Remove`；Cache 不负责异步销毁，也不会静默换新。
 - `UIManager` 当前负责同步兼容入口，以及 Mask、sibling、View 显示隐藏等表现副作用；清栈时由 `UIManager` 同步收口 View、缓存、状态栈和 Mask。
 - 当前 `NewStack` / `RemoveStack` 等命名栈能力属于兼容层。后续任务 5 将由导航协调器替换这层同步兼容实现；在此之前不要把表现副作用重新塞回 `UIStack`。
 
@@ -131,7 +134,7 @@ Loading --加载失败或取消--> Faulted
 - `Core.Tests.UI.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
 - `Core.Tests.UI.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
-- `Core.Tests.UI.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、取消、加载中销毁、稳定 Transition、幂等释放和不可复用缓存替换。
+- `Core.Tests.UI.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
 - `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。
