@@ -89,7 +89,7 @@ Loading --加载失败或取消--> Faulted
 - CloseAll 处于 current 或 pending 时，同步 `Show<T>()` 及其数据泛型重载仍会把 Show 排在 barrier 后，但为避免返回即将销毁的旧实例会安全降级返回 null；数据也只在 operation 实际执行时应用，后续通过 `Get<T>()` 可取得实际新实例。
 - 数据泛型 Show/Preload 把 `SetData` 作为 operation 配置载荷，在轮到该 operation 时才应用，避免后一次调用提前覆盖前一次仍在加载的 View 数据。
 - `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
-- Replace 收到 Modal 或 Widget 时返回 Failed，并销毁、移栈和移除本次创建的目标实例，不在 Cache 留下半成品。
+- Replace 收到 Modal 或 Widget 时返回 Failed；只有本次 operation 新建的目标才会销毁并移出 Cache，已显示或已预加载的既有实例、栈、Mask 和名称保持不变。
 
 ## 渲染结构与生命周期
 

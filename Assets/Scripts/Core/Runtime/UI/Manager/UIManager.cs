@@ -261,7 +261,9 @@ namespace Core.Runtime
         {
             var snapshot = layerStack.Capture();
             var presentation = CapturePresentation();
-            var view = operation.TargetView ?? cacheStack.GetOrCreateView(operation.TargetType);
+            var created = false;
+            var view = operation.TargetView ??
+                       cacheStack.GetOrCreateView(operation.TargetType, out created);
             if (view == null)
             {
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, null,
@@ -271,7 +273,11 @@ namespace Core.Runtime
             if (replace && view.ViewMode != UIViewMode.Page)
             {
                 var exception = new InvalidOperationException("Replace 首版仅支持 Page View。");
-                await TryCleanupAndRemoveAsync(view);
+                if (created)
+                {
+                    await TryCleanupAndRemoveAsync(view);
+                }
+
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
 

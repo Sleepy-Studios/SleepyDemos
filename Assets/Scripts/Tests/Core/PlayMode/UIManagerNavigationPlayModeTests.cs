@@ -808,6 +808,44 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator ReplaceExistingModalFailure_PreservesInstanceStackAndPresentation()
+        {
+            TestViewRegistry.Register<FirstPage>();
+            TestViewRegistry.Register<MaskedModal>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.ShowAsync<MaskedModal>(), _ => { });
+            var page = UIManager.Instance.Get<FirstPage>();
+            var modal = UIManager.Instance.Get<MaskedModal>();
+            var pageState = page.State;
+            var mask = UIRootManager.Instance.Mask;
+            var button = mask.GetComponent<Button>();
+            mask.transform.localScale = new Vector3(0.2f, 0.3f, 0.4f);
+            var expectedMaskParent = mask.transform.parent;
+            var expectedMaskSibling = mask.transform.GetSiblingIndex();
+            var expectedMaskScale = mask.transform.localScale;
+            var expectedInteractable = button.interactable;
+            var expectedCurrentName = UIManager.Instance.CurrentUIName;
+            var expectedLastName = UIManager.Instance.LastCloseName;
+
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.ReplaceAsync<MaskedModal>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.View, Is.SameAs(modal));
+            Assert.That(UIManager.Instance.Get<MaskedModal>(), Is.SameAs(modal));
+            Assert.That(modal.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(modal));
+            Assert.That(UIManager.Instance.StackCount, Is.EqualTo(2));
+            Assert.That(page.State, Is.EqualTo(pageState));
+            Assert.That(UIManager.Instance.CurrentUIName, Is.EqualTo(expectedCurrentName));
+            Assert.That(UIManager.Instance.LastCloseName, Is.EqualTo(expectedLastName));
+            Assert.That(mask.transform.parent, Is.SameAs(expectedMaskParent));
+            Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(expectedMaskSibling));
+            Assert.That(mask.transform.localScale, Is.EqualTo(expectedMaskScale));
+            Assert.That(button.interactable, Is.EqualTo(expectedInteractable));
+        }
+
+        [UnityTest]
         public IEnumerator ReplaceWidgetFailure_DestroysAndRemovesCreatedTarget()
         {
             TestViewRegistry.Register<FirstPage>();
@@ -822,6 +860,32 @@ namespace Core.Tests.UI
             Assert.That(result.View.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(UIManager.Instance.Get<TestWidget>(), Is.Null);
             Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(old));
+        }
+
+        [UnityTest]
+        public IEnumerator ReplacePreloadedWidgetFailure_PreservesExistingHiddenInstance()
+        {
+            TestViewRegistry.Register<FirstPage>();
+            TestViewRegistry.Register<TestWidget>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return UIManager.Instance.Preload<TestWidget>().ToCoroutine();
+            var page = UIManager.Instance.Get<FirstPage>();
+            var widget = UIManager.Instance.Get<TestWidget>();
+            var expectedCurrentName = UIManager.Instance.CurrentUIName;
+            var expectedLastName = UIManager.Instance.LastCloseName;
+
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.ReplaceAsync<TestWidget>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.View, Is.SameAs(widget));
+            Assert.That(UIManager.Instance.Get<TestWidget>(), Is.SameAs(widget));
+            Assert.That(widget.State, Is.EqualTo(ViewState.LoadedHidden));
+            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(page));
+            Assert.That(page.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
+            Assert.That(UIManager.Instance.CurrentUIName, Is.EqualTo(expectedCurrentName));
+            Assert.That(UIManager.Instance.LastCloseName, Is.EqualTo(expectedLastName));
         }
 
         [UnityTest]
@@ -1054,6 +1118,12 @@ namespace Core.Tests.UI
         private sealed class TestModal : NavigationTestPage
         {
             public override UILayer Level => UILayer.Pop;
+        }
+
+        private sealed class MaskedModal : NavigationTestPage
+        {
+            public override UILayer Level => UILayer.Pop;
+            public override MaskType Mask => MaskType.CloseRaycast;
         }
 
         private sealed class TestWidget : NavigationTestPage

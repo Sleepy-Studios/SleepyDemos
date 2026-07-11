@@ -11,12 +11,24 @@ namespace Core.Runtime
 
         public View GetOrCreateView(Type type)
         {
+            return GetOrCreateView(type, out _);
+        }
+
+        /// <summary>
+        /// 获取指定类型的缓存 View；不存在可复用实例时创建并缓存新实例。
+        /// </summary>
+        /// <param name="type">目标 View 类型。</param>
+        /// <param name="created">返回 true 表示本次调用创建了新实例。</param>
+        /// <returns>缓存或新建的 View；类型无法实例化为 View 时返回 null。</returns>
+        public View GetOrCreateView(Type type, out bool created)
+        {
             lock (stateGate)
             {
                 if (views.TryGetValue(type, out var view))
                 {
                     if (view != null && view.State != ViewState.Destroyed)
                     {
+                        created = false;
                         return view;
                     }
 
@@ -24,6 +36,7 @@ namespace Core.Runtime
                 }
 
                 view = Activator.CreateInstance(type) as View;
+                created = view != null;
                 if (view != null)
                 {
                     views[type] = view;
