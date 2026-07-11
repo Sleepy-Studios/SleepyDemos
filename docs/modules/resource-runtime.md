@@ -94,7 +94,7 @@
 - 有补丁时加载界面能显示下载进度。
 - UI 能通过 loader 正常实例化。
 - 热更新程序集能通过资源服务读取 `TextAsset`。
-- Unity 菜单 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 检查通过。
+- `Core.Tests.Resource.ResourceServiceTests` 全部通过。
 
 ## 相关文档
 
@@ -104,4 +104,4 @@
 - `docs/modules/ui-runtime.md`
 - `docs/modules/hot-update.md`
 - `docs/runbooks/use-resource-loader.md`
-- `docs/runbooks/validate-core-runtime-infrastructure.md`
+- `docs/runbooks/run-unity-tests.md`

@@ -112,6 +112,6 @@ LoopStaggeredGridView_Waterfall.ResetGridViewLayoutParam(
 
 ## 验证
 
-- 运行 `Tools/SleepyDemos/Validate Core Runtime Infrastructure`。
+- 当前没有 LoopScroll 专属自动化测试，不需要因此运行整个 `Core.Tests`。未来补充专属测试后，按 [运行 Unity 自动化测试](./run-unity-tests.md) 只运行对应方法或测试类。
 - PlayMode 下滚动到列表中后段，确认可见项数量稳定。
 - 修改数据后调用 `RefreshCells()`，确认当前可见项刷新但没有大量新对象。

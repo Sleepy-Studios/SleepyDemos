@@ -629,10 +629,9 @@ namespace Core.Editor.HotUpdate
             {
                 foreach (string asmdefPath in Directory.GetFiles(hotfixRoot, "*.asmdef", SearchOption.AllDirectories))
                 {
-                    string assemblyName = ParseAsmdefName(asmdefPath);
-                    if (!string.IsNullOrWhiteSpace(assemblyName))
+                    if (HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
                     {
-                        assemblyNames.Add($"{assemblyName}.dll");
+                        assemblyNames.Add(dllName);
                     }
                 }
             }
@@ -646,9 +645,13 @@ namespace Core.Editor.HotUpdate
                         continue;
                     }
 
-                    string assemblyName = ParseAsmdefName(asmdefPath);
-                    if (string.IsNullOrWhiteSpace(assemblyName) ||
-                        assemblyName.Equals("Core.Runtime", StringComparison.OrdinalIgnoreCase) ||
+                    if (!HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
+                    {
+                        continue;
+                    }
+
+                    string assemblyName = Path.GetFileNameWithoutExtension(dllName);
+                    if (assemblyName.Equals("Core.Runtime", StringComparison.OrdinalIgnoreCase) ||
                         assemblyName.Equals("Core.Editor", StringComparison.OrdinalIgnoreCase))
                     {
                         continue;
@@ -657,7 +660,7 @@ namespace Core.Editor.HotUpdate
                     if (assemblyName.Contains("Hotfix", StringComparison.OrdinalIgnoreCase) ||
                         assemblyName.Contains("HotUpdate", StringComparison.OrdinalIgnoreCase))
                     {
-                        assemblyNames.Add($"{assemblyName}.dll");
+                        assemblyNames.Add(dllName);
                     }
                 }
             }
@@ -668,13 +671,6 @@ namespace Core.Editor.HotUpdate
                 .ToArray();
             EditorUtility.SetDirty(config);
             ShowNotification(new GUIContent($"已自动填写 {config.HotUpdateAssemblies.Length} 个热更 DLL"));
-        }
-
-        private static string ParseAsmdefName(string asmdefPath)
-        {
-            string content = File.ReadAllText(asmdefPath);
-            Match match = Regex.Match(content, "\"name\"\\s*:\\s*\"([^\"]+)\"");
-            return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
         private void ReplaceAssemblies(bool useStrippedAot)

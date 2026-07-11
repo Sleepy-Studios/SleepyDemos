@@ -10,7 +10,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UIManager`：统一打开、关闭、返回、预加载、清栈和栈顶查询入口。
 - `UIStack`：维护普通界面栈、挂件列表、分层数据和遮罩位置。
 - `UICache`：按 View 类型缓存 View 实例。
-- `UIRootManager`：构建 `UIRoot`、UI Camera、EventSystem、层级根节点和遮罩。
+- `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `Components/`：公共基础组件，如 `UITab`、`ViewList`、`UIBtnSwitch`、`UIDropdown`、`UIState`。
 - `Components/LoopScroll/`：独立循环列表模块，提供 `LoopVerticalScrollRect`、`LoopHorizontalScrollRect`、`LoopGridView`、`LoopStaggeredGridView`。
 
@@ -41,6 +41,22 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - 清空所有界面时使用 `CloseAll()`，它会隐藏并销毁当前缓存中的 View，并清空 UI 栈和缓存。
 - `DestroyOnHide` 为 true 且引用计数归零时，View 会在关闭后销毁并释放 loader。
 - 快速重复打开同一界面时，`UIManager` 会防止同一类型重复进入异步打开流程。
+
+## 渲染结构与生命周期
+
+启动阶段由 `UIInitializeSystem` 调用 `UIManager.InitializeAsync()`，再由 `UIRootManager.BuildUIRoot()` 动态创建持久化 UI 环境：
+
+1. 确认项目存在 UI Layer，并让主相机排除该层。
+2. 创建透视 `UICamera`，加入 URP 主相机的 Camera Stack。
+3. 创建 `UIRootCanvas`，统一设置 `ScreenSpaceCamera` 和 `1920×1080` 屏幕适配。
+4. 创建 `Underground/Base/Foreground/Pop/Decorate/Tip` 六个固定子 Canvas。
+5. 在 Pop 层创建遮罩，并确保 EventSystem 存在。
+
+固定层使用 `0/100/150/200/250/300` 的 `sortingOrder`。View 初始化后直接挂到 `Level` 对应的层 Root，通过 sibling 顺序控制同层先后，不再动态添加窗口级 Canvas、Scaler 或 Raycaster。
+
+`BuildUIRoot()` 可以重复调用，但同一运行期只创建一套 Root 和 UI Camera。`CloseAll()` 只清理 View、UI 栈与缓存，不销毁持久化 Root。
+
+完整设计取舍见 [Core UI 渲染设计原则](../architecture/ui-rendering.md)，新增 View 的制作规则见 [接入 Core UI View](../runbooks/create-ui-view.md)。
 
 ## 基础组件验证资源
 
@@ -73,15 +89,13 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - 不要让业务页面直接依赖 YooAssets 句柄或包类型。
 - 新组件优先放在 `Assets/Scripts/Core/Runtime/Components`。
 - 循环列表使用 `Components/LoopScroll/`，`ViewList` 仍只承担有限列表。
+- View Prefab 根节点不得携带 `Canvas`、`CanvasScaler` 或 `GraphicRaycaster`。
+- 只有 Profiler 证明有必要时才增加局部 Sub-Canvas，并保持 `overrideSorting=false`。
 
 ## 验证入口
 
-在 Unity Editor 中可以运行：
-- `Tools/SleepyDemos/Validate Core Runtime Infrastructure`
-- `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs`
+- `Core.Tests.UI.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
+- `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask 和重复初始化。
+- `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
-该菜单会检查基础组件类型是否存在，并扫描 UI/Startup/HotUpdate/Hotfix 外层代码是否混入资源底层类型、旧项目循环列表实现或 fishinggameplay 业务依赖。
-UI Framework Validation 菜单会实例化验证预制体，检查 MvcBind 绑定数量，并覆盖 `UITab`、`UIBtnSwitch`、`UIDropdown`、`ViewTab`、`AccordionTab`、`AccordionViewTab` 的基础交互。
-
-命令行或 CI 可以使用 Unity 参数：
-- `-executeMethod Core.Editor.CoreRuntimeInfrastructureValidator.ValidateForBatchMode`
+统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

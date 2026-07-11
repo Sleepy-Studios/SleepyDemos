@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -5,14 +6,38 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace Core.Runtime
 {
     public sealed class UIRootManager : Singleton<UIRootManager>
     {
+        private readonly struct LayerDefinition
+        {
+            public LayerDefinition(UILayer layer, int sortingOrder, bool enableRaycaster)
+            {
+                Layer = layer;
+                SortingOrder = sortingOrder;
+                EnableRaycaster = enableRaycaster;
+            }
+
+            public UILayer Layer { get; }
+            public int SortingOrder { get; }
+            public bool EnableRaycaster { get; }
+        }
+
+        private static readonly LayerDefinition[] LayerDefinitions =
+        {
+            new LayerDefinition(UILayer.Underground, 0, false),
+            new LayerDefinition(UILayer.Base, 100, true),
+            new LayerDefinition(UILayer.Foreground, 150, true),
+            new LayerDefinition(UILayer.Pop, 200, true),
+            new LayerDefinition(UILayer.Decorate, 250, true),
+            new LayerDefinition(UILayer.Tip, 300, true)
+        };
+
+        private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
         private readonly Dictionary<UILayer, Transform> roots = new Dictionary<UILayer, Transform>();
-        private readonly Vector2 referenceResolution = new Vector2(1920, 1080);
-        private int openOrder;
 
         public Graphic Mask { get; private set; }
         public Camera UICamera { get; private set; }
@@ -25,12 +50,25 @@ namespace Core.Runtime
                 return;
             }
 
-            var rootGo = new GameObject("UIRoot");
+            var uiLayer = LayerMask.NameToLayer("UI");
+            if (uiLayer < 0)
+            {
+                throw new InvalidOperationException("项目缺少 UI Layer，无法初始化 Core UI 运行时。");
+            }
+
+            EnsureCameraStack(uiLayer);
+
+            var rootGo = new GameObject(
+                "UIRootCanvas",
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(CanvasScaler));
+            rootGo.layer = uiLayer;
             Object.DontDestroyOnLoad(rootGo);
             Root = rootGo.transform;
 
-            EnsureCameraStack();
-            CreateLayerRoots();
+            ConfigureRootCanvas(rootGo);
+            CreateLayerRoots(uiLayer);
             CreateMask();
             EnsureEventSystem();
             await UniTask.Yield();
@@ -46,34 +84,25 @@ namespace Core.Runtime
             return roots.TryGetValue(layer, out var root) ? root : Root;
         }
 
-        public void AttachViewCanvas(View view)
+        private void ConfigureRootCanvas(GameObject rootGo)
         {
-            if (view.gameObject == null)
-            {
-                return;
-            }
-
-            var canvas = view.gameObject.GetComponent<Canvas>() ?? view.gameObject.AddComponent<Canvas>();
+            var canvas = rootGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
             canvas.worldCamera = UICamera;
-            canvas.overrideSorting = true;
-            canvas.sortingOrder = (int)view.Level * 100 + ++openOrder * 5;
             canvas.planeDistance = 10f;
+            canvas.additionalShaderChannels =
+                AdditionalCanvasShaderChannels.TexCoord1 |
+                AdditionalCanvasShaderChannels.Normal |
+                AdditionalCanvasShaderChannels.Tangent;
 
-            var scaler = view.gameObject.GetComponent<CanvasScaler>() ?? view.gameObject.AddComponent<CanvasScaler>();
+            var scaler = rootGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = referenceResolution;
+            scaler.referenceResolution = ReferenceResolution;
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-
-            if (view.gameObject.GetComponent<GraphicRaycaster>() == null)
-            {
-                view.gameObject.AddComponent<GraphicRaycaster>();
-            }
-
-            view.OpenOrder = openOrder;
+            scaler.matchWidthOrHeight = 0.5f;
         }
 
-        private void EnsureCameraStack()
+        private void EnsureCameraStack(int uiLayer)
         {
             var mainCamera = Camera.main;
             if (mainCamera == null)
@@ -84,11 +113,10 @@ namespace Core.Runtime
             }
 
             mainCamera.clearFlags = CameraClearFlags.Skybox;
-            mainCamera.cullingMask &= ~(1 << LayerMask.NameToLayer("UI"));
+            mainCamera.cullingMask &= ~(1 << uiLayer);
             var mainData = mainCamera.GetUniversalAdditionalCameraData();
             mainData.renderType = CameraRenderType.Base;
 
-            var uiLayer = LayerMask.NameToLayer("UI");
             var uiGo = new GameObject("UI Camera");
             if (IsTagDefined("UICamera"))
             {
@@ -101,7 +129,7 @@ namespace Core.Runtime
             UICamera.fieldOfView = 60f;
             UICamera.nearClipPlane = 0.01f;
             UICamera.farClipPlane = 100f;
-            UICamera.cullingMask = uiLayer >= 0 ? 1 << uiLayer : -1;
+            UICamera.cullingMask = 1 << uiLayer;
             UICamera.depth = mainCamera.depth + 1;
 
             var uiData = UICamera.GetUniversalAdditionalCameraData();
@@ -130,23 +158,40 @@ namespace Core.Runtime
             }
         }
 
-        private void CreateLayerRoots()
+        private void CreateLayerRoots(int uiLayer)
         {
             roots.Clear();
-            CreateLayerRoot(UILayer.Underground);
-            CreateLayerRoot(UILayer.Base);
-            CreateLayerRoot(UILayer.Foreground);
-            CreateLayerRoot(UILayer.Pop);
-            CreateLayerRoot(UILayer.Decorate);
-            CreateLayerRoot(UILayer.Tip);
+            for (var i = 0; i < LayerDefinitions.Length; i++)
+            {
+                CreateLayerRoot(LayerDefinitions[i], uiLayer);
+            }
         }
 
-        private void CreateLayerRoot(UILayer layer)
+        private void CreateLayerRoot(LayerDefinition definition, int uiLayer)
         {
-            var go = new GameObject(layer.ToString());
-            go.layer = LayerMask.NameToLayer("UI");
-            go.transform.SetParent(Root, false);
-            roots.Add(layer, go.transform);
+            var go = new GameObject(
+                $"{definition.Layer}Layer",
+                typeof(RectTransform),
+                typeof(Canvas));
+            go.layer = uiLayer;
+
+            var rectTransform = go.GetComponent<RectTransform>();
+            rectTransform.SetParent(Root, false);
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+
+            var canvas = go.GetComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = definition.SortingOrder;
+
+            if (definition.EnableRaycaster)
+            {
+                go.AddComponent<GraphicRaycaster>();
+            }
+
+            roots.Add(definition.Layer, rectTransform);
         }
 
         private void CreateMask()

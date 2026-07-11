@@ -17,6 +17,7 @@
 编辑器：
 
 - `Assets/Scripts/Core/Editor/HotUpdate/HotUpdateBuildWindow.cs`
+- `Assets/Scripts/Core/Editor/HotUpdate/HotUpdateAssemblyDefinitionFilter.cs`
 - `Assets/Scripts/Core/Editor/HotUpdate/LocalBundleHttpServer.cs`
 
 配置与资源：
@@ -47,6 +48,8 @@
 
 - Hotfix 业务代码不要直接操作 HybridCLR 或 YooAsset 的底层句柄。
 - 热更程序集列表、AOT 元数据列表优先通过 `HotUpdateConfig` 管理。
+- 自动填写热更程序集时统一过滤 Test Assembly、`.Tests` 后缀和 Editor-only asmdef。
+- 测试 asmdef 禁止放在 Hotfix 目录，统一放到 `Assets/Scripts/Tests`。
 - 热更 DLL 等构建产物位于 `LoadResources/Codes/**`，资源命名校验会跳过该目录。
 - 修改热更构建窗口、热更配置字段、启动期热更装配顺序时，必须同步更新本文和 [启动与热更流程](../architecture/startup-flow.md)。
 
@@ -55,5 +58,7 @@
 - Editor 中能打开 `Tools/UI Framework/HotUpdate Build`。
 - 启动时 `HybridMetadataSystem` 和 `HotUpdateAssemblySystem` 不报错。
 - 热更程序集加载后，Hotfix View 能被 `UITypeReflection` 扫描到。
+- `Core.Tests.HotUpdate.HotUpdateAssemblyDefinitionFilterTests` 和 `Core.Tests.Assemblies.TestAssemblyBoundaryTests` 全部通过。
+- `HotUpdateConfig.HotUpdateAssemblies` 当前只包含 `Hotfix.dll`，热更代码目录不存在 `.Tests.dll`。
 - 如果使用本地 Mock Server，资源包 URL 能访问并被 YooAsset 正常下载。
 

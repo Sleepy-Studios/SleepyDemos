@@ -69,8 +69,7 @@
 
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
-| `Tools/SleepyDemos/Validate Core Runtime Infrastructure` | 检查 Core 资源/UI 分层、禁止引用、文档入口等 | `CoreRuntimeInfrastructureValidator.cs` |
-| — | Editor / 命令行 / UnitySkills 验证步骤 | [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md) |
+| — | Unity Test Runner / UnitySkills 自动化验证步骤 | [运行 Unity 自动化测试](./run-unity-tests.md) |
 
 ### 6. Hot Reload 辅助（项目封装）
 
@@ -127,8 +126,8 @@
 ### UnitySkills 常用入口
 
 - **启动服务**：`Window > UnitySkills > Start Server`
-- **健康检查**：`http://localhost:8090/health` 返回 `ok`
-- **示例**：对 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 的 REST 调用见 [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md#unityskills-自动化验证)
+- **健康检查**：从 registry 获取当前端口后调用 `/health`，核对项目名、Unity 版本和实例 ID
+- **示例**：测试发现、运行与轮询见 [运行 Unity 自动化测试](./run-unity-tests.md)
 
 ---
 
@@ -138,7 +137,7 @@
 |------|------|
 | [新增 Demo](./add-demo.md) | 新建 Demo 资源与 Hotfix 接入 |
 | [TMP 字体生产流程](./tmp-font-workflow.md) | TMP 字体资产生产 |
-| [验证 Core 运行时基础设施](./validate-core-runtime-infrastructure.md) | 分层与启动相关校验 |
+| [运行 Unity 自动化测试](./run-unity-tests.md) | Core.Tests 发现、运行与排障 |
 
 ---
 

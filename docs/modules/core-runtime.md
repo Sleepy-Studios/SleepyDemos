@@ -42,8 +42,7 @@
 - 扩展公共 UI 基类或管理器
 - 增加通用运行时服务
 - 补充或接入 Flux 状态流
-- 在 Unity Editor 运行 `Tools/SleepyDemos/Validate Core Runtime Infrastructure` 检查资源抽象、基础 UI 组件、外层引用约束和文档入口
-- 在命令行或 CI 中使用 Unity `-executeMethod Core.Editor.CoreRuntimeInfrastructureValidator.ValidateForBatchMode` 执行同一套检查
+- 通过 `Core.Tests` 验证资源抽象、公共 UI、热更程序集和测试程序集边界
 
 ## 相关模块文档
 
@@ -52,4 +51,5 @@
 - [Core 事件系统](./eventing/README.md)
 - [Core Flux 状态流](./flux.md)
 - [热更新模块](./hot-update.md)
-- [验证 Core 运行时基础设施](../runbooks/validate-core-runtime-infrastructure.md)
+- [Unity 自动化测试架构](../architecture/testing.md)
+- [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)

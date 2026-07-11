@@ -33,7 +33,6 @@ namespace Core.Runtime
         public bool IsEnable => (State & ViewState.Enabled) != 0;
         public int Reference { get; set; }
         public bool ForceDisable { get; set; }
-        public int OpenOrder { get; set; }
         public virtual ICameraAnimation CameraAnimation { get; set; }
         public virtual IUIAnimation UIAnimation { get; set; }
         public bool IsWidget => Level >= UILayer.Decorate;
@@ -162,7 +161,6 @@ namespace Core.Runtime
 
             State |= ViewState.Loaded;
             transform = gameObject.transform;
-            UIRootManager.Instance.AttachViewCanvas(this);
             gameObject.SetActive(EnableOnInit && !ForceDisable);
             InitComponent();
             UIAnimation?.Init(transform);

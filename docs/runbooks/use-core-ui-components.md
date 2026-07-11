@@ -84,7 +84,7 @@ imageLoader.Clear();
 
 修改这些组件或调用方式后，运行：
 
-- `Tools/SleepyDemos/Validate Core Runtime Infrastructure`
+- `Core.Tests.UI.UIViewPrefabConventionTests`
 - 可用时运行 `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs`
 
-运行 UnitySkills 自动化验证前，先按项目规则确认当前项目实例端口，不要写死 `8090` 或 `8091`。
+完整步骤见 [运行 Unity 自动化测试](./run-unity-tests.md)。

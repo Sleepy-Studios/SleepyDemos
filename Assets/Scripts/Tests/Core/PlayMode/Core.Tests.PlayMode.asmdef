@@ -1,0 +1,21 @@
+{
+    "name": "Core.Tests.PlayMode",
+    "rootNamespace": "Core.Tests",
+    "references": [
+        "Core.Runtime",
+        "UniTask",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

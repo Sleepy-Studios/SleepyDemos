@@ -10,7 +10,7 @@ namespace Core.Runtime
 
         public override async UniTask ExecuteAsync()
         {
-            Report(0f, "创建 UIRoot、UI Camera 和层级节点");
+            Report(0f, "创建 UIRootCanvas、UI Camera 和层级 Canvas");
             await UIManager.Instance.InitializeAsync();
             Report(1f, "UI 系统初始化完成");
         }

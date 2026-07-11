@@ -47,3 +47,13 @@
 - 改动位于 `Core.Runtime`、`Core.Editor`、`Hotfix` 还是某个 Demo 资源目录
 - 是否同步更新了文档；如果没有，为什么不需要
 - 需要在 Unity 中手动验证什么
+
+## 测试
+
+- 自动化测试统一放在 `Assets/Scripts/Tests`。
+- 项目最多维护 Core.Tests 与按需创建的 Hotfix.Tests 两个逻辑测试域；物理 asmdef 只允许按 `.EditMode` / `.PlayMode` 拆分。
+- 禁止在 `Assets/Scripts/Core` 或 `Assets/Scripts/Hotfix` 下创建 Test Assembly。
+- 测试程序集必须设置 `autoReferenced=false`；EditMode 限制为 Editor，PlayMode 使用标准 PlayMode Test Assembly 配置，生产程序集不得引用测试程序集。
+- Unity Test Runner 是唯一自动化验证入口，运行与排障见 `docs/runbooks/run-unity-tests.md`。
+- 默认按“精确测试方法 → 当前功能测试类 → 当前任务涉及的多个测试类”运行最小相关测试集。跨模块改动只扩大到直接受影响的测试类，不默认运行整个 `Core.Tests`、全部 EditMode、全部 PlayMode 或第三方包测试。
+- 只有用户明确要求“全量测试”或“完整回归”时才执行项目全量测试。全量默认仅包含项目自有的 `Core.Tests` 与未来的 `Hotfix.Tests`；第三方包测试需要另行明确指定。完成报告必须说明实际测试范围以及是否执行过全量测试。
