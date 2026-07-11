@@ -350,6 +350,20 @@ namespace Core.Runtime
             }
         }
 
+        // 导航事务回滚专用：过渡异常后恢复快照中原本可见的 View。
+        internal void RestoreVisibleAfterNavigationFailure()
+        {
+            if (gameObject == null || State == ViewState.Destroying || State == ViewState.Destroyed)
+            {
+                return;
+            }
+
+            UITransition?.CompleteImmediately(UITransitionDirection.Enter);
+            ForceDisable = false;
+            gameObject.SetActive(true);
+            State = ViewState.Visible;
+        }
+
         protected virtual void InitComponent()
         {
         }

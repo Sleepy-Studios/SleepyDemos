@@ -9,7 +9,6 @@ namespace Core.Runtime
         internal readonly List<View> Modals = new List<View>();
         internal readonly ReadOnlyCollection<View> ReadOnlyPages;
         internal readonly ReadOnlyCollection<View> ReadOnlyModals;
-        internal string CustomName;
 
         internal StackData()
         {
@@ -23,7 +22,6 @@ namespace Core.Runtime
         {
             Pages.Clear();
             Modals.Clear();
-            CustomName = null;
         }
     }
 
@@ -46,6 +44,11 @@ namespace Core.Runtime
         internal IReadOnlyList<View> Pages => pages;
         internal IReadOnlyList<View> Modals => modals;
         internal IReadOnlyList<View> Widgets => widgets;
+
+        internal bool Contains(View view)
+        {
+            return view != null && (pages.Contains(view) || modals.Contains(view) || widgets.Contains(view));
+        }
 
         private static List<View> Copy(IReadOnlyList<View> source)
         {

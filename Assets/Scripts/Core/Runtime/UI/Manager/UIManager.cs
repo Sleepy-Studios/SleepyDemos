@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,8 +10,7 @@ namespace Core.Runtime
     {
         private UIStack layerStack;
         private Button maskButton;
-        private readonly HashSet<Type> openingTypes = new HashSet<Type>();
-        private readonly HashSet<Type> closingTypes = new HashSet<Type>();
+        private UINavigationCoordinator navigationCoordinator;
 
         public UICache cacheStack { get; private set; }
         public string LastCloseName { get; private set; }
@@ -22,12 +21,12 @@ namespace Core.Runtime
         public event Action<View> OnOpen;
         public event Action<View> OnClose;
         public event Action<View> OnBehind;
-        public event Action<string, bool> OnStackChange;
         public Func<View, UniTask> OnBeforeOpen;
 
         protected override void OnSingletonInit()
         {
             cacheStack = new UICache();
+            navigationCoordinator = new UINavigationCoordinator(ExecuteAsync);
         }
 
         public async UniTask InitializeAsync()
@@ -35,6 +34,87 @@ namespace Core.Runtime
             await UIRootManager.Instance.BuildUIRoot();
             layerStack ??= new UIStack();
             ConfigureMask();
+        }
+
+        /// <summary>
+        /// 将指定类型的 View 显示操作加入 FIFO 导航队列。
+        /// </summary>
+        /// <typeparam name="T">目标 View 类型。</typeparam>
+        /// <param name="options">显示选项；默认播放动画。</param>
+        /// <param name="cancellationToken">调用方取消令牌；排队或执行中取消均返回 Canceled。</param>
+        /// <returns>导航操作结果。</returns>
+        public UniTask<UIOperationResult> ShowAsync<T>(
+            UIShowOptions options = default,
+            CancellationToken cancellationToken = default) where T : View
+        {
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Push,
+                typeof(T),
+                options.Animated,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// 将 Page 替换操作加入 FIFO 导航队列。
+        /// </summary>
+        /// <typeparam name="T">目标 Page 类型。</typeparam>
+        /// <param name="options">显示选项；默认播放动画。</param>
+        /// <param name="cancellationToken">调用方取消令牌。</param>
+        /// <returns>导航操作结果；非 Page 类型返回 Failed。</returns>
+        public UniTask<UIOperationResult> ReplaceAsync<T>(
+            UIShowOptions options = default,
+            CancellationToken cancellationToken = default) where T : View
+        {
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Replace,
+                typeof(T),
+                options.Animated,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// 将指定类型 View 的关闭操作加入 FIFO 导航队列。
+        /// </summary>
+        /// <typeparam name="T">目标 View 类型。</typeparam>
+        /// <param name="animated">是否播放退出动画。</param>
+        /// <param name="cancellationToken">调用方取消令牌。</param>
+        /// <returns>导航操作结果。</returns>
+        public UniTask<UIOperationResult> CloseAsync<T>(
+            bool animated = true,
+            CancellationToken cancellationToken = default) where T : View
+        {
+            return EnqueueClose(typeof(T), animated, cancellationToken);
+        }
+
+        /// <summary>
+        /// 关闭最上层 Modal；没有 Modal 时关闭当前 Page。
+        /// </summary>
+        /// <param name="animated">是否播放退出动画。</param>
+        /// <param name="cancellationToken">调用方取消令牌。</param>
+        /// <returns>导航操作结果。</returns>
+        public UniTask<UIOperationResult> BackAsync(
+            bool animated = true,
+            CancellationToken cancellationToken = default)
+        {
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Back,
+                null,
+                animated,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// 取消当前及待执行导航，并串行清空全部 View、栈与遮罩。
+        /// </summary>
+        /// <param name="cancellationToken">调用方取消令牌。</param>
+        /// <returns>清理操作结果。</returns>
+        public UniTask<UIOperationResult> CloseAllAsync(CancellationToken cancellationToken = default)
+        {
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.CloseAll,
+                null,
+                false,
+                cancellationToken);
         }
 
         public View Show(string uiName, bool hidePrevious = true)
@@ -51,13 +131,11 @@ namespace Core.Runtime
                 return null;
             }
 
-            if (openingTypes.Contains(type))
-            {
-                return view;
-            }
-
-            OnBeginOpen?.Invoke(view);
-            ShowAsync(view, hidePrevious).Forget();
+            ObserveOperationAsync(navigationCoordinator.Enqueue(
+                UINavigationAction.Push,
+                type,
+                true,
+                CancellationToken.None)).Forget(LogOperationFailure);
             return view;
         }
 
@@ -74,7 +152,8 @@ namespace Core.Runtime
             return view;
         }
 
-        public T Show<T, TData1, TData2>(TData1 data1, TData2 data2, bool hidePrevious = true) where T : View<TData1, TData2>
+        public T Show<T, TData1, TData2>(TData1 data1, TData2 data2, bool hidePrevious = true)
+            where T : View<TData1, TData2>
         {
             var view = cacheStack.GetOrCreateView<T>();
             view.SetData(data1, data2);
@@ -82,10 +161,7 @@ namespace Core.Runtime
             return view;
         }
 
-        public T Get<T>() where T : View
-        {
-            return cacheStack.GetView(typeof(T)) as T;
-        }
+        public T Get<T>() where T : View => cacheStack.GetView(typeof(T)) as T;
 
         public View Get(string uiName)
         {
@@ -102,44 +178,26 @@ namespace Core.Runtime
             }
         }
 
-        public void Close<T>() where T : View
-        {
-            Close(typeof(T));
-        }
+        public void Close<T>() where T : View => Close(typeof(T));
 
         public void Close(Type type, bool animation = true)
         {
-            var view = cacheStack.GetView(type);
-            if (view == null || layerStack == null || closingTypes.Contains(type) || !layerStack.Contains(view))
-            {
-                return;
-            }
-
-            HideAsync(view, animation).Forget();
+            ObserveOperationAsync(EnqueueClose(type, animation, CancellationToken.None))
+                .Forget(LogOperationFailure);
         }
 
         public void Back()
         {
-            if (layerStack?.StackTopView != null)
-            {
-                Close(layerStack.StackTopView.GetType());
-            }
+            ObserveOperationAsync(BackAsync()).Forget(LogOperationFailure);
         }
 
         public async UniTask Preload<T>() where T : View
         {
-            await InitializeAsync();
-            var view = cacheStack.GetOrCreateView<T>();
-            if (view == null || view.IsLoaded)
-            {
-                return;
-            }
-
-            await view.InitAsync(UIRootManager.Instance.GetRoot(view.Level));
-            if (!view.IsEnable)
-            {
-                await view.Hide(false);
-            }
+            await navigationCoordinator.Enqueue(
+                UINavigationAction.Preload,
+                typeof(T),
+                false,
+                CancellationToken.None);
         }
 
         public async UniTask Preload<T, TData>(TData data) where T : View<TData>
@@ -151,187 +209,324 @@ namespace Core.Runtime
 
         public async UniTask CloseAll(bool animation = false)
         {
-            if (layerStack == null)
-            {
-                return;
-            }
-
-            var views = cacheStack.GetAllViews();
-            for (int i = 0; i < views.Count; i++)
-            {
-                var view = views[i];
-                if (view == null)
-                {
-                    continue;
-                }
-
-                view.Reference = 0;
-                if (view.IsLoaded)
-                {
-                    await view.Hide(animation);
-                }
-
-                await view.Destroy();
-            }
-
-            cacheStack.Clear();
-            layerStack.Clear();
-            HideMask();
-            CurrentUIName = null;
-            LastCloseName = null;
+            await CloseAllAsync();
         }
 
-        public View GetStackTopView()
+        public View GetStackTopView() => layerStack?.StackTopView;
+        public Type GetStackTopViewType() => layerStack?.StackTopView?.GetType();
+
+        private UniTask<UIOperationResult> EnqueueClose(
+            Type type,
+            bool animated,
+            CancellationToken cancellationToken)
         {
-            return layerStack?.StackTopView;
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Close,
+                type,
+                animated,
+                cancellationToken);
         }
 
-        public Type GetStackTopViewType()
+        private async UniTask<UIOperationResult> ExecuteAsync(
+            QueuedUIOperation operation,
+            CancellationToken cancellationToken)
         {
-            return layerStack?.StackTopView?.GetType();
-        }
-
-        public void NewStack(string stackName)
-        {
-            layerStack?.NewStack(stackName);
-            OnStackChange?.Invoke(stackName, true);
-        }
-
-        public void RemoveStack()
-        {
-            var name = layerStack?.CurrentStackName;
-            layerStack?.RemoveStack();
-            OnStackChange?.Invoke(name, false);
-        }
-
-        public int LayerStackCount(UILayer layer)
-        {
-            return layerStack?.GetLayerCount(layer) ?? 0;
-        }
-
-        public bool CurrentStackName(string stackName)
-        {
-            return layerStack != null && layerStack.CurrentStack(stackName);
-        }
-
-        private async UniTaskVoid ShowAsync(View view, bool hidePrevious)
-        {
-            var type = view.GetType();
-            openingTypes.Add(type);
-            closingTypes.Remove(type);
             await InitializeAsync();
+            return operation.Action switch
+            {
+                UINavigationAction.Push => await ExecuteShowAsync(operation, false, cancellationToken),
+                UINavigationAction.Replace => await ExecuteShowAsync(operation, true, cancellationToken),
+                UINavigationAction.Close => await ExecuteCloseAsync(operation, cancellationToken),
+                UINavigationAction.Back => await ExecuteBackAsync(operation, cancellationToken),
+                UINavigationAction.Preload => await ExecutePreloadAsync(operation, cancellationToken),
+                UINavigationAction.CloseAll => await ExecuteCloseAllAsync(operation, cancellationToken),
+                _ => throw new ArgumentOutOfRangeException()
+            };
+        }
+
+        private async UniTask<UIOperationResult> ExecuteShowAsync(
+            QueuedUIOperation operation,
+            bool replace,
+            CancellationToken cancellationToken)
+        {
+            var snapshot = layerStack.Capture();
+            var view = cacheStack.GetOrCreateView(operation.TargetType);
+            if (view == null)
+            {
+                return UIOperationResult.Failed(operation.OperationId, operation.Action, null,
+                    new InvalidOperationException($"无法创建 View: {operation.TargetType}"));
+            }
+
+            if (replace && view.ViewMode != UIViewMode.Page)
+            {
+                return UIOperationResult.Failed(operation.OperationId, operation.Action, view,
+                    new InvalidOperationException("Replace 首版仅支持 Page View。"));
+            }
+
+            var previous = GetPreviousView(view);
+            if (previous == view && view.State == ViewState.Visible)
+            {
+                return UIOperationResult.Ignored(operation.OperationId, operation.Action, view);
+            }
 
             try
             {
-                var lastView = GetPreviousView(view);
-                if (lastView == view)
+                OnBeginOpen?.Invoke(view);
+                var loaded = view.IsLoaded || await view.LoadAsync(
+                    UIRootManager.Instance.GetRoot(view.Level),
+                    cancellationToken);
+                if (!loaded)
                 {
-                    return;
+                    throw new InvalidOperationException($"View 加载失败: {view.Name}");
                 }
 
-                var wasContained = layerStack.Contains(view);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (OnBeforeOpen != null)
+                {
+                    await OnBeforeOpen(view);
+                }
+
+                if (previous != null && previous != view)
+                {
+                    OnBehind?.Invoke(previous);
+                    await previous.ExitAsync(new UITransitionContext(
+                        operation.OperationId,
+                        operation.Action,
+                        view,
+                        previous,
+                        operation.Animated), cancellationToken);
+                }
+
+                if (replace && previous != null && previous != view)
+                {
+                    layerStack.CommitClose(previous);
+                }
+
                 layerStack.CommitShow(view);
-                if (!wasContained && view.ViewMode != UIViewMode.Widget)
+                if (view.ViewMode != UIViewMode.Widget && !snapshot.Contains(view))
                 {
                     view.Reference++;
                 }
 
-                if (lastView != null && lastView != view)
+                await view.EnterAsync(new UITransitionContext(
+                    operation.OperationId,
+                    operation.Action,
+                    view,
+                    previous,
+                    operation.Animated), cancellationToken);
+                PlaceOnTopAndApplyMask(view);
+
+                if (previous != null && previous != view)
                 {
-                    LastCloseName = lastView.Name;
-                    view.ForceDisable = hidePrevious;
-                    OnBehind?.Invoke(lastView);
+                    LastCloseName = previous.Name;
                 }
 
-                var beforeOpen = OnBeforeOpen?.Invoke(view);
-                if (!view.IsLoaded)
-                {
-                    await view.InitAsync(UIRootManager.Instance.GetRoot(view.Level));
-                }
-
-                if (beforeOpen.HasValue)
-                {
-                    await beforeOpen.Value;
-                }
-
-                if (hidePrevious && lastView != null && lastView != view)
-                {
-                    await lastView.Hide();
-                }
-
-                if (view.CameraAnimation != null)
-                {
-                    await view.CameraAnimation.Show(view);
-                }
-
-                await view.Show();
                 if (view.ViewMode != UIViewMode.Widget)
                 {
                     CurrentUIName = view.Name;
                 }
 
-                if (view.transform != null)
-                {
-                    view.transform.SetAsLastSibling();
-                }
-                ApplyMask(view);
                 OnOpen?.Invoke(view);
+                if (replace && previous != null && previous != view && previous.DestroyOnHide)
+                {
+                    previous.Reference = Math.Max(0, previous.Reference - 1);
+                    await DestroyAndRemoveAsync(previous);
+                }
+
+                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
             }
-            finally
+            catch (OperationCanceledException)
             {
-                openingTypes.Remove(type);
+                await RollbackAndCleanupAsync(snapshot, view);
+                return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
+            }
+            catch (Exception exception)
+            {
+                await RollbackAndCleanupAsync(snapshot, view);
+                return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
         }
 
-        private async UniTaskVoid HideAsync(View view, bool animation)
+        private async UniTask<UIOperationResult> ExecuteCloseAsync(
+            QueuedUIOperation operation,
+            CancellationToken cancellationToken)
         {
-            var type = view.GetType();
-            closingTypes.Add(type);
+            var view = cacheStack.GetView(operation.TargetType);
+            if (view == null)
+            {
+                return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);
+            }
+
+            if (!layerStack.Contains(view))
+            {
+                await DestroyAndRemoveAsync(view);
+                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
+            }
+
+            var snapshot = layerStack.Capture();
             try
             {
-                if (view.CameraAnimation != null)
+                await view.ExitAsync(new UITransitionContext(
+                    operation.OperationId,
+                    operation.Action,
+                    null,
+                    view,
+                    operation.Animated), cancellationToken);
+                layerStack.CommitClose(view);
+                if (view.ViewMode != UIViewMode.Widget)
                 {
-                    await view.CameraAnimation.Hide(view);
+                    view.Reference = Math.Max(0, view.Reference - 1);
                 }
 
-                await view.Hide(animation);
-                if (layerStack.CommitClose(view) && view.ViewMode != UIViewMode.Widget)
+                var revealed = layerStack.StackTopView;
+                if (revealed != null)
                 {
-                    view.Reference--;
-                }
-
-                var nextView = layerStack.StackTopView;
-                if (nextView != null)
-                {
-                    if (!nextView.IsEnable)
-                    {
-                        await nextView.Show();
-                    }
-
-                    if (nextView.transform != null)
-                    {
-                        nextView.transform.SetAsLastSibling();
-                    }
-
-                    ApplyMask(nextView, true);
+                    await revealed.EnterAsync(new UITransitionContext(
+                        operation.OperationId,
+                        operation.Action,
+                        revealed,
+                        view,
+                        operation.Animated), cancellationToken);
+                    PlaceOnTopAndApplyMask(revealed);
+                    CurrentUIName = revealed.Name;
                 }
                 else
                 {
                     HideMask();
+                    CurrentUIName = null;
                 }
 
+                LastCloseName = view.Name;
                 OnClose?.Invoke(view);
-
                 if (view.DestroyOnHide && view.Reference <= 0)
                 {
-                    await view.Destroy();
-                    cacheStack.Remove(view.GetType());
+                    await DestroyAndRemoveAsync(view);
                 }
+
+                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
             }
-            finally
+            catch (OperationCanceledException)
             {
-                closingTypes.Remove(type);
+                await RestoreSnapshotAsync(snapshot);
+                return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
             }
+            catch (Exception exception)
+            {
+                await RestoreSnapshotAsync(snapshot);
+                return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
+            }
+        }
+
+        private UniTask<UIOperationResult> ExecuteBackAsync(
+            QueuedUIOperation operation,
+            CancellationToken cancellationToken)
+        {
+            var target = layerStack.TopModal ?? layerStack.CurrentPage;
+            return target == null
+                ? UniTask.FromResult(UIOperationResult.Canceled(operation.OperationId, operation.Action, null))
+                : ExecuteCloseAsync(new QueuedUIOperation(
+                    operation.OperationId,
+                    UINavigationAction.Back,
+                    target.GetType(),
+                    operation.Animated,
+                    cancellationToken), cancellationToken);
+        }
+
+        private async UniTask<UIOperationResult> ExecutePreloadAsync(
+            QueuedUIOperation operation,
+            CancellationToken cancellationToken)
+        {
+            var view = cacheStack.GetOrCreateView(operation.TargetType);
+            try
+            {
+                if (!view.IsLoaded && !await view.LoadAsync(
+                        UIRootManager.Instance.GetRoot(view.Level), cancellationToken))
+                {
+                    throw new InvalidOperationException($"View 预加载失败: {view.Name}");
+                }
+
+                return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
+            }
+            catch (OperationCanceledException)
+            {
+                await DestroyAndRemoveAsync(view);
+                return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
+            }
+            catch (Exception exception)
+            {
+                await DestroyAndRemoveAsync(view);
+                return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
+            }
+        }
+
+        private async UniTask<UIOperationResult> ExecuteCloseAllAsync(
+            QueuedUIOperation operation,
+            CancellationToken cancellationToken)
+        {
+            var views = cacheStack.GetAllViews();
+            foreach (var view in views)
+            {
+                view.Reference = 0;
+                await view.DestroyAsync();
+                cacheStack.Remove(view);
+            }
+
+            layerStack.Clear();
+            HideMask();
+            CurrentUIName = null;
+            LastCloseName = null;
+            return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);
+        }
+
+        private async UniTask RollbackAndCleanupAsync(UIStackSnapshot snapshot, View failedView)
+        {
+            layerStack.Restore(snapshot);
+            if (!snapshot.Contains(failedView))
+            {
+                await DestroyAndRemoveAsync(failedView);
+            }
+
+            await RestoreSnapshotAsync(snapshot);
+        }
+
+        private async UniTask RestoreSnapshotAsync(UIStackSnapshot snapshot)
+        {
+            layerStack.Restore(snapshot);
+            var visible = layerStack.StackTopView;
+            if (visible != null && visible.State == ViewState.Faulted)
+            {
+                visible.RestoreVisibleAfterNavigationFailure();
+            }
+            else if (visible != null && visible.IsLoaded && visible.State != ViewState.Visible)
+            {
+                await visible.EnterAsync(new UITransitionContext(
+                    0,
+                    UINavigationAction.Back,
+                    visible,
+                    null,
+                    false), CancellationToken.None);
+            }
+
+            if (visible != null)
+            {
+                PlaceOnTopAndApplyMask(visible);
+            }
+            else
+            {
+                HideMask();
+            }
+        }
+
+        private async UniTask DestroyAndRemoveAsync(View view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            layerStack?.CommitClose(view);
+            await view.DestroyAsync();
+            cacheStack.Remove(view);
         }
 
         private View GetPreviousView(View view)
@@ -343,6 +538,20 @@ namespace Core.Runtime
                 UIViewMode.Widget => null,
                 _ => null
             };
+        }
+
+        private static async UniTask ObserveOperationAsync(UniTask<UIOperationResult> task)
+        {
+            var result = await task;
+            if (result.Status == UIOperationStatus.Failed)
+            {
+                throw result.Exception;
+            }
+        }
+
+        private static void LogOperationFailure(Exception exception)
+        {
+            Debug.LogException(exception);
         }
 
         private void ConfigureMask()
@@ -365,7 +574,17 @@ namespace Core.Runtime
             }
         }
 
-        private void ApplyMask(View view, bool autoHide = false)
+        private void PlaceOnTopAndApplyMask(View view)
+        {
+            if (view.transform != null)
+            {
+                view.transform.SetAsLastSibling();
+            }
+
+            ApplyMask(view, true);
+        }
+
+        private void ApplyMask(View view, bool autoHide)
         {
             var mask = UIRootManager.Instance.Mask;
             if (mask == null)
@@ -395,9 +614,6 @@ namespace Core.Runtime
             if (maskButton != null)
             {
                 maskButton.interactable = view.Mask == MaskType.CloseRaycast;
-                var colors = maskButton.colors;
-                colors.disabledColor = Color.white;
-                maskButton.colors = colors;
             }
         }
 

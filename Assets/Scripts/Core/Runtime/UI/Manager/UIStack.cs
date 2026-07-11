@@ -7,9 +7,8 @@ namespace Core.Runtime
     internal sealed class UIStack
     {
         private readonly List<View> widgets = new List<View>();
-        private readonly Stack<StackData> jumpList = new Stack<StackData>();
         private readonly ReadOnlyCollection<View> readOnlyWidgets;
-        private StackData currentStack = new StackData();
+        private readonly StackData currentStack = new StackData();
 
         internal UIStack()
         {
@@ -22,10 +21,8 @@ namespace Core.Runtime
         internal IReadOnlyList<View> Modals => currentStack.ReadOnlyModals;
         internal IReadOnlyList<View> Widgets => readOnlyWidgets;
 
-        // 任务 5 删除：同步 UIManager 兼容入口。
         internal int TotalCount => currentStack.Count + widgets.Count;
         internal View StackTopView => TopModal ?? CurrentPage;
-        internal string CurrentStackName => currentStack.CustomName;
 
         internal void CommitShow(View view)
         {
@@ -78,50 +75,12 @@ namespace Core.Runtime
         {
             widgets.Clear();
             currentStack.Clear();
-            jumpList.Clear();
         }
 
-        // 任务 5 删除：同步 UIManager 兼容入口。
         internal bool Contains(View view)
         {
             return view != null &&
                 (currentStack.Pages.Contains(view) || currentStack.Modals.Contains(view) || widgets.Contains(view));
-        }
-
-        // 任务 5 删除：同步 UIManager 兼容入口。
-        internal int GetLayerCount(UILayer layer)
-        {
-            var count = 0;
-            CountLayer(currentStack.Pages, layer, ref count);
-            CountLayer(currentStack.Modals, layer, ref count);
-            return count;
-        }
-
-        // 任务 5 删除：同步 UIManager 兼容入口。
-        internal bool CurrentStack(string stackName)
-        {
-            return currentStack.CustomName == stackName;
-        }
-
-        // 任务 5 删除：同步 UIManager 兼容入口。
-        internal void NewStack(string stackName)
-        {
-            if (currentStack.Count > 0)
-            {
-                jumpList.Push(currentStack);
-            }
-
-            currentStack = new StackData { CustomName = stackName };
-        }
-
-        // 任务 5 删除：同步 UIManager 兼容入口。
-        internal void RemoveStack()
-        {
-            currentStack.Clear();
-            if (jumpList.Count > 0)
-            {
-                currentStack = jumpList.Pop();
-            }
         }
 
         private List<View> GetCollection(UIViewMode viewMode)
@@ -148,15 +107,5 @@ namespace Core.Runtime
             return views.Count == 0 ? null : views[views.Count - 1];
         }
 
-        private static void CountLayer(IReadOnlyList<View> views, UILayer layer, ref int count)
-        {
-            for (int i = 0; i < views.Count; i++)
-            {
-                if (views[i].Level == layer)
-                {
-                    count++;
-                }
-            }
-        }
     }
 }

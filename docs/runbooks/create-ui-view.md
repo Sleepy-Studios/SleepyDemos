@@ -8,7 +8,7 @@
 
 - View 资源位于 `Assets/LoadResources/UI` 或对应 Demo 的可加载资源目录。
 - View 代码继承 `Core.Runtime.View` 或其泛型版本。
-- 通过 `UIManager.Show<T>()`、`Preload<T>()` 和 `Close<T>()` 管理生命周期。
+- 新业务通过 `await UIManager.ShowAsync<T>()`、`await CloseAsync<T>()` 管理生命周期；`Preload<T>()` 也会进入同一导航队列。
 
 ## 制作 Prefab
 
@@ -101,6 +101,23 @@ ViewRoot
 将全屏 Blocker 留在 View 根节点，只把需要倾斜的主体放进 `PerspectiveRoot`。
 
 ## 验证方式
+
+业务调用应检查异步导航结果：
+
+```csharp
+var result = await UIManager.Instance.ShowAsync<ExampleView>();
+if (result.Status == UIOperationStatus.Failed)
+{
+    Debug.LogException(result.Exception);
+}
+
+await UIManager.Instance.CloseAsync<ExampleView>();
+```
+
+- `Succeeded` 表示事务已提交；`Ignored` 表示同一单实例已稳定处于目标位置。
+- `Canceled` 表示调用方取消、反向操作抢占，或目标已不存在，不应当作错误日志。
+- `Failed` 表示加载、Hook 或过渡异常；框架会回滚正式栈并清理 Faulted View。
+- `Show<T>()` / `Close<T>()` 同步外观仅用于旧代码迁移，新业务不要依赖其 fire-and-forget 完成时机。
 
 1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
 2. 修改 View 生命周期或 Transition 时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。

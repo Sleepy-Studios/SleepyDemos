@@ -7,8 +7,9 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 ## 关键结构
 
 - `View` / `View<T>`：页面基类，负责资源实例化、组件初始化、显示隐藏、动画接入和销毁。
-- `UIManager`：统一打开、关闭、返回、预加载、清栈和栈顶查询入口，当前承接 Mask、sibling、View 显示隐藏等表现副作用。
-- `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，提供状态快照，并暂时保留同步命名栈兼容状态。
+- `UIManager`：导航事务 owner，统一执行加载、过渡、Mask、sibling、缓存清理和事件提交。
+- `UINavigationCoordinator`：纯 C# FIFO 单写入协调器，只管理 operation、取消、队列与结果完成，不访问 Unity 场景或 Singleton。
+- `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，并提供事务快照与恢复。
 - `UICache`：按 View 类型缓存 View 实例。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `Components/`：公共基础组件，如 `UITab`、`ViewList`、`UIBtnSwitch`、`UIDropdown`、`UIState`。
@@ -48,9 +49,11 @@ Loading --加载失败或取消--> Faulted
 ## 导航状态与表现边界
 
 - `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
-- `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 仍可能被 UIStack 引用并持有根对象、Transition 或 Loader，必须先由 UIManager 或后续任务 5 Coordinator 移栈并执行 `DestroyAsync` / `Remove`；Cache 不负责异步销毁，也不会静默换新。
-- `UIManager` 当前负责同步兼容入口，以及 Mask、sibling、View 显示隐藏等表现副作用；清栈时由 `UIManager` 同步收口 View、缓存、状态栈和 Mask。
-- 当前 `NewStack` / `RemoveStack` 等命名栈能力属于兼容层。后续任务 5 将由导航协调器替换这层同步兼容实现；在此之前不要把表现副作用重新塞回 `UIStack`。
+- `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 必须由 `UIManager` 事务先移栈、等待 `DestroyAsync`，再从 Cache 移除；Cache 不持有 Stack，也不自行等待销毁。
+- Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。调用方令牌在排队期取消时不会产生 View 副作用。
+- `CloseAllAsync` 会取消 current、把调用时 pending 完成为 Canceled，再作为唯一后续操作清理全部 View、Cache、Stack、Mask 与名称状态。
+- 加载成功前不修改正式栈。Show/Replace/Close/Back 捕获 `UIStackSnapshot`；取消或异常时恢复正式栈、原可见 View、Mask 与 sibling，并销毁、移除未提交或 Faulted 的目标 View。
+- 旧 `NewStack` / `RemoveStack` 命名栈兼容实现已移除；命名栈不属于当前导航模型。
 
 ## 基础组件边界
 
@@ -71,12 +74,12 @@ Loading --加载失败或取消--> Faulted
 
 ## UIManager 使用规则
 
-- 打开界面优先使用 `UIManager.Show<T>()`。
-- 关闭界面使用 `UIManager.Close<T>()` 或 `Back()`。
-- 需要提前加载资源时使用 `Preload<T>()`，不要绕过 `View` 生命周期直接实例化 UI 预制体。
-- 清空所有界面时使用 `CloseAll()`，它会隐藏并销毁当前缓存中的 View，并清空 UI 栈和缓存。
-- `DestroyOnHide` 为 true 且引用计数归零时，View 会在关闭后销毁并释放 loader。
-- 快速重复打开同一界面时，`UIManager` 会防止同一类型重复进入异步打开流程。
+- 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
+- Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
+- Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
+- 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
+- `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
+- `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态。
 
 ## 渲染结构与生命周期
 

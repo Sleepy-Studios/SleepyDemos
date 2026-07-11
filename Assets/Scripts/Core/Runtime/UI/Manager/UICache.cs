@@ -39,9 +39,20 @@ namespace Core.Runtime
             return views.TryGetValue(type, out var view) ? view : null;
         }
 
+        public bool TryGet(Type type, out View view)
+        {
+            return views.TryGetValue(type, out view) && view != null;
+        }
+
         public void Remove(Type type)
         {
             views.Remove(type);
+        }
+
+        public bool Remove(View view)
+        {
+            return view != null && views.TryGetValue(view.GetType(), out var cached) &&
+                   ReferenceEquals(view, cached) && views.Remove(view.GetType());
         }
 
         public List<View> GetAllViews()
