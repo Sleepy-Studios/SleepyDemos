@@ -122,28 +122,27 @@ namespace Core.Runtime
         /// <returns>成功完成初始化时返回 true；资源无效或加载失败时返回 false。</returns>
         public async UniTask<bool> LoadAsync(Transform parent, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsLoaded)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 return true;
             }
 
             if (State == ViewState.Destroying || State == ViewState.Destroyed || State == ViewState.Faulted)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 return false;
             }
 
-            EnsureLoadOperationStarted(parent);
-            RegisterLoadWaiter();
-            try
+            var shouldStart = RegisterLoadWaiterAndPrepareOperation(
+                out var completionSource,
+                out var lifetimeCancellation);
+            var waiterTask = WaitForRegisteredLoadAsync(completionSource, cancellationToken);
+            if (shouldStart)
             {
-                return await loadingCompletionSource.Task.AttachExternalCancellation(cancellationToken);
+                StartLoadOperation(parent, completionSource, lifetimeCancellation);
             }
-            finally
-            {
-                UnregisterLoadWaiter();
-            }
+
+            return await waiterTask;
         }
 
         /// <summary>
@@ -650,28 +649,50 @@ namespace Core.Runtime
             }
         }
 
-        private void EnsureLoadOperationStarted(Transform parent)
+        private bool RegisterLoadWaiterAndPrepareOperation(
+            out UniTaskCompletionSource<bool> completionSource,
+            out CancellationTokenSource lifetimeCancellation)
         {
-            if (hasLoadingTask)
+            lock (loadWaiterGate)
             {
-                return;
-            }
+                activeLoadWaiters++;
+                if (hasLoadingTask)
+                {
+                    completionSource = loadingCompletionSource;
+                    lifetimeCancellation = null;
+                    return false;
+                }
 
-            var completionSource = new UniTaskCompletionSource<bool>();
-            var lifetimeCancellation = new CancellationTokenSource();
-            loadingCompletionSource = completionSource;
-            loadLifetimeCancellation = lifetimeCancellation;
-            hasLoadingTask = true;
+                completionSource = new UniTaskCompletionSource<bool>();
+                lifetimeCancellation = new CancellationTokenSource();
+                loadingCompletionSource = completionSource;
+                loadLifetimeCancellation = lifetimeCancellation;
+                hasLoadingTask = true;
+                return true;
+            }
+        }
+
+        private void StartLoadOperation(
+            Transform parent,
+            UniTaskCompletionSource<bool> completionSource,
+            CancellationTokenSource lifetimeCancellation)
+        {
             var task = LoadCoreAsync(parent, lifetimeCancellation.Token).Preserve();
             loadingTask = task;
             PublishLoadingResultAsync(task, completionSource, lifetimeCancellation).Forget();
         }
 
-        private void RegisterLoadWaiter()
+        private async UniTask<bool> WaitForRegisteredLoadAsync(
+            UniTaskCompletionSource<bool> completionSource,
+            CancellationToken cancellationToken)
         {
-            lock (loadWaiterGate)
+            try
             {
-                activeLoadWaiters++;
+                return await completionSource.Task.AttachExternalCancellation(cancellationToken);
+            }
+            finally
+            {
+                UnregisterLoadWaiter();
             }
         }
 

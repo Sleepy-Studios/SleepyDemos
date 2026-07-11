@@ -87,6 +87,43 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator LoadAsync_WhenOnBeforeInitReentersCanceledWaiter_OuterLoadStillSucceeds()
+        {
+            var events = new List<string>();
+            var root = CreateObject("CanceledReentrantLoadView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { AsyncResult = root };
+            var transition = new FakeTransition(events);
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+            var view = new CanceledReentrantLoadView(
+                loader,
+                transition,
+                events,
+                parent.transform,
+                canceled.Token);
+
+            var outer = CaptureException(
+                view.LoadAsync(parent.transform, CancellationToken.None)).Preserve();
+            Exception outerException = null;
+            yield return CaptureResult(outer, result => outerException = result).ToCoroutine();
+            Exception innerException = null;
+            yield return CaptureResult(
+                CaptureException(view.ReenteredLoad),
+                result => innerException = result).ToCoroutine();
+            yield return null;
+
+            Assert.That(outerException, Is.Null);
+            Assert.That(innerException, Is.TypeOf<OperationCanceledException>());
+            Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
+            Assert.That(loader.InstantiateAsyncCount, Is.EqualTo(1));
+            Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(0));
+            Assert.That(loader.DisposeCount, Is.EqualTo(0));
+            LogAssert.NoUnexpectedReceived();
+            yield return view.DestroyAsync().ToCoroutine();
+        }
+
+        [UnityTest]
         public IEnumerator LoadAsync_WhenResourceIsNull_ReturnsFalseAndDisposesLoader()
         {
             var loader = new FakeResourceLoader { AsyncResult = null };
@@ -694,6 +731,39 @@ namespace Core.Tests.UI
 
                 reentered = true;
                 ReenteredLoad = LoadAsync(parent, CancellationToken.None);
+            }
+        }
+
+        private sealed class CanceledReentrantLoadView : FakeView
+        {
+            private readonly Transform parent;
+            private readonly CancellationToken canceledToken;
+            private bool reentered;
+
+            public CanceledReentrantLoadView(
+                IResourceLoader loader,
+                IUITransition transition,
+                List<string> events,
+                Transform parent,
+                CancellationToken canceledToken)
+                : base(loader, transition, events)
+            {
+                this.parent = parent;
+                this.canceledToken = canceledToken;
+            }
+
+            public UniTask<bool> ReenteredLoad { get; private set; }
+
+            public override void OnBeforeInit()
+            {
+                base.OnBeforeInit();
+                if (reentered)
+                {
+                    return;
+                }
+
+                reentered = true;
+                ReenteredLoad = LoadAsync(parent, canceledToken);
             }
         }
 
