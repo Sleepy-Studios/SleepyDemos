@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Core.Runtime;
 using NUnit.Framework;
 
@@ -104,10 +106,39 @@ namespace Core.Tests.UI
             var snapshot = stack.Capture();
             stack.CommitShow(modal);
 
+            Assert.That(snapshot.Pages.Count, Is.EqualTo(1));
+            Assert.That(snapshot.Modals.Count, Is.Zero);
             stack.Restore(snapshot);
 
             Assert.That(stack.CurrentPage, Is.SameAs(page));
             Assert.That(stack.Modals, Is.Empty);
+        }
+
+        [Test]
+        public void StackCollections_CannotBeDowncastOrMutated()
+        {
+            var stack = new UIStack();
+            stack.CommitShow(new FakeView(UIViewMode.Page, UILayer.Base));
+            stack.CommitShow(new FakeView(UIViewMode.Modal, UILayer.Pop));
+            stack.CommitShow(new FakeView(UIViewMode.Widget, UILayer.Decorate));
+
+            AssertReadOnly(stack.Pages, typeof(List<View>));
+            AssertReadOnly(stack.Modals, typeof(List<View>));
+            AssertReadOnly(stack.Widgets, typeof(List<View>));
+        }
+
+        [Test]
+        public void SnapshotCollections_CannotBeDowncastOrMutated()
+        {
+            var stack = new UIStack();
+            stack.CommitShow(new FakeView(UIViewMode.Page, UILayer.Base));
+            stack.CommitShow(new FakeView(UIViewMode.Modal, UILayer.Pop));
+            stack.CommitShow(new FakeView(UIViewMode.Widget, UILayer.Decorate));
+            var snapshot = stack.Capture();
+
+            AssertReadOnly(snapshot.Pages, typeof(View[]));
+            AssertReadOnly(snapshot.Modals, typeof(View[]));
+            AssertReadOnly(snapshot.Widgets, typeof(View[]));
         }
 
         [Test]
@@ -123,6 +154,15 @@ namespace Core.Tests.UI
             Assert.That(stack.Pages, Is.Empty);
             Assert.That(stack.Modals, Is.Empty);
             Assert.That(stack.Widgets, Is.Empty);
+        }
+
+        private static void AssertReadOnly(IReadOnlyList<View> views, Type mutableType)
+        {
+            Assert.That(views, Is.Not.InstanceOf(mutableType));
+            var mutableView = views as IList<View>;
+            Assert.That(mutableView, Is.Not.Null);
+            Assert.Throws<NotSupportedException>(
+                () => mutableView[0] = new FakeView(UIViewMode.Page, UILayer.Base));
         }
 
         private sealed class FakeView : View

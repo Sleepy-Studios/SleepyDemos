@@ -7,11 +7,17 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 ## 关键结构
 
 - `View` / `View<T>`：页面基类，负责资源实例化、组件初始化、显示隐藏、动画接入和销毁。
-- `UIManager`：统一打开、关闭、返回、预加载、清栈和栈顶查询入口。
-- `UIStack`：维护普通界面栈、挂件列表、分层数据和遮罩位置。
+- `UIManager`：统一打开、关闭、返回、预加载、清栈和栈顶查询入口，当前承接 Mask、sibling、View 显示隐藏等表现副作用。
+- `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，提供状态快照，并暂时保留同步命名栈兼容状态。
 - `UICache`：按 View 类型缓存 View 实例。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `Components/`：公共基础组件，如 `UITab`、`ViewList`、`UIBtnSwitch`、`UIDropdown`、`UIState`。
+
+## 导航状态与表现边界
+
+- `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
+- `UIManager` 当前负责同步兼容入口，以及 Mask、sibling、View 显示隐藏等表现副作用；清栈时由 `UIManager` 同步收口 View、缓存、状态栈和 Mask。
+- 当前 `NewStack` / `RemoveStack` 等命名栈能力属于兼容层。后续任务 5 将由导航协调器替换这层同步兼容实现；在此之前不要把表现副作用重新塞回 `UIStack`。
 
 ## 基础组件边界
 
@@ -92,7 +98,8 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 ## 验证入口
 
 - `Core.Tests.UI.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
-- `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask 和重复初始化。
+- `Core.Tests.UI.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
+- `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
 - `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

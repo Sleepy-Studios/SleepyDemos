@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Core.Runtime
 {
@@ -7,13 +8,19 @@ namespace Core.Runtime
     {
         private readonly List<View> widgets = new List<View>();
         private readonly Stack<StackData> jumpList = new Stack<StackData>();
+        private readonly ReadOnlyCollection<View> readOnlyWidgets;
         private StackData currentStack = new StackData();
+
+        internal UIStack()
+        {
+            readOnlyWidgets = widgets.AsReadOnly();
+        }
 
         internal View CurrentPage => GetTop(currentStack.Pages);
         internal View TopModal => GetTop(currentStack.Modals);
-        internal IReadOnlyList<View> Pages => currentStack.Pages;
-        internal IReadOnlyList<View> Modals => currentStack.Modals;
-        internal IReadOnlyList<View> Widgets => widgets;
+        internal IReadOnlyList<View> Pages => currentStack.ReadOnlyPages;
+        internal IReadOnlyList<View> Modals => currentStack.ReadOnlyModals;
+        internal IReadOnlyList<View> Widgets => readOnlyWidgets;
 
         // 任务 5 删除：同步 UIManager 兼容入口。
         internal int TotalCount => currentStack.Count + widgets.Count;

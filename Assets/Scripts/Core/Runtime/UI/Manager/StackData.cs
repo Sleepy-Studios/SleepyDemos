@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Core.Runtime
 {
@@ -6,7 +7,15 @@ namespace Core.Runtime
     {
         internal readonly List<View> Pages = new List<View>();
         internal readonly List<View> Modals = new List<View>();
+        internal readonly ReadOnlyCollection<View> ReadOnlyPages;
+        internal readonly ReadOnlyCollection<View> ReadOnlyModals;
         internal string CustomName;
+
+        internal StackData()
+        {
+            ReadOnlyPages = Pages.AsReadOnly();
+            ReadOnlyModals = Modals.AsReadOnly();
+        }
 
         internal int Count => Pages.Count + Modals.Count;
 
@@ -20,30 +29,30 @@ namespace Core.Runtime
 
     internal sealed class UIStackSnapshot
     {
-        private readonly View[] pages;
-        private readonly View[] modals;
-        private readonly View[] widgets;
+        private readonly ReadOnlyCollection<View> pages;
+        private readonly ReadOnlyCollection<View> modals;
+        private readonly ReadOnlyCollection<View> widgets;
 
         internal UIStackSnapshot(
             IReadOnlyList<View> pages,
             IReadOnlyList<View> modals,
             IReadOnlyList<View> widgets)
         {
-            this.pages = Copy(pages);
-            this.modals = Copy(modals);
-            this.widgets = Copy(widgets);
+            this.pages = Copy(pages).AsReadOnly();
+            this.modals = Copy(modals).AsReadOnly();
+            this.widgets = Copy(widgets).AsReadOnly();
         }
 
         internal IReadOnlyList<View> Pages => pages;
         internal IReadOnlyList<View> Modals => modals;
         internal IReadOnlyList<View> Widgets => widgets;
 
-        private static View[] Copy(IReadOnlyList<View> source)
+        private static List<View> Copy(IReadOnlyList<View> source)
         {
-            var result = new View[source.Count];
+            var result = new List<View>(source.Count);
             for (int i = 0; i < source.Count; i++)
             {
-                result[i] = source[i];
+                result.Add(source[i]);
             }
 
             return result;
