@@ -647,6 +647,70 @@ namespace Core.Tests.UI
             Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
         }
 
+        [UnityTest]
+        public IEnumerator LegacySingleDataShowDuringCloseAllBarrier_ReturnsNullAndConfiguresFreshView()
+        {
+            var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
+            var actualLoader = TestViewRegistry.Register<DataPage>();
+            var unusedLoader = TestViewRegistry.Register<DataPage>();
+            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            yield return null;
+            var closeAllTask = UIManager.Instance.CloseAllAsync();
+
+            var returned = UIManager.Instance.Show<DataPage, string>("one");
+            var configuredEarly = TestViewRegistry.Events.Contains("data:one");
+            var loadedEarly = TestViewRegistry.Events.Contains("DataPage.load");
+            slowLoader.Complete(new GameObject(nameof(SlowPage)));
+            yield return AwaitResult(showTask, _ => { });
+            yield return AwaitResult(closeAllTask, _ => { });
+            for (int i = 0; i < 60 && UIManager.Instance.Get<DataPage>()?.State != ViewState.Visible; i++)
+            {
+                yield return null;
+            }
+
+            var actual = UIManager.Instance.Get<DataPage>();
+            Assert.That(returned, Is.Null);
+            Assert.That(configuredEarly, Is.False);
+            Assert.That(loadedEarly, Is.False);
+            Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(TestViewRegistry.Events, Does.Contain("show:one"));
+            Assert.That(actualLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
+            Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator LegacyDoubleDataShowDuringCloseAllBarrier_ReturnsNullAndConfiguresFreshView()
+        {
+            var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
+            var actualLoader = TestViewRegistry.Register<DoubleDataPage>();
+            var unusedLoader = TestViewRegistry.Register<DoubleDataPage>();
+            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            yield return null;
+            var closeAllTask = UIManager.Instance.CloseAllAsync();
+
+            var returned = UIManager.Instance.Show<DoubleDataPage, string, int>("two", 2);
+            var configuredEarly = TestViewRegistry.Events.Contains("data:two:2");
+            var loadedEarly = TestViewRegistry.Events.Contains("DoubleDataPage.load");
+            slowLoader.Complete(new GameObject(nameof(SlowPage)));
+            yield return AwaitResult(showTask, _ => { });
+            yield return AwaitResult(closeAllTask, _ => { });
+            for (int i = 0; i < 60 && UIManager.Instance.Get<DoubleDataPage>()?.State != ViewState.Visible; i++)
+            {
+                yield return null;
+            }
+
+            var actual = UIManager.Instance.Get<DoubleDataPage>();
+            Assert.That(returned, Is.Null);
+            Assert.That(configuredEarly, Is.False);
+            Assert.That(loadedEarly, Is.False);
+            Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(TestViewRegistry.Events, Does.Contain("show:two:2"));
+            Assert.That(actualLoader.InstantiateCount, Is.EqualTo(1));
+            Assert.That(unusedLoader.InstantiateCount, Is.Zero);
+            Assert.That(slowLoader.ReleaseCount, Is.EqualTo(1));
+        }
+
         private static IEnumerator AwaitResult(UniTask<UIOperationResult> task, Action<UIOperationResult> receive)
         {
             yield return task.ToCoroutine(receive);
@@ -710,6 +774,31 @@ namespace Core.Tests.UI
             protected override void OnShow()
             {
                 events.Add($"show:{params1}");
+            }
+        }
+
+        private sealed class DoubleDataPage : View<string, int>
+        {
+            private readonly List<string> events;
+
+            public DoubleDataPage()
+            {
+                var entry = TestViewRegistry.Take(GetType());
+                Loader = entry.Item1;
+                events = entry.Item2;
+            }
+
+            public override string Address => nameof(DoubleDataPage);
+
+            public override View<string, int> SetData(string data1, int data2)
+            {
+                events.Add($"data:{data1}:{data2}");
+                return base.SetData(data1, data2);
+            }
+
+            protected override void OnShow()
+            {
+                events.Add($"show:{params1}:{params2}");
             }
         }
 

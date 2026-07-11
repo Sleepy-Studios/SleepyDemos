@@ -82,7 +82,7 @@ Loading --加载失败或取消--> Faulted
 - Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
 - 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
 - `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
-- CloseAll 处于 current 或 pending 时，同步 `Show<T>()` 仍会把 Show 排在 barrier 后，但为避免返回即将销毁的旧实例会安全降级返回 null；后续通过 `Get<T>()` 可取得实际新实例。
+- CloseAll 处于 current 或 pending 时，同步 `Show<T>()` 及其数据泛型重载仍会把 Show 排在 barrier 后，但为避免返回即将销毁的旧实例会安全降级返回 null；数据也只在 operation 实际执行时应用，后续通过 `Get<T>()` 可取得实际新实例。
 - 数据泛型 Show/Preload 把 `SetData` 作为 operation 配置载荷，在轮到该 operation 时才应用，避免后一次调用提前覆盖前一次仍在加载的 View 数据。
 - `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
 

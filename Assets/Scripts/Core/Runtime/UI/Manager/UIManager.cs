@@ -155,17 +155,13 @@ namespace Core.Runtime
 
         public T Show<T, TData>(TData data, bool hidePrevious = true) where T : View<TData>
         {
-            var view = cacheStack.GetOrCreateView<T>();
-            Show(typeof(T), hidePrevious, target => ((T)target).SetData(data));
-            return view;
+            return Show(typeof(T), hidePrevious, target => ((T)target).SetData(data)) as T;
         }
 
         public T Show<T, TData1, TData2>(TData1 data1, TData2 data2, bool hidePrevious = true)
             where T : View<TData1, TData2>
         {
-            var view = cacheStack.GetOrCreateView<T>();
-            Show(typeof(T), hidePrevious, target => ((T)target).SetData(data1, data2));
-            return view;
+            return Show(typeof(T), hidePrevious, target => ((T)target).SetData(data1, data2)) as T;
         }
 
         public T Get<T>() where T : View => cacheStack.GetView(typeof(T)) as T;
