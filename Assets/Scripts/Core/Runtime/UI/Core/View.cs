@@ -128,19 +128,19 @@ namespace Core.Runtime
             }
 
             State = ViewState.Loading;
-            OnBeforeInit();
-            if (string.IsNullOrEmpty(Address))
-            {
-                FailLoad();
-                return;
-            }
-
             try
             {
+                OnBeforeInit();
+                if (string.IsNullOrEmpty(Address))
+                {
+                    BeginSynchronousFailureCleanup();
+                    return;
+                }
+
                 var instance = Loader.Instantiate(Address, parent);
                 if (instance == null)
                 {
-                    FailLoad();
+                    BeginSynchronousFailureCleanup();
                     return;
                 }
 
@@ -148,7 +148,8 @@ namespace Core.Runtime
             }
             catch (Exception)
             {
-                FailLoad(gameObject);
+                BeginSynchronousFailureCleanup(gameObject);
+                throw;
             }
         }
 
@@ -178,20 +179,21 @@ namespace Core.Runtime
             }
 
             State = ViewState.Loading;
-            OnBeforeInit();
-            if (target == null)
-            {
-                FailLoad();
-                return;
-            }
-
             try
             {
+                OnBeforeInit();
+                if (target == null)
+                {
+                    BeginSynchronousFailureCleanup();
+                    return;
+                }
+
                 CompleteLoad(target);
             }
             catch (Exception)
             {
-                FailLoad(target);
+                BeginSynchronousFailureCleanup(target);
+                throw;
             }
         }
 
@@ -257,17 +259,29 @@ namespace Core.Runtime
             }
 
             State = ViewState.Entering;
-            ForceDisable = false;
-            gameObject.SetActive(true);
-            OnShow();
-            cancellationToken.ThrowIfCancellationRequested();
-            if (context.Animated)
+            try
             {
-                await UITransition.EnterAsync(context, cancellationToken);
-            }
+                ForceDisable = false;
+                gameObject.SetActive(true);
+                OnShow();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (context.Animated)
+                {
+                    await UITransition.EnterAsync(context, cancellationToken);
+                }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            State = ViewState.Visible;
+                cancellationToken.ThrowIfCancellationRequested();
+                State = ViewState.Visible;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                State = ViewState.Faulted;
+                throw;
+            }
         }
 
         internal async UniTask ExitAsync(
@@ -281,16 +295,28 @@ namespace Core.Runtime
             }
 
             State = ViewState.Exiting;
-            cancellationToken.ThrowIfCancellationRequested();
-            if (context.Animated)
+            try
             {
-                await UITransition.ExitAsync(context, cancellationToken);
-            }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (context.Animated)
+                {
+                    await UITransition.ExitAsync(context, cancellationToken);
+                }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            gameObject.SetActive(false);
-            OnHide();
-            State = ViewState.LoadedHidden;
+                cancellationToken.ThrowIfCancellationRequested();
+                gameObject.SetActive(false);
+                OnHide();
+                State = ViewState.LoadedHidden;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                State = ViewState.Faulted;
+                throw;
+            }
         }
 
         protected virtual void InitComponent()
@@ -323,7 +349,7 @@ namespace Core.Runtime
                 OnBeforeInit();
                 if (string.IsNullOrEmpty(Address))
                 {
-                    FailLoad();
+                    await CleanupFailedLoadAsync();
                     return false;
                 }
 
@@ -337,7 +363,7 @@ namespace Core.Runtime
 
                 if (instance == null)
                 {
-                    FailLoad();
+                    await CleanupFailedLoadAsync();
                     return false;
                 }
 
@@ -347,33 +373,13 @@ namespace Core.Runtime
             }
             catch (OperationCanceledException)
             {
-                DisposeTransitionOnce();
-                ReleaseInstanceOnce(instance ?? gameObject);
-                gameObject = null;
-                transform = null;
-                UITransition = null;
-                if (State != ViewState.Destroying && State != ViewState.Destroyed)
-                {
-                    State = ViewState.Faulted;
-                }
-
-                DisposeLoaderOnce();
+                await CleanupFailedLoadAsync(instance);
                 throw;
             }
             catch (Exception)
             {
-                DisposeTransitionOnce();
-                ReleaseInstanceOnce(instance ?? gameObject);
-                gameObject = null;
-                transform = null;
-                UITransition = null;
-                if (State != ViewState.Destroying && State != ViewState.Destroyed)
-                {
-                    State = ViewState.Faulted;
-                }
-
-                DisposeLoaderOnce();
-                return false;
+                await CleanupFailedLoadAsync(instance);
+                throw;
             }
         }
 
@@ -390,15 +396,10 @@ namespace Core.Runtime
             OnGameObjectInitialize();
         }
 
-        private void FailLoad(GameObject instance = null)
+        private void BeginSynchronousFailureCleanup(GameObject instance = null)
         {
-            DisposeTransitionOnce();
-            ReleaseInstanceOnce(instance ?? gameObject);
-            gameObject = null;
-            transform = null;
-            UITransition = null;
             State = ViewState.Faulted;
-            DisposeLoaderOnce();
+            CleanupSynchronousFailureAsync(instance).Forget();
         }
 
         private async UniTask DestroyCoreAsync()
@@ -419,12 +420,49 @@ namespace Core.Runtime
                 catch (OperationCanceledException)
                 {
                 }
-                catch (Exception exception)
+                catch (Exception)
                 {
-                    cleanupException = exception;
+                    // LoadAsync 已负责传播加载主异常；DestroyAsync 只等待其清理完成。
                 }
             }
 
+            var ownedCleanupException = await CleanupOwnedResourcesAsync(true);
+            cleanupException ??= ownedCleanupException;
+            State = ViewState.Destroyed;
+            if (cleanupException != null)
+            {
+                throw cleanupException;
+            }
+        }
+
+        private async UniTask CleanupFailedLoadAsync(GameObject instance = null)
+        {
+            if (State != ViewState.Destroying && State != ViewState.Destroyed)
+            {
+                State = ViewState.Faulted;
+            }
+
+            var cleanupException = await CleanupOwnedResourcesAsync(false, instance);
+            if (cleanupException != null)
+            {
+                Debug.LogException(cleanupException);
+            }
+        }
+
+        private async UniTask CleanupSynchronousFailureAsync(GameObject instance)
+        {
+            var cleanupException = await CleanupOwnedResourcesAsync(false, instance);
+            if (cleanupException != null)
+            {
+                Debug.LogException(cleanupException);
+            }
+        }
+
+        private async UniTask<Exception> CleanupOwnedResourcesAsync(
+            bool invokeDestroyHook,
+            GameObject instance = null)
+        {
+            Exception cleanupException = null;
             foreach (var subView in subViews)
             {
                 try
@@ -451,13 +489,16 @@ namespace Core.Runtime
             }
             bindings.Clear();
 
-            try
+            if (invokeDestroyHook)
             {
-                OnDestroy();
-            }
-            catch (Exception exception)
-            {
-                cleanupException ??= exception;
+                try
+                {
+                    OnDestroy();
+                }
+                catch (Exception exception)
+                {
+                    cleanupException ??= exception;
+                }
             }
 
             try
@@ -471,7 +512,7 @@ namespace Core.Runtime
 
             try
             {
-                ReleaseInstanceOnce(gameObject);
+                ReleaseInstanceOnce(instance ?? gameObject);
             }
             catch (Exception exception)
             {
@@ -490,11 +531,7 @@ namespace Core.Runtime
             gameObject = null;
             transform = null;
             UITransition = null;
-            State = ViewState.Destroyed;
-            if (cleanupException != null)
-            {
-                throw cleanupException;
-            }
+            return cleanupException;
         }
 
         private async UniTask PublishLoadingResultAsync()

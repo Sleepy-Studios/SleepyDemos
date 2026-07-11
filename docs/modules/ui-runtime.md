@@ -37,6 +37,7 @@ Loading --加载失败或取消--> Faulted
 - `LoadAsync` 在调用 `OnBeforeInit()` 前进入 `Loading`。资源加载成功后先进入 `LoadedHidden`，再初始化组件与 Transition；根对象保持 inactive。
 - `EnterAsync` 先进入 `Entering`，激活根对象并调用 `OnShow()`；过渡完成后进入 `Visible`。
 - `ExitAsync` 先进入 `Exiting`，完成退出过渡后关闭根对象并调用 `OnHide()`；最终回到 `LoadedHidden`。
+- Enter/Exit 的非取消生命周期异常会进入 `Faulted` 并原样传播；取消仍保留当前进行态，由后续导航 Coordinator 决定完成到进入端还是退出端。
 - `DestroyAsync` 是幂等且可并发等待的唯一清理入口。加载中的销毁会等待同一加载结果，并回收晚到实例；subViews、bindings、Transition、资源实例和 Loader 各自最多清理一次。
 - 地址为空、加载结果为 null 或非取消异常会进入 `Faulted` 并释放 Loader。取消会清理已返回的晚到实例并继续抛出 `OperationCanceledException`，由导航协调层决定回滚结果。
 - `Init`、`InitAsync`、`InitWithGameObject`、`Show`、`Hide`、`Destroy` 暂时保留为旧调用兼容外观，底层复用同一生命周期和清理路径，不构成第二套状态机。

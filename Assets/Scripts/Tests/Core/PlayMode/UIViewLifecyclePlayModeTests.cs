@@ -143,25 +143,131 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
-        public IEnumerator DestroyAsync_WhenCalledConcurrently_ReleasesOwnedResourcesOnce()
+        public IEnumerator EnterAsync_WhenTransitionThrows_SetsFaultedAndRethrows()
         {
             var events = new List<string>();
-            var root = CreateObject("DestroyView");
+            var root = CreateObject("EnterFailureView");
             var parent = CreateObject("ViewParent");
             var loader = new FakeResourceLoader { AsyncResult = root };
             var transition = new FakeTransition(events);
             var view = new FakeView(loader, transition, events);
-            yield return InvokeLoadAsync(view, parent.transform, CancellationToken.None).ToCoroutine();
+            yield return view.LoadAsync(parent.transform, CancellationToken.None).ToCoroutine();
+            var expected = new InvalidOperationException("Enter failed");
+            transition.EnterException = expected;
 
-            var first = InvokeDestroyAsync(view).Preserve();
-            var second = InvokeDestroyAsync(view).Preserve();
+            Exception actual = null;
+            var context = new UITransitionContext(3, UINavigationAction.Push, view, null, true);
+            yield return CaptureResult(
+                CaptureException(InvokeTransitionAsync("EnterAsync", view, context, CancellationToken.None)),
+                result => actual = result).ToCoroutine();
+
+            Assert.That(actual, Is.SameAs(expected));
+            Assert.That(view.State, Is.EqualTo(ViewState.Faulted));
+            yield return view.DestroyAsync().ToCoroutine();
+        }
+
+        [UnityTest]
+        public IEnumerator ExitAsync_WhenTransitionThrows_SetsFaultedAndRethrows()
+        {
+            var events = new List<string>();
+            var root = CreateObject("ExitFailureView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { AsyncResult = root };
+            var transition = new FakeTransition(events);
+            var view = new FakeView(loader, transition, events);
+            yield return view.LoadAsync(parent.transform, CancellationToken.None).ToCoroutine();
+            var enterContext = new UITransitionContext(4, UINavigationAction.Push, view, null, false);
+            yield return InvokeTransitionAsync("EnterAsync", view, enterContext, CancellationToken.None).ToCoroutine();
+            var expected = new InvalidOperationException("Exit failed");
+            transition.ExitException = expected;
+
+            Exception actual = null;
+            var exitContext = new UITransitionContext(5, UINavigationAction.Close, null, view, true);
+            yield return CaptureResult(
+                CaptureException(InvokeTransitionAsync("ExitAsync", view, exitContext, CancellationToken.None)),
+                result => actual = result).ToCoroutine();
+
+            Assert.That(actual, Is.SameAs(expected));
+            Assert.That(view.State, Is.EqualTo(ViewState.Faulted));
+            yield return view.DestroyAsync().ToCoroutine();
+        }
+
+        [UnityTest]
+        public IEnumerator LoadAsync_WhenInitializationThrows_CleansRegisteredResourcesBeforeCacheReplacement()
+        {
+            var cache = new UICache();
+            var view = cache.GetOrCreateView<InitializationFailureView>();
+            var root = CreateObject("InitializationFailureView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { AsyncResult = root };
+            var events = new List<string>();
+            var transition = new FakeTransition(events);
+            var binding = new CountingBinding();
+            var subView = new CacheTestView();
+            var expected = new InvalidOperationException("Transition initialize failed");
+            transition.InitializeException = expected;
+            view.Configure(loader, transition, binding, subView);
+
+            Exception actual = null;
+            yield return CaptureResult(
+                CaptureException(view.LoadAsync(parent.transform, CancellationToken.None)),
+                result => actual = result).ToCoroutine();
+
+            Assert.That(actual, Is.SameAs(expected));
+            Assert.That(view.State, Is.EqualTo(ViewState.Faulted));
+            Assert.That(binding.DisposeCount, Is.EqualTo(1));
+            Assert.That(subView.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(transition.InitializeCount, Is.EqualTo(1));
+            Assert.That(transition.DisposeCount, Is.EqualTo(1));
+            Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(loader.DisposeCount, Is.EqualTo(1));
+
+            var replacement = cache.GetOrCreateView<InitializationFailureView>();
+            Assert.That(replacement, Is.Not.SameAs(view));
+            yield return view.DestroyAsync().ToCoroutine();
+            Assert.That(binding.DisposeCount, Is.EqualTo(1));
+            Assert.That(transition.DisposeCount, Is.EqualTo(1));
+            Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(loader.DisposeCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator DestroyAsync_WhenCalledConcurrently_OverlapsAndReleasesOwnedResourcesOnce()
+        {
+            var events = new List<string>();
+            var root = CreateObject("ParentDestroyView");
+            var parent = CreateObject("ViewParent");
+            var loader = new FakeResourceLoader { AsyncResult = root };
+            var transition = new FakeTransition(events);
+            var view = new FakeView(loader, transition, events);
+            yield return view.LoadAsync(parent.transform, CancellationToken.None).ToCoroutine();
+
+            var childEvents = new List<string>();
+            var childLoader = new FakeResourceLoader { DelayAsyncResult = true };
+            var childTransition = new FakeTransition(childEvents);
+            var childView = new FakeView(childLoader, childTransition, childEvents);
+            var childRoot = CreateObject("DelayedChildView");
+            var childLoad = childView.LoadAsync(parent.transform, CancellationToken.None);
+            view.AddSubView(childView);
+
+            var first = view.DestroyAsync();
+            Assert.That(first.Status, Is.EqualTo(UniTaskStatus.Pending));
+            var second = view.DestroyAsync();
+            Assert.That(second.Status, Is.EqualTo(UniTaskStatus.Pending));
+
+            childLoader.CompleteAsync(childRoot);
+            yield return childLoad.ToCoroutine();
             yield return UniTask.WhenAll(first, second).ToCoroutine();
-            yield return InvokeDestroyAsync(view).ToCoroutine();
+            yield return view.DestroyAsync().ToCoroutine();
 
             Assert.That(view.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(loader.ReleaseInstanceCount, Is.EqualTo(1));
             Assert.That(loader.DisposeCount, Is.EqualTo(1));
             Assert.That(transition.DisposeCount, Is.EqualTo(1));
+            Assert.That(childView.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(childLoader.ReleaseInstanceCount, Is.EqualTo(1));
+            Assert.That(childLoader.DisposeCount, Is.EqualTo(1));
+            Assert.That(childTransition.InitializeCount, Is.EqualTo(0));
         }
 
         [UnityTest]
@@ -263,6 +369,19 @@ namespace Core.Tests.UI
             }
         }
 
+        private static async UniTask<Exception> CaptureException(UniTask task)
+        {
+            try
+            {
+                await task;
+                return null;
+            }
+            catch (Exception exception)
+            {
+                return exception;
+            }
+        }
+
         private static async UniTask CaptureResult<T>(UniTask<T> task, Action<T> capture)
         {
             capture(await task);
@@ -323,6 +442,48 @@ namespace Core.Tests.UI
             public override string Address => "Fake/CacheView";
         }
 
+        private sealed class InitializationFailureView : View
+        {
+            private IUITransition transition;
+            private IDisposable binding;
+            private View subView;
+
+            public override string Address => "Fake/InitializationFailureView";
+
+            public void Configure(
+                IResourceLoader loader,
+                IUITransition transition,
+                IDisposable binding,
+                View subView)
+            {
+                Loader = loader;
+                this.transition = transition;
+                this.binding = binding;
+                this.subView = subView;
+            }
+
+            protected override IUITransition CreateUITransition()
+            {
+                return transition;
+            }
+
+            protected override void InitComponent()
+            {
+                AddBinding(binding);
+                AddSubView(subView);
+            }
+        }
+
+        private sealed class CountingBinding : IDisposable
+        {
+            public int DisposeCount { get; private set; }
+
+            public void Dispose()
+            {
+                DisposeCount++;
+            }
+        }
+
         private sealed class FakeTransition : IUITransition
         {
             private readonly List<string> events;
@@ -336,11 +497,18 @@ namespace Core.Tests.UI
             public int EnterCount { get; private set; }
             public int ExitCount { get; private set; }
             public int DisposeCount { get; private set; }
+            public Exception InitializeException { get; set; }
+            public Exception EnterException { get; set; }
+            public Exception ExitException { get; set; }
 
             public void Initialize(Transform root)
             {
                 InitializeCount++;
                 events.Add("Transition.Initialize");
+                if (InitializeException != null)
+                {
+                    throw InitializeException;
+                }
             }
 
             public UniTask EnterAsync(UITransitionContext context, CancellationToken cancellationToken)
@@ -348,6 +516,11 @@ namespace Core.Tests.UI
                 cancellationToken.ThrowIfCancellationRequested();
                 EnterCount++;
                 events.Add("Transition.Enter");
+                if (EnterException != null)
+                {
+                    throw EnterException;
+                }
+
                 return UniTask.CompletedTask;
             }
 
@@ -356,6 +529,11 @@ namespace Core.Tests.UI
                 cancellationToken.ThrowIfCancellationRequested();
                 ExitCount++;
                 events.Add("Transition.Exit");
+                if (ExitException != null)
+                {
+                    throw ExitException;
+                }
+
                 return UniTask.CompletedTask;
             }
 
