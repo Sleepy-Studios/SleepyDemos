@@ -1,5 +1,3 @@
-using System;
-
 namespace Core.Runtime
 {
     public enum UILayer
@@ -25,14 +23,22 @@ namespace Core.Runtime
         ItemView
     }
 
-    [Flags]
     public enum ViewState
     {
-        None = 0,
-        FirstInit = 1 << 0,
-        Loaded = 1 << 1,
-        Enabled = 1 << 2,
-        Disabled = 1 << 3,
-        Destroyed = 1 << 4
+        Created = 0,
+        Loading = 1 << 0,
+        LoadedHidden = 1 << 1,
+        Entering = 1 << 2,
+        Visible = 1 << 3,
+        Exiting = 1 << 4,
+        Destroying = 1 << 5,
+        Destroyed = 1 << 6,
+        Faulted = 1 << 7,
+
+        // 旧 View 生命周期仍使用位运算，任务 4 完成迁移后删除这些兼容成员。
+        FirstInit = 1 << 8,
+        Loaded = 1 << 9,
+        Enabled = 1 << 10,
+        Disabled = 1 << 11
     }
 }
