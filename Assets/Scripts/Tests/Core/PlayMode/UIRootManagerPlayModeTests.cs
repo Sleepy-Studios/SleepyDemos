@@ -130,5 +130,17 @@ namespace Core.Tests.UI
             Assert.That(manager.Root, Is.SameAs(root));
             Assert.That(manager.UICamera, Is.SameAs(uiCamera));
         }
+
+        [UnityTest]
+        public IEnumerator CloseAll_WhenMaskIsVisible_HidesMask()
+        {
+            var rootManager = UIRootManager.Instance;
+            yield return UIManager.Instance.InitializeAsync().ToCoroutine();
+            rootManager.Mask.transform.localScale = Vector3.one;
+
+            yield return UIManager.Instance.CloseAll().ToCoroutine();
+
+            Assert.That(rootManager.Mask.transform.localScale, Is.EqualTo(Vector3.zero));
+        }
     }
 }

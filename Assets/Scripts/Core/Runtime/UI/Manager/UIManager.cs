@@ -176,6 +176,7 @@ namespace Core.Runtime
 
             cacheStack.Clear();
             layerStack.Clear();
+            HideMask();
             CurrentUIName = null;
             LastCloseName = null;
         }
