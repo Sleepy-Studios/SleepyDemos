@@ -20,7 +20,7 @@
    - `GraphicRaycaster`
 4. 打开现有 MvcBind 工具并选择正确的 `UILayer`。
 5. 显式选择 `ViewMode`：主页面用 `Page`，弹窗用 `Modal`，常驻挂件或 HUD 用 `Widget`。不要只依赖 `UILayer` 推导。
-6. 选择该 View 使用的 `UI Transition` 类型；不需要过渡时选择 `EmptyUITransition`。
+6. 选择该 View 使用的 `UI Transition` 类型。未生成显式覆盖时，框架默认使用 `FadeScaleUITransition`；不需要视觉过渡时显式选择 `EmptyUITransition`，需要其它表现时选择自定义实现。
 7. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段是 Provider 的解析键，不填写类型名，也不会在生成代码中实例化世界过渡。
 8. 完成组件和回调绑定后生成 View 与 Component 代码。生成的 Component 会显式覆盖 `ViewMode`，并通过 `CreateUITransition()` 工厂创建 UI Transition。
 
@@ -42,6 +42,7 @@ protected override IUITransition CreateUITransition()
 - 不在 `OnShow()`、`OnHide()` 或其它业务回调中重复 `new` Transition。
 - 不自行调用 Transition 的 `Initialize()` 或 `Dispose()`。
 - 不缓存第二份 Transition 引用；需要扩展时只覆写 `CreateUITransition()`。
+- 不自行创建、保存或 Kill DOTween tween；取消、立即完成和销毁统一交给 Transition 实例处理。
 - 加载或过渡收到取消时，让 `OperationCanceledException` 继续返回框架层，不在业务 View 中吞掉。
 - 旧 `Show()` / `Hide()` 调用暂时仍可使用；它们是生命周期兼容外观，不代表业务侧拥有 Transition。
 

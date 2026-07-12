@@ -9,6 +9,7 @@ using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace Core.Tests.UI
 {
@@ -123,6 +124,119 @@ namespace Core.Tests.UI
             yield return pending.ToCoroutine(value => pendingResult = value);
             Assert.That(currentResult.Status, Is.EqualTo(UIOperationStatus.Canceled));
             Assert.That(pendingResult.Status, Is.EqualTo(UIOperationStatus.Canceled));
+        }
+
+        [UnityTest]
+        public IEnumerator InteractionGate_AcquiresForNavigationAndSkipsPreload()
+        {
+            var gateRoot = new GameObject("CoordinatorGate", typeof(RectTransform), typeof(Image));
+            var gateImage = gateRoot.GetComponent<Image>();
+            var gate = new UIInteractionGate();
+            gate.Initialize(gateImage);
+            var observedBlockingExecutions = 0;
+            var coordinator = new UINavigationCoordinator((operation, token) =>
+            {
+                if (operation.Action == UINavigationAction.Preload)
+                {
+                    Assert.That(gate.Count, Is.Zero);
+                }
+                else
+                {
+                    Assert.That(gate.Count, Is.EqualTo(1));
+                    observedBlockingExecutions++;
+                }
+
+                return UniTask.FromResult(UIOperationResult.Succeeded(
+                    operation.OperationId,
+                    operation.Action,
+                    null));
+            }, gate);
+
+            yield return coordinator.Enqueue(
+                UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None).ToCoroutine();
+            Assert.That(gate.Count, Is.Zero);
+            yield return coordinator.Enqueue(
+                UINavigationAction.Preload, typeof(SecondMarker), false, CancellationToken.None).ToCoroutine();
+            Assert.That(gate.Count, Is.Zero);
+            Assert.That(observedBlockingExecutions, Is.EqualTo(1));
+
+            coordinator.Dispose();
+            UnityEngine.Object.Destroy(gateRoot);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator InteractionGate_ReleasesWhenExecutorFailsOrCancels()
+        {
+            var gateRoot = new GameObject("CoordinatorFailureGate", typeof(RectTransform), typeof(Image));
+            var gate = new UIInteractionGate();
+            gate.Initialize(gateRoot.GetComponent<Image>());
+            var coordinator = new UINavigationCoordinator((operation, token) =>
+            {
+                Assert.That(gate.Count, Is.EqualTo(1));
+                if (operation.TargetType == typeof(FirstMarker))
+                {
+                    throw new InvalidOperationException("Expected executor failure");
+                }
+
+                throw new OperationCanceledException(token);
+            }, gate);
+
+            UIOperationResult failed = default;
+            yield return coordinator.Enqueue(
+                    UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None)
+                .ToCoroutine(value => failed = value);
+            Assert.That(failed.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(gate.Count, Is.Zero);
+
+            UIOperationResult canceled = default;
+            yield return coordinator.Enqueue(
+                    UINavigationAction.Push, typeof(SecondMarker), true, CancellationToken.None)
+                .ToCoroutine(value => canceled = value);
+            Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(gate.Count, Is.Zero);
+
+            coordinator.Dispose();
+            UnityEngine.Object.Destroy(gateRoot);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator InteractionGate_WhenExecutorCompletesOnWorker_ReleasesOnMainThread()
+        {
+            var gateRoot = new GameObject("CoordinatorWorkerGate", typeof(RectTransform), typeof(Image));
+            var gate = new UIInteractionGate();
+            gate.Initialize(gateRoot.GetComponent<Image>());
+            var executorReached = new UniTaskCompletionSource();
+            var workerCompletion = new UniTaskCompletionSource<UIOperationResult>();
+            var coordinator = new UINavigationCoordinator((operation, token) =>
+            {
+                executorReached.TrySetResult();
+                return workerCompletion.Task;
+            }, gate);
+
+            UIOperationResult result = default;
+            var operationTask = coordinator.Enqueue(
+                UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None);
+            yield return executorReached.Task.ToCoroutine();
+            var worker = Task.Run(() => workerCompletion.TrySetResult(UIOperationResult.Canceled(
+                1,
+                UINavigationAction.Push,
+                null)));
+            while (!worker.IsCompleted)
+            {
+                yield return null;
+            }
+
+            yield return operationTask.ToCoroutine(value => result = value);
+
+            Assert.That(result.Exception, Is.Null, result.Exception?.ToString());
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(gate.Count, Is.Zero);
+            Assert.That(gateRoot.GetComponent<Image>().raycastTarget, Is.False);
+            coordinator.Dispose();
+            UnityEngine.Object.Destroy(gateRoot);
+            yield return null;
         }
 
         private static Task<UIOperationResult>[] EnqueueMany(

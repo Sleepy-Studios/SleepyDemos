@@ -116,6 +116,35 @@ namespace Core.Tests.UI
 
             Assert.That(manager.Mask, Is.Not.Null);
             Assert.That(manager.Mask.transform.parent, Is.SameAs(manager.GetRoot(UILayer.Pop)));
+
+            var interactionGate = manager.GetRoot(UILayer.Tip).Find("InteractionGate")
+                ?.GetComponent<Image>();
+            Assert.That(interactionGate, Is.Not.Null);
+            Assert.That(interactionGate.color, Is.EqualTo(Color.clear));
+            Assert.That(interactionGate.raycastTarget, Is.False);
+            Assert.That(manager.InteractionGate.Count, Is.Zero);
+        }
+
+        [Test]
+        public void InteractionGate_DoesNotMutateModalMaskPresentation()
+        {
+            var manager = UIRootManager.Instance;
+            var mask = manager.Mask;
+            var button = mask.GetComponent<Button>();
+            var parent = mask.transform.parent;
+            mask.transform.SetSiblingIndex(0);
+            mask.transform.localScale = new Vector3(0.8f, 0.7f, 1f);
+            button.interactable = false;
+            var siblingIndex = mask.transform.GetSiblingIndex();
+            var scale = mask.transform.localScale;
+
+            manager.InteractionGate.Acquire();
+            manager.InteractionGate.Release();
+
+            Assert.That(mask.transform.parent, Is.SameAs(parent));
+            Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(siblingIndex));
+            Assert.That(mask.transform.localScale, Is.EqualTo(scale));
+            Assert.That(button.interactable, Is.False);
         }
 
         [UnityTest]

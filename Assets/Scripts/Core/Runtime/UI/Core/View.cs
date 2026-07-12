@@ -70,7 +70,7 @@ namespace Core.Runtime
         /// 创建当前 View 使用的 UI Transition。
         protected virtual IUITransition CreateUITransition()
         {
-            return new EmptyUITransition();
+            return new FadeScaleUITransition();
         }
 
         public IDisposable AddBinding(IDisposable binding)
@@ -300,6 +300,10 @@ namespace Core.Runtime
                 {
                     await UITransition.EnterAsync(context, cancellationToken);
                 }
+                else
+                {
+                    UITransition.CompleteImmediately(UITransitionDirection.Enter);
+                }
 
                 cancellationToken.ThrowIfCancellationRequested();
                 State = ViewState.Visible;
@@ -332,6 +336,10 @@ namespace Core.Runtime
                 if (context.Animated)
                 {
                     await UITransition.ExitAsync(context, cancellationToken);
+                }
+                else
+                {
+                    UITransition.CompleteImmediately(UITransitionDirection.Exit);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();

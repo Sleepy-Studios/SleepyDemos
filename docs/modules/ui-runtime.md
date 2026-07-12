@@ -16,11 +16,12 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 ## Transition 契约边界
 
-- `IUITransition` 定义单个 View 的初始化、进入、退出、立即完成和释放契约；`EmptyUITransition` 是无副作用、立即完成的默认实现。
+- `IUITransition` 定义单个 View 的初始化、进入、退出、立即完成和释放契约；View 默认工厂返回可取消的 `FadeScaleUITransition`，显式选择 `EmptyUITransition` 时才使用无视觉变化实现。
 - `IUIWorldTransition` 定义跨 View 的世界表现过渡，`IUIWorldTransitionProvider` 按 `View` 解析具体实现。业务生成代码只声明 `WorldTransitionKey`，不直接实例化世界过渡。
 - `UITransitionContext` 统一携带操作标识、导航动作、进入/退出 View 和是否播放过渡。
 - `View` 在资源加载成功后调用一次 `CreateUITransition()`，缓存为该 View 生命周期内稳定的 `UITransition` 实例，并使用 View 根节点调用一次 `Initialize()`。
 - `EnterAsync` / `ExitAsync` 始终使用缓存实例。`DestroyAsync` 负责调用一次 `Dispose()`；业务 View 不自行创建、替换或释放 Transition。
+- Transition 取消会停止当前 tween 并以 `OperationCanceledException` 完成等待；`CompleteImmediately` 负责把进入或退出方向同步到确定终态。非动画 Enter/Exit 与导航回滚也通过该入口恢复视觉，避免残留透明度或缩放。
 
 ## View 生命周期
 
@@ -49,6 +50,7 @@ Loading --加载失败或取消--> Faulted
 ## 导航状态与表现边界
 
 - `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
+- `UINavigationCoordinator` 在切回主线程后、调用 executor 前获取 `UIInteractionGate`，并在 `finally` 中成对释放；成功、失败和取消都不会漏锁。`Preload` 不改变正式表现，因此不获取 Gate。
 - `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 必须由 `UIManager` 事务先移栈、等待 `DestroyAsync`，再从 Cache 移除；Cache 不持有 Stack，也不自行等待销毁。
 - Coordinator 使用单一状态锁保护 queue、current、current CTS、Pump 与 Dispose 状态；锁内只接纳已在外部准备好的同步 Show candidate，不调用 Cache、View 构造或任何外部委托。取消、TCS 完成、registration 释放和异步执行也都在锁外，executor 总是在 Unity 主线程串行运行。
 - Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。pending 调用方取消会立即返回 Canceled，不等待队首，也不产生 View 副作用。
@@ -100,7 +102,7 @@ Loading --加载失败或取消--> Faulted
 2. 创建透视 `UICamera`，加入 URP 主相机的 Camera Stack。
 3. 创建 `UIRootCanvas`，统一设置 `ScreenSpaceCamera` 和 `1920×1080` 屏幕适配。
 4. 创建 `Underground/Base/Foreground/Pop/Decorate/Tip` 六个固定子 Canvas。
-5. 在 Pop 层创建遮罩，并确保 EventSystem 存在。
+5. 在 Pop 层创建 Modal 遮罩，在 Tip 层创建默认关闭的透明 `InteractionGate`，并确保 EventSystem 存在。
 
 固定层使用 `0/100/150/200/250/300` 的 `sortingOrder`。View 初始化后直接挂到 `Level` 对应的层 Root，通过 sibling 顺序控制同层先后，不再动态添加窗口级 Canvas、Scaler 或 Raycaster。
 

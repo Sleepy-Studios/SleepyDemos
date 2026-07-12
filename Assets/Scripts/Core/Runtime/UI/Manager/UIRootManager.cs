@@ -39,6 +39,8 @@ namespace Core.Runtime
         private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
         private readonly Dictionary<UILayer, Transform> roots = new Dictionary<UILayer, Transform>();
 
+        public UIInteractionGate InteractionGate { get; } = new UIInteractionGate();
+
         public Graphic Mask { get; private set; }
         public Camera UICamera { get; private set; }
         public Transform Root { get; private set; }
@@ -70,6 +72,7 @@ namespace Core.Runtime
             ConfigureRootCanvas(rootGo);
             CreateLayerRoots(uiLayer);
             CreateMask();
+            CreateInteractionGate(uiLayer);
             EnsureEventSystem();
             await UniTask.Yield();
         }
@@ -212,6 +215,26 @@ namespace Core.Runtime
             button.targetGraphic = image;
             maskGo.transform.localScale = Vector3.zero;
             Mask = image;
+        }
+
+        private void CreateInteractionGate(int uiLayer)
+        {
+            var gateGo = new GameObject(
+                "InteractionGate",
+                typeof(RectTransform),
+                typeof(Image));
+            gateGo.layer = uiLayer;
+            var rect = gateGo.GetComponent<RectTransform>();
+            rect.SetParent(GetRoot(UILayer.Tip), false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var image = gateGo.GetComponent<Image>();
+            image.color = Color.clear;
+            image.raycastTarget = false;
+            InteractionGate.Initialize(image);
         }
 
         private void EnsureEventSystem()

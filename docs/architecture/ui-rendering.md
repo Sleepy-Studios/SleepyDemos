@@ -18,6 +18,7 @@ UIRootCanvas
 ├── PopLayer Canvas (200)
 ├── DecorateLayer Canvas (250)
 └── TipLayer Canvas (300)
+    └── InteractionGate（透明全屏射线拦截）
 ```
 
 总 Canvas 统一 Camera 和屏幕适配参数。固定子 Canvas 是业务渲染与重建边界，避免一个动态界面使全部业务 UI 进入同一重建域。Canvas 之间不能合批，因此不继续细分到每个 View。
@@ -48,6 +49,8 @@ UIRootCanvas
 
 - `UIManager` 负责 View 生命周期、缓存和栈，不负责配置渲染环境。
 - `UIRootManager` 是 Canvas、UI Camera、EventSystem、固定层 Root 和遮罩的唯一装配入口。
+- Modal Mask 与 `InteractionGate` 是两套独立设施：Mask 只跟随 `TopModal` 调整父节点、sibling、缩放和关闭交互；Gate 固定在 Tip 层，只在导航执行期间切换透明 Image 的 `raycastTarget`。两者不得复用对象，也不得互相修改颜色、透明度、父节点或交互状态。
+- 未显式覆盖 Transition 的 View 默认使用 `FadeScaleUITransition`：进入从透明、`0.95` 倍缩放恢复到完全可见，退出反向收口。它只修改 View 根节点的 `CanvasGroup.alpha` 与 `Transform.localScale`，不负责 Mask、层级或业务显隐。
 - Hotfix 只选择 `UILayer` 并制作 View 内容，不直接修改 Root Canvas 或 UI Camera。
 
 ## 修改原则

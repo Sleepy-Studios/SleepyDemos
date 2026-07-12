@@ -10,6 +10,7 @@ namespace Core.Runtime
         private readonly object stateGate = new object();
         private readonly Queue<QueuedUIOperation> operations = new Queue<QueuedUIOperation>();
         private readonly Func<QueuedUIOperation, CancellationToken, UniTask<UIOperationResult>> execute;
+        private readonly IUIInteractionGate interactionGate;
         private CancellationTokenSource currentCancellation;
         private QueuedUIOperation current;
         private long nextOperationId;
@@ -17,9 +18,11 @@ namespace Core.Runtime
         private bool disposed;
 
         internal UINavigationCoordinator(
-            Func<QueuedUIOperation, CancellationToken, UniTask<UIOperationResult>> execute)
+            Func<QueuedUIOperation, CancellationToken, UniTask<UIOperationResult>> execute,
+            IUIInteractionGate interactionGate = null)
         {
             this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
+            this.interactionGate = interactionGate;
         }
 
         internal bool HasCloseAllBarrier
@@ -280,10 +283,17 @@ namespace Core.Runtime
 
                 registration.Dispose();
                 UIOperationResult result;
+                var gateAcquired = false;
                 try
                 {
                     await UniTask.SwitchToMainThread();
                     operationCancellation.Token.ThrowIfCancellationRequested();
+                    if (operation.Action != UINavigationAction.Preload && interactionGate != null)
+                    {
+                        interactionGate.Acquire();
+                        gateAcquired = true;
+                    }
+
                     result = await execute(operation, operationCancellation.Token);
                 }
                 catch (OperationCanceledException)
@@ -303,6 +313,19 @@ namespace Core.Runtime
                 }
                 finally
                 {
+                    await UniTask.SwitchToMainThread();
+                    if (gateAcquired)
+                    {
+                        try
+                        {
+                            interactionGate.Release();
+                        }
+                        catch (Exception exception)
+                        {
+                            UnityEngine.Debug.LogException(exception);
+                        }
+                    }
+
                     lock (stateGate)
                     {
                         operation.State = QueuedUIOperationState.Completed;

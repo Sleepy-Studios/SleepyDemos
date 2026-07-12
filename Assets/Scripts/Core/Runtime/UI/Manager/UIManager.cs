@@ -27,7 +27,9 @@ namespace Core.Runtime
         protected override void OnSingletonInit()
         {
             cacheStack = new UICache();
-            navigationCoordinator = new UINavigationCoordinator(ExecuteAsync);
+            navigationCoordinator = new UINavigationCoordinator(
+                ExecuteAsync,
+                UIRootManager.Instance.InteractionGate);
         }
 
         public async UniTask InitializeAsync()

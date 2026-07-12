@@ -206,6 +206,31 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator EnterExit_WhenAnimationDisabled_CompletesTransitionImmediately()
+        {
+            var events = new List<string>();
+            var root = CreateObject("ImmediateTransitionView");
+            var parent = CreateObject("ViewParent");
+            var transition = new FakeTransition(events);
+            var view = new FakeView(
+                new FakeResourceLoader { AsyncResult = root },
+                transition,
+                events);
+            yield return view.LoadAsync(parent.transform, CancellationToken.None).ToCoroutine();
+
+            yield return view.EnterAsync(
+                new UITransitionContext(20, UINavigationAction.Push, view, null, false),
+                CancellationToken.None).ToCoroutine();
+            yield return view.ExitAsync(
+                new UITransitionContext(21, UINavigationAction.Close, null, view, false),
+                CancellationToken.None).ToCoroutine();
+
+            Assert.That(transition.CompleteImmediatelyCount, Is.EqualTo(2));
+            Assert.That(transition.LastImmediateDirection, Is.EqualTo(UITransitionDirection.Exit));
+            yield return view.DestroyAsync().ToCoroutine();
+        }
+
+        [UnityTest]
         public IEnumerator EnterAsync_WhenTransitionThrows_SetsFaultedAndRethrows()
         {
             var events = new List<string>();
@@ -877,6 +902,8 @@ namespace Core.Tests.UI
             public int EnterCount { get; private set; }
             public int ExitCount { get; private set; }
             public int DisposeCount { get; private set; }
+            public int CompleteImmediatelyCount { get; private set; }
+            public UITransitionDirection LastImmediateDirection { get; private set; }
             public Exception InitializeException { get; set; }
             public Exception EnterException { get; set; }
             public Exception ExitException { get; set; }
@@ -919,6 +946,8 @@ namespace Core.Tests.UI
 
             public void CompleteImmediately(UITransitionDirection direction)
             {
+                CompleteImmediatelyCount++;
+                LastImmediateDirection = direction;
             }
 
             public void Dispose()
