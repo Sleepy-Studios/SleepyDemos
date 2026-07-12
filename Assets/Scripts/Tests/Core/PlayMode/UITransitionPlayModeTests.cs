@@ -152,6 +152,31 @@ namespace Core.Tests.UI
             transition.Dispose();
         }
 
+        [UnityTest]
+        public IEnumerator FadeScale_Reentry_CancelsOldAwaitAndCompletesNewTransition()
+        {
+            root = new GameObject("ReenteredFadeScaleRoot", typeof(RectTransform));
+            var transition = CreateTransition(0.05f, 0.95f);
+            transition.Initialize(root.transform);
+            var oldTask = CaptureException(
+                transition.EnterAsync(default, CancellationToken.None)).Preserve();
+
+            yield return null;
+            var newTask = CaptureException(
+                transition.ExitAsync(default, CancellationToken.None)).Preserve();
+            Exception oldException = null;
+            Exception newException = null;
+            yield return Capture(oldTask, value => oldException = value).ToCoroutine();
+            yield return Capture(newTask, value => newException = value).ToCoroutine();
+
+            Assert.That(oldException, Is.TypeOf<OperationCanceledException>());
+            Assert.That(newException, Is.Null);
+            Assert.That(root.GetComponent<CanvasGroup>().alpha, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(Vector3.Distance(root.transform.localScale, Vector3.one * 0.95f),
+                Is.LessThan(0.001f));
+            transition.Dispose();
+        }
+
         [Test]
         public void InteractionGate_NestedAcquireReleaseAndReinitialize_TracksCountAndGraphic()
         {

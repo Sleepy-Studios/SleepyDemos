@@ -51,6 +51,7 @@ Loading --加载失败或取消--> Faulted
 
 - `UIStack` 只保存已提交导航状态，不持有 Mask、Button 或 Root，也不调用 `View.Show()` / `View.Hide()`、操作 Transform 或 GameObject。Page、Modal、Widget 集合与快照都只通过不可修改视图对外暴露。
 - `UINavigationCoordinator` 在切回主线程后、调用 executor 前获取 `UIInteractionGate`，并在 `finally` 中成对释放；成功、失败和取消都不会漏锁。`Preload` 不改变正式表现，因此不获取 Gate。
+- Mask 在 Show、Replace、Close、Back、回滚和清栈边界统一从 `UIStack.TopModal` 刷新；Widget 与 Page 的进入、退出或失败不得覆盖现有 Modal Mask。刷新只调整层级、缩放、位置和 Button 交互，不修改 Mask 颜色或 alpha。
 - `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 必须由 `UIManager` 事务先移栈、等待 `DestroyAsync`，再从 Cache 移除；Cache 不持有 Stack，也不自行等待销毁。
 - Coordinator 使用单一状态锁保护 queue、current、current CTS、Pump 与 Dispose 状态；锁内只接纳已在外部准备好的同步 Show candidate，不调用 Cache、View 构造或任何外部委托。取消、TCS 完成、registration 释放和异步执行也都在锁外，executor 总是在 Unity 主线程串行运行。
 - Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。pending 调用方取消会立即返回 Canceled，不等待队首，也不产生 View 副作用。
@@ -102,9 +103,9 @@ Loading --加载失败或取消--> Faulted
 2. 创建透视 `UICamera`，加入 URP 主相机的 Camera Stack。
 3. 创建 `UIRootCanvas`，统一设置 `ScreenSpaceCamera` 和 `1920×1080` 屏幕适配。
 4. 创建 `Underground/Base/Foreground/Pop/Decorate/Tip` 六个固定子 Canvas。
-5. 在 Pop 层创建 Modal 遮罩，在 Tip 层创建默认关闭的透明 `InteractionGate`，并确保 EventSystem 存在。
+5. 在 Pop 层创建 Modal 遮罩；在 Tip 层依次创建 `TipContent` 与默认关闭的透明 `InteractionGate`，让运行期新增的 Tip View 始终位于 Gate 下方；最后确保 EventSystem 存在。
 
-固定层使用 `0/100/150/200/250/300` 的 `sortingOrder`。View 初始化后直接挂到 `Level` 对应的层 Root，通过 sibling 顺序控制同层先后，不再动态添加窗口级 Canvas、Scaler 或 Raycaster。
+固定层使用 `0/100/150/200/250/300` 的 `sortingOrder`。View 初始化后挂到 `Level` 对应的层 Root；Tip View 统一挂到 Tip 层内的 `TipContent`。业务内容通过 sibling 顺序控制同层先后，不再动态添加窗口级 Canvas、Scaler 或 Raycaster。
 
 `BuildUIRoot()` 可以重复调用，但同一运行期只创建一套 Root 和 UI Camera。`CloseAll()` 只清理 View、UI 栈与缓存，不销毁持久化 Root。
 

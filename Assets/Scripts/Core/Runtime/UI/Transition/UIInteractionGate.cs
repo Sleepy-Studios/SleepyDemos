@@ -49,6 +49,16 @@ namespace Core.Runtime
             ApplyBlockingState();
         }
 
+        /// 将交互锁恢复到所属层级的最上方；仅在层级结构发生变化后调用。
+        public void EnsureOnTop()
+        {
+            EnsureMainThread();
+            if (graphic != null)
+            {
+                graphic.transform.SetAsLastSibling();
+            }
+        }
+
         /// 释放一份交互锁；多余释放会记录错误并保持为零。
         public void Release()
         {
@@ -75,7 +85,7 @@ namespace Core.Runtime
             graphic.raycastTarget = IsBlocking;
             if (IsBlocking)
             {
-                graphic.transform.SetAsLastSibling();
+                EnsureOnTop();
             }
         }
 

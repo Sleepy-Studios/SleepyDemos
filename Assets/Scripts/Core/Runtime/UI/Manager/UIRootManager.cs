@@ -38,6 +38,7 @@ namespace Core.Runtime
 
         private static readonly Vector2 ReferenceResolution = new Vector2(1920f, 1080f);
         private readonly Dictionary<UILayer, Transform> roots = new Dictionary<UILayer, Transform>();
+        private Transform tipContentRoot;
 
         public UIInteractionGate InteractionGate { get; } = new UIInteractionGate();
 
@@ -71,6 +72,7 @@ namespace Core.Runtime
 
             ConfigureRootCanvas(rootGo);
             CreateLayerRoots(uiLayer);
+            CreateTipContentRoot(uiLayer);
             CreateMask();
             CreateInteractionGate(uiLayer);
             EnsureEventSystem();
@@ -85,6 +87,13 @@ namespace Core.Runtime
             }
 
             return roots.TryGetValue(layer, out var root) ? root : Root;
+        }
+
+        internal Transform GetViewRoot(UILayer layer)
+        {
+            return layer == UILayer.Tip && tipContentRoot != null
+                ? tipContentRoot
+                : GetRoot(layer);
         }
 
         private void ConfigureRootCanvas(GameObject rootGo)
@@ -217,6 +226,19 @@ namespace Core.Runtime
             Mask = image;
         }
 
+        private void CreateTipContentRoot(int uiLayer)
+        {
+            var contentGo = new GameObject("TipContent", typeof(RectTransform));
+            contentGo.layer = uiLayer;
+            var rect = contentGo.GetComponent<RectTransform>();
+            rect.SetParent(GetRoot(UILayer.Tip), false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            tipContentRoot = rect;
+        }
+
         private void CreateInteractionGate(int uiLayer)
         {
             var gateGo = new GameObject(
@@ -235,6 +257,7 @@ namespace Core.Runtime
             image.color = Color.clear;
             image.raycastTarget = false;
             InteractionGate.Initialize(image);
+            InteractionGate.EnsureOnTop();
         }
 
         private void EnsureEventSystem()

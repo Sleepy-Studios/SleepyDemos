@@ -119,7 +119,10 @@ namespace Core.Tests.UI
 
             var interactionGate = manager.GetRoot(UILayer.Tip).Find("InteractionGate")
                 ?.GetComponent<Image>();
+            var tipContent = manager.GetRoot(UILayer.Tip).Find("TipContent");
+            Assert.That(tipContent, Is.Not.Null);
             Assert.That(interactionGate, Is.Not.Null);
+            Assert.That(tipContent.GetSiblingIndex(), Is.LessThan(interactionGate.transform.GetSiblingIndex()));
             Assert.That(interactionGate.color, Is.EqualTo(Color.clear));
             Assert.That(interactionGate.raycastTarget, Is.False);
             Assert.That(manager.InteractionGate.Count, Is.Zero);
@@ -137,6 +140,7 @@ namespace Core.Tests.UI
             button.interactable = false;
             var siblingIndex = mask.transform.GetSiblingIndex();
             var scale = mask.transform.localScale;
+            var color = mask.color;
 
             manager.InteractionGate.Acquire();
             manager.InteractionGate.Release();
@@ -145,6 +149,7 @@ namespace Core.Tests.UI
             Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(siblingIndex));
             Assert.That(mask.transform.localScale, Is.EqualTo(scale));
             Assert.That(button.interactable, Is.False);
+            Assert.That(mask.color, Is.EqualTo(color));
         }
 
         [UnityTest]

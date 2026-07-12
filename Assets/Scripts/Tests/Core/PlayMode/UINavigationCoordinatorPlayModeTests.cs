@@ -61,6 +61,7 @@ namespace Core.Tests.UI
         {
             var currentGate = new UniTaskCompletionSource();
             var pendingExecutions = 0;
+            var interactionGate = new RecordingInteractionGate();
             var coordinator = new UINavigationCoordinator(async (operation, token) =>
             {
                 if (operation.TargetType == typeof(FirstMarker))
@@ -73,7 +74,7 @@ namespace Core.Tests.UI
                 }
 
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);
-            });
+            }, interactionGate);
 
             var current = coordinator.Enqueue(
                 UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None);
@@ -87,12 +88,17 @@ namespace Core.Tests.UI
             Assert.That(pending.Status, Is.EqualTo(UniTaskStatus.Succeeded));
             Assert.That(current.Status, Is.EqualTo(UniTaskStatus.Pending));
             Assert.That(pendingExecutions, Is.Zero);
+            Assert.That(interactionGate.AcquireCalls, Is.EqualTo(1));
+            Assert.That(interactionGate.Count, Is.EqualTo(1));
 
             currentGate.TrySetResult();
             yield return current.ToCoroutine();
             UIOperationResult pendingResult = default;
             yield return pending.ToCoroutine(value => pendingResult = value);
             Assert.That(pendingResult.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(interactionGate.AcquireCalls, Is.EqualTo(1));
+            Assert.That(interactionGate.ReleaseCalls, Is.EqualTo(1));
+            Assert.That(interactionGate.Count, Is.Zero);
             coordinator.Dispose();
         }
 
@@ -259,5 +265,24 @@ namespace Core.Tests.UI
 
         private sealed class FirstMarker { }
         private sealed class SecondMarker { }
+
+        private sealed class RecordingInteractionGate : IUIInteractionGate
+        {
+            public int Count { get; private set; }
+            public int AcquireCalls { get; private set; }
+            public int ReleaseCalls { get; private set; }
+
+            public void Acquire()
+            {
+                AcquireCalls++;
+                Count++;
+            }
+
+            public void Release()
+            {
+                ReleaseCalls++;
+                Count--;
+            }
+        }
     }
 }

@@ -166,6 +166,106 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator WidgetAboveModal_DoesNotHideOrMoveTopModalMask()
+        {
+            TestViewRegistry.Register<FirstPage>();
+            TestViewRegistry.Register<MaskedModal>();
+            TestViewRegistry.Register<TestWidget>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.ShowAsync<MaskedModal>(), _ => { });
+            var modal = UIManager.Instance.Get<MaskedModal>();
+            var mask = UIRootManager.Instance.Mask;
+            var expectedParent = modal.transform.parent;
+            var expectedSibling = mask.transform.GetSiblingIndex();
+            var expectedColor = mask.color;
+
+            yield return AwaitResult(UIManager.Instance.ShowAsync<TestWidget>(), _ => { });
+
+            Assert.That(mask.transform.parent, Is.SameAs(expectedParent));
+            Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(expectedSibling));
+            Assert.That(mask.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(mask.color, Is.EqualTo(expectedColor));
+            Assert.That(mask.color.a, Is.EqualTo(expectedColor.a));
+
+            yield return AwaitResult(UIManager.Instance.CloseAsync<TestWidget>(), _ => { });
+
+            Assert.That(mask.transform.parent, Is.SameAs(expectedParent));
+            Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(expectedSibling));
+            Assert.That(mask.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(mask.color, Is.EqualTo(expectedColor));
+        }
+
+        [UnityTest]
+        public IEnumerator TipWidgetNavigation_KeepsInteractionGateAboveViewContent()
+        {
+            TestViewRegistry.Register<TipWidget>();
+
+            yield return AwaitResult(UIManager.Instance.ShowAsync<TipWidget>(), _ => { });
+
+            var tipLayer = UIRootManager.Instance.GetRoot(UILayer.Tip);
+            var content = tipLayer.Find("TipContent");
+            var gate = tipLayer.Find("InteractionGate");
+            var view = UIManager.Instance.Get<TipWidget>();
+            Assert.That(content, Is.Not.Null);
+            Assert.That(gate, Is.Not.Null);
+            Assert.That(view.transform.parent, Is.SameAs(content));
+            Assert.That(gate.GetSiblingIndex(), Is.EqualTo(tipLayer.childCount - 1));
+            Assert.That(gate.GetSiblingIndex(), Is.GreaterThan(content.GetSiblingIndex()));
+        }
+
+        [UnityTest]
+        public IEnumerator DefaultFade_AnimatedFalse_UsesImmediateEnterAndExitStates()
+        {
+            TestViewRegistry.Register<DefaultFadePage>();
+            yield return AwaitResult(
+                UIManager.Instance.ShowAsync<DefaultFadePage>(new UIShowOptions(false)),
+                _ => { });
+            var view = UIManager.Instance.Get<DefaultFadePage>();
+            var canvasGroup = view.transform.GetComponent<CanvasGroup>();
+
+            Assert.That(canvasGroup.alpha, Is.EqualTo(1f));
+            Assert.That(Vector3.Distance(view.transform.localScale, Vector3.one), Is.LessThan(0.001f));
+
+            yield return AwaitResult(
+                UIManager.Instance.CloseAsync<DefaultFadePage>(animated: false),
+                _ => { });
+
+            Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
+            Assert.That(canvasGroup.alpha, Is.EqualTo(0f));
+            Assert.That(Vector3.Distance(view.transform.localScale, Vector3.one * 0.95f),
+                Is.LessThan(0.001f));
+        }
+
+        [UnityTest]
+        public IEnumerator Rollback_RealDefaultTransitionsMatchVisibleAndHiddenSnapshotStates()
+        {
+            TestViewRegistry.Register<DefaultFadePage>();
+            TestViewRegistry.Register<DefaultFadeWidget>();
+            yield return AwaitResult(
+                UIManager.Instance.ShowAsync<DefaultFadePage>(new UIShowOptions(false)),
+                _ => { });
+            yield return UIManager.Instance.Preload<DefaultFadeWidget>().ToCoroutine();
+            var visible = UIManager.Instance.Get<DefaultFadePage>();
+            var hidden = UIManager.Instance.Get<DefaultFadeWidget>();
+            hidden.UITransition.CompleteImmediately(UITransitionDirection.Enter);
+
+            TestViewRegistry.Register<SecondPage>(throwEnter: true);
+            UIOperationResult result = default;
+            yield return AwaitResult(
+                UIManager.Instance.ShowAsync<SecondPage>(),
+                value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(visible.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(visible.transform.GetComponent<CanvasGroup>().alpha, Is.EqualTo(1f));
+            Assert.That(Vector3.Distance(visible.transform.localScale, Vector3.one), Is.LessThan(0.001f));
+            Assert.That(hidden.State, Is.EqualTo(ViewState.LoadedHidden));
+            Assert.That(hidden.transform.GetComponent<CanvasGroup>().alpha, Is.EqualTo(0f));
+            Assert.That(Vector3.Distance(hidden.transform.localScale, Vector3.one * 0.95f),
+                Is.LessThan(0.001f));
+        }
+
+        [UnityTest]
         public IEnumerator PendingCancellation_HasNoSideEffects()
         {
             var firstLoader = TestViewRegistry.Register<FirstPage>(delay: true);
@@ -289,7 +389,7 @@ namespace Core.Tests.UI
             TestViewRegistry.Register<SnapshotPage>();
             yield return AwaitResult(UIManager.Instance.ShowAsync<SnapshotPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<SnapshotPage>();
-            var root = UIRootManager.Instance.GetRoot(UILayer.Base);
+            var root = UIRootManager.Instance.GetRoot(UILayer.Pop);
             var beforeSibling = new GameObject("BeforeSibling").transform;
             beforeSibling.SetParent(root, false);
             oldPage.transform.SetSiblingIndex(0);
@@ -303,12 +403,8 @@ namespace Core.Tests.UI
             var button = mask.GetComponent<Button>();
             button.interactable = false;
             var expectedViewParent = oldPage.transform.parent;
-            var expectedViewSibling = oldPage.transform.GetSiblingIndex();
             var expectedViewActive = oldPage.gameObject.activeSelf;
-            var expectedMaskParent = mask.transform.parent;
-            var expectedMaskSibling = mask.transform.GetSiblingIndex();
-            var expectedMaskScale = mask.transform.localScale;
-            var expectedMaskPosition = mask.transform.localPosition;
+            var expectedMaskColor = mask.color;
             var expectedCurrentName = UIManager.Instance.CurrentUIName;
             var expectedLastName = UIManager.Instance.LastCloseName;
 
@@ -316,13 +412,13 @@ namespace Core.Tests.UI
             yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
 
             Assert.That(oldPage.transform.parent, Is.SameAs(expectedViewParent));
-            Assert.That(oldPage.transform.GetSiblingIndex(), Is.EqualTo(expectedViewSibling));
             Assert.That(oldPage.gameObject.activeSelf, Is.EqualTo(expectedViewActive));
-            Assert.That(mask.transform.parent, Is.SameAs(expectedMaskParent));
-            Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(expectedMaskSibling));
-            Assert.That(mask.transform.localScale, Is.EqualTo(expectedMaskScale));
-            Assert.That(mask.transform.localPosition, Is.EqualTo(expectedMaskPosition));
-            Assert.That(button.interactable, Is.False);
+            Assert.That(mask.transform.parent, Is.SameAs(oldPage.transform.parent));
+            Assert.That(mask.transform.GetSiblingIndex(), Is.LessThan(oldPage.transform.GetSiblingIndex()));
+            Assert.That(mask.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(mask.transform.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(mask.color, Is.EqualTo(expectedMaskColor));
+            Assert.That(button.interactable, Is.True);
             Assert.That(UIManager.Instance.CurrentUIName, Is.EqualTo(expectedCurrentName));
             Assert.That(UIManager.Instance.LastCloseName, Is.EqualTo(expectedLastName));
             Object.Destroy(beforeSibling.gameObject);
@@ -969,9 +1065,7 @@ namespace Core.Tests.UI
             var button = mask.GetComponent<Button>();
             mask.transform.localScale = new Vector3(0.2f, 0.3f, 0.4f);
             var expectedMaskParent = mask.transform.parent;
-            var expectedMaskSibling = mask.transform.GetSiblingIndex();
-            var expectedMaskScale = mask.transform.localScale;
-            var expectedInteractable = button.interactable;
+            var expectedMaskColor = mask.color;
             var expectedCurrentName = UIManager.Instance.CurrentUIName;
             var expectedLastName = UIManager.Instance.LastCloseName;
 
@@ -988,9 +1082,11 @@ namespace Core.Tests.UI
             Assert.That(UIManager.Instance.CurrentUIName, Is.EqualTo(expectedCurrentName));
             Assert.That(UIManager.Instance.LastCloseName, Is.EqualTo(expectedLastName));
             Assert.That(mask.transform.parent, Is.SameAs(expectedMaskParent));
-            Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(expectedMaskSibling));
-            Assert.That(mask.transform.localScale, Is.EqualTo(expectedMaskScale));
-            Assert.That(button.interactable, Is.EqualTo(expectedInteractable));
+            Assert.That(mask.transform.GetSiblingIndex(), Is.LessThan(modal.transform.GetSiblingIndex()));
+            Assert.That(mask.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(mask.transform.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(mask.color, Is.EqualTo(expectedMaskColor));
+            Assert.That(button.interactable, Is.True);
         }
 
         [UnityTest]
@@ -1169,6 +1265,7 @@ namespace Core.Tests.UI
         private sealed class NullPage : NavigationTestPage { }
         private sealed class SnapshotPage : NavigationTestPage
         {
+            public override UILayer Level => UILayer.Pop;
             public override MaskType Mask => MaskType.CloseRaycast;
         }
 
@@ -1352,6 +1449,28 @@ namespace Core.Tests.UI
         }
 
         private sealed class TestWidget : NavigationTestPage
+        {
+            public override UILayer Level => UILayer.Decorate;
+        }
+
+        private sealed class TipWidget : NavigationTestPage
+        {
+            public override UILayer Level => UILayer.Tip;
+        }
+
+        private class DefaultFadePage : View
+        {
+            public DefaultFadePage()
+            {
+                var entry = TestViewRegistry.Take(GetType());
+                Loader = entry.Item1;
+            }
+
+            public override string Address => GetType().Name;
+            public override bool DestroyOnHide => false;
+        }
+
+        private sealed class DefaultFadeWidget : DefaultFadePage
         {
             public override UILayer Level => UILayer.Decorate;
         }

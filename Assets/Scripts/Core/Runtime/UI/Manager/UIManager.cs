@@ -37,6 +37,7 @@ namespace Core.Runtime
             await UIRootManager.Instance.BuildUIRoot();
             layerStack ??= new UIStack();
             ConfigureMask();
+            RefreshMaskFromTopModal();
         }
 
         /// <summary>
@@ -301,6 +302,8 @@ namespace Core.Runtime
                     await TryCleanupAndRemoveAsync(view);
                 }
 
+                RefreshMaskFromTopModal();
+
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
 
@@ -311,12 +314,13 @@ namespace Core.Runtime
                 previous = GetPreviousView(view);
                 if (previous == view && view.State == ViewState.Visible)
                 {
+                    RefreshMaskFromTopModal();
                     return UIOperationResult.Ignored(operation.OperationId, operation.Action, view);
                 }
 
                 OnBeginOpen?.Invoke(view);
                 var loaded = view.IsLoaded || await view.LoadAsync(
-                    UIRootManager.Instance.GetRoot(view.Level),
+                    UIRootManager.Instance.GetViewRoot(view.Level),
                     cancellationToken);
                 if (!loaded)
                 {
@@ -353,7 +357,8 @@ namespace Core.Runtime
                     view,
                     previous,
                     operation.Animated), legacyAnimations, cancellationToken);
-                PlaceOnTopAndApplyMask(view);
+                PlaceOnTop(view);
+                RefreshMaskFromTopModal();
 
                 if (replace && previous != null && previous != view)
                 {
@@ -449,14 +454,15 @@ namespace Core.Runtime
                         revealed,
                         view,
                         operation.Animated), legacyAnimations, cancellationToken);
-                    PlaceOnTopAndApplyMask(revealed);
+                    PlaceOnTop(revealed);
                     CurrentUIName = revealed.Name;
                 }
                 else
                 {
-                    HideMask();
                     CurrentUIName = null;
                 }
+
+                RefreshMaskFromTopModal();
 
             }
             catch (OperationCanceledException)
@@ -518,7 +524,7 @@ namespace Core.Runtime
             {
                 operation.Configure?.Invoke(view);
                 if (!view.IsLoaded && !await view.LoadAsync(
-                        UIRootManager.Instance.GetRoot(view.Level), cancellationToken))
+                        UIRootManager.Instance.GetViewRoot(view.Level), cancellationToken))
                 {
                     throw new InvalidOperationException($"View 预加载失败: {view.Name}");
                 }
@@ -568,7 +574,7 @@ namespace Core.Runtime
             {
                 cacheStack.Clear();
                 layerStack.Clear();
-                HideMask();
+                RefreshMaskFromTopModal();
                 CurrentUIName = null;
                 LastCloseName = null;
             }
@@ -714,6 +720,7 @@ namespace Core.Runtime
             presentation.Restore(removeFailedView ? failedView : null, LogOperationFailure);
             CurrentUIName = presentation.CurrentUIName;
             LastCloseName = presentation.LastCloseName;
+            RefreshMaskFromTopModal();
             await legacyAnimations.CompensateAsync(LogOperationFailure);
 
             if (removeFailedView)
@@ -764,6 +771,7 @@ namespace Core.Runtime
             try
             {
                 layerStack?.CommitClose(view);
+                RefreshMaskFromTopModal();
                 await view.DestroyAsync();
             }
             catch (Exception exception)
@@ -851,31 +859,33 @@ namespace Core.Runtime
             }
         }
 
-        private void PlaceOnTopAndApplyMask(View view)
+        private void PlaceOnTop(View view)
         {
             if (view.transform != null)
             {
                 view.transform.SetAsLastSibling();
             }
 
-            ApplyMask(view, true);
+            UIRootManager.Instance.InteractionGate.EnsureOnTop();
         }
 
-        private void ApplyMask(View view, bool autoHide)
+        private void RefreshMaskFromTopModal()
+        {
+            var modal = layerStack?.TopModal;
+            if (modal == null || modal.Mask == MaskType.None)
+            {
+                HideMask();
+                return;
+            }
+
+            ApplyMask(modal);
+        }
+
+        private void ApplyMask(View view)
         {
             var mask = UIRootManager.Instance.Mask;
             if (mask == null)
             {
-                return;
-            }
-
-            if (view.Mask == MaskType.None)
-            {
-                if (autoHide)
-                {
-                    HideMask();
-                }
-
                 return;
             }
 
@@ -885,7 +895,12 @@ namespace Core.Runtime
             }
 
             mask.transform.SetParent(view.transform.parent, false);
-            mask.transform.SetSiblingIndex(Mathf.Max(0, view.transform.GetSiblingIndex()));
+            var viewSiblingIndex = view.transform.GetSiblingIndex();
+            var maskSiblingIndex = mask.transform.GetSiblingIndex();
+            var targetSiblingIndex = maskSiblingIndex < viewSiblingIndex
+                ? viewSiblingIndex - 1
+                : viewSiblingIndex;
+            mask.transform.SetSiblingIndex(Mathf.Max(0, targetSiblingIndex));
             mask.transform.localScale = Vector3.one;
             mask.transform.localPosition = Vector3.zero;
             if (maskButton != null)
@@ -900,6 +915,11 @@ namespace Core.Runtime
             if (mask != null)
             {
                 mask.transform.localScale = Vector3.zero;
+            }
+
+            if (maskButton != null)
+            {
+                maskButton.interactable = false;
             }
         }
     }
