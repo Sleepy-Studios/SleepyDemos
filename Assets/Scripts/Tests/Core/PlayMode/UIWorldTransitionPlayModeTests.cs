@@ -337,6 +337,82 @@ namespace Core.Tests.UI
                 "CloseAll 当前直接销毁全部 View，没有 Enter/Exit 阶段，不应虚构 World Transition。");
         }
 
+        [UnityTest]
+        public IEnumerator WorldFailure_WaitsForCanceledUiCleanupAndPreservesPrimaryException()
+        {
+            Scenario.Register<WorldPageB>();
+            var uiTransition = Scenario.GetUITransition<WorldPageB>();
+            uiTransition.WaitForEnterCancellation = true;
+            var provider = new FakeWorldTransitionProvider
+            {
+                ThrowEnterFor = typeof(WorldPageB)
+            };
+            RegisterProvider(provider);
+
+            var task = UIManager.Instance.ShowAsync<WorldPageB>().Preserve();
+            yield return null;
+
+            var cleanupStartedBeforeRelease = uiTransition.EnterCleanupStarted;
+            var operationCompletedBeforeCleanup = task.Status != UniTaskStatus.Pending;
+            var rollbackStartedBeforeCleanup =
+                Scenario.Events.Contains("WorldPageB.world.complete.Exit");
+
+            uiTransition.CompleteEnterCleanup();
+            UIOperationResult result = default;
+            yield return Await(task, value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.Exception, Is.SameAs(provider.EnterException));
+            Assert.That(cleanupStartedBeforeRelease, Is.True);
+            Assert.That(operationCompletedBeforeCleanup, Is.False,
+                "World 失败后必须等待已取消的 UI 成员完成 finally 收口。");
+            Assert.That(rollbackStartedBeforeCleanup, Is.False,
+                "UI 成员尚未收口时不得提前回滚 World 终态。");
+            Assert.That(uiTransition.EnterCleanupFinished, Is.True);
+            Assert.That(Scenario.Events.IndexOf("WorldPageB.ui.enter.cleanup.done"),
+                Is.LessThan(Scenario.Events.IndexOf("WorldPageB.world.complete.Exit")));
+        }
+
+        [UnityTest]
+        public IEnumerator UiFailure_WaitsForCanceledWorldCleanupAndPreservesPrimaryException()
+        {
+            Scenario.Register<WorldPageB>();
+            var uiTransition = Scenario.GetUITransition<WorldPageB>();
+            uiTransition.BlockEnter = true;
+            uiTransition.EnterException = new InvalidOperationException("ui enter failed");
+            var provider = new FakeWorldTransitionProvider
+            {
+                WaitForEnterCancellationFor = typeof(WorldPageB)
+            };
+            RegisterProvider(provider);
+
+            var task = UIManager.Instance.ShowAsync<WorldPageB>().Preserve();
+            yield return null;
+            var worldTransition = provider.GetResolved<WorldPageB>();
+            Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.enter.start"));
+
+            uiTransition.CompleteEnter();
+            yield return null;
+            var cleanupStartedBeforeRelease = worldTransition.EnterCleanupStarted;
+            var operationCompletedBeforeCleanup = task.Status != UniTaskStatus.Pending;
+            var rollbackStartedBeforeCleanup =
+                Scenario.Events.Contains("WorldPageB.world.complete.Exit");
+
+            worldTransition.CompleteEnterCleanup();
+            UIOperationResult result = default;
+            yield return Await(task, value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.Exception, Is.SameAs(uiTransition.EnterException));
+            Assert.That(cleanupStartedBeforeRelease, Is.True);
+            Assert.That(operationCompletedBeforeCleanup, Is.False,
+                "UI 失败后必须等待已取消的 World 成员完成 finally 收口。");
+            Assert.That(rollbackStartedBeforeCleanup, Is.False);
+            Assert.That(worldTransition.EnterCleanupFinished, Is.True);
+            Assert.That(Scenario.Events.IndexOf("WorldPageB.world.enter.cleanup.done"),
+                Is.LessThan(Scenario.Events.IndexOf("WorldPageB.world.complete.Exit")));
+        }
+
         private static int MinIndex(string first, string second)
         {
             return Math.Min(Scenario.Events.IndexOf(first), Scenario.Events.IndexOf(second));
@@ -491,6 +567,7 @@ namespace Core.Tests.UI
             private readonly Type viewType;
             private UniTaskCompletionSource enterCompletion;
             private UniTaskCompletionSource exitCompletion;
+            private UniTaskCompletionSource enterCleanupCompletion;
 
             internal ControlledUITransition(Type viewType)
             {
@@ -499,19 +576,48 @@ namespace Core.Tests.UI
 
             internal bool BlockEnter { get; set; }
             internal bool BlockExit { get; set; }
+            internal bool WaitForEnterCancellation { get; set; }
+            internal bool EnterCleanupStarted { get; private set; }
+            internal bool EnterCleanupFinished { get; private set; }
+            internal Exception EnterException { get; set; }
             public void Initialize(Transform root) { }
 
             public async UniTask EnterAsync(UITransitionContext context, CancellationToken cancellationToken)
             {
                 Scenario.Events.Add($"{viewType.Name}.ui.enter.start");
-                if (BlockEnter)
+                try
                 {
-                    enterCompletion = new UniTaskCompletionSource();
-                    await enterCompletion.Task.AttachExternalCancellation(cancellationToken);
-                }
+                    if (WaitForEnterCancellation)
+                    {
+                        enterCompletion = new UniTaskCompletionSource();
+                        await enterCompletion.Task.AttachExternalCancellation(cancellationToken);
+                    }
+                    else if (BlockEnter)
+                    {
+                        enterCompletion = new UniTaskCompletionSource();
+                        await enterCompletion.Task.AttachExternalCancellation(cancellationToken);
+                    }
 
-                cancellationToken.ThrowIfCancellationRequested();
-                Scenario.Events.Add($"{viewType.Name}.ui.enter.done");
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (EnterException != null)
+                    {
+                        throw EnterException;
+                    }
+
+                    Scenario.Events.Add($"{viewType.Name}.ui.enter.done");
+                }
+                finally
+                {
+                    if (WaitForEnterCancellation)
+                    {
+                        EnterCleanupStarted = true;
+                        Scenario.Events.Add($"{viewType.Name}.ui.enter.cleanup.start");
+                        enterCleanupCompletion = new UniTaskCompletionSource();
+                        await enterCleanupCompletion.Task;
+                        EnterCleanupFinished = true;
+                        Scenario.Events.Add($"{viewType.Name}.ui.enter.cleanup.done");
+                    }
+                }
             }
 
             public async UniTask ExitAsync(UITransitionContext context, CancellationToken cancellationToken)
@@ -533,6 +639,7 @@ namespace Core.Tests.UI
             }
 
             internal void CompleteEnter() => enterCompletion.TrySetResult();
+            internal void CompleteEnterCleanup() => enterCleanupCompletion?.TrySetResult();
             internal void CompleteExit() => exitCompletion.TrySetResult();
             public void Dispose() { }
         }
@@ -546,6 +653,7 @@ namespace Core.Tests.UI
             internal Type BlockExitFor { get; set; }
             internal Type ThrowEnterFor { get; set; }
             internal Type ThrowResolveFor { get; set; }
+            internal Type WaitForEnterCancellationFor { get; set; }
             internal bool ReturnNull { get; set; }
             internal Exception EnterException { get; } = new InvalidOperationException("world enter failed");
             internal Exception ResolveException { get; } = new InvalidOperationException("world resolve failed");
@@ -568,7 +676,8 @@ namespace Core.Tests.UI
                     type,
                     type == BlockEnterFor,
                     type == BlockExitFor,
-                    type == ThrowEnterFor ? EnterException : null);
+                    type == ThrowEnterFor ? EnterException : null,
+                    type == WaitForEnterCancellationFor);
                 resolved[type] = transition;
                 return transition;
             }
@@ -589,37 +698,59 @@ namespace Core.Tests.UI
             private readonly bool blockEnter;
             private readonly bool blockExit;
             private readonly Exception enterException;
+            private readonly bool waitForEnterCancellation;
             private UniTaskCompletionSource enterCompletion;
             private UniTaskCompletionSource exitCompletion;
+            private UniTaskCompletionSource enterCleanupCompletion;
 
             internal ControlledWorldTransition(
                 Type viewType,
                 bool blockEnter,
                 bool blockExit,
-                Exception enterException)
+                Exception enterException,
+                bool waitForEnterCancellation)
             {
                 this.viewType = viewType;
                 this.blockEnter = blockEnter;
                 this.blockExit = blockExit;
                 this.enterException = enterException;
+                this.waitForEnterCancellation = waitForEnterCancellation;
             }
+
+            internal bool EnterCleanupStarted { get; private set; }
+            internal bool EnterCleanupFinished { get; private set; }
 
             public async UniTask EnterAsync(UITransitionContext context, CancellationToken cancellationToken)
             {
                 Scenario.Events.Add($"{viewType.Name}.world.enter.start");
-                if (enterException != null)
+                try
                 {
-                    throw enterException;
-                }
+                    if (enterException != null)
+                    {
+                        throw enterException;
+                    }
 
-                if (blockEnter)
+                    if (waitForEnterCancellation || blockEnter)
+                    {
+                        enterCompletion = new UniTaskCompletionSource();
+                        await enterCompletion.Task.AttachExternalCancellation(cancellationToken);
+                    }
+
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Scenario.Events.Add($"{viewType.Name}.world.enter.done");
+                }
+                finally
                 {
-                    enterCompletion = new UniTaskCompletionSource();
-                    await enterCompletion.Task.AttachExternalCancellation(cancellationToken);
+                    if (waitForEnterCancellation)
+                    {
+                        EnterCleanupStarted = true;
+                        Scenario.Events.Add($"{viewType.Name}.world.enter.cleanup.start");
+                        enterCleanupCompletion = new UniTaskCompletionSource();
+                        await enterCleanupCompletion.Task;
+                        EnterCleanupFinished = true;
+                        Scenario.Events.Add($"{viewType.Name}.world.enter.cleanup.done");
+                    }
                 }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                Scenario.Events.Add($"{viewType.Name}.world.enter.done");
             }
 
             public async UniTask ExitAsync(UITransitionContext context, CancellationToken cancellationToken)
@@ -641,6 +772,7 @@ namespace Core.Tests.UI
             }
 
             internal void CompleteEnter() => enterCompletion.TrySetResult();
+            internal void CompleteEnterCleanup() => enterCleanupCompletion?.TrySetResult();
             internal void CompleteExit() => exitCompletion.TrySetResult();
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -719,11 +720,22 @@ namespace Core.Runtime
             CancellationToken cancellationToken)
         {
             using var phaseCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var uiTask = RunTransitionMemberAsync(runUI, phaseCancellation).Preserve();
-            var worldTask = RunTransitionMemberAsync(runWorld, phaseCancellation).Preserve();
+            var phaseState = new TransitionPhaseState();
+            var uiTask = RunTransitionMemberAsync(
+                runUI,
+                phaseCancellation,
+                cancellationToken,
+                phaseState).Preserve();
+            var worldTask = RunTransitionMemberAsync(
+                runWorld,
+                phaseCancellation,
+                cancellationToken,
+                phaseState).Preserve();
             try
             {
                 await UniTask.WhenAll(uiTask, worldTask);
+                cancellationToken.ThrowIfCancellationRequested();
+                phaseState.ThrowPrimaryException();
             }
             finally
             {
@@ -733,16 +745,21 @@ namespace Core.Runtime
 
         private static async UniTask RunTransitionMemberAsync(
             Func<CancellationToken, UniTask> run,
-            CancellationTokenSource phaseCancellation)
+            CancellationTokenSource phaseCancellation,
+            CancellationToken callerCancellation,
+            TransitionPhaseState phaseState)
         {
             try
             {
                 await run(phaseCancellation.Token);
             }
-            catch
+            catch (Exception exception)
             {
+                var isInternalCancellation = exception is OperationCanceledException &&
+                                             phaseCancellation.IsCancellationRequested &&
+                                             !callerCancellation.IsCancellationRequested;
+                phaseState.Record(exception, isInternalCancellation);
                 TryCancelPhase(phaseCancellation);
-                throw;
             }
         }
 
@@ -758,6 +775,39 @@ namespace Core.Runtime
             catch (AggregateException exception)
             {
                 LogOperationFailure(exception);
+            }
+        }
+
+        private sealed class TransitionPhaseState
+        {
+            private readonly object exceptionGate = new object();
+            private Exception primaryException;
+            private Exception fallbackException;
+
+            internal void Record(Exception exception, bool isInternalCancellation)
+            {
+                lock (exceptionGate)
+                {
+                    fallbackException ??= exception;
+                    if (!isInternalCancellation)
+                    {
+                        primaryException ??= exception;
+                    }
+                }
+            }
+
+            internal void ThrowPrimaryException()
+            {
+                Exception exception;
+                lock (exceptionGate)
+                {
+                    exception = primaryException ?? fallbackException;
+                }
+
+                if (exception != null)
+                {
+                    ExceptionDispatchInfo.Capture(exception).Throw();
+                }
             }
         }
 
