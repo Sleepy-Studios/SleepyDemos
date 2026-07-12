@@ -13,6 +13,8 @@ namespace Core.Tests.UI
 {
     public sealed class UIWorldTransitionPlayModeTests
     {
+        private Action<View> onOpenHandler;
+
         [UnitySetUp]
         public IEnumerator SetUp()
         {
@@ -25,6 +27,12 @@ namespace Core.Tests.UI
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            if (onOpenHandler != null)
+            {
+                UIManager.Instance.OnOpen -= onOpenHandler;
+                onOpenHandler = null;
+            }
+
             yield return UIManager.Instance.CloseAll().ToCoroutine();
             ClearProviderIfApiExists();
             Scenario.Reset();
@@ -48,6 +56,16 @@ namespace Core.Tests.UI
             pageBTransition.BlockEnter = true;
             provider.BlockExitFor = typeof(WorldPageA);
             provider.BlockEnterFor = typeof(WorldPageB);
+            var pageBOpenCount = 0;
+            onOpenHandler = openedView =>
+            {
+                if (openedView is WorldPageB)
+                {
+                    pageBOpenCount++;
+                    Scenario.Events.Add("WorldPageB.open");
+                }
+            };
+            UIManager.Instance.OnOpen += onOpenHandler;
 
             var showTask = UIManager.Instance.ShowAsync<WorldPageB>().Preserve();
             yield return null;
@@ -82,6 +100,9 @@ namespace Core.Tests.UI
             Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
             Assert.That(MaxIndex("WorldPageA.ui.exit.done", "WorldPageA.world.exit.done"),
                 Is.LessThan(MinIndex("WorldPageB.ui.enter.start", "WorldPageB.world.enter.start")));
+            Assert.That(pageBOpenCount, Is.EqualTo(1));
+            Assert.That(MaxIndex("WorldPageB.ui.enter.done", "WorldPageB.world.enter.done"),
+                Is.LessThan(Scenario.Events.IndexOf("WorldPageB.open")));
         }
 
         [UnityTest]
@@ -222,6 +243,98 @@ namespace Core.Tests.UI
             Assert.That(result.Exception, Is.SameAs(provider.ResolveException));
             Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
             Assert.That(UIManager.Instance.GetStackTopView(), Is.TypeOf<WorldPageA>());
+        }
+
+        [UnityTest]
+        public IEnumerator Replace_ResolvesOldExitAndNewEnterExactlyOnce()
+        {
+            Scenario.Register<WorldPageA>();
+            Scenario.Register<WorldPageB>();
+            var provider = new FakeWorldTransitionProvider();
+            RegisterProvider(provider);
+            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+
+            Scenario.Events.Clear();
+            provider.ResetObservations();
+            UIOperationResult result = default;
+            yield return Await(UIManager.Instance.ReplaceAsync<WorldPageB>(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.EqualTo(1));
+            Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
+            Assert.That(Scenario.Events, Does.Contain("WorldPageA.world.exit.start"));
+            Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.enter.start"));
+        }
+
+        [UnityTest]
+        public IEnumerator Back_ResolvesTopExitAndRevealedEnterExactlyOnce()
+        {
+            Scenario.Register<WorldPageA>();
+            Scenario.Register<WorldPageB>();
+            var provider = new FakeWorldTransitionProvider();
+            RegisterProvider(provider);
+            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.ShowAsync<WorldPageB>(), _ => { });
+
+            Scenario.Events.Clear();
+            provider.ResetObservations();
+            UIOperationResult result = default;
+            yield return Await(UIManager.Instance.BackAsync(), value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(result.Action, Is.EqualTo(UINavigationAction.Back));
+            Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
+            Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.EqualTo(1));
+            Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.exit.start"));
+            Assert.That(Scenario.Events, Does.Contain("WorldPageA.world.enter.start"));
+        }
+
+        [UnityTest]
+        public IEnumerator ShowWithoutHidingPrevious_DoesNotResolveOrRunPreviousExit()
+        {
+            Scenario.Register<WorldPageA>();
+            Scenario.Register<WorldPageB>();
+            var provider = new FakeWorldTransitionProvider();
+            RegisterProvider(provider);
+            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+
+            Scenario.Events.Clear();
+            provider.ResetObservations();
+            UIOperationResult result = default;
+            yield return Await(
+                UIManager.Instance.ShowAsync<WorldPageB>(
+                    new UIShowOptions(animated: true, hidePrevious: false)),
+                value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.Zero);
+            Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
+            Assert.That(Scenario.Events, Does.Not.Contain("WorldPageA.world.exit.start"));
+            Assert.That(UIManager.Instance.Get<WorldPageA>().State, Is.EqualTo(ViewState.Visible));
+        }
+
+        [UnityTest]
+        public IEnumerator PreloadAndCloseAll_DoNotResolveWorldTransitions()
+        {
+            Scenario.Register<WorldPageA>();
+            var provider = new FakeWorldTransitionProvider();
+            RegisterProvider(provider);
+
+            UIOperationResult preloadResult = default;
+            yield return Await(UIManager.Instance.PreloadAsync<WorldPageA>(null),
+                value => preloadResult = value);
+            Assert.That(preloadResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.Zero,
+                "Preload 不改变正式表现，不应解析 World Transition。");
+
+            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            provider.ResetObservations();
+            UIOperationResult closeAllResult = default;
+            yield return Await(UIManager.Instance.CloseAllAsync(), value => closeAllResult = value);
+
+            Assert.That(closeAllResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.Zero,
+                "CloseAll 当前直接销毁全部 View，没有 Enter/Exit 阶段，不应虚构 World Transition。");
         }
 
         private static int MinIndex(string first, string second)
