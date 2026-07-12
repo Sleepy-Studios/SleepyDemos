@@ -21,7 +21,7 @@
 4. 打开现有 MvcBind 工具并选择正确的 `UILayer`。
 5. 显式选择 `ViewMode`：主页面用 `Page`，弹窗用 `Modal`，常驻挂件或 HUD 用 `Widget`。不要只依赖 `UILayer` 推导。
 6. 选择该 View 使用的 `UI Transition` 类型。未生成显式覆盖时，框架默认使用 `FadeScaleUITransition`；不需要视觉过渡时显式选择 `EmptyUITransition`，需要其它表现时选择自定义实现。
-7. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段是 Provider 的解析键，不填写类型名，也不会在生成代码中实例化世界过渡。
+7. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段不会在生成代码中实例化世界过渡；首版 Hotfix Provider 按 View 精确类型解析，Key 保留给后续业务 Provider 自定义路由，不要把实现类型名写入 Key。
 8. 完成组件和回调绑定后生成 View 与 Component 代码。生成的 Component 会显式覆盖 `ViewMode`，并通过 `CreateUITransition()` 工厂创建 UI Transition。
 
 ## Transition 生命周期
@@ -45,6 +45,25 @@ protected override IUITransition CreateUITransition()
 - 不自行创建、保存或 Kill DOTween tween；取消、立即完成和销毁统一交给 Transition 实例处理。
 - 加载或过渡收到取消时，让 `OperationCanceledException` 继续返回框架层，不在业务 View 中吞掉。
 - 旧 `Show()` / `Hide()` 调用暂时仍可使用；它们是生命周期兼容外观，不代表业务侧拥有 Transition。
+
+## 接入 World / Camera 过渡
+
+Core 不提供虚假的通用 Camera 移动。需要页面切换联动相机、场景状态或 Timeline 时，在 Hotfix 启动阶段注册 `HotfixWorldTransitionProvider`，再按 View 精确类型注册工厂：
+
+```csharp
+var provider = new HotfixWorldTransitionProvider();
+provider.Register<ExampleView>(() => new ExampleWorldTransition());
+UIManager.Instance.RegisterWorldTransitionProvider(provider);
+```
+
+工厂规则：
+
+- 每次调用必须返回该导航事务独立使用的 `IUIWorldTransition` 实例；不要返回跨事务共享的可变动画对象。
+- 重复注册同一 View 类型会替换旧工厂；传入 null 工厂会立即抛出参数异常。
+- 注册、移除和解析都发生在 Unity 主线程。工厂异常会作为本次导航 Failed 的原始异常传播。
+- 未注册类型、工厂主动返回 null，或通过 `RegisterWorldTransitionProvider(null)` 清除 Provider 时，Core 使用无行为过渡。
+- `EnterAsync` / `ExitAsync` 必须观察传入的取消令牌；`CompleteImmediately` 必须能把世界表现同步到指定确定方向。
+- 不要在 `OnShow` / `OnHide` 中重复启动相机过渡。UI 与 World Transition 由同一导航事务等待，失败和取消时由框架回滚。
 
 固定层的用途如下：
 
@@ -136,7 +155,8 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 
 1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
 2. 修改 View 生命周期或 Transition 时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。
-3. 运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
-4. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
-5. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
-6. 在 `16:9`、超宽和窄屏 Game View 下检查布局。
+3. 接入 World / Camera 过渡时，运行 `Core.Tests.UI.UIWorldTransitionPlayModeTests` 和 `Core.Tests.UI.UIManagerNavigationPlayModeTests`。
+4. 运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
+5. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
+6. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
+7. 在 `16:9`、超宽和窄屏 Game View 下检查布局。

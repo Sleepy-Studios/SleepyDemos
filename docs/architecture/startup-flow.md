@@ -64,8 +64,8 @@ Hotfix 入口位于：
 - 扫描 Hotfix 程序集内的 View 类型
 - 运行 `HotfixBootService.RunBootSystems`
 - 通过 `GlobalDataSystem` / `FluxService` 注册 Hotfix 全局 Flux Data
-- 显示 `MainMenuView`
-- 销毁启动加载界面
+- 注册 Hotfix World Transition Provider，并等待 `MainMenuView.ShowAsync` 稳定进入
+- 仅在主界面导航成功或已稳定存在后销毁启动加载界面；Failed 保留原异常，Canceled 中断启动
 
 当前 Hotfix 启动系统说明见 [Hotfix 启动系统](../modules/hotfix-boot-systems.md)。
 

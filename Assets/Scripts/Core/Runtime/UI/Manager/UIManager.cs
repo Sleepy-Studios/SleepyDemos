@@ -11,12 +11,26 @@ namespace Core.Runtime
         private UIStack layerStack;
         private Button maskButton;
         private UINavigationCoordinator navigationCoordinator;
+        private readonly object worldTransitionProviderGate = new object();
+        private IUIWorldTransitionProvider worldTransitionProvider;
 
         public UICache cacheStack { get; private set; }
         public string LastCloseName { get; private set; }
         public string CurrentUIName { get; private set; }
         public int StackCount => layerStack?.TotalCount ?? 0;
         public bool HasCloseAllBarrier => navigationCoordinator.HasCloseAllBarrier;
+
+        /// 当前导航操作使用的世界过渡解析器；未注册时为 null。
+        public IUIWorldTransitionProvider WorldTransitionProvider
+        {
+            get
+            {
+                lock (worldTransitionProviderGate)
+                {
+                    return worldTransitionProvider;
+                }
+            }
+        }
 
         public event Action<View> OnBeginOpen;
         public event Action<View> OnOpen;
@@ -38,6 +52,18 @@ namespace Core.Runtime
             layerStack ??= new UIStack();
             ConfigureMask();
             RefreshMaskFromTopModal();
+        }
+
+        /// <summary>
+        /// 注册世界过渡解析器；传入 null 会清除当前解析器并恢复空过渡。
+        /// </summary>
+        /// <param name="provider">Hotfix 提供的解析器；为 null 时清除注册。</param>
+        public void RegisterWorldTransitionProvider(IUIWorldTransitionProvider provider)
+        {
+            lock (worldTransitionProviderGate)
+            {
+                worldTransitionProvider = provider;
+            }
         }
 
         /// <summary>
@@ -293,6 +319,7 @@ namespace Core.Runtime
             var snapshot = layerStack.Capture();
             var presentation = CapturePresentation();
             var legacyAnimations = new UILegacyAnimationTransaction();
+            var worldTransitions = new UIWorldTransitionTransaction(WorldTransitionProvider);
 
             if (replace && view.ViewMode != UIViewMode.Page)
             {
@@ -330,6 +357,12 @@ namespace Core.Runtime
                 cancellationToken.ThrowIfCancellationRequested();
                 await InvokeBeforeOpenAsync(view, cancellationToken);
 
+                worldTransitions.Resolve(view, UITransitionDirection.Exit);
+                if (operation.HidePrevious && previous != null && previous != view)
+                {
+                    worldTransitions.Resolve(previous, UITransitionDirection.Enter);
+                }
+
                 if (operation.HidePrevious && previous != null && previous != view)
                 {
                     await ExitViewAsync(previous, new UITransitionContext(
@@ -337,7 +370,7 @@ namespace Core.Runtime
                         operation.Action,
                         view,
                         previous,
-                        operation.Animated), legacyAnimations, cancellationToken);
+                        operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
                 }
 
                 if (replace && previous != null && previous != view)
@@ -356,7 +389,7 @@ namespace Core.Runtime
                     operation.Action,
                     view,
                     previous,
-                    operation.Animated), legacyAnimations, cancellationToken);
+                    operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
                 PlaceOnTop(view);
                 RefreshMaskFromTopModal();
 
@@ -367,12 +400,12 @@ namespace Core.Runtime
             }
             catch (OperationCanceledException)
             {
-                await TryRollbackAsync(snapshot, presentation, view, legacyAnimations);
+                await TryRollbackAsync(snapshot, presentation, view, legacyAnimations, worldTransitions);
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
             }
             catch (Exception exception)
             {
-                await TryRollbackAsync(snapshot, presentation, view, legacyAnimations);
+                await TryRollbackAsync(snapshot, presentation, view, legacyAnimations, worldTransitions);
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
 
@@ -431,14 +464,16 @@ namespace Core.Runtime
             var snapshot = layerStack.Capture();
             var presentation = CapturePresentation();
             var legacyAnimations = new UILegacyAnimationTransaction();
+            var worldTransitions = new UIWorldTransitionTransaction(WorldTransitionProvider);
             try
             {
+                worldTransitions.Resolve(view, UITransitionDirection.Enter);
                 await ExitViewAsync(view, new UITransitionContext(
                     operation.OperationId,
                     operation.Action,
                     null,
                     view,
-                    operation.Animated), legacyAnimations, cancellationToken);
+                    operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
                 layerStack.CommitClose(view);
                 if (view.ViewMode != UIViewMode.Widget)
                 {
@@ -448,12 +483,13 @@ namespace Core.Runtime
                 var revealed = layerStack.StackTopView;
                 if (revealed != null)
                 {
+                    worldTransitions.Resolve(revealed, UITransitionDirection.Exit);
                     await EnterViewAsync(revealed, new UITransitionContext(
                         operation.OperationId,
                         operation.Action,
                         revealed,
                         view,
-                        operation.Animated), legacyAnimations, cancellationToken);
+                        operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
                     PlaceOnTop(revealed);
                     CurrentUIName = revealed.Name;
                 }
@@ -472,6 +508,7 @@ namespace Core.Runtime
                     presentation,
                     view,
                     legacyAnimations,
+                    worldTransitions,
                     legacyAnimations.HasExitAttempt(view));
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
             }
@@ -482,6 +519,7 @@ namespace Core.Runtime
                     presentation,
                     view,
                     legacyAnimations,
+                    worldTransitions,
                     legacyAnimations.HasExitAttempt(view));
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
@@ -606,6 +644,7 @@ namespace Core.Runtime
             View view,
             UITransitionContext context,
             UILegacyAnimationTransaction legacyAnimations,
+            UIWorldTransitionTransaction worldTransitions,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -624,7 +663,10 @@ namespace Core.Runtime
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await view.EnterAsync(context, cancellationToken);
+            await RunTransitionPhaseAsync(
+                token => view.EnterAsync(context, token),
+                token => worldTransitions.EnterAsync(view, context, token),
+                cancellationToken);
             if (view.State == ViewState.Visible && context.Animated && view.UIAnimation != null)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -638,6 +680,7 @@ namespace Core.Runtime
             View view,
             UITransitionContext context,
             UILegacyAnimationTransaction legacyAnimations,
+            UIWorldTransitionTransaction worldTransitions,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -664,7 +707,58 @@ namespace Core.Runtime
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await view.ExitAsync(context, cancellationToken);
+            await RunTransitionPhaseAsync(
+                token => view.ExitAsync(context, token),
+                token => worldTransitions.ExitAsync(view, context, token),
+                cancellationToken);
+        }
+
+        private static async UniTask RunTransitionPhaseAsync(
+            Func<CancellationToken, UniTask> runUI,
+            Func<CancellationToken, UniTask> runWorld,
+            CancellationToken cancellationToken)
+        {
+            using var phaseCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var uiTask = RunTransitionMemberAsync(runUI, phaseCancellation).Preserve();
+            var worldTask = RunTransitionMemberAsync(runWorld, phaseCancellation).Preserve();
+            try
+            {
+                await UniTask.WhenAll(uiTask, worldTask);
+            }
+            finally
+            {
+                TryCancelPhase(phaseCancellation);
+            }
+        }
+
+        private static async UniTask RunTransitionMemberAsync(
+            Func<CancellationToken, UniTask> run,
+            CancellationTokenSource phaseCancellation)
+        {
+            try
+            {
+                await run(phaseCancellation.Token);
+            }
+            catch
+            {
+                TryCancelPhase(phaseCancellation);
+                throw;
+            }
+        }
+
+        private static void TryCancelPhase(CancellationTokenSource phaseCancellation)
+        {
+            try
+            {
+                phaseCancellation.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (AggregateException exception)
+            {
+                LogOperationFailure(exception);
+            }
         }
 
         private async UniTask InvokeBeforeOpenAsync(View view, CancellationToken cancellationToken)
@@ -688,6 +782,7 @@ namespace Core.Runtime
             UINavigationPresentationSnapshot presentation,
             View failedView,
             UILegacyAnimationTransaction legacyAnimations,
+            UIWorldTransitionTransaction worldTransitions,
             bool preserveSnapshotView = false)
         {
             try
@@ -721,6 +816,7 @@ namespace Core.Runtime
             CurrentUIName = presentation.CurrentUIName;
             LastCloseName = presentation.LastCloseName;
             RefreshMaskFromTopModal();
+            worldTransitions.Restore(LogOperationFailure);
             await legacyAnimations.CompensateAsync(LogOperationFailure);
 
             if (removeFailedView)

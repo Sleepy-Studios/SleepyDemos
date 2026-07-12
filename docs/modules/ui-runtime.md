@@ -9,6 +9,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `View` / `View<T>`：页面基类，负责资源实例化、组件初始化、显示隐藏、动画接入和销毁。
 - `UIManager`：导航事务 owner，统一执行加载、过渡、Mask、sibling、缓存清理和事件提交。
 - `UINavigationCoordinator`：纯 C# FIFO 单写入协调器，只管理 operation、取消、队列与结果完成，不访问 Unity 场景或 Singleton。
+- `UIWorldTransitionTransaction`：快照本次操作的 Provider，缓存每个目标唯一解析结果，并在回滚时恢复已尝试的世界表现终态。
 - `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，并提供事务快照与恢复。
 - `UICache`：按 View 类型缓存 View 实例。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
@@ -17,11 +18,13 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 ## Transition 契约边界
 
 - `IUITransition` 定义单个 View 的初始化、进入、退出、立即完成和释放契约；View 默认工厂返回可取消的 `FadeScaleUITransition`，显式选择 `EmptyUITransition` 时才使用无视觉变化实现。
-- `IUIWorldTransition` 定义跨 View 的世界表现过渡，`IUIWorldTransitionProvider` 按 `View` 解析具体实现。业务生成代码只声明 `WorldTransitionKey`，不直接实例化世界过渡。
+- `IUIWorldTransition` 定义跨 View 的世界表现过渡，`IUIWorldTransitionProvider` 按 `View` 解析具体实现。业务生成代码只声明 `WorldTransitionKey`，不直接实例化世界过渡；首版 Hotfix Provider 按 View 精确类型注册工厂，Key 作为后续业务路由元数据保留。
 - `UITransitionContext` 统一携带操作标识、导航动作、进入/退出 View 和是否播放过渡。
 - `View` 在资源加载成功后调用一次 `CreateUITransition()`，缓存为该 View 生命周期内稳定的 `UITransition` 实例，并使用 View 根节点调用一次 `Initialize()`。
 - `EnterAsync` / `ExitAsync` 始终使用缓存实例。`DestroyAsync` 负责调用一次 `Dispose()`；业务 View 不自行创建、替换或释放 Transition。
 - Transition 取消会停止当前 tween 并以 `OperationCanceledException` 完成等待；`CompleteImmediately` 负责把进入或退出方向同步到确定终态。非动画 Enter/Exit 与导航回滚也通过该入口恢复视觉，避免残留透明度或缩放。
+- `UIManager.RegisterWorldTransitionProvider(null)` 表示清除业务 Provider。每个 operation 在执行开始时快照 Provider，对 entering / exiting View 各 Resolve 一次并稳定复用该实例；Provider 或 Resolve 结果为空时由 Core 空实现接管。
+- 同一退出或进入阶段通过 `UniTask.WhenAll` 并行等待 UI 与 World Transition。任一成员失败会取消同阶段成员；回滚只对已开始的世界过渡调用 `CompleteImmediately`，补偿错误不会覆盖原始失败或取消结果。
 
 ## View 生命周期
 
@@ -84,6 +87,7 @@ Loading --加载失败或取消--> Faulted
 
 - 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
 - Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
+- Push / Replace / Close / Back 都按各自 entering / exiting 语义解析 World Transition；Preload 不改变表现，CloseAll 当前直接完成全量销毁，因此两者都不虚构世界过渡。业务需要相机或场景联动时在 Hotfix Provider 注册真实实现。
 - `ShowAsync<T>(new UIShowOptions(animated, hidePrevious: false))` 与旧同步 `Show<T>(hidePrevious: false)` 会保留同层上一 View 的 Visible 状态；关闭新 View 时不会再次 Enter 已经 Visible 的旧 View。默认 `HidePrevious` 为 true。
 - 导航事务统一兼容旧 `ICameraAnimation` / `IUIAnimation`：进入按 Camera Show → `EnterAsync` → UI Show，退出按 Camera Hide → UI Hide → `ExitAsync` 串行等待。每个旧动画阶段在调用前记为已尝试；失败或取消时先恢复表现快照，再按相反顺序 best-effort 补偿，补偿异常只记录且不覆盖原始结果。
 - Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
@@ -152,6 +156,7 @@ Loading --加载失败或取消--> Faulted
 - `Core.Tests.UI.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
 - `Core.Tests.UI.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
+- `Core.Tests.UI.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
 - `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

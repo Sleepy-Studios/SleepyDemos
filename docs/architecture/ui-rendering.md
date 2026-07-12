@@ -50,9 +50,12 @@ UIRootCanvas
 
 - `UIManager` 负责 View 生命周期、缓存和栈，不负责配置渲染环境。
 - `UIRootManager` 是 Canvas、UI Camera、EventSystem、固定层 Root 和遮罩的唯一装配入口。
+- Core 只定义 `IUIWorldTransition` / `IUIWorldTransitionProvider` 并编排事务，不实现具体 Camera 或场景移动。Hotfix 通过 `UIManager.RegisterWorldTransitionProvider(...)` 注册业务解析器；未注册或解析结果为 null 时使用无行为实现。
+- 每个导航事务在开始执行时快照 Provider，并对实际进入、退出的每个 View 最多解析一次。退出阶段的 UI / World Transition 并行完成后才提交栈；提交后进入阶段的 World / UI Transition 并行完成，两个阶段不得交错。
+- 非动画导航会让 UI / World Transition 同时立即完成到目标方向；失败或取消回滚时，已尝试的 World Transition 复用本事务解析出的同一实例恢复到事务前方向。世界补偿异常只记录，不覆盖导航主异常。
 - Modal Mask 与 `InteractionGate` 是两套独立设施：Mask 只从 `UIStack.TopModal` 刷新父节点、sibling、缩放和关闭交互，Page/Widget 不得直接显示或隐藏 Mask；Gate 固定在 Tip 层的 `TipContent` 之后，只在导航执行期间切换透明 Image 的 `raycastTarget`。两者不得复用对象，也不得互相修改颜色、透明度、父节点或交互状态。
 - 未显式覆盖 Transition 的 View 默认使用 `FadeScaleUITransition`：进入从透明、`0.95` 倍缩放恢复到完全可见，退出反向收口。它只修改 View 根节点的 `CanvasGroup.alpha` 与 `Transform.localScale`，不负责 Mask、层级或业务显隐。
-- Hotfix 只选择 `UILayer` 并制作 View 内容，不直接修改 Root Canvas 或 UI Camera。
+- Hotfix 只选择 `UILayer`、制作 View 内容并提供具体 World Transition 工厂，不直接修改 Root Canvas 或由 Core 虚构通用 Camera 移动。首版 `HotfixWorldTransitionProvider` 没有默认注册项，因此没有业务配置时不会移动相机。
 
 ## 修改原则
 

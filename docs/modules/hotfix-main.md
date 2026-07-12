@@ -14,7 +14,8 @@
 
 - 扫描 Hotfix 程序集中的 View 类型
 - 运行 Hotfix 启动系统，当前会通过 `FluxService` 注册 `UserData`
-- 打开 `MainMenuView`
+- 注册首版空配置的 `HotfixWorldTransitionProvider`，为后续 Demo 的真实相机或场景过渡保留 Hotfix 扩展点
+- 等待 `MainMenuView` 的 `ShowAsync` 导航结果稳定完成；Failed 保留原异常中断启动，Canceled 作为启动取消传播
 - `MainMenuView` 订阅 `UserData`，打印启动时记录的本机硬件配置
 - 在启动完成后销毁加载界面
 
@@ -24,6 +25,7 @@
 - 如果新增 Demo 入口，优先从主菜单模块接入，不要绕过入口链路
 - 如果新增启动期业务初始化，优先加入 `HotfixBootService`，不要散写在 `HotfixEntry`
 - 如果主界面打开失败，先检查 MvcBind 生成、预制体地址和类型扫描
+- 具体 World / Camera Transition 只在 `HotfixWorldTransitionProvider` 注册，不把业务相机实现下沉到 Core
 
 ## 常见任务
 
