@@ -319,7 +319,6 @@ namespace Core.Runtime
 
             var snapshot = layerStack.Capture();
             var presentation = CapturePresentation();
-            var legacyAnimations = new UILegacyAnimationTransaction();
             var worldTransitions = new UIWorldTransitionTransaction(WorldTransitionProvider);
 
             if (replace && view.ViewMode != UIViewMode.Page)
@@ -371,7 +370,7 @@ namespace Core.Runtime
                         operation.Action,
                         view,
                         previous,
-                        operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
+                        operation.Animated), worldTransitions, cancellationToken);
                 }
 
                 if (replace && previous != null && previous != view)
@@ -390,7 +389,7 @@ namespace Core.Runtime
                     operation.Action,
                     view,
                     previous,
-                    operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
+                    operation.Animated), worldTransitions, cancellationToken);
                 PlaceOnTop(view);
                 RefreshMaskFromTopModal();
 
@@ -401,12 +400,12 @@ namespace Core.Runtime
             }
             catch (OperationCanceledException)
             {
-                await TryRollbackAsync(snapshot, presentation, view, legacyAnimations, worldTransitions);
+                await TryRollbackAsync(snapshot, presentation, view, worldTransitions);
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
             }
             catch (Exception exception)
             {
-                await TryRollbackAsync(snapshot, presentation, view, legacyAnimations, worldTransitions);
+                await TryRollbackAsync(snapshot, presentation, view, worldTransitions);
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
 
@@ -464,7 +463,6 @@ namespace Core.Runtime
 
             var snapshot = layerStack.Capture();
             var presentation = CapturePresentation();
-            var legacyAnimations = new UILegacyAnimationTransaction();
             var worldTransitions = new UIWorldTransitionTransaction(WorldTransitionProvider);
             try
             {
@@ -474,7 +472,7 @@ namespace Core.Runtime
                     operation.Action,
                     null,
                     view,
-                    operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
+                    operation.Animated), worldTransitions, cancellationToken);
                 layerStack.CommitClose(view);
                 if (view.ViewMode != UIViewMode.Widget)
                 {
@@ -490,7 +488,7 @@ namespace Core.Runtime
                         operation.Action,
                         revealed,
                         view,
-                        operation.Animated), legacyAnimations, worldTransitions, cancellationToken);
+                        operation.Animated), worldTransitions, cancellationToken);
                     PlaceOnTop(revealed);
                     CurrentUIName = revealed.Name;
                 }
@@ -508,9 +506,7 @@ namespace Core.Runtime
                     snapshot,
                     presentation,
                     view,
-                    legacyAnimations,
-                    worldTransitions,
-                    legacyAnimations.HasExitAttempt(view));
+                    worldTransitions);
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, view);
             }
             catch (Exception exception)
@@ -519,9 +515,7 @@ namespace Core.Runtime
                     snapshot,
                     presentation,
                     view,
-                    legacyAnimations,
-                    worldTransitions,
-                    legacyAnimations.HasExitAttempt(view));
+                    worldTransitions);
                 return UIOperationResult.Failed(operation.OperationId, operation.Action, view, exception);
             }
 
@@ -644,7 +638,6 @@ namespace Core.Runtime
         private static async UniTask EnterViewAsync(
             View view,
             UITransitionContext context,
-            UILegacyAnimationTransaction legacyAnimations,
             UIWorldTransitionTransaction worldTransitions,
             CancellationToken cancellationToken)
         {
@@ -655,32 +648,16 @@ namespace Core.Runtime
                 return;
             }
 
-            if (view.CameraAnimation != null)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                legacyAnimations.Record(view, UILegacyAnimationStage.CameraShow);
-                await view.CameraAnimation.Show(view);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
             cancellationToken.ThrowIfCancellationRequested();
             await RunTransitionPhaseAsync(
                 token => view.EnterAsync(context, token),
                 token => worldTransitions.EnterAsync(view, context, token),
                 cancellationToken);
-            if (view.State == ViewState.Visible && context.Animated && view.UIAnimation != null)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                legacyAnimations.Record(view, UILegacyAnimationStage.UIShow);
-                await view.UIAnimation.Show();
-                cancellationToken.ThrowIfCancellationRequested();
-            }
         }
 
         private static async UniTask ExitViewAsync(
             View view,
             UITransitionContext context,
-            UILegacyAnimationTransaction legacyAnimations,
             UIWorldTransitionTransaction worldTransitions,
             CancellationToken cancellationToken)
         {
@@ -689,22 +666,6 @@ namespace Core.Runtime
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 return;
-            }
-
-            if (view.CameraAnimation != null)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                legacyAnimations.Record(view, UILegacyAnimationStage.CameraHide);
-                await view.CameraAnimation.Hide(view);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
-            if (view.State == ViewState.Visible && context.Animated && view.UIAnimation != null)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                legacyAnimations.Record(view, UILegacyAnimationStage.UIHide);
-                await view.UIAnimation.Hide();
-                cancellationToken.ThrowIfCancellationRequested();
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -831,9 +792,7 @@ namespace Core.Runtime
             UIStackSnapshot snapshot,
             UINavigationPresentationSnapshot presentation,
             View failedView,
-            UILegacyAnimationTransaction legacyAnimations,
-            UIWorldTransitionTransaction worldTransitions,
-            bool preserveSnapshotView = false)
+            UIWorldTransitionTransaction worldTransitions)
         {
             try
             {
@@ -845,7 +804,7 @@ namespace Core.Runtime
             }
 
             var removeFailedView = failedView != null &&
-                                   ((!preserveSnapshotView && failedView.State == ViewState.Faulted) ||
+                                   (failedView.State == ViewState.Faulted ||
                                     failedView.State == ViewState.Destroying ||
                                     failedView.State == ViewState.Destroyed ||
                                     !snapshot.Contains(failedView));
@@ -867,7 +826,6 @@ namespace Core.Runtime
             LastCloseName = presentation.LastCloseName;
             RefreshMaskFromTopModal();
             worldTransitions.Restore(LogOperationFailure);
-            await legacyAnimations.CompensateAsync(LogOperationFailure);
 
             if (removeFailedView)
             {

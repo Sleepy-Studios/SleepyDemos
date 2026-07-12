@@ -63,8 +63,6 @@ namespace Core.Runtime
 
         public int Reference { get; set; }
         public bool ForceDisable { get; set; }
-        public virtual ICameraAnimation CameraAnimation { get; set; }
-        public virtual IUIAnimation UIAnimation { get; set; }
         public bool IsWidget => Level >= UILayer.Decorate;
 
         /// 创建当前 View 使用的 UI Transition。
@@ -229,30 +227,21 @@ namespace Core.Runtime
         /// <summary>
         /// 显示 View；兼容旧调用方，底层转发到 EnterAsync。
         /// </summary>
-        /// <param name="animation">是否播放 Transition 与旧 IUIAnimation。</param>
+        /// <param name="animation">是否播放 UI Transition。</param>
         /// <returns>显示异步任务。</returns>
         public async UniTask Show(bool animation = true)
         {
             var context = new UITransitionContext(0, UINavigationAction.Push, this, null, animation);
             await EnterAsync(context, CancellationToken.None);
-            if (State == ViewState.Visible && animation && UIAnimation != null)
-            {
-                await UIAnimation.Show();
-            }
         }
 
         /// <summary>
         /// 隐藏 View；兼容旧调用方，底层转发到 ExitAsync。
         /// </summary>
-        /// <param name="animation">是否播放 Transition 与旧 IUIAnimation。</param>
+        /// <param name="animation">是否播放 UI Transition。</param>
         /// <returns>隐藏异步任务。</returns>
         public async UniTask Hide(bool animation = true)
         {
-            if (State == ViewState.Visible && animation && UIAnimation != null)
-            {
-                await UIAnimation.Hide();
-            }
-
             var context = new UITransitionContext(0, UINavigationAction.Close, null, this, animation);
             await ExitAsync(context, CancellationToken.None);
         }
@@ -460,7 +449,6 @@ namespace Core.Runtime
             gameObject.SetActive(false);
             State = ViewState.LoadedHidden;
             InitComponent();
-            UIAnimation?.Init(transform);
             UITransition = CreateUITransition() ?? new EmptyUITransition();
             UITransition.Initialize(transform);
             OnGameObjectInitialize();

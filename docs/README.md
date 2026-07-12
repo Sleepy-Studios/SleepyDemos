@@ -15,6 +15,8 @@
 5. [资源命名规范](./architecture/asset-naming.md)
 6. 根据任务类型继续查对应模块说明、Agent 技能入口或 runbook
 
+大型 UI 导航或过渡改动需要同时阅读 [Core UI 渲染设计原则](./architecture/ui-rendering.md)、[Core UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md) 和 [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)，不要只修改其中一层。
+
 ## 文档结构
 - `architecture/`
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则

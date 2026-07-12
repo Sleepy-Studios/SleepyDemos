@@ -67,7 +67,7 @@ Unity Test Runner 是唯一自动化验证入口，不再新增并行的自定�
 测试默认只运行当前任务直接相关的最小范围，选择顺序为：精确测试方法、当前功能对应的测试类、当前任务涉及的多个测试类。跨模块改动可以运行所有直接受影响的测试类，但不得自动扩大为整个 `Core.Tests`、全部 EditMode、全部 PlayMode 或第三方包测试。只有用户明确要求“全量测试”或“完整回归”时才运行项目全量测试；这里的全量默认仅包含项目自有的 `Core.Tests` 与未来的 `Hotfix.Tests`，第三方包测试必须另行明确指定。完成报告必须说明实际测试范围以及是否执行过全量测试。
 
 
-运行 Unity 测试时，优先使用项目技能 `.codex/skills/unity-skills/SKILL.md`。在第一次调用任何 UnitySkills REST 接口前，必须先主动确认当前实例端口：优先从 `~/.unity_skills/registry.json` 按项目路径读取；若 registry 缺失或不可信，再扫描 `http://localhost:8090-8100/health`，以 `/health` 返回的 `projectName`、`unityVersion`、`instanceId` 确认目标实例。禁止想当然写死 `8090` 或 `8091`。确认端口后，再调用 `test_run` / `test_run_by_name` 并用 `test_get_result` 轮询结果；不要在 Unity Editor 已打开同一项目时另起 batchmode Unity 实例。
+运行 Unity 测试时，优先使用当前会话已安装的 `unity-skills` 技能（常见用户级入口为 `~/.agents/skills/unity-skills/SKILL.md`，以会话技能目录为准，不假设仓库内存在同名技能）。在第一次调用任何 UnitySkills REST 接口前，必须先主动确认当前实例端口：优先从 `~/.unity_skills/registry.json` 按项目路径读取；若 registry 缺失或不可信，再扫描 `http://localhost:8090-8100/health`，以 `/health` 返回的 `projectName`、`unityVersion`、`instanceId` 确认目标实例。禁止想当然写死 `8090` 或 `8091`。确认端口后，再调用 `test_run` / `test_run_by_name` 并用 `test_get_result` 轮询结果；不要在 Unity Editor 已打开同一项目时另起 batchmode Unity 实例。
 
 禁止使用 `dotnet build`、`msbuild` 或类似方式构建 Unity 自动生成的 `.sln` / `.csproj` 解决方案；这些项目文件不能作为本仓库的编译验证入口。需要编译验证时，通过 Unity Editor 编译/控制台或项目既有 Unity 测试入口确认。
 

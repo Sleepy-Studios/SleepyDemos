@@ -19,6 +19,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 - `IUITransition` 定义单个 View 的初始化、进入、退出、立即完成和释放契约；View 默认工厂返回可取消的 `FadeScaleUITransition`，显式选择 `EmptyUITransition` 时才使用无视觉变化实现。
 - `IUIWorldTransition` 定义跨 View 的世界表现过渡，`IUIWorldTransitionProvider` 按 `View` 解析具体实现。业务生成代码只声明 `WorldTransitionKey`，不直接实例化世界过渡；首版 Hotfix Provider 按 View 精确类型注册工厂，Key 作为后续业务路由元数据保留。
+- `IUITransition` 与 `IUIWorldTransition` 是唯一过渡体系。旧 UI / Camera Animation 接口、View 属性和事务补偿链均已删除；新增业务不得恢复第二套动画入口。
 - `UITransitionContext` 统一携带操作标识、导航动作、进入/退出 View 和是否播放过渡。
 - `View` 在资源加载成功后调用一次 `CreateUITransition()`，缓存为该 View 生命周期内稳定的 `UITransition` 实例，并使用 View 根节点调用一次 `Initialize()`。
 - `EnterAsync` / `ExitAsync` 始终使用缓存实例。`DestroyAsync` 负责调用一次 `Dispose()`；业务 View 不自行创建、替换或释放 Transition。
@@ -89,7 +90,7 @@ Loading --加载失败或取消--> Faulted
 - Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
 - Push / Replace / Close / Back 都按各自 entering / exiting 语义解析 World Transition；Preload 不改变表现，CloseAll 当前直接完成全量销毁，因此两者都不虚构世界过渡。业务需要相机或场景联动时在 Hotfix Provider 注册真实实现。
 - `ShowAsync<T>(new UIShowOptions(animated, hidePrevious: false))` 与旧同步 `Show<T>(hidePrevious: false)` 会保留同层上一 View 的 Visible 状态；关闭新 View 时不会再次 Enter 已经 Visible 的旧 View。默认 `HidePrevious` 为 true。
-- 导航事务统一兼容旧 `ICameraAnimation` / `IUIAnimation`：进入按 Camera Show → `EnterAsync` → UI Show，退出按 Camera Hide → UI Hide → `ExitAsync` 串行等待。每个旧动画阶段在调用前记为已尝试；失败或取消时先恢复表现快照，再按相反顺序 best-effort 补偿，补偿异常只记录且不覆盖原始结果。
+- 进入和退出只编排当前 View 的 `IUITransition` 与由 Provider 解析的 `IUIWorldTransition`；同阶段并行等待，阶段之间严格顺序执行。失败或取消时先恢复栈和 View 表现快照，再把已尝试的世界过渡同步到事务前方向。
 - Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
 - 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
 - `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
@@ -157,6 +158,8 @@ Loading --加载失败或取消--> Faulted
 - `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
 - `Core.Tests.UI.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
 - `Core.Tests.UI.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
+- `Core.Tests.UI.UIManagerNavigationPlayModeTests` 在真实 Play Mode 中检查 FIFO、反向取消、事务提交点、错误回滚、缓存清理和兼容门面。
+- `Core.Tests.UI.UITransitionPlayModeTests` 在真实 Play Mode 中检查默认 FadeScale 终态、取消、销毁、InteractionGate 引用计数以及 Gate / Mask 独立性。
 - `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

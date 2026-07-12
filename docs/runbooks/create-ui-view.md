@@ -45,6 +45,7 @@ protected override IUITransition CreateUITransition()
 - 不自行创建、保存或 Kill DOTween tween；取消、立即完成和销毁统一交给 Transition 实例处理。
 - 加载或过渡收到取消时，让 `OperationCanceledException` 继续返回框架层，不在业务 View 中吞掉。
 - 旧 `Show()` / `Hide()` 调用暂时仍可使用；它们是生命周期兼容外观，不代表业务侧拥有 Transition。
+- 不添加自定义的 UI / Camera Animation 属性或在 Hook 中启动另一套动画；UI 与世界表现必须分别落到 `IUITransition` 和 `IUIWorldTransition`。
 
 ## 接入 World / Camera 过渡
 
@@ -145,7 +146,7 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 - `Canceled` 表示调用方取消、反向操作抢占，或目标已不存在，不应当作错误日志。
 - `Failed` 表示加载、Hook 或过渡异常；框架会回滚正式栈并清理 Faulted View。
 - `OnBeforeOpen` 多个订阅者按注册顺序串行等待；前一个失败后不会调用后续订阅者。
-- 旧 `ICameraAnimation` / `IUIAnimation` 仍由导航事务等待执行；不要在 `OnShow` / `OnHide` 中再次手动调用，避免重复动画。
+- UI / World Transition 是唯一过渡入口；不要在 `OnShow` / `OnHide` 中再次手动启动同一段动画。
 - `Show<T>()` / `Close<T>()` 同步外观仅用于旧代码迁移，新业务不要依赖其 fire-and-forget 完成时机。
 - CloseAll 并发窗口内同步 `Show<T>()` 及数据泛型重载会安全返回 null，但 Show operation 仍排在 CloseAll 后执行；新业务必须优先 `await ShowAsync<T>()`。
 - 数据泛型兼容入口的 `SetData` 会随导航 operation 按 FIFO 应用；不要在调用 Show/Preload 前自行修改缓存 View 的数据。
@@ -154,9 +155,10 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 - 空 Cache 上的 `CloseAllAsync()` 返回 `Succeeded` 且 `View == null`，调用方应按 `Status` 判断，不要把空 View 当作失败。
 
 1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
-2. 修改 View 生命周期或 Transition 时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。
-3. 接入 World / Camera 过渡时，运行 `Core.Tests.UI.UIWorldTransitionPlayModeTests` 和 `Core.Tests.UI.UIManagerNavigationPlayModeTests`。
-4. 运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
-5. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
-6. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
-7. 在 `16:9`、超宽和窄屏 Game View 下检查布局。
+2. 修改 View 生命周期时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。
+3. 修改默认 UI Transition 或交互锁时，运行 `Core.Tests.UI.UITransitionPlayModeTests`。
+4. 接入 World / Camera 过渡时，串行运行 `Core.Tests.UI.UIWorldTransitionPlayModeTests` 和 `Core.Tests.UI.UIManagerNavigationPlayModeTests`。
+5. 修改层级、Mask 或 Root 装配时，运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
+6. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
+7. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
+8. 在 `16:9`、超宽和窄屏 Game View 下检查布局。

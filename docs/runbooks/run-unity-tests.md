@@ -8,6 +8,8 @@
 
 ## 确认 Unity 实例
 
+自动化优先使用当前会话已安装的 `unity-skills` 技能。技能位置由会话技能目录解析；常见用户级入口为 `~/.agents/skills/unity-skills/SKILL.md`，不要假设仓库内存在同名项目技能，也不要硬编码某台机器的用户绝对路径。
+
 1. 从 `~/.unity_skills/registry.json` 按项目绝对路径读取端口。
 2. registry 缺失或不可信时，扫描 `http://localhost:8090-8100/health`。
 3. 核对 `/health` 的 `projectName=SleepyDemos`、Unity 版本和 `instanceId`。
@@ -43,6 +45,20 @@
 - 修改 UI Prefab 根节点约定：运行 `Core.Tests.UI.UIViewPrefabConventionTests`；若同时修改 UI Root，再追加对应 PlayMode 测试类。
 - 修改热更 asmdef 过滤与交付边界：运行 `Core.Tests.HotUpdate.HotUpdateAssemblyDefinitionFilterTests` 和 `Core.Tests.Assemblies.TestAssemblyBoundaryTests`。
 - 用户明确要求全量测试：运行全部项目自有 EditMode 与 PlayMode 测试，并在报告中标记为全量；不要自动包含第三方包测试。
+
+大型 UI 导航与过渡改动按以下顺序串行运行直接受影响类，不并行启动 Test Runner job：
+
+1. `Core.Tests.UI.UINavigationContractsTests`（EditMode）
+2. `Core.Tests.UI.UIStackTests`（EditMode）
+3. `Core.Tests.UI.MvcBindTransitionGenerationTests`（EditMode）
+4. `Core.Tests.UI.UIViewLifecyclePlayModeTests`（PlayMode）
+5. `Core.Tests.UI.UIManagerNavigationPlayModeTests`（PlayMode）
+6. `Core.Tests.UI.UITransitionPlayModeTests`（PlayMode）
+7. `Core.Tests.UI.UIWorldTransitionPlayModeTests`（PlayMode）
+8. `Core.Tests.UI.UIRootManagerPlayModeTests`（PlayMode）
+9. `Core.Tests.UI.UIViewPrefabConventionTests`（EditMode）
+
+这 9 类属于 UI 模块受影响回归，不代表项目全量测试。
 
 ## 结果与排障
 

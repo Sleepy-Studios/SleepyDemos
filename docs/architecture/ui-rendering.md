@@ -51,6 +51,7 @@ UIRootCanvas
 - `UIManager` 负责 View 生命周期、缓存和栈，不负责配置渲染环境。
 - `UIRootManager` 是 Canvas、UI Camera、EventSystem、固定层 Root 和遮罩的唯一装配入口。
 - Core 只定义 `IUIWorldTransition` / `IUIWorldTransitionProvider` 并编排事务，不实现具体 Camera 或场景移动。Hotfix 通过 `UIManager.RegisterWorldTransitionProvider(...)` 注册业务解析器；未注册或解析结果为 null 时使用无行为实现。
+- UI 表现统一使用 `IUITransition`，Camera、场景与 Timeline 联动统一使用 `IUIWorldTransition`。旧 `IUIAnimation` / `ICameraAnimation` 契约和运行时调用链已经移除，不再存在并行的动画生命周期。
 - 每个导航事务在开始执行时快照 Provider，并对实际进入、退出的每个 View 最多解析一次。退出阶段的 UI / World Transition 并行完成后才提交栈；提交后进入阶段的 World / UI Transition 并行完成，两个阶段不得交错。
 - 非动画导航会让 UI / World Transition 同时立即完成到目标方向；失败或取消回滚时，已尝试的 World Transition 复用本事务解析出的同一实例恢复到事务前方向。世界补偿异常只记录，不覆盖导航主异常。
 - Modal Mask 与 `InteractionGate` 是两套独立设施：Mask 只从 `UIStack.TopModal` 刷新父节点、sibling、缩放和关闭交互，Page/Widget 不得直接显示或隐藏 Mask；Gate 固定在 Tip 层的 `TipContent` 之后，只在导航执行期间切换透明 Image 的 `raycastTarget`。两者不得复用对象，也不得互相修改颜色、透明度、父节点或交互状态。

@@ -55,5 +55,6 @@
 - 禁止在 `Assets/Scripts/Core` 或 `Assets/Scripts/Hotfix` 下创建 Test Assembly。
 - 测试程序集必须设置 `autoReferenced=false`；EditMode 限制为 Editor，PlayMode 使用标准 PlayMode Test Assembly 配置，生产程序集不得引用测试程序集。
 - Unity Test Runner 是唯一自动化验证入口，运行与排障见 `docs/runbooks/run-unity-tests.md`。
+- 自动化优先使用当前会话已安装的 `unity-skills` 技能；常见用户级入口为 `~/.agents/skills/unity-skills/SKILL.md`，以会话技能目录为准，不假设仓库内存在同名技能。
 - 默认按“精确测试方法 → 当前功能测试类 → 当前任务涉及的多个测试类”运行最小相关测试集。跨模块改动只扩大到直接受影响的测试类，不默认运行整个 `Core.Tests`、全部 EditMode、全部 PlayMode 或第三方包测试。
 - 只有用户明确要求“全量测试”或“完整回归”时才执行项目全量测试。全量默认仅包含项目自有的 `Core.Tests` 与未来的 `Hotfix.Tests`；第三方包测试需要另行明确指定。完成报告必须说明实际测试范围以及是否执行过全量测试。

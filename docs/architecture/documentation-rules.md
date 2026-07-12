@@ -178,7 +178,7 @@ public void ClearSelection()
 ### 类型与成员
 
 - 类型、方法、属性、事件：PascalCase，例如 `PlayerController`、`LoadAssetAsync`、`CurrentIndex`、`OnValueChanged`。
-- 接口：`I` + PascalCase，例如 `IResourceLoader`、`IUIAnimation`。
+- 接口：`I` + PascalCase，例如 `IResourceLoader`、`IUITransition`。
 - 局部变量、参数、私有字段、序列化私有字段：camelCase，例如 `currentIndex`、`targetImage`、`initIndex`、`isAsync`。
 - 常量：PascalCase，例如 `DefaultTimeout`、`SelectedStateId`。
 - 静态只读字段：PascalCase 或按既有文件风格；不要使用 `_` 前缀。
