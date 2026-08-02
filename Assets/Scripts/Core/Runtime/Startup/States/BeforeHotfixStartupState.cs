@@ -12,7 +12,7 @@ namespace Core.Runtime
         {
             systems.Add(new UIInitializeSystem(this));
             systems.Add(new HybridMetadataSystem(this));
-            systems.Add(new HotUpdateAssemblySystem(this));
+            systems.Add(new HotfixAssemblySystem(this));
             systems.Add(new RuntimeServiceRegisterSystem(this));
             systems.Add(new HotfixEntrySystem(this));
         }

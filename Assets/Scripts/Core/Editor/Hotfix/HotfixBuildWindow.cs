@@ -12,14 +12,14 @@ using UnityEngine;
 using YooAsset.Editor;
 using Debug = UnityEngine.Debug;
 
-namespace Core.Editor.HotUpdate
+namespace Core.Editor.Hotfix
 {
-    public sealed class HotUpdateBuildWindow : EditorWindow
+    public sealed class HotfixBuildWindow : EditorWindow
     {
-        private const string ConfigAssetPath = "Assets/LoadResources/Config/HotUpdateConfig.asset";
+        private const string ConfigAssetPath = "Assets/LoadResources/Config/HotfixConfig.asset";
         private const string AotGenericReferencesPath = "Assets/HybridCLRGenerate/AOTGenericReferences.cs";
 
-        private HotUpdateConfig config;
+        private HotfixConfig config;
         private bool isPcPlatform = true;
         private Vector2 scrollPosition;
 
@@ -32,10 +32,10 @@ namespace Core.Editor.HotUpdate
         private bool showAdvancedPaths;
         private bool showManualAssemblyEdit;
 
-        [MenuItem("Tools/UI Framework/HotUpdate Build")]
+        [MenuItem("Tools/UI Framework/Hotfix Build")]
         public static void Open()
         {
-            GetWindow<HotUpdateBuildWindow>("HotUpdate Build");
+            GetWindow<HotfixBuildWindow>("Hotfix Build");
         }
 
         [MenuItem("Tools/一键打包工具")]
@@ -44,20 +44,20 @@ namespace Core.Editor.HotUpdate
             Open();
         }
 
-        public static void CreateHotUpdateConfigFromProject()
+        public static void CreateHotfixConfigFromProject()
         {
             string path = EditorUtility.SaveFilePanelInProject(
-                "Create HotUpdateConfig",
-                "HotUpdateConfig",
+                "Create HotfixConfig",
+                "HotfixConfig",
                 "asset",
-                "选择 HotUpdateConfig 保存位置",
+                "选择 HotfixConfig 保存位置",
                 "Assets/LoadResources/Config");
             if (string.IsNullOrEmpty(path))
             {
                 return;
             }
 
-            var asset = CreateInstance<HotUpdateConfig>();
+            var asset = CreateInstance<HotfixConfig>();
             ApplyPlatformDefaults(asset, true);
             AssetDatabase.CreateAsset(asset, path);
             AssetDatabase.SaveAssets();
@@ -97,11 +97,11 @@ namespace Core.Editor.HotUpdate
 
         private void DrawConfigSection()
         {
-            EditorGUILayout.LabelField("HotUpdate 配置", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Hotfix 配置", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                config = (HotUpdateConfig)EditorGUILayout.ObjectField(new GUIContent("Config", "当前编辑的热更新配置资源"), config, typeof(HotUpdateConfig), false);
-                if (GUILayout.Button(new GUIContent("新建/定位默认配置", "创建或选中默认 HotUpdateConfig 资源"), GUILayout.Width(130)))
+                config = (HotfixConfig)EditorGUILayout.ObjectField(new GUIContent("Config", "当前编辑的热更新配置资源"), config, typeof(HotfixConfig), false);
+                if (GUILayout.Button(new GUIContent("新建/定位默认配置", "创建或选中默认 HotfixConfig 资源"), GUILayout.Width(130)))
                 {
                     LoadOrCreateConfig();
                     Selection.activeObject = config;
@@ -110,7 +110,7 @@ namespace Core.Editor.HotUpdate
 
             if (config == null)
             {
-                EditorGUILayout.HelpBox("没有 HotUpdateConfig。点击上方按钮创建默认配置。", MessageType.Warning);
+                EditorGUILayout.HelpBox("没有 HotfixConfig。点击上方按钮创建默认配置。", MessageType.Warning);
                 return;
             }
 
@@ -249,41 +249,41 @@ namespace Core.Editor.HotUpdate
             EditorGUILayout.Space(6);
             DrawFolderPathSelector(
                 new GUIContent("热更源路径", "HybridCLR 输出的热更新程序集目录。"),
-                config.HotUpdateSourcePath,
-                ResolvePath(config.HotUpdateSourcePath),
-                () => BrowseFolderPath(value => config.HotUpdateSourcePath = value, ResolvePath(config.HotUpdateSourcePath), "选择热更源目录"));
+                config.HotfixSourcePath,
+                ResolvePath(config.HotfixSourcePath),
+                () => BrowseFolderPath(value => config.HotfixSourcePath = value, ResolvePath(config.HotfixSourcePath), "选择热更源目录"));
 
             DrawFolderPathSelector(
                 new GUIContent("热更目标路径", "热更 dll.bytes 拷贝到项目资源目录的位置。"),
-                config.HotUpdateTargetPath,
-                ResolvePath(config.HotUpdateTargetPath),
-                () => BrowseFolderPath(value => config.HotUpdateTargetPath = value, ResolvePath(config.HotUpdateTargetPath), "选择热更目标目录"));
+                config.HotfixTargetPath,
+                ResolvePath(config.HotfixTargetPath),
+                () => BrowseFolderPath(value => config.HotfixTargetPath = value, ResolvePath(config.HotfixTargetPath), "选择热更目标目录"));
 
             using (new EditorGUILayout.HorizontalScope())
             {
                 if (GUILayout.Button(new GUIContent("自动填写热更列表", "根据项目里的热更 asmdef 自动推断热更新程序集。目前会优先识别 Assets/Scripts/Hotfix 下的程序集。")))
                 {
-                    AutoFillHotUpdateAssemblies();
+                    AutoFillHotfixAssemblies();
                 }
 
                 if (GUILayout.Button(new GUIContent("清空程序集列表", "清空当前 AOT 与热更程序集列表，便于重新自动生成")))
                 {
                     config.AotAssemblies = Array.Empty<string>();
-                    config.HotUpdateAssemblies = Array.Empty<string>();
+                    config.HotfixAssemblies = Array.Empty<string>();
                     EditorUtility.SetDirty(config);
                 }
             }
 
             DrawReadonlyAssemblyList(
                 new GUIContent("热更文件列表", "运行时需要动态加载的热更新 DLL 列表。当前项目默认通常包含 Hotfix.dll。"),
-                config.HotUpdateAssemblies);
+                config.HotfixAssemblies);
 
             showManualAssemblyEdit = EditorGUILayout.Foldout(showManualAssemblyEdit, "手动编辑程序集列表", true);
             if (showManualAssemblyEdit)
             {
                 DrawStringArray("AOT 文件列表（手动）", ref config.AotAssemblies);
                 EditorGUILayout.Space(4);
-                DrawStringArray("热更文件列表（手动）", ref config.HotUpdateAssemblies);
+                DrawStringArray("热更文件列表（手动）", ref config.HotfixAssemblies);
             }
 
             EditorGUI.indentLevel--;
@@ -305,14 +305,14 @@ namespace Core.Editor.HotUpdate
                     PrebuildCommand.GenerateAll();
                     AssetDatabase.Refresh();
                     AutoFillAotAssemblies();
-                    AutoFillHotUpdateAssemblies();
+                    AutoFillHotfixAssemblies();
                 }
 
                 if (GUILayout.Button(new GUIContent("仅编译热更 DLL", "只编译热更新程序集，不重新生成全部 AOT 相关内容")))
                 {
                     CompileDllCommand.CompileDllActiveBuildTarget();
                     AssetDatabase.Refresh();
-                    AutoFillHotUpdateAssemblies();
+                    AutoFillHotfixAssemblies();
                 }
             }
 
@@ -337,7 +337,7 @@ namespace Core.Editor.HotUpdate
                 PrebuildCommand.GenerateAll();
                 AssetDatabase.Refresh();
                 AutoFillAotAssemblies();
-                AutoFillHotUpdateAssemblies();
+                AutoFillHotfixAssemblies();
                 ReplaceAssemblies(false);
             }
 
@@ -619,7 +619,7 @@ namespace Core.Editor.HotUpdate
             ShowNotification(new GUIContent($"已自动填写 {items.Length} 个 AOT DLL"));
         }
 
-        private void AutoFillHotUpdateAssemblies()
+        private void AutoFillHotfixAssemblies()
         {
             string scriptsRoot = Path.Combine(GetProjectRootPath(), "Assets", "Scripts");
             string hotfixRoot = Path.Combine(scriptsRoot, "Hotfix");
@@ -629,7 +629,7 @@ namespace Core.Editor.HotUpdate
             {
                 foreach (string asmdefPath in Directory.GetFiles(hotfixRoot, "*.asmdef", SearchOption.AllDirectories))
                 {
-                    if (HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
+                    if (HotfixAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
                     {
                         assemblyNames.Add(dllName);
                     }
@@ -645,7 +645,7 @@ namespace Core.Editor.HotUpdate
                         continue;
                     }
 
-                    if (!HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
+                    if (!HotfixAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
                     {
                         continue;
                     }
@@ -657,27 +657,26 @@ namespace Core.Editor.HotUpdate
                         continue;
                     }
 
-                    if (assemblyName.Contains("Hotfix", StringComparison.OrdinalIgnoreCase) ||
-                        assemblyName.Contains("HotUpdate", StringComparison.OrdinalIgnoreCase))
+                    if (assemblyName.Contains("Hotfix", StringComparison.OrdinalIgnoreCase))
                     {
                         assemblyNames.Add(dllName);
                     }
                 }
             }
 
-            config.HotUpdateAssemblies = assemblyNames
+            config.HotfixAssemblies = assemblyNames
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
             EditorUtility.SetDirty(config);
-            ShowNotification(new GUIContent($"已自动填写 {config.HotUpdateAssemblies.Length} 个热更 DLL"));
+            ShowNotification(new GUIContent($"已自动填写 {config.HotfixAssemblies.Length} 个热更 DLL"));
         }
 
         private void ReplaceAssemblies(bool useStrippedAot)
         {
             string aotSource = useStrippedAot ? config.AotStrippedSourcePath : config.AotSourcePath;
             CopyAssemblies(aotSource, config.AotTargetPath, config.AotAssemblies);
-            CopyAssemblies(config.HotUpdateSourcePath, config.HotUpdateTargetPath, config.HotUpdateAssemblies);
+            CopyAssemblies(config.HotfixSourcePath, config.HotfixTargetPath, config.HotfixAssemblies);
             AssetDatabase.Refresh();
             SaveConfig();
             ShowNotification(new GUIContent("DLL 替换完成"));
@@ -721,31 +720,31 @@ namespace Core.Editor.HotUpdate
         {
             EnsureFolder("Assets/LoadResources");
             EnsureFolder("Assets/LoadResources/Config");
-            config = AssetDatabase.LoadAssetAtPath<HotUpdateConfig>(ConfigAssetPath);
+            config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(ConfigAssetPath);
             if (config != null)
             {
                 return;
             }
 
-            config = CreateInstance<HotUpdateConfig>();
+            config = CreateInstance<HotfixConfig>();
             ApplyPlatformDefaults(config, isPcPlatform);
             AssetDatabase.CreateAsset(config, ConfigAssetPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        private static void ApplyPlatformDefaults(HotUpdateConfig target, bool pc)
+        private static void ApplyPlatformDefaults(HotfixConfig target, bool pc)
         {
             string platform = pc ? "StandaloneWindows64" : "Android";
             target.PackageName = string.IsNullOrWhiteSpace(target.PackageName) ? ResourceInitializeOptions.DefaultPackageName : target.PackageName;
             target.AotSourcePath = $"HybridCLRData/AssembliesPostIl2CppStrip/{platform}";
             target.AotStrippedSourcePath = $"HybridCLRData/StrippedAOTAssembly2/{platform}";
-            target.HotUpdateSourcePath = $"HybridCLRData/HotUpdateDlls/{platform}";
+            target.HotfixSourcePath = $"HybridCLRData/HotUpdateDlls/{platform}";
             target.LocalBundlePath = $"Bundles/{platform}/{target.PackageName}";
 
             if (string.IsNullOrWhiteSpace(target.KeyFilePath))
             {
-                target.KeyFilePath = "Assets/Settings/HotUpdate/key";
+                target.KeyFilePath = "Assets/Settings/Hotfix/key";
             }
         }
 
@@ -1037,7 +1036,7 @@ namespace Core.Editor.HotUpdate
 
             if (string.IsNullOrWhiteSpace(config.KeyFilePath))
             {
-                config.KeyFilePath = "Assets/Settings/HotUpdate/key";
+                config.KeyFilePath = "Assets/Settings/Hotfix/key";
             }
         }
 

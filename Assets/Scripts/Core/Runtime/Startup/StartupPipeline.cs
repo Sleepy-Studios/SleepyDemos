@@ -9,7 +9,7 @@ namespace Core.Runtime
         private readonly StartupContext context;
         private StartupStateMachine stateMachine;
 
-        public StartupPipeline(HotUpdateConfig config, StartupLoadingView loadingView, MonoBehaviour runner)
+        public StartupPipeline(HotfixConfig config, StartupLoadingView loadingView, MonoBehaviour runner)
         {
             context = new StartupContext(config, loadingView, runner);
         }

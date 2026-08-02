@@ -7,24 +7,24 @@ namespace Core.Runtime
 {
     public sealed class StartupContext
     {
-        private readonly List<Assembly> hotUpdateAssemblies = new List<Assembly>();
+        private readonly List<Assembly> hotfixAssemblies = new List<Assembly>();
         private float progressStart;
         private float progressSpan = 1f;
         private Action<float, string, string, string> progressReporter;
 
-        public StartupContext(HotUpdateConfig config, StartupLoadingView loadingView, MonoBehaviour runner)
+        public StartupContext(HotfixConfig config, StartupLoadingView loadingView, MonoBehaviour runner)
         {
             Config = config;
             LoadingView = loadingView;
             Runner = runner;
         }
 
-        public HotUpdateConfig Config { get; }
+        public HotfixConfig Config { get; }
         public StartupLoadingView LoadingView { get; }
         public MonoBehaviour Runner { get; }
-        public IReadOnlyList<Assembly> HotUpdateAssemblies => hotUpdateAssemblies;
+        public IReadOnlyList<Assembly> HotfixAssemblies => hotfixAssemblies;
 
-        public List<Assembly> MutableHotUpdateAssemblies => hotUpdateAssemblies;
+        public List<Assembly> MutableHotfixAssemblies => hotfixAssemblies;
 
         public void SetProgressScope(float start, float span)
         {

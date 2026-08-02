@@ -39,7 +39,7 @@
 `TestAssemblyBoundaryTests` 自动检查：
 
 - Player 程序集查询不包含 EditMode、NUnit 或 Editor TestRunner；PlayMode Test Assembly 可出现在查询中，但普通构建默认排除带 TestAssemblies 标记的程序集。
-- `HotUpdateConfig` 和热更代码目录不包含 `.Tests.dll`。
+- `HotfixConfig` 和热更代码目录不包含 `.Tests.dll`。
 - Test Assembly 只位于 `Assets/Scripts/Tests`，EditMode/PlayMode 平台配置正确且 `autoReferenced=false`。
 
 Unity 6.3 的 Player 程序集查询可能因为 Input System 或 Performance Testing 包包含 `UnityEngine.TestRunner`。这不是项目测试程序集泄漏；验收重点是项目测试程序集、NUnit 和 Editor TestRunner 不进入交付边界。

@@ -11,12 +11,12 @@ namespace Core.Runtime
             Config = startupContext.Config;
             LoadingView = startupContext.LoadingView;
             Runner = startupContext.Runner;
-            HotUpdateAssemblies = startupContext.HotUpdateAssemblies;
+            HotfixAssemblies = startupContext.HotfixAssemblies;
         }
 
-        public HotUpdateConfig Config { get; }
+        public HotfixConfig Config { get; }
         public StartupLoadingView LoadingView { get; }
         public MonoBehaviour Runner { get; }
-        public IReadOnlyList<Assembly> HotUpdateAssemblies { get; }
+        public IReadOnlyList<Assembly> HotfixAssemblies { get; }
     }
 }

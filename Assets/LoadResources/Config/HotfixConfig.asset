@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d93f28d34dbf4789b6c84aeffdfb9445, type: 3}
-  m_Name: HotUpdateConfig
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.HotUpdateConfig
+  m_Name: HotfixConfig
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.HotfixConfig
   PlayMode: 0
   PackageName: DefaultPackage
   BaseServerURL: 
   RemoteBaseServerURL: 
-  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-08-02-818
+  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-08-02-850
   AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/StandaloneWindows64
   AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/StandaloneWindows64
   AotTargetPath: Assets/LoadResources/Codes/Aot
@@ -26,14 +26,14 @@ MonoBehaviour:
   - UniTask.dll
   - UnityEngine.CoreModule.dll
   - mscorlib.dll
-  HotUpdateSourcePath: HybridCLRData/HotUpdateDlls/StandaloneWindows64
-  HotUpdateTargetPath: Assets/LoadResources/Codes/HotUpdate
-  HotUpdateAssemblies:
+  HotfixSourcePath: HybridCLRData/HotUpdateDlls/StandaloneWindows64
+  HotfixTargetPath: Assets/LoadResources/Codes/Hotfix
+  HotfixAssemblies:
   - Hotfix.dll
   SshHost: 13.75.121.163
   SshPort: 22
   SshUser: root
-  KeyFilePath: Assets/Settings/HotUpdate/key
+  KeyFilePath: Assets/Settings/Hotfix/key
   ServerBasePath: /www/wwwroot/13.75.121.163/Sleepy_Framework
   UseLocalMockServer: 0
   MockServerFolderPath: 

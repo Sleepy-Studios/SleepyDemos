@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-namespace Core.Editor.HotUpdate
+namespace Core.Editor.Hotfix
 {
     internal static class LocalBundleHttpServer
     {

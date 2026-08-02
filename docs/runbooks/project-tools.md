@@ -21,14 +21,14 @@
 
 | 菜单路径 | 说明 | 源码 |
 |----------|------|------|
-| `Tools/UI Framework/HotUpdate Build` | 热更构建主窗口：HybridCLR 生成、YooAsset 构建、本地 Mock 服务器、远端部署等 | `HotUpdate/HotUpdateBuildWindow.cs` |
+| `Tools/UI Framework/Hotfix Build` | 热更构建主窗口：HybridCLR 生成、YooAsset 构建、本地 Mock 服务器、远端部署等 | `Hotfix/HotfixBuildWindow.cs` |
 | `Tools/一键打包工具` | 与上一项同一窗口（中文入口） | 同上 |
 
 窗口内嵌能力（无独立菜单）：
 
-- **本地 Bundle HTTP 服务**：`HotUpdate/LocalBundleHttpServer.cs`，在 HotUpdate 窗口「Mock Server」区启停，用于本机调试资源包。
-- **配置资产**：默认 `Assets/LoadResources/Config/HotUpdateConfig.asset`。
-- **SSH 私钥**：默认 `Assets/Settings/HotUpdate/key`（不进 YooAsset 采集，勿放回 `LoadResources/Config`）。
+- **本地 Bundle HTTP 服务**：`Hotfix/LocalBundleHttpServer.cs`，在 Hotfix 窗口「Mock Server」区启停，用于本机调试资源包。
+- **配置资产**：默认 `Assets/LoadResources/Config/HotfixConfig.asset`。
+- **SSH 私钥**：默认 `Assets/Settings/Hotfix/key`（不进 YooAsset 采集，勿放回 `LoadResources/Config`）。
 
 ### 2. UI 绑定（MvcBind）
 
@@ -122,7 +122,7 @@
 
 ## 三、UPM 开发包（远程仓库）
 
-在 `Packages/manifest.json` 中声明，Unity 导入后提供编辑器菜单或 API。构建流程多由 **HotUpdate Build** 窗口统一调用，日常也可直接用上菜单。
+在 `Packages/manifest.json` 中声明，Unity 导入后提供编辑器菜单或 API。构建流程多由 **Hotfix Build** 窗口统一调用，日常也可直接用上菜单。
 
 | 包 ID | 用途 | 远程仓库 |
 |-------|------|----------|

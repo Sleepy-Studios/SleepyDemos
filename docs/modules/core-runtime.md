@@ -10,7 +10,7 @@
 - `Components/`：可复用基础 UI 组件和通用组件
 - `Eventing/`：全局同步事件分发，用于临时事件通知
 - `Flux/`：轻量单向数据流，负责 Action 派发、Data 状态、Handler 处理和订阅通知
-- `HotUpdate/`：热更相关运行时能力
+- `Hotfix/`：热更相关运行时能力
 - `Resource/`：资源相关能力
 - `Startup/`：启动状态机与系统
 - `UI/`：UI 框架、管理器、反射注册等
@@ -50,6 +50,6 @@
 - [Core UI 运行时](./ui-runtime.md)
 - [Core 事件系统](./eventing/README.md)
 - [Core Flux 状态流](./flux.md)
-- [热更新模块](./hot-update.md)
+- [热更新模块](./hotfix.md)
 - [Unity 自动化测试架构](../architecture/testing.md)
 - [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)

@@ -29,7 +29,7 @@
 - `modules/`
   - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
   - [Core.Runtime](./modules/core-runtime.md)
-  - [热更新模块](./modules/hot-update.md)
+  - [热更新模块](./modules/hotfix.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
   - [Core 事件系统](./modules/eventing/README.md)

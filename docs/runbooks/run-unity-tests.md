@@ -43,7 +43,7 @@
 - 只修改资源地址规范：运行 `Core.Tests.Resource.ResourceServiceTests`。
 - 只修改 UI Root 创建或层级 Canvas：运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
 - 修改 UI Prefab 根节点约定：运行 `Core.Tests.UI.UIViewPrefabConventionTests`；若同时修改 UI Root，再追加对应 PlayMode 测试类。
-- 修改热更 asmdef 过滤与交付边界：运行 `Core.Tests.HotUpdate.HotUpdateAssemblyDefinitionFilterTests` 和 `Core.Tests.Assemblies.TestAssemblyBoundaryTests`。
+- 修改热更 asmdef 过滤与交付边界：运行 `Core.Tests.Hotfix.HotfixAssemblyDefinitionFilterTests` 和 `Core.Tests.Assemblies.TestAssemblyBoundaryTests`。
 - 用户明确要求全量测试：运行全部项目自有 EditMode 与 PlayMode 测试，并在报告中标记为全量；不要自动包含第三方包测试。
 
 大型 UI 导航与过渡改动按以下顺序串行运行直接受影响类，不并行启动 Test Runner job：
@@ -69,7 +69,7 @@
 
 ## 验收重点
 
-- `HotUpdateAssemblyDefinitionFilterTests`：热更 asmdef 过滤规则。
+- `HotfixAssemblyDefinitionFilterTests`：热更 asmdef 过滤规则。
 - `UIViewPrefabConventionTests`：View Prefab 根节点 Canvas 三件套规则。
 - `ResourceServiceTests`：默认资源服务、Loader 和地址规范化。
 - `TestAssemblyBoundaryTests`：Player、热更配置、热更目录和 asmdef 边界。

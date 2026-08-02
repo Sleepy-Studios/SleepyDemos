@@ -61,7 +61,7 @@ namespace Core.Runtime
 
         private Type FindEntryType(string entryTypeName)
         {
-            foreach (var assembly in Context.HotUpdateAssemblies)
+            foreach (var assembly in Context.HotfixAssemblies)
             {
                 var type = assembly.GetType(entryTypeName);
                 if (type != null)

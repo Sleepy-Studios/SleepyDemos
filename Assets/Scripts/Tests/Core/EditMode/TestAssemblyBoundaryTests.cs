@@ -12,8 +12,8 @@ namespace Core.Tests.Assemblies
 {
     public sealed class TestAssemblyBoundaryTests
     {
-        private const string HotUpdateConfigPath = "Assets/LoadResources/Config/HotUpdateConfig.asset";
-        private const string HotUpdateCodePath = "Assets/LoadResources/Codes/HotUpdate";
+        private const string HotfixConfigPath = "Assets/LoadResources/Config/HotfixConfig.asset";
+        private const string HotfixCodePath = "Assets/LoadResources/Codes/Hotfix";
 
         [Test]
         public void PlayerAssemblyQuery_DoesNotContainEditModeOrEditorTestFramework()
@@ -37,26 +37,26 @@ namespace Core.Tests.Assemblies
         }
 
         [Test]
-        public void HotUpdateConfig_DoesNotContainTestAssemblies()
+        public void HotfixConfig_DoesNotContainTestAssemblies()
         {
-            var config = AssetDatabase.LoadAssetAtPath<HotUpdateConfig>(HotUpdateConfigPath);
+            var config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(HotfixConfigPath);
 
             Assert.That(config, Is.Not.Null);
             Assert.That(
-                config.HotUpdateAssemblies,
+                config.HotfixAssemblies,
                 Has.None.EndsWith(".Tests.dll").IgnoreCase);
         }
 
         [Test]
-        public void HotUpdateCodeDirectory_DoesNotContainTestAssemblies()
+        public void HotfixCodeDirectory_DoesNotContainTestAssemblies()
         {
-            if (!Directory.Exists(HotUpdateCodePath))
+            if (!Directory.Exists(HotfixCodePath))
             {
                 Assert.Pass();
             }
 
             var testAssemblies = Directory
-                .GetFiles(HotUpdateCodePath, "*", SearchOption.AllDirectories)
+                .GetFiles(HotfixCodePath, "*", SearchOption.AllDirectories)
                 .Where(path => Path.GetFileName(path).Contains(".Tests.dll", StringComparison.OrdinalIgnoreCase))
                 .Select(NormalizePath)
                 .ToArray();

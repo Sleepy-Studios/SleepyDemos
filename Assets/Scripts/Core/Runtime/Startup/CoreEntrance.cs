@@ -5,7 +5,7 @@ namespace Core.Runtime
 {
     public sealed class CoreEntrance : MonoBehaviour
     {
-        [SerializeField] private HotUpdateConfig hotUpdateConfig;
+        [SerializeField] private HotfixConfig hotfixConfig;
         [SerializeField] private StartupLoadingView loadingView;
         [SerializeField] private bool dontDestroyOnLoad = true;
 
@@ -27,7 +27,7 @@ namespace Core.Runtime
                 return;
             }
 
-            var pipeline = new StartupPipeline(hotUpdateConfig, loadingView, this);
+            var pipeline = new StartupPipeline(hotfixConfig, loadingView, this);
             await pipeline.RunAsync();
         }
     }

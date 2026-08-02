@@ -40,8 +40,8 @@
 相关调用入口：
 
 - `Assets/Scripts/Core/Runtime/UI/Core/View.cs`
-- `Assets/Scripts/Core/Runtime/HotUpdate/HybridAotAssemblyLoader.cs`
-- `Assets/Scripts/Core/Runtime/HotUpdate/HotUpdateAssemblyLoader.cs`
+- `Assets/Scripts/Core/Runtime/Hotfix/HybridAotAssemblyLoader.cs`
+- `Assets/Scripts/Core/Runtime/Hotfix/HotfixAssemblyLoader.cs`
 - `Assets/Scripts/Core/Runtime/Startup/Systems/RuntimeServiceRegisterSystem.cs`
 
 ## 主链路
@@ -111,6 +111,6 @@
 - `docs/architecture/startup-flow.md`
 - `docs/architecture/asset-naming.md`
 - `docs/modules/ui-runtime.md`
-- `docs/modules/hot-update.md`
+- `docs/modules/hotfix.md`
 - `docs/runbooks/use-resource-loader.md`
 - `docs/runbooks/run-unity-tests.md`

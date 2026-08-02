@@ -1,16 +1,16 @@
-using Core.Editor.HotUpdate;
+using Core.Editor.Hotfix;
 using NUnit.Framework;
 
-namespace Core.Tests.HotUpdate
+namespace Core.Tests.Hotfix
 {
-    public sealed class HotUpdateAssemblyDefinitionFilterTests
+    public sealed class HotfixAssemblyDefinitionFilterTests
     {
         [Test]
         public void TryGetDllNameFromJson_RuntimeAssembly_ReturnsDllName()
         {
             const string json = "{\"name\":\"Hotfix\",\"references\":[\"Core.Runtime\"]}";
 
-            var accepted = HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromJson(json, out var dllName);
+            var accepted = HotfixAssemblyDefinitionFilter.TryGetDllNameFromJson(json, out var dllName);
 
             Assert.That(accepted, Is.True);
             Assert.That(dllName, Is.EqualTo("Hotfix.dll"));
@@ -19,7 +19,7 @@ namespace Core.Tests.HotUpdate
         [Test]
         public void TryGetDllNameFromFile_HotfixAssembly_ReturnsDllName()
         {
-            var accepted = HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromFile(
+            var accepted = HotfixAssemblyDefinitionFilter.TryGetDllNameFromFile(
                 "Assets/Scripts/Hotfix/Hotfix.asmdef",
                 out var dllName);
 
@@ -60,7 +60,7 @@ namespace Core.Tests.HotUpdate
 
         private static void AssertRejected(string json)
         {
-            var accepted = HotUpdateAssemblyDefinitionFilter.TryGetDllNameFromJson(json, out var dllName);
+            var accepted = HotfixAssemblyDefinitionFilter.TryGetDllNameFromJson(json, out var dllName);
 
             Assert.That(accepted, Is.False);
             Assert.That(dllName, Is.Empty);

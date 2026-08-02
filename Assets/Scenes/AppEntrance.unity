@@ -596,7 +596,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 417d7ac264d14294bf48dae0f5d983a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hotUpdateConfig: {fileID: 11400000, guid: 7164ebdccb389a04a901c6e62dd9392f, type: 2}
+  hotfixConfig: {fileID: 11400000, guid: 7164ebdccb389a04a901c6e62dd9392f, type: 2}
   loadingView: {fileID: 38974768}
   dontDestroyOnLoad: 1
 --- !u!1660057539 &9223372036854775807

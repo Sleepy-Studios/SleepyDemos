@@ -3,9 +3,9 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 
-namespace Core.Editor.HotUpdate
+namespace Core.Editor.Hotfix
 {
-    internal static class HotUpdateAssemblyDefinitionFilter
+    internal static class HotfixAssemblyDefinitionFilter
     {
         internal static bool TryGetDllNameFromFile(string asmdefPath, out string dllName)
         {

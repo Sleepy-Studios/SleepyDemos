@@ -10,7 +10,7 @@
 
 ## 当前可见子域
 
-- `HotUpdate/`
+- `Hotfix/`
   - 热更构建窗口
   - 本地 Bundle HTTP 服务
 - `MvcBind/`

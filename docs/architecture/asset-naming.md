@@ -33,7 +33,7 @@
 | 禁止 `-`、空格及其它特殊字符 | Error |
 | 语义段建议 PascalCase，分段用 `_`，变体用两位数字（`_01`），贴图通道后缀 PascalCase（`_BaseColor` / `_Normal` / `_ORM`） | Warning |
 
-正例：`MainMenuView.prefab`、`Rock_01_BaseColor.png`、`HarmonyOS_CN.ttf`、`HotUpdateConfig.asset`、`UI_Click_01.wav`。
+正例：`MainMenuView.prefab`、`Rock_01_BaseColor.png`、`HarmonyOS_CN.ttf`、`HotfixConfig.asset`、`UI_Click_01.wav`。
 
 ## 目录矩阵（类型来源）
 

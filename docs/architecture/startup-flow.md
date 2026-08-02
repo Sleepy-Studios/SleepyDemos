@@ -51,7 +51,7 @@
 当前系统：
 - `UIInitializeSystem`
 - `HybridMetadataSystem`
-- `HotUpdateAssemblySystem`
+- `HotfixAssemblySystem`
 - `RuntimeServiceRegisterSystem`
 - `HotfixEntrySystem`
 
