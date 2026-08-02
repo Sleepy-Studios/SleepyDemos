@@ -7,7 +7,8 @@
 ## 快速开始
 
 - Unity 版本：见 [ProjectSettings/ProjectVersion.txt](ProjectSettings/ProjectVersion.txt)
-- 直接用 Unity Hub 或 Unity Editor 打开仓库根目录即可
+- 推荐使用 `git clone --recurse-submodules https://github.com/Sleepy-Studios/SleepyDemos.git` 克隆；已有仓库执行 `git submodule update --init --recursive`
+- 子模块完成后，用 Unity Hub 或 Unity Editor 打开仓库根目录
 - 首次进入项目前，建议先读：
   - [docs/README.md](docs/README.md)
   - [docs/architecture/overview.md](docs/architecture/overview.md)
@@ -29,7 +30,9 @@
 4. `ResourceStartupState`
 5. `BeforeHotfixStartupState`
 6. `HotfixEntry`
-7. `MainMenuView`
+7. `LubanConfigSystem`
+8. `GlobalDataSystem`
+9. `MainMenuView`
 
 也就是说，Core 先完成准备、资源和热更装配，Hotfix 再接管业务入口和主界面。
 
@@ -108,5 +111,6 @@
 - [docs/modules/](docs/modules/)：关键模块说明
 - [docs/agent/](docs/agent/)：Agent 协作入口与项目级技能说明
 - [docs/runbooks/](docs/runbooks/)：操作步骤和排障指南
+- [docs/runbooks/use-luban-config.md](docs/runbooks/use-luban-config.md)：Luban 配置生成、读取与排障
 
 如果代码、流程、模块入口变化了，文档需要和代码一起更新，不靠人工额外提醒。

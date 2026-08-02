@@ -1,0 +1,3 @@
+[submodule "SleepyConfigs"]
+	path = SleepyConfigs
+	url = https://github.com/Sleepy-Studios/SleepyConfigs.git

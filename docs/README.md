@@ -22,6 +22,7 @@
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
   - [资源命名规范](./architecture/asset-naming.md)
   - [资源系统设计原则](./architecture/resource-system.md)
+  - [配置系统设计](./architecture/config-system.md)
   - [Core UI 渲染设计原则](./architecture/ui-rendering.md)
   - [Unity 自动化测试架构](./architecture/testing.md)
   - [文档维护与 C# 规范](./architecture/documentation-rules.md)
@@ -34,6 +35,7 @@
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
+  - [Luban 配置模块](./modules/luban-config.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)
 - `agent/`
   - Agent 协作入口与项目级技能说明
@@ -44,6 +46,7 @@
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
+  - [使用 Luban 配置](./runbooks/use-luban-config.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
 
 ## 如何判断文档该写到哪里

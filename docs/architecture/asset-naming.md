@@ -53,6 +53,7 @@
 | `VFX/` | `.prefab` `.vfx` + 私有 `.mat`/图片/Shader | 图片 `Default` | `vfx` |
 | `Scenes/` | `.unity` | 可加载场景 | `scene` |
 | `Config/` | `.asset` `.json` `.bytes` | SO / JSON / 二进制配置 | `config` |
+| `Config/Luban/` | `.json` `.bytes` | Luban 生成配置；允许生成器原生 lower_snake_case 文件名 | `config` |
 | `Fonts/Source/` | `.ttf` `.otf` | 按语言分 `CN`/`EN` 子目录 | `font` |
 | `Fonts/TMP_FontAssets/` | `.asset` `.png` | TMP 资产 + 外部图集 | `font` |
 | `Fonts/Materials/` | `.mat` | 字体材质 | `font` |
@@ -68,6 +69,7 @@
 - **顶层目录白名单**：只有上表登记过的顶层目录合法。新增顶层目录必须先改 [`LoadResourcesNamingSpec.cs`](../../Assets/Scripts/Core/Editor/AssetNaming/LoadResourcesNamingSpec.cs) 与本文档，并补 YooAsset 采集。
 - **资产必须落在功能子目录**：直接放在 `UI/`、`Art/`、`Demos/`、`Demos/<demo_id>/` 根目录会报 Error。
 - **子目录可继续细分**：例如 `Art/Textures/Rocks/` 仍按 `Art/Textures` 规则校验。
+- **Luban 命名例外**：仅 `Config/Luban/` 下的 `.json` / `.bytes` 跳过 PascalCase 语义 Warning；合法字符、数字开头、扩展名和地址冲突仍按全局 Error 规则检查。
 - **`demo_id` 格式**：`^[a-z][a-z0-9_]*$`（小写字母开头），Error 级强制，例如 `gravity_well`。
 
 ## 决策树

@@ -121,6 +121,8 @@ namespace Core.Editor.AssetNaming
                 { Labels = new[] { "scene" }, Description = "可加载场景" },
 
             // Config
+            new FolderRule("Config/Luban", new[] { ".json", ".bytes" })
+                { Labels = new[] { "config" }, AllowGeneratedFileName = true, Description = "Luban 生成配置（保留生成文件名）" },
             new FolderRule("Config", new[] { ".asset", ".json", ".bytes" })
                 { Labels = new[] { "config" }, Description = "ScriptableObject / JSON / 二进制配置" },
 
@@ -218,6 +220,9 @@ namespace Core.Editor.AssetNaming
 
         /// <summary>导入时自动打的 Label（替代旧的文件名前缀搜索）。</summary>
         public string[] Labels { get; set; } = Array.Empty<string>();
+
+        /// <summary>是否允许生成工具保留非 PascalCase 文件名；基础字符和扩展名校验仍生效。</summary>
+        public bool AllowGeneratedFileName { get; set; }
 
         public string Description { get; set; } = string.Empty;
     }

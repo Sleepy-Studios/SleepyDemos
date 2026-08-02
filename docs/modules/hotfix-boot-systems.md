@@ -9,15 +9,17 @@ Hotfix 启动系统用于承接 Core 完成热更装配后的业务初始化。�
 1. `HotfixEntry.Awake`
 2. `UITypeReflection.Scan`
 3. `HotfixBootService.RunBootSystems`
-4. `GlobalDataSystem`
-5. `FluxService.InitializeGlobalData`
-6. `MainMenuView`
+4. `LubanConfigSystem`
+5. `GlobalDataSystem`
+6. `FluxService.InitializeGlobalData`
+7. `MainMenuView`
 
 ## 代码位置
 
 - `Assets/Scripts/Hotfix/AppDelegate/HotfixEntry.cs`
 - `Assets/Scripts/Hotfix/AppDelegate/Boot/IHotfixBootSystem.cs`
 - `Assets/Scripts/Hotfix/AppDelegate/Boot/HotfixBootService.cs`
+- `Assets/Scripts/Hotfix/AppDelegate/Boot/Systems/LubanConfigSystem.cs`
 - `Assets/Scripts/Hotfix/AppDelegate/Boot/Systems/GlobalDataSystem.cs`
 - `Assets/Scripts/Hotfix/AppDelegate/Services/FluxService.cs`
 
@@ -36,9 +38,15 @@ public interface IHotfixBootSystem
 
 新增系统统一加入 `HotfixBootService` 的 `systems` 列表。`Name` 用于日志和排查，`Description` 用于加载界面的用户可读进度文案。不要在 `HotfixEntry.Awake` 里散写具体模块初始化逻辑。
 
+## LubanConfigSystem
+
+`LubanConfigSystem` 是当前第一个启动系统。它要求 Core 的 `ResourceServices.Default` 已经初始化，通过 `LubanConfigService` 预加载并解析全部客户端表；只有全部成功后才允许后续全局数据和 UI 访问 `Cfg.Tables`。
+
+详细生命周期、失败语义与扩展边界见 [Luban 配置模块](./luban-config.md)。
+
 ## GlobalDataSystem
 
-`GlobalDataSystem` 是当前第一个启动系统，负责通过 `FluxService` 注册全局 Flux Data，并在启动日志中标记全局数据初始化完成。
+`GlobalDataSystem` 在配置加载完成后运行，负责通过 `FluxService` 注册全局 Flux Data，并在启动日志中标记全局数据初始化完成。
 
 当前注册：
 
@@ -75,5 +83,6 @@ GlobalData.Remove<ActivityData>();
 
 - `HotfixEntry` 能完成 View 扫描后运行启动系统。
 - `GlobalDataSystem` 只初始化一次。
+- `LubanConfigSystem` 在 `GlobalDataSystem` 前完成，重复初始化不重复加载资源。
 - `UserData` 在 `MainMenuView` 显示前已经注册。
 - 重新登录清理时调用 `FluxService.ClearForRelogin()` 后，订阅者能收到清空后的 Data。

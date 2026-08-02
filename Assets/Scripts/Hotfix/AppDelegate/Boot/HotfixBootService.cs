@@ -8,6 +8,7 @@ namespace Hotfix.AppDelegate
     {
         private static readonly IHotfixBootSystem[] systems =
         {
+            new LubanConfigSystem(),
             new GlobalDataSystem()
         };
 

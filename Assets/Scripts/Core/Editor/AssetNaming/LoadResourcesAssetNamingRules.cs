@@ -119,10 +119,6 @@ namespace Core.Editor.AssetNaming
             {
                 issues.Add(Error(assetPath, "文件名不能以数字开头。"));
             }
-            else if (!SemanticRegex.IsMatch(nameWithoutExtension))
-            {
-                issues.Add(Warning(assetPath, "建议使用 PascalCase 语义命名（分段用 _，变体用两位数字，如 Rock_01_BaseColor）。"));
-            }
 
             // Demos：demo_id 校验
             if (dirSegments.Length > 0 && dirSegments[0].Equals("Demos", StringComparison.OrdinalIgnoreCase))
@@ -151,6 +147,14 @@ namespace Core.Editor.AssetNaming
             {
                 issues.Add(Error(assetPath, "资产所在目录未登记，须放入目录矩阵规定的子目录（见 docs/architecture/asset-naming.md）。"));
                 return issues;
+            }
+
+            if (!rule.AllowGeneratedFileName &&
+                LegalNameRegex.IsMatch(nameWithoutExtension) &&
+                !char.IsDigit(nameWithoutExtension[0]) &&
+                !SemanticRegex.IsMatch(nameWithoutExtension))
+            {
+                issues.Add(Warning(assetPath, "建议使用 PascalCase 语义命名（分段用 _，变体用两位数字，如 Rock_01_BaseColor）。"));
             }
 
             // 扩展名 ↔ 目录绑定

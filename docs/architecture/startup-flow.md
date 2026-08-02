@@ -63,7 +63,7 @@ Hotfix 入口位于：
 当前行为：
 - 扫描 Hotfix 程序集内的 View 类型
 - 运行 `HotfixBootService.RunBootSystems`
-- 通过 `GlobalDataSystem` / `FluxService` 注册 Hotfix 全局 Flux Data
+- 先通过 `LubanConfigSystem` 完整加载业务配置，再通过 `GlobalDataSystem` / `FluxService` 注册 Hotfix 全局 Flux Data
 - 注册 Hotfix World Transition Provider，并等待 `MainMenuView.ShowAsync` 稳定进入
 - 仅在主界面导航成功或已稳定存在后销毁启动加载界面；Failed 保留原异常，Canceled 中断启动
 
@@ -75,6 +75,7 @@ Hotfix 入口位于：
 - 改状态顺序时，要同步检查资源、程序集和 UI 的前置依赖
 - 改 Hotfix 入口时，要同步检查 MvcBind 生成代码、预制体地址和主菜单可见性
 - 改资源底层实现时，优先替换 `IResourceService` 注册点和实现层，不要把具体资源框架类型扩散到 UI 或 Hotfix
+- 调整 Hotfix 启动系统顺序时，必须保持依赖配置的业务初始化位于 `LubanConfigSystem` 之后
 - 只要启动链路变化，就必须同步更新本文档
 
 ## 排障定位建议
@@ -83,3 +84,4 @@ Hotfix 入口位于：
 - 资源相关问题先看 `ResourceStartupState`
 - 热更程序集加载问题先看 `BeforeHotfixStartupState`
 - 主界面不显示先看 `HotfixEntry` 与 `MainMenuView` 注册链路
+- 配置加载失败先看 `LubanConfigSystem` 日志中的表名和资源地址，再按 [Luban 配置 runbook](../runbooks/use-luban-config.md) 检查生成物与采集设置

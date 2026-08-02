@@ -65,13 +65,23 @@
 
 新导入到 `LoadResources` 的资产若违反规则会在 Console 输出 Error；导入、移动或 Reimport 时会自动同步 Unity Asset Label。从 git 拉取或批量改名后，可手动运行 Label 同步菜单补齐既有资产。
 
-### 5. 运行时基础设施校验
+### 5. Luban 配置
+
+| 菜单路径 | 说明 | 源码 / 文档 |
+|----------|------|-------------|
+| `Tools/SleepyDemos/Luban/生成客户端配置` | 校验并原子生成 C#、bytes、JSON，再刷新 Tables 访问器、采集与 Label | `Config/LubanEditorTools.cs` |
+| `Tools/SleepyDemos/Luban/仅校验配置` | 只检查定义与数据，不替换生成目录 | 同上 |
+| `Tools/SleepyDemos/Luban/重新生成 Tables 访问器` | 从实际 `GeneratedTables.cs` 重建静态 facade | `Config/LubanTemplateClassGenerator.cs` |
+| `Tools/SleepyDemos/Luban/打开策划配置目录` | 打开 `SleepyConfigs` 子模块 | `Config/LubanEditorTools.cs` |
+| — | 完整使用与排障步骤 | [使用 Luban 配置](./use-luban-config.md) |
+
+### 6. 运行时基础设施校验
 
 | 菜单路径 | 说明 | 源码 / 文档 |
 |----------|------|-------------|
 | — | Unity Test Runner / UnitySkills 自动化验证步骤 | [运行 Unity 自动化测试](./run-unity-tests.md) |
 
-### 6. Hot Reload 辅助（项目封装）
+### 7. Hot Reload 辅助（项目封装）
 
 在官方 Hot Reload 包之上，仓库内增加了排障与授权查看工具（`Assets/Scripts/Core/Editor/HotReload/`）：
 
@@ -118,6 +128,7 @@
 |-------|------|----------|
 | `com.besty.unity-skills` | Editor 已打开时，通过 REST 执行菜单、读 Console 等（Agent/脚本自动化） | [Besty0728/Unity-Skills](https://github.com/Besty0728/Unity-Skills) |
 | `com.code-philosophy.hybridclr` | 热更程序集、AOT 补充元数据生成 | [focus-creative-games/hybridclr_unity](https://github.com/focus-creative-games/hybridclr_unity) |
+| `com.code-philosophy.luban` | Luban 生成代码运行时与 `ByteBuf` 支持，固定 `v1.2.0` | [focus-creative-games/luban_unity](https://github.com/focus-creative-games/luban_unity) |
 | `com.tuyoogame.yooasset` | 资源包构建与运行时加载（OpenUPM 版本号见 manifest） | [tuyoogame/YooAsset](https://github.com/tuyoogame/YooAsset) |
 | `com.singularitygroup.hotreload` | 编辑器热重载 | GitLab：`git+https://gitlab.hotreload.net/root/hot-reload-releases.git`（版本见 manifest） |
 | `com.cysharp.unitask` | 异步任务库 | [Cysharp/UniTask](https://github.com/Cysharp/UniTask) |
@@ -138,6 +149,7 @@
 | [新增 Demo](./add-demo.md) | 新建 Demo 资源与 Hotfix 接入 |
 | [TMP 字体生产流程](./tmp-font-workflow.md) | TMP 字体资产生产 |
 | [运行 Unity 自动化测试](./run-unity-tests.md) | Core.Tests 发现、运行与排障 |
+| [使用 Luban 配置](./use-luban-config.md) | 配置修改、生成、读取、提交与排障 |
 
 ---
 
