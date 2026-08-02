@@ -29,12 +29,12 @@ namespace Core.Editor.AssetNaming
         {
             EnsureCollectors();
             UnityEngine.Debug.Log(
-                "[AssetNaming] 已写入/校正 YooAsset 采集配置：Demos、Art、Audio、VFX、Scenes、Config、Fonts（地址为 LoadResources 全路径）。配置已保存到 AssetBundleCollectorSetting。");
+                "[AssetNaming] 已写入/校正 YooAsset 采集配置：Demos、Art、Audio、VFX、Scenes、Config、Fonts（地址为 LoadResources 全路径）。配置已保存到 BundleCollectorSetting。");
         }
 
         public static void EnsureCollectors()
         {
-            var setting = AssetDatabase.LoadAssetAtPath<AssetBundleCollectorSetting>(SettingPath);
+            var setting = AssetDatabase.LoadAssetAtPath<BundleCollectorSetting>(SettingPath);
             if (setting == null)
             {
                 return;
@@ -60,12 +60,12 @@ namespace Core.Editor.AssetNaming
             AssetDatabase.SaveAssets();
         }
 
-        private static void EnsureGroupCollector(AssetBundleCollectorPackage package, CollectorEntry entry)
+        private static void EnsureGroupCollector(BundleCollectorPackage package, CollectorEntry entry)
         {
             var group = package.Groups.FirstOrDefault(item => item.GroupName == entry.GroupName);
             if (group == null)
             {
-                group = new AssetBundleCollectorGroup
+                group = new BundleCollectorGroup
                 {
                     GroupName = entry.GroupName,
                     GroupDesc = entry.GroupDesc
@@ -76,7 +76,7 @@ namespace Core.Editor.AssetNaming
             var collector = group.Collectors.FirstOrDefault(item => item.CollectPath == entry.CollectPath);
             if (collector == null)
             {
-                group.Collectors.Add(new AssetBundleCollector
+                group.Collectors.Add(new BundleCollector
                 {
                     CollectPath = entry.CollectPath,
                     CollectorGUID = AssetDatabase.AssetPathToGUID(entry.CollectPath),

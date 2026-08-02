@@ -38,15 +38,16 @@ namespace Core.Runtime
             var location = service.NormalizeAddress(address);
             var handle = YooAssetResourceSystem.DefaultPackage.LoadAssetSync<GameObject>(location);
             handles.Add(handle);
-            if (handle.Status != EOperationStatus.Succeed)
+            if (handle.Status != EOperationStatus.Succeeded)
             {
-                Debug.LogError($"加载 UI 预制体失败: {address}, {handle.LastError}");
+                Debug.LogError($"加载 UI 预制体失败: {address}, {handle.Error}");
                 handle.Release();
                 handles.Remove(handle);
                 return null;
             }
 
-            var instance = handle.InstantiateSync(parent, worldPositionStays);
+            var instantiateOptions = new InstantiateOptions(true, parent, worldPositionStays);
+            var instance = handle.InstantiateSync(instantiateOptions);
             if (instance == null)
             {
                 Debug.LogError($"实例化 UI 预制体失败: {address}");
@@ -80,19 +81,20 @@ namespace Core.Runtime
             var location = service.NormalizeAddress(address);
             var handle = YooAssetResourceSystem.DefaultPackage.LoadAssetAsync<GameObject>(location);
             handles.Add(handle);
-            await handle.Task.AsUniTask();
+            await handle;
 
-            if (handle.Status != EOperationStatus.Succeed)
+            if (handle.Status != EOperationStatus.Succeeded)
             {
-                Debug.LogError($"加载 UI 预制体失败: {address}, {handle.LastError}");
+                Debug.LogError($"加载 UI 预制体失败: {address}, {handle.Error}");
                 handle.Release();
                 handles.Remove(handle);
                 return null;
             }
 
-            var operation = handle.InstantiateAsync(parent, worldPositionStays);
-            await operation.Task.AsUniTask();
-            if (operation.Status != EOperationStatus.Succeed)
+            var instantiateOptions = new InstantiateOptions(true, parent, worldPositionStays);
+            var operation = handle.InstantiateAsync(instantiateOptions);
+            await operation;
+            if (operation.Status != EOperationStatus.Succeeded)
             {
                 Debug.LogError($"实例化 UI 预制体失败: {address}, {operation.Error}");
                 handle.Release();
@@ -119,9 +121,9 @@ namespace Core.Runtime
             var location = service.NormalizeAddress(address);
             var handle = YooAssetResourceSystem.DefaultPackage.LoadAssetSync<T>(location);
             handles.Add(handle);
-            if (handle.Status != EOperationStatus.Succeed)
+            if (handle.Status != EOperationStatus.Succeeded)
             {
-                Debug.LogError($"加载资源失败: {address}, {handle.LastError}");
+                Debug.LogError($"加载资源失败: {address}, {handle.Error}");
                 handle.Release();
                 handles.Remove(handle);
                 return null;
@@ -152,10 +154,10 @@ namespace Core.Runtime
             var location = service.NormalizeAddress(address);
             var handle = YooAssetResourceSystem.DefaultPackage.LoadAssetAsync<T>(location);
             handles.Add(handle);
-            await handle.Task.AsUniTask();
-            if (handle.Status != EOperationStatus.Succeed)
+            await handle;
+            if (handle.Status != EOperationStatus.Succeeded)
             {
-                Debug.LogError($"加载资源失败: {address}, {handle.LastError}");
+                Debug.LogError($"加载资源失败: {address}, {handle.Error}");
                 handle.Release();
                 handles.Remove(handle);
                 return null;

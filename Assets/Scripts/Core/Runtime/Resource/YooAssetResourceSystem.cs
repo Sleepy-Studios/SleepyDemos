@@ -1,4 +1,4 @@
-using System.IO;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using YooAsset;
@@ -83,10 +83,10 @@ namespace Core.Runtime
             }
 
             var handle = DefaultPackage.LoadAssetAsync<TextAsset>(NormalizeLocation(location));
-            await handle.Task.AsUniTask();
-            if (handle.Status != EOperationStatus.Succeed)
+            await handle;
+            if (handle.Status != EOperationStatus.Succeeded)
             {
-                Debug.LogWarning($"YooAssets 加载 TextAsset 失败: {location}, {handle.LastError}");
+                Debug.LogWarning($"YooAssets 加载 TextAsset 失败: {location}, {handle.Error}");
                 handle.Release();
                 return null;
             }
@@ -110,10 +110,10 @@ namespace Core.Runtime
             }
 
             var handle = DefaultPackage.LoadAssetAsync<T>(NormalizeLocation(location));
-            await handle.Task.AsUniTask();
-            if (handle.Status != EOperationStatus.Succeed)
+            await handle;
+            if (handle.Status != EOperationStatus.Succeeded)
             {
-                Debug.LogWarning($"YooAssets 加载资源失败: {location}, {handle.LastError}");
+                Debug.LogWarning($"YooAssets 加载资源失败: {location}, {handle.Error}");
                 handle.Release();
                 return null;
             }
@@ -146,7 +146,8 @@ namespace Core.Runtime
                 return new DownloadReport(false, 0, 0, "YooAssets 未初始化。");
             }
 
-            var downloader = DefaultPackage.CreateResourceDownloader(downloadingMaxNum, failedTryAgain);
+            var downloaderOptions = new ResourceDownloaderOptions(downloadingMaxNum, failedTryAgain);
+            var downloader = DefaultPackage.CreateResourceDownloader(downloaderOptions);
             if (downloader.TotalDownloadCount == 0)
             {
                 onProgress?.Invoke(new DownloadProgress(0, 0, 0, 0));
@@ -159,7 +160,7 @@ namespace Core.Runtime
                 0,
                 0);
             onProgress?.Invoke(progress);
-            downloader.DownloadUpdateCallback = data =>
+            downloader.DownloadProgressChanged += data =>
             {
                 progress = new DownloadProgress(
                     data.TotalDownloadCount,
@@ -169,33 +170,36 @@ namespace Core.Runtime
                 onProgress?.Invoke(progress);
             };
 
-            downloader.BeginDownload();
+            downloader.StartDownload();
             while (!downloader.IsDone)
             {
                 await UniTask.Yield();
             }
 
             return new DownloadReport(
-                downloader.Status == EOperationStatus.Succeed,
+                downloader.Status == EOperationStatus.Succeeded,
                 downloader.TotalDownloadCount,
                 downloader.TotalDownloadBytes,
-                downloader.Status == EOperationStatus.Succeed ? string.Empty : downloader.Error);
+                downloader.Status == EOperationStatus.Succeeded ? string.Empty : downloader.Error);
         }
 
         private static async UniTask InitializeInternalAsync(string packageName, ResourcePlayMode requestedPlayMode, EPlayMode playMode, string hostServerURL)
         {
-            if (!YooAssets.Initialized)
+            if (!YooAssets.IsInitialized)
             {
                 YooAssets.Initialize();
             }
 
-            DefaultPackage = YooAssets.TryGetPackage(packageName) ?? YooAssets.CreatePackage(packageName);
-            YooAssets.SetDefaultPackage(DefaultPackage);
+            if (!YooAssets.TryGetPackage(packageName, out var package))
+            {
+                package = YooAssets.CreatePackage(packageName);
+            }
 
-            var parameters = CreateInitializeParameters(DefaultPackage, playMode, hostServerURL);
-            var operation = DefaultPackage.InitializeAsync(parameters);
-            await operation.Task.AsUniTask();
-            if (operation.Status != EOperationStatus.Succeed)
+            DefaultPackage = package;
+            var options = CreateInitializeOptions(DefaultPackage, playMode, hostServerURL);
+            var operation = DefaultPackage.InitializePackageAsync(options);
+            await operation;
+            if (operation.Status != EOperationStatus.Succeeded)
             {
                 initializing = false;
                 Debug.LogError($"YooAssets 初始化失败: {operation.Error}");
@@ -206,7 +210,7 @@ namespace Core.Runtime
             initializedPackageName = packageName;
             initializedPlayMode = requestedPlayMode;
 
-            await UpdatePackageManifestAsync();
+            await LoadPackageManifestAsync();
             initializing = false;
             if (!IsInitialized)
             {
@@ -216,24 +220,25 @@ namespace Core.Runtime
 
         private static async UniTask RefreshManifestInternalAsync()
         {
-            await UpdatePackageManifestAsync();
+            await LoadPackageManifestAsync();
             initializing = false;
         }
 
-        private static async UniTask UpdatePackageManifestAsync()
+        private static async UniTask LoadPackageManifestAsync()
         {
             IsInitialized = false;
             var versionOperation = DefaultPackage.RequestPackageVersionAsync();
-            await versionOperation.Task.AsUniTask();
-            if (versionOperation.Status != EOperationStatus.Succeed)
+            await versionOperation;
+            if (versionOperation.Status != EOperationStatus.Succeeded)
             {
                 Debug.LogError($"YooAssets 请求资源版本失败: {versionOperation.Error}");
                 return;
             }
 
-            var manifestOperation = DefaultPackage.UpdatePackageManifestAsync(versionOperation.PackageVersion);
-            await manifestOperation.Task.AsUniTask();
-            if (manifestOperation.Status != EOperationStatus.Succeed)
+            var manifestOptions = new LoadPackageManifestOptions(versionOperation.PackageVersion, 60);
+            var manifestOperation = DefaultPackage.LoadPackageManifestAsync(manifestOptions);
+            await manifestOperation;
+            if (manifestOperation.Status != EOperationStatus.Succeeded)
             {
                 Debug.LogError($"YooAssets 更新资源清单失败: {manifestOperation.Error}");
                 return;
@@ -242,37 +247,37 @@ namespace Core.Runtime
             IsInitialized = true;
         }
 
-        private static InitializeParameters CreateInitializeParameters(ResourcePackage package, EPlayMode playMode, string hostServerURL)
+        private static InitializePackageOptions CreateInitializeOptions(ResourcePackage package, EPlayMode playMode, string hostServerURL)
         {
             switch (playMode)
             {
                 case EPlayMode.EditorSimulateMode:
 #if UNITY_EDITOR
-                    var buildResult = SimulateBuild(package.PackageName);
-                    return new EditorSimulateModeParameters
+                    var buildResult = EditorSimulateBuildInvoker.Build(package.PackageName, (int)EBundleType.VirtualAssetBundle);
+                    return new EditorSimulateModeOptions
                     {
                         EditorFileSystemParameters = FileSystemParameters.CreateDefaultEditorFileSystemParameters(buildResult.PackageRootDirectory)
                     };
 #else
-                    return new OfflinePlayModeParameters
+                    return new OfflinePlayModeOptions
                     {
-                        BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters()
+                        BuiltinFileSystemParameters = FileSystemParameters.CreateDefaultBuiltinFileSystemParameters()
                     };
 #endif
                 case EPlayMode.HostPlayMode:
-                    var packagePath = Path.Combine(Application.streamingAssetsPath, package.PackageName);
-                    var hasBuildinFiles = Directory.Exists(packagePath) && new DirectoryInfo(packagePath).GetFiles().Length > 0;
-                    var remoteServices = new RemoteServices(hostServerURL, hostServerURL);
-                    return new HostPlayModeParameters
+                    var remoteService = new RemoteService(hostServerURL, hostServerURL);
+                    var hostOptions = new HostPlayModeOptions
                     {
-                        BuildinFileSystemParameters = hasBuildinFiles ? FileSystemParameters.CreateDefaultBuildinFileSystemParameters() : null,
-                        CacheFileSystemParameters = FileSystemParameters.CreateDefaultCacheFileSystemParameters(remoteServices)
+                        BuiltinFileSystemParameters = FileSystemParameters.CreateDefaultBuiltinFileSystemParameters(),
+                        CacheFileSystemParameters = FileSystemParameters.CreateDefaultSandboxFileSystemParameters(remoteService)
                     };
+                    hostOptions.BuiltinFileSystemParameters.AddParameter(EFileSystemParameter.CopyBuiltinPackageManifest, true);
+                    return hostOptions;
                 case EPlayMode.OfflinePlayMode:
                 default:
-                    return new OfflinePlayModeParameters
+                    return new OfflinePlayModeOptions
                     {
-                        BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters()
+                        BuiltinFileSystemParameters = FileSystemParameters.CreateDefaultBuiltinFileSystemParameters()
                     };
             }
         }
@@ -287,42 +292,26 @@ namespace Core.Runtime
             return location.Replace('\\', '/');
         }
 
-        private sealed class RemoteServices : IRemoteServices
+        private sealed class RemoteService : IRemoteService
         {
             private readonly string defaultHostServer;
             private readonly string fallbackHostServer;
 
-            public RemoteServices(string defaultHostServer, string fallbackHostServer)
+            public RemoteService(string defaultHostServer, string fallbackHostServer)
             {
                 this.defaultHostServer = defaultHostServer ?? string.Empty;
                 this.fallbackHostServer = fallbackHostServer ?? string.Empty;
             }
 
-            string IRemoteServices.GetRemoteMainURL(string fileName)
+            IReadOnlyList<string> IRemoteService.GetRemoteUrls(string fileName)
             {
-                return $"{defaultHostServer}/{fileName}";
-            }
-
-            string IRemoteServices.GetRemoteFallbackURL(string fileName)
-            {
-                return $"{fallbackHostServer}/{fileName}";
+                return new[]
+                {
+                    $"{defaultHostServer}/{fileName}",
+                    $"{fallbackHostServer}/{fileName}"
+                };
             }
         }
-
-#if UNITY_EDITOR
-        private static PackageInvokeBuildResult SimulateBuild(string packageName)
-        {
-            var buildParam = new PackageInvokeBuildParam(packageName)
-            {
-                BuildPipelineName = "EditorSimulateBuildPipeline",
-                InvokeAssmeblyName = "YooAsset.Editor",
-                InvokeClassFullName = "YooAsset.Editor.AssetBundleSimulateBuilder",
-                InvokeMethodName = "SimulateBuild"
-            };
-
-            return PackageInvokeBuilder.InvokeBuilder(buildParam);
-        }
-#endif
     }
 
     public readonly struct DownloadProgress

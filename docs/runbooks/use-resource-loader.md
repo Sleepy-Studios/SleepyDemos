@@ -105,6 +105,7 @@ var bytes = result.Asset.bytes;
 
 - 不要在 Hotfix 或 UI 业务层直接引用 YooAssets 类型。
 - 不要直接 new `YooAssetResourceLoader`。
+- 不要启用 YooAsset 的 `YOOASSET_LEGACY_API` 来维持 2.x 调用；底层适配必须使用 3.x 原生 API。
 - 不要跨 loader 释放资源或实例。
 - 不要绕过 `ResourceServices.Default.NormalizeAddress(...)` 自己拼接底层 location。
 - 不要在资源系统未初始化前依赖同步加载；正常流程应先完成 `ResourceStartupState`。
@@ -135,6 +136,10 @@ var bytes = result.Asset.bytes;
 - 局部 loader 加载的资源由同一个 loader 释放。
 - 全局服务加载的资源由 `ResourceServices.Default.ReleaseAsset(...)` 释放。
 - View 生命周期资源优先跟随 View 自身 loader 释放。
+
+### 升级 YooAsset 后出现编译错误
+
+先确认 `Packages/manifest.json` 与 `Packages/packages-lock.json` 的版本一致，再检查报错是否来自 `Core.Runtime/Resource` 或 `Core.Editor` 的 YooAsset 适配代码。YooAsset 3.x 已调整初始化 Options、文件系统、清单加载、下载器、句柄错误属性以及 Collector/Builder 编辑器类型；应按当前包内 `Samples~` 与源码迁移，不要通过兼容宏绕过。
 
 ## 验证方式
 

@@ -63,6 +63,15 @@
 
 `ResourceServices.Default` 是全局资源服务入口，默认实现是 `YooAssetResourceService`。
 
+当前 YooAsset 适配目标版本为 `3.0.5`，只使用 3.x 原生接口，不启用 `YOOASSET_LEGACY_API` 兼容层：
+
+- 包初始化使用 `InitializePackageAsync` 与各运行模式对应的 `*PlayModeOptions`。
+- 编辑器模拟构建使用 `EditorSimulateBuildInvoker.Build`。
+- 联机模式使用 `IRemoteService`、Builtin 文件系统与 Sandbox 缓存文件系统。
+- 资源清单流程为 `RequestPackageVersionAsync` 后调用 `LoadPackageManifestAsync`。
+- 下载器通过 `ResourceDownloaderOptions` 创建，监听 `DownloadProgressChanged` 后调用 `StartDownload`。
+- 项目始终显式持有 `ResourcePackage`，不依赖静态默认包快捷入口。
+
 `IResourceLoader` 是局部生命周期入口。当前主要由 `View` 持有：
 
 - `View.Loader` 通过 `ResourceServices.CreateLoader()` 创建。

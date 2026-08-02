@@ -186,7 +186,7 @@ namespace Core.Editor.HotUpdate
 
                 if (GUILayout.Button(new GUIContent("打开 YooAssets 打包窗口", "打开 YooAssets 官方的资源打包窗口")))
                 {
-                    AssetBundleBuilderWindow.OpenWindow();
+                    BundleBuilderWindow.OpenWindow();
                 }
             }
 

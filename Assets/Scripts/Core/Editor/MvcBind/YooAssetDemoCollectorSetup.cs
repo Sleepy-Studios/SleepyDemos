@@ -13,7 +13,7 @@ namespace Core.Editor.MvcBind
             const string groupName = "UI";
             const string collectPath = MvcBindPathUtility.DefaultUiPrefabRoot;
 
-            var setting = AssetDatabase.LoadAssetAtPath<AssetBundleCollectorSetting>(settingPath);
+            var setting = AssetDatabase.LoadAssetAtPath<BundleCollectorSetting>(settingPath);
             if (setting == null)
             {
                 return;
@@ -22,7 +22,7 @@ namespace Core.Editor.MvcBind
             var package = setting.Packages.FirstOrDefault(item => item.PackageName == packageName);
             if (package == null)
             {
-                package = new AssetBundleCollectorPackage
+                package = new BundleCollectorPackage
                 {
                     PackageName = packageName,
                     PackageDesc = "默认",
@@ -37,7 +37,7 @@ namespace Core.Editor.MvcBind
             var group = package.Groups.FirstOrDefault(item => item.GroupName == groupName);
             if (group == null)
             {
-                group = new AssetBundleCollectorGroup
+                group = new BundleCollectorGroup
                 {
                     GroupName = groupName,
                     GroupDesc = "UI assets"
@@ -48,7 +48,7 @@ namespace Core.Editor.MvcBind
             var collector = group.Collectors.FirstOrDefault(item => item.CollectPath == collectPath);
             if (collector == null)
             {
-                group.Collectors.Add(new AssetBundleCollector
+                group.Collectors.Add(new BundleCollector
                 {
                     CollectPath = collectPath,
                     CollectorGUID = AssetDatabase.AssetPathToGUID(collectPath),
