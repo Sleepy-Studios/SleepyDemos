@@ -23,31 +23,31 @@ namespace Core.Editor.TextMeshPro
         private const string DefaultCnCharacters = FallbackRoot + "/Default_CN_Characters.txt";
         private const string DefaultEnCharacters = FallbackRoot + "/Default_EN_Characters.txt";
         private const string EditorPrefsRoot = "SleepyDemos.TMPFontBuilder";
+        private const string PresetCollectionPath = "Assets/Settings/TMPFontBuilderPresets.asset";
+        private const string EditorLanguagePrefsKey = EditorPrefsRoot + ".EditorLanguage";
 
+        private TMPFontBuilderPresetCollection presetCollection;
+        private int selectedPresetIndex;
+        private string presetName = string.Empty;
         private Font sourceFont;
         private TextAsset characterSetAsset;
         private TMP_FontAsset fallbackFontAsset;
-        private FontLanguage language = FontLanguage.CN;
+        private string outputDirectory = "CN";
         private string inlineCharacters = string.Empty;
         private int samplingPointSize = 90;
         private int atlasPadding = 9;
         private int atlasSize = 4096;
         private bool exportExternalAtlas = true;
         private bool useAstcPlatformSettings = true;
+        private TMPFontBuilderEditorLanguage editorLanguage = TMPFontBuilderEditorLanguage.Chinese;
+        private Vector2 scrollPosition;
         private string lastActionMessage = string.Empty;
-
-        private enum FontLanguage
-        {
-            CN,
-            EN
-        }
 
         [MenuItem("Tools/SleepyDemos/TextMesh Pro/Font Builder")]
         public static void Open()
         {
-            var window = GetWindow<TMPFontBuilderWindow>("TMP Font Builder");
+            var window = GetWindow<TMPFontBuilderWindow>();
             window.minSize = new Vector2(480, 560);
-            window.LoadDefaults();
             window.Show();
         }
 
@@ -60,7 +60,7 @@ namespace Core.Editor.TextMeshPro
             {
                 SourceFontPath = DefaultEnSource,
                 CharacterSetPath = DefaultEnCharacters,
-                Language = FontLanguage.EN,
+                OutputDirectory = "EN",
                 SamplingPointSize = 90,
                 AtlasPadding = 9,
                 AtlasSize = 1024,
@@ -72,7 +72,7 @@ namespace Core.Editor.TextMeshPro
             {
                 SourceFontPath = DefaultCnSource,
                 CharacterSetPath = DefaultCnCharacters,
-                Language = FontLanguage.CN,
+                OutputDirectory = "CN",
                 FallbackFontAsset = enAsset,
                 SamplingPointSize = 90,
                 AtlasPadding = 9,
@@ -90,28 +90,24 @@ namespace Core.Editor.TextMeshPro
 
         private void OnEnable()
         {
-            LoadDefaults();
+            var savedLanguage = EditorPrefs.GetInt(EditorLanguagePrefsKey, (int)TMPFontBuilderEditorLanguage.Chinese);
+            editorLanguage = (TMPFontBuilderEditorLanguage)Mathf.Clamp(
+                savedLanguage,
+                (int)TMPFontBuilderEditorLanguage.Chinese,
+                (int)TMPFontBuilderEditorLanguage.English);
+            EnsureFolders();
+            LoadOrCreatePresetCollection();
+            LoadSelectedPreset();
+            UpdateWindowTitle();
         }
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("Source", EditorStyles.boldLabel);
-            sourceFont = (Font)EditorGUILayout.ObjectField("Font File", sourceFont, typeof(Font), false);
-            language = (FontLanguage)EditorGUILayout.EnumPopup("Language", language);
+            DrawLanguageSwitcher();
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-            EditorGUILayout.Space(6);
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                if (GUILayout.Button(GetPresetButtonLabel()))
-                {
-                    ApplyLanguagePreset();
-                }
-
-                if (GUILayout.Button(GetSavePresetButtonLabel()))
-                {
-                    SaveCurrentAsLanguageDefault();
-                }
-            }
+            EditorGUILayout.LabelField(Text(TMPFontBuilderText.Presets), EditorStyles.boldLabel);
+            DrawPresetControls();
 
             if (!string.IsNullOrEmpty(lastActionMessage))
             {
@@ -119,38 +115,41 @@ namespace Core.Editor.TextMeshPro
             }
 
             EditorGUILayout.Space(8);
-            EditorGUILayout.LabelField("Characters", EditorStyles.boldLabel);
-            characterSetAsset = (TextAsset)EditorGUILayout.ObjectField("Character Set Text", characterSetAsset, typeof(TextAsset), false);
-            EditorGUILayout.LabelField("Inline Characters");
+            EditorGUILayout.LabelField(Text(TMPFontBuilderText.Source), EditorStyles.boldLabel);
+            sourceFont = (Font)EditorGUILayout.ObjectField(Text(TMPFontBuilderText.FontFile), sourceFont, typeof(Font), false);
+            var outputDirectoryContent = new GUIContent(
+                Text(TMPFontBuilderText.OutputDirectory),
+                Text(TMPFontBuilderText.OutputDirectoryTooltip));
+            outputDirectory = EditorGUILayout.TextField(outputDirectoryContent, outputDirectory);
+
+            EditorGUILayout.Space(8);
+            EditorGUILayout.LabelField(Text(TMPFontBuilderText.Characters), EditorStyles.boldLabel);
+            characterSetAsset = (TextAsset)EditorGUILayout.ObjectField(Text(TMPFontBuilderText.CharacterSetText), characterSetAsset, typeof(TextAsset), false);
+            EditorGUILayout.LabelField(Text(TMPFontBuilderText.InlineCharacters));
             inlineCharacters = EditorGUILayout.TextArea(inlineCharacters, GUILayout.MinHeight(120));
 
             EditorGUILayout.Space(8);
-            EditorGUILayout.LabelField("Fallback", EditorStyles.boldLabel);
-            fallbackFontAsset = (TMP_FontAsset)EditorGUILayout.ObjectField("Fallback Font", fallbackFontAsset, typeof(TMP_FontAsset), false);
+            EditorGUILayout.LabelField(Text(TMPFontBuilderText.Fallback), EditorStyles.boldLabel);
+            fallbackFontAsset = (TMP_FontAsset)EditorGUILayout.ObjectField(Text(TMPFontBuilderText.FallbackFont), fallbackFontAsset, typeof(TMP_FontAsset), false);
 
             EditorGUILayout.Space(8);
-            EditorGUILayout.LabelField("Generation", EditorStyles.boldLabel);
-            samplingPointSize = EditorGUILayout.IntField("Sampling Point Size", samplingPointSize);
-            atlasPadding = EditorGUILayout.IntField("Atlas Padding", atlasPadding);
-            atlasSize = EditorGUILayout.IntField("Atlas Size", atlasSize);
-            exportExternalAtlas = EditorGUILayout.Toggle("Export External Atlas", exportExternalAtlas);
-            useAstcPlatformSettings = EditorGUILayout.Toggle("ASTC Platform Settings", useAstcPlatformSettings);
+            EditorGUILayout.LabelField(Text(TMPFontBuilderText.Generation), EditorStyles.boldLabel);
+            samplingPointSize = EditorGUILayout.IntField(Text(TMPFontBuilderText.SamplingPointSize), samplingPointSize);
+            atlasPadding = EditorGUILayout.IntField(Text(TMPFontBuilderText.AtlasPadding), atlasPadding);
+            atlasSize = EditorGUILayout.IntField(Text(TMPFontBuilderText.AtlasSize), atlasSize);
+            exportExternalAtlas = EditorGUILayout.Toggle(Text(TMPFontBuilderText.ExportExternalAtlas), exportExternalAtlas);
+            useAstcPlatformSettings = EditorGUILayout.Toggle(Text(TMPFontBuilderText.AstcPlatformSettings), useAstcPlatformSettings);
 
             EditorGUILayout.Space(16);
             using (new EditorGUI.DisabledScope(sourceFont == null))
             {
-                if (GUILayout.Button("Build TMP Font Asset", GUILayout.Height(36)))
+                if (GUILayout.Button(Text(TMPFontBuilderText.BuildFontAsset), GUILayout.Height(36)))
                 {
                     BuildFromWindow();
                 }
             }
-        }
 
-        private void LoadDefaults()
-        {
-            EnsureFolders();
-
-            LoadSavedOrBuiltinLanguagePreset(preserveSourceFont: false, preserveGenerationSettings: false);
+            EditorGUILayout.EndScrollView();
         }
 
         private void BuildFromWindow()
@@ -164,7 +163,7 @@ namespace Core.Editor.TextMeshPro
                 SourceFontPath = sourcePath,
                 CharacterSetPath = characterSetPath,
                 InlineCharacters = characters,
-                Language = language,
+                OutputDirectory = outputDirectory,
                 FallbackFontAsset = GetValidatedFallback(),
                 SamplingPointSize = samplingPointSize,
                 AtlasPadding = atlasPadding,
@@ -206,7 +205,13 @@ namespace Core.Editor.TextMeshPro
                 return null;
             }
 
-            var targetFolder = $"{FontAssetRoot}/{request.Language}";
+            if (!TMPFontBuilderPresetCollection.TryNormalizeOutputDirectory(request.OutputDirectory, out var normalizedOutputDirectory))
+            {
+                Debug.LogError($"[TMPFontBuilder] Invalid output directory: {request.OutputDirectory}");
+                return null;
+            }
+
+            var targetFolder = $"{FontAssetRoot}/{normalizedOutputDirectory}";
             EnsureFolder(targetFolder);
 
             var targetAssetPath = $"{targetFolder}/{targetName}.asset";
@@ -477,92 +482,297 @@ namespace Core.Editor.TextMeshPro
             return Path.GetFullPath(Path.Combine(Application.dataPath, assetPath.Substring("Assets/".Length)));
         }
 
-        private void ApplyLanguagePreset()
+        private void DrawLanguageSwitcher()
         {
-            LoadSavedOrBuiltinLanguagePreset(preserveSourceFont: false, preserveGenerationSettings: false);
-            lastActionMessage = $"已加载 {language} 默认预设。优先使用你保存过的默认值；如果还没保存过，就使用内置预设。";
-        }
-
-        private void SyncLanguageDefaults(bool preserveSourceFont, bool preserveGenerationSettings)
-        {
-            if (!preserveGenerationSettings)
+            using (new EditorGUILayout.HorizontalScope())
             {
-                atlasSize = language == FontLanguage.CN ? 4096 : 1024;
-            }
+                GUILayout.FlexibleSpace();
+                var buttonLabel = editorLanguage == TMPFontBuilderEditorLanguage.Chinese ? "EN" : "中文";
+                if (!GUILayout.Button(buttonLabel, GUILayout.Width(56)))
+                {
+                    return;
+                }
 
-            characterSetAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(language == FontLanguage.CN ? DefaultCnCharacters : DefaultEnCharacters);
-
-            if (!preserveSourceFont || sourceFont == null)
-            {
-                sourceFont = AssetDatabase.LoadAssetAtPath<Font>(language == FontLanguage.CN ? DefaultCnSource : DefaultEnSource);
-            }
-
-            if (fallbackFontAsset == null)
-            {
-                fallbackFontAsset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/BebasNeue_EN.asset");
+                editorLanguage = editorLanguage == TMPFontBuilderEditorLanguage.Chinese
+                    ? TMPFontBuilderEditorLanguage.English
+                    : TMPFontBuilderEditorLanguage.Chinese;
+                EditorPrefs.SetInt(EditorLanguagePrefsKey, (int)editorLanguage);
+                UpdateWindowTitle();
             }
         }
 
-        private void LoadSavedOrBuiltinLanguagePreset(bool preserveSourceFont, bool preserveGenerationSettings)
+        private void DrawPresetControls()
         {
-            SyncLanguageDefaults(preserveSourceFont, preserveGenerationSettings);
+            if (presetCollection == null || presetCollection.Presets.Count == 0)
+            {
+                EditorGUILayout.HelpBox(Text(TMPFontBuilderText.InvalidPreset), MessageType.Error);
+                return;
+            }
 
-            var prefix = GetLanguagePrefsPrefix();
-            if (!EditorPrefs.HasKey(prefix + ".SourceFontPath"))
+            var presetNames = presetCollection.Presets.Select(preset => preset.PresetName).ToArray();
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                var nextIndex = EditorGUILayout.Popup(Text(TMPFontBuilderText.Preset), selectedPresetIndex, presetNames);
+                if (nextIndex != selectedPresetIndex)
+                {
+                    TrySelectPreset(nextIndex);
+                }
+
+                var addContent = new GUIContent("+", Text(TMPFontBuilderText.AddPresetTooltip));
+                if (GUILayout.Button(addContent, GUILayout.Width(28)))
+                {
+                    AddPreset();
+                }
+
+                using (new EditorGUI.DisabledScope(presetCollection.Presets.Count <= 1))
+                {
+                    var removeContent = new GUIContent("-", Text(TMPFontBuilderText.RemovePresetTooltip));
+                    if (GUILayout.Button(removeContent, GUILayout.Width(28)))
+                    {
+                        RemoveSelectedPreset();
+                    }
+                }
+            }
+
+            presetName = EditorGUILayout.TextField(Text(TMPFontBuilderText.PresetName), presetName);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button(Text(TMPFontBuilderText.LoadPreset)))
+                {
+                    ReloadSelectedPreset();
+                }
+
+                if (GUILayout.Button(Text(TMPFontBuilderText.SavePreset)))
+                {
+                    SaveSelectedPreset();
+                }
+            }
+
+            if (presetCollection.Presets.Count <= 1)
+            {
+                EditorGUILayout.HelpBox(Text(TMPFontBuilderText.CannotRemoveLastPreset), MessageType.None);
+            }
+        }
+
+        private void LoadOrCreatePresetCollection()
+        {
+            presetCollection = AssetDatabase.LoadAssetAtPath<TMPFontBuilderPresetCollection>(PresetCollectionPath);
+            if (presetCollection == null)
+            {
+                EnsureFolder("Assets/Settings");
+                presetCollection = CreateInstance<TMPFontBuilderPresetCollection>();
+                presetCollection.InitializeDefaults(CreateDefaultPreset("CN"), CreateDefaultPreset("EN"));
+                AssetDatabase.CreateAsset(presetCollection, PresetCollectionPath);
+                AssetDatabase.SaveAssets();
+                return;
+            }
+
+            if (presetCollection.Presets.Count == 0)
+            {
+                presetCollection.InitializeDefaults(CreateDefaultPreset("CN"), CreateDefaultPreset("EN"));
+                SavePresetCollection();
+            }
+        }
+
+        private static TMPFontBuilderPreset CreateDefaultPreset(string presetOutputDirectory)
+        {
+            var isChinese = string.Equals(presetOutputDirectory, "CN", StringComparison.Ordinal);
+            return new TMPFontBuilderPreset
+            {
+                PresetName = isChinese ? "Default CN" : "Default EN",
+                OutputDirectory = presetOutputDirectory,
+                SourceFont = AssetDatabase.LoadAssetAtPath<Font>(isChinese ? DefaultCnSource : DefaultEnSource),
+                CharacterSetAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(isChinese ? DefaultCnCharacters : DefaultEnCharacters),
+                FallbackFontAsset = isChinese
+                    ? AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontAssetRoot + "/EN/BebasNeue_EN.asset")
+                    : null,
+                InlineCharacters = string.Empty,
+                SamplingPointSize = 90,
+                AtlasPadding = 9,
+                AtlasSize = isChinese ? 4096 : 1024,
+                ExportExternalAtlas = true,
+                UseAstcPlatformSettings = true
+            };
+        }
+
+        private void AddPreset()
+        {
+            var addedPreset = presetCollection.AddCopy(CaptureDraft());
+            SavePresetCollection();
+            selectedPresetIndex = presetCollection.Presets.Count - 1;
+            LoadSelectedPreset();
+            lastActionMessage = Format(TMPFontBuilderText.AddedPreset, addedPreset.PresetName);
+        }
+
+        private void RemoveSelectedPreset()
+        {
+            if (presetCollection.Presets.Count <= 1)
+            {
+                lastActionMessage = Text(TMPFontBuilderText.CannotRemoveLastPreset);
+                return;
+            }
+
+            var removedName = presetCollection.Presets[selectedPresetIndex].PresetName;
+            var confirmed = EditorUtility.DisplayDialog(
+                Text(TMPFontBuilderText.DeletePresetTitle),
+                Format(TMPFontBuilderText.DeletePresetMessage, removedName),
+                Text(TMPFontBuilderText.Delete),
+                Text(TMPFontBuilderText.Cancel));
+            if (!confirmed || !presetCollection.RemoveAt(selectedPresetIndex))
             {
                 return;
             }
 
-            if (!preserveSourceFont || sourceFont == null)
+            SavePresetCollection();
+            selectedPresetIndex = Mathf.Clamp(selectedPresetIndex, 0, presetCollection.Presets.Count - 1);
+            LoadSelectedPreset();
+            lastActionMessage = Format(TMPFontBuilderText.RemovedPreset, removedName);
+        }
+
+        private void ReloadSelectedPreset()
+        {
+            if (!ConfirmUnsavedChanges())
             {
-                sourceFont = AssetDatabase.LoadAssetAtPath<Font>(EditorPrefs.GetString(prefix + ".SourceFontPath", string.Empty)) ?? sourceFont;
+                return;
             }
 
-            characterSetAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(EditorPrefs.GetString(prefix + ".CharacterSetPath", string.Empty)) ?? characterSetAsset;
+            LoadSelectedPreset();
+            lastActionMessage = Format(TMPFontBuilderText.LoadedPreset, presetName);
+        }
 
-            if (!preserveGenerationSettings)
+        private bool SaveSelectedPreset()
+        {
+            if (!presetCollection.TryUpdateAt(selectedPresetIndex, CaptureDraft(), out var error))
             {
-                samplingPointSize = EditorPrefs.GetInt(prefix + ".SamplingPointSize", samplingPointSize);
-                atlasPadding = EditorPrefs.GetInt(prefix + ".AtlasPadding", atlasPadding);
-                atlasSize = EditorPrefs.GetInt(prefix + ".AtlasSize", atlasSize);
-                exportExternalAtlas = EditorPrefs.GetBool(prefix + ".ExportExternalAtlas", exportExternalAtlas);
-                useAstcPlatformSettings = EditorPrefs.GetBool(prefix + ".UseAstcPlatformSettings", useAstcPlatformSettings);
+                lastActionMessage = GetValidationMessage(error);
+                return false;
             }
 
-            var savedFallbackPath = EditorPrefs.GetString(prefix + ".FallbackFontPath", string.Empty);
-            fallbackFontAsset = string.IsNullOrEmpty(savedFallbackPath) ? fallbackFontAsset : AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(savedFallbackPath);
+            SavePresetCollection();
+            LoadSelectedPreset();
+            lastActionMessage = Format(TMPFontBuilderText.SavedPreset, presetName);
+            return true;
         }
 
-        private void SaveCurrentAsLanguageDefault()
+        private void TrySelectPreset(int nextIndex)
         {
-            var prefix = GetLanguagePrefsPrefix();
+            if (!ConfirmUnsavedChanges())
+            {
+                return;
+            }
 
-            EditorPrefs.SetString(prefix + ".SourceFontPath", AssetDatabase.GetAssetPath(sourceFont));
-            EditorPrefs.SetString(prefix + ".CharacterSetPath", AssetDatabase.GetAssetPath(characterSetAsset));
-            EditorPrefs.SetInt(prefix + ".SamplingPointSize", samplingPointSize);
-            EditorPrefs.SetInt(prefix + ".AtlasPadding", atlasPadding);
-            EditorPrefs.SetInt(prefix + ".AtlasSize", atlasSize);
-            EditorPrefs.SetBool(prefix + ".ExportExternalAtlas", exportExternalAtlas);
-            EditorPrefs.SetBool(prefix + ".UseAstcPlatformSettings", useAstcPlatformSettings);
-
-            EditorPrefs.SetString(prefix + ".FallbackFontPath", AssetDatabase.GetAssetPath(fallbackFontAsset));
-
-            lastActionMessage = $"已把当前 {language} 参数保存为默认值。下次打开窗口或加载默认预设时会优先使用这套配置。";
+            selectedPresetIndex = Mathf.Clamp(nextIndex, 0, presetCollection.Presets.Count - 1);
+            LoadSelectedPreset();
+            lastActionMessage = Format(TMPFontBuilderText.LoadedPreset, presetName);
         }
 
-        private string GetPresetButtonLabel()
+        private bool ConfirmUnsavedChanges()
         {
-            return language == FontLanguage.CN ? "Load CN Preset" : "Load EN Preset";
+            if (!HasUnsavedChanges())
+            {
+                return true;
+            }
+
+            var choice = EditorUtility.DisplayDialogComplex(
+                Text(TMPFontBuilderText.UnsavedChangesTitle),
+                Format(TMPFontBuilderText.UnsavedChangesMessage, presetName),
+                Text(TMPFontBuilderText.Save),
+                Text(TMPFontBuilderText.Cancel),
+                Text(TMPFontBuilderText.Discard));
+
+            if (choice == 0)
+            {
+                return SaveSelectedPreset();
+            }
+
+            return choice == 2;
         }
 
-        private string GetSavePresetButtonLabel()
+        private bool HasUnsavedChanges()
         {
-            return language == FontLanguage.CN ? "Save CN Preset" : "Save EN Preset";
+            return presetCollection != null
+                && selectedPresetIndex >= 0
+                && selectedPresetIndex < presetCollection.Presets.Count
+                && !presetCollection.Presets[selectedPresetIndex].HasSameSettings(CaptureDraft());
         }
 
-        private string GetLanguagePrefsPrefix()
+        private void LoadSelectedPreset()
         {
-            return $"{EditorPrefsRoot}.{language}";
+            if (presetCollection == null || presetCollection.Presets.Count == 0)
+            {
+                return;
+            }
+
+            selectedPresetIndex = Mathf.Clamp(selectedPresetIndex, 0, presetCollection.Presets.Count - 1);
+            var preset = presetCollection.Presets[selectedPresetIndex];
+            presetName = preset.PresetName;
+            outputDirectory = preset.OutputDirectory;
+            sourceFont = preset.SourceFont;
+            characterSetAsset = preset.CharacterSetAsset;
+            fallbackFontAsset = preset.FallbackFontAsset;
+            inlineCharacters = preset.InlineCharacters;
+            samplingPointSize = preset.SamplingPointSize;
+            atlasPadding = preset.AtlasPadding;
+            atlasSize = preset.AtlasSize;
+            exportExternalAtlas = preset.ExportExternalAtlas;
+            useAstcPlatformSettings = preset.UseAstcPlatformSettings;
+        }
+
+        private TMPFontBuilderPreset CaptureDraft()
+        {
+            return new TMPFontBuilderPreset
+            {
+                PresetName = presetName,
+                OutputDirectory = outputDirectory,
+                SourceFont = sourceFont,
+                CharacterSetAsset = characterSetAsset,
+                FallbackFontAsset = fallbackFontAsset,
+                InlineCharacters = inlineCharacters,
+                SamplingPointSize = samplingPointSize,
+                AtlasPadding = atlasPadding,
+                AtlasSize = atlasSize,
+                ExportExternalAtlas = exportExternalAtlas,
+                UseAstcPlatformSettings = useAstcPlatformSettings
+            };
+        }
+
+        private void SavePresetCollection()
+        {
+            EditorUtility.SetDirty(presetCollection);
+            AssetDatabase.SaveAssets();
+        }
+
+        private string GetValidationMessage(TMPFontBuilderPresetValidationError error)
+        {
+            switch (error)
+            {
+                case TMPFontBuilderPresetValidationError.EmptyName:
+                    return Text(TMPFontBuilderText.EmptyPresetName);
+                case TMPFontBuilderPresetValidationError.DuplicateName:
+                    return Text(TMPFontBuilderText.DuplicatePresetName);
+                case TMPFontBuilderPresetValidationError.EmptyOutputDirectory:
+                    return Text(TMPFontBuilderText.EmptyOutputDirectory);
+                case TMPFontBuilderPresetValidationError.InvalidOutputDirectory:
+                    return Text(TMPFontBuilderText.InvalidOutputDirectory);
+                default:
+                    return Text(TMPFontBuilderText.InvalidPreset);
+            }
+        }
+
+        private string Text(TMPFontBuilderText key)
+        {
+            return TMPFontBuilderLocalization.Get(key, editorLanguage);
+        }
+
+        private string Format(TMPFontBuilderText key, params object[] args)
+        {
+            return TMPFontBuilderLocalization.Format(key, editorLanguage, args);
+        }
+
+        private void UpdateWindowTitle()
+        {
+            titleContent = new GUIContent(Text(TMPFontBuilderText.WindowTitle));
         }
 
         private TMP_FontAsset GetValidatedFallback()
@@ -579,11 +789,16 @@ namespace Core.Editor.TextMeshPro
                 return fallbackFontAsset;
             }
 
-            var expectedTargetPath = $"{FontAssetRoot}/{language}/{targetName}.asset";
+            if (!TMPFontBuilderPresetCollection.TryNormalizeOutputDirectory(outputDirectory, out var normalizedOutputDirectory))
+            {
+                return fallbackFontAsset;
+            }
+
+            var expectedTargetPath = $"{FontAssetRoot}/{normalizedOutputDirectory}/{targetName}.asset";
 
             if (string.Equals(fallbackPath, expectedTargetPath, StringComparison.OrdinalIgnoreCase))
             {
-                lastActionMessage = "当前 fallback 指向了正在生成的同一份字体，已自动忽略这个 fallback。";
+                lastActionMessage = Text(TMPFontBuilderText.FallbackIgnored);
                 return null;
             }
 
@@ -595,7 +810,7 @@ namespace Core.Editor.TextMeshPro
             public string SourceFontPath;
             public string CharacterSetPath;
             public string InlineCharacters;
-            public FontLanguage Language;
+            public string OutputDirectory;
             public TMP_FontAsset FallbackFontAsset;
             public int SamplingPointSize;
             public int AtlasPadding;

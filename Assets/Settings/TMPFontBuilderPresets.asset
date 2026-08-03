@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecabec2e57d74b23a88a77ae67e9af06, type: 3}
+  m_Name: TMPFontBuilderPresets
+  m_EditorClassIdentifier: Core.Editor::Core.Editor.TextMeshPro.TMPFontBuilderPresetCollection
+  presets:
+  - presetName: Default CN
+    outputDirectory: CN
+    sourceFont: {fileID: 12800000, guid: ddf22378860d40643bc451a80e66363f, type: 3}
+    characterSetAsset: {fileID: 4900000, guid: 916e62ea3c4d671478b67d9920255562, type: 3}
+    fallbackFontAsset: {fileID: 11400000, guid: 677ac08edf02fba4aaa9b39ff3eddc35, type: 2}
+    inlineCharacters: 
+    samplingPointSize: 90
+    atlasPadding: 9
+    atlasSize: 4096
+    exportExternalAtlas: 1
+    useAstcPlatformSettings: 1
+  - presetName: Default EN
+    outputDirectory: EN
+    sourceFont: {fileID: 12800000, guid: 451b6a490156f3b448416e4af3405bed, type: 3}
+    characterSetAsset: {fileID: 4900000, guid: 732ec1e8f6e1a584e905f8cfd14ce91b, type: 3}
+    fallbackFontAsset: {fileID: 0}
+    inlineCharacters: 
+    samplingPointSize: 90
+    atlasPadding: 9
+    atlasSize: 1024
+    exportExternalAtlas: 1
+    useAstcPlatformSettings: 1

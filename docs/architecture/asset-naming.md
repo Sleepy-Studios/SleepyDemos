@@ -157,7 +157,7 @@ Assets/LoadResources/UI/Main/MainMenuView.prefab
 ## 字体资源
 
 - 源字体放 `Fonts/Source/CN`、`Fonts/Source/EN`（`.ttf` / `.otf`）。
-- TMP 产物放 `Fonts/TMP_FontAssets/<语言>`（`.asset` 与 `_Atlas.png`）。
+- TMP 产物放 `Fonts/TMP_FontAssets/<预设输出目录>`（`.asset` 与 `_Atlas.png`）。输出目录由字体预设保存，例如 `CN`、`EN`、`Japanese`、`Korean`、`LatinExtended`、`Cyrillic` 或 `Arabic`，不维护固定语言枚举。
 - 字体材质放 `Fonts/Materials/`（`.mat`）。
 - 生成入口见 [TMP 字体流程](../runbooks/tmp-font-workflow.md)。
 
