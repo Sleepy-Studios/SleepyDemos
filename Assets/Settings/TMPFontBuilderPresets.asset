@@ -18,10 +18,12 @@ MonoBehaviour:
     sourceFont: {fileID: 12800000, guid: ddf22378860d40643bc451a80e66363f, type: 3}
     characterSetAsset: {fileID: 4900000, guid: 916e62ea3c4d671478b67d9920255562, type: 3}
     fallbackFontAsset: {fileID: 11400000, guid: 677ac08edf02fba4aaa9b39ff3eddc35, type: 2}
-    inlineCharacters: 
+    fileNameSuffix: _CN
+    preserveExistingFallbackWhenEmpty: 1
     samplingPointSize: 90
     atlasPadding: 9
     atlasSize: 4096
+    useOptimalPacking: 1
     exportExternalAtlas: 1
     useAstcPlatformSettings: 1
   - presetName: Default EN
@@ -29,9 +31,11 @@ MonoBehaviour:
     sourceFont: {fileID: 12800000, guid: 451b6a490156f3b448416e4af3405bed, type: 3}
     characterSetAsset: {fileID: 4900000, guid: 732ec1e8f6e1a584e905f8cfd14ce91b, type: 3}
     fallbackFontAsset: {fileID: 0}
-    inlineCharacters: 
+    fileNameSuffix: _EN
+    preserveExistingFallbackWhenEmpty: 1
     samplingPointSize: 90
     atlasPadding: 9
     atlasSize: 1024
+    useOptimalPacking: 1
     exportExternalAtlas: 1
     useAstcPlatformSettings: 1

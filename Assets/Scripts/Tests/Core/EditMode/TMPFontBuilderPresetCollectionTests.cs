@@ -46,6 +46,20 @@ namespace Core.Tests.TextMeshPro
             Assert.That(second.PresetName, Is.EqualTo("Preset 2"));
             Assert.That(first.AtlasSize, Is.EqualTo(2048));
             Assert.That(first.OutputDirectory, Is.EqualTo("Japanese"));
+            Assert.That(first.FileNameSuffix, Is.EqualTo("_JP"));
+            Assert.That(first.PreserveExistingFallbackWhenEmpty, Is.True);
+            Assert.That(first.UseOptimalPacking, Is.True);
+        }
+
+        [Test]
+        public void Move_ReordersPresetsAndRejectsInvalidIndices()
+        {
+            InitializeDefaults();
+
+            Assert.That(collection.Move(1, 0), Is.True);
+            Assert.That(collection.Presets[0].PresetName, Is.EqualTo("Default EN"));
+            Assert.That(collection.Move(-1, 0), Is.False);
+            Assert.That(collection.Move(0, 2), Is.False);
         }
 
         [Test]
@@ -86,6 +100,39 @@ namespace Core.Tests.TextMeshPro
         }
 
         [Test]
+        public void TryUpdateAt_RejectsInvalidGenerationSettings()
+        {
+            InitializeDefaults();
+
+            var invalidSuffix = CreatePreset("Chinese", "CN", 4096);
+            invalidSuffix.FileNameSuffix = "../CN";
+            Assert.That(collection.TryUpdateAt(0, invalidSuffix, out var suffixError), Is.False);
+            Assert.That(suffixError, Is.EqualTo(TMPFontBuilderPresetValidationError.InvalidFileNameSuffix));
+
+            var invalidPointSize = CreatePreset("Chinese", "CN", 4096);
+            invalidPointSize.SamplingPointSize = 0;
+            Assert.That(collection.TryUpdateAt(0, invalidPointSize, out var pointSizeError), Is.False);
+            Assert.That(pointSizeError, Is.EqualTo(TMPFontBuilderPresetValidationError.InvalidSamplingPointSize));
+
+            var invalidPadding = CreatePreset("Chinese", "CN", 4096);
+            invalidPadding.AtlasPadding = -1;
+            Assert.That(collection.TryUpdateAt(0, invalidPadding, out var paddingError), Is.False);
+            Assert.That(paddingError, Is.EqualTo(TMPFontBuilderPresetValidationError.InvalidAtlasPadding));
+
+            var invalidAtlas = CreatePreset("Chinese", "CN", 1000);
+            Assert.That(collection.TryUpdateAt(0, invalidAtlas, out var atlasError), Is.False);
+            Assert.That(atlasError, Is.EqualTo(TMPFontBuilderPresetValidationError.InvalidAtlasSize));
+        }
+
+        [Test]
+        public void NormalizeCharacters_DeduplicatesUnicodeCodePointsAndSkipsControls()
+        {
+            var result = TMPFontBuilderWindow.NormalizeCharacters("A😀A\n😀B");
+
+            Assert.That(result, Is.EqualTo("A😀B"));
+        }
+
+        [Test]
         public void Localization_AllKeysHaveChineseAndEnglishText()
         {
             foreach (TMPFontBuilderText key in Enum.GetValues(typeof(TMPFontBuilderText)))
@@ -108,9 +155,12 @@ namespace Core.Tests.TextMeshPro
             {
                 PresetName = name,
                 OutputDirectory = outputDirectory,
+                FileNameSuffix = outputDirectory == "Japanese" ? "_JP" : string.Empty,
+                PreserveExistingFallbackWhenEmpty = true,
                 AtlasSize = atlasSize,
                 SamplingPointSize = 90,
                 AtlasPadding = 9,
+                UseOptimalPacking = true,
                 ExportExternalAtlas = true,
                 UseAstcPlatformSettings = true
             };
