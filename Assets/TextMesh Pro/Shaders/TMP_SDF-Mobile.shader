@@ -146,7 +146,8 @@ SubShader {
 			if(UNITY_MATRIX_P[3][3] == 0) scale = lerp(abs(scale) * (1 - _PerspectiveFilter), scale, abs(dot(UnityObjectToWorldNormal(input.normal.xyz), normalize(WorldSpaceViewDir(vert)))));
 
 			float weight = lerp(_WeightNormal, _WeightBold, bold) / 4.0;
-			weight = (weight + _FaceDilate) * _ScaleRatioA * 0.5;
+			//把 OutlineWidth 计入字面阈值，避免描边向字面内部侵蚀。
+			weight = (weight + _FaceDilate + _OutlineWidth) * _ScaleRatioA * 0.5;
 
 			float layerScale = scale;
 

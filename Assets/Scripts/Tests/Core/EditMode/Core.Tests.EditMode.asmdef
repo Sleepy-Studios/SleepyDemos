@@ -5,6 +5,7 @@
         "Core.Runtime",
         "Core.Editor",
         "UnityEngine.UI",
+        "Unity.TextMeshPro",
         "UniTask"
     ],
     "includePlatforms": [

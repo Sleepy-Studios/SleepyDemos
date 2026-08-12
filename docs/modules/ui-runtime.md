@@ -13,7 +13,10 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，并提供事务快照与恢复。
 - `UICache`：按 View 类型缓存 View 实例。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
-- `Components/`：公共基础组件，如 `UITab`、`ViewList`、`UIBtnSwitch`、`UIDropdown`、`UIState`。
+- `Components/`：公共基础组件及无业务依赖的 UGUI/TMP 表现组件。
+- `Extends/`：低依赖全局扩展；只承载激活状态、组件访问、RectTransform 尺寸和 Transform 层级等稳定语义。
+- `Assets/Scripts/Core/Editor/Components/`：公共组件的自定义 Inspector，不与运行时代码混编。
+- `Assets/LoadResources/Art/Shaders/UIRoundedCorners.shader`：`RoundedCorners` 使用的公共圆角 Shader，运行时地址为 `LoadResources/Art/Shaders/UIRoundedCorners`。
 
 ## Transition 契约边界
 
@@ -79,6 +82,24 @@ Loading --加载失败或取消--> Faulted
 - `AccordionViewTab`：通过 `AccordionTab` 叶子索引驱动多个 View 或本地 ViewRoot 子节点切换。
 - `UIImageLoader`：按 Sprite 资源路径加载图片，支持同步/异步和 `SetNativeSize`。
 - `UIState`：序列化状态切换组件，用于 Normal/Selected 等轻量状态；状态项使用固定枚举和强类型组件引用，不使用反射属性名或字符串解析。
+- `TMPAutoFitLayoutElement`：根据 TMP 自然尺寸在 `LayoutElement` 与 `ContentSizeFitter` 之间选择布局驱动，并处理最大宽高、换行和自动字号。
+- `TMPAutoScrollEnableBehaviour`：超宽 TMP 文本横向滚动；监听 TMP 顶点脏回调，兼容业务直接给 `.text` 赋值，默认给 viewport 补 `RectMask2D`。
+- `TMP_UGUI_Extend` / `GradientUI`：分别提供 TMP 专用复合效果与任意 Graphic 的简单渐变。TMP 复合效果拥有并释放自己的材质实例，不修改共享字体材质。
+- `TMP_UGUI_Extend` Inspector 提供中英文切换和双语浮动提示；渐变、描边、阴影、倾斜均只展开当前启用模式实际使用的参数。
+- 项目内 `TextMeshPro/Mobile/Distance Field` 保留外描边阈值补偿：`_OutlineWidth` 同时参与字面 weight 计算，避免标准 Unity 6 Mobile Shader 的描边向字面内部侵蚀；更新 TMP Essentials 时必须复核该差异。
+- `FlipImage` / `UIVertexRectMask2D`：在顶点层处理翻转旋转与矩形硬裁剪，不引入业务材质依赖。
+- `RoundedCorners`：使用公共 Shader 和按基础材质、半径缓存的派生材质实现圆角；运行期优先 `Shader.Find`，必要时通过 `ResourceServices` 加载规范地址。
+- `PyramidLayoutGroup`：固定尺寸的品字或三角形布局；Inspector 位于 `Core.Editor`。
+- `FlowLayoutGroup`：按子节点 preferred size 横向换行或纵向换列，支持双轴间距、反向顺序、九宫格对齐和按行/列填充剩余空间。
+- `TMPLinkHandler`：将 TMP `<link>` 点击转换为 linkId 事件。
+
+全局扩展边界：
+
+- `GameObject.Show()` / `Hide()` 只改变 `activeSelf`；`Component` 重载操作所在 GameObject。
+- `GetOrAddComponent<T>()` 只检查同一个 GameObject，不搜索父子层级。
+- `CanvasGroup.SetCanvasGroupVisible()` 只统一 alpha、interactable、blocksRaycasts，不改变激活状态。
+- `RectTransform.SetWidth/SetHeight/SetSize/SetAnchoredPositionX/SetAnchoredPositionY` 保留当前锚点语义。
+- 不复制业务型 `UIUtil`，也不把协议、配置、资源、音频、语言或第三方内部扩展带入 Core。
 
 明确不在这里混入：
 - 业务图片加载器或图集拆分规则
@@ -116,22 +137,20 @@ Loading --加载失败或取消--> Faulted
 
 完整设计取舍见 [Core UI 渲染设计原则](../architecture/ui-rendering.md)，新增 View 的制作规则见 [接入 Core UI View](../runbooks/create-ui-view.md)。
 
-## 基础组件验证资源
+## 基础组件模板与验证
 
-基础 UI 框架验证资源放在：
+公共组件模板放在：
 
-- `Assets/LoadResources/UI/UIFrameworkValidation/`：验证入口和 `UITab`、`UIBtnSwitch`、`UIDropdown`、`ViewTab` 分页预制体。
-- `Assets/Scripts/Hotfix/Module/UIFrameworkValidation/`：验证 View 逻辑和 MvcBind 生成的 Component 代码。
-- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/`：验证页和 `UIFrameworkValidation` 相关构建统一复用的模板仓库，当前流程会优先读取并实例化 `Tab/TabItem.prefab` 与 `Btns/BtnSwitch.prefab`。
+- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/`：基础组件模板仓库。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/ViewTabVertical.prefab`：`ViewTab` 基础模板，结构为 `ViewTabVertical / Tab / ViewRoot`。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Btns/BtnSwitch.prefab`：`UIBtnSwitch` 基础模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Dropdown/Dropdown.prefab`：`UIDropdown` 基础模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Accordion/AccordionTab.prefab`：`AccordionTab` 基础模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Accordion/AccordionViewTab.prefab`：`AccordionViewTab` 基础模板。
 
-`ViewTab` 模板和验证页遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
+`ViewTab` 模板遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
 
-验证入口从 `MainMenuView` 的「基础 UI 验证」按钮打开，后续页面仍通过 `UIManager.Show<T>()` 进入，不绕过 View 生命周期或资源 Loader。当前入口包含 `UITab`、`UIBtnSwitch`、`UIDropdown`、`ViewTab`、`AccordionTab`、`AccordionViewTab` 六个验证页。
+仓库当前没有 `Assets/LoadResources/UI/UIFrameworkValidation/`、对应 Hotfix 模块或验证菜单；`MainMenuView` 的旧验证按钮回调也未启用。公共组件自动化验证统一放在 `Assets/Scripts/Tests` 并通过 Unity Test Runner 运行，不以旧验证页作为可用入口。
 
 基础组件公共入口统一收口在一个主方法上：
 - `UITab`、`AccordionTab`、`ViewTab`、`AccordionViewTab`、`ViewList` 使用 `Init(...)`。
@@ -146,6 +165,9 @@ Loading --加载失败或取消--> Faulted
 - 不要让 Core UI 依赖 Hotfix。
 - 不要让业务页面直接依赖 YooAssets 句柄或包类型。
 - 新组件优先放在 `Assets/Scripts/Core/Runtime/Components`。
+- 全局扩展只放 `Assets/Scripts/Core/Runtime/Extends`，新增前先搜索同签名，避免扩展方法重载歧义。
+- 自定义 Inspector 放 `Assets/Scripts/Core/Editor/Components`；运行时文件不得直接引用 `UnityEditor`。
+- 公共 Shader 放 `Assets/LoadResources/Art/Shaders`，代码地址必须与资源命名规范一致。
 - `ViewList` 只承担有限列表，不在其中扩展大量数据虚拟化滚动能力。
 - View Prefab 根节点不得携带 `Canvas`、`CanvasScaler` 或 `GraphicRaycaster`。
 - 只有 Profiler 证明有必要时才增加局部 Sub-Canvas，并保持 `overrideSorting=false`。
@@ -153,6 +175,7 @@ Loading --加载失败或取消--> Faulted
 ## 验证入口
 
 - `Core.Tests.UI.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
+- `Core.Tests.UI.CoreUIComponentMigrationTests` 检查全局扩展、顶点翻转、金字塔布局、TMP 自动滚动裁剪装配和圆角 Shader/材质链路。
 - `Core.Tests.UI.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
 - `Core.Tests.UI.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
@@ -160,6 +183,5 @@ Loading --加载失败或取消--> Faulted
 - `Core.Tests.UI.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
 - `Core.Tests.UI.UIManagerNavigationPlayModeTests` 在真实 Play Mode 中检查 FIFO、反向取消、事务提交点、错误回滚、缓存清理和兼容门面。
 - `Core.Tests.UI.UITransitionPlayModeTests` 在真实 Play Mode 中检查默认 FadeScale 终态、取消、销毁、InteractionGate 引用计数以及 Gate / Mask 独立性。
-- `Tools/SleepyDemos/UI Framework Validation/Validate Generated Prefabs` 实例化验证 Prefab，覆盖 MvcBind 绑定和基础组件交互。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。
