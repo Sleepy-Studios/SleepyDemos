@@ -26,6 +26,14 @@ namespace Core.Tests.Resource
         }
 
         [Test]
+        public void CreateSceneLoader_ReturnsResourceSceneLoader()
+        {
+            var loader = ResourceServices.CreateSceneLoader();
+
+            Assert.That(loader, Is.InstanceOf<IResourceSceneLoader>());
+        }
+
+        [Test]
         public void NormalizeAddress_ReplacesBackslashes()
         {
             var normalized = ResourceServices.Default.NormalizeAddress("LoadResources/UI\\Views\\TestView");

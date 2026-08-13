@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 namespace Core.Tests.UI
@@ -163,6 +164,28 @@ namespace Core.Tests.UI
 
             Assert.That(manager.Root, Is.SameAs(root));
             Assert.That(manager.UICamera, Is.SameAs(uiCamera));
+        }
+
+        [UnityTest]
+        public IEnumerator BindToBaseCamera_MovesOverlayCameraBetweenUrpStacks()
+        {
+            var manager = UIRootManager.Instance;
+            var previousCamera = manager.BaseCamera;
+            var nextObject = new GameObject("Next Base Camera");
+            var nextCamera = nextObject.AddComponent<Camera>();
+
+            manager.BindToBaseCamera(nextCamera);
+            yield return null;
+
+            Assert.That(manager.BaseCamera, Is.SameAs(nextCamera));
+            Assert.That(
+                nextCamera.GetUniversalAdditionalCameraData().cameraStack,
+                Does.Contain(manager.UICamera));
+            Assert.That(
+                previousCamera.GetUniversalAdditionalCameraData().cameraStack,
+                Has.No.Member(manager.UICamera));
+
+            Object.Destroy(nextObject);
         }
 
         [UnityTest]

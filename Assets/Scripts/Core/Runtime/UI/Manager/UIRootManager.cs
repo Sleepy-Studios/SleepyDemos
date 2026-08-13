@@ -43,6 +43,7 @@ namespace Core.Runtime
         public UIInteractionGate InteractionGate { get; } = new UIInteractionGate();
 
         public Graphic Mask { get; private set; }
+        public Camera BaseCamera { get; private set; }
         public Camera UICamera { get; private set; }
         public Transform Root { get; private set; }
 
@@ -96,6 +97,41 @@ namespace Core.Runtime
                 : GetRoot(layer);
         }
 
+        /// <summary>
+        /// 将持久化 UI Camera 重新绑定到指定 URP Base Camera。
+        /// </summary>
+        /// <param name="baseCamera">当前活动内容场景的基础相机。</param>
+        public void BindToBaseCamera(Camera baseCamera)
+        {
+            if (baseCamera == null)
+            {
+                throw new ArgumentNullException(nameof(baseCamera));
+            }
+
+            if (UICamera == null)
+            {
+                throw new InvalidOperationException("UI Camera 尚未初始化，无法重新绑定基础相机。");
+            }
+
+            if (BaseCamera != null && BaseCamera != baseCamera)
+            {
+                var previousData = BaseCamera.GetUniversalAdditionalCameraData();
+                previousData.cameraStack.Remove(UICamera);
+            }
+
+            var uiLayer = LayerMask.NameToLayer("UI");
+            baseCamera.cullingMask &= ~(1 << uiLayer);
+            var baseData = baseCamera.GetUniversalAdditionalCameraData();
+            baseData.renderType = CameraRenderType.Base;
+            if (!baseData.cameraStack.Contains(UICamera))
+            {
+                baseData.cameraStack.Add(UICamera);
+            }
+
+            BaseCamera = baseCamera;
+            UICamera.depth = baseCamera.depth + 1;
+        }
+
         private void ConfigureRootCanvas(GameObject rootGo)
         {
             var canvas = rootGo.GetComponent<Canvas>();
@@ -125,9 +161,6 @@ namespace Core.Runtime
             }
 
             mainCamera.clearFlags = CameraClearFlags.Skybox;
-            mainCamera.cullingMask &= ~(1 << uiLayer);
-            var mainData = mainCamera.GetUniversalAdditionalCameraData();
-            mainData.renderType = CameraRenderType.Base;
 
             var uiGo = new GameObject("UI Camera");
             if (IsTagDefined("UICamera"))
@@ -146,10 +179,7 @@ namespace Core.Runtime
 
             var uiData = UICamera.GetUniversalAdditionalCameraData();
             uiData.renderType = CameraRenderType.Overlay;
-            if (!mainData.cameraStack.Contains(UICamera))
-            {
-                mainData.cameraStack.Add(UICamera);
-            }
+            BindToBaseCamera(mainCamera);
         }
 
         private static bool IsTagDefined(string tag)

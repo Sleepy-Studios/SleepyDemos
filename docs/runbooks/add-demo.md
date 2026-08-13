@@ -36,6 +36,10 @@
 
 6. 接入主入口
    - 根据项目当前首页方案，将 Demo 暴露到主菜单或 Catalog
+   - 可加载 Demo 场景不加入 Build Settings；确认它位于 YooAsset Collector 覆盖的目录，并在 `GameSceneId` / `GameSceneCatalog` 登记
+   - 入口统一调用 `GameSceneNavigator.Instance.SwitchAsync(...)`，不要在业务组件直接调用 `SceneManager.LoadSceneAsync`
+   - 主菜单由 MvcBind 生成的 `*Component.cs` 不可手改；新增按钮可挂独立 Hotfix `MonoBehaviour`，并以 Prefab 契约测试确认组件真实落盘
+   - Demo 必须提供切换到 `GameSceneId.Hub` 的明确入口，并验证往返后输入和临时资源释放；不要重载 `AppEntrance`
    - 如果接入方式变化，要同步更新相关架构文档和 runbook
 
 7. 检查公共沉淀点

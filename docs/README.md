@@ -32,22 +32,30 @@
   - [热更新模块](./modules/hotfix.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
+  - [运行期场景导航](./modules/scene-runtime.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
   - [Luban 配置模块](./modules/luban-config.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)
+  - [DroneFlight 无人机飞行仿真](./modules/drone-flight.md)
 - `agent/`
   - Agent 协作入口与项目级技能说明
   - [项目 Skill 入口](./agent/skills.md)
+- `superpowers/`
+  - 大型任务的设计规格与可执行实施计划
+  - [无人机飞行仿真 Codex Goal](./superpowers/specs/2026-08-13-drone-flight-simulation-goal.md)
+  - [无人机飞行仿真实施计划](./superpowers/plans/2026-08-13-drone-flight-simulation.md)
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
+  - [接入运行期场景导航](./runbooks/use-scene-navigation.md)
   - [使用 Luban 配置](./runbooks/use-luban-config.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
+  - [调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)
 
 ## 如何判断文档该写到哪里
 - 这是全局规则、设计原则或架构边界：写到 `architecture/`

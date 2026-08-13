@@ -37,6 +37,9 @@ namespace Core.Runtime
         /// 创建独立资源加载器。调用方负责在生命周期结束时释放。
         IResourceLoader CreateLoader();
 
+        /// 创建独立场景资源加载器，用于配对加载和卸载可加载场景。
+        IResourceSceneLoader CreateSceneLoader();
+
         /// <summary>
         /// 同步加载指定地址资源。
         /// </summary>

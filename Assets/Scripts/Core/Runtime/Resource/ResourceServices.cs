@@ -34,5 +34,11 @@ namespace Core.Runtime
         {
             return Default.CreateLoader();
         }
+
+        /// 创建使用默认资源服务的场景资源加载器。
+        public static IResourceSceneLoader CreateSceneLoader()
+        {
+            return Default.CreateSceneLoader();
+        }
     }
 }

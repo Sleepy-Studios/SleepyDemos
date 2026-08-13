@@ -13,6 +13,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，并提供事务快照与恢复。
 - `UICache`：按 View 类型缓存 View 实例。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
+- `UIRootManager.BindToBaseCamera`：Additive 场景切换时迁移持久化 UI Camera 的 URP Camera Stack 归属。
 - `Components/`：公共基础组件及无业务依赖的 UGUI/TMP 表现组件。
 - `Extends/`：低依赖全局扩展；只承载激活状态、组件访问、RectTransform 尺寸和 Transform 层级等稳定语义。
 - `Assets/Scripts/Core/Editor/Components/`：公共组件的自定义 Inspector，不与运行时代码混编。

@@ -69,6 +69,13 @@ Hotfix 入口位于：
 
 当前 Hotfix 启动系统说明见 [Hotfix 启动系统](../modules/hotfix-boot-systems.md)。
 
+## 启动完成后的场景边界
+
+- `AppEntrance` 是常驻 Hub 壳，只在应用冷启动时运行 `CoreEntrance`。
+- Hotfix 初始化 `GameSceneNavigator` 后，Demo 统一通过 YooAsset Additive 加载。
+- 返回 Hub 只卸载当前 Demo 并恢复 Hub 相机和主菜单，不以 Single 模式重载 `AppEntrance`。
+- 启动期 `StartupLoading` 与运行期 `CommonLoadingView` 分属两条生命周期，不互相依赖。
+
 ## 修改这里时必须注意
 
 - 不要把业务 UI 初始化提前塞进 Core 的低层系统里

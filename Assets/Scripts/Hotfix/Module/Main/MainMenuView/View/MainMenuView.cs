@@ -51,5 +51,9 @@ namespace Hotfix
         {
             //UIManager.Instance.Show<UIFrameworkValidationLauncherView>();
         }
-    }
+    
+        private void OnDroneFlightButtonClick()
+        {
+        }
+}
 }

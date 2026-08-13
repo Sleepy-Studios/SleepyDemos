@@ -31,6 +31,7 @@ UIRootCanvas
 - `Underground` 是纯展示层，不参与 Graphic Raycast；其余层默认允许交互。
 - View Prefab 根节点不携带 `Canvas`、`CanvasScaler` 或 `GraphicRaycaster`。
 - `StartupLoading.prefab` 在业务 UI 初始化前显示，继续使用独立 Overlay Canvas。
+- 运行期 `CommonLoadingView` 是普通 `Base + Page`，通过 UI 导航事务替换当前页面；不新增专用 Canvas 或平行 UI 栈。
 - 真正处于 3D 场景中的 World Space UI 不进入 Core UI 业务层级。
 
 ## 透视 UI 规则
@@ -50,6 +51,7 @@ UIRootCanvas
 
 - `UIManager` 负责 View 生命周期、缓存和栈，不负责配置渲染环境。
 - `UIRootManager` 是 Canvas、UI Camera、EventSystem、固定层 Root 和遮罩的唯一装配入口。
+- Additive 内容场景切换时，`UIRootManager.BindToBaseCamera(...)` 负责把持久化 UI Camera 从旧 URP Base Camera Stack 移到新 Stack。
 - Core 只定义 `IUIWorldTransition` / `IUIWorldTransitionProvider` 并编排事务，不实现具体 Camera 或场景移动。Hotfix 通过 `UIManager.RegisterWorldTransitionProvider(...)` 注册业务解析器；未注册或解析结果为 null 时使用无行为实现。
 - UI 表现统一使用 `IUITransition`，Camera、场景与 Timeline 联动统一使用 `IUIWorldTransition`。旧 `IUIAnimation` / `ICameraAnimation` 契约和运行时调用链已经移除，不再存在并行的动画生命周期。
 - 每个导航事务在开始执行时快照 Provider，并对实际进入、退出的每个 View 最多解析一次。退出阶段的 UI / World Transition 并行完成后才提交栈；提交后进入阶段的 World / UI Transition 并行完成，两个阶段不得交错。

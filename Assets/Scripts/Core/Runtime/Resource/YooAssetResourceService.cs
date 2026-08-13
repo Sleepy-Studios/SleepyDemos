@@ -36,6 +36,11 @@ namespace Core.Runtime
             return new YooAssetResourceLoader(this);
         }
 
+        public IResourceSceneLoader CreateSceneLoader()
+        {
+            return new YooAssetResourceSceneLoader(this);
+        }
+
         public ResourceLoadResult<T> LoadAsset<T>(string address) where T : Object
         {
             var asset = sharedLoader.LoadAsset<T>(address);

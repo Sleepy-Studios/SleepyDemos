@@ -108,6 +108,11 @@ namespace Hotfix.Tests
                 return new FakeResourceLoader(this, textAsset);
             }
 
+            public IResourceSceneLoader CreateSceneLoader()
+            {
+                throw new NotSupportedException("当前配置测试不使用场景资源加载器。");
+            }
+
             public ResourceLoadResult<T> LoadAsset<T>(string address) where T : Object
             {
                 return ResourceLoadResult<T>.Failure(address, "测试未实现同步加载。");

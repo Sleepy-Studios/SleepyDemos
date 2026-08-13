@@ -1,6 +1,7 @@
 using System;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
+using Hotfix.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace Hotfix.AppDelegate
@@ -15,6 +16,7 @@ namespace Hotfix.AppDelegate
             await UniTask.Yield();
 
             hotfixContext.LoadingView?.SetProgress(0.95f, "进入界面", "显示主界面");
+            GameSceneNavigator.Initialize();
             UIManager.Instance.RegisterWorldTransitionProvider(new HotfixWorldTransitionProvider());
             var result = await UIManager.Instance.ShowAsync<MainMenuView>();
             switch (result.Status)

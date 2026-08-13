@@ -9,6 +9,7 @@
 - `ResourceServices`
 - `IResourceService`
 - `IResourceLoader`
+- `IResourceSceneLoader`
 - `ResourceLoadResult<T>`
 
 ## 为什么隔离 YooAssets
@@ -57,7 +58,9 @@ YooAssets 是当前资源框架实现，不是业务层协议。
 - `View` 默认持有自己的 loader，销毁时释放。
 - 热更新程序集读取也走资源服务，避免单独绕过资源系统。
 
-将来如果需要场景加载、预加载批次、缓存策略或原生文件加载，优先扩展 `IResourceService` / `IResourceLoader`，不要新增并行入口。
+场景加载通过 `ResourceServices.CreateSceneLoader()` 创建独立 `IResourceSceneLoader`，场景句柄只暴露标准化地址和 Unity `Scene`。YooAsset `SceneHandle` 只存在于 Core 适配层，加载成功后必须由同一加载器配对卸载。
+
+将来如果需要预加载批次、缓存策略或原生文件加载，继续扩展现有资源抽象，不新增并行入口。
 
 ## 与其它模块的关系
 

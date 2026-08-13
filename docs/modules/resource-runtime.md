@@ -13,6 +13,7 @@
 - 创建局部 loader
 - 同步/异步加载资源和 `TextAsset`
 - 同步/异步实例化与释放 GameObject
+- Additive 场景加载、真实进度、句柄配对卸载
 
 它不负责：
 
@@ -27,6 +28,7 @@
 
 - `Assets/Scripts/Core/Runtime/Resource/IResourceService.cs`
 - `Assets/Scripts/Core/Runtime/Resource/IResourceLoader.cs`
+- `Assets/Scripts/Core/Runtime/Resource/IResourceSceneLoader.cs`
 - `Assets/Scripts/Core/Runtime/Resource/ResourceServices.cs`
 - `Assets/Scripts/Core/Runtime/Resource/ResourceInitializeOptions.cs`
 - `Assets/Scripts/Core/Runtime/Resource/ResourceLoadResult.cs`
@@ -79,6 +81,13 @@
 - 某个 loader 实例化出的 GameObject，应由同一个 loader 释放。
 - 某个 loader 加载出的资源，应由同一个 loader 释放或随 loader `Dispose` 释放。
 - 全局服务加载出的共享资源由服务内部共享 loader 持有。
+
+`IResourceSceneLoader` 是运行期内容场景入口：
+
+- 通过 `ResourceServices.CreateSceneLoader()` 创建。
+- 加载成功返回不暴露 YooAsset 类型的 `IResourceSceneHandle`。
+- 句柄必须交还给同一个 loader 卸载；卸载成功后不可重复使用。
+- Active Scene、相机和业务 UI 不由资源适配层处理，而由 Hotfix 场景导航事务负责。
 
 ## 边界规则
 

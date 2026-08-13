@@ -9,10 +9,10 @@ namespace Hotfix
     using UnityEngine.UI;
     using TMPro;
 
-    [Source("LoadResources/UI/Hall/MainMenuView")]
-    public partial class MainMenuView
+    [Source("LoadResources/UI/Common/CommonLoading")]
+    public partial class CommonLoadingView
     {
-        public override string Address => "LoadResources/UI/Hall/MainMenuView";
+        public override string Address => "LoadResources/UI/Common/CommonLoading";
         public override UILayer Level => UILayer.Base;
         public override UIViewMode ViewMode => UIViewMode.Page;
         public override MaskType Mask => MaskType.None;
@@ -22,8 +22,11 @@ namespace Hotfix
 
         private Image Image_Background;
         private TextMeshProUGUI TextMeshProUGUI_Title;
-        private Button Button_UIFrameworkValidationButton;
-        private Button Button_DroneFlightButton;
+        private TextMeshProUGUI TextMeshProUGUI_Description;
+        private TextMeshProUGUI TextMeshProUGUI_Step;
+        private TextMeshProUGUI TextMeshProUGUI_ProgressText;
+        private TextMeshProUGUI TextMeshProUGUI_SizeText;
+        private Image Image_ProgressFill;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -37,10 +40,11 @@ namespace Hotfix
 
             Image_Background = componentItemIndex.Get<Image>(0);
             TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
-            Button_UIFrameworkValidationButton = componentItemIndex.Get<Button>(2);
-            Button_DroneFlightButton = componentItemIndex.Get<Button>(3);
-            this.RegisterButton(Button_UIFrameworkValidationButton, OnUIFrameworkValidationButtonClick);
-            this.RegisterButton(Button_DroneFlightButton, OnDroneFlightButtonClick);
+            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(2);
+            TextMeshProUGUI_Step = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_ProgressText = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_SizeText = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Image_ProgressFill = componentItemIndex.Get<Image>(6);
         }
     }
 }
