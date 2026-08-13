@@ -55,6 +55,12 @@
 - 底层服务容器
 - 所有业务都共用的基础设施
 
+### `Assets/Scripts/Hotfix/Editor`
+
+放只服务某个 Hotfix 业务模块的 Editor 扩展，例如业务配置自定义 Inspector、Demo 私有装配工具。该目录使用独立 `Hotfix.Editor` 编辑器程序集，可以引用 `Hotfix`、`Core.Editor` 和 `Core.Runtime`；生产 `Hotfix` 不引用它。
+
+通用 MvcBind、构建、导入和跨业务检查工具仍放 `Core.Editor`。禁止为了实现业务 Inspector 让 `Core.Editor` 反向引用 `Hotfix`。
+
 ## 资源布局
 
 可加载资源的**目录矩阵、文件名与地址规则**见 [资源命名规范](./asset-naming.md)：类型由目录与扩展名决定，文件名为纯语义 PascalCase。`DemoId` 目录名使用小写 + 下划线（如 `gravity_well`）。
@@ -88,7 +94,8 @@
 ## 决策口诀
 
 - 这是“底座能力”吗：去 `Core`
-- 这是“编辑器辅助”吗：去 `Core.Editor`
+- 这是“跨业务编辑器底座”吗：去 `Core.Editor`
+- 这是“只服务某个 Hotfix 模块的 Editor 扩展”吗：去 `Hotfix/Editor`
 - 这是“业务或玩法”吗：去 `Hotfix`
 - 这是“某个 Demo 独有资源”吗：去 `Assets/LoadResources/Demos/<DemoId>/`
 - 这是“多个 Demo 共享资源”吗：去公共资源目录

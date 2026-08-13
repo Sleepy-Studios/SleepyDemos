@@ -29,7 +29,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float minimumFieldOfView = 20f;
         [SerializeField] private float maximumFieldOfView = 80f;
 
-        private DroneCameraMode mode;
+        private DroneCameraMode mode = DroneCameraMode.ThirdPerson;
         private float gimbalPitchDegrees;
         private float gimbalYawDegrees;
         private float orbitYawDegrees;

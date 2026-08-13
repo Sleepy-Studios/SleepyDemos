@@ -1,6 +1,6 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Hotfix.DroneFlight
 {
@@ -24,7 +24,11 @@ namespace Hotfix.DroneFlight
             bool hasPayload,
             string payloadType,
             float payloadMass,
-            PayloadReleaseReason releaseReason)
+            PayloadReleaseReason releaseReason,
+            DroneGrappleState grappleState = DroneGrappleState.Open,
+            int grappleContacts = 0,
+            DroneWinchState winchState = DroneWinchState.Stowed,
+            DroneLandingGearState landingGearState = DroneLandingGearState.Deployed)
         {
             OperationState = operationState;
             Profile = profile;
@@ -43,6 +47,10 @@ namespace Hotfix.DroneFlight
             PayloadType = payloadType;
             PayloadMass = payloadMass;
             ReleaseReason = releaseReason;
+            GrappleState = grappleState;
+            GrappleContacts = grappleContacts;
+            WinchState = winchState;
+            LandingGearState = landingGearState;
         }
 
         internal DroneFlightOperationState OperationState { get; }
@@ -62,6 +70,10 @@ namespace Hotfix.DroneFlight
         internal string PayloadType { get; }
         internal float PayloadMass { get; }
         internal PayloadReleaseReason ReleaseReason { get; }
+        internal DroneGrappleState GrappleState { get; }
+        internal int GrappleContacts { get; }
+        internal DroneWinchState WinchState { get; }
+        internal DroneLandingGearState LandingGearState { get; }
     }
 
     /// <summary>无人机玩家 HUD 的确定性文本格式化器。</summary>
@@ -70,28 +82,29 @@ namespace Hotfix.DroneFlight
         internal static string FormatFlight(DroneHudSnapshot snapshot)
         {
             var armState = snapshot.IsArmed ? "ARMED" : "DISARMED";
-            return $"POSITION  {snapshot.Profile}  {armState}\n"
+            return $"位置保持  {FormatProfile(snapshot.Profile)}  {armState}\n"
                    + $"高度 {snapshot.Height:F1} m   距离 {snapshot.Distance:F1} m\n"
                    + $"水平 {snapshot.HorizontalSpeed:F1} m/s   垂直 {snapshot.VerticalSpeed:+0.0;-0.0;0.0} m/s   升降 {snapshot.LiftInput:+0.00;-0.00;0.00}";
         }
 
         internal static string FormatCamera(DroneHudSnapshot snapshot)
         {
-            return $"{snapshot.CameraMode}   云台 Y {snapshot.GimbalYaw:F0}° / P {snapshot.GimbalPitch:F0}°   FOV {snapshot.FieldOfView:F0}°";
+            return $"{FormatCameraMode(snapshot.CameraMode)}   云台 Y {snapshot.GimbalYaw:F0}° / P {snapshot.GimbalPitch:F0}°   FOV {snapshot.FieldOfView:F0}°";
         }
 
         internal static string FormatPayload(DroneHudSnapshot snapshot)
         {
-            return snapshot.HasPayload
-                ? $"抓钩 已挂载  {snapshot.PayloadType}  {snapshot.PayloadMass:F2} kg"
-                : "抓钩 空闲";
+            var payload = snapshot.HasPayload
+                ? $"已抓取 {snapshot.PayloadType} {snapshot.PayloadMass:F2} kg"
+                : $"{FormatGrappleState(snapshot.GrappleState)} 接触 {snapshot.GrappleContacts}/3";
+            return $"六爪 {payload}   卷扬 {FormatWinchState(snapshot.WinchState)}   起落架 {FormatLandingGearState(snapshot.LandingGearState)}";
         }
 
         internal static string FormatWarning(DroneHudSnapshot snapshot)
         {
             if (snapshot.OperationState == DroneFlightOperationState.Fault)
             {
-                return "飞控故障：请复位机体";
+                return "飞控故障：请长按 R 重新运行场景";
             }
 
             if (snapshot.ReleaseReason == PayloadReleaseReason.Overload)
@@ -99,26 +112,112 @@ namespace Hotfix.DroneFlight
                 return "载荷超重：挂载已拒绝";
             }
 
+            if (snapshot.OperationState == DroneFlightOperationState.Landing
+                && snapshot.LandingGearState is DroneLandingGearState.Retracted or DroneLandingGearState.Retracting)
+            {
+                return "降落警告：起落架尚未放下，请按 L";
+            }
+
             return snapshot.IsMotorSaturated ? "电机输出饱和" : string.Empty;
+        }
+
+        internal static string FormatControls()
+        {
+            return "操作说明\n"
+                   + "F  开始控制（第三人称）\n"
+                   + "T / G  自动起飞 / 降落\n"
+                   + "R  解锁 / 锁定（长按重新运行场景）\n"
+                   + "WASD  水平移动    Q / E  偏航\n"
+                   + "Space / 左 Ctrl  升降\n"
+                   + "1 / 2 / 3  平稳 / 普通 / 运动\n"
+                   + "C  切换视角    方向键 / - / =  镜头\n"
+                   + "L  起落架收放    J  卷扬收放    H  六爪开合\n"
+                   + "F3  调试面板    F4  复制遥测\n"
+                   + "Backspace  返回主界面";
+        }
+
+        internal static string FormatProfile(DroneResponseProfile profile)
+        {
+            return profile switch
+            {
+                DroneResponseProfile.Cine => "平稳（Cine）",
+                DroneResponseProfile.Sport => "运动（Sport）",
+                _ => "普通（Normal）"
+            };
+        }
+
+        private static string FormatCameraMode(DroneCameraMode mode)
+        {
+            return mode switch
+            {
+                DroneCameraMode.Gimbal => "云台（Gimbal）",
+                DroneCameraMode.ThirdPerson => "第三人称（Third Person）",
+                DroneCameraMode.Orbit => "环绕（Orbit）",
+                DroneCameraMode.FixedForward => "机头（Forward）",
+                DroneCameraMode.Belly => "机腹（Belly）",
+                _ => mode.ToString()
+            };
+        }
+
+        private static string FormatGrappleState(DroneGrappleState state)
+        {
+            return state switch
+            {
+                DroneGrappleState.Closing => "闭合中",
+                DroneGrappleState.Contacting => "接触中",
+                DroneGrappleState.AssistedGrip => "抓取",
+                DroneGrappleState.Releasing => "释放中",
+                DroneGrappleState.Broken => "已脱落",
+                _ => "张开"
+            };
+        }
+
+        private static string FormatWinchState(DroneWinchState state)
+        {
+            return state switch
+            {
+                DroneWinchState.Deploying => "放出中",
+                DroneWinchState.Deployed => "已放出",
+                DroneWinchState.Retracting => "收回中",
+                DroneWinchState.Carrying => "运输高度",
+                _ => "已收纳"
+            };
+        }
+
+        private static string FormatLandingGearState(DroneLandingGearState state)
+        {
+            return state switch
+            {
+                DroneLandingGearState.Deploying => "放下中",
+                DroneLandingGearState.Retracted => "已收起",
+                DroneLandingGearState.Retracting => "收起中",
+                _ => "已放下"
+            };
         }
     }
 
     /// <summary>
-    /// 从真实飞控、相机和挂载状态刷新玩家 HUD；F3 仅切换独立调试面板。
+    /// 从场景 Context 的真实飞控、相机和抓斗状态刷新正式玩家 HUD。
     /// </summary>
     public sealed class DroneHudPresenter : MonoBehaviour
     {
         [SerializeField] private DroneFlightController flightController;
         [SerializeField] private DroneCameraRig cameraRig;
         [SerializeField] private PayloadMount payloadMount;
+        [SerializeField] private DroneMechanicalHook grapple;
+        [SerializeField] private DroneWinchController winch;
+        [SerializeField] private DroneLandingGearController landingGear;
+        [SerializeField] private DronePlayerInput playerInput;
         [SerializeField] private DroneRemoteControllerExperience remoteExperience;
-        [SerializeField] private CanvasGroup playerHudRoot;
+        [SerializeField] private CanvasGroup telemetryRoot;
         [SerializeField] private TMP_Text flightText;
         [SerializeField] private TMP_Text cameraText;
         [SerializeField] private TMP_Text payloadText;
         [SerializeField] private TMP_Text warningText;
-        [SerializeField] private GameObject debugPanel;
-        [SerializeField] private TMP_Text debugText;
+        [SerializeField] private TMP_Text controlsText;
+        [SerializeField] private GameObject resetProgressRoot;
+        [SerializeField] private Image resetProgressFill;
+        [SerializeField] private TMP_Text resetProgressText;
         [SerializeField] private float refreshIntervalSeconds = 0.1f;
 
         private Vector3 homePosition;
@@ -131,9 +230,9 @@ namespace Hotfix.DroneFlight
                 homePosition = flightController.Body.position;
             }
 
-            if (debugPanel != null)
+            if (controlsText != null)
             {
-                debugPanel.SetActive(false);
+                controlsText.text = DroneHudFormatter.FormatControls();
             }
 
             RefreshVisibility();
@@ -142,12 +241,8 @@ namespace Hotfix.DroneFlight
 
         private void Update()
         {
-            if (Keyboard.current != null && Keyboard.current.f3Key.wasPressedThisFrame && debugPanel != null)
-            {
-                debugPanel.SetActive(!debugPanel.activeSelf);
-            }
-
             RefreshVisibility();
+            RefreshResetProgress();
             if (Time.unscaledTime < nextRefreshTime)
             {
                 return;
@@ -170,34 +265,93 @@ namespace Hotfix.DroneFlight
             TMP_Text camera,
             TMP_Text payload,
             TMP_Text warning,
-            GameObject diagnosticsPanel,
-            TMP_Text diagnostics)
+            TMP_Text controls,
+            GameObject progressRoot,
+            Image progressFill,
+            TMP_Text progressText)
         {
             flightController = controller;
             cameraRig = rig;
             payloadMount = mount;
             remoteExperience = remote;
-            playerHudRoot = hudRoot;
+            telemetryRoot = hudRoot;
             flightText = flight;
             cameraText = camera;
             payloadText = payload;
             warningText = warning;
-            debugPanel = diagnosticsPanel;
-            debugText = diagnostics;
+            controlsText = controls;
+            resetProgressRoot = progressRoot;
+            resetProgressFill = progressFill;
+            resetProgressText = progressText;
+            if (controlsText != null)
+            {
+                controlsText.text = DroneHudFormatter.FormatControls();
+            }
+        }
+
+        /// <summary>
+        /// 绑定当前 DroneFlight 场景上下文；View 每次显示时调用。
+        /// </summary>
+        /// <param name="context">当前加载场景唯一的无人机上下文。</param>
+        internal void BindContext(DroneFlightSceneContext context)
+        {
+            if (context == null)
+            {
+                return;
+            }
+
+            flightController = context.FlightController;
+            cameraRig = context.CameraRig;
+            payloadMount = context.PayloadMount;
+            grapple = context.Grapple;
+            winch = context.Winch;
+            landingGear = context.LandingGear;
+            playerInput = context.PlayerInput;
+            remoteExperience = context.RemoteExperience;
+            if (flightController != null && flightController.Body != null)
+            {
+                homePosition = flightController.Body.position;
+            }
+
+            RefreshVisibility();
+            RefreshResetProgress();
+            RefreshText();
         }
 
         private void RefreshVisibility()
         {
-            if (playerHudRoot == null)
+            if (telemetryRoot == null)
             {
                 return;
             }
 
             var visible = remoteExperience == null
-                          || remoteExperience.State == DroneRemoteControlState.Fullscreen;
-            playerHudRoot.alpha = visible ? 1f : 0f;
-            playerHudRoot.interactable = visible;
-            playerHudRoot.blocksRaycasts = visible;
+                          || remoteExperience.State == DroneControlSessionState.Active;
+            telemetryRoot.alpha = visible ? 1f : 0f;
+            telemetryRoot.interactable = false;
+            telemetryRoot.blocksRaycasts = false;
+        }
+
+        private void RefreshResetProgress()
+        {
+            var progress = playerInput != null ? playerInput.ResetProgress : 0f;
+            if (resetProgressRoot != null)
+            {
+                resetProgressRoot.SetActive(progress > 0f);
+            }
+
+            if (resetProgressFill != null)
+            {
+                resetProgressFill.fillAmount = progress;
+            }
+
+            if (resetProgressText != null)
+            {
+                var holdSeconds = flightController != null && flightController.Config != null
+                    ? flightController.Config.ResetHoldSeconds
+                    : 5f;
+                resetProgressText.text = $"重新运行场景 {progress * holdSeconds:F1} / {holdSeconds:F1} s";
+            }
         }
 
         private void RefreshText()
@@ -228,7 +382,11 @@ namespace Hotfix.DroneFlight
                 hasPayload,
                 hasPayload ? payloadMount.AttachedPayload.PayloadType : string.Empty,
                 payloadMount != null ? payloadMount.AttachedMassKilograms : 0f,
-                payloadMount != null ? payloadMount.LastReleaseReason : PayloadReleaseReason.None);
+                payloadMount != null ? payloadMount.LastReleaseReason : PayloadReleaseReason.None,
+                grapple != null ? grapple.State : DroneGrappleState.Open,
+                grapple != null ? grapple.CurrentContactCount : 0,
+                winch != null ? winch.State : DroneWinchState.Stowed,
+                landingGear != null ? landingGear.State : DroneLandingGearState.Deployed);
 
             if (flightText != null)
             {
@@ -247,23 +405,11 @@ namespace Hotfix.DroneFlight
 
             if (warningText != null)
             {
-                warningText.text = DroneHudFormatter.FormatWarning(snapshot);
+                warningText.text = grapple != null && !string.IsNullOrEmpty(grapple.CurrentHint)
+                    ? grapple.CurrentHint
+                    : DroneHudFormatter.FormatWarning(snapshot);
             }
 
-            if (debugText != null && debugPanel != null && debugPanel.activeSelf)
-            {
-                var motors = flightController.LastMotorOutput;
-                var roll = flightController.RollRateTelemetry;
-                var pitch = flightController.PitchRateTelemetry;
-                var yaw = flightController.YawRateTelemetry;
-                debugText.text = $"Motor FL {motors.FrontLeft:F3}  FR {motors.FrontRight:F3}\n"
-                                 + $"Motor RL {motors.RearLeft:F3}  RR {motors.RearRight:F3}\n"
-                                 + $"Roll P/I/D {roll.Proportional:F3}/{roll.Integral:F3}/{roll.Derivative:F3}  e {roll.Error:F3}\n"
-                                 + $"Pitch P/I/D {pitch.Proportional:F3}/{pitch.Integral:F3}/{pitch.Derivative:F3}  e {pitch.Error:F3}\n"
-                                 + $"Yaw P/I/D {yaw.Proportional:F3}/{yaw.Integral:F3}/{yaw.Derivative:F3}  e {yaw.Error:F3}\n"
-                                 + $"Attitude scale {motors.AttitudeScale:F3}  Thrust {flightController.LastTotalThrustNewtons:F2} N\n"
-                                 + $"fixedDeltaTime {Time.fixedDeltaTime:F3} s";
-            }
         }
     }
 }

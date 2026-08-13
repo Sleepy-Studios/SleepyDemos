@@ -18,6 +18,7 @@
 - `Assets/Scripts/Core/Runtime`：通用运行时基础设施。包括启动流程、资源管理、UI 框架、服务注册、通用组件。
 - `Assets/Scripts/Core/Editor`：编辑器工具。包括热更构建、MvcBind 工具、导入和检查类工具。
 - `Assets/Scripts/Hotfix`：业务层与界面层。包括主菜单、玩法入口、各业务模块逻辑。
+- `Assets/Scripts/Hotfix/Editor`：只服务 Hotfix 业务模块的编辑器扩展，使用独立 `Hotfix.Editor` 程序集；允许引用 Hotfix，不得迫使 `Core.Editor` 反向依赖业务层。
 - `Assets/LoadResources`：可加载资源主干；`Assets/Scenes`：启动入口场景与相关对象。
 - 不允许 `Core.Runtime` 反向依赖 `Hotfix`。
 - 先判断需求属于框架能力、编辑器能力还是业务玩法，再决定落点。

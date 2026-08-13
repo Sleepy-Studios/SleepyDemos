@@ -1,50 +1,33 @@
+using Core.Runtime;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>
-    /// 将遥控器代理动画、RT 预览、全屏 Camera 接管和输入上下文绑定到状态机。
-    /// </summary>
+    /// <summary>F 直接进入第三人称控制，Escape 返回场景等待视角。</summary>
     public sealed class DroneRemoteControllerExperience : MonoBehaviour
     {
         [SerializeField] private Camera playerCamera;
         [SerializeField] private DroneCameraRig droneCameraRig;
         [SerializeField] private DronePlayerInput flightInput;
-        [SerializeField] private Transform remoteControllerRoot;
-        [SerializeField] private MeshRenderer remoteScreenRenderer;
-        [SerializeField] private Vector2Int previewResolution = new(1280, 720);
+        [SerializeField] private DroneFlightController flightController;
+        [SerializeField] private DroneHookInput mechanismInput;
 
-        private readonly DroneRemoteControlSequence sequence = new();
-        private RenderTexture previewTexture;
-        private Material runtimeScreenMaterial;
-        private DroneRemoteControlState appliedState = (DroneRemoteControlState)(-1);
+        private readonly DroneControlSession session = new();
 
-        /// <summary>当前接管流程状态。</summary>
-        internal DroneRemoteControlState State => sequence.State;
+        /// 当前控制会话状态。
+        internal DroneControlSessionState State => session.State;
 
-        /// <summary>供运行诊断读取的接管流程状态名。</summary>
-        public string CurrentStateName => sequence.State.ToString();
-
-        /// <summary>运行时 RT 是否仍被持有。</summary>
-        internal bool HasPreviewTexture => previewTexture != null;
+        /// 供运行诊断读取的状态名。
+        public string CurrentStateName => session.State.ToString();
 
         private void Awake()
         {
-            if (flightInput != null)
-            {
-                flightInput.enabled = false;
-            }
-
-            ApplyState(force: true);
+            ApplyWaiting();
         }
 
         private void Update()
         {
-            sequence.Step(Time.unscaledDeltaTime);
-            ApplyProxyAnimation();
-            ApplyState(force: false);
-
             var keyboard = Keyboard.current;
             if (keyboard == null)
             {
@@ -53,193 +36,104 @@ namespace Hotfix.DroneFlight
 
             if (keyboard.fKey.wasPressedThisFrame)
             {
-                if (sequence.State == DroneRemoteControlState.GroundIdle)
-                {
-                    sequence.BeginEnter();
-                }
-                else if (sequence.State == DroneRemoteControlState.Preview)
-                {
-                    sequence.ExpandToFullscreen();
-                }
+                Activate();
             }
-
-            if (keyboard.escapeKey.wasPressedThisFrame)
+            else if (keyboard.escapeKey.wasPressedThisFrame)
             {
-                sequence.BeginExit();
+                ReturnToWaiting();
             }
         }
 
-        private void OnDestroy()
+        /// 立即进入第三人称控制；不会自动解锁或起飞。
+        internal void Activate()
         {
-            ReleasePreviewTexture();
-            if (runtimeScreenMaterial != null)
+            session.Activate();
+            droneCameraRig?.SetMode(DroneCameraMode.ThirdPerson);
+            var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;
+            if (droneCamera != null)
             {
-                Destroy(runtimeScreenMaterial);
+                droneCamera.targetTexture = null;
+                droneCamera.enabled = true;
             }
+
+            if (playerCamera != null)
+            {
+                playerCamera.enabled = false;
+            }
+
+            if (flightInput != null)
+            {
+                flightInput.enabled = true;
+            }
+            if (mechanismInput != null)
+            {
+                mechanismInput.enabled = true;
+            }
+
+            BindUiCameraIfReady(droneCamera);
         }
 
-        /// <summary>开始拿起并开启遥控器。</summary>
-        internal void BeginEnter()
+        /// 返回 Waiting，并锁定电机和清空飞行输入。
+        internal void ReturnToWaiting()
         {
-            sequence.BeginEnter();
+            session.ReturnToWaiting();
+            ApplyWaiting();
         }
 
-        /// <summary>从 RT 预览推进到全屏接管。</summary>
-        internal void ExpandToFullscreen()
-        {
-            sequence.ExpandToFullscreen();
-        }
-
-        /// <summary>退出无人机控制并恢复玩家相机。</summary>
-        internal void BeginExit()
-        {
-            sequence.BeginExit();
-        }
-
-        /// <summary>
-        /// 由场景装配器或测试夹具绑定接管流程依赖。
-        /// </summary>
         internal void Configure(
             Camera player,
             DroneCameraRig rig,
             DronePlayerInput input,
-            Transform controllerRoot,
-            MeshRenderer screenRenderer)
+            DroneFlightController controller = null,
+            DroneHookInput mechanisms = null)
         {
             playerCamera = player;
             droneCameraRig = rig;
             flightInput = input;
-            remoteControllerRoot = controllerRoot;
-            remoteScreenRenderer = screenRenderer;
-            ApplyState(force: true);
+            flightController = controller;
+            mechanismInput = mechanisms;
+            ApplyWaiting();
         }
 
-        private void ApplyState(bool force)
+        private void ApplyWaiting()
         {
-            if (!force && appliedState == sequence.State)
+            flightController?.SetArmed(false);
+            flightInput?.ResetBufferedInput();
+            if (flightInput != null)
             {
-                return;
+                flightInput.enabled = false;
+            }
+            if (mechanismInput != null)
+            {
+                mechanismInput.enabled = false;
             }
 
-            appliedState = sequence.State;
             var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;
-            switch (sequence.State)
+            if (droneCamera != null)
             {
-                case DroneRemoteControlState.Preview:
-                    EnsurePreviewTexture();
-                    if (droneCamera != null)
-                    {
-                        droneCamera.targetTexture = previewTexture;
-                        droneCamera.enabled = true;
-                    }
-
-                    if (playerCamera != null)
-                    {
-                        playerCamera.enabled = true;
-                    }
-                    break;
-                case DroneRemoteControlState.Fullscreen:
-                    if (droneCamera != null)
-                    {
-                        droneCamera.targetTexture = null;
-                        droneCamera.enabled = true;
-                    }
-
-                    if (playerCamera != null)
-                    {
-                        playerCamera.enabled = false;
-                    }
-
-                    if (flightInput != null)
-                    {
-                        flightInput.enabled = true;
-                    }
-                    break;
-                case DroneRemoteControlState.GroundIdle:
-                    if (droneCamera != null)
-                    {
-                        droneCamera.targetTexture = null;
-                        droneCamera.enabled = false;
-                    }
-
-                    if (playerCamera != null)
-                    {
-                        playerCamera.enabled = true;
-                    }
-
-                    if (flightInput != null)
-                    {
-                        flightInput.enabled = false;
-                    }
-
-                    ReleasePreviewTexture();
-                    break;
+                droneCamera.targetTexture = null;
+                droneCamera.enabled = false;
             }
+
+            if (playerCamera != null)
+            {
+                playerCamera.enabled = true;
+            }
+
+            BindUiCameraIfReady(playerCamera);
         }
 
-        private void ApplyProxyAnimation()
+        private static void BindUiCameraIfReady(Camera baseCamera)
         {
-            if (remoteControllerRoot == null)
+            if (baseCamera == null)
             {
                 return;
             }
 
-            // 全屏阶段由无人机 Camera 独占画面，遥控器代理必须退出世界渲染，
-            // 否则第三人称/环绕相机会从远处拍到仍挂在玩家 Camera 下的代理模型。
-            var visible = sequence.State != DroneRemoteControlState.GroundIdle
-                          && sequence.State != DroneRemoteControlState.Fullscreen;
-            remoteControllerRoot.gameObject.SetActive(visible);
-            if (!visible)
+            var uiRoot = UIRootManager.Instance;
+            if (uiRoot.Root != null && uiRoot.UICamera != null && uiRoot.BaseCamera != baseCamera)
             {
-                return;
-            }
-
-            var progress = sequence.State == DroneRemoteControlState.Exiting
-                ? 1f - sequence.NormalizedProgress
-                : sequence.NormalizedProgress;
-            remoteControllerRoot.localPosition = Vector3.Lerp(new Vector3(0f, -0.5f, 0.8f), new Vector3(0f, -0.15f, 0.45f), progress);
-            remoteControllerRoot.localScale = Vector3.one * Mathf.Lerp(0.85f, 1f, progress);
-        }
-
-        private void EnsurePreviewTexture()
-        {
-            if (previewTexture == null)
-            {
-                previewTexture = new RenderTexture(
-                    Mathf.Max(320, previewResolution.x),
-                    Mathf.Max(180, previewResolution.y),
-                    24)
-                {
-                    name = "DroneRemotePreviewRT"
-                };
-                previewTexture.Create();
-            }
-
-            if (remoteScreenRenderer != null)
-            {
-                if (runtimeScreenMaterial == null)
-                {
-                    runtimeScreenMaterial = new Material(remoteScreenRenderer.sharedMaterial);
-                    remoteScreenRenderer.material = runtimeScreenMaterial;
-                }
-
-                runtimeScreenMaterial.mainTexture = previewTexture;
-            }
-        }
-
-        private void ReleasePreviewTexture()
-        {
-            if (previewTexture == null)
-            {
-                return;
-            }
-
-            previewTexture.Release();
-            Destroy(previewTexture);
-            previewTexture = null;
-            if (runtimeScreenMaterial != null)
-            {
-                runtimeScreenMaterial.mainTexture = null;
+                uiRoot.BindToBaseCamera(baseCamera);
             }
         }
     }

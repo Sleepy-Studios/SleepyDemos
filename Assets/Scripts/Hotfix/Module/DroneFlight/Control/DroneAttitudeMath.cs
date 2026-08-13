@@ -43,6 +43,43 @@ namespace Hotfix.DroneFlight
             return Vector3.ClampMagnitude(CalculateLocalRotationVector(current, target) * gain, maximumRate);
         }
 
+        internal static float AdvanceBoundedYawTarget(
+            float targetYawDegrees,
+            float actualYawDegrees,
+            float commandedDeltaDegrees,
+            float maximumLeadDegrees)
+        {
+            if (!IsFinite(targetYawDegrees) || !IsFinite(actualYawDegrees)
+                || !IsFinite(commandedDeltaDegrees) || !IsFinite(maximumLeadDegrees)
+                || maximumLeadDegrees <= 0f)
+            {
+                return actualYawDegrees;
+            }
+
+            var advancedTarget = targetYawDegrees + commandedDeltaDegrees;
+            var boundedLead = Mathf.Clamp(
+                Mathf.DeltaAngle(actualYawDegrees, advancedTarget),
+                -maximumLeadDegrees,
+                maximumLeadDegrees);
+            return actualYawDegrees + boundedLead;
+        }
+
+        internal static Vector3 CalculateHeadingRelativeWorldVelocity(
+            Vector2 horizontalInput,
+            float actualYawDegrees,
+            float maximumSpeed)
+        {
+            if (!float.IsFinite(horizontalInput.x) || !float.IsFinite(horizontalInput.y)
+                || !IsFinite(actualYawDegrees) || !IsFinite(maximumSpeed) || maximumSpeed <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            return Quaternion.Euler(0f, actualYawDegrees, 0f)
+                   * new Vector3(horizontalInput.x, 0f, horizontalInput.y)
+                   * maximumSpeed;
+        }
+
         private static bool IsFinite(float value)
         {
             return !float.IsNaN(value) && !float.IsInfinity(value);

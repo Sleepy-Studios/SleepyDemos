@@ -31,6 +31,13 @@
 3. 使用原加载句柄卸载 Demo。
 4. 用 `MainMenuView` 替换 Loading。
 
+重新运行当前 Demo：
+
+1. `GameSceneNavigator.ReloadCurrentAsync()` 拒绝 Hub 和并发请求。
+2. 显示 Loading，先通过原资源句柄完整卸载当前 Demo 并临时恢复常驻 Hub 表现层。
+3. 按同一资源地址创建新的场景句柄，重新绑定 Camera、AudioListener 与 UI Camera Stack。
+4. 新 Demo 的场景对象和 UI View 重新走正常生命周期，不复用旧场景玩法状态。
+
 ## 生命周期与失败恢复
 
 - Build Settings 只包含 `AppEntrance`；Demo 场景由 YooAsset Collector 收集。
@@ -60,4 +67,3 @@
 - [Core UI 渲染设计原则](../architecture/ui-rendering.md)
 - [新增 Demo](../runbooks/add-demo.md)
 - [接入运行期场景导航](../runbooks/use-scene-navigation.md)
-

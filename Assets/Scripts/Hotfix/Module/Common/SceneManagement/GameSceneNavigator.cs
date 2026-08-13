@@ -117,5 +117,82 @@ namespace Hotfix.SceneManagement
                 isTransitioning = false;
             }
         }
+
+        /// <summary>
+        /// 卸载并重新加载当前 Demo 场景，Hub 启动壳和全局服务保持常驻。
+        /// </summary>
+        /// <returns>成功、忽略、忙碌或失败结果。</returns>
+        public async UniTask<GameSceneSwitchResult> ReloadCurrentAsync()
+        {
+            var target = CurrentScene;
+            if (target == GameSceneId.Hub)
+            {
+                return GameSceneSwitchResult.Ignored(target);
+            }
+
+            if (!GameSceneCatalog.TryGet(target, out var definition))
+            {
+                return GameSceneSwitchResult.Failed(target, $"未登记的业务场景: {target}");
+            }
+
+            if (isTransitioning)
+            {
+                return GameSceneSwitchResult.Busy(target);
+            }
+
+            isTransitioning = true;
+            try
+            {
+                var uiError = await loadingPresenter.BeginAsync(definition);
+                if (!string.IsNullOrEmpty(uiError))
+                {
+                    return GameSceneSwitchResult.Failed(target, uiError);
+                }
+
+                var displayedProgress = 0.1f;
+                void ReportProgress(float progress, float from, float to, string step, string description)
+                {
+                    displayedProgress = Mathf.Max(
+                        displayedProgress,
+                        Mathf.Lerp(from, to, Mathf.Clamp01(progress)));
+                    loadingPresenter.SetProgress(displayedProgress, step, description);
+                }
+
+                loadingPresenter.SetProgress(0.1f, "重新运行场景", $"正在卸载{definition.DisplayName}");
+                var unloadResult = await runtime.ReturnToHubAsync(progress =>
+                    ReportProgress(progress, 0.1f, 0.45f, "重新运行场景", $"正在卸载{definition.DisplayName}"));
+                if (!unloadResult.Succeeded)
+                {
+                    await loadingPresenter.RestoreAsync(target);
+                    return GameSceneSwitchResult.Failed(target, unloadResult.Error);
+                }
+
+                CurrentScene = GameSceneId.Hub;
+                var loadResult = await runtime.LoadAsync(definition.Address, progress =>
+                    ReportProgress(progress, 0.45f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}"));
+                if (!loadResult.Succeeded)
+                {
+                    await loadingPresenter.RestoreAsync(GameSceneId.Hub);
+                    return GameSceneSwitchResult.Failed(target, loadResult.Error);
+                }
+
+                CurrentScene = target;
+                loadingPresenter.SetProgress(0.95f, "重新运行场景", "正在完成场景初始化");
+                uiError = await loadingPresenter.CompleteAsync(target);
+                return string.IsNullOrEmpty(uiError)
+                    ? GameSceneSwitchResult.Succeeded(target)
+                    : GameSceneSwitchResult.Failed(target, uiError);
+            }
+            catch (Exception exception)
+            {
+                await loadingPresenter.RestoreAsync(CurrentScene);
+                Debug.LogException(exception);
+                return GameSceneSwitchResult.Failed(target, exception.Message);
+            }
+            finally
+            {
+                isTransitioning = false;
+            }
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using Hotfix.DroneFlight;
 using NUnit.Framework;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace Hotfix.Tests
     public sealed class DroneCameraLifecycleTests
     {
         [UnityTest]
-        public IEnumerator RemotePreviewFullscreenAndExit_TransfersOutputAndReleasesRenderTexture()
+        public IEnumerator FDirectlyActivatesThirdPersonAndExitReturnsWaitingWithoutRenderTexture()
         {
             var root = new GameObject("RemoteExperienceFixture");
             var playerObject = new GameObject("PlayerCamera");
@@ -25,38 +26,25 @@ namespace Hotfix.Tests
             var cameraRig = droneCameraObject.AddComponent<DroneCameraRig>();
             cameraRig.Configure(droneCamera, droneBody.transform, null, null, null, null);
 
-            var remoteRoot = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            remoteRoot.name = "RemoteProxy";
-            remoteRoot.transform.SetParent(root.transform);
-            var screen = remoteRoot.GetComponent<MeshRenderer>();
-
             var experience = root.AddComponent<DroneRemoteControllerExperience>();
-            experience.Configure(playerCamera, cameraRig, null, remoteRoot.transform, screen);
-            experience.BeginEnter();
+            experience.Configure(playerCamera, cameraRig, null);
+            experience.Activate();
+            yield return null;
 
-            yield return new WaitForSecondsRealtime(2.1f);
-
-            Assert.That(experience.State, Is.EqualTo(DroneRemoteControlState.Preview));
-            Assert.That(playerCamera.enabled, Is.True);
-            Assert.That(droneCamera.enabled, Is.True);
-            Assert.That(droneCamera.targetTexture, Is.Not.Null);
-            Assert.That(experience.HasPreviewTexture, Is.True);
-
-            experience.ExpandToFullscreen();
-            yield return new WaitForSecondsRealtime(0.55f);
-
-            Assert.That(experience.State, Is.EqualTo(DroneRemoteControlState.Fullscreen));
+            Assert.That(experience.State, Is.EqualTo(DroneControlSessionState.Active));
             Assert.That(playerCamera.enabled, Is.False);
             Assert.That(droneCamera.enabled, Is.True);
             Assert.That(droneCamera.targetTexture, Is.Null);
+            Assert.That(cameraRig.Mode, Is.EqualTo(DroneCameraMode.ThirdPerson));
+            Assert.That(Resources.FindObjectsOfTypeAll<RenderTexture>()
+                .Any(texture => texture.name == "DroneRemotePreviewRT"), Is.False);
 
-            experience.BeginExit();
-            yield return new WaitForSecondsRealtime(0.6f);
+            experience.ReturnToWaiting();
+            yield return null;
 
-            Assert.That(experience.State, Is.EqualTo(DroneRemoteControlState.GroundIdle));
+            Assert.That(experience.State, Is.EqualTo(DroneControlSessionState.Waiting));
             Assert.That(playerCamera.enabled, Is.True);
             Assert.That(droneCamera.enabled, Is.False);
-            Assert.That(experience.HasPreviewTexture, Is.False);
             Object.Destroy(root);
         }
 

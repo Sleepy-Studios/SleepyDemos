@@ -52,6 +52,21 @@ namespace Hotfix.Tests
             Assert.That(state.NormalizedOutput, Is.Zero);
             Assert.That(state.HadInvalidInput, Is.True);
         }
+
+        [Test]
+        public void UpdateSettings_PreservesCurrentRpmWithoutResettingMotor()
+        {
+            var motor = new DroneMotorModel(new DroneMotorSettings(0f, 10000f, 0.0000001f, 0.03f));
+            var before = motor.Step(0.6f, 0.02f);
+
+            motor.UpdateSettings(
+                new DroneMotorSettings(0.08f, 12000f, 0.0000002f, 0.02f),
+                preserveCurrentRpm: true);
+            var after = motor.Step(0.5f, 0.000001f);
+
+            Assert.That(after.Rpm, Is.EqualTo(before.Rpm).Within(1f));
+            Assert.That(after.NormalizedOutput, Is.GreaterThan(0f));
+            Assert.That(after.HadInvalidInput, Is.False);
+        }
     }
 }
-

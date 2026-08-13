@@ -30,6 +30,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneRotorPosition position;
         [SerializeField] private DroneRotorDirection direction;
         [SerializeField] private Transform visualPropeller;
+        [SerializeField] private DroneRotorVisual rotorVisual;
 
         /// <summary>旋翼在 X 架中的固定位置。</summary>
         internal DroneRotorPosition Position => position;
@@ -43,6 +44,9 @@ namespace Hotfix.DroneFlight
         /// <summary>可选的视觉桨叶。</summary>
         internal Transform VisualPropeller => visualPropeller;
 
+        /// 平滑旋翼视觉驱动；不得参与推力计算。
+        internal DroneRotorVisual RotorVisual => rotorVisual;
+
         /// <summary>
         /// 由运行时装配器或测试工况显式设置旋翼语义。
         /// </summary>
@@ -52,11 +56,40 @@ namespace Hotfix.DroneFlight
         internal void Configure(
             DroneRotorPosition rotorPosition,
             DroneRotorDirection rotorDirection,
-            Transform propeller = null)
+            Transform propeller = null,
+            DroneRotorVisual visual = null)
         {
             position = rotorPosition;
             direction = rotorDirection;
             visualPropeller = propeller;
+            rotorVisual = visual;
+            rotorVisual?.Configure(propeller, rotorDirection);
+        }
+
+        /// <summary>
+        /// 将电机模型的真实转速提交给视觉驱动。
+        /// </summary>
+        /// <param name="rpm">电机当前转速，单位 rpm。</param>
+        internal void SetVisualRpm(float rpm)
+        {
+            if (rotorVisual == null && visualPropeller != null)
+            {
+                rotorVisual = visualPropeller.GetComponent<DroneRotorVisual>();
+            }
+
+            if (rotorVisual == null)
+            {
+                return;
+            }
+
+            rotorVisual.Configure(visualPropeller, direction);
+            rotorVisual.SetRpm(rpm);
+        }
+
+        /// 停止视觉旋翼并清空累计相位。
+        internal void ResetVisual()
+        {
+            rotorVisual?.ResetVisual();
         }
     }
 }

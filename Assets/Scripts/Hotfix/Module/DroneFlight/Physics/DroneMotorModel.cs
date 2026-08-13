@@ -73,7 +73,7 @@ namespace Hotfix.DroneFlight
     /// </summary>
     internal sealed class DroneMotorModel
     {
-        private readonly DroneMotorSettings settings;
+        private DroneMotorSettings settings;
         private float normalizedOutput;
 
         internal DroneMotorModel(DroneMotorSettings settings)
@@ -106,6 +106,28 @@ namespace Hotfix.DroneFlight
             var reactionTorque = thrust * settings.ReactionTorqueCoefficient;
             return new DroneMotorState(normalizedOutput, rpm, thrust, reactionTorque, false);
         }
+
+        /// <summary>
+        /// 更新电机物理参数，并可按当前真实 RPM 重映射归一化状态。
+        /// </summary>
+        /// <param name="newSettings">新的电机物理参数。</param>
+        /// <param name="preserveCurrentRpm">是否在最大 RPM 变化时保持当前真实 RPM 连续。</param>
+        internal void UpdateSettings(DroneMotorSettings newSettings, bool preserveCurrentRpm)
+        {
+            if (newSettings.MaximumRpm <= 0f || newSettings.ThrustCoefficient <= 0f)
+            {
+                return;
+            }
+
+            var currentRpm = normalizedOutput * settings.MaximumRpm;
+            settings = newSettings;
+            if (preserveCurrentRpm)
+            {
+                normalizedOutput = Clamp01(currentRpm / settings.MaximumRpm);
+            }
+        }
+
+        internal float NormalizedOutput => normalizedOutput;
 
         /// <summary>立即清除电机响应历史。</summary>
         internal void Reset()

@@ -1,114 +1,37 @@
 namespace Hotfix.DroneFlight
 {
-    /// <summary>遥控器接管流程阶段。</summary>
-    internal enum DroneRemoteControlState
+    /// <summary>无人机直接控制会话状态。</summary>
+    internal enum DroneControlSessionState
     {
-        GroundIdle,
-        PickingUp,
-        PoweringOn,
-        Connecting,
-        Preview,
-        Expanding,
-        Fullscreen,
-        Exiting
+        Waiting,
+        Active
     }
 
-    /// <summary>
-    /// 与动画和 Camera 解耦的遥控器接管状态机。
-    /// </summary>
-    internal sealed class DroneRemoteControlSequence
+    /// <summary>与 Camera 和输入组件解耦的两态控制会话。</summary>
+    internal sealed class DroneControlSession
     {
-        private float elapsed;
+        internal DroneControlSessionState State { get; private set; } = DroneControlSessionState.Waiting;
 
-        internal DroneRemoteControlState State { get; private set; } = DroneRemoteControlState.GroundIdle;
-
-        internal float NormalizedProgress { get; private set; }
-
-        internal void BeginEnter()
+        internal bool Activate()
         {
-            if (State != DroneRemoteControlState.GroundIdle)
+            if (State == DroneControlSessionState.Active)
             {
-                return;
+                return false;
             }
 
-            SetState(DroneRemoteControlState.PickingUp);
+            State = DroneControlSessionState.Active;
+            return true;
         }
 
-        internal void ExpandToFullscreen()
+        internal bool ReturnToWaiting()
         {
-            if (State == DroneRemoteControlState.Preview)
+            if (State == DroneControlSessionState.Waiting)
             {
-                SetState(DroneRemoteControlState.Expanding);
-            }
-        }
-
-        internal void BeginExit()
-        {
-            if (State != DroneRemoteControlState.GroundIdle && State != DroneRemoteControlState.Exiting)
-            {
-                SetState(DroneRemoteControlState.Exiting);
-            }
-        }
-
-        internal void Step(float deltaTime)
-        {
-            if (!(deltaTime > 0f) || float.IsNaN(deltaTime) || float.IsInfinity(deltaTime))
-            {
-                return;
+                return false;
             }
 
-            var duration = GetDuration(State);
-            if (duration <= 0f)
-            {
-                NormalizedProgress = 1f;
-                return;
-            }
-
-            elapsed += deltaTime;
-            NormalizedProgress = System.Math.Min(1f, elapsed / duration);
-            if (elapsed < duration)
-            {
-                return;
-            }
-
-            switch (State)
-            {
-                case DroneRemoteControlState.PickingUp:
-                    SetState(DroneRemoteControlState.PoweringOn);
-                    break;
-                case DroneRemoteControlState.PoweringOn:
-                    SetState(DroneRemoteControlState.Connecting);
-                    break;
-                case DroneRemoteControlState.Connecting:
-                    SetState(DroneRemoteControlState.Preview);
-                    break;
-                case DroneRemoteControlState.Expanding:
-                    SetState(DroneRemoteControlState.Fullscreen);
-                    break;
-                case DroneRemoteControlState.Exiting:
-                    SetState(DroneRemoteControlState.GroundIdle);
-                    break;
-            }
-        }
-
-        private void SetState(DroneRemoteControlState state)
-        {
-            State = state;
-            elapsed = 0f;
-            NormalizedProgress = 0f;
-        }
-
-        private static float GetDuration(DroneRemoteControlState state)
-        {
-            return state switch
-            {
-                DroneRemoteControlState.PickingUp => 0.7f,
-                DroneRemoteControlState.PoweringOn => 0.5f,
-                DroneRemoteControlState.Connecting => 0.8f,
-                DroneRemoteControlState.Expanding => 0.45f,
-                DroneRemoteControlState.Exiting => 0.5f,
-                _ => 0f
-            };
+            State = DroneControlSessionState.Waiting;
+            return true;
         }
     }
 }

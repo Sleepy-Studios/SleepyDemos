@@ -89,12 +89,43 @@ namespace Hotfix.Tests
             Assert.That(completed.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
         }
 
+        [Test]
+        public async Task ReloadCurrentAsync_Demo_UnloadsAndLoadsSameSceneAgain()
+        {
+            var runtime = new FakeSceneRuntime();
+            var presenter = new FakeLoadingPresenter();
+            var navigator = new GameSceneNavigator(runtime, presenter);
+            await navigator.SwitchAsync(GameSceneId.DroneFlight);
+            var loadCountBeforeReload = runtime.LoadCount;
+
+            var result = await navigator.ReloadCurrentAsync();
+
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.DroneFlight));
+            Assert.That(runtime.ReturnCount, Is.EqualTo(1));
+            Assert.That(runtime.LoadCount, Is.EqualTo(loadCountBeforeReload + 1));
+        }
+
+        [Test]
+        public async Task ReloadCurrentAsync_Hub_IsIgnoredWithoutRuntimeWork()
+        {
+            var runtime = new FakeSceneRuntime();
+            var navigator = new GameSceneNavigator(runtime, new FakeLoadingPresenter());
+
+            var result = await navigator.ReloadCurrentAsync();
+
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Ignored));
+            Assert.That(runtime.LoadCount, Is.Zero);
+            Assert.That(runtime.ReturnCount, Is.Zero);
+        }
+
         private sealed class FakeSceneRuntime : IGameSceneRuntime
         {
             internal GameSceneRuntimeResult NextResult { get; set; } = GameSceneRuntimeResult.Success();
             internal float[] ProgressValues { get; set; } = Array.Empty<float>();
             internal UniTaskCompletionSource<GameSceneRuntimeResult> PendingCompletion { get; set; }
             internal int LoadCount { get; private set; }
+            internal int ReturnCount { get; private set; }
 
             public async UniTask<GameSceneRuntimeResult> LoadAsync(
                 string address,
@@ -111,6 +142,7 @@ namespace Hotfix.Tests
 
             public UniTask<GameSceneRuntimeResult> ReturnToHubAsync(Action<float> onProgress)
             {
+                ReturnCount++;
                 onProgress?.Invoke(1f);
                 return UniTask.FromResult(NextResult);
             }

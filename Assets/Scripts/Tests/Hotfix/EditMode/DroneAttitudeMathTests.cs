@@ -39,5 +39,30 @@ namespace Hotfix.Tests
             Assert.That(targetRate.magnitude, Is.EqualTo(2f).Within(0.0001f));
             Assert.That(targetRate.x, Is.GreaterThan(0f));
         }
+
+        [Test]
+        public void AdvanceBoundedYawTarget_LongCommandCannotWindUpBeyondActualHeading()
+        {
+            var target = 0f;
+            const float actual = 15f;
+            for (var index = 0; index < 500; index++)
+            {
+                target = DroneAttitudeMath.AdvanceBoundedYawTarget(target, actual, 3f, 45f);
+            }
+
+            Assert.That(Mathf.Abs(Mathf.DeltaAngle(actual, target)), Is.EqualTo(45f).Within(0.001f));
+        }
+
+        [Test]
+        public void HeadingRelativeVelocity_UsesActualHeadingInsteadOfStaleYawTarget()
+        {
+            var velocity = DroneAttitudeMath.CalculateHeadingRelativeWorldVelocity(
+                Vector2.up,
+                actualYawDegrees: 90f,
+                maximumSpeed: 7f);
+
+            Assert.That(velocity.x, Is.EqualTo(7f).Within(0.001f));
+            Assert.That(velocity.z, Is.EqualTo(0f).Within(0.001f));
+        }
     }
 }

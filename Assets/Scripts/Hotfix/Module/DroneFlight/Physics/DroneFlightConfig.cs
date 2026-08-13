@@ -89,8 +89,18 @@ namespace Hotfix.DroneFlight
     [CreateAssetMenu(fileName = "DroneFlightConfig", menuName = "SleepyDemos/Drone Flight/Config")]
     public sealed class DroneFlightConfig : ScriptableObject
     {
+        [Header("Payload Friendly Tuning")]
+        [SerializeField] private DronePowerConfigurationMode powerConfigurationMode = DronePowerConfigurationMode.AutomaticPayloadTuning;
+        [SerializeField] private float ratedPayloadKilograms = 1f;
+        [SerializeField] private float bodyMassMultiplier = 1.2f;
+        [SerializeField, Range(1f, 1.5f)] private float maximumPayloadMultiplier = 1.25f;
+        [SerializeField, Range(0.5f, 0.95f)] private float ratedPayloadHoverCommand = 0.9f;
+        [SerializeField, Range(0f, 100f)] private float motorResponsiveness = 70f;
+
         [Header("Airframe")]
         [SerializeField] private float bodyMassKilograms = 1.2f;
+        [SerializeField] private float bodyLinearDamping;
+        [SerializeField] private float bodyAngularDamping = 0.05f;
 
         [Header("Motor")]
         [SerializeField] private float motorResponseTimeSeconds = 0.08f;
@@ -129,17 +139,71 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneResponseProfileConfig sportProfile = new(
             7f, 5f, 35f, 3f, 150f, 5f);
 
+        [Header("Automatic Flight")]
+        [SerializeField] private float automaticTakeoffHeightMeters = 1.5f;
+        [SerializeField] private float automaticLandingSpeedMetersPerSecond = 0.5f;
+        [SerializeField] private DroneResponseProfile defaultResponseProfile = DroneResponseProfile.Normal;
+
+        [Header("Landing Gear")]
+        [SerializeField] private float landingGearTransitionSeconds = 0.45f;
+
+        [Header("Winch And Grapple")]
+        [SerializeField] private float grappleHardwareMassKilograms = 0.05f;
+        [SerializeField] private float winchStowedLengthMeters = 0.08f;
+        [SerializeField] private float winchDeployedLengthMeters = 0.45f;
+        [SerializeField] private float winchCarryLengthMeters = 0.24f;
+        [SerializeField] private float winchSpeedMetersPerSecond = 0.35f;
+        [SerializeField] private float maximumPayloadMassKilograms = 0.6f;
+        [SerializeField] private float grappleBreakForceNewtons = 180f;
+        [SerializeField] private float grappleBreakTorqueNewtonMeters = 80f;
+        [SerializeField, Range(0f, 100f)] private float grappleStrength = 50f;
+        [SerializeField] private float grappleLinearFreedomMeters = 0.035f;
+        [SerializeField] private float grappleAngularFreedomDegrees = 12f;
+        [SerializeField] private float resetHoldSeconds = 5f;
+
+        internal DronePowerConfigurationMode PowerConfigurationMode => powerConfigurationMode;
+
+        internal float RatedPayloadKilograms => ratedPayloadKilograms;
+
+        internal float BodyMassMultiplier => bodyMassMultiplier;
+
+        internal float MaximumPayloadMultiplier => maximumPayloadMultiplier;
+
+        internal float RatedPayloadHoverCommand => ratedPayloadHoverCommand;
+
+        internal float MotorResponsiveness => motorResponsiveness;
+
+        internal DronePayloadTuningResult AutomaticTuning => DronePayloadTuningCalculator.Calculate(
+            new DronePayloadTuningInput(
+                ratedPayloadKilograms,
+                bodyMassMultiplier,
+                maximumPayloadMultiplier,
+                ratedPayloadHoverCommand,
+                maximumRpm,
+                grappleHardwareMassKilograms,
+                Mathf.Abs(Physics.gravity.y)));
+
         /// <summary>机体裸机质量，单位 kg。</summary>
-        internal float BodyMassKilograms => bodyMassKilograms;
+        internal float BodyMassKilograms => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
+            ? AutomaticTuning.BodyMassKilograms
+            : bodyMassKilograms;
+
+        internal float BodyLinearDamping => bodyLinearDamping;
+
+        internal float BodyAngularDamping => bodyAngularDamping;
 
         /// <summary>电机一阶响应时间常数，单位 s。</summary>
-        internal float MotorResponseTimeSeconds => motorResponseTimeSeconds;
+        internal float MotorResponseTimeSeconds => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
+            ? DronePayloadTuningCalculator.MapMotorResponsivenessToResponseTime(motorResponsiveness)
+            : motorResponseTimeSeconds;
 
         /// <summary>归一化满量程对应转速，单位 rpm。</summary>
         internal float MaximumRpm => maximumRpm;
 
         /// <summary>`T = k * rpm²` 中的推力系数。</summary>
-        internal float ThrustCoefficient => thrustCoefficient;
+        internal float ThrustCoefficient => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
+            ? AutomaticTuning.ThrustCoefficient
+            : thrustCoefficient;
 
         /// <summary>`Q = T * coefficient` 中的反扭矩比例。</summary>
         internal float ReactionTorqueCoefficient => reactionTorqueCoefficient;
@@ -167,6 +231,42 @@ namespace Hotfix.DroneFlight
 
         /// <summary>水平加速度限幅，单位 m/s²。</summary>
         internal float MaximumHorizontalAccelerationMetersPerSecondSquared => maximumHorizontalAccelerationMetersPerSecondSquared;
+
+        internal float AutomaticTakeoffHeightMeters => automaticTakeoffHeightMeters;
+
+        internal float AutomaticLandingSpeedMetersPerSecond => automaticLandingSpeedMetersPerSecond;
+
+        internal DroneResponseProfile DefaultResponseProfile => defaultResponseProfile;
+
+        internal float LandingGearTransitionSeconds => landingGearTransitionSeconds;
+
+        internal float GrappleHardwareMassKilograms => grappleHardwareMassKilograms;
+
+        internal float WinchStowedLengthMeters => winchStowedLengthMeters;
+
+        internal float WinchDeployedLengthMeters => winchDeployedLengthMeters;
+
+        internal float WinchCarryLengthMeters => winchCarryLengthMeters;
+
+        internal float WinchSpeedMetersPerSecond => winchSpeedMetersPerSecond;
+
+        internal float MaximumPayloadMassKilograms => ratedPayloadKilograms * maximumPayloadMultiplier;
+
+        internal float GrappleBreakForceNewtons => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
+            ? DronePayloadTuningCalculator.MapGripStrengthToBreakForce(grappleStrength)
+            : grappleBreakForceNewtons;
+
+        internal float GrappleBreakTorqueNewtonMeters => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
+            ? DronePayloadTuningCalculator.MapGripStrengthToBreakTorque(grappleStrength)
+            : grappleBreakTorqueNewtonMeters;
+
+        internal float GrappleStrength => grappleStrength;
+
+        internal float GrappleLinearFreedomMeters => grappleLinearFreedomMeters;
+
+        internal float GrappleAngularFreedomDegrees => grappleAngularFreedomDegrees;
+
+        internal float ResetHoldSeconds => resetHoldSeconds;
 
         internal DronePidSettings CreateRollRateSettings()
         {
@@ -204,21 +304,86 @@ namespace Hotfix.DroneFlight
             };
         }
 
+        /// <summary>为确定性测试和运行时调校工具设置自动载重输入，不修改飞行档位。</summary>
+        internal void ConfigureAutomaticPayloadTuning(
+            float ratedPayload,
+            float payloadMultiplier,
+            float hoverCommand,
+            float massMultiplier = 1.2f,
+            float rpm = 10000f,
+            float responsiveness = 70f)
+        {
+            powerConfigurationMode = DronePowerConfigurationMode.AutomaticPayloadTuning;
+            ratedPayloadKilograms = ratedPayload;
+            maximumPayloadMultiplier = payloadMultiplier;
+            ratedPayloadHoverCommand = hoverCommand;
+            bodyMassMultiplier = massMultiplier;
+            maximumRpm = rpm;
+            motorResponsiveness = responsiveness;
+        }
+
+        /// <summary>为确定性测试和运行时调校工具设置手动物理参数。</summary>
+        internal void ConfigureManualPhysics(
+            float ratedPayload,
+            float mass,
+            float rpm,
+            float coefficient,
+            float responseTime)
+        {
+            powerConfigurationMode = DronePowerConfigurationMode.ManualPhysics;
+            ratedPayloadKilograms = ratedPayload;
+            bodyMassKilograms = mass;
+            maximumRpm = rpm;
+            thrustCoefficient = coefficient;
+            motorResponseTimeSeconds = responseTime;
+        }
+
+        internal void ConfigureGrappleHardwareMass(float massKilograms)
+        {
+            grappleHardwareMassKilograms = massKilograms;
+        }
+
         internal bool TryValidate(out string diagnostic)
         {
-            if (!IsPositiveFinite(bodyMassKilograms))
+            var tuning = AutomaticTuning;
+            if (!IsPositiveFinite(ratedPayloadKilograms))
+            {
+                diagnostic = "额定载重必须是大于 0 的有限值。";
+                return false;
+            }
+
+            if (!IsPositiveFinite(maximumPayloadMassKilograms))
+            {
+                diagnostic = "兼容用最大载荷质量必须是大于 0 的有限值。";
+                return false;
+            }
+
+            if (!float.IsFinite(maximumPayloadMultiplier) || maximumPayloadMultiplier < 1f)
+            {
+                diagnostic = "最大载荷倍率必须是大于等于 1 的有限值。";
+                return false;
+            }
+
+            if (powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning && !tuning.IsValid)
+            {
+                diagnostic = tuning.Diagnostic;
+                return false;
+            }
+
+            if (powerConfigurationMode == DronePowerConfigurationMode.ManualPhysics && !IsPositiveFinite(bodyMassKilograms))
             {
                 diagnostic = "机体质量必须是大于 0 的有限值。";
                 return false;
             }
 
-            if (!IsPositiveFinite(maximumRpm) || !IsPositiveFinite(thrustCoefficient))
+            if (!IsPositiveFinite(maximumRpm)
+                || (powerConfigurationMode == DronePowerConfigurationMode.ManualPhysics && !IsPositiveFinite(thrustCoefficient)))
             {
                 diagnostic = "最大转速和推力系数必须是大于 0 的有限值。";
                 return false;
             }
 
-            if (!IsPositiveFinite(motorResponseTimeSeconds) || !IsPositiveFinite(reactionTorqueCoefficient))
+            if (!IsPositiveFinite(MotorResponseTimeSeconds) || !IsPositiveFinite(reactionTorqueCoefficient))
             {
                 diagnostic = "电机响应时间和反扭矩系数必须是大于 0 的有限值。";
                 return false;
@@ -243,6 +408,52 @@ namespace Hotfix.DroneFlight
                 || !cineProfile.IsValid() || !normalProfile.IsValid() || !sportProfile.IsValid())
             {
                 diagnostic = "Cine、Normal、Sport 响应档位必须全部存在且参数有效。";
+                return false;
+            }
+
+            if (!IsPositiveFinite(landingGearTransitionSeconds))
+            {
+                diagnostic = "起落架过渡时间必须为正数。";
+                return false;
+            }
+
+            if (!IsPositiveFinite(grappleHardwareMassKilograms)
+                || !IsPositiveFinite(winchStowedLengthMeters)
+                || !IsPositiveFinite(winchCarryLengthMeters)
+                || !IsPositiveFinite(winchDeployedLengthMeters)
+                || !(winchStowedLengthMeters < winchCarryLengthMeters
+                     && winchCarryLengthMeters < winchDeployedLengthMeters)
+                || !IsPositiveFinite(winchSpeedMetersPerSecond)
+                || !IsPositiveFinite(MaximumPayloadMassKilograms)
+                || !IsPositiveFinite(GrappleBreakForceNewtons)
+                || !IsPositiveFinite(GrappleBreakTorqueNewtonMeters)
+                || !IsPositiveFinite(grappleLinearFreedomMeters)
+                || !float.IsFinite(grappleAngularFreedomDegrees)
+                || grappleAngularFreedomDegrees <= 0f
+                || grappleAngularFreedomDegrees > 45f
+                || !IsPositiveFinite(resetHoldSeconds))
+            {
+                diagnostic = "卷扬长度必须满足收纳 < 运输 < 放出，且抓斗、载荷与复位参数必须为正数。";
+                return false;
+            }
+
+            if (!IsPositiveFinite(automaticTakeoffHeightMeters)
+                || !IsPositiveFinite(automaticLandingSpeedMetersPerSecond))
+            {
+                diagnostic = "自动起飞高度和自动降落速度必须是大于 0 的有限值。";
+                return false;
+            }
+
+            var manualHover = DronePayloadTuningCalculator.CalculateHoverCommand(
+                BodyMassKilograms + grappleHardwareMassKilograms + ratedPayloadKilograms,
+                Mathf.Abs(Physics.gravity.y),
+                MaximumRpm,
+                ThrustCoefficient);
+            if (!float.IsFinite(manualHover) || manualHover >= 1f)
+            {
+                diagnostic = powerConfigurationMode == DronePowerConfigurationMode.ManualPhysics
+                    ? "手动物理参数的最大推力不足，额定载重工况无法悬停。"
+                    : "自动载重调校无法满足额定工况悬停。";
                 return false;
             }
 

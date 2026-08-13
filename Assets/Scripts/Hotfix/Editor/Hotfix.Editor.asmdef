@@ -1,0 +1,22 @@
+{
+    "name": "Hotfix.Editor",
+    "rootNamespace": "Hotfix.Editor",
+    "references": [
+        "Core.Runtime",
+        "Core.Editor",
+        "Hotfix",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
