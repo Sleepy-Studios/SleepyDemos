@@ -26,39 +26,48 @@ MonoBehaviour:
   thrustCoefficient: 0.00000006
   reactionTorqueCoefficient: 0.018
   attitudeGain: 4
+  yawAttitudeGain: 3
+  yawWeight: 0.6
+  rateFeedForward: 1
+  stateDerivativeFilterHz: 8
   maximumRateRadiansPerSecond: 3.5
   rollRate:
-    proportionalGain: 0.1
-    integralGain: 0.02
-    derivativeGain: 0.002
-    outputLimit: 0.25
-    integralLimit: 0.2
+    proportionalGain: 8
+    integralGain: 2
+    derivativeGain: 0.12
+    outputLimit: 30
+    integralLimit: 3
     derivativeFilterHz: 8
   pitchRate:
-    proportionalGain: 0.1
-    integralGain: 0.02
-    derivativeGain: 0.002
-    outputLimit: 0.25
-    integralLimit: 0.2
+    proportionalGain: 8
+    integralGain: 2
+    derivativeGain: 0.12
+    outputLimit: 30
+    integralLimit: 3
     derivativeFilterHz: 8
   yawRate:
-    proportionalGain: 0.1
-    integralGain: 0.02
-    derivativeGain: 0.002
-    outputLimit: 0.25
-    integralLimit: 0.2
+    proportionalGain: 6
+    integralGain: 1.5
+    derivativeGain: 0.08
+    outputLimit: 20
+    integralLimit: 3
     derivativeFilterHz: 8
   altitudeGain: 1.5
   maximumVerticalSpeedMetersPerSecond: 2
-  verticalSpeedProportionalGain: 0.08
-  verticalSpeedIntegralGain: 0.03
-  verticalSpeedDerivativeGain: 0.01
-  verticalSpeedOutputLimit: 0.25
+  verticalSpeedProportionalGain: 2.4
+  verticalSpeedIntegralGain: 0.8
+  verticalSpeedDerivativeGain: 0.15
+  verticalSpeedOutputLimit: 5
   verticalSpeedIntegralLimit: 3
   verticalSpeedDerivativeFilterHz: 5
   maximumHorizontalSpeedMetersPerSecond: 4
   horizontalPositionGain: 0.35
   horizontalVelocityGain: 1.2
+  horizontalVelocityIntegralGain: 0.25
+  horizontalVelocityDerivativeGain: 0.08
+  horizontalVelocityOutputLimit: 10
+  horizontalVelocityIntegralLimit: 3
+  horizontalVelocityDerivativeFilterHz: 5
   maximumHorizontalAccelerationMetersPerSecondSquared: 2.5
   cineProfile:
     maximumHorizontalSpeed: 2
@@ -67,6 +76,10 @@ MonoBehaviour:
     maximumVerticalSpeed: 1
     maximumYawSpeedDegrees: 45
     inputRiseRate: 2
+    maximumHorizontalJerk: 2
+    maximumVerticalAcceleration: 1.5
+    maximumVerticalJerk: 4
+    maximumYawAccelerationDegrees: 90
   normalProfile:
     maximumHorizontalSpeed: 4
     maximumHorizontalAcceleration: 2.5
@@ -74,6 +87,10 @@ MonoBehaviour:
     maximumVerticalSpeed: 2
     maximumYawSpeedDegrees: 90
     inputRiseRate: 3
+    maximumHorizontalJerk: 6
+    maximumVerticalAcceleration: 3
+    maximumVerticalJerk: 8
+    maximumYawAccelerationDegrees: 180
   sportProfile:
     maximumHorizontalSpeed: 7
     maximumHorizontalAcceleration: 5
@@ -81,19 +98,41 @@ MonoBehaviour:
     maximumVerticalSpeed: 3
     maximumYawSpeedDegrees: 150
     inputRiseRate: 5
+    maximumHorizontalJerk: 15
+    maximumVerticalAcceleration: 5
+    maximumVerticalJerk: 15
+    maximumYawAccelerationDegrees: 360
   automaticTakeoffHeightMeters: 1.5
   automaticLandingSpeedMetersPerSecond: 0.5
   defaultResponseProfile: 0
   landingGearTransitionSeconds: 0.45
   grappleHardwareMassKilograms: 0.05
-  winchStowedLengthMeters: 0.01
-  winchDeployedLengthMeters: 0.05
-  winchCarryLengthMeters: 0.04
+  winchStowedLengthMeters: 0.08
+  winchDeployedLengthMeters: 0.45
+  winchCarryLengthMeters: 0.24
   winchSpeedMetersPerSecond: 0.35
+  topSuspensionTwistLimitDegrees: 25
+  topSuspensionSwingLimitDegrees: 45
+  bottomSuspensionTwistLimitDegrees: 25
+  bottomSuspensionSwingLimitDegrees: 45
+  suspensionJointAngularSpring: 0
+  suspensionJointAngularDamper: 0
+  suspensionTwistLimitDegrees: 25
+  suspensionSwingLimitDegrees: 45
+  suspensionDampingRatio: 0.35
+  suspensionMaximumDampingTorque: 2.5
   maximumPayloadMassKilograms: 0.6
   grappleBreakForceNewtons: 180
   grappleBreakTorqueNewtonMeters: 80
   grappleStrength: 50
-  grappleLinearFreedomMeters: 0.035
+  grappleLinearFreedomMeters: 0.025
   grappleAngularFreedomDegrees: 12
+  grappleTakeupSeconds: 0.3
+  grappleWorkingSpring: 250
+  grappleWorkingDamper: 25
+  grappleDockPositionToleranceMeters: 0.02
+  grappleDockSpeedToleranceMetersPerSecond: 0.15
+  antiSwingStrength: 18
+  antiSwingMaximumAcceleration: 1
+  externalMassBlendSeconds: 0.15
   resetHoldSeconds: 3

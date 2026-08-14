@@ -1,10 +1,9 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>六爪抓斗从开合到弱约束抓取的运行状态。</summary>
+    /// <summary>六爪抓斗从开合到软辅助抓取的运行状态。</summary>
     internal enum DroneGrappleState
     {
         Open,
@@ -15,19 +14,23 @@ namespace Hotfix.DroneFlight
         Broken
     }
 
-    /// <summary>驱动八个物理爪，并在三爪接触门禁后请求有限活动弱约束。</summary>
+    /// <summary>驱动单刚体复合六爪，并在真实三爪接触后请求软辅助约束。</summary>
     public sealed class DroneMechanicalHook : MonoBehaviour
     {
         [SerializeField] private PayloadMount payloadMount;
         [SerializeField] private Transform grappleCenter;
-        [SerializeField] private HingeJoint[] clawJoints = Array.Empty<HingeJoint>();
-        [SerializeField] private DroneGrappleContactSensor[] contactSensors = Array.Empty<DroneGrappleContactSensor>();
-        [SerializeField] private float captureRadiusMeters = 0.38f;
+        [SerializeField] private Transform[] clawRoots = Array.Empty<Transform>();
+        [SerializeField] private DroneGrappleContactCollector contactCollector;
+        [SerializeField] private float captureRadiusMeters = 0.266f;
         [SerializeField] private float openAngleDegrees = -42f;
         [SerializeField] private float closedAngleDegrees = 28f;
-        [SerializeField] private float clawSpring = 4f;
-        [SerializeField] private float clawDamper = 0.6f;
+        [SerializeField] private float clawAngularSpeedDegreesPerSecond = 180f;
         [SerializeField] private int minimumDistinctContacts = 3;
+
+        [SerializeField, HideInInspector] private Quaternion[] clawBaseRotations = Array.Empty<Quaternion>();
+        private float currentClawAngleDegrees = -42f;
+        private string currentHint = string.Empty;
+        private float hintUntilTime;
 
         /// 抓斗是否处于闭合指令状态。
         internal bool IsClosed { get; private set; }
@@ -41,11 +44,10 @@ namespace Hotfix.DroneFlight
         /// 当前中文操作提示。
         internal string CurrentHint => Time.unscaledTime <= hintUntilTime ? currentHint : string.Empty;
 
-        private string currentHint = string.Empty;
-        private float hintUntilTime;
-
-        private void Update()
+        private void FixedUpdate()
         {
+            EnsureClawBaseRotations();
+            StepClawAnimation(Time.fixedDeltaTime);
             if (!IsClosed || payloadMount == null || payloadMount.HasPayload)
             {
                 if (payloadMount != null && payloadMount.HasPayload)
@@ -64,40 +66,38 @@ namespace Hotfix.DroneFlight
         {
             IsClosed = true;
             State = DroneGrappleState.Closing;
-            ApplyClawSprings(closing: true);
             return TryAttachFromContacts();
         }
 
-        /// 张开六爪并立即解除抓取弱约束。
+        /// 张开六爪并立即解除抓取软约束。
         internal void OpenAndRelease()
         {
             State = DroneGrappleState.Releasing;
             IsClosed = false;
             CurrentContactCount = 0;
             payloadMount?.Release(PayloadReleaseReason.Manual);
-            ApplyClawSprings(closing: false);
             State = DroneGrappleState.Open;
         }
 
-        /// <summary>
-        /// 由 Prefab 装配或测试绑定六个关节、接触传感器与抓斗中心。
-        /// </summary>
-        /// <param name="mount">负责建立弱约束的挂载边界。</param>
-        /// <param name="joints">八个活动爪 HingeJoint。</param>
-        /// <param name="sensors">与关节一一对应的接触传感器。</param>
+        /// <summary>由 Prefab 装配抓斗、六爪动画根和统一接触收集器。</summary>
+        /// <param name="mount">负责建立软约束的挂载边界。</param>
+        /// <param name="claws">六个复合 Collider 的动画根。</param>
+        /// <param name="collector">按爪编号汇总真实碰撞点的收集器。</param>
         /// <param name="center">载荷必须进入的抓斗包围区中心。</param>
+        /// <param name="captureRadius">抓取包围区半径，单位 m。</param>
         internal void Configure(
             PayloadMount mount,
-            HingeJoint[] joints,
-            DroneGrappleContactSensor[] sensors,
+            Transform[] claws,
+            DroneGrappleContactCollector collector,
             Transform center,
-            float captureRadius = 0.38f)
+            float captureRadius = 0.266f)
         {
             payloadMount = mount;
-            clawJoints = joints ?? Array.Empty<HingeJoint>();
-            contactSensors = sensors ?? Array.Empty<DroneGrappleContactSensor>();
+            clawRoots = claws ?? Array.Empty<Transform>();
+            contactCollector = collector;
             grappleCenter = center != null ? center : transform;
             captureRadiusMeters = Mathf.Max(0.01f, captureRadius);
+            CaptureClawBaseRotations();
             ResetOpen();
         }
 
@@ -108,7 +108,8 @@ namespace Hotfix.DroneFlight
             IsClosed = false;
             CurrentContactCount = 0;
             State = DroneGrappleState.Open;
-            ApplyClawSprings(closing: false);
+            currentClawAngleDegrees = openAngleDegrees;
+            ApplyClawAngle(currentClawAngleDegrees);
         }
 
         /// <summary>显示短时中文机制提示。</summary>
@@ -124,74 +125,73 @@ namespace Hotfix.DroneFlight
 
         private bool TryAttachFromContacts()
         {
-            var counts = new Dictionary<DronePayload, int>();
-            foreach (var sensor in contactSensors)
-            {
-                if (sensor == null)
-                {
-                    continue;
-                }
-
-                foreach (var payload in sensor.Contacts)
-                {
-                    counts.TryGetValue(payload, out var count);
-                    counts[payload] = count + 1;
-                }
-            }
-
-            DronePayload best = null;
-            CurrentContactCount = 0;
             var center = grappleCenter != null ? grappleCenter.position : transform.position;
-            foreach (var pair in counts)
+            if (contactCollector == null
+                || !contactCollector.TryGetBestSnapshot(center, captureRadiusMeters, out var snapshot))
             {
-                if (pair.Key == null || pair.Key.ConnectionPoint == null)
-                {
-                    continue;
-                }
-
-                if ((pair.Key.ConnectionPoint.position - center).sqrMagnitude
-                    > captureRadiusMeters * captureRadiusMeters)
-                {
-                    continue;
-                }
-
-                if (pair.Value > CurrentContactCount)
-                {
-                    CurrentContactCount = pair.Value;
-                    best = pair.Key;
-                }
-            }
-
-            if (best == null || CurrentContactCount < Mathf.Max(3, minimumDistinctContacts))
-            {
-                State = CurrentContactCount > 0 ? DroneGrappleState.Contacting : DroneGrappleState.Closing;
+                CurrentContactCount = 0;
+                State = DroneGrappleState.Closing;
                 return false;
             }
 
-            var attached = payloadMount.TryAssistGrip(best, CurrentContactCount);
+            CurrentContactCount = snapshot.DistinctClawCount;
+            if (CurrentContactCount < Mathf.Max(3, minimumDistinctContacts))
+            {
+                State = DroneGrappleState.Contacting;
+                return false;
+            }
+
+            var attached = payloadMount.TryAssistGrip(snapshot);
             State = attached ? DroneGrappleState.AssistedGrip : DroneGrappleState.Contacting;
             return attached;
         }
 
-        private void ApplyClawSprings(bool closing)
+        private void StepClawAnimation(float deltaTime)
         {
-            foreach (var joint in clawJoints)
+            if (!float.IsFinite(deltaTime) || deltaTime <= 0f)
             {
-                if (joint == null)
-                {
-                    continue;
-                }
+                return;
+            }
 
-                joint.useMotor = false;
-                joint.useSpring = true;
-                joint.spring = new JointSpring
+            var target = IsClosed ? closedAngleDegrees : openAngleDegrees;
+            currentClawAngleDegrees = Mathf.MoveTowards(
+                currentClawAngleDegrees,
+                target,
+                Mathf.Max(1f, clawAngularSpeedDegreesPerSecond) * deltaTime);
+            ApplyClawAngle(currentClawAngleDegrees);
+        }
+
+        private void CaptureClawBaseRotations()
+        {
+            clawBaseRotations = new Quaternion[clawRoots.Length];
+            for (var index = 0; index < clawRoots.Length; index++)
+            {
+                if (clawRoots[index] != null)
                 {
-                    targetPosition = closing ? closedAngleDegrees : openAngleDegrees,
-                    spring = Mathf.Max(0.1f, clawSpring),
-                    damper = Mathf.Max(0f, clawDamper)
-                };
-                joint.breakForce = float.PositiveInfinity;
-                joint.breakTorque = float.PositiveInfinity;
+                    clawBaseRotations[index] = clawRoots[index].localRotation;
+                }
+            }
+        }
+
+        private void EnsureClawBaseRotations()
+        {
+            if (clawBaseRotations == null || clawBaseRotations.Length != clawRoots.Length)
+            {
+                CaptureClawBaseRotations();
+            }
+        }
+
+        private void ApplyClawAngle(float angleDegrees)
+        {
+            EnsureClawBaseRotations();
+
+            for (var index = 0; index < clawRoots.Length; index++)
+            {
+                if (clawRoots[index] != null)
+                {
+                    clawRoots[index].localRotation = clawBaseRotations[index]
+                                                          * Quaternion.AngleAxis(angleDegrees, Vector3.right);
+                }
             }
         }
     }

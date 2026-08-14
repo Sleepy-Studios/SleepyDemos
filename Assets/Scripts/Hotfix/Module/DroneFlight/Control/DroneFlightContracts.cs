@@ -40,7 +40,11 @@ namespace Hotfix.DroneFlight
             float maximumTiltDegrees,
             float maximumVerticalSpeed,
             float maximumYawSpeedDegrees,
-            float inputRiseRate)
+            float inputRiseRate,
+            float maximumHorizontalJerk = 6f,
+            float maximumVerticalAcceleration = 3f,
+            float maximumVerticalJerk = 8f,
+            float maximumYawAccelerationDegrees = 180f)
         {
             MaximumHorizontalSpeed = maximumHorizontalSpeed;
             MaximumHorizontalAcceleration = maximumHorizontalAcceleration;
@@ -48,6 +52,10 @@ namespace Hotfix.DroneFlight
             MaximumVerticalSpeed = maximumVerticalSpeed;
             MaximumYawSpeedDegrees = maximumYawSpeedDegrees;
             InputRiseRate = inputRiseRate;
+            MaximumHorizontalJerk = maximumHorizontalJerk;
+            MaximumVerticalAcceleration = maximumVerticalAcceleration;
+            MaximumVerticalJerk = maximumVerticalJerk;
+            MaximumYawAccelerationDegrees = maximumYawAccelerationDegrees;
         }
 
         internal float MaximumHorizontalSpeed { get; }
@@ -61,6 +69,112 @@ namespace Hotfix.DroneFlight
         internal float MaximumYawSpeedDegrees { get; }
 
         internal float InputRiseRate { get; }
+
+        internal float MaximumHorizontalJerk { get; }
+
+        internal float MaximumVerticalAcceleration { get; }
+
+        internal float MaximumVerticalJerk { get; }
+
+        internal float MaximumYawAccelerationDegrees { get; }
+    }
+
+    /// <summary>单个控制轴当前无法继续输出的方向。</summary>
+    internal enum DroneSaturationDirection
+    {
+        None,
+        Positive,
+        Negative,
+        Both
+    }
+
+    /// <summary>三轴力矩和总推力的分配饱和状态。</summary>
+    internal readonly struct DroneControlSaturation
+    {
+        internal DroneControlSaturation(
+            DroneSaturationDirection thrust,
+            DroneSaturationDirection pitch,
+            DroneSaturationDirection yaw,
+            DroneSaturationDirection roll)
+        {
+            Thrust = thrust;
+            Pitch = pitch;
+            Yaw = yaw;
+            Roll = roll;
+        }
+
+        internal DroneSaturationDirection Thrust { get; }
+        internal DroneSaturationDirection Pitch { get; }
+        internal DroneSaturationDirection Yaw { get; }
+        internal DroneSaturationDirection Roll { get; }
+        internal bool IsSaturated => Thrust != DroneSaturationDirection.None
+                                     || Pitch != DroneSaturationDirection.None
+                                     || Yaw != DroneSaturationDirection.None
+                                     || Roll != DroneSaturationDirection.None;
+    }
+
+    /// <summary>固定物理步读取的一致机体状态。</summary>
+    internal readonly struct DroneStateSnapshot
+    {
+        internal DroneStateSnapshot(
+            Vector3 position,
+            Vector3 velocity,
+            Vector3 acceleration,
+            Quaternion rotation,
+            Vector3 localAngularVelocity,
+            Vector3 localAngularAcceleration)
+        {
+            Position = position;
+            Velocity = velocity;
+            Acceleration = acceleration;
+            Rotation = rotation;
+            LocalAngularVelocity = localAngularVelocity;
+            LocalAngularAcceleration = localAngularAcceleration;
+        }
+
+        internal Vector3 Position { get; }
+        internal Vector3 Velocity { get; }
+        internal Vector3 Acceleration { get; }
+        internal Quaternion Rotation { get; }
+        internal Vector3 LocalAngularVelocity { get; }
+        internal Vector3 LocalAngularAcceleration { get; }
+    }
+
+    /// <summary>轨迹生成器提供给位置和速度控制器的连续目标。</summary>
+    internal readonly struct DroneTrajectorySetpoint
+    {
+        internal DroneTrajectorySetpoint(
+            Vector3 worldVelocity,
+            Vector3 worldAcceleration,
+            float yawDegrees,
+            float yawRateRadians,
+            float yawAccelerationRadians)
+        {
+            WorldVelocity = worldVelocity;
+            WorldAcceleration = worldAcceleration;
+            YawDegrees = yawDegrees;
+            YawRateRadians = yawRateRadians;
+            YawAccelerationRadians = yawAccelerationRadians;
+        }
+
+        internal Vector3 WorldVelocity { get; }
+        internal Vector3 WorldAcceleration { get; }
+        internal float YawDegrees { get; }
+        internal float YawRateRadians { get; }
+        internal float YawAccelerationRadians { get; }
+    }
+
+    /// <summary>控制器希望机体实现的世界推力和局部力矩。</summary>
+    internal readonly struct DroneDesiredWrench
+    {
+        internal DroneDesiredWrench(Vector3 worldForceNewtons, Vector3 localTorqueNewtonMeters)
+        {
+            WorldForceNewtons = worldForceNewtons;
+            LocalTorqueNewtonMeters = localTorqueNewtonMeters;
+        }
+
+        internal Vector3 WorldForceNewtons { get; }
+        internal Vector3 LocalTorqueNewtonMeters { get; }
     }
 
     /// <summary>

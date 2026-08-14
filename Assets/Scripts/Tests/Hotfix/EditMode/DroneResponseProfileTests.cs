@@ -20,6 +20,10 @@ namespace Hotfix.Tests
             Assert.That(normal.MaximumTiltDegrees, Is.LessThan(sport.MaximumTiltDegrees));
             Assert.That(cine.InputRiseRate, Is.LessThan(normal.InputRiseRate));
             Assert.That(normal.InputRiseRate, Is.LessThan(sport.InputRiseRate));
+            Assert.That(cine.MaximumHorizontalJerk, Is.LessThan(normal.MaximumHorizontalJerk));
+            Assert.That(normal.MaximumHorizontalJerk, Is.LessThan(sport.MaximumHorizontalJerk));
+            Assert.That(cine.MaximumVerticalJerk, Is.LessThan(normal.MaximumVerticalJerk));
+            Assert.That(normal.MaximumVerticalJerk, Is.LessThan(sport.MaximumVerticalJerk));
 
             Object.DestroyImmediate(config);
         }

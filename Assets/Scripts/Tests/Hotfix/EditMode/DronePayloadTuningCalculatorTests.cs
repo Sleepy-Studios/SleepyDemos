@@ -100,7 +100,10 @@ namespace Hotfix.Tests
                          "ratedPayloadKilograms", "maximumPayloadMultiplier", "ratedPayloadHoverCommand",
                          "motorResponsiveness", "bodyMassMultiplier", "automaticTakeoffHeightMeters",
                          "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile", "grappleStrength",
-                         "grappleLinearFreedomMeters", "grappleAngularFreedomDegrees"
+                         "grappleLinearFreedomMeters", "grappleAngularFreedomDegrees",
+                         "topSuspensionTwistLimitDegrees", "topSuspensionSwingLimitDegrees",
+                         "bottomSuspensionTwistLimitDegrees", "bottomSuspensionSwingLimitDegrees",
+                         "suspensionJointAngularSpring", "suspensionJointAngularDamper"
                      })
             {
                 StringAssert.Contains(field, source, $"Inspector 缺少字段 {field} 的双层展示契约。");

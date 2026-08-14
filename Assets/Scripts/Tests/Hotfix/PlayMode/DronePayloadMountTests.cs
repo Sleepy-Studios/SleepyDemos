@@ -64,16 +64,27 @@ namespace Hotfix.Tests
 
             for (var cycle = 0; cycle < 3; cycle++)
             {
-                Assert.That(mount.TryAttach(payload), Is.True);
+                var worldContactPoint = payloadBody.worldCenterOfMass + Vector3.up * 0.1f;
+                Assert.That(mount.TryAssistGrip(new DroneGripContactSnapshot(payload, 3, worldContactPoint)), Is.True);
                 Assert.That(mount.HasPayload, Is.True);
                 Assert.That(payload.transform.parent, Is.Null);
                 var joint = gripObject.GetComponent<ConfigurableJoint>();
                 Assert.That(joint.connectedBody, Is.EqualTo(payloadBody));
                 Assert.That(joint.xMotion, Is.EqualTo(ConfigurableJointMotion.Limited));
-                Assert.That(joint.angularXMotion, Is.EqualTo(ConfigurableJointMotion.Limited));
+                Assert.That(joint.angularXMotion, Is.EqualTo(ConfigurableJointMotion.Free));
+                Assert.That(joint.angularYMotion, Is.EqualTo(ConfigurableJointMotion.Free));
+                Assert.That(joint.angularZMotion, Is.EqualTo(ConfigurableJointMotion.Free));
                 Assert.That(joint.enableCollision, Is.False);
-                Assert.That(joint.enablePreprocessing, Is.False);
-                Assert.That(joint.projectionMode, Is.EqualTo(JointProjectionMode.PositionAndRotation));
+                Assert.That(joint.projectionMode, Is.EqualTo(JointProjectionMode.None));
+                Assert.That(Vector3.Distance(
+                    joint.transform.TransformPoint(joint.anchor),
+                    payloadBody.transform.TransformPoint(joint.connectedAnchor)), Is.LessThan(0.0001f));
+                Assert.That(joint.linearLimit.limit, Is.EqualTo(0.025f).Within(0.0001f));
+                Assert.That(joint.linearLimitSpring.spring, Is.Zero);
+                Assert.That(joint.linearLimitSpring.damper, Is.Zero);
+                mount.StepTakeup(0.3f);
+                Assert.That(joint.linearLimitSpring.spring, Is.EqualTo(250f).Within(0.1f));
+                Assert.That(joint.linearLimitSpring.damper, Is.EqualTo(25f).Within(0.1f));
                 Assert.That(payloadBody.interpolation, Is.EqualTo(RigidbodyInterpolation.Interpolate));
 
                 mount.Release();
@@ -88,35 +99,40 @@ namespace Hotfix.Tests
         }
 
         [Test]
-        public void AttachedPayload_OnlyContributesSupportedMassAfterJointCarriesTension()
+        public void PayloadSupport_RequiresStableExternalUpwardContactAndIgnoresMechanismColliders()
         {
-            var gripObject = new GameObject("TensionAwareGrip");
-            var gripBody = gripObject.AddComponent<Rigidbody>();
-            gripBody.useGravity = false;
-            var mount = gripObject.AddComponent<PayloadMount>();
-            mount.Configure(gripObject.transform, 1f, gripBody);
-            var payloadObject = new GameObject("GroundedPayload");
-            var payloadBody = payloadObject.AddComponent<Rigidbody>();
-            payloadBody.mass = 0.75f;
-            payloadBody.useGravity = false;
+            var groundObject = new GameObject("Ground");
+            var groundCollider = groundObject.AddComponent<BoxCollider>();
+            var mechanismObject = new GameObject("Claw");
+            var mechanismCollider = mechanismObject.AddComponent<BoxCollider>();
+            var payloadObject = new GameObject("SupportAwarePayload");
+            payloadObject.AddComponent<Rigidbody>().useGravity = false;
             var payload = payloadObject.AddComponent<DronePayload>();
+            payload.ConfigureIgnoredSupportColliders(new[] { mechanismCollider });
 
-            Assert.That(mount.TryAssistGrip(payload, 3), Is.True);
-            Assert.That(mount.AttachedMassKilograms, Is.EqualTo(0.75f));
-            Assert.That(mount.SupportedMassKilograms, Is.Zero,
-                "建立抓取约束不等于载荷已经离地受力。");
-
-            mount.UpdateSupportedMassEstimate(Vector3.zero, Physics.gravity, 0.02f);
-            Assert.That(mount.SupportedMassKilograms, Is.Zero);
-            for (var index = 0; index < 50; index++)
+            for (var index = 0; index < 2; index++)
             {
-                mount.UpdateSupportedMassEstimate(Vector3.down * (0.75f * 9.81f), Physics.gravity, 0.02f);
+                payload.ReportSupportContact(groundCollider, Vector3.up);
+                payload.ReportSupportContact(mechanismCollider, Vector3.up);
+                payload.CompleteSupportPhysicsStep();
             }
 
-            Assert.That(mount.SupportedMassKilograms, Is.EqualTo(0.75f).Within(0.001f));
-            mount.Release();
-            Assert.That(mount.SupportedMassKilograms, Is.Zero);
-            Object.DestroyImmediate(gripObject);
+            Assert.That(payload.IsGroundSupported, Is.False, "两步接触还不能确认落地。");
+            payload.ReportSupportContact(groundCollider, Vector3.up);
+            payload.ReportSupportContact(mechanismCollider, Vector3.up);
+            payload.CompleteSupportPhysicsStep();
+            Assert.That(payload.IsGroundSupported, Is.True);
+            Assert.That(payload.EffectiveSupportContactCount, Is.EqualTo(1), "抓斗自身 Collider 不得计为地面支撑。");
+
+            payload.ReportSupportContact(groundCollider, Vector3.right);
+            payload.CompleteSupportPhysicsStep();
+            payload.CompleteSupportPhysicsStep();
+            Assert.That(payload.IsGroundSupported, Is.True, "短暂失去支撑不能抖动切换状态。");
+            payload.CompleteSupportPhysicsStep();
+            Assert.That(payload.IsGroundSupported, Is.False);
+
+            Object.DestroyImmediate(groundObject);
+            Object.DestroyImmediate(mechanismObject);
             Object.DestroyImmediate(payloadObject);
         }
 
@@ -143,15 +159,17 @@ namespace Hotfix.Tests
             payloadBody.useGravity = false;
             var payload = payloadObject.AddComponent<DronePayload>();
             payload.Configure("NearbyCargo");
-            var sensors = new DroneGrappleContactSensor[3];
-            for (var index = 0; index < sensors.Length; index++)
+            var collector = gripObject.AddComponent<DroneGrappleContactCollector>();
+            collector.Configure(System.Array.Empty<Collider[]>());
+            var clawRoots = new Transform[3];
+            for (var index = 0; index < clawRoots.Length; index++)
             {
-                sensors[index] = new GameObject($"ClawSensor{index}").AddComponent<DroneGrappleContactSensor>();
-                sensors[index].transform.SetParent(hookObject.transform, false);
-                sensors[index].ReportContact(payload, true);
+                clawRoots[index] = new GameObject($"Claw{index}").transform;
+                clawRoots[index].SetParent(gripObject.transform, false);
+                collector.ReportContact(index, payload, payload.transform.position, true);
             }
 
-            hook.Configure(mount, System.Array.Empty<HingeJoint>(), sensors, hookObject.transform);
+            hook.Configure(mount, clawRoots, collector, hookObject.transform);
             Physics.SyncTransforms();
 
             Assert.That(hook.CloseAndTryAttach(), Is.True);
@@ -165,6 +183,54 @@ namespace Hotfix.Tests
             Assert.That(gripObject.GetComponent<ConfigurableJoint>(), Is.Null);
 
             Object.Destroy(carrier);
+            Object.Destroy(payloadObject);
+        }
+
+        [UnityTest]
+        public IEnumerator GrappleCollector_ReceivesCompoundChildColliderContactsOnRigidbodyRoot()
+        {
+            var grappleObject = new GameObject("CompoundGrapple");
+            var grappleBody = grappleObject.AddComponent<Rigidbody>();
+            grappleBody.useGravity = false;
+            grappleBody.constraints = RigidbodyConstraints.FreezeAll;
+            var collector = grappleObject.AddComponent<DroneGrappleContactCollector>();
+            var clawGroups = new Collider[3][];
+            var positions = new[]
+            {
+                new Vector3(0.48f, 0f, 0f),
+                new Vector3(-0.48f, 0f, 0f),
+                new Vector3(0f, 0f, 0.48f)
+            };
+            for (var index = 0; index < positions.Length; index++)
+            {
+                var clawObject = new GameObject($"Claw_{index + 1}");
+                clawObject.transform.SetParent(grappleObject.transform, false);
+                clawObject.transform.localPosition = positions[index];
+                var clawCollider = clawObject.AddComponent<BoxCollider>();
+                clawCollider.size = new Vector3(0.1f, 0.4f, 0.4f);
+                clawGroups[index] = new Collider[] { clawCollider };
+            }
+
+            collector.Configure(clawGroups);
+            var payloadObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            payloadObject.name = "CompoundContactPayload";
+            var payloadBody = payloadObject.AddComponent<Rigidbody>();
+            payloadBody.useGravity = false;
+            payloadBody.isKinematic = true;
+            var payload = payloadObject.AddComponent<DronePayload>();
+            payload.Configure("Cargo");
+            Physics.SyncTransforms();
+
+            yield return new WaitForFixedUpdate();
+            yield return new WaitForFixedUpdate();
+            yield return new WaitForFixedUpdate();
+
+            Assert.That(collector.TryGetBestSnapshot(Vector3.zero, 2f, out var snapshot), Is.True,
+                "复合 Collider 的碰撞消息必须抵达抓斗 Rigidbody 根上的统一收集器。");
+            Assert.That(snapshot.Payload, Is.EqualTo(payload));
+            Assert.That(snapshot.DistinctClawCount, Is.EqualTo(3));
+
+            Object.Destroy(grappleObject);
             Object.Destroy(payloadObject);
         }
 
@@ -212,26 +278,30 @@ namespace Hotfix.Tests
         }
 
         [Test]
-        public void ContactSensor_OneColliderExitKeepsPayloadWhileAnotherColliderStillTouches()
+        public void ContactCollector_OneColliderExitKeepsSameClawContactFromAnotherCollider()
         {
-            var sensorObject = new GameObject("Sensor");
-            var sensor = sensorObject.AddComponent<DroneGrappleContactSensor>();
+            var collectorObject = new GameObject("Collector");
+            var collector = collectorObject.AddComponent<DroneGrappleContactCollector>();
             var payloadObject = new GameObject("MultiColliderPayload");
             payloadObject.AddComponent<Rigidbody>();
-            payloadObject.AddComponent<DronePayload>();
+            var payload = payloadObject.AddComponent<DronePayload>();
             var first = payloadObject.AddComponent<BoxCollider>();
             var secondChild = new GameObject("SecondCollider");
             secondChild.transform.SetParent(payloadObject.transform);
             var second = secondChild.AddComponent<SphereCollider>();
 
-            sensor.ReportColliderContact(first, true);
-            sensor.ReportColliderContact(second, true);
-            sensor.ReportColliderContact(first, false);
+            collector.ReportContact(0, payload, first, Vector3.left, true);
+            collector.ReportContact(0, payload, second, Vector3.right, true);
+            collector.ReportContact(1, payload, first, Vector3.forward, true);
+            collector.ReportContact(2, payload, first, Vector3.back, true);
+            collector.ReportContact(0, payload, first, Vector3.zero, false);
 
-            Assert.That(sensor.Contacts.Count(), Is.EqualTo(1));
-            sensor.ReportColliderContact(second, false);
-            Assert.That(sensor.Contacts, Is.Empty);
-            Object.DestroyImmediate(sensorObject);
+            Assert.That(collector.TryGetBestSnapshot(Vector3.zero, 2f, out var snapshot), Is.True);
+            Assert.That(snapshot.DistinctClawCount, Is.EqualTo(3));
+            collector.ReportContact(0, payload, second, Vector3.zero, false);
+            Assert.That(collector.TryGetBestSnapshot(Vector3.zero, 2f, out snapshot), Is.True);
+            Assert.That(snapshot.DistinctClawCount, Is.EqualTo(2));
+            Object.DestroyImmediate(collectorObject);
             Object.DestroyImmediate(payloadObject);
         }
 

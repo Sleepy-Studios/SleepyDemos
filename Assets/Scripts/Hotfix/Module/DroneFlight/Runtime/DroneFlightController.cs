@@ -23,20 +23,36 @@ namespace Hotfix.DroneFlight
         private DronePidController pitchRateController;
         private DronePidController yawRateController;
         private DronePidController verticalSpeedController;
+        private DronePidController horizontalVelocityXController;
+        private DronePidController horizontalVelocityZController;
+        private readonly DroneTrajectoryGenerator trajectoryGenerator = new();
+        private QuadrotorControlAllocator controlAllocator;
         private DroneControlInput controlInput;
         private float targetYawDegrees;
         private float targetHeightMeters;
         private Vector2 targetHorizontalPosition;
         private bool hadHorizontalInput;
+        private bool hadVerticalInput;
         private bool isGrounded;
         private float unsafeTiltDuration;
         private float hoverCommand;
         private IDroneExternalMassProvider externalMassProvider;
+        private IDroneSuspensionStateProvider suspensionStateProvider;
         private bool initialized;
         private Vector3 lastTargetLocalRate;
         private Vector3 lastActualLocalRate;
         private Vector3 lastDesiredWorldVelocity;
         private Vector3 lastDesiredWorldAcceleration;
+        private Vector3 lastDesiredWorldForce;
+        private Vector3 lastDesiredLocalTorque;
+        private Vector3 lastRealizedLocalTorque;
+        private Vector3 lastAntiSwingCorrection;
+        private Vector3 previousVelocity;
+        private Vector3 previousLocalAngularVelocity;
+        private Vector3 filteredAcceleration;
+        private Vector3 filteredLocalAngularAcceleration;
+        private Vector3 previousTargetLocalRate;
+        private DroneAllocationResult lastAllocation;
         private int runtimeTuningSignature;
         private DroneFlightConfig sourceConfig;
         private int sourceConfigSignature;
@@ -86,7 +102,25 @@ namespace Hotfix.DroneFlight
 
         internal DronePidTelemetry VerticalSpeedTelemetry => verticalSpeedController?.Telemetry ?? default;
 
+        internal DronePidTelemetry HorizontalVelocityXTelemetry => horizontalVelocityXController?.Telemetry ?? default;
+
+        internal DronePidTelemetry HorizontalVelocityZTelemetry => horizontalVelocityZController?.Telemetry ?? default;
+
+        internal Vector3 LastDesiredWorldForce => lastDesiredWorldForce;
+
+        internal Vector3 LastDesiredLocalTorque => lastDesiredLocalTorque;
+
+        internal Vector3 LastRealizedLocalTorque => lastRealizedLocalTorque;
+
+        internal Vector3 LastAntiSwingCorrection => lastAntiSwingCorrection;
+
+        internal DroneAllocationResult LastAllocation => lastAllocation;
+
+        internal DroneSuspensionState CurrentSuspensionState => suspensionStateProvider?.SuspensionState ?? default;
+
         internal float CurrentHardwareMassKilograms => externalMassProvider?.HardwareMassKilograms ?? 0f;
+
+        internal float CurrentInstalledHardwareMassKilograms => externalMassProvider?.InstalledHardwareMassKilograms ?? 0f;
 
         internal float CurrentPayloadMassKilograms => externalMassProvider?.PayloadMassKilograms ?? 0f;
 
@@ -130,6 +164,9 @@ namespace Hotfix.DroneFlight
         {
             externalMassProviderSource = provider;
             externalMassProvider = provider as IDroneExternalMassProvider;
+            suspensionStateProvider = provider as IDroneSuspensionStateProvider;
+            body ??= GetComponent<Rigidbody>();
+            RefreshMassDistribution();
         }
 
         private void Awake()
@@ -166,63 +203,99 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            var actualYawDegrees = body.rotation.eulerAngles.y;
-            var maximumYawLeadDegrees = Mathf.Clamp(
-                config.MaximumRateRadiansPerSecond / Mathf.Max(0.01f, config.AttitudeGain) * Mathf.Rad2Deg,
-                10f,
-                60f);
-            targetYawDegrees = DroneAttitudeMath.AdvanceBoundedYawTarget(
-                targetYawDegrees,
-                actualYawDegrees,
-                controlInput.Yaw * profile.MaximumYawSpeedDegrees * deltaTime,
-                maximumYawLeadDegrees);
-            CalculateHorizontalAttitudeTargets(out var targetPitch, out var targetRoll);
-            // 平移倾角始终在真实机头坐标系内求解；偏航误差单独生成 Y 轴目标角速度。
-            // 若把尚未追上的 targetYaw 与 Pitch/Roll 合成同一个 Quaternion，持续偏航后的大角度误差
-            // 会把水平速度修正耦合到 Roll/Pitch，表现为高速前飞时左右交替摇摆。
-            var tiltAttitude = Quaternion.Euler(targetPitch, actualYawDegrees, targetRoll);
-            var tiltTargetRate = DroneAttitudeMath.CalculateTargetRate(
-                body.rotation,
-                tiltAttitude,
+            var state = CaptureState(deltaTime);
+            var actualYawDegrees = state.Rotation.eulerAngles.y;
+            var trajectory = trajectoryGenerator.Step(controlInput, actualYawDegrees, profile, deltaTime);
+            targetYawDegrees = trajectory.YawDegrees;
+            var desiredVelocity = BuildPositionAwareVelocity(trajectory, profile);
+
+            var horizontalX = horizontalVelocityXController.StepWithMeasurement(
+                desiredVelocity.x - state.Velocity.x,
+                state.Acceleration.x,
+                trajectory.WorldAcceleration.x,
+                deltaTime);
+            var horizontalZ = horizontalVelocityZController.StepWithMeasurement(
+                desiredVelocity.z - state.Velocity.z,
+                state.Acceleration.z,
+                trajectory.WorldAcceleration.z,
+                deltaTime);
+            var vertical = verticalSpeedController.StepWithMeasurement(
+                desiredVelocity.y - state.Velocity.y,
+                state.Acceleration.y,
+                trajectory.WorldAcceleration.y,
+                deltaTime);
+            var desiredAcceleration = new Vector3(horizontalX, vertical, horizontalZ);
+            var suspensionState = suspensionStateProvider?.SuspensionState ?? default;
+            lastAntiSwingCorrection = DroneSuspendedLoadAssist.CalculateCorrection(
+                suspensionState,
+                config.AntiSwingStrength,
+                config.AntiSwingMaximumAcceleration,
+                profile.MaximumHorizontalAcceleration,
+                responseProfile == DroneResponseProfile.Sport);
+            desiredAcceleration += lastAntiSwingCorrection;
+            var horizontalAcceleration = Vector3.ClampMagnitude(
+                new Vector3(desiredAcceleration.x, 0f, desiredAcceleration.z),
+                profile.MaximumHorizontalAcceleration);
+            desiredAcceleration = new Vector3(
+                horizontalAcceleration.x,
+                Mathf.Clamp(desiredAcceleration.y, -profile.MaximumVerticalAcceleration, profile.MaximumVerticalAcceleration),
+                horizontalAcceleration.z);
+            lastDesiredWorldVelocity = desiredVelocity;
+            lastDesiredWorldAcceleration = desiredAcceleration;
+
+            var supportedMass = Mathf.Max(0.001f, CurrentSupportedMassKilograms);
+            var desiredForce = supportedMass * (desiredAcceleration - Physics.gravity);
+            desiredForce = DronePhysicalControlMath.LimitForceByTilt(desiredForce, profile.MaximumTiltDegrees);
+            lastDesiredWorldForce = desiredForce;
+            var targetLocalRate = DronePhysicalControlMath.CalculateReducedAttitudeRate(
+                state.Rotation,
+                desiredForce.normalized,
+                trajectory.YawDegrees,
                 config.AttitudeGain,
+                config.YawAttitudeGain,
+                config.YawWeight,
                 config.MaximumRateRadiansPerSecond);
-            var yawTargetRate = Mathf.Clamp(
-                Mathf.DeltaAngle(actualYawDegrees, targetYawDegrees)
-                * Mathf.Deg2Rad
-                * config.AttitudeGain,
+            targetLocalRate.y = Mathf.Clamp(
+                targetLocalRate.y + trajectory.YawRateRadians,
                 -config.MaximumRateRadiansPerSecond,
                 config.MaximumRateRadiansPerSecond);
-            var targetLocalRate = new Vector3(tiltTargetRate.x, yawTargetRate, tiltTargetRate.z);
-            var actualLocalRate = transform.InverseTransformDirection(body.angularVelocity);
+            var targetAngularAcceleration = (targetLocalRate - previousTargetLocalRate) / deltaTime;
+            previousTargetLocalRate = targetLocalRate;
             lastTargetLocalRate = targetLocalRate;
-            lastActualLocalRate = actualLocalRate;
+            lastActualLocalRate = state.LocalAngularVelocity;
 
-            // 大疆式升降输入改变高度目标；松杆后继续保持当前目标高度。
-            targetHeightMeters += controlInput.Lift
-                * profile.MaximumVerticalSpeed
-                * deltaTime;
-            var targetVerticalSpeed = Mathf.Clamp(
-                (targetHeightMeters - body.position.y) * config.AltitudeGain,
-                -profile.MaximumVerticalSpeed,
-                profile.MaximumVerticalSpeed);
-            var verticalSpeedCorrection = verticalSpeedController.Step(
-                targetVerticalSpeed - body.linearVelocity.y,
+            var pitchAcceleration = pitchRateController.StepWithMeasurement(
+                targetLocalRate.x - state.LocalAngularVelocity.x,
+                state.LocalAngularAcceleration.x,
+                targetAngularAcceleration.x * config.RateFeedForward,
                 deltaTime);
+            var yawAcceleration = yawRateController.StepWithMeasurement(
+                targetLocalRate.y - state.LocalAngularVelocity.y,
+                state.LocalAngularAcceleration.y,
+                targetAngularAcceleration.y * config.RateFeedForward,
+                deltaTime);
+            var rollAcceleration = rollRateController.StepWithMeasurement(
+                targetLocalRate.z - state.LocalAngularVelocity.z,
+                state.LocalAngularAcceleration.z,
+                targetAngularAcceleration.z * config.RateFeedForward,
+                deltaTime);
+            var desiredLocalAngularAcceleration = new Vector3(
+                pitchAcceleration,
+                yawAcceleration,
+                rollAcceleration);
+            lastDesiredLocalTorque = DronePhysicalControlMath.CalculateLocalTorque(
+                desiredLocalAngularAcceleration,
+                state.LocalAngularVelocity,
+                body.inertiaTensor,
+                body.inertiaTensorRotation);
+            lastAllocation = controlAllocator.Allocate(desiredForce.magnitude, lastDesiredLocalTorque);
+            lastRealizedLocalTorque = lastAllocation.RealizedTorqueNewtonMeters;
+            pitchRateController.ApplyDirectionalSaturation(lastAllocation.Saturation.Pitch);
+            yawRateController.ApplyDirectionalSaturation(lastAllocation.Saturation.Yaw);
+            rollRateController.ApplyDirectionalSaturation(lastAllocation.Saturation.Roll);
+            verticalSpeedController.ApplyDirectionalSaturation(lastAllocation.Saturation.Thrust);
 
-            // 玩家正 Roll 表示向右滚，对应 Unity 局部 Z 轴负方向。
-            var rollOutput = rollRateController.Step(-targetLocalRate.z + actualLocalRate.z, deltaTime);
-            var pitchOutput = pitchRateController.Step(targetLocalRate.x - actualLocalRate.x, deltaTime);
-            var yawOutput = yawRateController.Step(targetLocalRate.y - actualLocalRate.y, deltaTime);
-            // 推力与 RPM² 成正比；倾斜时要让总推力按 1/cos 增加，因此电机命令按 1/sqrt(cos) 补偿。
-            var verticalThrustRatio = Mathf.Max(0.5f, Vector3.Dot(transform.up, Vector3.up));
-            var tiltCompensatedHoverCommand = CalculateHoverCommand() / Mathf.Sqrt(verticalThrustRatio);
-            var collective = Mathf.Clamp01(tiltCompensatedHoverCommand + verticalSpeedCorrection);
-            LastMotorOutput = QuadrotorMixer.Mix(collective, rollOutput, pitchOutput, yawOutput);
-            rollRateController.ApplyActuatorSaturation(LastMotorOutput.IsSaturated);
-            pitchRateController.ApplyActuatorSaturation(LastMotorOutput.IsSaturated);
-            yawRateController.ApplyActuatorSaturation(LastMotorOutput.IsSaturated);
-            verticalSpeedController.ApplyActuatorSaturation(LastMotorOutput.IsSaturated);
-
+            LastMotorOutput = BuildMotorOutput(lastAllocation);
             StepAndApplyMotors(LastMotorOutput, deltaTime);
         }
 
@@ -304,16 +377,30 @@ namespace Hotfix.DroneFlight
             pitchRateController.Reset();
             yawRateController.Reset();
             verticalSpeedController.Reset();
+            horizontalVelocityXController.Reset();
+            horizontalVelocityZController.Reset();
             targetYawDegrees = body.rotation.eulerAngles.y;
             targetHeightMeters = body.position.y;
             targetHorizontalPosition = new Vector2(body.position.x, body.position.z);
             hadHorizontalInput = false;
+            hadVerticalInput = false;
             LastMotorOutput = default;
             LastTotalThrustNewtons = 0f;
             lastTargetLocalRate = Vector3.zero;
             lastActualLocalRate = Vector3.zero;
             lastDesiredWorldVelocity = Vector3.zero;
             lastDesiredWorldAcceleration = Vector3.zero;
+            lastDesiredWorldForce = Vector3.zero;
+            lastDesiredLocalTorque = Vector3.zero;
+            lastRealizedLocalTorque = Vector3.zero;
+            lastAntiSwingCorrection = Vector3.zero;
+            lastAllocation = default;
+            filteredAcceleration = Vector3.zero;
+            filteredLocalAngularAcceleration = Vector3.zero;
+            previousVelocity = body.linearVelocity;
+            previousLocalAngularVelocity = transform.InverseTransformDirection(body.angularVelocity);
+            previousTargetLocalRate = Vector3.zero;
+            trajectoryGenerator.Reset(body.linearVelocity, targetYawDegrees);
             for (var index = 0; index < motors.Length; index++)
             {
                 motors[index].Reset();
@@ -356,14 +443,16 @@ namespace Hotfix.DroneFlight
             sourceConfigSignature = CalculateSourceConfigSignature();
 
             body = GetComponent<Rigidbody>();
-            ApplyBodySettings();
             externalMassProvider = externalMassProviderSource as IDroneExternalMassProvider;
+            suspensionStateProvider = externalMassProviderSource as IDroneSuspensionStateProvider;
             if (externalMassProvider == null)
             {
                 var winch = GetComponent<DroneWinchController>();
                 externalMassProvider = winch;
                 externalMassProviderSource = winch;
+                suspensionStateProvider = winch;
             }
+            ApplyBodySettings();
             if (!TryOrderRotors(GetComponentsInChildren<DroneRotor>(true)))
             {
                 return false;
@@ -385,6 +474,14 @@ namespace Hotfix.DroneFlight
             pitchRateController = new DronePidController(config.CreatePitchRateSettings());
             yawRateController = new DronePidController(config.CreateYawRateSettings());
             verticalSpeedController = new DronePidController(config.CreateVerticalSpeedSettings());
+            horizontalVelocityXController = new DronePidController(config.CreateHorizontalVelocitySettings());
+            horizontalVelocityZController = new DronePidController(config.CreateHorizontalVelocitySettings());
+
+            if (!TryCreateControlAllocator())
+            {
+                Debug.LogError("[DroneFlight] Rotor 几何无法建立物理控制分配矩阵。", this);
+                return false;
+            }
 
             hoverCommand = CalculateHoverCommand();
             if (!float.IsFinite(hoverCommand) || hoverCommand >= 1f)
@@ -396,7 +493,134 @@ namespace Hotfix.DroneFlight
             targetYawDegrees = body.rotation.eulerAngles.y;
             targetHeightMeters = body.position.y;
             targetHorizontalPosition = new Vector2(body.position.x, body.position.z);
+            previousVelocity = body.linearVelocity;
+            previousLocalAngularVelocity = transform.InverseTransformDirection(body.angularVelocity);
+            trajectoryGenerator.Reset(body.linearVelocity, targetYawDegrees);
             return true;
+        }
+
+        private DroneStateSnapshot CaptureState(float deltaTime)
+        {
+            var velocity = body.linearVelocity;
+            var localAngularVelocity = transform.InverseTransformDirection(body.angularVelocity);
+            var rawAcceleration = (velocity - previousVelocity) / deltaTime;
+            var rawLocalAngularAcceleration = (localAngularVelocity - previousLocalAngularVelocity) / deltaTime;
+            var filter = 1f - Mathf.Exp(
+                -2f * Mathf.PI * Mathf.Clamp(config.StateDerivativeFilterHz, 0.1f, 10f) * deltaTime);
+            filteredAcceleration = Vector3.Lerp(filteredAcceleration, rawAcceleration, filter);
+            filteredLocalAngularAcceleration = Vector3.Lerp(
+                filteredLocalAngularAcceleration,
+                rawLocalAngularAcceleration,
+                filter);
+            previousVelocity = velocity;
+            previousLocalAngularVelocity = localAngularVelocity;
+            return new DroneStateSnapshot(
+                body.position,
+                velocity,
+                filteredAcceleration,
+                body.rotation,
+                localAngularVelocity,
+                filteredLocalAngularAcceleration);
+        }
+
+        private Vector3 BuildPositionAwareVelocity(
+            DroneTrajectorySetpoint trajectory,
+            DroneResponseProfileParameters profile)
+        {
+            var horizontalInputActive = controlInput.Forward * controlInput.Forward
+                                        + controlInput.Right * controlInput.Right > 0.0001f;
+            var shapedHorizontalMoving = new Vector2(
+                trajectory.WorldVelocity.x,
+                trajectory.WorldVelocity.z).sqrMagnitude > 0.0025f;
+            Vector2 horizontalVelocity;
+            if (horizontalInputActive || shapedHorizontalMoving)
+            {
+                targetHorizontalPosition = new Vector2(body.position.x, body.position.z);
+                hadHorizontalInput = true;
+                horizontalVelocity = new Vector2(
+                    trajectory.WorldVelocity.x,
+                    trajectory.WorldVelocity.z);
+            }
+            else
+            {
+                if (hadHorizontalInput)
+                {
+                    targetHorizontalPosition = new Vector2(body.position.x, body.position.z);
+                    hadHorizontalInput = false;
+                }
+
+                var positionError = targetHorizontalPosition - new Vector2(body.position.x, body.position.z);
+                horizontalVelocity = Vector2.ClampMagnitude(
+                    positionError * config.HorizontalPositionGain,
+                    profile.MaximumHorizontalSpeed);
+            }
+
+            float verticalVelocity;
+            var automaticAltitude = OperationState is DroneFlightOperationState.TakingOff
+                or DroneFlightOperationState.Landing;
+            if (!automaticAltitude
+                && (Mathf.Abs(controlInput.Lift) > 0.01f || Mathf.Abs(trajectory.WorldVelocity.y) > 0.05f))
+            {
+                targetHeightMeters = body.position.y;
+                hadVerticalInput = true;
+                verticalVelocity = trajectory.WorldVelocity.y;
+            }
+            else
+            {
+                if (hadVerticalInput)
+                {
+                    targetHeightMeters = body.position.y;
+                    hadVerticalInput = false;
+                }
+
+                verticalVelocity = Mathf.Clamp(
+                    (targetHeightMeters - body.position.y) * config.AltitudeGain,
+                    -profile.MaximumVerticalSpeed,
+                    profile.MaximumVerticalSpeed);
+            }
+
+            return new Vector3(horizontalVelocity.x, verticalVelocity, horizontalVelocity.y);
+        }
+
+        private QuadrotorMotorOutput BuildMotorOutput(DroneAllocationResult allocation)
+        {
+            var thrust = allocation.RotorThrustNewtons;
+            return new QuadrotorMotorOutput(
+                motors[0].CommandForThrust(thrust.x),
+                motors[1].CommandForThrust(thrust.y),
+                motors[2].CommandForThrust(thrust.z),
+                motors[3].CommandForThrust(thrust.w),
+                allocation.RollPitchScale,
+                allocation.Saturation.IsSaturated);
+        }
+
+        private bool TryCreateControlAllocator()
+        {
+            var positions = new Vector3[4];
+            var forceDirections = new Vector3[4];
+            var directions = new DroneRotorDirection[4];
+            for (var index = 0; index < orderedRotors.Length; index++)
+            {
+                if (orderedRotors[index] == null)
+                {
+                    return false;
+                }
+
+                positions[index] = transform.InverseTransformPoint(orderedRotors[index].ForceTransform.position)
+                                   - body.centerOfMass;
+                forceDirections[index] = transform.InverseTransformDirection(
+                    orderedRotors[index].ForceTransform.up);
+                directions[index] = orderedRotors[index].Direction;
+            }
+
+            var maximumRotorThrust = config.ThrustCoefficient * config.MaximumRpm * config.MaximumRpm;
+            controlAllocator = new QuadrotorControlAllocator(
+                positions,
+                forceDirections,
+                directions,
+                config.ReactionTorqueCoefficient,
+                maximumRotorThrust);
+            return controlAllocator.IsValid;
         }
 
         private float CalculateHoverCommand()
@@ -415,54 +639,6 @@ namespace Hotfix.DroneFlight
                 Mathf.Abs(Physics.gravity.y),
                 config.MaximumRpm,
                 config.ThrustCoefficient);
-        }
-
-        private void CalculateHorizontalAttitudeTargets(out float targetPitch, out float targetRoll)
-        {
-            var horizontalInput = new Vector2(controlInput.Right, controlInput.Forward);
-            var profile = config.GetProfile(responseProfile);
-            Vector3 desiredWorldVelocity;
-            if (horizontalInput.sqrMagnitude > 0.0001f)
-            {
-                desiredWorldVelocity = DroneAttitudeMath.CalculateHeadingRelativeWorldVelocity(
-                    horizontalInput,
-                    body.rotation.eulerAngles.y,
-                    profile.MaximumHorizontalSpeed);
-                targetHorizontalPosition = new Vector2(body.position.x, body.position.z);
-                hadHorizontalInput = true;
-            }
-            else
-            {
-                if (hadHorizontalInput)
-                {
-                    targetHorizontalPosition = new Vector2(body.position.x, body.position.z);
-                    hadHorizontalInput = false;
-                }
-
-                var positionError = targetHorizontalPosition - new Vector2(body.position.x, body.position.z);
-                var desiredPlanarVelocity = Vector2.ClampMagnitude(
-                    positionError * config.HorizontalPositionGain,
-                    profile.MaximumHorizontalSpeed);
-                desiredWorldVelocity = new Vector3(desiredPlanarVelocity.x, 0f, desiredPlanarVelocity.y);
-            }
-
-            var currentWorldVelocity = new Vector3(body.linearVelocity.x, 0f, body.linearVelocity.z);
-            var desiredWorldAcceleration = Vector3.ClampMagnitude(
-                (desiredWorldVelocity - currentWorldVelocity) * config.HorizontalVelocityGain,
-                profile.MaximumHorizontalAcceleration);
-            lastDesiredWorldVelocity = desiredWorldVelocity;
-            lastDesiredWorldAcceleration = desiredWorldAcceleration;
-            var yawLocalAcceleration = Quaternion.Inverse(Quaternion.Euler(0f, body.rotation.eulerAngles.y, 0f))
-                * desiredWorldAcceleration;
-
-            targetPitch = Mathf.Clamp(
-                Mathf.Atan2(yawLocalAcceleration.z, -Physics.gravity.y) * Mathf.Rad2Deg,
-                -profile.MaximumTiltDegrees,
-                profile.MaximumTiltDegrees);
-            targetRoll = Mathf.Clamp(
-                -Mathf.Atan2(yawLocalAcceleration.x, -Physics.gravity.y) * Mathf.Rad2Deg,
-                -profile.MaximumTiltDegrees,
-                profile.MaximumTiltDegrees);
         }
 
         private void UpdateOperationState(float deltaTime)
@@ -534,6 +710,7 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
+            (externalMassProviderSource as IDroneExternalMassSynchronizer)?.SynchronizeExternalMass();
             ApplyBodySettings();
             var settings = new DroneMotorSettings(
                 config.MotorResponseTimeSeconds,
@@ -544,6 +721,18 @@ namespace Hotfix.DroneFlight
             {
                 motor?.UpdateSettings(settings, preserveCurrentRpm: true);
             }
+
+            rollRateController?.UpdateSettings(config.CreateRollRateSettings(), preserveOutput: true);
+            pitchRateController?.UpdateSettings(config.CreatePitchRateSettings(), preserveOutput: true);
+            yawRateController?.UpdateSettings(config.CreateYawRateSettings(), preserveOutput: true);
+            verticalSpeedController?.UpdateSettings(config.CreateVerticalSpeedSettings(), preserveOutput: true);
+            horizontalVelocityXController?.UpdateSettings(
+                config.CreateHorizontalVelocitySettings(),
+                preserveOutput: true);
+            horizontalVelocityZController?.UpdateSettings(
+                config.CreateHorizontalVelocitySettings(),
+                preserveOutput: true);
+            TryCreateControlAllocator();
 
             runtimeTuningSignature = signature;
         }
@@ -572,23 +761,41 @@ namespace Hotfix.DroneFlight
 
         private void ApplyBodySettings()
         {
-            body.mass = config.BodyMassKilograms;
             body.linearDamping = config.BodyLinearDamping;
             body.angularDamping = config.BodyAngularDamping;
+            RefreshMassDistribution();
+        }
+
+        /// <summary>按抓斗停靠或部署状态重新分配机体与动态设备质量。</summary>
+        internal void RefreshMassDistribution()
+        {
+            if (body == null || config == null)
+            {
+                return;
+            }
+
+            var installedHardwareMass = externalMassProvider != null
+                ? Mathf.Max(0f, externalMassProvider.InstalledHardwareMassKilograms)
+                : 0f;
+            var separatedHardwareMass = externalMassProvider != null
+                ? Mathf.Clamp(externalMassProvider.HardwareMassKilograms, 0f, installedHardwareMass)
+                : 0f;
+            var targetMass = config.BodyMassKilograms + installedHardwareMass - separatedHardwareMass;
+            if (!float.IsFinite(targetMass) || targetMass <= 0f)
+            {
+                return;
+            }
+
+            if (!Mathf.Approximately(body.mass, targetMass))
+            {
+                body.mass = targetMass;
+            }
+            body.ResetInertiaTensor();
         }
 
         private int CalculateRuntimeTuningSignature()
         {
-            var hash = new HashCode();
-            hash.Add(config.PowerConfigurationMode);
-            hash.Add(config.BodyMassKilograms);
-            hash.Add(config.BodyLinearDamping);
-            hash.Add(config.BodyAngularDamping);
-            hash.Add(config.MotorResponseTimeSeconds);
-            hash.Add(config.MaximumRpm);
-            hash.Add(config.ThrustCoefficient);
-            hash.Add(config.ReactionTorqueCoefficient);
-            return hash.ToHashCode();
+            return JsonUtility.ToJson(config).GetHashCode();
         }
 
         private void OnDestroy()

@@ -7,378 +7,542 @@ namespace Hotfix.DroneFlight
     internal interface IDroneExternalMassProvider
     {
         float SupportedMassKilograms { get; }
+        float InstalledHardwareMassKilograms { get; }
         float HardwareMassKilograms { get; }
         float PayloadMassKilograms { get; }
         float SupportedPayloadMassKilograms { get; }
     }
 
-    /// <summary>管理吊链、抓斗和六爪在停靠与动态物理之间的切换。</summary>
+    /// <summary>飞控读取的吊挂方向和相对运动来源。</summary>
+    internal interface IDroneSuspensionStateProvider
+    {
+        DroneSuspensionState SuspensionState { get; }
+    }
+
+    /// <summary>在飞控读取质量前原子同步可热调的外部刚体质量。</summary>
+    internal interface IDroneExternalMassSynchronizer
+    {
+        void SynchronizeExternalMass();
+    }
+
+    /// <summary>单摆抓斗关节的实时诊断。</summary>
+    internal readonly struct DroneSuspensionJointTelemetry
+    {
+        internal DroneSuspensionJointTelemetry(
+            float twistDegrees,
+            float swingDegrees,
+            float twistLimitDegrees,
+            float swingLimitDegrees,
+            float swingRateDegreesPerSecond,
+            float passiveDampingTorqueNewtonMeters,
+            bool isCableTaut)
+        {
+            TwistDegrees = twistDegrees;
+            SwingDegrees = swingDegrees;
+            TwistLimitDegrees = twistLimitDegrees;
+            SwingLimitDegrees = swingLimitDegrees;
+            SwingRateDegreesPerSecond = swingRateDegreesPerSecond;
+            PassiveDampingTorqueNewtonMeters = passiveDampingTorqueNewtonMeters;
+            IsCableTaut = isCableTaut;
+        }
+
+        internal float TwistDegrees { get; }
+        internal float SwingDegrees { get; }
+        internal float TwistLimitDegrees { get; }
+        internal float SwingLimitDegrees { get; }
+        internal float SwingRateDegreesPerSecond { get; }
+        internal float PassiveDampingTorqueNewtonMeters { get; }
+        internal bool IsCableTaut { get; }
+
+        // 旧遥测别名只为避免现有 HUD/测试在迁移期间丢失字段。
+        internal float TopTwistDegrees => TwistDegrees;
+        internal float TopSwingDegrees => SwingDegrees;
+        internal float BottomTwistDegrees => 0f;
+        internal float BottomSwingDegrees => 0f;
+        internal float TopTwistLimitDegrees => TwistLimitDegrees;
+        internal float TopSwingLimitDegrees => SwingLimitDegrees;
+        internal float BottomTwistLimitDegrees => 0f;
+        internal float BottomSwingLimitDegrees => 0f;
+    }
+
+    /// <summary>管理单一动态抓斗在腹部停靠与无质量单摆物理之间的切换。</summary>
     public sealed class DroneSuspensionRig : MonoBehaviour
     {
         [SerializeField] private Rigidbody droneBody;
         [SerializeField] private Transform parkingRoot;
-        [SerializeField] private Rigidbody[] dynamicBodies = Array.Empty<Rigidbody>();
+        [SerializeField] private Rigidbody grappleBody;
         [SerializeField] private Collider[] mechanismColliders = Array.Empty<Collider>();
+        [SerializeField] private DroneFlightConfig config;
+        [SerializeField] private ConfigurableJoint suspensionJoint;
+        [SerializeField] private Transform cableVisual;
 
-        [SerializeField] private Transform[] originalParents = Array.Empty<Transform>();
-        [SerializeField] private Vector3[] deployedOwnerLocalPositions = Array.Empty<Vector3>();
-        [SerializeField] private Quaternion[] deployedOwnerLocalRotations = Array.Empty<Quaternion>();
-        private Joint[] mechanismJoints = Array.Empty<Joint>();
-        private Rigidbody[] mechanismConnectedBodies = Array.Empty<Rigidbody>();
-        private float[] hardwareMassWeights = Array.Empty<float>();
+        private float currentCableLengthMeters = 0.08f;
+        private float lastPassiveDampingTorque;
         private bool stateApplied;
 
         /// 吊挂物理当前是否启用。
         internal bool IsPhysicsActive { get; private set; }
 
+        /// 单一抓斗动态刚体。
+        internal Rigidbody GrappleBody => grappleBody;
+
         /// 设备固定质量，单位 kg。
-        internal float HardwareMassKilograms
+        internal float HardwareMassKilograms => grappleBody != null && float.IsFinite(grappleBody.mass)
+            ? Mathf.Max(0f, grappleBody.mass)
+            : 0f;
+
+        /// 当前无质量吊杆长度。
+        internal float CurrentCableLengthMeters => currentCableLengthMeters;
+
+        /// 单摆当前是否已接入物理解算。
+        internal bool IsCableTaut => IsPhysicsActive
+                                     && suspensionJoint != null
+                                     && suspensionJoint.connectedBody == droneBody;
+
+        /// 单摆抓斗关节的实时诊断。
+        internal DroneSuspensionJointTelemetry JointTelemetry
         {
             get
             {
-                var mass = 0f;
-                foreach (var body in dynamicBodies)
-                {
-                    if (body != null && float.IsFinite(body.mass) && body.mass > 0f)
-                    {
-                        mass += body.mass;
-                    }
-                }
-
-                return mass;
+                var twist = CalculateTwistDegrees();
+                var swing = CalculateSwingDegrees();
+                var rate = CalculateSwingRateDegreesPerSecond();
+                return new DroneSuspensionJointTelemetry(
+                    twist,
+                    swing,
+                    config != null ? config.SuspensionTwistLimitDegrees : 25f,
+                    config != null ? config.SuspensionSwingLimitDegrees : 45f,
+                    rate,
+                    lastPassiveDampingTorque,
+                    IsCableTaut);
             }
         }
 
         private void Awake()
         {
+            if (grappleBody == null)
+            {
+                grappleBody = GetComponentInChildren<Rigidbody>(true);
+                if (grappleBody == droneBody)
+                {
+                    grappleBody = null;
+                }
+            }
+
+            if (suspensionJoint == null && grappleBody != null)
+            {
+                suspensionJoint = grappleBody.GetComponent<ConfigurableJoint>();
+            }
+
             ConfigureVisualSmoothing();
-            CaptureHardwareMassWeights();
-            CaptureDeploymentPose(force: false);
-            CollectMechanismJoints(captureConnections: true);
-            IgnoreInternalCollisions();
+            ApplyJointConfiguration();
+            IgnoreOwnerCollisions();
             SetPhysicsActive(false);
         }
 
-        /// <summary>启用或停靠整套吊挂物理。</summary>
+        private void LateUpdate()
+        {
+            UpdateCableVisual();
+        }
+
+        /// <summary>返回抓斗与已承载载荷的质量加权运动状态。</summary>
+        internal bool TryGetMassWeightedState(
+            DronePayload payload,
+            float supportedPayloadFraction,
+            out Vector3 position,
+            out Vector3 velocity,
+            out float totalMass)
+        {
+            position = Vector3.zero;
+            velocity = Vector3.zero;
+            totalMass = 0f;
+            if (!IsPhysicsActive || grappleBody == null)
+            {
+                return false;
+            }
+
+            AddBody(grappleBody, 1f, ref position, ref velocity, ref totalMass);
+            if (payload != null && payload.Body != null)
+            {
+                AddBody(
+                    payload.Body,
+                    Mathf.Clamp01(supportedPayloadFraction),
+                    ref position,
+                    ref velocity,
+                    ref totalMass);
+            }
+
+            if (totalMass <= 0f)
+            {
+                return false;
+            }
+
+            position /= totalMass;
+            velocity /= totalMass;
+            return true;
+        }
+
+        /// <summary>切换抓斗动态单摆与腹部停靠状态。</summary>
         internal void SetPhysicsActive(bool active)
         {
-            if (stateApplied && active == IsPhysicsActive && originalParents.Length == dynamicBodies.Length)
+            if (grappleBody == null)
+            {
+                IsPhysicsActive = false;
+                return;
+            }
+
+            if (stateApplied && IsPhysicsActive == active)
             {
                 return;
             }
 
             stateApplied = true;
             IsPhysicsActive = active;
-            CollectMechanismJoints(captureConnections: false);
-            // 停靠期间若 Joint 仍启用，运动学链节会通过不可断裂约束反向掀翻无人机。
-            // 部署时也先保持禁用，待所有刚体回到配对锚点后再统一接入求解器。
-            SetMechanismJointConnections(false);
+            if (suspensionJoint != null)
+            {
+                suspensionJoint.connectedBody = null;
+            }
+
             if (active)
             {
-                // IgnoreCollision 不会序列化，进入物理态前再次建立内部碰撞契约。
-                IgnoreInternalCollisions();
+                var inheritedLinearVelocity = droneBody != null
+                    ? droneBody.GetPointVelocity(GetOwnerAnchorWorldPosition())
+                    : Vector3.zero;
+                var inheritedAngularVelocity = droneBody != null ? droneBody.angularVelocity : Vector3.zero;
+                grappleBody.transform.SetParent(null, true);
+                AlignGrappleToCurrentCable();
+                grappleBody.isKinematic = false;
+                grappleBody.useGravity = true;
+                grappleBody.linearVelocity = inheritedLinearVelocity;
+                grappleBody.angularVelocity = inheritedAngularVelocity;
+                SetMechanismCollidersEnabled(true);
+                Physics.SyncTransforms();
+                if (suspensionJoint != null)
+                {
+                    suspensionJoint.connectedBody = droneBody;
+                }
+                grappleBody.WakeUp();
             }
-            for (var index = 0; index < dynamicBodies.Length; index++)
+            else
             {
-                var body = dynamicBodies[index];
-                if (body == null)
-                {
-                    continue;
-                }
-
-                if (active)
-                {
-                    body.transform.SetParent(null, true);
-                    if (droneBody != null && index < deployedOwnerLocalPositions.Length)
-                    {
-                        body.transform.SetPositionAndRotation(
-                            GetAlignedDeployedPosition(index),
-                            droneBody.rotation * deployedOwnerLocalRotations[index]);
-                    }
-
-                    body.isKinematic = false;
-                    body.linearVelocity = Vector3.zero;
-                    body.angularVelocity = Vector3.zero;
-                    body.useGravity = true;
-                }
-                else
-                {
-                    if (!body.isKinematic)
-                    {
-                        body.linearVelocity = Vector3.zero;
-                        body.angularVelocity = Vector3.zero;
-                    }
-
-                    body.isKinematic = true;
-                    body.useGravity = false;
-                    var parent = index < originalParents.Length && originalParents[index] != null
-                        ? originalParents[index]
-                        : transform;
-                    body.transform.SetParent(parent, true);
-                    body.transform.localScale = Vector3.one;
-                    var parkedWorldPosition = parkingRoot != null
-                        ? parkingRoot.TransformPoint(GetParkingPosition(index))
-                        : transform.TransformPoint(GetParkingPosition(index));
-                    body.transform.localPosition = parent.InverseTransformPoint(parkedWorldPosition);
-                }
+                grappleBody.linearVelocity = Vector3.zero;
+                grappleBody.angularVelocity = Vector3.zero;
+                grappleBody.isKinematic = true;
+                grappleBody.useGravity = false;
+                grappleBody.transform.SetParent(parkingRoot != null ? parkingRoot : transform, true);
+                grappleBody.transform.localPosition = Vector3.zero;
+                grappleBody.transform.localRotation = Quaternion.identity;
+                grappleBody.transform.localScale = Vector3.one;
+                SetMechanismCollidersEnabled(false);
             }
 
             Physics.SyncTransforms();
-            if (active)
-            {
-                SetMechanismJointConnections(true);
-                foreach (var body in dynamicBodies)
-                {
-                    body?.WakeUp();
-                }
-            }
-
-            foreach (var mechanismCollider in mechanismColliders)
-            {
-                if (mechanismCollider != null)
-                {
-                    mechanismCollider.enabled = active;
-                }
-            }
-
-            Physics.SyncTransforms();
+            UpdateCableVisual();
         }
 
-        /// <summary>
-        /// 在物理尚未启用时，将停靠结构逐帧插值到完整放出姿态。
-        /// </summary>
-        /// <param name="normalizedProgress">0 为腹部收纳，1 为完整放出。</param>
+        /// <summary>在物理启用前插值显示抓斗由腹部移向拆分点。</summary>
         internal void SetDeploymentProgress(float normalizedProgress)
         {
-            if (IsPhysicsActive || droneBody == null)
+            if (IsPhysicsActive || grappleBody == null || droneBody == null)
             {
                 return;
             }
 
-            var progress = Mathf.Clamp01(normalizedProgress);
-            for (var index = 0; index < dynamicBodies.Length; index++)
-            {
-                var body = dynamicBodies[index];
-                if (body == null || index >= deployedOwnerLocalPositions.Length)
-                {
-                    continue;
-                }
-
-                var parkingAnchor = parkingRoot != null ? parkingRoot : transform;
-                var parkedPosition = parkingAnchor.TransformPoint(GetParkingPosition(index));
-                var deployedPosition = GetAlignedDeployedPosition(index);
-                var deployedRotation = droneBody.rotation * deployedOwnerLocalRotations[index];
-                body.transform.SetPositionAndRotation(
-                    Vector3.Lerp(parkedPosition, deployedPosition, progress),
-                    Quaternion.Slerp(parkingAnchor.rotation, deployedRotation, progress));
-            }
-
-            Physics.SyncTransforms();
+            var parked = parkingRoot != null ? parkingRoot.position : transform.position;
+            var deployed = GetOwnerAnchorWorldPosition() - droneBody.transform.up * currentCableLengthMeters;
+            grappleBody.position = Vector3.Lerp(parked, deployed, Mathf.Clamp01(normalizedProgress));
+            grappleBody.rotation = Quaternion.Slerp(
+                parkingRoot != null ? parkingRoot.rotation : droneBody.rotation,
+                droneBody.rotation,
+                Mathf.Clamp01(normalizedProgress));
+            UpdateCableVisual();
         }
 
+        /// <summary>在物理步内修改无质量吊杆长度。</summary>
+        internal void SetCableLength(float lengthMeters)
+        {
+            if (!float.IsFinite(lengthMeters) || lengthMeters <= 0f)
+            {
+                return;
+            }
+
+            currentCableLengthMeters = lengthMeters;
+            if (suspensionJoint != null)
+            {
+                suspensionJoint.anchor = Vector3.up * currentCableLengthMeters;
+            }
+
+            ApplyPassiveDampingDrive(0f);
+            UpdateCableVisual();
+        }
+
+        /// <summary>更新抓斗设备总质量，不改变速度和位姿。</summary>
+        internal void SetTotalHardwareMass(float totalMassKilograms)
+        {
+            if (grappleBody != null
+                && float.IsFinite(totalMassKilograms)
+                && totalMassKilograms > 0f
+                && !Mathf.Approximately(grappleBody.mass, totalMassKilograms))
+            {
+                grappleBody.mass = totalMassKilograms;
+                grappleBody.ResetInertiaTensor();
+            }
+        }
+
+        /// <summary>根据抓斗与载荷质量更新连续被动摆动阻尼。</summary>
+        internal void ApplyPassiveDampingDrive(float supportedPayloadMassKilograms)
+        {
+            if (suspensionJoint == null || config == null)
+            {
+                return;
+            }
+
+            var totalSuspendedMass = Mathf.Max(0.001f, HardwareMassKilograms + Mathf.Max(0f, supportedPayloadMassKilograms));
+            var length = Mathf.Max(0.03f, currentCableLengthMeters);
+            var naturalFrequency = Mathf.Sqrt(Mathf.Abs(Physics.gravity.y) / length);
+            var dampingAcceleration = 2f * Mathf.Clamp01(config.SuspensionDampingRatio) * naturalFrequency;
+            var angularInertia = Mathf.Max(0.0001f, totalSuspendedMass * length * length);
+            var maximumDampingTorque = Mathf.Max(0.01f, config.SuspensionMaximumDampingTorque);
+            var drive = new JointDrive
+            {
+                positionSpring = 0f,
+                positionDamper = dampingAcceleration,
+                maximumForce = maximumDampingTorque / angularInertia,
+                useAcceleration = true
+            };
+            suspensionJoint.rotationDriveMode = RotationDriveMode.Slerp;
+            suspensionJoint.slerpDrive = drive;
+            suspensionJoint.targetAngularVelocity = Vector3.zero;
+            var relativeAngularVelocity = CalculateRelativeAngularVelocity();
+            var dampingTorque = Vector3.ClampMagnitude(
+                -relativeAngularVelocity * angularInertia * dampingAcceleration,
+                maximumDampingTorque);
+            lastPassiveDampingTorque = dampingTorque.magnitude;
+            if (IsPhysicsActive && grappleBody != null && !grappleBody.isKinematic)
+            {
+                grappleBody.AddTorque(dampingTorque, ForceMode.Force);
+                if (droneBody != null && !droneBody.isKinematic)
+                {
+                    droneBody.AddTorque(-dampingTorque, ForceMode.Force);
+                }
+            }
+        }
+
+        /// <summary>判断抓斗是否已进入允许合并回机体的停靠窗口。</summary>
+        internal bool CanDock(float positionToleranceMeters, float relativeSpeedToleranceMetersPerSecond)
+        {
+            if (grappleBody == null || droneBody == null)
+            {
+                return false;
+            }
+
+            var expected = GetOwnerAnchorWorldPosition() - droneBody.transform.up * currentCableLengthMeters;
+            var positionError = Vector3.Distance(grappleBody.position, expected);
+            var ownerVelocity = droneBody.GetPointVelocity(grappleBody.position);
+            var relativeSpeed = (grappleBody.linearVelocity - ownerVelocity).magnitude;
+            return positionError <= Mathf.Max(0.001f, positionToleranceMeters)
+                   && relativeSpeed <= Mathf.Max(0.001f, relativeSpeedToleranceMetersPerSecond);
+        }
+
+        /// <summary>兼容旧夹具：从数组中选择最后一个刚体作为抓斗根。</summary>
+        internal void Configure(Rigidbody owner, Transform park, Rigidbody[] bodies, Collider[] colliders)
+        {
+            var selectedBody = bodies != null && bodies.Length > 0 ? bodies[^1] : null;
+            Configure(owner, park, selectedBody, colliders, null, selectedBody != null
+                ? selectedBody.GetComponent<ConfigurableJoint>()
+                : null, null);
+        }
+
+        /// <summary>兼容旧装配签名；底部关节不再参与单摆结构。</summary>
         internal void Configure(
             Rigidbody owner,
             Transform park,
             Rigidbody[] bodies,
-            Collider[] colliders)
+            Collider[] colliders,
+            DroneFlightConfig flightConfig,
+            ConfigurableJoint topJoint,
+            ConfigurableJoint bottomJoint)
+        {
+            var selectedBody = bodies != null && bodies.Length > 0 ? bodies[^1] : null;
+            Configure(owner, park, selectedBody, colliders, flightConfig, topJoint ?? bottomJoint, null);
+        }
+
+        /// <summary>绑定单摆抓斗的机体、停靠点、刚体、碰撞体和唯一关节。</summary>
+        internal void Configure(
+            Rigidbody owner,
+            Transform park,
+            Rigidbody body,
+            Collider[] colliders,
+            DroneFlightConfig flightConfig,
+            ConfigurableJoint joint,
+            Transform visualCable)
         {
             droneBody = owner;
             parkingRoot = park;
-            dynamicBodies = bodies ?? Array.Empty<Rigidbody>();
+            grappleBody = body;
             mechanismColliders = colliders ?? Array.Empty<Collider>();
+            config = flightConfig;
+            suspensionJoint = joint;
+            cableVisual = visualCable;
+            currentCableLengthMeters = flightConfig != null
+                ? flightConfig.WinchStowedLengthMeters
+                : 0.08f;
             ConfigureVisualSmoothing();
-            CaptureHardwareMassWeights();
+            ApplyJointConfiguration();
+            IgnoreOwnerCollisions();
             stateApplied = false;
-            CaptureDeploymentPose(force: true);
-            CollectMechanismJoints(captureConnections: true);
-            IgnoreInternalCollisions();
             SetPhysicsActive(false);
-            SetDeploymentProgress(0f);
         }
 
-        internal void SetTotalHardwareMass(float totalMassKilograms)
+        private void ApplyJointConfiguration()
         {
-            if (!float.IsFinite(totalMassKilograms) || totalMassKilograms <= 0f
-                || dynamicBodies.Length == 0)
+            if (suspensionJoint == null)
             {
                 return;
             }
 
-            if (hardwareMassWeights.Length != dynamicBodies.Length)
-            {
-                CaptureHardwareMassWeights();
-            }
-
-            for (var index = 0; index < dynamicBodies.Length; index++)
-            {
-                if (dynamicBodies[index] != null)
-                {
-                    dynamicBodies[index].mass = Mathf.Max(0.0001f, totalMassKilograms * hardwareMassWeights[index]);
-                }
-            }
+            var twist = config != null ? config.SuspensionTwistLimitDegrees : 25f;
+            var swing = config != null ? config.SuspensionSwingLimitDegrees : 45f;
+            suspensionJoint.autoConfigureConnectedAnchor = false;
+            suspensionJoint.xMotion = ConfigurableJointMotion.Locked;
+            suspensionJoint.yMotion = ConfigurableJointMotion.Locked;
+            suspensionJoint.zMotion = ConfigurableJointMotion.Locked;
+            suspensionJoint.axis = Vector3.up;
+            suspensionJoint.secondaryAxis = Vector3.forward;
+            suspensionJoint.angularXMotion = ConfigurableJointMotion.Limited;
+            suspensionJoint.angularYMotion = ConfigurableJointMotion.Limited;
+            suspensionJoint.angularZMotion = ConfigurableJointMotion.Limited;
+            suspensionJoint.lowAngularXLimit = new SoftJointLimit { limit = -twist };
+            suspensionJoint.highAngularXLimit = new SoftJointLimit { limit = twist };
+            suspensionJoint.angularYLimit = new SoftJointLimit { limit = swing };
+            suspensionJoint.angularZLimit = new SoftJointLimit { limit = swing };
+            suspensionJoint.angularXLimitSpring = new SoftJointLimitSpring();
+            suspensionJoint.angularYZLimitSpring = new SoftJointLimitSpring();
+            suspensionJoint.breakForce = float.PositiveInfinity;
+            suspensionJoint.breakTorque = float.PositiveInfinity;
+            suspensionJoint.projectionMode = JointProjectionMode.None;
+            suspensionJoint.enablePreprocessing = true;
+            suspensionJoint.enableCollision = false;
+            suspensionJoint.massScale = 1f;
+            suspensionJoint.connectedMassScale = 1f;
+            suspensionJoint.anchor = Vector3.up * currentCableLengthMeters;
+            ApplyPassiveDampingDrive(0f);
         }
 
-        private void CaptureHardwareMassWeights()
+        private void AlignGrappleToCurrentCable()
         {
-            hardwareMassWeights = new float[dynamicBodies.Length];
-            var total = HardwareMassKilograms;
-            if (total <= 0f)
+            if (grappleBody == null || droneBody == null)
             {
                 return;
             }
 
-            for (var index = 0; index < dynamicBodies.Length; index++)
+            var targetRotation = droneBody.rotation;
+            var localAnchor = suspensionJoint != null
+                ? suspensionJoint.anchor
+                : Vector3.up * currentCableLengthMeters;
+            var targetPosition = GetOwnerAnchorWorldPosition() - targetRotation * localAnchor;
+            grappleBody.transform.SetPositionAndRotation(targetPosition, targetRotation);
+        }
+
+        private Vector3 GetOwnerAnchorWorldPosition()
+        {
+            if (droneBody == null)
             {
-                var body = dynamicBodies[index];
-                hardwareMassWeights[index] = body != null ? body.mass / total : 0f;
+                return transform.position;
             }
+
+            var connectedAnchor = suspensionJoint != null
+                ? suspensionJoint.connectedAnchor
+                : new Vector3(0f, -0.12f, 0f);
+            return droneBody.transform.TransformPoint(connectedAnchor);
+        }
+
+        private void UpdateCableVisual()
+        {
+            if (cableVisual == null || grappleBody == null || droneBody == null)
+            {
+                return;
+            }
+
+            var start = GetOwnerAnchorWorldPosition();
+            var end = grappleBody.worldCenterOfMass;
+            var direction = end - start;
+            var length = direction.magnitude;
+            cableVisual.gameObject.SetActive(length > 0.005f);
+            cableVisual.position = (start + end) * 0.5f;
+            cableVisual.rotation = length > 0.0001f
+                ? Quaternion.FromToRotation(Vector3.up, direction)
+                : Quaternion.identity;
+            cableVisual.localScale = new Vector3(0.008f, length * 0.5f, 0.008f);
+        }
+
+        private float CalculateSwingDegrees()
+        {
+            if (!IsCableTaut || grappleBody == null)
+            {
+                return 0f;
+            }
+
+            var cable = grappleBody.worldCenterOfMass - GetOwnerAnchorWorldPosition();
+            return cable.sqrMagnitude > 0.000001f
+                ? Vector3.Angle(Physics.gravity, cable)
+                : 0f;
+        }
+
+        private float CalculateTwistDegrees()
+        {
+            if (!IsCableTaut || grappleBody == null || droneBody == null)
+            {
+                return 0f;
+            }
+
+            var ownerForward = Vector3.ProjectOnPlane(droneBody.transform.forward, droneBody.transform.up);
+            var grappleForward = Vector3.ProjectOnPlane(grappleBody.transform.forward, droneBody.transform.up);
+            if (ownerForward.sqrMagnitude <= 0.000001f || grappleForward.sqrMagnitude <= 0.000001f)
+            {
+                return 0f;
+            }
+
+            return Vector3.SignedAngle(ownerForward, grappleForward, droneBody.transform.up);
+        }
+
+        private float CalculateSwingRateDegreesPerSecond()
+        {
+            if (!IsCableTaut || currentCableLengthMeters <= 0.001f || grappleBody == null || droneBody == null)
+            {
+                return 0f;
+            }
+
+            var relativeVelocity = grappleBody.linearVelocity
+                                   - droneBody.GetPointVelocity(grappleBody.worldCenterOfMass);
+            return relativeVelocity.magnitude / currentCableLengthMeters * Mathf.Rad2Deg;
+        }
+
+        private Vector3 CalculateRelativeAngularVelocity()
+        {
+            return grappleBody != null && droneBody != null
+                ? grappleBody.angularVelocity - droneBody.angularVelocity
+                : Vector3.zero;
         }
 
         private void ConfigureVisualSmoothing()
         {
-            foreach (var body in dynamicBodies)
+            if (grappleBody != null)
             {
-                if (body != null)
-                {
-                    body.interpolation = RigidbodyInterpolation.Interpolate;
-                }
+                grappleBody.interpolation = RigidbodyInterpolation.Interpolate;
+                grappleBody.solverIterations = Mathf.Max(grappleBody.solverIterations, 12);
+                grappleBody.solverVelocityIterations = Mathf.Max(grappleBody.solverVelocityIterations, 8);
             }
         }
 
-        private void CaptureDeploymentPose(bool force)
-        {
-            if (!force
-                && originalParents.Length == dynamicBodies.Length
-                && deployedOwnerLocalPositions.Length == dynamicBodies.Length
-                && deployedOwnerLocalRotations.Length == dynamicBodies.Length)
-            {
-                return;
-            }
-
-            originalParents = new Transform[dynamicBodies.Length];
-            deployedOwnerLocalPositions = new Vector3[dynamicBodies.Length];
-            deployedOwnerLocalRotations = new Quaternion[dynamicBodies.Length];
-            for (var index = 0; index < dynamicBodies.Length; index++)
-            {
-                var body = dynamicBodies[index];
-                if (body == null)
-                {
-                    continue;
-                }
-
-                originalParents[index] = body.transform.parent;
-                if (droneBody != null)
-                {
-                    deployedOwnerLocalPositions[index] = droneBody.transform.InverseTransformPoint(body.position);
-                    deployedOwnerLocalRotations[index] = Quaternion.Inverse(droneBody.rotation) * body.rotation;
-                }
-            }
-        }
-
-        private Vector3 GetParkingPosition(int index)
-        {
-            if (index < 3)
-            {
-                return Vector3.down * (0.015f * index);
-            }
-
-            var deployed = index < deployedOwnerLocalPositions.Length
-                ? deployedOwnerLocalPositions[index]
-                : Vector3.zero;
-            var radial = new Vector2(deployed.x, deployed.z).normalized * 0.045f;
-            return new Vector3(radial.x, -0.045f, radial.y);
-        }
-
-        private Vector3 GetAlignedDeployedPosition(int index)
-        {
-            return droneBody.transform.TransformPoint(deployedOwnerLocalPositions[index])
-                   + CalculateTopJointAlignmentOffset();
-        }
-
-        private Vector3 CalculateTopJointAlignmentOffset()
+        private void IgnoreOwnerCollisions()
         {
             if (droneBody == null)
             {
-                return Vector3.zero;
-            }
-
-            for (var jointIndex = 0; jointIndex < mechanismJoints.Length; jointIndex++)
-            {
-                if (jointIndex >= mechanismConnectedBodies.Length
-                    || mechanismConnectedBodies[jointIndex] != droneBody
-                    || mechanismJoints[jointIndex] == null)
-                {
-                    continue;
-                }
-
-                var joint = mechanismJoints[jointIndex];
-                var body = joint.GetComponent<Rigidbody>();
-                var bodyIndex = Array.IndexOf(dynamicBodies, body);
-                if (bodyIndex < 0 || bodyIndex >= deployedOwnerLocalPositions.Length)
-                {
-                    continue;
-                }
-
-                // 卷扬长度直接改变顶端 Joint 的 connectedAnchor。动态机构启用前必须让
-                // 第一节连接杆的本地锚点与该目标重合，否则投影会在一帧内强拉整套抓斗，
-                // 表现为抓斗跳动、载荷难以离地以及错误的大幅受力。
-                var bodyPosition = droneBody.transform.TransformPoint(deployedOwnerLocalPositions[bodyIndex]);
-                var bodyRotation = droneBody.rotation * deployedOwnerLocalRotations[bodyIndex];
-                var bodyAnchor = bodyPosition + bodyRotation * joint.anchor;
-                var ownerAnchor = droneBody.transform.TransformPoint(joint.connectedAnchor);
-                return ownerAnchor - bodyAnchor;
-            }
-
-            return Vector3.zero;
-        }
-
-        private void CollectMechanismJoints(bool captureConnections)
-        {
-            var joints = new System.Collections.Generic.List<Joint>();
-            foreach (var body in dynamicBodies)
-            {
-                if (body == null)
-                {
-                    continue;
-                }
-
-                joints.AddRange(body.GetComponents<Joint>());
-            }
-
-            mechanismJoints = joints.ToArray();
-            if (!captureConnections && mechanismConnectedBodies.Length == mechanismJoints.Length)
-            {
                 return;
             }
 
-            mechanismConnectedBodies = new Rigidbody[mechanismJoints.Length];
-            for (var index = 0; index < mechanismJoints.Length; index++)
-            {
-                mechanismConnectedBodies[index] = mechanismJoints[index] != null
-                    ? mechanismJoints[index].connectedBody
-                    : null;
-            }
-        }
-
-        private void SetMechanismJointConnections(bool connected)
-        {
-            for (var index = 0; index < mechanismJoints.Length; index++)
-            {
-                var joint = mechanismJoints[index];
-                if (joint != null)
-                {
-                    joint.connectedBody = connected && index < mechanismConnectedBodies.Length
-                        ? mechanismConnectedBodies[index]
-                        : null;
-                }
-            }
-        }
-
-        private void IgnoreInternalCollisions()
-        {
-            var ownerColliders = droneBody != null
-                ? droneBody.GetComponentsInChildren<Collider>(true)
-                : Array.Empty<Collider>();
+            var ownerColliders = droneBody.GetComponentsInChildren<Collider>(true);
             foreach (var mechanismCollider in mechanismColliders)
             {
                 if (mechanismCollider == null)
@@ -394,17 +558,35 @@ namespace Hotfix.DroneFlight
                     }
                 }
             }
+        }
 
-            for (var first = 0; first < mechanismColliders.Length; first++)
+        private void SetMechanismCollidersEnabled(bool enabledValue)
+        {
+            foreach (var collider in mechanismColliders)
             {
-                for (var second = first + 1; second < mechanismColliders.Length; second++)
+                if (collider != null)
                 {
-                    if (mechanismColliders[first] != null && mechanismColliders[second] != null)
-                    {
-                        Physics.IgnoreCollision(mechanismColliders[first], mechanismColliders[second], true);
-                    }
+                    collider.enabled = enabledValue;
                 }
             }
+        }
+
+        private static void AddBody(
+            Rigidbody body,
+            float massFraction,
+            ref Vector3 weightedPosition,
+            ref Vector3 weightedVelocity,
+            ref float totalMass)
+        {
+            if (body == null || !float.IsFinite(body.mass) || body.mass <= 0f || massFraction <= 0f)
+            {
+                return;
+            }
+
+            var mass = body.mass * massFraction;
+            totalMass += mass;
+            weightedPosition += body.worldCenterOfMass * mass;
+            weightedVelocity += body.linearVelocity * mass;
         }
     }
 }

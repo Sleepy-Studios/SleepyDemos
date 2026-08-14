@@ -15,7 +15,7 @@ namespace Hotfix.DroneFlight
         OwnerDisabled
     }
 
-    /// <summary>只在多爪真实接触后，为抓斗建立可断裂的有限活动弱约束。</summary>
+    /// <summary>三爪真实接触后建立零误差、可断裂的软保险约束。</summary>
     public sealed class PayloadMount : MonoBehaviour
     {
         [SerializeField] private Rigidbody gripBody;
@@ -24,30 +24,65 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float maximumPayloadMassKilograms = 0.6f;
         [SerializeField] private float jointBreakForceNewtons = 180f;
         [SerializeField] private float jointBreakTorqueNewtonMeters = 80f;
-        [SerializeField] private float linearFreedomMeters = 0.035f;
-        [SerializeField] private float angularFreedomDegrees = 12f;
+        [SerializeField] private float linearFreedomMeters = 0.025f;
+        [SerializeField] private float takeupSeconds = 0.3f;
+        [SerializeField] private float workingSpringNewtonsPerMeter = 250f;
+        [SerializeField] private float workingDamperNewtonSecondsPerMeter = 25f;
+        [SerializeField] private Collider[] ignoredSupportColliders = Array.Empty<Collider>();
 
         private ConfigurableJoint activeJoint;
-        private float supportedMassKilograms;
-
-        private const float SupportBlendFrequency = 8f;
+        private float takeupElapsedSeconds;
 
         /// 当前挂载载荷。
         internal DronePayload AttachedPayload { get; private set; }
 
-        /// 当前是否由抓斗弱约束辅助保持载荷。
+        /// 当前是否由抓斗软约束辅助保持载荷。
         internal bool HasPayload => AttachedPayload != null && activeJoint != null;
 
         /// 当前载荷质量，单位 kg。
         internal float AttachedMassKilograms => AttachedPayload != null ? AttachedPayload.Body.mass : 0f;
 
-        /// 当前由弱约束真实张力传递给无人机的载荷质量，单位 kg。
-        internal float SupportedMassKilograms => supportedMassKilograms;
+        /// 当前载荷是否仍由地面或其它非机构物体支撑。
+        internal bool IsAttachedPayloadGroundSupported => AttachedPayload != null
+                                                         && (!AttachedPayload.IsSupportStateConfirmed
+                                                             || AttachedPayload.IsGroundSupported);
+
+        /// 当前载荷的有效外部支撑 Collider 数量。
+        internal int AttachedPayloadSupportContactCount => AttachedPayload != null
+            ? AttachedPayload.EffectiveSupportContactCount
+            : 0;
+
+        /// 当前载荷受到的外部竖直支持力。
+        internal float AttachedPayloadUpwardSupportForceNewtons => AttachedPayload != null
+            ? AttachedPayload.LastUpwardSupportForceNewtons
+            : 0f;
+
+        /// 软约束从零到工作刚度的进度。
+        internal float TakeupProgress => HasPayload
+            ? Mathf.Clamp01(takeupElapsedSeconds / Mathf.Max(0.01f, takeupSeconds))
+            : 0f;
+
+        /// 最近一次抓取使用的世界接触质心。
+        internal Vector3 GripWorldContactCenter { get; private set; }
+
+        /// 当前约束力的竖直分量，仅用于 F3 诊断。
+        internal float CurrentVerticalGripForceNewtons
+        {
+            get
+            {
+                if (activeJoint == null || activeJoint.connectedBody == null)
+                {
+                    return 0f;
+                }
+
+                return Mathf.Max(0f, Vector3.Dot(activeJoint.currentForce, -Physics.gravity.normalized));
+            }
+        }
 
         /// 最近一次释放或拒绝原因。
         internal PayloadReleaseReason LastReleaseReason { get; private set; }
 
-        /// 当前弱约束；只供定向测试和诊断读取。
+        /// 当前软约束；只供定向测试和诊断读取。
         internal ConfigurableJoint ActiveJoint => activeJoint;
 
         internal float MaximumPayloadMassKilograms
@@ -62,29 +97,38 @@ namespace Hotfix.DroneFlight
         /// 挂载状态变化事件。
         internal event Action PayloadChanged;
 
-        /// <summary>
-        /// 兼容旧夹具的挂载入口；正式抓斗必须改用带接触数的入口。
-        /// </summary>
-        /// <param name="payload">保留独立 Rigidbody 的目标载荷。</param>
+        private void FixedUpdate()
+        {
+            StepTakeup(Time.fixedDeltaTime);
+        }
+
+        /// <summary>兼容旧夹具的挂载入口；正式抓斗使用真实接触快照。</summary>
         internal bool TryAttach(DronePayload payload)
         {
             return TryAssistGrip(payload, 3);
         }
 
-        /// <summary>
-        /// 在满足多爪接触门禁后建立有限活动、可断裂的抓取弱约束。
-        /// </summary>
-        /// <param name="payload">被多个爪真实接触的目标载荷。</param>
-        /// <param name="distinctClawContacts">接触该载荷的不同爪数量；少于三个会拒绝。</param>
+        /// <summary>兼容旧调用，以载荷当前连接点作为零误差接触点。</summary>
         internal bool TryAssistGrip(DronePayload payload, int distinctClawContacts)
         {
+            var point = payload != null && payload.ConnectionPoint != null
+                ? payload.ConnectionPoint.position
+                : Vector3.zero;
+            return TryAssistGrip(new DroneGripContactSnapshot(payload, distinctClawContacts, point));
+        }
+
+        /// <summary>根据真实接触质心建立零误差软约束。</summary>
+        internal bool TryAssistGrip(DroneGripContactSnapshot snapshot)
+        {
             RefreshConfigValues();
+            var payload = snapshot.Payload;
             var ownerBody = ResolveGripBody();
-            if (distinctClawContacts < 3
+            if (snapshot.DistinctClawCount < 3
                 || payload == null
                 || payload.Body == null
                 || ownerBody == null
-                || payload.Body == ownerBody)
+                || payload.Body == ownerBody
+                || !IsFinite(snapshot.WorldContactCenter))
             {
                 LastReleaseReason = PayloadReleaseReason.InvalidPayload;
                 return false;
@@ -110,35 +154,27 @@ namespace Hotfix.DroneFlight
                 Release(PayloadReleaseReason.Replaced);
             }
 
-            var point = mountPoint != null ? mountPoint : ownerBody.transform;
+            GripWorldContactCenter = snapshot.WorldContactCenter;
             activeJoint = ownerBody.gameObject.AddComponent<ConfigurableJoint>();
             activeJoint.connectedBody = payload.Body;
             activeJoint.autoConfigureConnectedAnchor = false;
-            activeJoint.anchor = ownerBody.transform.InverseTransformPoint(point.position);
-            activeJoint.connectedAnchor = payload.Body.transform.InverseTransformPoint(payload.ConnectionPoint.position);
+            activeJoint.anchor = ownerBody.transform.InverseTransformPoint(GripWorldContactCenter);
+            activeJoint.connectedAnchor = payload.Body.transform.InverseTransformPoint(GripWorldContactCenter);
             activeJoint.xMotion = ConfigurableJointMotion.Limited;
             activeJoint.yMotion = ConfigurableJointMotion.Limited;
             activeJoint.zMotion = ConfigurableJointMotion.Limited;
             activeJoint.linearLimit = new SoftJointLimit { limit = Mathf.Max(0.005f, linearFreedomMeters) };
-            activeJoint.linearLimitSpring = new SoftJointLimitSpring { spring = 900f, damper = 90f };
-            activeJoint.angularXMotion = ConfigurableJointMotion.Limited;
-            activeJoint.angularYMotion = ConfigurableJointMotion.Limited;
-            activeJoint.angularZMotion = ConfigurableJointMotion.Limited;
-            var angularLimit = new SoftJointLimit { limit = Mathf.Clamp(angularFreedomDegrees, 1f, 45f) };
-            activeJoint.lowAngularXLimit = new SoftJointLimit { limit = -angularLimit.limit };
-            activeJoint.highAngularXLimit = angularLimit;
-            activeJoint.angularYLimit = angularLimit;
-            activeJoint.angularZLimit = angularLimit;
-            activeJoint.angularXLimitSpring = new SoftJointLimitSpring { spring = 35f, damper = 8f };
-            activeJoint.angularYZLimitSpring = new SoftJointLimitSpring { spring = 35f, damper = 8f };
+            activeJoint.linearLimitSpring = new SoftJointLimitSpring();
+            activeJoint.angularXMotion = ConfigurableJointMotion.Free;
+            activeJoint.angularYMotion = ConfigurableJointMotion.Free;
+            activeJoint.angularZMotion = ConfigurableJointMotion.Free;
             activeJoint.breakForce = jointBreakForceNewtons;
             activeJoint.breakTorque = jointBreakTorqueNewtonMeters;
             activeJoint.enableCollision = false;
-            activeJoint.enablePreprocessing = false;
-            activeJoint.projectionMode = JointProjectionMode.PositionAndRotation;
-            activeJoint.projectionDistance = 0.02f;
-            activeJoint.projectionAngle = 5f;
-            ConfigureJointMassScaling(activeJoint, ownerBody, payload.Body);
+            activeJoint.enablePreprocessing = true;
+            activeJoint.projectionMode = JointProjectionMode.None;
+            activeJoint.massScale = 1f;
+            activeJoint.connectedMassScale = 1f;
             payload.Body.interpolation = RigidbodyInterpolation.Interpolate;
             payload.Body.solverIterations = Mathf.Max(payload.Body.solverIterations, 12);
             payload.Body.solverVelocityIterations = Mathf.Max(payload.Body.solverVelocityIterations, 8);
@@ -146,19 +182,37 @@ namespace Hotfix.DroneFlight
             var relay = ownerBody.GetComponent<DronePayloadJointBreakRelay>()
                         ?? ownerBody.gameObject.AddComponent<DronePayloadJointBreakRelay>();
             relay.Configure(this);
+            takeupElapsedSeconds = 0f;
             AttachedPayload = payload;
-            supportedMassKilograms = 0f;
+            AttachedPayload.ConfigureIgnoredSupportColliders(ignoredSupportColliders);
             LastReleaseReason = PayloadReleaseReason.None;
             PayloadChanged?.Invoke();
             return true;
         }
 
-        /// <summary>
-        /// 释放当前载荷并保留载荷独立刚体、世界位姿和碰撞。
-        /// </summary>
-        /// <param name="reason">供 HUD 与遥测记录的释放原因。</param>
+        /// <summary>推进软保险约束从无力到工作刚度的接入过程。</summary>
+        internal void StepTakeup(float deltaTime)
+        {
+            if (activeJoint == null || !float.IsFinite(deltaTime) || deltaTime <= 0f)
+            {
+                return;
+            }
+
+            takeupElapsedSeconds = Mathf.Min(
+                takeupElapsedSeconds + deltaTime,
+                Mathf.Max(0.01f, takeupSeconds));
+            var progress = Mathf.SmoothStep(0f, 1f, TakeupProgress);
+            activeJoint.linearLimitSpring = new SoftJointLimitSpring
+            {
+                spring = Mathf.Max(0f, workingSpringNewtonsPerMeter) * progress,
+                damper = Mathf.Max(0f, workingDamperNewtonSecondsPerMeter) * progress
+            };
+        }
+
+        /// <summary>释放当前载荷并保留载荷独立刚体、世界位姿和碰撞。</summary>
         internal void Release(PayloadReleaseReason reason = PayloadReleaseReason.Manual)
         {
+            var releasedPayload = AttachedPayload;
             if (activeJoint != null)
             {
                 Destroy(activeJoint);
@@ -166,17 +220,14 @@ namespace Hotfix.DroneFlight
 
             activeJoint = null;
             AttachedPayload = null;
-            supportedMassKilograms = 0f;
+            takeupElapsedSeconds = 0f;
+            GripWorldContactCenter = Vector3.zero;
+            releasedPayload?.ClearIgnoredSupportColliders();
             LastReleaseReason = reason;
             PayloadChanged?.Invoke();
         }
 
-        /// <summary>
-        /// 由场景装配或测试设置抓斗刚体、挂点和承载限制。
-        /// </summary>
-        /// <param name="point">抓斗中心挂点。</param>
-        /// <param name="maximumMass">允许抓取的最大质量，单位 kg。</param>
-        /// <param name="owner">弱约束所在的抓斗刚体；为空时使用同物体 Rigidbody。</param>
+        /// <summary>由 Prefab 装配或测试设置抓斗刚体、挂点和承载限制。</summary>
         internal void Configure(Transform point, float maximumMass, Rigidbody owner = null)
         {
             mountPoint = point;
@@ -184,13 +235,20 @@ namespace Hotfix.DroneFlight
             gripBody = owner;
         }
 
-        /// <summary>绑定单一 DroneFlight 配置，使 Play Mode 门禁与弱约束参数立即跟随调校。</summary>
+        /// <summary>绑定单一 DroneFlight 配置，使 Play Mode 门禁与软约束立即跟随调校。</summary>
         internal void Configure(Transform point, DroneFlightConfig flightConfig, Rigidbody owner = null)
         {
             mountPoint = point;
             config = flightConfig;
             gripBody = owner;
             RefreshConfigValues();
+        }
+
+        /// <summary>配置不得作为地面支撑来源的无人机与抓斗机构 Collider。</summary>
+        internal void ConfigureIgnoredSupportColliders(Collider[] colliders)
+        {
+            ignoredSupportColliders = colliders ?? Array.Empty<Collider>();
+            AttachedPayload?.ConfigureIgnoredSupportColliders(ignoredSupportColliders);
         }
 
         internal void NotifyJointBreak()
@@ -200,9 +258,11 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
+            var releasedPayload = AttachedPayload;
             activeJoint = null;
             AttachedPayload = null;
-            supportedMassKilograms = 0f;
+            takeupElapsedSeconds = 0f;
+            releasedPayload?.ClearIgnoredSupportColliders();
             LastReleaseReason = PayloadReleaseReason.JointBreak;
             PayloadChanged?.Invoke();
         }
@@ -210,59 +270,6 @@ namespace Hotfix.DroneFlight
         private Rigidbody ResolveGripBody()
         {
             return gripBody != null ? gripBody : GetComponent<Rigidbody>();
-        }
-
-        private void FixedUpdate()
-        {
-            if (!HasPayload)
-            {
-                supportedMassKilograms = 0f;
-                return;
-            }
-
-            UpdateSupportedMassEstimate(activeJoint.currentForce, Physics.gravity, Time.fixedDeltaTime);
-        }
-
-        /// <summary>
-        /// 根据弱约束沿重力方向的真实受力更新当前承载质量。
-        /// </summary>
-        /// <param name="jointForce">PhysX 上一个物理步报告的约束力。</param>
-        /// <param name="gravity">当前世界重力向量。</param>
-        /// <param name="deltaTime">本次物理步时长。</param>
-        internal void UpdateSupportedMassEstimate(Vector3 jointForce, Vector3 gravity, float deltaTime)
-        {
-            var attachedMass = AttachedMassKilograms;
-            if (attachedMass <= 0f || !float.IsFinite(deltaTime) || deltaTime <= 0f)
-            {
-                supportedMassKilograms = 0f;
-                return;
-            }
-
-            var gravityMagnitude = gravity.magnitude;
-            var forceMagnitude = jointForce.magnitude;
-            if (!float.IsFinite(gravityMagnitude) || gravityMagnitude <= 0.0001f
-                || !float.IsFinite(forceMagnitude))
-            {
-                return;
-            }
-
-            var gravityDirection = gravity / gravityMagnitude;
-            var supportedForce = Mathf.Abs(Vector3.Dot(jointForce, gravityDirection));
-            var targetMass = Mathf.Clamp(supportedForce / gravityMagnitude, 0f, attachedMass);
-            var blend = 1f - Mathf.Exp(-SupportBlendFrequency * deltaTime);
-            supportedMassKilograms = Mathf.Lerp(supportedMassKilograms, targetMass, blend);
-        }
-
-        private static void ConfigureJointMassScaling(Joint joint, Rigidbody body, Rigidbody connectedBody)
-        {
-            if (joint == null || body == null || connectedBody == null
-                || body.mass <= 0f || connectedBody.mass <= 0f)
-            {
-                return;
-            }
-
-            joint.massScale = Mathf.Clamp(body.mass / connectedBody.mass, 0.05f, 1f);
-            joint.connectedMassScale = Mathf.Clamp(connectedBody.mass / body.mass, 0.05f, 1f);
         }
 
         private void RefreshConfigValues()
@@ -276,7 +283,14 @@ namespace Hotfix.DroneFlight
             jointBreakForceNewtons = config.GrappleBreakForceNewtons;
             jointBreakTorqueNewtonMeters = config.GrappleBreakTorqueNewtonMeters;
             linearFreedomMeters = config.GrappleLinearFreedomMeters;
-            angularFreedomDegrees = config.GrappleAngularFreedomDegrees;
+            takeupSeconds = config.GrappleTakeupSeconds;
+            workingSpringNewtonsPerMeter = config.GrappleWorkingSpring;
+            workingDamperNewtonSecondsPerMeter = config.GrappleWorkingDamper;
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
         }
 
         private void OnDisable()
@@ -287,5 +301,4 @@ namespace Hotfix.DroneFlight
             }
         }
     }
-
 }

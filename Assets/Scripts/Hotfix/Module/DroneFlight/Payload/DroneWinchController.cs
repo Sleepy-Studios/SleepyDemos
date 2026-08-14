@@ -12,16 +12,25 @@ namespace Hotfix.DroneFlight
         Carrying
     }
 
-    /// <summary>通过移动物理吊链的连接锚点实现卷扬收放。</summary>
-    public sealed class DroneWinchController : MonoBehaviour, IDroneExternalMassProvider
+    /// <summary>抓取后载荷由地面转交给无人机的承载阶段。</summary>
+    internal enum DronePayloadSupportState
+    {
+        None,
+        GroundSupported,
+        TakingLoad,
+        AirborneSupported,
+        Unloading
+    }
+
+    /// <summary>在固定物理步内管理无质量卷扬长度、质量分布和载荷承载比例。</summary>
+    public sealed class DroneWinchController : MonoBehaviour, IDroneExternalMassProvider,
+        IDroneSuspensionStateProvider, IDroneExternalMassSynchronizer
     {
         [SerializeField] private DroneFlightController flightController;
-        [SerializeField] private ConfigurableJoint suspensionJoint;
         [SerializeField] private PayloadMount payloadMount;
         [SerializeField] private DroneSuspensionRig suspensionRig;
 
-        [SerializeField] private Vector3 baseConnectedAnchor;
-        [SerializeField] private bool hasConfiguredBaseAnchor;
+        private readonly DronePayloadLoadTransferEstimator loadTransferEstimator = new();
         private float targetLength;
 
         /// 当前卷扬状态。
@@ -30,84 +39,125 @@ namespace Hotfix.DroneFlight
         /// 当前放出长度，单位 m。
         internal float CurrentLengthMeters { get; private set; }
 
-        /// 收纳时为零，部署末段平滑建立设备前馈，物理启用后报告真实设备与载荷质量。
+        /// 当前载荷由地面向飞控转交的承载阶段。
+        internal DronePayloadSupportState PayloadSupportState => loadTransferEstimator.State;
+
+        /// 当前载荷有效的外部向上支撑 Collider 数量。
+        internal int PayloadSupportContactCount => payloadMount != null
+            ? payloadMount.AttachedPayloadSupportContactCount
+            : 0;
+
+        /// 当前载荷外部竖直支持力，单位 N。
+        internal float PayloadUpwardSupportForceNewtons => payloadMount != null
+            ? payloadMount.AttachedPayloadUpwardSupportForceNewtons
+            : 0f;
+
+        /// 抓取软约束当前竖直力，仅用于诊断。
+        internal float PayloadGripVerticalForceNewtons => payloadMount != null
+            ? payloadMount.CurrentVerticalGripForceNewtons
+            : 0f;
+
+        /// 载荷质量当前进入飞控前馈的比例。
+        internal float PayloadSupportedFraction => loadTransferEstimator.SupportedFraction;
+
+        /// 单摆关节实时遥测。
+        internal DroneSuspensionJointTelemetry JointTelemetry => suspensionRig != null
+            ? suspensionRig.JointTelemetry
+            : default;
+
         float IDroneExternalMassProvider.SupportedMassKilograms => SupportedMassKilograms;
+        float IDroneExternalMassProvider.InstalledHardwareMassKilograms => InstalledHardwareMassKilograms;
         float IDroneExternalMassProvider.HardwareMassKilograms => HardwareMassKilograms;
         float IDroneExternalMassProvider.PayloadMassKilograms => PayloadMassKilograms;
         float IDroneExternalMassProvider.SupportedPayloadMassKilograms => SupportedPayloadMassKilograms;
+        DroneSuspensionState IDroneSuspensionStateProvider.SuspensionState => SuspensionState;
+        void IDroneExternalMassSynchronizer.SynchronizeExternalMass() => SynchronizeExternalMass();
 
-        internal float HardwareMassKilograms
-        {
-            get
-            {
-                if (suspensionRig == null)
-                {
-                    return 0f;
-                }
+        /// 始终属于整机的抓斗设备质量。
+        internal float InstalledHardwareMassKilograms => flightController != null && flightController.Config != null
+            ? flightController.Config.GrappleHardwareMassKilograms
+            : suspensionRig != null
+                ? suspensionRig.HardwareMassKilograms
+                : 0f;
 
-                if (suspensionRig.IsPhysicsActive)
-                {
-                    return suspensionRig.HardwareMassKilograms;
-                }
-
-                if (State != DroneWinchState.Deploying || flightController == null || flightController.Config == null)
-                {
-                    return 0f;
-                }
-
-                // 当前部署动画在完成前使用运动学刚体，若等到最后一帧才报告全部质量，
-                // 电机一阶响应会在物理载荷突然接入后产生可见掉高。末段逐渐建立前馈，
-                // 等价于真实卷扬绳索逐渐拉紧，不改变部署完成后的真实设备质量。
-                var deployment = CalculateDeploymentProgress(flightController.Config);
-                var tensionBlend = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.82f, 1f, deployment));
-                return suspensionRig.HardwareMassKilograms * tensionBlend;
-            }
-        }
+        /// 已从主 Rigidbody 拆分并由关节承载的设备质量。
+        internal float HardwareMassKilograms => suspensionRig != null && suspensionRig.IsPhysicsActive
+            ? suspensionRig.HardwareMassKilograms
+            : 0f;
 
         internal float PayloadMassKilograms => suspensionRig != null && suspensionRig.IsPhysicsActive && payloadMount != null
             ? payloadMount.AttachedMassKilograms
             : 0f;
 
-        /// 已经通过吊挂张力实际传递给无人机的载荷质量。
-        internal float SupportedPayloadMassKilograms => suspensionRig != null
-                                                         && suspensionRig.IsPhysicsActive
-                                                         && payloadMount != null
-            ? payloadMount.SupportedMassKilograms
-            : 0f;
+        /// 已经通过地面支持力变化实际转交给无人机的载荷质量。
+        internal float SupportedPayloadMassKilograms => PayloadMassKilograms * PayloadSupportedFraction;
 
         internal float SupportedMassKilograms => HardwareMassKilograms + SupportedPayloadMassKilograms;
 
+        internal DroneSuspensionState SuspensionState
+        {
+            get
+            {
+                if (flightController == null || flightController.Body == null || suspensionRig == null
+                    || !suspensionRig.TryGetMassWeightedState(
+                        payloadMount != null ? payloadMount.AttachedPayload : null,
+                        PayloadSupportedFraction,
+                        out var position,
+                        out var velocity,
+                        out var suspendedMass))
+                {
+                    return default;
+                }
+
+                var ownerBody = flightController.Body;
+                var origin = ownerBody.transform.TransformPoint(
+                    suspensionRig.GrappleBody != null
+                        ? suspensionRig.GrappleBody.GetComponent<ConfigurableJoint>()?.connectedAnchor ?? Vector3.zero
+                        : Vector3.zero);
+                var offset = position - origin;
+                var cableDirection = offset.sqrMagnitude > 0.000001f ? offset.normalized : Vector3.down;
+                var swingAngle = Vector3.Angle(Physics.gravity, cableDirection);
+                var relativeVelocity = velocity - ownerBody.GetPointVelocity(position);
+                var swingRate = suspensionRig.CurrentCableLengthMeters > 0.001f
+                    ? relativeVelocity.magnitude / suspensionRig.CurrentCableLengthMeters * Mathf.Rad2Deg
+                    : 0f;
+                return new DroneSuspensionState(
+                    suspensionRig.IsCableTaut,
+                    suspendedMass,
+                    suspensionRig.CurrentCableLengthMeters,
+                    cableDirection,
+                    relativeVelocity,
+                    swingAngle,
+                    swingRate,
+                    HardwareMassKilograms,
+                    PayloadMassKilograms,
+                    PayloadSupportedFraction,
+                    position);
+            }
+        }
+
         private void Awake()
         {
-            if (!hasConfiguredBaseAnchor && suspensionJoint != null)
-            {
-                baseConnectedAnchor = suspensionJoint.connectedAnchor;
-                hasConfiguredBaseAnchor = true;
-            }
             ResetStowed();
         }
 
-        private void Update()
+        private void FixedUpdate()
         {
-            Step(Time.unscaledDeltaTime);
+            Step(Time.fixedDeltaTime);
+            StepPayloadMass(Time.fixedDeltaTime);
         }
 
-        /// <summary>推进卷扬长度、可见部署动画和完成状态。</summary>
+        /// <summary>推进卷扬长度、单摆物理切换和停靠状态。</summary>
         internal void Step(float deltaTime)
         {
             if (flightController == null || flightController.Config == null
                 || !float.IsFinite(deltaTime) || deltaTime <= 0f)
             {
-                if (State is DroneWinchState.Deploying or DroneWinchState.Retracting)
-                {
-                    Debug.LogError("[DroneFlight] 卷扬缺少飞控配置，已回到收纳状态。", this);
-                    ResetStowed();
-                }
                 return;
             }
 
             var config = flightController.Config;
-            suspensionRig?.SetTotalHardwareMass(config.GrappleHardwareMassKilograms);
+            SynchronizeExternalMass();
             if (State == DroneWinchState.Retracting && payloadMount != null && payloadMount.HasPayload)
             {
                 targetLength = config.WinchCarryLengthMeters;
@@ -117,15 +167,24 @@ namespace Hotfix.DroneFlight
                 CurrentLengthMeters,
                 targetLength,
                 config.WinchSpeedMetersPerSecond * deltaTime);
-            if (suspensionJoint != null)
+            suspensionRig?.SetCableLength(CurrentLengthMeters);
+
+            if (State == DroneWinchState.Deploying && suspensionRig != null && !suspensionRig.IsPhysicsActive)
             {
-                suspensionJoint.connectedAnchor = baseConnectedAnchor + Vector3.down * CurrentLengthMeters;
+                var activationLength = Mathf.Min(
+                    config.WinchDeployedLengthMeters,
+                    Mathf.Max(config.WinchStowedLengthMeters + 0.06f, 0.14f));
+                suspensionRig.SetDeploymentProgress(CalculateDeploymentProgress(config));
+                if (CurrentLengthMeters >= activationLength)
+                {
+                    suspensionRig.SetPhysicsActive(true);
+                    flightController.RefreshMassDistribution();
+                }
             }
 
-            if ((State is DroneWinchState.Deploying or DroneWinchState.Retracting)
-                && (payloadMount == null || !payloadMount.HasPayload))
+            if (suspensionRig != null && suspensionRig.IsPhysicsActive)
             {
-                suspensionRig?.SetDeploymentProgress(CalculateDeploymentProgress(config));
+                suspensionRig.ApplyPassiveDampingDrive(SupportedPayloadMassKilograms);
             }
 
             if (!Mathf.Approximately(CurrentLengthMeters, targetLength))
@@ -135,46 +194,84 @@ namespace Hotfix.DroneFlight
 
             if (Mathf.Approximately(targetLength, config.WinchDeployedLengthMeters))
             {
-                suspensionRig?.SetDeploymentProgress(1f);
-                suspensionRig?.SetPhysicsActive(true);
+                if (suspensionRig != null && !suspensionRig.IsPhysicsActive)
+                {
+                    suspensionRig.SetPhysicsActive(true);
+                    flightController.RefreshMassDistribution();
+                }
+
                 State = DroneWinchState.Deployed;
+                return;
             }
-            else if (payloadMount != null && payloadMount.HasPayload)
+
+            if (payloadMount != null && payloadMount.HasPayload)
             {
                 State = DroneWinchState.Carrying;
+                return;
             }
-            else
+
+            if (suspensionRig == null
+                || !suspensionRig.IsPhysicsActive
+                || suspensionRig.CanDock(config.GrappleDockPositionToleranceMeters, config.GrappleDockSpeedToleranceMetersPerSecond))
             {
-                suspensionRig?.SetDeploymentProgress(0f);
                 suspensionRig?.SetPhysicsActive(false);
+                suspensionRig?.SetDeploymentProgress(0f);
                 State = DroneWinchState.Stowed;
+                flightController.RefreshMassDistribution();
             }
+        }
+
+        /// <summary>根据地面真实支持力推进载荷承载比例。</summary>
+        internal void StepPayloadMass(float deltaTime)
+        {
+            var hasAttachedPayload = suspensionRig != null
+                                     && suspensionRig.IsPhysicsActive
+                                     && payloadMount != null
+                                     && payloadMount.HasPayload;
+            if (!hasAttachedPayload)
+            {
+                loadTransferEstimator.Reset();
+                return;
+            }
+
+            var payload = payloadMount.AttachedPayload;
+            var attachedMass = payloadMount.AttachedMassKilograms;
+            if (payload == null || !float.IsFinite(attachedMass) || attachedMass <= 0f)
+            {
+                loadTransferEstimator.Reset();
+                return;
+            }
+
+            var blendSeconds = flightController != null && flightController.Config != null
+                ? flightController.Config.ExternalMassBlendSeconds
+                : 0.15f;
+            loadTransferEstimator.Step(
+                attachedMass,
+                payload.IsSupportStateConfirmed,
+                payload.IsGroundSupported,
+                payload.LastUpwardSupportForceNewtons,
+                blendSeconds,
+                deltaTime);
         }
 
         /// 在放出与收回目标之间切换。
         internal void Toggle()
         {
-            if (flightController == null)
+            if (flightController == null || flightController.Config == null)
             {
                 return;
             }
 
             var config = flightController.Config;
-            if (State is DroneWinchState.Deployed or DroneWinchState.Deploying)
+            if (State is DroneWinchState.Deployed or DroneWinchState.Deploying or DroneWinchState.Carrying)
             {
                 targetLength = payloadMount != null && payloadMount.HasPayload
                     ? config.WinchCarryLengthMeters
                     : config.WinchStowedLengthMeters;
                 State = DroneWinchState.Retracting;
-                if (payloadMount == null || !payloadMount.HasPayload)
-                {
-                    suspensionRig?.SetPhysicsActive(false);
-                    suspensionRig?.SetDeploymentProgress(CalculateDeploymentProgress(config));
-                }
             }
             else
             {
-                suspensionRig?.SetPhysicsActive(false);
                 targetLength = config.WinchDeployedLengthMeters;
                 State = DroneWinchState.Deploying;
             }
@@ -189,20 +286,14 @@ namespace Hotfix.DroneFlight
             targetLength = stowedLength;
             CurrentLengthMeters = stowedLength;
             State = DroneWinchState.Stowed;
+            loadTransferEstimator.Reset();
+            suspensionRig?.SetCableLength(stowedLength);
             suspensionRig?.SetPhysicsActive(false);
             suspensionRig?.SetDeploymentProgress(0f);
-            if (suspensionJoint != null)
-            {
-                suspensionJoint.connectedAnchor = baseConnectedAnchor + Vector3.down * CurrentLengthMeters;
-            }
+            flightController?.RefreshMassDistribution();
         }
 
-        /// <summary>
-        /// 由 Prefab 装配或测试绑定卷扬依赖。
-        /// </summary>
-        /// <param name="controller">提供卷扬参数的飞控。</param>
-        /// <param name="joint">第一节吊链连接无人机的物理 Joint。</param>
-        /// <param name="mount">用于判断是否携带载荷。</param>
+        /// <summary>由 Prefab 装配或测试绑定卷扬依赖。</summary>
         internal void Configure(
             DroneFlightController controller,
             ConfigurableJoint joint,
@@ -210,11 +301,8 @@ namespace Hotfix.DroneFlight
             DroneSuspensionRig rig = null)
         {
             flightController = controller;
-            suspensionJoint = joint;
             payloadMount = mount;
             suspensionRig = rig;
-            baseConnectedAnchor = joint != null ? joint.connectedAnchor : Vector3.zero;
-            hasConfiguredBaseAnchor = joint != null;
             ResetStowed();
         }
 
@@ -224,6 +312,16 @@ namespace Hotfix.DroneFlight
             return range > 0.0001f
                 ? Mathf.Clamp01((CurrentLengthMeters - config.WinchStowedLengthMeters) / range)
                 : 0f;
+        }
+
+        private void SynchronizeExternalMass()
+        {
+            if (flightController == null || flightController.Config == null)
+            {
+                return;
+            }
+
+            suspensionRig?.SetTotalHardwareMass(flightController.Config.GrappleHardwareMassKilograms);
         }
     }
 }

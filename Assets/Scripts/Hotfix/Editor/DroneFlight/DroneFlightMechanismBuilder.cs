@@ -76,68 +76,63 @@ namespace Hotfix.Editor.DroneFlight
                 var hardwareMass = controller != null && controller.Config != null
                     ? controller.Config.GrappleHardwareMassKilograms
                     : DronePayloadTuningCalculator.DefaultDeployedHardwareMassKilograms;
-                var linkMass = hardwareMass * 0.2f;
-                var grappleBodyMass = hardwareMass * 0.4f;
-                var clawMass = hardwareMass * 0.4f / 6f;
                 var gear = root.GetComponent<DroneLandingGearController>();
                 var rigRoot = NewChild(root.transform, "SuspensionRig", Vector3.zero);
                 var parkingRoot = NewChild(rigRoot, "ParkingRoot", new Vector3(0f, -0.16f, 0f));
                 var dynamicsRoot = NewChild(rigRoot, "DynamicBodies", Vector3.zero);
 
-                var chainOne = CreateChainBody(dynamicsRoot, "ChainLink_1", new Vector3(0f, -0.66f, 0f), linkMass, darkMaterial);
                 var grappleBody = CreateGrappleBody(
                     dynamicsRoot,
-                    new Vector3(0f, -0.83f, 0f),
-                    grappleBodyMass,
+                    new Vector3(0f, -0.12f - controller.Config.WinchDeployedLengthMeters, 0f),
+                    hardwareMass,
                     ringMesh,
                     darkMaterial,
                     orangeMaterial);
+                var suspensionJoint = AddSuspensionJoint(
+                    grappleBody,
+                    droneBody,
+                    controller.Config.WinchDeployedLengthMeters,
+                    new Vector3(0f, -0.12f, 0f),
+                    controller.Config);
+                var cableVisual = CreateCableVisual(rigRoot, darkMaterial);
 
-                var topJoint = AddLimitedJoint(chainOne, droneBody, new Vector3(0f, 0.09f, 0f), new Vector3(0f, -0.12f, 0f));
-                AddLimitedJoint(grappleBody, chainOne, new Vector3(0f, 0.056f, 0f), new Vector3(0f, -0.09f, 0f));
-
-                var clawBodies = new List<Rigidbody>();
-                var clawJoints = new List<HingeJoint>();
-                var sensors = new List<DroneGrappleContactSensor>();
+                var clawRoots = new List<Transform>();
+                var clawColliders = new List<Collider[]>();
                 for (var index = 0; index < 6; index++)
                 {
                     CreateClaw(
-                        dynamicsRoot,
+                        grappleBody.transform,
                         grappleBody,
                         index,
                         upperMesh,
                         tipMesh,
                         orangeMaterial,
                         darkMaterial,
-                        clawMass,
-                        clawBodies,
-                        clawJoints,
-                        sensors);
+                        clawRoots,
+                        clawColliders);
                 }
 
                 var mountPoint = NewChild(grappleBody.transform, "GripCenter", new Vector3(0f, -0.084f, 0f));
+                var contactCollector = grappleBody.gameObject.AddComponent<DroneGrappleContactCollector>();
+                contactCollector.Configure(clawColliders.ToArray());
                 var payloadMount = root.AddComponent<PayloadMount>();
                 payloadMount.Configure(mountPoint, controller.Config, grappleBody);
                 var hook = root.AddComponent<DroneMechanicalHook>();
-                hook.Configure(payloadMount, clawJoints.ToArray(), sensors.ToArray(), mountPoint, 0.38f * GrappleVisualScale);
+                hook.Configure(payloadMount, clawRoots.ToArray(), contactCollector, mountPoint, 0.38f * GrappleVisualScale);
 
-                var bodies = new[] { chainOne, grappleBody }.Concat(clawBodies).ToArray();
-                var mechanismColliders = bodies
-                    .SelectMany(body => body.GetComponentsInChildren<Collider>(true))
-                    .ToArray();
-                var mechanismJointConnections = bodies
-                    .SelectMany(body => body.GetComponents<Joint>())
-                    .ToDictionary(joint => joint, joint => joint.connectedBody);
+                var mechanismColliders = grappleBody.GetComponentsInChildren<Collider>(true);
+                payloadMount.ConfigureIgnoredSupportColliders(root.GetComponentsInChildren<Collider>(true));
                 var suspensionRig = root.AddComponent<DroneSuspensionRig>();
-                suspensionRig.Configure(droneBody, parkingRoot, bodies, mechanismColliders);
-                // Configure 会模拟运行时停靠并暂时断开求解连接；Prefab 必须保存原始拓扑，
-                // 让 Awake 能先缓存连接，再安全进入停靠态。
-                foreach (var pair in mechanismJointConnections)
-                {
-                    pair.Key.connectedBody = pair.Value;
-                }
+                suspensionRig.Configure(
+                    droneBody,
+                    parkingRoot,
+                    grappleBody,
+                    mechanismColliders,
+                    controller.Config,
+                    suspensionJoint,
+                    cableVisual);
                 var winch = root.AddComponent<DroneWinchController>();
-                winch.Configure(controller, topJoint, payloadMount, suspensionRig);
+                winch.Configure(controller, suspensionJoint, payloadMount, suspensionRig);
                 controller.ConfigureExternalMassProvider(winch);
                 var input = root.AddComponent<DroneHookInput>();
                 input.Configure(hook, winch, gear);
@@ -191,26 +186,15 @@ namespace Hotfix.Editor.DroneFlight
             EditorSceneManager.SaveScene(scene);
         }
 
-        private static Rigidbody CreateChainBody(Transform parent, string name, Vector3 position, float mass, Material material)
+        private static Transform CreateCableVisual(Transform parent, Material material)
         {
-            var root = NewChild(parent, name, position);
-            var body = root.gameObject.AddComponent<Rigidbody>();
-            body.mass = mass;
-            body.linearDamping = 0.04f;
-            body.angularDamping = 0.35f;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.solverIterations = 12;
-            body.solverVelocityIterations = 8;
-            var collider = root.gameObject.AddComponent<CapsuleCollider>();
-            collider.radius = 0.018f;
-            collider.height = 0.18f;
             var visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            visual.name = "Visual";
-            visual.transform.SetParent(root, false);
-            visual.transform.localScale = new Vector3(0.025f, 0.09f, 0.025f);
+            visual.name = "MasslessCableVisual";
+            visual.transform.SetParent(parent, false);
+            visual.transform.localScale = new Vector3(0.008f, 0.225f, 0.008f);
             visual.GetComponent<MeshRenderer>().sharedMaterial = material;
             UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
-            return body;
+            return visual.transform;
         }
 
         private static Rigidbody CreateGrappleBody(
@@ -254,25 +238,14 @@ namespace Hotfix.Editor.DroneFlight
             Mesh tipMesh,
             Material orangeMaterial,
             Material darkMaterial,
-            float mass,
-            ICollection<Rigidbody> bodies,
-            ICollection<HingeJoint> joints,
-            ICollection<DroneGrappleContactSensor> sensors)
+            ICollection<Transform> clawRoots,
+            ICollection<Collider[]> clawColliders)
         {
             var angle = index * 60f;
             var radial = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
-            var root = NewChild(parent, $"Claw_{index + 1}", grappleBody.transform.localPosition + radial * (0.14f * GrappleVisualScale));
-            root.rotation = Quaternion.Euler(0f, angle, 0f);
+            var root = NewChild(parent, $"Claw_{index + 1}", radial * (0.14f * GrappleVisualScale));
+            root.localRotation = Quaternion.Euler(0f, angle, 0f);
             root.localScale = Vector3.one;
-            var body = root.gameObject.AddComponent<Rigidbody>();
-            body.mass = mass;
-            body.linearDamping = 0.04f;
-            body.angularDamping = 0.45f;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-            body.solverIterations = 12;
-            body.solverVelocityIterations = 8;
-            var sensor = root.gameObject.AddComponent<DroneGrappleContactSensor>();
 
             CreateSegment(root, "UpperSegment", upperMesh, orangeMaterial,
                 new Vector3(0f, -0.08f, 0.09f) * GrappleVisualScale, Quaternion.Euler(28f, 0f, 0f), new Vector3(0.055f, 0.045f, 0.22f));
@@ -286,23 +259,8 @@ namespace Hotfix.Editor.DroneFlight
             pivot.transform.localScale = new Vector3(0.035f, 0.045f, 0.035f) * GrappleVisualScale;
             pivot.GetComponent<MeshRenderer>().sharedMaterial = darkMaterial;
             UnityEngine.Object.DestroyImmediate(pivot.GetComponent<Collider>());
-
-            var joint = root.gameObject.AddComponent<HingeJoint>();
-            joint.connectedBody = grappleBody;
-            joint.autoConfigureConnectedAnchor = false;
-            joint.anchor = Vector3.zero;
-            joint.connectedAnchor = grappleBody.transform.InverseTransformPoint(root.position);
-            joint.axis = Vector3.right;
-            joint.useLimits = true;
-            joint.limits = new JointLimits { min = -45f, max = 32f, bounciness = 0f };
-            joint.useSpring = true;
-            joint.spring = new JointSpring { targetPosition = -42f, spring = 4f, damper = 0.6f };
-            joint.enableCollision = false;
-            joint.breakForce = float.PositiveInfinity;
-            joint.breakTorque = float.PositiveInfinity;
-            bodies.Add(body);
-            joints.Add(joint);
-            sensors.Add(sensor);
+            clawRoots.Add(root);
+            clawColliders.Add(root.GetComponentsInChildren<Collider>(true));
         }
 
         private static void CreateSegment(
@@ -324,39 +282,48 @@ namespace Hotfix.Editor.DroneFlight
             collider.size = colliderSize;
         }
 
-        private static ConfigurableJoint AddLimitedJoint(
+        private static ConfigurableJoint AddSuspensionJoint(
             Rigidbody body,
             Rigidbody connectedBody,
-            Vector3 anchor,
-            Vector3 connectedAnchor)
+            float cableLength,
+            Vector3 connectedAnchor,
+            DroneFlightConfig config)
         {
             var joint = body.gameObject.AddComponent<ConfigurableJoint>();
             joint.connectedBody = connectedBody;
             joint.autoConfigureConnectedAnchor = false;
-            joint.anchor = anchor;
+            joint.anchor = Vector3.up * cableLength;
             joint.connectedAnchor = connectedAnchor;
             joint.xMotion = ConfigurableJointMotion.Locked;
             joint.yMotion = ConfigurableJointMotion.Locked;
             joint.zMotion = ConfigurableJointMotion.Locked;
+            joint.axis = Vector3.up;
+            joint.secondaryAxis = Vector3.forward;
             joint.angularXMotion = ConfigurableJointMotion.Limited;
             joint.angularYMotion = ConfigurableJointMotion.Limited;
             joint.angularZMotion = ConfigurableJointMotion.Limited;
-            joint.lowAngularXLimit = new SoftJointLimit { limit = -35f };
-            joint.highAngularXLimit = new SoftJointLimit { limit = 35f };
-            joint.angularYLimit = new SoftJointLimit { limit = 35f };
-            joint.angularZLimit = new SoftJointLimit { limit = 35f };
-            joint.angularXLimitSpring = new SoftJointLimitSpring { spring = 25f, damper = 5f };
-            joint.angularYZLimitSpring = new SoftJointLimitSpring { spring = 25f, damper = 5f };
-            // 机构内部连接不得断裂；游戏化脱落只由载荷弱约束负责。
+            joint.lowAngularXLimit = new SoftJointLimit { limit = -config.SuspensionTwistLimitDegrees };
+            joint.highAngularXLimit = new SoftJointLimit { limit = config.SuspensionTwistLimitDegrees };
+            joint.angularYLimit = new SoftJointLimit { limit = config.SuspensionSwingLimitDegrees };
+            joint.angularZLimit = new SoftJointLimit { limit = config.SuspensionSwingLimitDegrees };
+            joint.angularXLimitSpring = new SoftJointLimitSpring();
+            joint.angularYZLimitSpring = new SoftJointLimitSpring();
             joint.breakForce = float.PositiveInfinity;
             joint.breakTorque = float.PositiveInfinity;
-            joint.projectionMode = JointProjectionMode.PositionAndRotation;
-            joint.projectionDistance = 0.025f;
-            joint.projectionAngle = 6f;
-            joint.enablePreprocessing = false;
-            joint.massScale = Mathf.Clamp(body.mass / connectedBody.mass, 0.05f, 1f);
-            joint.connectedMassScale = Mathf.Clamp(connectedBody.mass / body.mass, 0.05f, 1f);
+            joint.projectionMode = JointProjectionMode.None;
+            joint.enablePreprocessing = true;
+            joint.massScale = 1f;
+            joint.connectedMassScale = 1f;
             joint.enableCollision = false;
+            joint.rotationDriveMode = RotationDriveMode.Slerp;
+            joint.slerpDrive = new JointDrive
+            {
+                positionSpring = 0f,
+                positionDamper = 2f * config.SuspensionDampingRatio
+                                     * Mathf.Sqrt(Mathf.Abs(Physics.gravity.y) / Mathf.Max(0.03f, cableLength)),
+                maximumForce = config.SuspensionMaximumDampingTorque,
+                useAcceleration = true
+            };
             return joint;
         }
 

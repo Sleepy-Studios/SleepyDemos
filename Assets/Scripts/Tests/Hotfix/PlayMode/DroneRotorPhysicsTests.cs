@@ -286,7 +286,9 @@ namespace Hotfix.Tests
             fixture.Controller.SetControlInput(DroneControlInput.Create(0f, 0f, 1f, 0f));
             yield return new WaitForFixedUpdate();
 
-            Assert.That(fixture.Controller.LastDesiredWorldVelocity.x, Is.GreaterThan(6.9f));
+            Assert.That(fixture.Controller.LastDesiredWorldVelocity.x, Is.GreaterThan(0f),
+                "Jerk 限制只允许目标速度在首个 FixedUpdate 出现小幅正值，但不得等待偏航目标追平。");
+            Assert.That(fixture.Controller.LastDesiredWorldVelocity.x, Is.LessThanOrEqualTo(7f));
             Assert.That(Mathf.Abs(fixture.Controller.LastDesiredWorldVelocity.z), Is.LessThan(0.01f));
             Assert.That(fixture.Controller.LastDesiredWorldAcceleration.x, Is.GreaterThan(0f));
             fixture.Dispose();
@@ -550,5 +552,6 @@ namespace Hotfix.Tests
         public float SupportedPayloadMassKilograms { get; set; }
 
         public float SupportedMassKilograms => HardwareMassKilograms + SupportedPayloadMassKilograms;
+        public float InstalledHardwareMassKilograms => HardwareMassKilograms;
     }
 }

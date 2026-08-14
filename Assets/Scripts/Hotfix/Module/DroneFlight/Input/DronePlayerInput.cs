@@ -42,11 +42,11 @@ namespace Hotfix.DroneFlight
 
             var targetKeyboard = ReadKeyboard(keyboard);
             var riseRate = controller.InputRiseRate > 0f ? controller.InputRiseRate : keyboardRiseRate;
-            var rate = targetKeyboard == Vector4.zero ? keyboardFallRate : riseRate;
-            smoothedKeyboardInput = Vector4.MoveTowards(
-                smoothedKeyboardInput,
-                targetKeyboard,
-                Mathf.Max(0f, rate) * Time.unscaledDeltaTime);
+            smoothedKeyboardInput = new Vector4(
+                StepKeyboardAxis(smoothedKeyboardInput.x, targetKeyboard.x, riseRate),
+                StepKeyboardAxis(smoothedKeyboardInput.y, targetKeyboard.y, riseRate),
+                StepKeyboardAxis(smoothedKeyboardInput.z, targetKeyboard.z, riseRate),
+                StepKeyboardAxis(smoothedKeyboardInput.w, targetKeyboard.w, riseRate));
 
             var gamepadInput = ReadGamepad(Gamepad.current);
             var input = gamepadInput.sqrMagnitude > 0.0001f ? gamepadInput : smoothedKeyboardInput;
@@ -169,6 +169,12 @@ namespace Hotfix.DroneFlight
         private static float ReadButtonAxis(bool negative, bool positive)
         {
             return (positive ? 1f : 0f) - (negative ? 1f : 0f);
+        }
+
+        private float StepKeyboardAxis(float current, float target, float riseRate)
+        {
+            var rate = Mathf.Approximately(target, 0f) ? keyboardFallRate : riseRate;
+            return Mathf.MoveTowards(current, target, Mathf.Max(0f, rate) * Time.unscaledDeltaTime);
         }
     }
 }

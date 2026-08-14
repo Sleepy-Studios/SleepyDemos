@@ -6,11 +6,11 @@ namespace Hotfix.DroneFlight
     [Serializable]
     internal sealed class DronePidAxisConfig
     {
-        [SerializeField] private float proportionalGain = 0.1f;
-        [SerializeField] private float integralGain = 0.02f;
-        [SerializeField] private float derivativeGain = 0.002f;
-        [SerializeField] private float outputLimit = 0.25f;
-        [SerializeField] private float integralLimit = 0.2f;
+        [SerializeField] private float proportionalGain = 8f;
+        [SerializeField] private float integralGain = 2f;
+        [SerializeField] private float derivativeGain = 0.12f;
+        [SerializeField] private float outputLimit = 30f;
+        [SerializeField] private float integralLimit = 3f;
         [SerializeField] private float derivativeFilterHz = 8f;
 
         internal DronePidSettings CreateSettings()
@@ -34,6 +34,10 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float maximumVerticalSpeed = 2f;
         [SerializeField] private float maximumYawSpeedDegrees = 90f;
         [SerializeField] private float inputRiseRate = 3f;
+        [SerializeField] private float maximumHorizontalJerk = 6f;
+        [SerializeField] private float maximumVerticalAcceleration = 3f;
+        [SerializeField] private float maximumVerticalJerk = 8f;
+        [SerializeField] private float maximumYawAccelerationDegrees = 180f;
 
         internal DroneResponseProfileConfig()
         {
@@ -45,7 +49,11 @@ namespace Hotfix.DroneFlight
             float maximumTiltDegrees,
             float maximumVerticalSpeed,
             float maximumYawSpeedDegrees,
-            float inputRiseRate)
+            float inputRiseRate,
+            float maximumHorizontalJerk,
+            float maximumVerticalAcceleration,
+            float maximumVerticalJerk,
+            float maximumYawAccelerationDegrees)
         {
             this.maximumHorizontalSpeed = maximumHorizontalSpeed;
             this.maximumHorizontalAcceleration = maximumHorizontalAcceleration;
@@ -53,6 +61,10 @@ namespace Hotfix.DroneFlight
             this.maximumVerticalSpeed = maximumVerticalSpeed;
             this.maximumYawSpeedDegrees = maximumYawSpeedDegrees;
             this.inputRiseRate = inputRiseRate;
+            this.maximumHorizontalJerk = maximumHorizontalJerk;
+            this.maximumVerticalAcceleration = maximumVerticalAcceleration;
+            this.maximumVerticalJerk = maximumVerticalJerk;
+            this.maximumYawAccelerationDegrees = maximumYawAccelerationDegrees;
         }
 
         internal DroneResponseProfileParameters CreateParameters()
@@ -63,7 +75,11 @@ namespace Hotfix.DroneFlight
                 maximumTiltDegrees,
                 maximumVerticalSpeed,
                 maximumYawSpeedDegrees,
-                inputRiseRate);
+                inputRiseRate,
+                maximumHorizontalJerk,
+                maximumVerticalAcceleration,
+                maximumVerticalJerk,
+                maximumYawAccelerationDegrees);
         }
 
         internal bool IsValid()
@@ -74,7 +90,11 @@ namespace Hotfix.DroneFlight
                 && maximumTiltDegrees < 90f
                 && IsPositiveFinite(maximumVerticalSpeed)
                 && IsPositiveFinite(maximumYawSpeedDegrees)
-                && IsPositiveFinite(inputRiseRate);
+                && IsPositiveFinite(inputRiseRate)
+                && IsPositiveFinite(maximumHorizontalJerk)
+                && IsPositiveFinite(maximumVerticalAcceleration)
+                && IsPositiveFinite(maximumVerticalJerk)
+                && IsPositiveFinite(maximumYawAccelerationDegrees);
         }
 
         private static bool IsPositiveFinite(float value)
@@ -110,6 +130,10 @@ namespace Hotfix.DroneFlight
 
         [Header("Attitude")]
         [SerializeField] private float attitudeGain = 4f;
+        [SerializeField] private float yawAttitudeGain = 3f;
+        [SerializeField, Range(0f, 1f)] private float yawWeight = 0.6f;
+        [SerializeField] private float rateFeedForward = 1f;
+        [SerializeField] private float stateDerivativeFilterHz = 8f;
         [SerializeField] private float maximumRateRadiansPerSecond = 3.5f;
         [SerializeField] private DronePidAxisConfig rollRate = new();
         [SerializeField] private DronePidAxisConfig pitchRate = new();
@@ -118,10 +142,10 @@ namespace Hotfix.DroneFlight
         [Header("Altitude")]
         [SerializeField] private float altitudeGain = 1.5f;
         [SerializeField] private float maximumVerticalSpeedMetersPerSecond = 2f;
-        [SerializeField] private float verticalSpeedProportionalGain = 0.08f;
-        [SerializeField] private float verticalSpeedIntegralGain = 0.03f;
-        [SerializeField] private float verticalSpeedDerivativeGain = 0.01f;
-        [SerializeField] private float verticalSpeedOutputLimit = 0.25f;
+        [SerializeField] private float verticalSpeedProportionalGain = 2.4f;
+        [SerializeField] private float verticalSpeedIntegralGain = 0.8f;
+        [SerializeField] private float verticalSpeedDerivativeGain = 0.15f;
+        [SerializeField] private float verticalSpeedOutputLimit = 5f;
         [SerializeField] private float verticalSpeedIntegralLimit = 3f;
         [SerializeField] private float verticalSpeedDerivativeFilterHz = 5f;
 
@@ -129,15 +153,20 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float maximumHorizontalSpeedMetersPerSecond = 4f;
         [SerializeField] private float horizontalPositionGain = 0.35f;
         [SerializeField] private float horizontalVelocityGain = 1.2f;
+        [SerializeField] private float horizontalVelocityIntegralGain = 0.25f;
+        [SerializeField] private float horizontalVelocityDerivativeGain = 0.08f;
+        [SerializeField] private float horizontalVelocityOutputLimit = 10f;
+        [SerializeField] private float horizontalVelocityIntegralLimit = 3f;
+        [SerializeField] private float horizontalVelocityDerivativeFilterHz = 5f;
         [SerializeField] private float maximumHorizontalAccelerationMetersPerSecondSquared = 2.5f;
 
         [Header("Response Profiles")]
         [SerializeField] private DroneResponseProfileConfig cineProfile = new(
-            2f, 1.2f, 15f, 1f, 45f, 2f);
+            2f, 1.2f, 15f, 1f, 45f, 2f, 2f, 1.5f, 4f, 90f);
         [SerializeField] private DroneResponseProfileConfig normalProfile = new(
-            4f, 2.5f, 25f, 2f, 90f, 3f);
+            4f, 2.5f, 25f, 2f, 90f, 3f, 6f, 3f, 8f, 180f);
         [SerializeField] private DroneResponseProfileConfig sportProfile = new(
-            7f, 5f, 35f, 3f, 150f, 5f);
+            7f, 5f, 35f, 3f, 150f, 5f, 15f, 5f, 15f, 360f);
 
         [Header("Automatic Flight")]
         [SerializeField] private float automaticTakeoffHeightMeters = 1.5f;
@@ -153,12 +182,30 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float winchDeployedLengthMeters = 0.45f;
         [SerializeField] private float winchCarryLengthMeters = 0.24f;
         [SerializeField] private float winchSpeedMetersPerSecond = 0.35f;
+        [SerializeField] private float topSuspensionTwistLimitDegrees = 12f;
+        [SerializeField] private float topSuspensionSwingLimitDegrees = 25f;
+        [SerializeField] private float bottomSuspensionTwistLimitDegrees = 18f;
+        [SerializeField] private float bottomSuspensionSwingLimitDegrees = 30f;
+        [SerializeField] private float suspensionJointAngularSpring = 30f;
+        [SerializeField] private float suspensionJointAngularDamper = 6f;
+        [SerializeField] private float suspensionTwistLimitDegrees = 25f;
+        [SerializeField] private float suspensionSwingLimitDegrees = 45f;
+        [SerializeField, Range(0f, 1f)] private float suspensionDampingRatio = 0.35f;
+        [SerializeField] private float suspensionMaximumDampingTorque = 2.5f;
         [SerializeField] private float maximumPayloadMassKilograms = 0.6f;
         [SerializeField] private float grappleBreakForceNewtons = 180f;
         [SerializeField] private float grappleBreakTorqueNewtonMeters = 80f;
         [SerializeField, Range(0f, 100f)] private float grappleStrength = 50f;
-        [SerializeField] private float grappleLinearFreedomMeters = 0.035f;
+        [SerializeField] private float grappleLinearFreedomMeters = 0.025f;
         [SerializeField] private float grappleAngularFreedomDegrees = 12f;
+        [SerializeField] private float grappleTakeupSeconds = 0.3f;
+        [SerializeField] private float grappleWorkingSpring = 250f;
+        [SerializeField] private float grappleWorkingDamper = 25f;
+        [SerializeField] private float grappleDockPositionToleranceMeters = 0.02f;
+        [SerializeField] private float grappleDockSpeedToleranceMetersPerSecond = 0.15f;
+        [SerializeField, Range(0f, 100f)] private float antiSwingStrength = 18f;
+        [SerializeField] private float antiSwingMaximumAcceleration = 1f;
+        [SerializeField] private float externalMassBlendSeconds = 0.15f;
         [SerializeField] private float resetHoldSeconds = 5f;
 
         internal DronePowerConfigurationMode PowerConfigurationMode => powerConfigurationMode;
@@ -211,6 +258,14 @@ namespace Hotfix.DroneFlight
         /// <summary>姿态误差到目标角速度的比例。</summary>
         internal float AttitudeGain => attitudeGain;
 
+        internal float YawAttitudeGain => yawAttitudeGain;
+
+        internal float YawWeight => yawWeight;
+
+        internal float RateFeedForward => rateFeedForward;
+
+        internal float StateDerivativeFilterHz => stateDerivativeFilterHz;
+
         /// <summary>内环目标角速度限幅，单位 rad/s。</summary>
         internal float MaximumRateRadiansPerSecond => maximumRateRadiansPerSecond;
 
@@ -228,6 +283,12 @@ namespace Hotfix.DroneFlight
 
         /// <summary>速度误差到目标水平加速度的比例。</summary>
         internal float HorizontalVelocityGain => horizontalVelocityGain;
+
+        internal float AntiSwingStrength => antiSwingStrength;
+
+        internal float AntiSwingMaximumAcceleration => antiSwingMaximumAcceleration;
+
+        internal float ExternalMassBlendSeconds => externalMassBlendSeconds;
 
         /// <summary>水平加速度限幅，单位 m/s²。</summary>
         internal float MaximumHorizontalAccelerationMetersPerSecondSquared => maximumHorizontalAccelerationMetersPerSecondSquared;
@@ -250,6 +311,26 @@ namespace Hotfix.DroneFlight
 
         internal float WinchSpeedMetersPerSecond => winchSpeedMetersPerSecond;
 
+        internal float TopSuspensionTwistLimitDegrees => topSuspensionTwistLimitDegrees;
+
+        internal float TopSuspensionSwingLimitDegrees => topSuspensionSwingLimitDegrees;
+
+        internal float BottomSuspensionTwistLimitDegrees => bottomSuspensionTwistLimitDegrees;
+
+        internal float BottomSuspensionSwingLimitDegrees => bottomSuspensionSwingLimitDegrees;
+
+        internal float SuspensionJointAngularSpring => suspensionJointAngularSpring;
+
+        internal float SuspensionJointAngularDamper => suspensionJointAngularDamper;
+
+        internal float SuspensionTwistLimitDegrees => suspensionTwistLimitDegrees;
+
+        internal float SuspensionSwingLimitDegrees => suspensionSwingLimitDegrees;
+
+        internal float SuspensionDampingRatio => suspensionDampingRatio;
+
+        internal float SuspensionMaximumDampingTorque => suspensionMaximumDampingTorque;
+
         internal float MaximumPayloadMassKilograms => ratedPayloadKilograms * maximumPayloadMultiplier;
 
         internal float GrappleBreakForceNewtons => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
@@ -265,6 +346,18 @@ namespace Hotfix.DroneFlight
         internal float GrappleLinearFreedomMeters => grappleLinearFreedomMeters;
 
         internal float GrappleAngularFreedomDegrees => grappleAngularFreedomDegrees;
+
+        internal float GrappleTakeupSeconds => grappleTakeupSeconds;
+
+        internal float GrappleWorkingSpring => grappleWorkingSpring;
+
+        internal float GrappleWorkingDamper => grappleWorkingDamper;
+
+        internal float GrappleDockPositionToleranceMeters => grappleDockPositionToleranceMeters;
+
+        internal float GrappleDockSpeedToleranceMetersPerSecond => grappleDockSpeedToleranceMetersPerSecond;
+
+        internal bool HasHighHardwareMassWarning => grappleHardwareMassKilograms > BodyMassKilograms * 0.2f;
 
         internal float ResetHoldSeconds => resetHoldSeconds;
 
@@ -292,6 +385,17 @@ namespace Hotfix.DroneFlight
                 verticalSpeedOutputLimit,
                 verticalSpeedIntegralLimit,
                 verticalSpeedDerivativeFilterHz);
+        }
+
+        internal DronePidSettings CreateHorizontalVelocitySettings()
+        {
+            return new DronePidSettings(
+                horizontalVelocityGain,
+                horizontalVelocityIntegralGain,
+                horizontalVelocityDerivativeGain,
+                horizontalVelocityOutputLimit,
+                horizontalVelocityIntegralLimit,
+                horizontalVelocityDerivativeFilterHz);
         }
 
         internal DroneResponseProfileParameters GetProfile(DroneResponseProfile profile)
@@ -389,6 +493,15 @@ namespace Hotfix.DroneFlight
                 return false;
             }
 
+            if (!IsPositiveFinite(attitudeGain) || !IsPositiveFinite(yawAttitudeGain)
+                || !float.IsFinite(yawWeight) || yawWeight < 0f || yawWeight > 1f
+                || !float.IsFinite(rateFeedForward) || rateFeedForward < 0f
+                || !IsPositiveFinite(stateDerivativeFilterHz) || stateDerivativeFilterHz > 10f)
+            {
+                diagnostic = "姿态增益、偏航权重、Rate 前馈必须合法，状态导数滤波必须位于 (0, 10] Hz。";
+                return false;
+            }
+
             if (!IsPositiveFinite(altitudeGain) || !IsPositiveFinite(maximumVerticalSpeedMetersPerSecond))
             {
                 diagnostic = "高度增益和最大垂直速度必须是大于 0 的有限值。";
@@ -398,6 +511,11 @@ namespace Hotfix.DroneFlight
             if (!IsPositiveFinite(maximumHorizontalSpeedMetersPerSecond)
                 || !IsPositiveFinite(horizontalPositionGain)
                 || !IsPositiveFinite(horizontalVelocityGain)
+                || !float.IsFinite(horizontalVelocityIntegralGain) || horizontalVelocityIntegralGain < 0f
+                || !float.IsFinite(horizontalVelocityDerivativeGain) || horizontalVelocityDerivativeGain < 0f
+                || !IsPositiveFinite(horizontalVelocityOutputLimit)
+                || !IsPositiveFinite(horizontalVelocityIntegralLimit)
+                || !IsPositiveFinite(horizontalVelocityDerivativeFilterHz)
                 || !IsPositiveFinite(maximumHorizontalAccelerationMetersPerSecondSquared))
             {
                 diagnostic = "水平速度、位置增益和加速度限制必须是大于 0 的有限值。";
@@ -418,12 +536,22 @@ namespace Hotfix.DroneFlight
             }
 
             if (!IsPositiveFinite(grappleHardwareMassKilograms)
+                || grappleHardwareMassKilograms > BodyMassKilograms * 0.5f
                 || !IsPositiveFinite(winchStowedLengthMeters)
                 || !IsPositiveFinite(winchCarryLengthMeters)
                 || !IsPositiveFinite(winchDeployedLengthMeters)
                 || !(winchStowedLengthMeters < winchCarryLengthMeters
                      && winchCarryLengthMeters < winchDeployedLengthMeters)
                 || !IsPositiveFinite(winchSpeedMetersPerSecond)
+                || !IsValidSuspensionAngle(suspensionTwistLimitDegrees)
+                || !IsValidSuspensionAngle(suspensionSwingLimitDegrees)
+                || !float.IsFinite(suspensionDampingRatio)
+                || suspensionDampingRatio <= 0f
+                || suspensionDampingRatio > 1f
+                || !IsPositiveFinite(suspensionMaximumDampingTorque)
+                || !float.IsFinite(antiSwingStrength) || antiSwingStrength < 0f || antiSwingStrength > 100f
+                || !IsPositiveFinite(antiSwingMaximumAcceleration)
+                || !IsPositiveFinite(externalMassBlendSeconds)
                 || !IsPositiveFinite(MaximumPayloadMassKilograms)
                 || !IsPositiveFinite(GrappleBreakForceNewtons)
                 || !IsPositiveFinite(GrappleBreakTorqueNewtonMeters)
@@ -431,9 +559,14 @@ namespace Hotfix.DroneFlight
                 || !float.IsFinite(grappleAngularFreedomDegrees)
                 || grappleAngularFreedomDegrees <= 0f
                 || grappleAngularFreedomDegrees > 45f
+                || !IsPositiveFinite(grappleTakeupSeconds)
+                || !IsPositiveFinite(grappleWorkingSpring)
+                || !IsPositiveFinite(grappleWorkingDamper)
+                || !IsPositiveFinite(grappleDockPositionToleranceMeters)
+                || !IsPositiveFinite(grappleDockSpeedToleranceMetersPerSecond)
                 || !IsPositiveFinite(resetHoldSeconds))
             {
-                diagnostic = "卷扬长度必须满足收纳 < 运输 < 放出，且抓斗、载荷与复位参数必须为正数。";
+                diagnostic = "抓斗设备质量不得超过基础机体质量的 50%；卷扬长度必须满足收纳 < 运输 < 放出；单摆限位、阻尼、软抓取、停靠和复位参数必须有效。";
                 return false;
             }
 
@@ -464,6 +597,11 @@ namespace Hotfix.DroneFlight
         private static bool IsPositiveFinite(float value)
         {
             return value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+
+        private static bool IsValidSuspensionAngle(float value)
+        {
+            return float.IsFinite(value) && value > 0f && value <= 45f;
         }
     }
 }

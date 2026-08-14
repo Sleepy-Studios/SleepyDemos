@@ -227,7 +227,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
@@ -341,7 +341,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 401c8f968df1d0f4d91cb5fd0ee4dcdd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneCameraRig
   outputCamera: {fileID: 384147486}
   droneBody: {fileID: 2318967421053997754}
@@ -364,7 +364,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a37fab87b9d6fc5499945ba2c6115639, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneCameraInput
 --- !u!1 &546652262
 GameObject:
@@ -517,7 +517,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
   payloadType: LightCargo
   connectionPoint: {fileID: 0}
@@ -672,7 +672,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
   payloadType: MediumCargo
   connectionPoint: {fileID: 0}
@@ -828,6 +828,161 @@ Transform:
   - {fileID: 1056911106}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &795199933
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 795199934}
+  - component: {fileID: 795199939}
+  - component: {fileID: 795199938}
+  - component: {fileID: 795199937}
+  - component: {fileID: 795199936}
+  - component: {fileID: 795199935}
+  m_Layer: 0
+  m_Name: Sphere
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &795199934
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795199933}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.196, y: 0.199, z: -1.295}
+  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 1272267537}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &795199935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795199933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
+  payloadType: MediumCargo
+  connectionPoint: {fileID: 0}
+--- !u!54 &795199936
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795199933}
+  serializedVersion: 5
+  m_Mass: 0.35
+  m_LinearDamping: 0
+  m_AngularDamping: 1
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!135 &795199937
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795199933}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &795199938
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795199933}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &795199939
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 795199933}
+  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &830864018
 GameObject:
   m_ObjectHideFlags: 0
@@ -979,7 +1134,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
   payloadType: OverloadCargo
   connectionPoint: {fileID: 0}
@@ -1032,7 +1187,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f2afceb9552486f479f68d6daa3b309f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRemoteControllerExperience
   playerCamera: {fileID: 1719812489}
   droneCameraRig: {fileID: 384147487}
@@ -1182,7 +1337,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 4, y: 1, z: 4}
+  m_LocalScale: {x: 100, y: 1, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1272267537}
@@ -1212,7 +1367,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: fae0b410597e47047ae6f9524c895169, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1307,6 +1462,7 @@ Transform:
   - {fileID: 546652263}
   - {fileID: 553083879}
   - {fileID: 830864019}
+  - {fileID: 795199934}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1456943827
@@ -1443,7 +1599,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1af9c3d16d44f04eacc4096d6985068, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightDemoExit
 --- !u!114 &1465942321
 MonoBehaviour:
@@ -1455,7 +1611,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 02e0aa0daf202d246be8c8fe31f54ffc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightSceneContext
   flightController: {fileID: 2318967421053997756}
   playerInput: {fileID: 2318967421053997753}
@@ -1466,8 +1622,8 @@ MonoBehaviour:
   winch: {fileID: 2318967421053997757}
   landingGear: {fileID: 2318967421053997755}
   scenePayloads:
-  - {fileID: 553083884}
   - {fileID: 546652268}
+  - {fileID: 553083884}
   - {fileID: 830864024}
 --- !u!114 &1465942322
 MonoBehaviour:
@@ -1479,7 +1635,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9067927ad7704ea40b2fdfbce8e5517d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightUIController
 --- !u!1 &1540249478
 GameObject:
@@ -1884,7 +2040,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1392612302740590251, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
+      objectReference: {fileID: 995074659}
+    - target: {fileID: 1529429898834853884, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1529429898834853884, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: controlSession
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1932,7 +2096,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2787501072079070186, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 3504573115625859312, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -1940,7 +2104,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3504573115625859312, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 4495656897121343212, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -1948,7 +2112,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4495656897121343212, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 4597486164031808581, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Name
@@ -1964,7 +2128,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5169938975810303133, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 5358743291958133269, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -1972,7 +2136,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5358743291958133269, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 5698079652713132101, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -1980,7 +2144,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5698079652713132101, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
+      objectReference: {fileID: 995074659}
+    - target: {fileID: 6692258994654543525, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6692258994654543525, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: controlSession
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 7299874818764325793, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -1988,7 +2160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7299874818764325793, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 8110465978510153665, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -1996,7 +2168,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8110465978510153665, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 8272185640156469209, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -2004,7 +2176,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8272185640156469209, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
       objectReference: {fileID: 995074659}
     - target: {fileID: 8441090014445873622, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: m_Enabled
@@ -2012,7 +2184,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8441090014445873622, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
       propertyPath: controlSession
-      value:
+      value: 
+      objectReference: {fileID: 995074659}
+    - target: {fileID: 9181782442006168595, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9181782442006168595, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: controlSession
+      value: 
       objectReference: {fileID: 995074659}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2028,7 +2208,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 500c6e38d2704fe4bb857db78da889a5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePlayerInput
 --- !u!4 &2318967421053997754 stripped
 Transform:
@@ -2044,7 +2224,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1f2ed8d256927be48b50990d851c846f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneLandingGearController
 --- !u!114 &2318967421053997756 stripped
 MonoBehaviour:
@@ -2055,51 +2235,51 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 00c2deac2a0b9114d8a9c89b51406e14, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightController
 --- !u!114 &2318967421053997757 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4528751078765186791, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_CorrespondingSourceObject: {fileID: 47886512027651397, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
   m_PrefabInstance: {fileID: 2318967421053997752}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1b1439bba1f8ec847ad3294c4d94efe2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneWinchController
 --- !u!114 &2318967421053997758 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 621042600894560047, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_CorrespondingSourceObject: {fileID: 917472237883788554, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
   m_PrefabInstance: {fileID: 2318967421053997752}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da508b6b8205d9440bc4c72c55a562b0, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneMechanicalHook
 --- !u!114 &2318967421053997759 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1470479426776946310, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_CorrespondingSourceObject: {fileID: 2656307147409567645, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
   m_PrefabInstance: {fileID: 2318967421053997752}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2c7f24227eab23340b1c5701dfb0af91, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.PayloadMount
 --- !u!114 &2318967421053997760 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5358743291958133269, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_CorrespondingSourceObject: {fileID: 1529429898834853884, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
   m_PrefabInstance: {fileID: 2318967421053997752}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d4768632d00d9f4ba16519f9a3bff89, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHookInput
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

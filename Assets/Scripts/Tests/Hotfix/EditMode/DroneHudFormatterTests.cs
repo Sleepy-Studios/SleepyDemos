@@ -56,7 +56,16 @@ namespace Hotfix.Tests
             StringAssert.Contains("动力模式", text);
             StringAssert.Contains("额定载重", text);
             StringAssert.Contains("当前真实载荷", text);
-            StringAssert.Contains("当前受力载荷", text);
+            StringAssert.Contains("飞控承载载荷", text);
+            StringAssert.Contains("载荷支撑", text);
+            StringAssert.Contains("整机恒定总质量", text);
+            StringAssert.Contains("机载抓斗设备", text);
+            StringAssert.Contains("地面支持力", text);
+            StringAssert.Contains("软约束接入", text);
+            StringAssert.Contains("单摆吊索", text);
+            StringAssert.Contains("长度", text);
+            StringAssert.Contains("主动防摆", text);
+            StringAssert.Contains("被动阻尼扭矩", text);
             StringAssert.Contains("理论悬停指令", text);
             StringAssert.Contains("动力余量", text);
             StringAssert.DoesNotContain("Motor FL", text);

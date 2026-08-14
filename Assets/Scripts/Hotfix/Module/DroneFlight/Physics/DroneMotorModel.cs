@@ -129,6 +129,19 @@ namespace Hotfix.DroneFlight
 
         internal float NormalizedOutput => normalizedOutput;
 
+        /// <summary>把目标推力反解为归一化 RPM 指令。</summary>
+        internal float CommandForThrust(float thrustNewtons)
+        {
+            if (!IsFinite(thrustNewtons) || thrustNewtons <= 0f
+                || settings.ThrustCoefficient <= 0f || settings.MaximumRpm <= 0f)
+            {
+                return 0f;
+            }
+
+            var rpm = (float)Math.Sqrt(thrustNewtons / settings.ThrustCoefficient);
+            return Clamp01(rpm / settings.MaximumRpm);
+        }
+
         /// <summary>立即清除电机响应历史。</summary>
         internal void Reset()
         {

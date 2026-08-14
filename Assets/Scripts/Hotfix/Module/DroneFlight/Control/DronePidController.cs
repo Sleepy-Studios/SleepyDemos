@@ -57,6 +57,7 @@ namespace Hotfix.DroneFlight
             float integralState,
             float integral,
             float derivative,
+            float feedForward,
             float rawOutput,
             float clampedOutput,
             bool isSaturated,
@@ -67,6 +68,7 @@ namespace Hotfix.DroneFlight
             IntegralState = integralState;
             Integral = integral;
             Derivative = derivative;
+            FeedForward = feedForward;
             RawOutput = rawOutput;
             ClampedOutput = clampedOutput;
             IsSaturated = isSaturated;
@@ -83,6 +85,8 @@ namespace Hotfix.DroneFlight
 
         internal float Derivative { get; }
 
+        internal float FeedForward { get; }
+
         internal float RawOutput { get; }
 
         internal float ClampedOutput { get; }
@@ -97,7 +101,7 @@ namespace Hotfix.DroneFlight
     /// </summary>
     internal sealed class DronePidController
     {
-        private readonly DronePidSettings settings;
+        private DronePidSettings settings;
         private float integralState;
         private float previousError;
         private float filteredDerivative;
@@ -121,7 +125,7 @@ namespace Hotfix.DroneFlight
             if (!IsFinite(error) || !IsFinite(deltaTime) || deltaTime <= 0f)
             {
                 Reset();
-                Telemetry = new DronePidTelemetry(0f, 0f, 0f, 0f, 0f, 0f, 0f, false, true);
+                Telemetry = new DronePidTelemetry(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, true);
                 return 0f;
             }
 
@@ -158,9 +162,69 @@ namespace Hotfix.DroneFlight
                 integralState,
                 integral,
                 derivative,
+                0f,
                 rawOutput,
                 clampedOutput,
                 isSaturated,
+                false);
+            return clampedOutput;
+        }
+
+        /// <summary>
+        /// 使用实际量导数计算 D 项，并加入显式前馈，避免目标阶跃产生 derivative kick。
+        /// </summary>
+        /// <param name="error">目标减实际的当前误差。</param>
+        /// <param name="measurementDerivative">实际量的一阶导数。</param>
+        /// <param name="feedForward">与 PID 相同单位的前馈输出。</param>
+        /// <param name="deltaTime">固定物理步长。</param>
+        internal float StepWithMeasurement(
+            float error,
+            float measurementDerivative,
+            float feedForward,
+            float deltaTime)
+        {
+            if (!IsFinite(error) || !IsFinite(measurementDerivative)
+                || !IsFinite(feedForward) || !IsFinite(deltaTime) || deltaTime <= 0f)
+            {
+                Reset();
+                Telemetry = new DronePidTelemetry(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, false, true);
+                return 0f;
+            }
+
+            integralStateBeforeStep = integralState;
+            var proportional = settings.ProportionalGain * error;
+            var derivativeState = FilterDerivative(-measurementDerivative, deltaTime);
+            var derivative = settings.DerivativeGain * derivativeState;
+            var candidateIntegralState = Clamp(
+                integralState + error * deltaTime,
+                -settings.IntegralLimit,
+                settings.IntegralLimit);
+            var candidateOutput = proportional
+                                  + settings.IntegralGain * candidateIntegralState
+                                  + derivative
+                                  + feedForward;
+            var candidateClamped = ClampOutput(candidateOutput);
+            if (Approximately(candidateOutput, candidateClamped)
+                || Math.Sign(error) != Math.Sign(candidateOutput))
+            {
+                integralState = candidateIntegralState;
+            }
+
+            var integral = settings.IntegralGain * integralState;
+            var rawOutput = proportional + integral + derivative + feedForward;
+            var clampedOutput = ClampOutput(rawOutput);
+            previousError = error;
+            HasHistory = true;
+            Telemetry = new DronePidTelemetry(
+                error,
+                proportional,
+                integralState,
+                integral,
+                derivative,
+                feedForward,
+                rawOutput,
+                clampedOutput,
+                !Approximately(rawOutput, clampedOutput),
                 false);
             return clampedOutput;
         }
@@ -177,7 +241,7 @@ namespace Hotfix.DroneFlight
 
             integralState = integralStateBeforeStep;
             var integral = settings.IntegralGain * integralState;
-            var rawOutput = Telemetry.Proportional + integral + Telemetry.Derivative;
+            var rawOutput = Telemetry.Proportional + integral + Telemetry.Derivative + Telemetry.FeedForward;
             var clampedOutput = ClampOutput(rawOutput);
             Telemetry = new DronePidTelemetry(
                 Telemetry.Error,
@@ -185,10 +249,61 @@ namespace Hotfix.DroneFlight
                 integralState,
                 integral,
                 Telemetry.Derivative,
+                Telemetry.FeedForward,
                 rawOutput,
                 clampedOutput,
                 true,
                 Telemetry.HadInvalidInput);
+        }
+
+        /// <summary>
+        /// 只在当前误差继续推动不可实现方向时撤销本步积分。
+        /// </summary>
+        /// <param name="direction">执行器无法继续输出的方向。</param>
+        internal void ApplyDirectionalSaturation(DroneSaturationDirection direction)
+        {
+            if (!HasHistory || direction == DroneSaturationDirection.None)
+            {
+                return;
+            }
+
+            var blocksError = direction == DroneSaturationDirection.Both
+                              || (direction == DroneSaturationDirection.Positive && Telemetry.Error > 0f)
+                              || (direction == DroneSaturationDirection.Negative && Telemetry.Error < 0f);
+            if (blocksError)
+            {
+                ApplyActuatorSaturation(true);
+            }
+        }
+
+        /// <summary>
+        /// 运行时更新参数并尽量保持当前输出连续。
+        /// </summary>
+        /// <param name="newSettings">新的 PID 参数。</param>
+        /// <param name="preserveOutput">是否反算积分以保持最近输出。</param>
+        internal void UpdateSettings(DronePidSettings newSettings, bool preserveOutput)
+        {
+            var previousOutput = Telemetry.ClampedOutput;
+            settings = newSettings;
+            if (!preserveOutput || !HasHistory)
+            {
+                integralState = Clamp(integralState, -settings.IntegralLimit, settings.IntegralLimit);
+                return;
+            }
+
+            if (Math.Abs(settings.IntegralGain) > 0.000001f)
+            {
+                integralState = Clamp(
+                    (previousOutput - settings.ProportionalGain * Telemetry.Error
+                     - settings.DerivativeGain * filteredDerivative
+                     - Telemetry.FeedForward) / settings.IntegralGain,
+                    -settings.IntegralLimit,
+                    settings.IntegralLimit);
+            }
+            else
+            {
+                integralState = 0f;
+            }
         }
 
         /// <summary>清除积分、微分和遥测历史。</summary>
@@ -211,6 +326,11 @@ namespace Hotfix.DroneFlight
             }
 
             var rawDerivative = (error - previousError) / deltaTime;
+            return FilterDerivative(rawDerivative, deltaTime);
+        }
+
+        private float FilterDerivative(float rawDerivative, float deltaTime)
+        {
             if (settings.DerivativeFilterHz <= 0f)
             {
                 filteredDerivative = rawDerivative;
