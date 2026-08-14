@@ -2,9 +2,9 @@
 
 ## 适用场景
 
-修改 Core.Runtime、Core.Editor、公共 UI、资源服务或热更收集规则后，使用本流程运行当前任务直接相关的最小测试集。不要把“改了 Core”自动等同于运行整个 `Core.Tests`。
+修改 Core.Runtime、Core.Editor、Hotfix、公共模块或 Demo 后，使用本流程运行当前任务直接相关的最小测试集。不要把“改了框架或 Demo”自动等同于运行整个测试程序集。
 
-只有用户明确要求“全量测试”或“完整回归”时，才运行全部项目测试。全量默认仅包含项目自有的 `Core.Tests` 与未来的 `Hotfix.Tests`；Package、插件或 Unity 自带测试需要用户另外明确指定。
+只有用户明确要求“全量测试”或“完整回归”时，才运行全部项目测试。全量默认仅包含项目自有的 `Tests.EditMode` 与 `Tests.PlayMode`；Package、插件或 Unity 自带测试需要用户另外明确指定。
 
 ## 确认 Unity 实例
 
@@ -25,7 +25,7 @@
 2. 同一功能涉及多条用例时，运行对应测试类。
 3. 跨模块任务运行所有直接受影响的测试类，但不自动扩大到整个程序集或全部 TestMode。
 
-可在 `Window > General > Test Runner` 中选择具体方法或测试类。只有用户明确要求全量测试时，才分别运行 `Core.Tests.EditMode` 和 `Core.Tests.PlayMode` 的全部项目测试。
+可在 `Window > General > Test Runner` 中选择具体方法或测试类。只有用户明确要求全量测试时，才分别运行 `Tests.EditMode` 和 `Tests.PlayMode` 的全部项目测试。
 
 通过 UnitySkills 自动运行时：
 
@@ -40,23 +40,23 @@
 
 ## 范围示例
 
-- 只修改资源地址规范：运行 `Core.Tests.Resource.ResourceServiceTests`。
-- 只修改 UI Root 创建或层级 Canvas：运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
-- 修改 UI Prefab 根节点约定：运行 `Core.Tests.UI.UIViewPrefabConventionTests`；若同时修改 UI Root，再追加对应 PlayMode 测试类。
-- 修改热更 asmdef 过滤与交付边界：运行 `Core.Tests.Hotfix.HotfixAssemblyDefinitionFilterTests` 和 `Core.Tests.Assemblies.TestAssemblyBoundaryTests`。
+- 只修改资源地址规范：运行 `Tests.Module.ResourceServiceTests`。
+- 只修改 UI Root 创建或层级 Canvas：运行 `Tests.Module.UIRootManagerPlayModeTests`。
+- 修改 UI Prefab 根节点约定：运行 `Tests.Module.UIViewPrefabConventionTests`；若同时修改 UI Root，再追加对应 PlayMode 测试类。
+- 修改热更 asmdef 过滤与交付边界：运行 `Tests.Module.HotfixAssemblyDefinitionFilterTests` 和 `Tests.Module.TestAssemblyBoundaryTests`。
 - 用户明确要求全量测试：运行全部项目自有 EditMode 与 PlayMode 测试，并在报告中标记为全量；不要自动包含第三方包测试。
 
 大型 UI 导航与过渡改动按以下顺序串行运行直接受影响类，不并行启动 Test Runner job：
 
-1. `Core.Tests.UI.UINavigationContractsTests`（EditMode）
-2. `Core.Tests.UI.UIStackTests`（EditMode）
-3. `Core.Tests.UI.MvcBindTransitionGenerationTests`（EditMode）
-4. `Core.Tests.UI.UIViewLifecyclePlayModeTests`（PlayMode）
-5. `Core.Tests.UI.UIManagerNavigationPlayModeTests`（PlayMode）
-6. `Core.Tests.UI.UITransitionPlayModeTests`（PlayMode）
-7. `Core.Tests.UI.UIWorldTransitionPlayModeTests`（PlayMode）
-8. `Core.Tests.UI.UIRootManagerPlayModeTests`（PlayMode）
-9. `Core.Tests.UI.UIViewPrefabConventionTests`（EditMode）
+1. `Tests.Module.UINavigationContractsTests`（EditMode）
+2. `Tests.Module.UIStackTests`（EditMode）
+3. `Tests.Module.MvcBindTransitionGenerationTests`（EditMode）
+4. `Tests.Module.UIViewLifecyclePlayModeTests`（PlayMode）
+5. `Tests.Module.UIManagerNavigationPlayModeTests`（PlayMode）
+6. `Tests.Module.UITransitionPlayModeTests`（PlayMode）
+7. `Tests.Module.UIWorldTransitionPlayModeTests`（PlayMode）
+8. `Tests.Module.UIRootManagerPlayModeTests`（PlayMode）
+9. `Tests.Module.UIViewPrefabConventionTests`（EditMode）
 
 这 9 类属于 UI 模块受影响回归，不代表项目全量测试。
 

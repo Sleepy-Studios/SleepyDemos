@@ -154,11 +154,11 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 - CloseAll 在执行期间收到取消也会完成全量清理，最终返回 Canceled；不要把 Canceled 理解为“没有执行清理”。
 - 空 Cache 上的 `CloseAllAsync()` 返回 `Succeeded` 且 `View == null`，调用方应按 `Status` 判断，不要把空 View 当作失败。
 
-1. 运行 `Core.Tests.UI.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
-2. 修改 View 生命周期时，运行 `Core.Tests.UI.UIViewLifecyclePlayModeTests`。
-3. 修改默认 UI Transition 或交互锁时，运行 `Core.Tests.UI.UITransitionPlayModeTests`。
-4. 接入 World / Camera 过渡时，串行运行 `Core.Tests.UI.UIWorldTransitionPlayModeTests` 和 `Core.Tests.UI.UIManagerNavigationPlayModeTests`。
-5. 修改层级、Mask 或 Root 装配时，运行 `Core.Tests.UI.UIRootManagerPlayModeTests`。
+1. 运行 `Tests.Module.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
+2. 修改 View 生命周期时，运行 `Tests.Module.UIViewLifecyclePlayModeTests`。
+3. 修改默认 UI Transition 或交互锁时，运行 `Tests.Module.UITransitionPlayModeTests`。
+4. 接入 World / Camera 过渡时，串行运行 `Tests.Module.UIWorldTransitionPlayModeTests` 和 `Tests.Module.UIManagerNavigationPlayModeTests`。
+5. 修改层级、Mask 或 Root 装配时，运行 `Tests.Module.UIRootManagerPlayModeTests`。
 6. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
 7. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
 8. 在 `16:9`、超宽和窄屏 Game View 下检查布局。

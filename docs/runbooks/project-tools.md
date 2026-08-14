@@ -146,7 +146,7 @@
 |------|------|
 | [新增 Demo](./add-demo.md) | 新建 Demo 资源与 Hotfix 接入 |
 | [TMP 字体生产流程](./tmp-font-workflow.md) | TMP 字体资产生产 |
-| [运行 Unity 自动化测试](./run-unity-tests.md) | Core.Tests 发现、运行与排障 |
+| [运行 Unity 自动化测试](./run-unity-tests.md) | 项目测试发现、运行与排障 |
 | [使用 Luban 配置](./use-luban-config.md) | 配置修改、生成、读取、提交与排障 |
 
 ---

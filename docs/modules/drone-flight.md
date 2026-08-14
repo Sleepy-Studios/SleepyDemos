@@ -4,7 +4,7 @@
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Module/DroneFlight/`，业务 Inspector 位于独立 `Hotfix.Editor`。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试统一位于 `Assets/Scripts/Tests`。
+业务代码位于 `Assets/Scripts/Hotfix/Module/DroneFlight/`，业务 Inspector 位于独立 `Hotfix.Editor`。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -120,6 +120,6 @@ F3 保留四旋翼独立升力、总升力、重力、目标/实际速度、目�
 
 自动化只运行本任务精确类：配置/Prefab 契约、正式 `DronePrototype` 自动起飞、载荷调校、UI 数据时序、场景导航及装备物理。Game View 仍需人工确认四爪抓取手感、摆动衰减、渔叉准星/弹道一致、真实后坐、动态/静态命中和连续回收。
 
-DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。EditMode 目录中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；日志包含测试组目的、完整用例名、中文结果和耗时，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
+DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。`Tests/EditMode/Demo/DroneFlight` 中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；日志包含测试组目的、完整用例名、中文结果和耗时，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
 
 操作和调参见[调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)，Editor 直启见[直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)，进度见[实施计划](../superpowers/plans/2026-08-13-drone-flight-simulation.md)。

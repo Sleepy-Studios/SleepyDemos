@@ -143,7 +143,7 @@ var bytes = result.Asset.bytes;
 
 ## 验证方式
 
-Unity Editor 中运行 `Core.Tests.Resource.ResourceServiceTests`，完整步骤见 [运行 Unity 自动化测试](./run-unity-tests.md)。
+Unity Editor 中运行 `Tests.Module.ResourceServiceTests`，完整步骤见 [运行 Unity 自动化测试](./run-unity-tests.md)。
 
 手动验证：
 

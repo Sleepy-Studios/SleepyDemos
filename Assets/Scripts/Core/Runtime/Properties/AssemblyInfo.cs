@@ -1,4 +1,4 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Core.Tests.EditMode")]
-[assembly: InternalsVisibleTo("Core.Tests.PlayMode")]
+[assembly: InternalsVisibleTo("Tests.EditMode")]
+[assembly: InternalsVisibleTo("Tests.PlayMode")]

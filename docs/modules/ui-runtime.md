@@ -178,14 +178,14 @@ Loading --加载失败或取消--> Faulted
 
 ## 验证入口
 
-- `Core.Tests.UI.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
-- `Core.Tests.UI.CoreUIComponentMigrationTests` 检查全局扩展、顶点翻转、金字塔布局、TMP 自动滚动裁剪装配和圆角 Shader/材质链路。
-- `Core.Tests.UI.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
-- `Core.Tests.UI.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
-- `Core.Tests.UI.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
-- `Core.Tests.UI.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
-- `Core.Tests.UI.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
-- `Core.Tests.UI.UIManagerNavigationPlayModeTests` 在真实 Play Mode 中检查 FIFO、反向取消、事务提交点、错误回滚、缓存清理和兼容门面。
-- `Core.Tests.UI.UITransitionPlayModeTests` 在真实 Play Mode 中检查默认 FadeScale 终态、取消、销毁、InteractionGate 引用计数以及 Gate / Mask 独立性。
+- `Tests.Module.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
+- `Tests.Module.CoreUIComponentMigrationTests` 检查全局扩展、顶点翻转、金字塔布局、TMP 自动滚动裁剪装配和圆角 Shader/材质链路。
+- `Tests.Module.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
+- `Tests.Module.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
+- `Tests.Module.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
+- `Tests.Module.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
+- `Tests.Module.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
+- `Tests.Module.UIManagerNavigationPlayModeTests` 在真实 Play Mode 中检查 FIFO、反向取消、事务提交点、错误回滚、缓存清理和兼容门面。
+- `Tests.Module.UITransitionPlayModeTests` 在真实 Play Mode 中检查默认 FadeScale 终态、取消、销毁、InteractionGate 引用计数以及 Gate / Mask 独立性。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

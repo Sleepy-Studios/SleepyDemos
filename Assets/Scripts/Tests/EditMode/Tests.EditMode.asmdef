@@ -1,0 +1,27 @@
+{
+    "name": "Tests.EditMode",
+    "rootNamespace": "Tests",
+    "references": [
+        "Core.Runtime",
+        "Core.Editor",
+        "Hotfix",
+        "Luban.Runtime",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "UniTask"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

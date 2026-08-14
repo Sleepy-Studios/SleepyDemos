@@ -124,8 +124,8 @@ autoScroll.SetText(title, shouldAutoStart: true);
 
 修改这些组件或调用方式后，运行：
 
-- `Core.Tests.UI.UIViewPrefabConventionTests`
-- `Core.Tests.UI.CoreUIComponentMigrationTests`
+- `Tests.Module.UIViewPrefabConventionTests`
+- `Tests.Module.CoreUIComponentMigrationTests`
 
 圆角、渐变、翻转、矩形裁剪和自动滚动还应在真实 Canvas 中做一次 Play Mode 目视检查；当前仓库没有可用的 `UIFrameworkValidation` 页面或菜单，按业务 Prefab 接入后验证即可。
 

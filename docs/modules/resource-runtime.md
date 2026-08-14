@@ -112,7 +112,7 @@
 - 有补丁时加载界面能显示下载进度。
 - UI 能通过 loader 正常实例化。
 - 热更新程序集能通过资源服务读取 `TextAsset`。
-- `Core.Tests.Resource.ResourceServiceTests` 全部通过。
+- `Tests.Module.ResourceServiceTests` 全部通过。
 
 ## 相关文档
 

@@ -61,11 +61,11 @@
 
 ## 测试
 
-自动化测试统一放在 `Assets/Scripts/Tests`。项目最多维护 Core.Tests 与按需创建的 Hotfix.Tests 两个逻辑测试域；物理 asmdef 只允许按 `.EditMode` / `.PlayMode` 拆分。禁止在 `Assets/Scripts/Core` 或 `Assets/Scripts/Hotfix` 下创建 Test Assembly；测试程序集必须设置 `autoReferenced=false`，EditMode 限制为 Editor，PlayMode 使用标准 PlayMode Test Assembly 配置，生产程序集不得反向引用测试程序集。
+自动化测试统一放在 `Assets/Scripts/Tests`。项目只维护 `Tests.EditMode` 与 `Tests.PlayMode` 两个物理测试程序集，不按 Core、Hotfix、功能模块或 Demo 继续拆分 asmdef。框架测试放在对应 TestMode 的 `Module/<模块>` 下并使用 `Tests.Module` 命名空间；Demo 测试放在 `Demo/<Demo>` 下并使用 `Tests.Demo` 命名空间。禁止在 `Assets/Scripts/Core` 或 `Assets/Scripts/Hotfix` 下创建 Test Assembly；测试程序集必须设置 `autoReferenced=false`，EditMode 限制为 Editor，PlayMode 使用标准 PlayMode Test Assembly 配置，生产程序集不得反向引用测试程序集。
 
 Unity Test Runner 是唯一自动化验证入口，不再新增并行的自定义基础设施校验菜单或 BatchMode 包装器。完整步骤见 `docs/runbooks/run-unity-tests.md`。
 
-测试默认只运行当前任务直接相关的最小范围，选择顺序为：精确测试方法、当前功能对应的测试类、当前任务涉及的多个测试类。跨模块改动可以运行所有直接受影响的测试类，但不得自动扩大为整个 `Core.Tests`、全部 EditMode、全部 PlayMode 或第三方包测试。只有用户明确要求“全量测试”或“完整回归”时才运行项目全量测试；这里的全量默认仅包含项目自有的 `Core.Tests` 与未来的 `Hotfix.Tests`，第三方包测试必须另行明确指定。完成报告必须说明实际测试范围以及是否执行过全量测试。
+测试默认只运行当前任务直接相关的最小范围，选择顺序为：精确测试方法、当前功能对应的测试类、当前任务涉及的多个测试类。跨模块改动可以运行所有直接受影响的测试类，但不得自动扩大为整个 `Tests.EditMode`、整个 `Tests.PlayMode` 或第三方包测试。只有用户明确要求“全量测试”或“完整回归”时才运行项目全量测试；这里的全量默认仅包含项目自有的 `Tests.EditMode` 与 `Tests.PlayMode`，第三方包测试必须另行明确指定。完成报告必须说明实际测试范围以及是否执行过全量测试。
 
 
 运行 Unity 测试时，优先使用当前会话已安装的 `unity-skills` 技能（常见用户级入口为 `~/.agents/skills/unity-skills/SKILL.md`，以会话技能目录为准，不假设仓库内存在同名技能）。在第一次调用任何 UnitySkills REST 接口前，必须先主动确认当前实例端口：优先从 `~/.unity_skills/registry.json` 按项目路径读取；若 registry 缺失或不可信，再扫描 `http://localhost:8090-8100/health`，以 `/health` 返回的 `projectName`、`unityVersion`、`instanceId` 确认目标实例。禁止想当然写死 `8090` 或 `8091`。确认端口后，再调用 `test_run` / `test_run_by_name` 并用 `test_get_result` 轮询结果；不要在 Unity Editor 已打开同一项目时另起 batchmode Unity 实例。
