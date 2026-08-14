@@ -238,7 +238,6 @@ GameObject:
   - component: {fileID: 1832315881270696764}
   - component: {fileID: 1816732705049506715}
   - component: {fileID: 7231251604326882569}
-  - component: {fileID: 1001680421392117344}
   m_Layer: 0
   m_Name: DroneFlightButton
   m_TagString: Untagged
@@ -348,18 +347,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1001680421392117344
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2126983943304684795}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d99b93b646748c44295458741a3bbde3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightDemoLauncher
 --- !u!1 &2234928510525272784
 GameObject:
   m_ObjectHideFlags: 0

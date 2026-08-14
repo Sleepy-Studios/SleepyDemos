@@ -25,7 +25,6 @@ namespace Hotfix.DroneFlight
             float maximumPayloadMultiplier,
             float ratedPayloadHoverCommand,
             float maximumRpm,
-            float deployedHardwareMassKilograms,
             float gravityMetersPerSecondSquared)
         {
             RatedPayloadKilograms = ratedPayloadKilograms;
@@ -33,7 +32,6 @@ namespace Hotfix.DroneFlight
             MaximumPayloadMultiplier = maximumPayloadMultiplier;
             RatedPayloadHoverCommand = ratedPayloadHoverCommand;
             MaximumRpm = maximumRpm;
-            DeployedHardwareMassKilograms = deployedHardwareMassKilograms;
             GravityMetersPerSecondSquared = gravityMetersPerSecondSquared;
         }
 
@@ -42,7 +40,6 @@ namespace Hotfix.DroneFlight
         internal float MaximumPayloadMultiplier { get; }
         internal float RatedPayloadHoverCommand { get; }
         internal float MaximumRpm { get; }
-        internal float DeployedHardwareMassKilograms { get; }
         internal float GravityMetersPerSecondSquared { get; }
     }
 
@@ -83,8 +80,6 @@ namespace Hotfix.DroneFlight
     /// <summary>策划载重到真实四旋翼动力参数的确定性计算器。</summary>
     internal static class DronePayloadTuningCalculator
     {
-        internal const float DefaultDeployedHardwareMassKilograms = 0.05f;
-
         internal static DronePayloadTuningResult Calculate(DronePayloadTuningInput input)
         {
             if (!IsPositiveFinite(input.RatedPayloadKilograms))
@@ -110,19 +105,17 @@ namespace Hotfix.DroneFlight
             }
 
             if (!IsPositiveFinite(input.MaximumRpm)
-                || !IsPositiveFinite(input.GravityMetersPerSecondSquared)
-                || !float.IsFinite(input.DeployedHardwareMassKilograms)
-                || input.DeployedHardwareMassKilograms < 0f)
+                || !IsPositiveFinite(input.GravityMetersPerSecondSquared))
             {
-                return Invalid("最大转速、重力和吊挂设备质量必须是合法有限值。");
+                return Invalid("最大转速和重力必须是合法有限值。");
             }
 
             var bodyMass = input.RatedPayloadKilograms * input.BodyMassMultiplier;
             var maximumPayload = input.RatedPayloadKilograms * input.MaximumPayloadMultiplier;
-            var ratedMass = bodyMass + input.DeployedHardwareMassKilograms + input.RatedPayloadKilograms;
+            var ratedMass = bodyMass + input.RatedPayloadKilograms;
             var ratedRpm = input.MaximumRpm * input.RatedPayloadHoverCommand;
             var thrustCoefficient = ratedMass * input.GravityMetersPerSecondSquared / (4f * ratedRpm * ratedRpm);
-            var maximumMass = bodyMass + input.DeployedHardwareMassKilograms + maximumPayload;
+            var maximumMass = bodyMass + maximumPayload;
             var maximumHover = CalculateHoverCommand(
                 maximumMass,
                 input.GravityMetersPerSecondSquared,
@@ -169,16 +162,6 @@ namespace Hotfix.DroneFlight
             return 0.35f + (0.015f - 0.35f) * (float)Math.Pow(normalized, 0.55f);
         }
 
-        internal static float MapGripStrengthToBreakForce(float strength)
-        {
-            return Lerp(60f, 300f, Clamp01(strength / 100f));
-        }
-
-        internal static float MapGripStrengthToBreakTorque(float strength)
-        {
-            return Lerp(25f, 140f, Clamp01(strength / 100f));
-        }
-
         private static DronePayloadTuningResult Invalid(string diagnostic)
         {
             return new DronePayloadTuningResult(false, diagnostic, 0f, 0f, 0f, 0f, 0f, float.NaN);
@@ -189,14 +172,5 @@ namespace Hotfix.DroneFlight
             return value > 0f && float.IsFinite(value);
         }
 
-        private static float Clamp01(float value)
-        {
-            return Math.Max(0f, Math.Min(1f, value));
-        }
-
-        private static float Lerp(float from, float to, float value)
-        {
-            return from + (to - from) * value;
-        }
     }
 }

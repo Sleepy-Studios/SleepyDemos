@@ -1,232 +1,125 @@
 # DroneFlight 无人机飞行仿真
 
-## 负责什么
+## 职责与边界
 
-DroneFlight 是 Hotfix 业务层的独立 Demo，负责：
+DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-- 四旋翼独立推力、电机响应、反扭矩与基于真实 Rotor 几何的物理控制分配。
-- X/Y/Z 速度 PID、Roll/Pitch/Yaw 角速度 PID，以及 Position/Attitude P 外环组成的六轴串级控制。
-- 键鼠、手柄和未来移动双摇杆的统一输入语义。
-- 云台、无人机多视角、直接控制会话和正式 UIManager HUD。
-- 手动起落架、可停靠卷扬吊链、工业六爪物理抓斗、载荷反馈及后续钓鱼释放器扩展。
-- PID、电机、姿态、载荷和饱和状态的运行时遥测。
+业务代码位于 `Assets/Scripts/Hotfix/Module/DroneFlight/`，业务 Inspector 位于独立 `Hotfix.Editor`。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试统一位于 `Assets/Scripts/Tests`。
 
-## 不负责什么
-
-- 不实现 PX4、ArduPilot、ROS2、MAVLink 或工程级传感器融合。
-- 不把无人机专属算法提前提升到 `Core.Runtime`。
-- 不修改 Core 启动链路；最终从 Hotfix 主菜单进入。
-- 不负责鱼咬钩、鱼线结算等既有钓鱼业务，只负责运送和释放载荷。
-- 裸机 PID 门禁通过前不负责正式模型和角色遥控器成品美术。
-
-## 代码与资源位置
-
-计划中的生产代码根目录：
-
-```text
-Assets/Scripts/Hotfix/Module/DroneFlight/
-├── Control/
-├── Physics/
-├── Input/
-├── Camera/
-├── Payload/
-├── Telemetry/
-├── Runtime/
-└── UI/
-```
-
-Demo 资源必须遵守 `LoadResourcesNamingSpec` 的现有目录矩阵：
+## 资源结构
 
 ```text
 Assets/LoadResources/Demos/drone_flight/
-├── Scenes/       可加载场景
-├── Prefabs/      无人机、测试物、HUD 和遥控器玩法 Prefab
-├── Data/         ScriptableObject/JSON 配置
-├── Art/          模型、贴图、材质和动画
-└── VFX/          Demo 私有特效
+├── Scenes/Main.unity
+├── Art/
+│   ├── Models/DroneFlight.fbx
+│   └── Materials/
+│       ├── DroneGraphite.mat
+│       ├── DroneShellTop.mat
+│       ├── DroneMechanicalBlack.mat
+│       ├── DroneSafetyOrange.mat
+│       ├── DroneFrontLED.mat
+│       └── DroneCameraLens.mat
+├── Data/DroneFlightConfig.asset
+├── Data/Equipment/
+│   ├── DroneGrappleConfig.asset
+│   └── DroneHarpoonConfig.asset
+└── Prefabs/
+    ├── DronePrototype.prefab
+    ├── DroneGrappleVariant.prefab
+    ├── DroneHarpoonVariant.prefab
+    ├── Equipment/
+    │   ├── DroneGrappleEquipment.prefab
+    │   └── DroneHarpoonEquipment.prefab
+    └── UI/DroneFlightVehicleSelectView.prefab
 ```
 
-不存在 `Demos/drone_flight/UI/` 资源目录。Demo 私有 UI Prefab 放在 `Prefabs/UI/`，其贴图和材质放在 `Art/UI/`；规则允许在已登记目录下继续细分。
+`DronePrototype` 既是共享飞行基础，也是“纯无人机”选项直接加载的成品 Prefab。抓斗和渔叉分别保存为独立装备 Prefab；`DroneGrappleVariant`、`DroneHarpoonVariant` 是编辑期已组合并保存的机体，内部以嵌套 Prefab 引用对应装备。运行时不会调用 Builder、不会临时创建装备结构，也不会把模块动态挂到基础无人机上。场景不预放活动无人机；选择机型后只实例化一个对应成品 Prefab。
 
-自动化测试放在：
+正式视觉模型由仓库外 `F:/个人/DroneFlight/DroneFlight.blend` 维护，FBX 副本进入 Demo 私有 `Art/Models`。模型使用米制、Unity `+X` 右 / `+Y` 上 / `+Z` 前；导出层只有 Airframe、四个 RotorHub、两套 CW/CCW 共享桨叶、四个 LandingGear 和三级云台共 14 个正式对象。Prefab 中 FL/RR 共用 CCW Mesh，FR/RL 共用 CW Mesh，不复制四份桨叶资源。
 
-- `Assets/Scripts/Tests/Hotfix/EditMode/`：PID、混控、电机和配置等纯算法。
-- `Assets/Scripts/Tests/Hotfix/PlayMode/`：Rigidbody 闭环、载荷和相机生命周期；需要时按测试架构新增 `Hotfix.Tests.PlayMode`。
+`DroneFlightMechanismBuilder` 是视觉装配的唯一编辑期入口：它关闭 FBX 动画、灯光、相机和 BlendShape 导入，按 `MAT_*` 槽确定性映射到六个外部 URP Lit 材质，并把完整 FBX 嵌套为 `DronePrototype/DroneModel`。`DroneRotor` 直接挂到四个 `RotorHub_*`，起落架控制器直接引用四个 `LandingGear_*`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch`；只在各轮毂下实例化必要的共享 CW/CCW 桨叶，不再维护第二套 Rotor、LandingGear 或 Gimbal 包装层。机体与机臂 BoxCollider 统一收在 `CollisionProxies`，脚底代理跟随真实起落架节点，不使用动态 MeshCollider。灯带材质启用 Emission，本阶段不生成 BaseColor、Normal 或 ORM 位图。
 
-## 当前基线
+FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的 Transform 朝向不能直接当作物理推力方向。`DroneRotor` 仍直接挂在 RotorHub 上，但由 Prefab 根节点显式提供机体局部 `+Y` 作为物理推力轴；桨叶视觉也绕同一机体轴旋转。Builder 和契约测试同时校验四个施力坐标及推力轴，避免模型能显示但控制分配矩阵失效。
 
-2026-08-13 审计结果：
+## 进入和 UI 生命周期
 
-- Unity：`6000.3.15f1`。
-- Input System：`1.19.0`；`Hotfix.asmdef` 已按实际键鼠/手柄适配需求引用 `Unity.InputSystem`。
-- 固定物理步长：`0.02 s`（50 Hz）。
-- 重力：`(0, -9.81, 0) m/s²`。
-- 默认 3D solver iterations：位置 6、速度 1；首版不修改全局值。
-- 默认最大角速度：`50 rad/s`。
-- Build Settings 只包含 `Assets/Scenes/AppEntrance.unity`；DroneFlight `Scenes/Main.unity` 由 YooAsset `Demos` Collector 收集。
-- `Assets/LoadResources/Demos` 已存在并由 YooAsset `Demos` Collector 递归收集，地址使用 LoadResources 全路径。
-- DroneFlight 通过全局 `GameSceneNavigator` 进入和返回，使用运行期 CommonLoading、Additive 场景句柄和统一相机切换，不直接重载 Hub。
+1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
+2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView, DroneFlightVehicleSelectionData>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
+3. 选择后关闭 Pop，通过资源 Loader 直接实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，但不会在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
+4. 在失活状态完成 Context、装备、Camera 和输入装配，关闭收纳爪/停靠弹体碰撞；激活后经过首个物理步再次强制 `Waiting`、锁定和零初速度，最后才开放 F 输入并显示 HUD。
+5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`。
+6. 无人机处于 `Waiting`；按 F 进入第三人称 `Active`，但保持锁定。
+7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F3，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
-## 坐标、电机与单位约定
+## 配置边界
 
-此处是 DroneFlight 的单一语义来源；代码用统一描述结构表达，不在多个控制器重复硬编码。
+- `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降、起落架、公共镜头/输入/重载参数。
+- `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存设备质量、短行程、关节限位与阻尼、四爪驱动、接触门禁、辅助约束、断裂和载荷平滑参数。
+- `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存设备/弹体质量、出膛速度、云台限位、命中规则、绳长、卷线、弹簧阻尼、张力和回收参数。
+- 三个配置各自创建运行时副本；Play Mode 修改源资产后只在安全物理步同步，不回写资产、不清零速度或飞控状态。
+- 三个自定义 Inspector 均支持中文/English；装备 Inspector 提供普通/高级页，偏好只写本机 `EditorPrefs`。
 
-- 世界坐标：Unity 左手坐标，`+Y` 向上。
-- 机体局部：`+Z` 向前、`+X` 向右、`+Y` 向上。
-- 布局：X 型四旋翼。
-- FrontLeft：`(-X, +Z)`。
-- FrontRight：`(+X, +Z)`。
-- RearLeft：`(-X, -Z)`。
-- RearRight：`(+X, -Z)`。
-- FrontLeft、RearRight 为逆时针（CCW）组，FrontRight、RearLeft 为顺时针（CW）组（均按机体上方俯视旋翼定义）。
-- 正 Roll 提升左侧电机、正 Pitch 提升后侧电机、正 Yaw 提升 CCW 组；这些符号由 `QuadrotorMixerTests` 固定。
-- 长度使用米、质量使用千克、力使用牛顿、力矩使用牛顿米、角速度内部使用弧度每秒。
+## 装备公共接口
 
-## 主控制链路
+`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理。Host 同时适配既有 `IDroneExternalMassProvider`：
 
-```text
-独立轴输入整形
--> Position P / 速度前馈
--> X/Y/Z Velocity PID
--> 世界目标加速度与总推力矢量
--> 推力方向优先的 Quaternion Attitude P
--> Roll/Pitch/Yaw Rate PID + 角加速度前馈
--> 惯性张量与陀螺耦合得到目标机体系力矩
--> Rotor 几何物理控制分配（N / N·m）
--> 单旋翼推力反解 RPM
--> 一阶电机响应
--> 四点 AddForceAtPosition + 反扭矩
--> Rigidbody 状态反馈
-```
+- 纯无人机保留零质量 Host 作为飞控接口适配层，但不包含 `IDroneEquipmentModule`、装备刚体或装备 Collider，HUD 不显示 H/J/K 装备操作。
+- 设备质量和当前被装备实际承载的载荷质量进入悬停前馈。
+- 抓斗设备质量不占额定载荷或最大载荷门禁；抓取门禁只比较目标 `Rigidbody.mass`。
+- 渔叉不因目标过重拒绝命中，过重目标通过真实绳索张力影响无人机。
+- 装备不向飞控写目标姿态，也不实现主动防摆。
 
-前期按门禁逐层启用：Rate → Attitude → 垂直速度/高度 → 水平速度/位置。未启用的外环不得偷偷写额外回正力。
+## 四爪抓斗
 
-## 生命周期
+抓斗由一个紧凑底座 Rigidbody、四个按 90° 分布的爪 Rigidbody、四个 HingeJoint 和一个连接机腹的 ConfigurableJoint 组成。四爪总质量与底座质量之和始终等于配置设备总质量，默认 `0.05 kg`；物理根统一 `scale=1`。
 
-1. 场景装配并解析配置、Rigidbody、四个 Rotor 和传感 Transform。
-2. Disarmed 状态检查配置，不产生起飞推力。
-3. Armed 后每个固定步长读取输入/Setpoint，执行控制链并施力。
-4. 遥测只读取控制状态，不反向修改物理。
-5. 接地停桨、故障或显式复位时重置所有 PID 历史和 Setpoint。
-6. 离开 Demo 时释放输入、RenderTexture、调试订阅和临时 Joint。
+- J 在约 `0.08 m` 收纳与 `0.26 m` 放下之间切换，物理锚点只在 FixedUpdate 推进。
+- 新机体四个脚板最低点约为局部 `-0.236 m`，出生定位额外保留 `0.01 m` 净空。抓斗收纳包围判定使用约 `0.12 m` 半径和 `0.12 m` 半高；设备质量仍为 `0.05 kg`，不进入额定载荷门禁。
+- 收纳时锁定角度并关闭爪外部碰撞；完全放下后开放默认 `35°` 摆角与 `±25°` 扭转，并由被动 Drive 衰减摆动。
+- 不使用 Transform 跟随、速度清零或 Joint Projection。带载或四爪未张开时拒绝收纳。
+- H 只在完全放下后驱动四个 HingeJoint 的限位弹簧开合。
+- 同一载荷需被一对非相邻爪稳定接触并位于包围区，才建立辅助 ConfigurableJoint。
+- 辅助约束两端使用同一个世界接触质心，角度自由、Projection 关闭；真实爪碰撞负责主要支撑。
+- 飞控承载质量由辅助约束的实际竖直拉力换算并平滑，载荷仍受地面支撑且拉力接近零时不会提前加入完整负荷。
+- 张开爪只解除约束，不施加冲量、不改速度、不清空 RPM。
 
-控制会话只保留 `Waiting / Active`。进入场景时为 Waiting；按 `F` 立即进入 Active、切到第三人称并启用飞行与机构输入，但保持锁定。按 `Escape` 返回 Waiting，同时锁定电机并清空输入。该流程不再创建遥控器代理、拿起动画或 RenderTexture。
+## 渔叉
 
-正式试玩入口是 `AppEntrance → Hub → DroneFlight`。场景中的 `DroneFlightSceneContext` 持有飞控、相机、输入、起落架、卷扬和抓斗引用；`DroneFlightUIController` 通过 `UIManager.ShowAsync` 打开 `Decorate/Widget` HUD，并按 F3 切换 `Tip/Widget` 调试 View。场景卸载时两者一并关闭。DroneFlight 场景不再包含独立 Canvas，也不保证脱离完整启动链时显示正式 UI。
+渔叉机使用屏幕中心射线瞄准；发射器云台在配置偏航/俯仰限位内对准目标。超限时准星不可发射。
 
-## 配置与运行时调参
+- H 发射唯一可回收弹体；飞行、命中或悬挂状态再次按 H 会解除并自动回收。
+- 弹体为独立 Rigidbody，使用真实重力、Collider 与连续碰撞检测。
+- 发射时按 `弹体质量 × 出膛速度` 给弹体冲量，并在同一物理步从发射口向无人机施加等量反向冲量；不增加人为向下力。
+- 动态目标用 FixedJoint 连接目标 Rigidbody；静态目标连接世界。锚点在接触点重合，Projection 关闭。
+- 绳索为无质量、只受拉的弹簧阻尼约束：松弛不施力，超出目标绳长才向两端施加等量反向力。
+- J 缩短、K 增加目标绳长，不瞬移弹体或目标。视觉绳使用无碰撞 Verlet/PBD 下垂表现。
+- 未命中达到最大绳长后悬挂；解除后自动卷线，满足停靠位置和相对速度阈值后重新锁回发射器。
 
-- 单一配置资产位于 `Demos/drone_flight/Data/DroneFlightConfig.asset`，不建立普通/高级两套并行资产。`Hotfix.Editor` 的自定义 Inspector 只是该资产的两种视图，语言和分页选择只写本机 `EditorPrefs`。
-- 普通设置面向策划：额定载重、最大载荷倍率、满载动力占用、电机响应速度、三个 Profile、自动起降、起落架、卷扬（包含收纳长度）和抓取牢固度。机载抓斗质量只读显示为默认 `0.05 kg`；只读区域还显示自动机体质量、推力系数、动力余量和最大载荷理论悬停能力。
-- 高级设置保留所有底层序列化字段。自动载重调校下，机体质量、响应时间、推力系数和弱约束断裂值是只读派生值；手动物理模式才使用这些真实字段，并显示悬停和 PID 饱和风险。
-- `DronePayloadTuningCalculator` 是纯计算边界。额定载重决定自动机体质量和动力，最大载荷倍率只决定抓取门禁；抓取许可只比较被抓物体自身的 `Rigidbody.mass`，默认 `0.05 kg` 吊挂设备不占用有效载荷额度。
-- Cine/Normal/Sport 只决定目标速度、加速度、Jerk、倾角、升降、偏航和输入响应；三档均保持 Position 语义。额定载重只决定动力储备，载重变化不得改写 Profile。
-- 飞控在 Awake 创建运行时配置副本。Play Mode 修改源资产后，FixedUpdate 将变化同步到副本并安全更新 Rigidbody 和电机参数；保留当前 RPM、PID、位姿与速度，不回写源资产。
-- 无效质量、非法倍率、满载占用越界、推力不足、Rotor 缺失、错误限幅、非正 fixedDeltaTime 或 NaN 输入必须给出中文诊断并拒绝污染物理状态。
+## 飞控与遥测
 
-## 旋翼、起落架与卷扬抓斗
+主控制链保持：输入整形 → 位置/速度控制 → 推力方向姿态控制 → 三轴角速度 PID → 物理控制分配 → RPM → 四点施力与反扭矩。装备只通过外部质量接口提供受支持质量。
 
-- 四个 Rotor 的推力和反扭矩仍只由 FixedUpdate 的真实电机模型产生；`DroneRotorVisual` 只读取 RPM，并在渲染帧累计局部 Y 轴相位。轮毂和细长桨叶无 Collider、无质量。
-- 起落架只响应 `L` 的显式切换，飞行高度、锁定、起飞和降落均不改变目标；降落时仍收起只由 HUD 中文警告。重新加载场景后由新实例恢复默认放下状态。
-- 抓斗设备采用质量守恒拆分：默认 `0.05 kg` 始终属于整机。收纳时它并入无人机主 Rigidbody，抓斗根为 Kinematic、关闭碰撞并停靠机腹；部署时主 Rigidbody 减去同一质量，唯一动态抓斗 Rigidbody 使用完整 `0.05 kg`。飞控外部质量只报告已拆分部分，同一设备不会重复计算，也不进入有效载荷比例和超载门禁。
-- 吊挂结构是 `0.45 m` 无质量吊索/吊杆加单一动态抓斗刚体。只有抓斗根拥有 Rigidbody 和一个连接无人机的 `ConfigurableJoint`；旧连接节刚体、底座二级 Joint、爪 Rigidbody 与 HingeJoint 已移除。关节默认扭转 `±25°`、摆角 `45°`，禁用 Projection，并用阻尼比 `0.35` 的加速度型旋转 Drive 持续衰减摆动。
-- `J` 的放出、收回和锚点长度都在 FixedUpdate 推进。拆分时抓斗继承无人机挂点的点速度和角速度；空载收纳只有在位置误差小于 `0.02 m` 且相对速度小于 `0.15 m/s` 时才合并回主刚体，不能通过清零部署速度或瞬时 Projection 完成对齐。
-- 六个 `scale=1` 爪保留双段工业低模、开合动画和真实复合 Collider，但全部属于抓斗根，不再各自参与刚体/关节求解。统一接触收集器按爪编号、载荷 Collider 和世界接触点计数；同一合法载荷必须位于包围区且至少三个不同爪真实接触，才允许辅助抓取。
-- 抓取保险约束以真实接触质心为共同世界锚点，两端初始误差为零；旋转完全自由，线性余量默认 `0.025 m`，位置/旋转 Projection 均禁用。弹簧和阻尼在 `0.3 s` 内从零渐进至约 `250 N/m`、`25 N·s/m`，爪碰撞承担主要支撑，软约束只防止接触泄漏。
-- 飞控只使用“载荷真实 Rigidbody 质量 × 当前承载比例”。载荷地面支持力由有效外部碰撞冲量除以 FixedDeltaTime 得到；抓取后仍落地时按支持力下降逐渐接管，连续三个物理步无外部支持后平滑稳定到 `1`，重新落地时再平滑卸载。抓斗自身 Collider 不得被认作地面。
-- 温和主动防摆仅在吊索已绷紧时介入，默认强度 `18%`；质心使用抓斗设备与已实际承载载荷的质量加权结果。它只修正目标水平加速度，不改载荷 Transform、速度或 Joint，Sport 仍降低介入力度。
-- 张开爪时弱约束和飞控承载载荷立即清空，但不清零电机 RPM、不写速度也不施加额外冲量；残余转速自然产生短暂上窜，高度 PID 随后恢复原目标。
-- 抓斗根与载荷 Rigidbody 使用插值并提高局部 solver 迭代；爪与载荷的真实碰撞保留，内部机构碰撞忽略。不能用冻结 Transform、增加无人机阻尼或全局 Physics 参数掩盖抖动。
-- `R` 松开前未达到配置时长按短按处理；达到时长后只发一次场景重载请求。`GameSceneNavigator.ReloadCurrentAsync()` 会卸载并重新加载整个 DroneFlight 场景，玩法对象、载荷、约束、HUD 和调试 View 全部走正常销毁和创建生命周期，不再逐项恢复状态。
+F3 保留四旋翼独立升力、总升力、重力、目标/实际速度、目标加速度、目标推力、可实现合力和目标力矩绘制，并按机型追加：
 
-编辑器中打开 F3 调试 View 时，`DroneDebugPresenter` 会直接在 Game 视图绘制四旋翼独立升力、实际总升力、重力、实际/目标速度、目标加速度、目标推力、分配后可实现合力和目标力矩。这些矢量只读取最近物理步，不参与控制或施力。偏航目标相对真实机头的领先量受姿态环能力限制；水平移动输入始终按当前真实机头朝向转换到世界速度。姿态外环优先对齐推力方向，Yaw 独立加权和限速，避免大偏航误差污染 Roll/Pitch。
-
-## 挂载边界
-
-- `PayloadMount` 只管理连接、真实质量、约束受力质量、承载上限和释放原因。
-- 抓取物始终保留独立 Rigidbody，通过 Joint/约束连接。
-- 飞控从真实 Rigidbody 反馈补偿载荷，不加入抓钩专用锁姿态作弊。
-- 钓鱼释放器作为新的 Payload 实现接入，不修改 PID、Mixer 或 Motor 核心。
+- 纯无人机：明确显示无附加模块，装备质量和载荷均为零。
+- 抓斗：短行程、四爪接触、辅助约束拉力、真实/受支持载荷。
+- 渔叉：瞄准有效性、弹体状态、目标绳长、张力与命中点。
 
 ## 边界规则
 
-- 主要飞行禁止直接设置 Transform 或覆盖 Rigidbody rotation。
-- 禁止用单一中心总推力替代四个 Rotor 施力。
-- 禁止使用异常大的 drag/angularDrag 掩盖控制器振荡。
-- 视觉桨叶、云台和 HUD 不是物理真源。
-- 全局 Time/Physics 设置只有在局部参数无法满足且有测量证据时才允许调整。
-- 正式模型只替换 Visual Root；物理 Rotor、重心和 Collider 改变后必须重跑裸机门禁。
+- 不在玩法或输入代码中直接调用 `SceneManager`；切换和重载统一走导航器。
+- 装备模块必须独立保存为 Prefab；装备机体必须保存为基础无人机加嵌套装备的成品 Prefab。运行时禁止动态拼装或调用编辑器 Builder。
+- 不修改生成的 `*Component.cs`；View 数据由正式 UIManager 导航事务传入。
+- 不使用中心总推力替代四个 Rotor，不用高 Rigidbody 阻尼掩盖振荡。
+- 装备内部碰撞必须忽略，装备与载荷/场景碰撞保留。
+- 场景卸载、断绳、释放与回收必须清理临时 Joint、碰撞忽略和弹体引用。
+- 正式模型节点必须保持旋转已应用、Scale `(1,1,1)` 且无负缩放；四个 Rotor 施力坐标和 `BellyEquipmentMount (0,-0.12,0)` 不随视觉迭代改变。
 
-## 验证重点
+## 验证
 
-- EditMode：PID、抗饱和、混控符号、电机响应、输入限幅和非法数值保护。
-- PlayMode：水平悬停、冲量恢复、中心载荷挂载/释放、无 NaN/Infinity。
-- Game View：四轴方向、松杆回正、起飞/降落、多视角、直接控制会话和抓钩闭环。
-- 每次只运行当前阶段相关的精确测试类，不自动执行全量测试。
+自动化只运行本任务精确类：配置/Prefab 契约、正式 `DronePrototype` 自动起飞、载荷调校、UI 数据时序、场景导航及装备物理。Game View 仍需人工确认四爪抓取手感、摆动衰减、渔叉准星/弹道一致、真实后坐、动态/静态命中和连续回收。
 
-当前量化门禁与阶段进度见 [`实施计划`](../superpowers/plans/2026-08-13-drone-flight-simulation.md)。
+DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。EditMode 目录中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；日志包含测试组目的、完整用例名、中文结果和耗时，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
 
-## 当前实现进度
-
-阶段 1 的纯数学核心已建立：
-
-- `DroneControlInput`：统一归一化输入、限幅和非法数值收口。
-- `DronePidController`：P/I/D、积分限幅、条件抗饱和、混控输出饱和回滚、D 项低通、Reset 和遥测。
-- `DroneMotorModel`：一阶电机响应，采用 `T = k * rpm²`，推力单位为 N；反扭矩采用 `Q = T * reactionTorqueCoefficient`，单位为 N·m。
-- `QuadrotorControlAllocator`：从 Rotor 真实位置、推力方向和旋向建立有效性矩阵，优先保留 Roll/Pitch、平移总推力、削减 Yaw，最后才缩小 Roll/Pitch。
-
-基础几何体样机已建立在 `Demos/drone_flight/Prefabs/DronePrototype.prefab`，场景为 `Scenes/Main.unity`，配置为 `Data/DroneFlightConfig.asset`。动态机体使用组合 BoxCollider，四个 Rotor 通过 `DroneRotor` 显式绑定位置、旋向和视觉桨叶。
-
-当前控制能力包括：
-
-- Armed/Disarmed；锁定后立即清空电机和 PID 历史。
-- 推力方向优先的 Quaternion 姿态误差、Attitude P → 三轴 Rate PID → 目标力矩 → 物理分配 → Motor → 四点施力。
-- X/Y/Z 速度 PID 与 Roll/Pitch/Yaw Rate PID 都使用实际量导数及低通滤波；输入轨迹同时限制速度、加速度和 Jerk。
-- 控制分配输出逐轴、逐方向饱和状态，只有误差继续推动不可实现方向时才撤销对应 PID 的本步积分。
-- 基于质量与重力计算悬停前馈，高度 → 垂直速度级联控制。
-- 总推力按 `F = m(a - g)` 生成完整矢量并由倾角约束限制水平分量，不再保留独立 `1 / sqrt(cos)` 补偿分支。
-- 有输入时使用机头相对速度前馈；对应摇杆进入死区后才由 Position P 捕获位置或高度。
-- 键盘 `R` 解锁、`WASD` 水平、`Q/E` 偏航、`Space/左 Ctrl` 升降；手柄使用 Mode 2 摇杆语义。
-
-2026-08-14 试玩反馈修正后验证：
-
-- 本轮精确 EditMode：6 个直接相关测试类共 16/16 通过，覆盖旋翼视觉积分、5 秒复位状态机、起落架状态、Prefab 结构、HUD 文本和 UIManager View 契约。
-- 本轮精确 PlayMode：3 个直接相关测试类共 12/12 通过，覆盖四旋翼闭环、相机/RT 默认视角和三爪弱约束/连续释放。
-- 第二轮精确 EditMode：6 个直接相关测试类共 17/17 通过，覆盖两态控制会话、手动起落架、中文 F3/HUD、工业抓斗 Prefab 契约、UI View 和 5 秒复位状态机。
-- 第二轮精确 PlayMode：3 个直接相关测试类共 14/14 通过，覆盖无 RT 的第三人称接管、三爪门禁、多 Collider 接触、载荷快照复位和既有四旋翼闭环。
-- 收纳关节侧翻修正精确回归：`DronePrototypeContractTests` 7/7、`DroneWinchControllerTests` 2/2；真实 Prefab 在四脚架水平着地及抓斗收纳状态下模拟 3 秒未侧翻，实际 DroneFlight 场景运行时姿态保持水平。
-- 本次饱和反馈与遥测优化另做精确回归：`DronePidControllerTests` 7/7、`DroneTelemetryBufferTests` 1/1、`DroneRotorPhysicsTests` 6/6；未执行项目全量测试。
-- 本次载荷受力与短卷扬锚点修正精确回归：`DroneWinchControllerTests` 5/5、`DroneHudFormatterTests` 4/4、`DronePrototypeContractTests` 7/7、`DronePayloadMountTests` 8/8、`DroneRotorPhysicsTests` 12/12；Unity Console 0 error，未执行项目全量测试。
-- 本次吊挂限位与离地载荷接管精确回归：`DronePrototypeContractTests` 7/7、`DroneWinchControllerTests` 6/6、`DroneHudFormatterTests` 4/4、`DronePayloadTuningCalculatorTests` 10/10、`DroneFlightControlV2Tests` 10/10、`DronePayloadMountTests` 8/8、`DroneRotorPhysicsTests` 12/12；合计 57/57，Unity 编译与 Console 均为 0 error，未执行项目全量测试。
-- 本次单摆与载荷交接重构：设备质量固定守恒在主刚体/单抓斗刚体之间，六爪改为统一复合 Collider，抓取改为零误差软约束和碰撞冲量承载估算；最终相关 EditMode 36/36、PlayMode 11/11 通过，另在同轮完成 `DroneRotorPhysicsTests` 全类 12/12 回归，Unity 编译、Console Error/Warning 均为 0；未执行项目全量测试。
-- 稳定窗口径固定为 500 个 50 Hz 样本中至少 95% 同时满足高度误差 ≤ 0.20 m、倾角 ≤ 3°。
-- 冲量后 6 秒检查高度、姿态和水平位置恢复；载荷增加/释放各使用 8 秒恢复窗。
-- Unity 正式编译 0 error、0 warning；Unity 6 实际 Game View 运行时 Console 为 0 Error、0 Warning。
-- 第一轮曾验证 RT 接管与稳定悬停；第二轮已按试玩反馈移除 RT 流程，保留第三人称直接控制和正式 HUD。
-- Stage 4 已实现 Cine/Normal/Sport 共享控制器参数、Position 保持、自动起降和持续危险倾角故障停桨。
-- Stage 5 使用单一 Drone Camera 的云台/第三人称/环绕/固定前视/机腹视角；`F` 直接进入第三人称。正式 HUD 为 `Decorate/Widget`，F3 调试面板为右下角中文 `Tip/Widget`。
-- Stage 6 已升级为四支腿手动起落架、无质量单摆卷扬、单一动态抓斗根和 `0.7` 尺寸工业双段六爪；悬挂 Joint 禁用 Projection，载荷保留独立 Rigidbody，通过三爪真实接触门禁后的渐进软约束抓取。
-- 四个旋翼已有轮毂和细长临时桨叶，视觉组件按真实 RPM 在渲染帧积分，不反向影响 Rigidbody/PID。
-- 配置资产已有 `Hotfix.Editor` 双语 Inspector；中文/English 偏好不写入资产。
-- 配置 Inspector 已增加普通/高级分页与自动载重调校/手动物理互斥模式；额定 `1 kg` 默认派生 `1.2 kg` 机体、`1.25 kg` 抓取上限和 `90%` 额定满载悬停指令。
-- F3 增加动力模式、额定/真实/飞控承载/最大载荷、地面支持力与承载比例、单摆绷紧/摆角/摆速/阻尼、主刚体/恒定设备/受支持总质量、软约束接入、理论与实际电机指令、动力余量和载重区域。
-- `DroneTelemetryRecorder` 保留最近 500 个 FixedUpdate 样本（默认约 10 秒），按 `F4` 可复制速度/姿态跟踪误差、逐轴饱和次数、Yaw 降权次数、输入响应延迟和吊载摆幅包络。
-
-尚未完成的门禁：仍需用户在 Game View 确认放出空抓斗不掉高、20° 左右摆动能在数秒内衰减、地面抓取不会瞬间拉扯或提前增加完整负荷、离地/落地承载比例连续变化；随后再对比额定 `1 kg / 10 kg` 下的同一载荷动力余量。下一恢复点固定为“等待单摆抓斗与载荷交接试飞反馈”；在反馈前暂停正式模型和无人机钓鱼工作。
-
-## Stage 7 外观提案（待用户批准）
-
-- 定位：无商标的消费级航拍无人机，克制、现代、适合写实偏游戏化场景，不复制 DJI 具体产品外壳。
-- 建议尺寸：轴距约 `0.42 m`，机身约 `0.28 × 0.18 × 0.10 m`；保留当前 Rotor 物理点为约束，不因外观偷偷改变力臂。
-- 配色：暖灰白上壳、深石墨机臂/底壳、少量安全橙状态灯；抓钩保持工业深灰。
-- 必拆活动节点：四个 Propeller、`GimbalYaw`、`GimbalPitch`、CameraLens、HookBase、LeftClaw、RightClaw。
-- 可保持一体的固定节点：主壳、固定机臂、起落支撑；正式网格挂在 Visual Root，不替换 Rigidbody/Collider/施力点。
-- 交付档位：先中模与简单 PBR 材质验证轮廓和轴心，再做 UV、细节法线、LOD0/LOD1；角色手和成品遥控器外观另行审批。
-
-## 相关文档
-
-- [无人机飞行仿真 Codex Goal](../superpowers/specs/2026-08-13-drone-flight-simulation-goal.md)
-- [无人机飞行仿真实施计划](../superpowers/plans/2026-08-13-drone-flight-simulation.md)
-- [调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)
-- [新增 Demo](../runbooks/add-demo.md)
-- [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)
+操作和调参见[调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)，Editor 直启见[直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)，进度见[实施计划](../superpowers/plans/2026-08-13-drone-flight-simulation.md)。

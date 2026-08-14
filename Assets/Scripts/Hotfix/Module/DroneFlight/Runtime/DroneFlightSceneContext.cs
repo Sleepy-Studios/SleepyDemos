@@ -2,65 +2,60 @@ using UnityEngine;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>DroneFlight 场景向正式 UI View 暴露的唯一引用上下文。</summary>
+    /// <summary>单台已生成无人机向强类型 UI 数据暴露的实例引用；不持有静态 Current。</summary>
     public sealed class DroneFlightSceneContext : MonoBehaviour
     {
         [SerializeField] private DroneFlightController flightController;
         [SerializeField] private DronePlayerInput playerInput;
         [SerializeField] private DroneCameraRig cameraRig;
         [SerializeField] private DroneRemoteControllerExperience remoteExperience;
-        [SerializeField] private PayloadMount payloadMount;
-        [SerializeField] private DroneMechanicalHook grapple;
-        [SerializeField] private DroneWinchController winch;
+        [SerializeField] private DroneEquipmentHost equipmentHost;
         [SerializeField] private DroneLandingGearController landingGear;
-        [SerializeField] private DronePayload[] scenePayloads = System.Array.Empty<DronePayload>();
-
-        /// 当前已加载 DroneFlight 场景的唯一上下文。
-        internal static DroneFlightSceneContext Current { get; private set; }
+        [SerializeField] private DroneFlightUiTelemetrySource telemetrySource;
+        [SerializeField] private DroneFlightDebugDrawRenderer debugDrawRenderer;
 
         internal DroneFlightController FlightController => flightController;
         internal DronePlayerInput PlayerInput => playerInput;
         internal DroneCameraRig CameraRig => cameraRig;
         internal DroneRemoteControllerExperience RemoteExperience => remoteExperience;
-        internal PayloadMount PayloadMount => payloadMount;
-        internal DroneMechanicalHook Grapple => grapple;
-        internal DroneWinchController Winch => winch;
+        internal DroneEquipmentHost EquipmentHost => equipmentHost;
         internal DroneLandingGearController LandingGear => landingGear;
-        internal DronePayload[] ScenePayloads => scenePayloads;
-
-        private void Awake()
-        {
-            Current = this;
-        }
-
-        private void OnDestroy()
-        {
-            if (Current == this)
-            {
-                Current = null;
-            }
-        }
+        internal DroneFlightUiTelemetrySource TelemetrySource => telemetrySource;
+        internal DroneFlightDebugDrawRenderer DebugDrawRenderer => debugDrawRenderer;
 
         internal void Configure(
             DroneFlightController controller,
             DronePlayerInput input,
             DroneCameraRig rig,
             DroneRemoteControllerExperience remote,
-            PayloadMount mount,
-            DroneMechanicalHook hook,
-            DroneWinchController winchController,
+            DroneEquipmentHost equipment,
             DroneLandingGearController gear,
-            DronePayload[] payloads = null)
+            DroneFlightUiTelemetrySource telemetry = null,
+            DroneFlightDebugDrawRenderer debugRenderer = null)
         {
             flightController = controller;
             playerInput = input;
             cameraRig = rig;
             remoteExperience = remote;
-            payloadMount = mount;
-            grapple = hook;
-            winch = winchController;
+            equipmentHost = equipment;
             landingGear = gear;
-            scenePayloads = payloads ?? System.Array.Empty<DronePayload>();
+            telemetrySource = telemetry;
+            debugDrawRenderer = debugRenderer;
         }
+    }
+
+    /// <summary>DroneFlight HUD 与 F3 的强类型 View 数据。</summary>
+    public sealed class DroneFlightViewData
+    {
+        public DroneFlightViewData(
+            DroneFlightUiTelemetrySource telemetrySource,
+            string sessionId)
+        {
+            TelemetrySource = telemetrySource;
+            SessionId = sessionId;
+        }
+
+        public DroneFlightUiTelemetrySource TelemetrySource { get; }
+        public string SessionId { get; }
     }
 }

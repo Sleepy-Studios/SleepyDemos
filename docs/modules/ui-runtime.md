@@ -109,6 +109,9 @@ Loading --加载失败或取消--> Faulted
 ## UIManager 使用规则
 
 - 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
+- 跨场景或跨会话持有 View 时使用 `CloseAsync(View expectedView, ...)`。它只关闭调用方保存的具体实例；即使同类型新 View 已由下一场景显示，旧会话清理也不会误关新实例。按类型 `CloseAsync<T>()` 只用于当前所有者明确唯一的普通界面。
+- 强类型页面数据使用 `ShowAsync<TView, TData>(data, options, cancellationToken)`。数据作为同一个导航 operation 的配置载荷，在该 operation 获得执行权后、View 加载和 `OnShow` 前调用 `SetData`；不得先 Show 再通过静态 Context 或场景搜索补数据。
+- 带数据异步 Show 与普通 Show 共用 FIFO、取消、Ignored、失败回滚和缓存语义。后一次调用的数据不会提前覆盖仍在加载的前一次 View。
 - Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
 - Push / Replace / Close / Back 都按各自 entering / exiting 语义解析 World Transition；Preload 不改变表现，CloseAll 当前直接完成全量销毁，因此两者都不虚构世界过渡。业务需要相机或场景联动时在 Hotfix Provider 注册真实实现。
 - `ShowAsync<T>(new UIShowOptions(animated, hidePrevious: false))` 与旧同步 `Show<T>(hidePrevious: false)` 会保留同层上一 View 的 Visible 状态；关闭新 View 时不会再次 Enter 已经 Visible 的旧 View。默认 `HidePrevious` 为 true。

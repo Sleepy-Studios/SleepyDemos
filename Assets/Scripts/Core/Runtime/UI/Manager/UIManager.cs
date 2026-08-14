@@ -87,6 +87,29 @@ namespace Core.Runtime
         }
 
         /// <summary>
+        /// 将带强类型数据的 View 显示操作加入 FIFO 导航队列；数据在资源加载和 OnShow 前注入。
+        /// </summary>
+        /// <typeparam name="T">目标强类型 View。</typeparam>
+        /// <typeparam name="TData">目标 View 数据类型。</typeparam>
+        /// <param name="data">在 View 加载前写入的数据。</param>
+        /// <param name="options">显示选项；默认播放动画。</param>
+        /// <param name="cancellationToken">调用方取消令牌。</param>
+        /// <returns>导航操作结果。</returns>
+        public UniTask<UIOperationResult> ShowAsync<T, TData>(
+            TData data,
+            UIShowOptions options = default,
+            CancellationToken cancellationToken = default) where T : View<TData>
+        {
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Push,
+                typeof(T),
+                options.Animated,
+                cancellationToken,
+                target => ((T)target).SetData(data),
+                hidePrevious: options.HidePrevious);
+        }
+
+        /// <summary>
         /// 将 Page 替换操作加入 FIFO 导航队列。
         /// </summary>
         /// <typeparam name="T">目标 Page 类型。</typeparam>
@@ -116,6 +139,34 @@ namespace Core.Runtime
             CancellationToken cancellationToken = default) where T : View
         {
             return EnqueueClose(typeof(T), animated, cancellationToken);
+        }
+
+        /// <summary>
+        /// 关闭调用方持有的具体 View 实例，不会误关闭随后创建的同类型实例。
+        /// </summary>
+        /// <param name="expectedView">调用方在 Show 结果中取得的具体 View 实例。</param>
+        /// <param name="animated">是否播放退出动画。</param>
+        /// <param name="cancellationToken">调用方取消令牌。</param>
+        /// <returns>导航操作结果；实例为空或已不受管理时返回 Canceled。</returns>
+        public UniTask<UIOperationResult> CloseAsync(
+            View expectedView,
+            bool animated = true,
+            CancellationToken cancellationToken = default)
+        {
+            if (expectedView == null)
+            {
+                return UniTask.FromResult(UIOperationResult.Canceled(
+                    0,
+                    UINavigationAction.Close,
+                    null));
+            }
+
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Close,
+                expectedView.GetType(),
+                animated,
+                cancellationToken,
+                targetView: expectedView);
         }
 
         /// <summary>
@@ -434,7 +485,9 @@ namespace Core.Runtime
             QueuedUIOperation operation,
             CancellationToken cancellationToken)
         {
-            var view = cacheStack.GetView(operation.TargetType) ?? operation.TargetView;
+            // 实例关闭必须优先使用排队时捕获的对象。若同类型的新会话 View 已进入缓存，
+            // 反过来按类型查询会让旧场景误关新场景 UI。
+            var view = operation.TargetView ?? cacheStack.GetView(operation.TargetType);
             if (view == null)
             {
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);

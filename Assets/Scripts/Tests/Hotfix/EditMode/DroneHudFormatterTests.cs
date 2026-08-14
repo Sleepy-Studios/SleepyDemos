@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证玩家 HUD、操作提示、中文调试文本和告警优先级，确保不同机型只显示适用的信息。
+     */
     public sealed class DroneHudFormatterTests
     {
         [Test]
@@ -23,13 +26,25 @@ namespace Hotfix.Tests
             var controls = DroneHudFormatter.FormatControls();
 
             StringAssert.Contains("长按重新运行场景", controls);
-            StringAssert.Contains("J  卷扬收放", controls);
+            StringAssert.Contains("J  抓斗收放", controls);
             StringAssert.Contains("L  起落架收放", controls);
-            StringAssert.Contains("H  六爪开合", controls);
+            StringAssert.Contains("H  四爪开合", controls);
             StringAssert.DoesNotContain("RT", controls);
             StringAssert.Contains("C  切换视角", controls);
             StringAssert.Contains("F3  调试面板", controls);
             StringAssert.Contains("Backspace  返回主界面", controls);
+        }
+
+        [Test]
+        public void PlainDroneControls_HideEquipmentBindings()
+        {
+            var controls = DroneHudFormatter.FormatControls(DroneEquipmentKind.None);
+
+            StringAssert.Contains("L  起落架收放", controls);
+            StringAssert.DoesNotContain("抓斗", controls);
+            StringAssert.DoesNotContain("渔叉", controls);
+            StringAssert.DoesNotContain("J / K", controls);
+            StringAssert.DoesNotContain("四爪开合", controls);
         }
 
         [Test]

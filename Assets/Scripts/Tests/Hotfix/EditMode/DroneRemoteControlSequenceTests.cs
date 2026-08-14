@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证遥控体验只在 Waiting 与 Active 两个公开状态间切换，并可可靠返回等待状态。
+     */
     public sealed class DroneRemoteControlSequenceTests
     {
         [Test]

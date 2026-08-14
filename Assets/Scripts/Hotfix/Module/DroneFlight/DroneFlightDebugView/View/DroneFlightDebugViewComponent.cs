@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.DroneFlight;
+    using TMPro;
 
     [Source("LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightDebugView")]
     public partial class DroneFlightDebugView
@@ -24,7 +24,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private DroneDebugPresenter DroneDebugPresenter_DroneFlightDebugView;
+        private TextMeshProUGUI TextMeshProUGUI_DebugText;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -36,7 +36,7 @@ namespace Hotfix
                 return;
             }
 
-            DroneDebugPresenter_DroneFlightDebugView = componentItemIndex.Get<DroneDebugPresenter>(0);
+            TextMeshProUGUI_DebugText = componentItemIndex.Get<TextMeshProUGUI>(0);
         }
     }
 }

@@ -50,15 +50,28 @@ namespace Hotfix.DroneFlight
             session.Activate();
             droneCameraRig?.SetMode(DroneCameraMode.ThirdPerson);
             var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;
+
+            // 必须先关闭旧监听器，再启用新监听器，避免同一帧短暂出现两个 AudioListener。
+            if (playerCamera != null)
+            {
+                var oldListener = playerCamera.GetComponent<AudioListener>();
+                if (oldListener != null)
+                {
+                    oldListener.enabled = false;
+                }
+                playerCamera.enabled = false;
+            }
+
             if (droneCamera != null)
             {
                 droneCamera.targetTexture = null;
                 droneCamera.enabled = true;
             }
 
-            if (playerCamera != null)
+            var droneListener = droneCamera != null ? droneCamera.GetComponent<AudioListener>() : null;
+            if (droneListener != null)
             {
-                playerCamera.enabled = false;
+                droneListener.enabled = true;
             }
 
             if (flightInput != null)
@@ -111,6 +124,11 @@ namespace Hotfix.DroneFlight
             var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;
             if (droneCamera != null)
             {
+                var listener = droneCamera.GetComponent<AudioListener>();
+                if (listener != null)
+                {
+                    listener.enabled = false;
+                }
                 droneCamera.targetTexture = null;
                 droneCamera.enabled = false;
             }
@@ -118,6 +136,11 @@ namespace Hotfix.DroneFlight
             if (playerCamera != null)
             {
                 playerCamera.enabled = true;
+                var listener = playerCamera.GetComponent<AudioListener>();
+                if (listener != null)
+                {
+                    listener.enabled = true;
+                }
             }
 
             BindUiCameraIfReady(playerCamera);

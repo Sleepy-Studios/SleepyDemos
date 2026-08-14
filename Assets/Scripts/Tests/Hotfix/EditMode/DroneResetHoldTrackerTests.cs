@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证 R 键短按、长按阈值和单次完成语义，防止重载重复触发或吞掉短按操作。
+     */
     public sealed class DroneResetHoldTrackerTests
     {
         [Test]

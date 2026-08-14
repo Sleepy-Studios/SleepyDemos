@@ -6,6 +6,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证载荷质量、悬停指令、动力储备、最大载荷门禁及自动/手动调参映射和中文诊断。
+     */
     public sealed class DronePayloadTuningCalculatorTests
     {
         [Test]
@@ -16,7 +19,7 @@ namespace Hotfix.Tests
             Assert.That(result.IsValid, Is.True, result.Diagnostic);
             Assert.That(result.BodyMassKilograms, Is.EqualTo(1.2f).Within(0.0001f));
             Assert.That(result.MaximumPayloadKilograms, Is.EqualTo(1.25f).Within(0.0001f));
-            Assert.That(result.RatedOperatingMassKilograms, Is.EqualTo(2.25f).Within(0.0001f));
+            Assert.That(result.RatedOperatingMassKilograms, Is.EqualTo(2.2f).Within(0.0001f));
             Assert.That(result.ThrustCoefficient, Is.GreaterThan(0f));
             Assert.That(result.RatedPowerReserve, Is.EqualTo(0.1f).Within(0.0001f));
         }
@@ -35,8 +38,8 @@ namespace Hotfix.Tests
         public void SameConfiguration_HeavierPayloadNeedsMoreCommand()
         {
             var result = Calculate(1f, 1.25f, 0.9f);
-            var light = Hover(result, 1.2f + 0.05f + 0.25f);
-            var heavy = Hover(result, 1.2f + 0.05f + 0.95f);
+            var light = Hover(result, 1.2f + 0.25f);
+            var heavy = Hover(result, 1.2f + 0.95f);
 
             Assert.That(heavy, Is.GreaterThan(light));
             Assert.That(heavy, Is.GreaterThan(0.85f));
@@ -47,8 +50,8 @@ namespace Hotfix.Tests
         {
             var one = Calculate(1f, 1.25f, 0.9f);
             var ten = Calculate(10f, 1.25f, 0.9f);
-            var oneCommand = Hover(one, one.BodyMassKilograms + 0.05f + 0.95f);
-            var tenCommand = Hover(ten, ten.BodyMassKilograms + 0.05f + 0.95f);
+            var oneCommand = Hover(one, one.BodyMassKilograms + 0.95f);
+            var tenCommand = Hover(ten, ten.BodyMassKilograms + 0.95f);
 
             Assert.That(oneCommand - tenCommand, Is.GreaterThan(0.15f));
         }
@@ -75,14 +78,12 @@ namespace Hotfix.Tests
         }
 
         [Test]
-        public void FriendlyMappings_AreBoundedAndMatchCurrentGripNearFifty()
+        public void MotorResponsivenessMapping_IsBounded()
         {
             Assert.That(DronePayloadTuningCalculator.MapMotorResponsivenessToResponseTime(100f), Is.GreaterThan(0f));
             Assert.That(
                 DronePayloadTuningCalculator.MapMotorResponsivenessToResponseTime(100f),
                 Is.LessThan(DronePayloadTuningCalculator.MapMotorResponsivenessToResponseTime(0f)));
-            Assert.That(DronePayloadTuningCalculator.MapGripStrengthToBreakForce(50f), Is.EqualTo(180f));
-            Assert.That(DronePayloadTuningCalculator.MapGripStrengthToBreakTorque(50f), Is.EqualTo(82.5f));
         }
 
         [Test]
@@ -99,11 +100,7 @@ namespace Hotfix.Tests
                      {
                          "ratedPayloadKilograms", "maximumPayloadMultiplier", "ratedPayloadHoverCommand",
                          "motorResponsiveness", "bodyMassMultiplier", "automaticTakeoffHeightMeters",
-                         "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile", "grappleStrength",
-                         "grappleLinearFreedomMeters", "grappleAngularFreedomDegrees",
-                         "topSuspensionTwistLimitDegrees", "topSuspensionSwingLimitDegrees",
-                         "bottomSuspensionTwistLimitDegrees", "bottomSuspensionSwingLimitDegrees",
-                         "suspensionJointAngularSpring", "suspensionJointAngularDamper"
+                         "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile", "resetHoldSeconds"
                      })
             {
                 StringAssert.Contains(field, source, $"Inspector 缺少字段 {field} 的双层展示契约。");
@@ -145,7 +142,6 @@ namespace Hotfix.Tests
                 maximumMultiplier,
                 hover,
                 10000f,
-                0.05f,
                 9.81f));
         }
 

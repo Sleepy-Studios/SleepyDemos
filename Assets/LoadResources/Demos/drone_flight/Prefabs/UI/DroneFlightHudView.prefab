@@ -147,7 +147,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7503807890609028648}
   - component: {fileID: 6795763569753057671}
-  - component: {fileID: 8068775831498524791}
   - component: {fileID: 407098480938659669}
   m_Layer: 0
   m_Name: DroneFlightHudView
@@ -190,36 +189,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &8068775831498524791
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2819237731884768918}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4635430238fe32438120bcdb6e113be, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHudPresenter
-  flightController: {fileID: 0}
-  cameraRig: {fileID: 0}
-  payloadMount: {fileID: 0}
-  grapple: {fileID: 0}
-  winch: {fileID: 0}
-  landingGear: {fileID: 0}
-  playerInput: {fileID: 0}
-  remoteExperience: {fileID: 0}
-  telemetryRoot: {fileID: 5030673500117183537}
-  flightText: {fileID: 5937773805421945512}
-  cameraText: {fileID: 2935248576251325716}
-  payloadText: {fileID: 710978186063983424}
-  warningText: {fileID: 2349003414220909410}
-  controlsText: {fileID: 842025824650322954}
-  resetProgressRoot: {fileID: 3851132351402511823}
-  resetProgressFill: {fileID: 803320243231048696}
-  resetProgressText: {fileID: 3049281913438442464}
-  refreshIntervalSeconds: 0.1
 --- !u!114 &407098480938659669
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -233,12 +202,40 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 8068775831498524791}
+  - {fileID: 6795763569753057671}
+  - {fileID: 5937773805421945512}
+  - {fileID: 2935248576251325716}
+  - {fileID: 710978186063983424}
+  - {fileID: 2349003414220909410}
+  - {fileID: 842025824650322954}
+  - {fileID: 803320243231048696}
+  - {fileID: 3049281913438442464}
   componentTypes:
-  - Hotfix.DroneFlight.DroneHudPresenter
+  - UnityEngine.CanvasGroup
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
   bindingKeys:
-  - DroneFlightHudView|Hotfix.DroneFlight.DroneHudPresenter
+  - DroneFlightHudView|UnityEngine.CanvasGroup
+  - DroneFlightHudView/TelemetryRoot/FlightText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/TelemetryRoot/CameraText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/TelemetryRoot/PayloadText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/TelemetryRoot/WarningText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/ControlsPanel/ControlsText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/ResetProgressRoot/ResetProgressFill|UnityEngine.UI.Image
+  - DroneFlightHudView/ResetProgressRoot/ResetProgressText|TMPro.TextMeshProUGUI
   bindingMethods:
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
   - 
 --- !u!1 &3760276723602452983
 GameObject:

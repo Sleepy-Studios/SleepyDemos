@@ -7,6 +7,9 @@ using UnityEngine.TestTools;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证无人机进入第三人称、切换全部镜头模式及返回 Waiting 的生命周期，并确保镜头操作不改动刚体状态。
+     */
     public sealed class DroneCameraLifecycleTests
     {
         [UnityTest]

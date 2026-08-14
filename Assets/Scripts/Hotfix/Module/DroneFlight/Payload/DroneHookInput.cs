@@ -3,27 +3,19 @@ using UnityEngine.InputSystem;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>机械抓钩键盘输入适配器。</summary>
+    /// <summary>腹部装备通用输入；保留类名以兼容现有 Prefab 序列化引用。</summary>
     public sealed class DroneHookInput : MonoBehaviour
     {
-        [SerializeField] private DroneWinchController winch;
-        [SerializeField] private DroneMechanicalHook hook;
+        [SerializeField] private DroneEquipmentHost equipmentHost;
         [SerializeField] private DroneLandingGearController landingGear;
         [SerializeField] private DroneRemoteControllerExperience controlSession;
 
-        private void Awake()
-        {
-            hook ??= GetComponent<DroneMechanicalHook>();
-        }
-
         internal void Configure(
-            DroneMechanicalHook mechanicalHook,
-            DroneWinchController winchController,
+            DroneEquipmentHost host,
             DroneLandingGearController gear = null,
             DroneRemoteControllerExperience session = null)
         {
-            hook = mechanicalHook;
-            winch = winchController;
+            equipmentHost = host;
             landingGear = gear;
             controlSession = session;
         }
@@ -31,7 +23,7 @@ namespace Hotfix.DroneFlight
         private void Update()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null || hook == null
+            if (keyboard == null
                 || (controlSession != null && controlSession.State != DroneControlSessionState.Active))
             {
                 return;
@@ -42,28 +34,40 @@ namespace Hotfix.DroneFlight
                 landingGear?.Toggle();
             }
 
-            if (keyboard.jKey.wasPressedThisFrame)
+            if (keyboard.hKey.wasPressedThisFrame)
             {
-                winch?.Toggle();
+                equipmentHost?.PrimaryAction();
             }
 
-            if (!keyboard.hKey.wasPressedThisFrame)
+            if (equipmentHost == null)
             {
                 return;
             }
 
-            if (winch == null || winch.State is DroneWinchState.Stowed or DroneWinchState.Deploying or DroneWinchState.Retracting)
+            if (equipmentHost.Kind == DroneEquipmentKind.None)
             {
-                hook.ShowHint("请先按 J 放出抓斗");
+                equipmentHost.SetLineInput(0f);
+                return;
             }
-            else if (hook.IsClosed)
+
+            if (equipmentHost.Kind == DroneEquipmentKind.Grapple)
             {
-                hook.OpenAndRelease();
+                if (keyboard.jKey.wasPressedThisFrame)
+                {
+                    equipmentHost.ToggleDeployment();
+                }
+
+                equipmentHost.SetLineInput(0f);
+                return;
             }
-            else
+
+            var lineInput = keyboard.kKey.isPressed ? 1f : 0f;
+            if (keyboard.jKey.isPressed)
             {
-                hook.CloseAndTryAttach();
+                lineInput -= 1f;
             }
+
+            equipmentHost.SetLineInput(lineInput);
         }
     }
 }

@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证 Cine、Normal、Sport 三档响应参数有序，并确保切档不重置位置和高度目标。
+     */
     public sealed class DroneResponseProfileTests
     {
         [Test]

@@ -609,7 +609,7 @@ namespace Hotfix.DroneFlight
                 positions[index] = transform.InverseTransformPoint(orderedRotors[index].ForceTransform.position)
                                    - body.centerOfMass;
                 forceDirections[index] = transform.InverseTransformDirection(
-                    orderedRotors[index].ForceTransform.up);
+                    orderedRotors[index].ForceDirection);
                 directions[index] = orderedRotors[index].Direction;
             }
 
@@ -842,11 +842,11 @@ namespace Hotfix.DroneFlight
                 LastTotalThrustNewtons += state.ThrustNewtons;
                 var rotor = orderedRotors[index];
                 body.AddForceAtPosition(
-                    rotor.ForceTransform.up * state.ThrustNewtons,
+                    rotor.ForceDirection * state.ThrustNewtons,
                     rotor.ForceTransform.position,
                     ForceMode.Force);
                 body.AddTorque(
-                    rotor.ForceTransform.up
+                    rotor.ForceDirection
                     * state.ReactionTorqueNewtonMeters
                     * (float)rotor.Direction,
                     ForceMode.Force);
@@ -866,7 +866,7 @@ namespace Hotfix.DroneFlight
 
             var forceTransform = orderedRotors[index].ForceTransform;
             origin = forceTransform.position;
-            thrustForce = forceTransform.up * motorStates[index].ThrustNewtons;
+            thrustForce = orderedRotors[index].ForceDirection * motorStates[index].ThrustNewtons;
             return true;
         }
 
@@ -879,7 +879,7 @@ namespace Hotfix.DroneFlight
                 {
                     if (orderedRotors[index] != null)
                     {
-                        total += orderedRotors[index].ForceTransform.up * motorStates[index].ThrustNewtons;
+                        total += orderedRotors[index].ForceDirection * motorStates[index].ThrustNewtons;
                     }
                 }
 
@@ -904,7 +904,7 @@ namespace Hotfix.DroneFlight
                 }
 
                 var origin = rotor.ForceTransform.position;
-                Gizmos.DrawLine(origin, origin + rotor.ForceTransform.up * motorStates[index].ThrustNewtons * 0.08f);
+                Gizmos.DrawLine(origin, origin + rotor.ForceDirection * motorStates[index].ThrustNewtons * 0.08f);
             }
         }
     }

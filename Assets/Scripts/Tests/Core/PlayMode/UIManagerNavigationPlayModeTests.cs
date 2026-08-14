@@ -632,6 +632,46 @@ namespace Core.Tests.UI
         }
 
         [UnityTest]
+        public IEnumerator TypedShowAsync_ConfiguresDataBeforeLoadAndOnShow()
+        {
+            TestViewRegistry.Register<DataPage>();
+
+            UIOperationResult result = default;
+            yield return AwaitResult(
+                UIManager.Instance.ShowAsync<DataPage, string>("typed-data"),
+                value => result = value);
+
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(TestViewRegistry.Events, Is.EqualTo(new[]
+            {
+                "data:typed-data", "DataPage.load", "show:typed-data"
+            }));
+        }
+
+        [UnityTest]
+        public IEnumerator CloseExpectedInstance_DoesNotCloseNewSameTypeSessionView()
+        {
+            TestViewRegistry.Register<FirstPage>();
+            UIOperationResult firstShow = default;
+            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), value => firstShow = value);
+            var oldSessionView = firstShow.View;
+            yield return AwaitResult(UIManager.Instance.CloseAsync(oldSessionView, false), _ => { });
+
+            TestViewRegistry.Register<FirstPage>();
+            UIOperationResult secondShow = default;
+            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), value => secondShow = value);
+            UIOperationResult staleClose = default;
+            yield return AwaitResult(
+                UIManager.Instance.CloseAsync(oldSessionView, false),
+                value => staleClose = value);
+
+            Assert.That(staleClose.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(UIManager.Instance.Get<FirstPage>(), Is.SameAs(secondShow.View));
+            Assert.That(secondShow.View.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
         public IEnumerator PreloadConfigureFailure_PreservesPrimaryWhenCleanupThrowsAndRemovesCache()
         {
             TestViewRegistry.Register<ConfigureDestroyThrowPage>();

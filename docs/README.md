@@ -53,6 +53,7 @@
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
   - [接入运行期场景导航](./runbooks/use-scene-navigation.md)
+  - [在 Unity Editor 直接运行 Demo 岛](./runbooks/run-demo-island-directly.md)
   - [使用 Luban 配置](./runbooks/use-luban-config.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
   - [调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)

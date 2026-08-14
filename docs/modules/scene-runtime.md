@@ -6,6 +6,8 @@
 
 它不负责启动期资源初始化，也不会重新加载 `AppEntrance` 或重新运行 `CoreEntrance`。
 
+Unity Editor 直接运行 Demo 场景是受限适配路径：`DemoIslandEditorBootstrap` 先补齐资源、UI 和 Hotfix Boot，再用 `EditorDirectGameSceneRuntime` 把当前场景登记为业务场景。该路径不进入 Development/Release。
+
 ## 代码位置
 
 - Core 资源协议：`Assets/Scripts/Core/Runtime/Resource/IResourceSceneLoader.cs`
@@ -33,16 +35,25 @@
 
 重新运行当前 Demo：
 
-1. `GameSceneNavigator.ReloadCurrentAsync()` 拒绝 Hub 和并发请求。
-2. 显示 Loading，先通过原资源句柄完整卸载当前 Demo 并临时恢复常驻 Hub 表现层。
-3. 按同一资源地址创建新的场景句柄，重新绑定 Camera、AudioListener 与 UI Camera Stack。
-4. 新 Demo 的场景对象和 UI View 重新走正常生命周期，不复用旧场景玩法状态。
+1. 当前场景协调器先禁用输入，并等待关闭自己持有的具体 View 实例。
+2. `GameSceneNavigator.ReloadCurrentAsync()` 拒绝 Hub 和并发请求。
+3. 显示 Loading，先通过原资源句柄完整卸载当前 Demo 并临时恢复常驻 Hub 表现层。
+4. 按同一资源地址创建新的场景句柄，重新绑定 Camera、AudioListener 与 UI Camera Stack。
+5. 新协调器通过 `WaitUntilStableAsync(target, token)` 等待目标场景激活、`IsTransitioning == false` 和 Loading 收尾后再显示业务 UI，不复用旧场景玩法状态。
+
+Editor 直启重载：
+
+1. 独立的 `DemoIslandEditorBootstrap` 根对象保持常驻，玩法协调器仍属于 Demo 场景。
+2. `ReloadCurrentAsync()` 通过资源 Loader Additive 加载新实例，切换 Camera/UI Camera Stack 后卸载旧实例。
+3. 新场景自带的 Bootstrap 因 Navigator 已存在而退出；新玩法协调器正常启动，避免双 HUD 或双输入。
+4. Backspace 清理直启导航和宿主，进入 AppEntrance 后由正式启动链接管。
 
 ## 生命周期与失败恢复
 
 - Build Settings 只包含 `AppEntrance`；Demo 场景由 YooAsset Collector 收集。
 - 每个成功加载的场景句柄必须由创建它的 `IResourceSceneLoader` 配对卸载。
 - 加载、相机校验或旧场景卸载失败时，恢复来源 Active Scene、相机、AudioListener 和 UI。
+- 旧场景不得在 `OnDestroy` 中发起未等待的按类型 UI 关闭；会话 UI 必须在切场景前按具体实例收口。正常取消返回 `Canceled`，只有 `Failed` 记录 Error。
 - 场景切换不支持提交后的任意取消；Unity/YooAsset 已开始的场景操作必须收口到成功或明确回滚。
 - Loading 进度单调递增；没有真实字节信息时不显示虚假大小。
 
@@ -53,6 +64,7 @@
 - Hotfix 不直接持有 YooAsset `SceneHandle`，也不直接调用 `SceneManager.LoadSceneAsync` 绕过全局导航。
 - Demo 场景必须且只能提供一个带 `MainCamera` Tag 的 Camera 和一个 AudioListener。
 - `StartupLoading` 与 `CommonLoadingView` 生命周期不同，不共享脚本或 Presenter。
+- Editor 直启不运行 HybridCLR、Hotfix 程序集装配或完整 `HotfixEntry`；`HotfixBootService` 必须幂等。
 
 ## 验证重点
 
@@ -67,3 +79,4 @@
 - [Core UI 渲染设计原则](../architecture/ui-rendering.md)
 - [新增 Demo](../runbooks/add-demo.md)
 - [接入运行期场景导航](../runbooks/use-scene-navigation.md)
+- [在 Unity Editor 直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)

@@ -40,6 +40,7 @@
    - 入口统一调用 `GameSceneNavigator.Instance.SwitchAsync(...)`，不要在业务组件直接调用 `SceneManager.LoadSceneAsync`
    - 主菜单由 MvcBind 生成的 `*Component.cs` 不可手改；新增按钮可挂独立 Hotfix `MonoBehaviour`，并以 Prefab 契约测试确认组件真实落盘
    - Demo 必须提供切换到 `GameSceneId.Hub` 的明确入口，并验证往返后输入和临时资源释放；不要重载 `AppEntrance`
+   - 如需 Editor 直接打开 Demo 场景 Play，按[直接运行 Demo 岛](./run-demo-island-directly.md)挂独立 `DemoIslandEditorBootstrap`；该能力不得扩展到 Development/Release 直启
    - 如果接入方式变化，要同步更新相关架构文档和 runbook
 
 7. 检查公共沉淀点

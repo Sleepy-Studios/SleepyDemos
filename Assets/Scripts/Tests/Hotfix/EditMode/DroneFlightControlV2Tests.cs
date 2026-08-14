@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证第二版飞控的轨迹限制、姿态数学、控制分配、抗积分饱和、电机逆解和被动抗摆计算。
+     */
     public sealed class DroneFlightControlV2Tests
     {
         private static readonly DroneResponseProfileParameters Sport = new(

@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证四脚起落架展开与收起状态转换、复位行为以及一次手动输入只切换一次目标状态。
+     */
     public sealed class DroneLandingGearStateMachineTests
     {
         [Test]

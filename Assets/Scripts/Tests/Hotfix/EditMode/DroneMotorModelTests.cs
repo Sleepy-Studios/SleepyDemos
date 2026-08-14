@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证电机一阶转速响应、指令限幅、非法时间步保护及运行时更新参数不重置当前 RPM。
+     */
     public sealed class DroneMotorModelTests
     {
         [Test]

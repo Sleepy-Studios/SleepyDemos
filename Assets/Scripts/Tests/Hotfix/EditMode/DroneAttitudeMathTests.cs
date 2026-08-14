@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证姿态误差最短路径、目标角速度限制、航向目标约束和按实际航向解释水平输入的数学基础。
+     */
     public sealed class DroneAttitudeMathTests
     {
         [Test]

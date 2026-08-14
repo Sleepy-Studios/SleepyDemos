@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证旋翼视觉严格根据真实 RPM 和 CW/CCW 方向累计角度，并在零转速时停止。
+     */
     public sealed class DroneRotorVisualTests
     {
         [Test]

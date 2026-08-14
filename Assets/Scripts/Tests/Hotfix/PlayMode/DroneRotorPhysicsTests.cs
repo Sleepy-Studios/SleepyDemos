@@ -3,11 +3,66 @@ using Hotfix.DroneFlight;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：使用可见的四旋翼夹具和正式 DronePrototype，验证电机施力、悬停、自动起降、载荷变化及高速机动稳定性。
+     * 运行时可在 Scene 视图观察“机身 Cube + X 形机臂 + 四个彩色旋翼标记”，正式起飞用例则显示真实无人机模型。
+     */
     public sealed class DroneRotorPhysicsTests
     {
+#if UNITY_EDITOR
+        [UnityTest]
+        public IEnumerator FormalDronePrototype_AutomaticTakeoffProducesRealLift()
+        {
+            const string prefabPath =
+                "Assets/LoadResources/Demos/drone_flight/Prefabs/DronePrototype.prefab";
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            Assert.That(source, Is.Not.Null, "正式 DronePrototype Prefab 必须可加载。");
+
+            var drone = Object.Instantiate(source);
+            try
+            {
+                drone.name = "FormalDronePrototypeFlightFixture";
+                drone.transform.SetPositionAndRotation(new Vector3(0f, 2f, 0f), Quaternion.identity);
+                var body = drone.GetComponent<Rigidbody>();
+                var controller = drone.GetComponent<DroneFlightController>();
+                Assert.That(body, Is.Not.Null);
+                Assert.That(controller, Is.Not.Null);
+                Assert.That(controller.enabled, Is.True, "正式 Prefab 的飞控初始化失败。");
+
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                var initialHeight = body.position.y;
+                var maximumHeight = initialHeight;
+                controller.BeginAutomaticTakeoff();
+                for (var index = 0; index < 250; index++)
+                {
+                    yield return new WaitForFixedUpdate();
+                    maximumHeight = Mathf.Max(maximumHeight, body.position.y);
+                }
+
+                Assert.That(controller.IsArmed, Is.True);
+                Assert.That(controller.LastTotalThrustNewtons,
+                    Is.GreaterThan(body.mass * Mathf.Abs(Physics.gravity.y) * 0.5f));
+                Assert.That(maximumHeight, Is.GreaterThan(initialHeight + 0.35f),
+                    $"正式无人机未实际升空：初始 {initialHeight:F3}m，最高 {maximumHeight:F3}m。");
+                Assert.That(Vector3.Angle(Vector3.up, drone.transform.up), Is.LessThan(20f));
+                Assert.That(float.IsFinite(body.linearVelocity.x)
+                            && float.IsFinite(body.linearVelocity.y)
+                            && float.IsFinite(body.linearVelocity.z), Is.True);
+            }
+            finally
+            {
+                Object.Destroy(drone);
+            }
+        }
+#endif
+
         [UnityTest]
         public IEnumerator Disarmed_DoesNotProduceRotorThrust()
         {
@@ -467,6 +522,8 @@ namespace Hotfix.Tests
             var bodyCollider = root.AddComponent<BoxCollider>();
             bodyCollider.size = new Vector3(0.34f, 0.1f, 0.26f);
 
+            CreateVisibleDroneFixture(root.transform);
+
             CreateRotor(root.transform, DroneRotorPosition.FrontLeft, DroneRotorDirection.CounterClockwise, -0.25f, 0.25f);
             CreateRotor(root.transform, DroneRotorPosition.FrontRight, DroneRotorDirection.Clockwise, 0.25f, 0.25f);
             CreateRotor(root.transform, DroneRotorPosition.RearLeft, DroneRotorDirection.Clockwise, -0.25f, -0.25f);
@@ -502,6 +559,54 @@ namespace Hotfix.Tests
             rotorObject.transform.SetParent(parent, false);
             rotorObject.transform.localPosition = new Vector3(x, 0f, z);
             rotorObject.AddComponent<DroneRotor>().Configure(position, direction);
+            CreateVisualPrimitive(
+                rotorObject.transform,
+                $"{position}_RotorMarker",
+                PrimitiveType.Cylinder,
+                Vector3.zero,
+                new Vector3(0.065f, 0.008f, 0.065f),
+                direction == DroneRotorDirection.CounterClockwise
+                    ? new Color(1f, 0.35f, 0.08f)
+                    : new Color(0.15f, 0.65f, 1f));
+        }
+
+        private static void CreateVisibleDroneFixture(Transform root)
+        {
+            CreateVisualPrimitive(root, "BodyVisual_机身", PrimitiveType.Cube, Vector3.zero,
+                new Vector3(0.34f, 0.10f, 0.26f), new Color(0.22f, 0.24f, 0.27f));
+            CreateVisualPrimitive(root, "ArmVisual_FL_RR_机臂", PrimitiveType.Cube,
+                new Vector3(0f, 0.015f, 0f), new Vector3(0.035f, 0.035f, 0.68f),
+                new Color(0.06f, 0.07f, 0.08f), Quaternion.Euler(0f, 45f, 0f));
+            CreateVisualPrimitive(root, "ArmVisual_FR_RL_机臂", PrimitiveType.Cube,
+                new Vector3(0f, 0.015f, 0f), new Vector3(0.035f, 0.035f, 0.68f),
+                new Color(0.06f, 0.07f, 0.08f), Quaternion.Euler(0f, -45f, 0f));
+        }
+
+        private static void CreateVisualPrimitive(
+            Transform parent,
+            string name,
+            PrimitiveType primitiveType,
+            Vector3 localPosition,
+            Vector3 localScale,
+            Color color,
+            Quaternion? localRotation = null)
+        {
+            var visual = GameObject.CreatePrimitive(primitiveType);
+            visual.name = name;
+            visual.transform.SetParent(parent, false);
+            visual.transform.SetLocalPositionAndRotation(localPosition, localRotation ?? Quaternion.identity);
+            visual.transform.localScale = localScale;
+            var collider = visual.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+
+            var renderer = visual.GetComponent<Renderer>();
+            var properties = new MaterialPropertyBlock();
+            properties.SetColor("_BaseColor", color);
+            properties.SetColor("_Color", color);
+            renderer.SetPropertyBlock(properties);
         }
 
         private static bool IsFinite(Vector3 value)

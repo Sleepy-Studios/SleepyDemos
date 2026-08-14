@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.DroneFlight;
+    using TMPro;
 
     [Source("LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView")]
     public partial class DroneFlightHudView
@@ -24,7 +24,14 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private DroneHudPresenter DroneHudPresenter_DroneFlightHudView;
+        private CanvasGroup CanvasGroup_DroneFlightHudView;
+        private TextMeshProUGUI TextMeshProUGUI_FlightText;
+        private TextMeshProUGUI TextMeshProUGUI_CameraText;
+        private TextMeshProUGUI TextMeshProUGUI_PayloadText;
+        private TextMeshProUGUI TextMeshProUGUI_WarningText;
+        private TextMeshProUGUI TextMeshProUGUI_ControlsText;
+        private Image Image_ResetProgressFill;
+        private TextMeshProUGUI TextMeshProUGUI_ResetProgressText;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -36,7 +43,14 @@ namespace Hotfix
                 return;
             }
 
-            DroneHudPresenter_DroneFlightHudView = componentItemIndex.Get<DroneHudPresenter>(0);
+            CanvasGroup_DroneFlightHudView = componentItemIndex.Get<CanvasGroup>(0);
+            TextMeshProUGUI_FlightText = componentItemIndex.Get<TextMeshProUGUI>(1);
+            TextMeshProUGUI_CameraText = componentItemIndex.Get<TextMeshProUGUI>(2);
+            TextMeshProUGUI_PayloadText = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_WarningText = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_ControlsText = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Image_ResetProgressFill = componentItemIndex.Get<Image>(6);
+            TextMeshProUGUI_ResetProgressText = componentItemIndex.Get<TextMeshProUGUI>(7);
         }
     }
 }

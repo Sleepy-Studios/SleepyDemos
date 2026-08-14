@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证飞行遥测环形缓冲仅统计最近窗口，并正确汇总电机饱和等关键状态。
+     */
     public sealed class DroneTelemetryBufferTests
     {
         [Test]

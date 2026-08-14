@@ -1,0 +1,295 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &2765084506068237899
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7541438233768438356}
+    m_Modifications:
+    - target: {fileID: 1192005844834915097, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_Name
+      value: DroneHarpoonEquipment
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+--- !u!4 &1206407773044073885 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3954592370459007958, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+  m_PrefabInstance: {fileID: 2765084506068237899}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6946485409515807830 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5060165920597318173, guid: 7c3f5eeb72ea63944acdf99854763dc7, type: 3}
+  m_PrefabInstance: {fileID: 2765084506068237899}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f9a7d79d9ca5ef4ca5efd74f2ffb6e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHarpoonModule
+--- !u!1001 &9201993795686486489
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: flightInput
+      value: 
+      objectReference: {fileID: 4392980587323821636}
+    - target: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: droneCameraRig
+      value: 
+      objectReference: {fileID: 711996375316201465}
+    - target: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: mechanismInput
+      value: 
+      objectReference: {fileID: 4720714187724945079}
+    - target: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: flightController
+      value: 
+      objectReference: {fileID: 3696260373905399616}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4483144384119842670, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: landingGear
+      value: 
+      objectReference: {fileID: 8684228908000547123}
+    - target: {fileID: 4483144384119842670, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: equipmentHost
+      value: 
+      objectReference: {fileID: 4738653238633669022}
+    - target: {fileID: 4483144384119842670, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: controlSession
+      value: 
+      objectReference: {fileID: 8449132463913230631}
+    - target: {fileID: 4501093401273200711, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: aimCamera
+      value: 
+      objectReference: {fileID: 614037464276338790}
+    - target: {fileID: 4501093401273200711, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: droneBody
+      value: 
+      objectReference: {fileID: 9127855164063688512}
+    - target: {fileID: 4501093401273200711, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: moduleSource
+      value: 
+      objectReference: {fileID: 6946485409515807830}
+    - target: {fileID: 4501093401273200711, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: flightController
+      value: 
+      objectReference: {fileID: 3696260373905399616}
+    - target: {fileID: 4533546362861277057, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: cameraRig
+      value: 
+      objectReference: {fileID: 711996375316201465}
+    - target: {fileID: 4533546362861277057, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: landingGear
+      value: 
+      objectReference: {fileID: 8684228908000547123}
+    - target: {fileID: 4533546362861277057, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: playerInput
+      value: 
+      objectReference: {fileID: 4392980587323821636}
+    - target: {fileID: 4533546362861277057, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: equipmentHost
+      value: 
+      objectReference: {fileID: 4738653238633669022}
+    - target: {fileID: 4533546362861277057, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: flightController
+      value: 
+      objectReference: {fileID: 3696260373905399616}
+    - target: {fileID: 4533546362861277057, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: remoteExperience
+      value: 
+      objectReference: {fileID: 8449132463913230631}
+    - target: {fileID: 4597486164031808581, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      propertyPath: m_Name
+      value: DroneHarpoonVariant
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1206407773044073885}
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+--- !u!20 &614037464276338790 stripped
+Camera:
+  m_CorrespondingSourceObject: {fileID: 8588772718818941375, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &711996375316201465 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8526871501313125920, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 401c8f968df1d0f4d91cb5fd0ee4dcdd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneCameraRig
+--- !u!114 &3696260373905399616 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5548379368839319193, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00c2deac2a0b9114d8a9c89b51406e14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightController
+--- !u!114 &4392980587323821636 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4846730869351800733, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 500c6e38d2704fe4bb857db78da889a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePlayerInput
+--- !u!114 &4720714187724945079 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4483144384119842670, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d4768632d00d9f4ba16519f9a3bff89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHookInput
+--- !u!114 &4738653238633669022 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4501093401273200711, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f99adbc4b92f1cb41b8b5dc22cb4908b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneEquipmentHost
+--- !u!4 &7541438233768438356 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1665380253375986573, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8449132463913230631 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2afceb9552486f479f68d6daa3b309f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRemoteControllerExperience
+--- !u!114 &8684228908000547123 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 518081856289161450, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f2ed8d256927be48b50990d851c846f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneLandingGearController
+--- !u!54 &9127855164063688512 stripped
+Rigidbody:
+  m_CorrespondingSourceObject: {fileID: 79001505466087065, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
+  m_PrefabInstance: {fileID: 9201993795686486489}
+  m_PrefabAsset: {fileID: 0}

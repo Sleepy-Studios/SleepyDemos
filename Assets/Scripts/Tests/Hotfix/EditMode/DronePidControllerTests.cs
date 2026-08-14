@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证 PID 的比例、积分、微分滤波、输出限幅、复位和外部执行器饱和回滚行为。
+     */
     public sealed class DronePidControllerTests
     {
         [Test]

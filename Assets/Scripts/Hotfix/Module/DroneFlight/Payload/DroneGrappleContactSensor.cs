@@ -1,96 +1,45 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>记录单个活动爪真实接触到的载荷。</summary>
+    /// <summary>单个物理爪的接触传感器。</summary>
     public sealed class DroneGrappleContactSensor : MonoBehaviour
     {
-        private readonly HashSet<DronePayload> manualContacts = new();
-        private readonly Dictionary<Collider, DronePayload> colliderContacts = new();
-        private readonly HashSet<DronePayload> combinedContacts = new();
+        [SerializeField] private DroneGrappleContactCollector collector;
+        [SerializeField] private int clawIndex;
 
-        internal IEnumerable<DronePayload> Contacts
+        internal void Configure(DroneGrappleContactCollector target, int index)
         {
-            get
-            {
-                combinedContacts.Clear();
-                combinedContacts.UnionWith(manualContacts);
-                foreach (var payload in colliderContacts.Values)
-                {
-                    if (payload != null)
-                    {
-                        combinedContacts.Add(payload);
-                    }
-                }
-
-                return combinedContacts;
-            }
-        }
-
-        internal void ReportContact(DronePayload payload, bool isContacting)
-        {
-            if (payload == null)
-            {
-                return;
-            }
-
-            if (isContacting)
-            {
-                manualContacts.Add(payload);
-            }
-            else
-            {
-                manualContacts.Remove(payload);
-            }
-        }
-
-        /// <summary>按实际 Collider 记录接触，供物理回调与确定性测试共用。</summary>
-        internal void ReportColliderContact(Collider collider, bool isContacting)
-        {
-            if (collider == null)
-            {
-                return;
-            }
-
-            if (!isContacting)
-            {
-                colliderContacts.Remove(collider);
-                return;
-            }
-
-            var payload = collider.GetComponentInParent<DronePayload>();
-            if (payload != null)
-            {
-                colliderContacts[collider] = payload;
-            }
+            collector = target;
+            clawIndex = index;
         }
 
         private void OnCollisionEnter(Collision collision)
         {
-            ReportCollision(collision, true);
+            Report(collision);
         }
 
         private void OnCollisionStay(Collision collision)
         {
-            ReportCollision(collision, true);
+            Report(collision);
         }
 
         private void OnCollisionExit(Collision collision)
         {
-            ReportCollision(collision, false);
+            if (collision.collider != null)
+            {
+                collector?.Remove(clawIndex, collision.collider);
+            }
         }
 
-        private void ReportCollision(Collision collision, bool isContacting)
+        private void Report(Collision collision)
         {
-            ReportColliderContact(collision.collider, isContacting);
-        }
+            if (collector == null || collision.collider == null || collision.contactCount == 0)
+            {
+                return;
+            }
 
-        private void OnDisable()
-        {
-            manualContacts.Clear();
-            colliderContacts.Clear();
-            combinedContacts.Clear();
+            collector.Report(clawIndex, collision.collider, collision.GetContact(0).point);
         }
     }
 }

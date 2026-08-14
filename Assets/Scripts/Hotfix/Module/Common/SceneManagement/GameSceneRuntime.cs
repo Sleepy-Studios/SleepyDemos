@@ -28,6 +28,11 @@ namespace Hotfix.SceneManagement
         UniTask<GameSceneRuntimeResult> ReturnToHubAsync(Action<float> onProgress);
     }
 
+    internal interface IEditorDirectGameSceneRuntime : IGameSceneRuntime
+    {
+        UniTask<GameSceneRuntimeResult> ReloadAsync(string address, Action<float> onProgress);
+    }
+
     internal sealed class GameSceneRuntime : IGameSceneRuntime
     {
         private readonly IResourceSceneLoader sceneLoader;
@@ -223,4 +228,157 @@ namespace Hotfix.SceneManagement
             return true;
         }
     }
+
+#if UNITY_EDITOR
+    /// <summary>仅供 Editor 直接运行 Demo 场景的宿主；所有原生 SceneManager 操作仍封装在场景运行时内。</summary>
+    internal sealed class EditorDirectGameSceneRuntime : IEditorDirectGameSceneRuntime
+    {
+        private readonly IResourceSceneLoader sceneLoader;
+        private Scene currentScene;
+        private Camera currentCamera;
+        private AudioListener currentAudioListener;
+        private IResourceSceneHandle currentHandle;
+
+        internal EditorDirectGameSceneRuntime(IResourceSceneLoader loader, Scene scene)
+        {
+            sceneLoader = loader ?? throw new ArgumentNullException(nameof(loader));
+            currentScene = scene;
+            if (!TryFindPresentation(scene, out currentCamera, out currentAudioListener, out var error))
+            {
+                throw new InvalidOperationException(error);
+            }
+
+            UIRootManager.Instance.BindToBaseCamera(currentCamera);
+        }
+
+        public UniTask<GameSceneRuntimeResult> LoadAsync(string address, Action<float> onProgress)
+        {
+            return ReloadAsync(address, onProgress);
+        }
+
+        public async UniTask<GameSceneRuntimeResult> ReloadAsync(string address, Action<float> onProgress)
+        {
+            var sourceScene = currentScene;
+            var sourceCamera = currentCamera;
+            var sourceListener = currentAudioListener;
+            var sourceHandle = currentHandle;
+            sourceListener.enabled = false;
+            var result = await sceneLoader.LoadSceneAsync(address, LoadSceneMode.Additive, onProgress);
+            if (!result.Succeeded)
+            {
+                sourceListener.enabled = true;
+                return GameSceneRuntimeResult.Failure(result.Error);
+            }
+
+            if (!TryFindPresentation(result.Handle.Scene, out var targetCamera, out var targetListener, out var error))
+            {
+                await sceneLoader.UnloadSceneAsync(result.Handle);
+                sourceListener.enabled = true;
+                return GameSceneRuntimeResult.Failure(error);
+            }
+
+            try
+            {
+                UIRootManager.Instance.BindToBaseCamera(targetCamera);
+                SceneManager.SetActiveScene(result.Handle.Scene);
+                targetCamera.enabled = true;
+                targetListener.enabled = true;
+                sourceCamera.enabled = false;
+                if (sourceHandle != null)
+                {
+                    var unload = await sceneLoader.UnloadSceneAsync(sourceHandle);
+                    if (!unload.Succeeded)
+                    {
+                        throw new InvalidOperationException(unload.Error);
+                    }
+                }
+                else
+                {
+                    await SceneManager.UnloadSceneAsync(sourceScene);
+                }
+
+                currentScene = result.Handle.Scene;
+                currentHandle = result.Handle;
+                currentCamera = targetCamera;
+                currentAudioListener = targetListener;
+                return GameSceneRuntimeResult.Success();
+            }
+            catch (Exception exception)
+            {
+                await sceneLoader.UnloadSceneAsync(result.Handle);
+                sourceCamera.enabled = true;
+                sourceListener.enabled = true;
+                return GameSceneRuntimeResult.Failure($"Editor 直启场景重载失败: {exception.Message}");
+            }
+        }
+
+        public async UniTask<GameSceneRuntimeResult> ReturnToHubAsync(Action<float> onProgress)
+        {
+            try
+            {
+                GameSceneNavigator.ReleaseEditorDirect();
+                DemoIslandEditorBootstrap.ReleaseForOfficialStartup();
+                var operation = SceneManager.LoadSceneAsync("Assets/Scenes/AppEntrance.unity", LoadSceneMode.Single);
+                while (operation is { isDone: false })
+                {
+                    onProgress?.Invoke(operation.progress);
+                    await UniTask.Yield();
+                }
+
+                onProgress?.Invoke(1f);
+                return GameSceneRuntimeResult.Success();
+            }
+            catch (Exception exception)
+            {
+                return GameSceneRuntimeResult.Failure($"Editor 直启返回 AppEntrance 失败: {exception.Message}");
+            }
+        }
+
+        private static bool TryFindPresentation(
+            Scene scene,
+            out Camera camera,
+            out AudioListener listener,
+            out string error)
+        {
+            camera = null;
+            listener = null;
+            error = null;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                foreach (var candidate in root.GetComponentsInChildren<Camera>(true))
+                {
+                    if (candidate.CompareTag("MainCamera"))
+                    {
+                        if (camera != null)
+                        {
+                            error = "Editor 直启场景必须且只能包含一个 MainCamera。";
+                            return false;
+                        }
+
+                        camera = candidate;
+                    }
+                }
+
+                foreach (var candidate in root.GetComponentsInChildren<AudioListener>(true))
+                {
+                    if (listener != null)
+                    {
+                        error = "Editor 直启场景必须且只能包含一个 AudioListener。";
+                        return false;
+                    }
+
+                    listener = candidate;
+                }
+            }
+
+            if (camera == null || listener == null)
+            {
+                error = "Editor 直启场景缺少 MainCamera 或 AudioListener。";
+                return false;
+            }
+
+            return true;
+        }
+    }
+#endif
 }

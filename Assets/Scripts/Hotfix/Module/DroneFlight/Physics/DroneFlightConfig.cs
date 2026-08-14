@@ -176,36 +176,7 @@ namespace Hotfix.DroneFlight
         [Header("Landing Gear")]
         [SerializeField] private float landingGearTransitionSeconds = 0.45f;
 
-        [Header("Winch And Grapple")]
-        [SerializeField] private float grappleHardwareMassKilograms = 0.05f;
-        [SerializeField] private float winchStowedLengthMeters = 0.08f;
-        [SerializeField] private float winchDeployedLengthMeters = 0.45f;
-        [SerializeField] private float winchCarryLengthMeters = 0.24f;
-        [SerializeField] private float winchSpeedMetersPerSecond = 0.35f;
-        [SerializeField] private float topSuspensionTwistLimitDegrees = 12f;
-        [SerializeField] private float topSuspensionSwingLimitDegrees = 25f;
-        [SerializeField] private float bottomSuspensionTwistLimitDegrees = 18f;
-        [SerializeField] private float bottomSuspensionSwingLimitDegrees = 30f;
-        [SerializeField] private float suspensionJointAngularSpring = 30f;
-        [SerializeField] private float suspensionJointAngularDamper = 6f;
-        [SerializeField] private float suspensionTwistLimitDegrees = 25f;
-        [SerializeField] private float suspensionSwingLimitDegrees = 45f;
-        [SerializeField, Range(0f, 1f)] private float suspensionDampingRatio = 0.35f;
-        [SerializeField] private float suspensionMaximumDampingTorque = 2.5f;
-        [SerializeField] private float maximumPayloadMassKilograms = 0.6f;
-        [SerializeField] private float grappleBreakForceNewtons = 180f;
-        [SerializeField] private float grappleBreakTorqueNewtonMeters = 80f;
-        [SerializeField, Range(0f, 100f)] private float grappleStrength = 50f;
-        [SerializeField] private float grappleLinearFreedomMeters = 0.025f;
-        [SerializeField] private float grappleAngularFreedomDegrees = 12f;
-        [SerializeField] private float grappleTakeupSeconds = 0.3f;
-        [SerializeField] private float grappleWorkingSpring = 250f;
-        [SerializeField] private float grappleWorkingDamper = 25f;
-        [SerializeField] private float grappleDockPositionToleranceMeters = 0.02f;
-        [SerializeField] private float grappleDockSpeedToleranceMetersPerSecond = 0.15f;
-        [SerializeField, Range(0f, 100f)] private float antiSwingStrength = 18f;
-        [SerializeField] private float antiSwingMaximumAcceleration = 1f;
-        [SerializeField] private float externalMassBlendSeconds = 0.15f;
+        [Header("Input And Reset")]
         [SerializeField] private float resetHoldSeconds = 5f;
 
         internal DronePowerConfigurationMode PowerConfigurationMode => powerConfigurationMode;
@@ -227,7 +198,6 @@ namespace Hotfix.DroneFlight
                 maximumPayloadMultiplier,
                 ratedPayloadHoverCommand,
                 maximumRpm,
-                grappleHardwareMassKilograms,
                 Mathf.Abs(Physics.gravity.y)));
 
         /// <summary>机体裸机质量，单位 kg。</summary>
@@ -284,11 +254,10 @@ namespace Hotfix.DroneFlight
         /// <summary>速度误差到目标水平加速度的比例。</summary>
         internal float HorizontalVelocityGain => horizontalVelocityGain;
 
-        internal float AntiSwingStrength => antiSwingStrength;
+        // 新装备宿主不提供主动防摆状态；保留只读零值以维持飞控二进制契约。
+        internal float AntiSwingStrength => 0f;
 
-        internal float AntiSwingMaximumAcceleration => antiSwingMaximumAcceleration;
-
-        internal float ExternalMassBlendSeconds => externalMassBlendSeconds;
+        internal float AntiSwingMaximumAcceleration => 0f;
 
         /// <summary>水平加速度限幅，单位 m/s²。</summary>
         internal float MaximumHorizontalAccelerationMetersPerSecondSquared => maximumHorizontalAccelerationMetersPerSecondSquared;
@@ -301,63 +270,7 @@ namespace Hotfix.DroneFlight
 
         internal float LandingGearTransitionSeconds => landingGearTransitionSeconds;
 
-        internal float GrappleHardwareMassKilograms => grappleHardwareMassKilograms;
-
-        internal float WinchStowedLengthMeters => winchStowedLengthMeters;
-
-        internal float WinchDeployedLengthMeters => winchDeployedLengthMeters;
-
-        internal float WinchCarryLengthMeters => winchCarryLengthMeters;
-
-        internal float WinchSpeedMetersPerSecond => winchSpeedMetersPerSecond;
-
-        internal float TopSuspensionTwistLimitDegrees => topSuspensionTwistLimitDegrees;
-
-        internal float TopSuspensionSwingLimitDegrees => topSuspensionSwingLimitDegrees;
-
-        internal float BottomSuspensionTwistLimitDegrees => bottomSuspensionTwistLimitDegrees;
-
-        internal float BottomSuspensionSwingLimitDegrees => bottomSuspensionSwingLimitDegrees;
-
-        internal float SuspensionJointAngularSpring => suspensionJointAngularSpring;
-
-        internal float SuspensionJointAngularDamper => suspensionJointAngularDamper;
-
-        internal float SuspensionTwistLimitDegrees => suspensionTwistLimitDegrees;
-
-        internal float SuspensionSwingLimitDegrees => suspensionSwingLimitDegrees;
-
-        internal float SuspensionDampingRatio => suspensionDampingRatio;
-
-        internal float SuspensionMaximumDampingTorque => suspensionMaximumDampingTorque;
-
         internal float MaximumPayloadMassKilograms => ratedPayloadKilograms * maximumPayloadMultiplier;
-
-        internal float GrappleBreakForceNewtons => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
-            ? DronePayloadTuningCalculator.MapGripStrengthToBreakForce(grappleStrength)
-            : grappleBreakForceNewtons;
-
-        internal float GrappleBreakTorqueNewtonMeters => powerConfigurationMode == DronePowerConfigurationMode.AutomaticPayloadTuning
-            ? DronePayloadTuningCalculator.MapGripStrengthToBreakTorque(grappleStrength)
-            : grappleBreakTorqueNewtonMeters;
-
-        internal float GrappleStrength => grappleStrength;
-
-        internal float GrappleLinearFreedomMeters => grappleLinearFreedomMeters;
-
-        internal float GrappleAngularFreedomDegrees => grappleAngularFreedomDegrees;
-
-        internal float GrappleTakeupSeconds => grappleTakeupSeconds;
-
-        internal float GrappleWorkingSpring => grappleWorkingSpring;
-
-        internal float GrappleWorkingDamper => grappleWorkingDamper;
-
-        internal float GrappleDockPositionToleranceMeters => grappleDockPositionToleranceMeters;
-
-        internal float GrappleDockSpeedToleranceMetersPerSecond => grappleDockSpeedToleranceMetersPerSecond;
-
-        internal bool HasHighHardwareMassWarning => grappleHardwareMassKilograms > BodyMassKilograms * 0.2f;
 
         internal float ResetHoldSeconds => resetHoldSeconds;
 
@@ -442,23 +355,12 @@ namespace Hotfix.DroneFlight
             motorResponseTimeSeconds = responseTime;
         }
 
-        internal void ConfigureGrappleHardwareMass(float massKilograms)
-        {
-            grappleHardwareMassKilograms = massKilograms;
-        }
-
         internal bool TryValidate(out string diagnostic)
         {
             var tuning = AutomaticTuning;
             if (!IsPositiveFinite(ratedPayloadKilograms))
             {
                 diagnostic = "额定载重必须是大于 0 的有限值。";
-                return false;
-            }
-
-            if (!IsPositiveFinite(maximumPayloadMassKilograms))
-            {
-                diagnostic = "兼容用最大载荷质量必须是大于 0 的有限值。";
                 return false;
             }
 
@@ -535,38 +437,9 @@ namespace Hotfix.DroneFlight
                 return false;
             }
 
-            if (!IsPositiveFinite(grappleHardwareMassKilograms)
-                || grappleHardwareMassKilograms > BodyMassKilograms * 0.5f
-                || !IsPositiveFinite(winchStowedLengthMeters)
-                || !IsPositiveFinite(winchCarryLengthMeters)
-                || !IsPositiveFinite(winchDeployedLengthMeters)
-                || !(winchStowedLengthMeters < winchCarryLengthMeters
-                     && winchCarryLengthMeters < winchDeployedLengthMeters)
-                || !IsPositiveFinite(winchSpeedMetersPerSecond)
-                || !IsValidSuspensionAngle(suspensionTwistLimitDegrees)
-                || !IsValidSuspensionAngle(suspensionSwingLimitDegrees)
-                || !float.IsFinite(suspensionDampingRatio)
-                || suspensionDampingRatio <= 0f
-                || suspensionDampingRatio > 1f
-                || !IsPositiveFinite(suspensionMaximumDampingTorque)
-                || !float.IsFinite(antiSwingStrength) || antiSwingStrength < 0f || antiSwingStrength > 100f
-                || !IsPositiveFinite(antiSwingMaximumAcceleration)
-                || !IsPositiveFinite(externalMassBlendSeconds)
-                || !IsPositiveFinite(MaximumPayloadMassKilograms)
-                || !IsPositiveFinite(GrappleBreakForceNewtons)
-                || !IsPositiveFinite(GrappleBreakTorqueNewtonMeters)
-                || !IsPositiveFinite(grappleLinearFreedomMeters)
-                || !float.IsFinite(grappleAngularFreedomDegrees)
-                || grappleAngularFreedomDegrees <= 0f
-                || grappleAngularFreedomDegrees > 45f
-                || !IsPositiveFinite(grappleTakeupSeconds)
-                || !IsPositiveFinite(grappleWorkingSpring)
-                || !IsPositiveFinite(grappleWorkingDamper)
-                || !IsPositiveFinite(grappleDockPositionToleranceMeters)
-                || !IsPositiveFinite(grappleDockSpeedToleranceMetersPerSecond)
-                || !IsPositiveFinite(resetHoldSeconds))
+            if (!IsPositiveFinite(resetHoldSeconds))
             {
-                diagnostic = "抓斗设备质量不得超过基础机体质量的 50%；卷扬长度必须满足收纳 < 运输 < 放出；单摆限位、阻尼、软抓取、停靠和复位参数必须有效。";
+                diagnostic = "长按重载场景时间必须是大于 0 的有限值。";
                 return false;
             }
 
@@ -578,7 +451,7 @@ namespace Hotfix.DroneFlight
             }
 
             var manualHover = DronePayloadTuningCalculator.CalculateHoverCommand(
-                BodyMassKilograms + grappleHardwareMassKilograms + ratedPayloadKilograms,
+                BodyMassKilograms + ratedPayloadKilograms,
                 Mathf.Abs(Physics.gravity.y),
                 MaximumRpm,
                 ThrustCoefficient);
@@ -599,9 +472,5 @@ namespace Hotfix.DroneFlight
             return value > 0f && !float.IsNaN(value) && !float.IsInfinity(value);
         }
 
-        private static bool IsValidSuspensionAngle(float value)
-        {
-            return float.IsFinite(value) && value > 0f && value <= 45f;
-        }
     }
 }

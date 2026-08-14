@@ -1,5 +1,19 @@
 # 无人机飞行仿真实施计划
 
+## 2026-08-14 三机型、四爪抓斗、渔叉与 Editor 直启恢复点
+
+- 场景改为先通过正式 `Pop/Modal` 选择纯无人机、抓斗机或渔叉机；纯无人机直接实例化共享基础 `DronePrototype`，抓斗/渔叉分别实例化编辑期已保存的组合 Variant。HUD/F3 使用 UIManager 强类型异步数据，不再依赖静态 SceneContext 或 `BindContext()`。
+- 抓斗和渔叉模块各自保存为独立装备 Prefab；两个组合 Variant 以嵌套 Prefab 方式引用装备。Builder 只负责编辑期维护资源，运行时不动态创建或挂载装备结构。
+- `DroneFlightConfig` 已移除装备序列化字段；抓斗和渔叉分别由 `DroneGrappleConfig`、`DroneHarpoonConfig` 与对应 Prefab 持有，均提供双语普通/高级 Inspector 和运行时副本。
+- 抓斗重建为紧凑短行程四爪：一个底座 Rigidbody、四个爪 Rigidbody/HingeJoint、一个机腹 ConfigurableJoint；非相邻爪接触门禁后以零误差接触质心建立辅助约束，飞控载荷按实际竖直拉力平滑接入。
+- 渔叉采用独立连续碰撞弹体、等量反向真实后坐、动态/静态 FixedJoint 命中、只受拉弹簧阻尼绳和同一弹体自动回收；J/K 只改变目标绳长。
+- Editor 直启通过独立根 `DemoIslandEditorBootstrap` 复用 YooAsset、UIManager、幂等 Hotfix Boot 和场景导航，不运行 HybridCLR/HotfixEntry；Development/Release 仍从 AppEntrance 启动。
+- 长按 R 统一重载整个 DroneFlight 并回到机型选择；飞控 PID、Mixer、电机、Rotor 施力和 Profile 控制规律未修改。
+- 三个选择对应的成品 Prefab 通过失活临时父节点完成安全定位和运行时引用配置，并按四脚 Collider 最低点自动抬高根节点；该阶段不拼装装备。首个物理步后强制 Waiting/锁定，避免脚部插地和首帧残留按键导致自动解锁。
+- DroneFlight 三个 View 已改为标准 `partial View + MvcBind *Component.cs + ComponentItemIndex`；旧 Presenter/Launcher 已删除。UI 会话按具体实例关闭，重载等待新场景稳定后再开选择，正常 `Canceled` 静默处理。
+- 抓斗已重建为四个外缘真实枢轴与双段橙色爪；渔叉已重建为 `+Z` 枪管、枪口、杆身、锥形枪头和尾翼同轴结构，停靠弹体禁用碰撞且不残留绳索张力。
+- 当前恢复点：完成最终精确测试、Console 和正式 Hub 链路检查后暂停，等待用户实际试玩四爪手感、渔叉后坐/绳索与默认装备参数。
+
 ## 2026-08-14 抓斗单摆物理与载荷交接重构恢复点
 
 - 旧的一节连接刚体、抓斗底座二级关节和六个爪 Rigidbody/HingeJoint 已由“`0.45 m` 无质量吊索 + 单一动态抓斗 Rigidbody + 一个 ConfigurableJoint”替换；六爪保留双段外观、FixedUpdate 开合动画和真实复合 Collider。

@@ -31,6 +31,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneRotorDirection direction;
         [SerializeField] private Transform visualPropeller;
         [SerializeField] private DroneRotorVisual rotorVisual;
+        [SerializeField] private Transform forceAxis;
 
         /// <summary>旋翼在 X 架中的固定位置。</summary>
         internal DroneRotorPosition Position => position;
@@ -40,6 +41,9 @@ namespace Hotfix.DroneFlight
 
         /// <summary>推力施加位置和方向。</summary>
         internal Transform ForceTransform => transform;
+
+        /// <summary>物理推力方向；正式机体固定为无人机根节点的局部 +Y。</summary>
+        internal Vector3 ForceDirection => forceAxis != null ? forceAxis.up : transform.up;
 
         /// <summary>可选的视觉桨叶。</summary>
         internal Transform VisualPropeller => visualPropeller;
@@ -57,13 +61,15 @@ namespace Hotfix.DroneFlight
             DroneRotorPosition rotorPosition,
             DroneRotorDirection rotorDirection,
             Transform propeller = null,
-            DroneRotorVisual visual = null)
+            DroneRotorVisual visual = null,
+            Transform physicalForceAxis = null)
         {
             position = rotorPosition;
             direction = rotorDirection;
             visualPropeller = propeller;
             rotorVisual = visual;
-            rotorVisual?.Configure(propeller, rotorDirection);
+            forceAxis = physicalForceAxis;
+            rotorVisual?.Configure(propeller, rotorDirection, physicalForceAxis);
         }
 
         /// <summary>
@@ -82,7 +88,7 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            rotorVisual.Configure(visualPropeller, direction);
+            rotorVisual.Configure(visualPropeller, direction, forceAxis);
             rotorVisual.SetRpm(rpm);
         }
 

@@ -1,5 +1,4 @@
-using Cysharp.Threading.Tasks;
-using Hotfix.SceneManagement;
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,7 +15,10 @@ namespace Hotfix.DroneFlight
         private DroneFlightController controller;
         private Vector4 smoothedKeyboardInput;
         private DroneResetHoldTracker resetHoldTracker;
-        private bool isReloadingScene;
+        private bool reloadRequestSent;
+
+        /// 长按达到配置时间后发送一次；输入组件不直接切换场景。
+        internal event Action ReloadRequested;
 
         /// 长按 R 的归一化复位进度。
         internal float ResetProgress => resetHoldTracker?.Progress ?? 0f;
@@ -97,46 +99,24 @@ namespace Hotfix.DroneFlight
             if (keyboard.rKey.wasPressedThisFrame)
             {
                 resetHoldTracker.Begin();
+                reloadRequestSent = false;
             }
 
             if (keyboard.rKey.isPressed
                 && resetHoldTracker.Step(Time.unscaledDeltaTime))
             {
-                ResetBufferedInput();
-                ReloadCurrentSceneAsync().Forget();
+                if (!reloadRequestSent)
+                {
+                    reloadRequestSent = true;
+                    ResetBufferedInput();
+                    ReloadRequested?.Invoke();
+                }
             }
 
             if (keyboard.rKey.wasReleasedThisFrame
                 && resetHoldTracker.Release() == DroneResetReleaseResult.ShortPress)
             {
                 controller.SetArmed(!controller.IsArmed);
-            }
-        }
-
-        private async UniTaskVoid ReloadCurrentSceneAsync()
-        {
-            if (isReloadingScene)
-            {
-                return;
-            }
-
-            var navigator = GameSceneNavigator.Instance;
-            if (navigator == null)
-            {
-                Debug.LogError("[DroneFlight] 全局场景导航尚未初始化，无法重新运行场景。", this);
-                return;
-            }
-
-            isReloadingScene = true;
-            var result = await navigator.ReloadCurrentAsync();
-            if (result.Status == GameSceneSwitchStatus.Failed)
-            {
-                isReloadingScene = false;
-                Debug.LogError($"[DroneFlight] 重新运行场景失败：{result.Error}", this);
-            }
-            else if (result.Status is GameSceneSwitchStatus.Busy or GameSceneSwitchStatus.Ignored)
-            {
-                isReloadingScene = false;
             }
         }
 

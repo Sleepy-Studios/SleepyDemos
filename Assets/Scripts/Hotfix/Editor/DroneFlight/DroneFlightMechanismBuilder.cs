@@ -1,143 +1,116 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Hotfix.DroneFlight;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace Hotfix.Editor.DroneFlight
 {
-    /// <summary>可重复生成 DroneFlight 工业六爪、物理装配和场景显式引用。</summary>
+    /// <summary>只在编辑期重建基础无人机、独立装备和已保存的组合机体，不参与运行时装配。</summary>
     public static class DroneFlightMechanismBuilder
     {
-        private const string PrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/DronePrototype.prefab";
-        private const string ScenePath = "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
-        private const string ArtPath = "Assets/LoadResources/Demos/drone_flight/Art/Generated";
-        private const float GrappleVisualScale = 0.7f;
+        private const string Root = "Assets/LoadResources/Demos/drone_flight";
+        private const string BasePrefabPath = Root + "/Prefabs/DronePrototype.prefab";
+        private const string ObsoletePlainPrefabPath = Root + "/Prefabs/DronePlainVariant.prefab";
+        private const string GrappleEquipmentPrefabPath =
+            Root + "/Prefabs/Equipment/DroneGrappleEquipment.prefab";
+        private const string HarpoonEquipmentPrefabPath =
+            Root + "/Prefabs/Equipment/DroneHarpoonEquipment.prefab";
+        private const string GrapplePrefabPath = Root + "/Prefabs/DroneGrappleVariant.prefab";
+        private const string HarpoonPrefabPath = Root + "/Prefabs/DroneHarpoonVariant.prefab";
+        private const string GrappleConfigPath = Root + "/Data/Equipment/DroneGrappleConfig.asset";
+        private const string HarpoonConfigPath = Root + "/Data/Equipment/DroneHarpoonConfig.asset";
+        private const string ModelPath = Root + "/Art/Models/DroneFlight.fbx";
+        private const string MaterialRoot = Root + "/Art/Materials";
 
-        [MenuItem("Tools/SleepyDemos/DroneFlight/重建工业六爪与场景绑定")]
-        public static void Rebuild()
+        private static readonly string[] LandingGearMeshNames =
         {
-            EnsureFolder(ArtPath);
-            var upperMesh = CreateOrReplaceMesh($"{ArtPath}/GrappleClawUpper.asset", CreateTaperedSegment(0.22f, 0.055f, 0.035f));
-            var tipMesh = CreateOrReplaceMesh($"{ArtPath}/GrappleClawTip.asset", CreateTaperedSegment(0.16f, 0.045f, 0.018f));
-            var ringMesh = CreateOrReplaceMesh($"{ArtPath}/GrappleRing.asset", CreateRingMesh(0.14f, 0.025f, 16));
-            var darkMaterial = CreateOrReplaceMaterial($"{ArtPath}/GrappleDark.mat", new Color(0.08f, 0.09f, 0.1f));
-            var orangeMaterial = CreateOrReplaceMaterial($"{ArtPath}/GrappleOrange.mat", new Color(1f, 0.42f, 0.03f));
+            "LandingGear_FL", "LandingGear_FR", "LandingGear_RL", "LandingGear_RR"
+        };
 
-            RebuildPrefab(upperMesh, tipMesh, ringMesh, darkMaterial, orangeMaterial);
-            RewireScene();
+        private static readonly Vector3[] RotorPositions =
+        {
+            new(-0.255f, 0.04f, 0.255f), new(0.255f, 0.04f, 0.255f),
+            new(-0.255f, 0.04f, -0.255f), new(0.255f, 0.04f, -0.255f)
+        };
+
+        private static readonly Vector3[] LandingGearHinges =
+        {
+            new(-0.112f, -0.035f, 0.118f), new(0.112f, -0.035f, 0.118f),
+            new(-0.112f, -0.035f, -0.118f), new(0.112f, -0.035f, -0.118f)
+        };
+
+        private static readonly Vector3[] LandingGearFeet =
+        {
+            new(-0.205f, -0.23f, 0.18f), new(0.205f, -0.23f, 0.18f),
+            new(-0.205f, -0.23f, -0.18f), new(0.205f, -0.23f, -0.18f)
+        };
+
+        [MenuItem("Tools/SleepyDemos/DroneFlight/重建基础、装备与组合机体")]
+        public static void RebuildAll()
+        {
+            EnsureFolder(Root + "/Data/Equipment");
+            EnsureFolder(Root + "/Prefabs/Equipment");
+            EnsureFolder(MaterialRoot);
+            EnsureDroneMaterials();
+            ConfigureModelImporter();
+            var grappleConfig = GetOrCreateAsset<DroneGrappleConfig>(GrappleConfigPath);
+            var harpoonConfig = GetOrCreateAsset<DroneHarpoonConfig>(HarpoonConfigPath);
+            SetFloat(grappleConfig, "enclosureRadiusMeters", 0.12f);
+            SetFloat(grappleConfig, "enclosureHalfHeightMeters", 0.12f);
+            RebuildBasePrefab();
+            BuildGrappleEquipmentPrefab(grappleConfig);
+            BuildHarpoonEquipmentPrefab(harpoonConfig);
+            BuildVariant(
+                DroneEquipmentKind.Grapple,
+                GrappleEquipmentPrefabPath,
+                GrapplePrefabPath);
+            BuildVariant(
+                DroneEquipmentKind.Harpoon,
+                HarpoonEquipmentPrefabPath,
+                HarpoonPrefabPath);
+            AssetDatabase.DeleteAsset(ObsoletePlainPrefabPath);
+            AssetDatabase.ForceReserializeAssets(new[]
+            {
+                Root + "/Data/DroneFlightConfig.asset", GrappleConfigPath, HarpoonConfigPath,
+                BasePrefabPath, GrappleEquipmentPrefabPath, HarpoonEquipmentPrefabPath,
+                GrapplePrefabPath, HarpoonPrefabPath
+            });
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[DroneFlight] 已重建工业六爪、稳定吊链和场景显式引用。");
+            Debug.Log(
+                "[DroneFlight] 基础无人机、两个独立装备 Prefab 和两个已保存组合机体已重建；运行时不会动态拼装。");
         }
 
-        private static void RebuildPrefab(
-            Mesh upperMesh,
-            Mesh tipMesh,
-            Mesh ringMesh,
-            Material darkMaterial,
-            Material orangeMaterial)
+        private static void RebuildBasePrefab()
         {
-            var root = PrefabUtility.LoadPrefabContents(PrefabPath);
+            var root = PrefabUtility.LoadPrefabContents(BasePrefabPath);
             try
             {
-                foreach (var component in root.GetComponentsInChildren<DroneSuspensionRig>(true))
-                {
-                    UnityEngine.Object.DestroyImmediate(component);
-                }
-                foreach (var component in root.GetComponentsInChildren<DroneWinchController>(true))
-                {
-                    UnityEngine.Object.DestroyImmediate(component);
-                }
-                foreach (var component in root.GetComponentsInChildren<DroneMechanicalHook>(true))
-                {
-                    UnityEngine.Object.DestroyImmediate(component);
-                }
-                foreach (var component in root.GetComponentsInChildren<DroneHookInput>(true))
-                {
-                    UnityEngine.Object.DestroyImmediate(component);
-                }
-                foreach (var component in root.GetComponentsInChildren<PayloadMount>(true))
-                {
-                    UnityEngine.Object.DestroyImmediate(component);
-                }
+                root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                root.transform.localScale = Vector3.one;
+                RemoveAll<DroneResetCoordinator>(root);
+                RemoveAll<PayloadMount>(root);
+                RemoveAll<DroneMechanicalHook>(root);
+                RemoveAll<DroneSuspensionRig>(root);
+                RemoveAll<DroneWinchController>(root);
+                RemoveAll<DroneEquipmentHost>(root);
+                RemoveAll<DroneHookInput>(root);
+                RemoveAll<DroneRemoteControllerExperience>(root);
+                RemoveAll<DroneFlightSceneContext>(root);
+                DestroyChild(root.transform, "SuspensionRig");
+                DestroyChild(root.transform, "GrappleEquipment");
+                DestroyChild(root.transform, "HarpoonEquipment");
+                DestroyChild(root.transform, "DroneCameraOutput");
+                DestroyChild(root.transform, "GimbalCameraMount");
 
-                var oldRig = root.transform.Find("SuspensionRig");
-                if (oldRig != null)
-                {
-                    UnityEngine.Object.DestroyImmediate(oldRig.gameObject);
-                }
-
-                var droneBody = root.GetComponent<Rigidbody>();
-                var controller = root.GetComponent<DroneFlightController>();
-                var hardwareMass = controller != null && controller.Config != null
-                    ? controller.Config.GrappleHardwareMassKilograms
-                    : DronePayloadTuningCalculator.DefaultDeployedHardwareMassKilograms;
-                var gear = root.GetComponent<DroneLandingGearController>();
-                var rigRoot = NewChild(root.transform, "SuspensionRig", Vector3.zero);
-                var parkingRoot = NewChild(rigRoot, "ParkingRoot", new Vector3(0f, -0.16f, 0f));
-                var dynamicsRoot = NewChild(rigRoot, "DynamicBodies", Vector3.zero);
-
-                var grappleBody = CreateGrappleBody(
-                    dynamicsRoot,
-                    new Vector3(0f, -0.12f - controller.Config.WinchDeployedLengthMeters, 0f),
-                    hardwareMass,
-                    ringMesh,
-                    darkMaterial,
-                    orangeMaterial);
-                var suspensionJoint = AddSuspensionJoint(
-                    grappleBody,
-                    droneBody,
-                    controller.Config.WinchDeployedLengthMeters,
-                    new Vector3(0f, -0.12f, 0f),
-                    controller.Config);
-                var cableVisual = CreateCableVisual(rigRoot, darkMaterial);
-
-                var clawRoots = new List<Transform>();
-                var clawColliders = new List<Collider[]>();
-                for (var index = 0; index < 6; index++)
-                {
-                    CreateClaw(
-                        grappleBody.transform,
-                        grappleBody,
-                        index,
-                        upperMesh,
-                        tipMesh,
-                        orangeMaterial,
-                        darkMaterial,
-                        clawRoots,
-                        clawColliders);
-                }
-
-                var mountPoint = NewChild(grappleBody.transform, "GripCenter", new Vector3(0f, -0.084f, 0f));
-                var contactCollector = grappleBody.gameObject.AddComponent<DroneGrappleContactCollector>();
-                contactCollector.Configure(clawColliders.ToArray());
-                var payloadMount = root.AddComponent<PayloadMount>();
-                payloadMount.Configure(mountPoint, controller.Config, grappleBody);
-                var hook = root.AddComponent<DroneMechanicalHook>();
-                hook.Configure(payloadMount, clawRoots.ToArray(), contactCollector, mountPoint, 0.38f * GrappleVisualScale);
-
-                var mechanismColliders = grappleBody.GetComponentsInChildren<Collider>(true);
-                payloadMount.ConfigureIgnoredSupportColliders(root.GetComponentsInChildren<Collider>(true));
-                var suspensionRig = root.AddComponent<DroneSuspensionRig>();
-                suspensionRig.Configure(
-                    droneBody,
-                    parkingRoot,
-                    grappleBody,
-                    mechanismColliders,
-                    controller.Config,
-                    suspensionJoint,
-                    cableVisual);
-                var winch = root.AddComponent<DroneWinchController>();
-                winch.Configure(controller, suspensionJoint, payloadMount, suspensionRig);
-                controller.ConfigureExternalMassProvider(winch);
-                var input = root.AddComponent<DroneHookInput>();
-                input.Configure(hook, winch, gear);
-
-                PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+                EnsureChild(root.transform, "BellyEquipmentMount", new Vector3(0f, -0.12f, 0f));
+                BuildOfficialModel(root);
+                BuildCommonCameraAndRuntime(root);
+                PrefabUtility.SaveAsPrefabAsset(root, BasePrefabPath);
             }
             finally
             {
@@ -145,295 +118,828 @@ namespace Hotfix.Editor.DroneFlight
             }
         }
 
-        private static void RewireScene()
+        private static void ConfigureModelImporter()
         {
-            var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            var context = UnityEngine.Object.FindFirstObjectByType<DroneFlightSceneContext>();
-            var controller = UnityEngine.Object.FindFirstObjectByType<DroneFlightController>();
-            var input = UnityEngine.Object.FindFirstObjectByType<DronePlayerInput>();
-            var rig = UnityEngine.Object.FindFirstObjectByType<DroneCameraRig>();
-            var session = UnityEngine.Object.FindFirstObjectByType<DroneRemoteControllerExperience>();
-            var mount = UnityEngine.Object.FindFirstObjectByType<PayloadMount>();
-            var hook = UnityEngine.Object.FindFirstObjectByType<DroneMechanicalHook>();
-            var winch = UnityEngine.Object.FindFirstObjectByType<DroneWinchController>();
-            var gear = UnityEngine.Object.FindFirstObjectByType<DroneLandingGearController>();
-            var mechanismInput = UnityEngine.Object.FindFirstObjectByType<DroneHookInput>();
-            var reset = UnityEngine.Object.FindFirstObjectByType<DroneResetCoordinator>();
-            var payloads = UnityEngine.Object.FindObjectsByType<DronePayload>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            var playerCamera = scene.GetRootGameObjects()
-                .SelectMany(item => item.GetComponentsInChildren<Camera>(true))
-                .FirstOrDefault(camera => camera.name == "Main Camera");
-
-            if (context == null || controller == null || rig == null || session == null)
+            if (AssetImporter.GetAtPath(ModelPath) is not ModelImporter importer)
             {
-                throw new InvalidOperationException("DroneFlight 场景缺少 Context、飞控、相机或控制会话。" );
+                throw new InvalidOperationException($"无法加载正式无人机模型：{ModelPath}");
             }
 
-            session.Configure(playerCamera, rig, input, controller, mechanismInput);
-            mechanismInput?.Configure(hook, winch, gear, session);
-            context.Configure(controller, input, rig, session, mount, hook, winch, gear, payloads);
-            reset?.Configure(controller, input, rig, gear, winch, hook, mount, session, payloads);
-
-            var remoteRoot = scene.GetRootGameObjects()
-                .SelectMany(item => item.GetComponentsInChildren<Transform>(true))
-                .FirstOrDefault(item => item.name == "RemoteControllerRoot");
-            if (remoteRoot != null)
+            var changed = !Mathf.Approximately(importer.globalScale, 1f)
+                          || !importer.useFileScale
+                          || importer.bakeAxisConversion
+                          || importer.importAnimation
+                          || importer.importCameras
+                          || importer.importLights
+                          || importer.importBlendShapes
+                          || importer.isReadable;
+            if (!changed)
             {
-                UnityEngine.Object.DestroyImmediate(remoteRoot.gameObject);
+                return;
             }
 
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
+            importer.globalScale = 1f;
+            importer.useFileScale = true;
+            // 保留 FBX 标准轴转换；物理推力轴由机体根的局部 +Y 显式提供。
+            importer.bakeAxisConversion = false;
+            importer.importAnimation = false;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.importBlendShapes = false;
+            importer.isReadable = false;
+            importer.SaveAndReimport();
         }
 
-        private static Transform CreateCableVisual(Transform parent, Material material)
+        private static void EnsureDroneMaterials()
         {
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            visual.name = "MasslessCableVisual";
-            visual.transform.SetParent(parent, false);
-            visual.transform.localScale = new Vector3(0.008f, 0.225f, 0.008f);
-            visual.GetComponent<MeshRenderer>().sharedMaterial = material;
-            UnityEngine.Object.DestroyImmediate(visual.GetComponent<Collider>());
-            return visual.transform;
+            CreateOrUpdateMaterial("DroneGraphite", new Color(0.105f, 0.12f, 0.135f), 0.38f, 0.58f);
+            CreateOrUpdateMaterial("DroneShellTop", new Color(0.30f, 0.32f, 0.34f), 0.22f, 0.62f);
+            CreateOrUpdateMaterial("DroneMechanicalBlack", new Color(0.018f, 0.022f, 0.026f), 0.50f, 0.48f);
+            CreateOrUpdateMaterial("DroneSafetyOrange", new Color(1f, 0.19f, 0.025f), 0.08f, 0.52f);
+            CreateOrUpdateMaterial("DroneFrontLED", new Color(0.63f, 0.86f, 1f), 0f, 0.72f,
+                new Color(2.5f, 5.5f, 8f));
+            CreateOrUpdateMaterial("DroneCameraLens", new Color(0.008f, 0.016f, 0.022f), 0.72f, 0.88f);
         }
 
-        private static Rigidbody CreateGrappleBody(
-            Transform parent,
-            Vector3 position,
-            float mass,
-            Mesh ringMesh,
-            Material darkMaterial,
-            Material orangeMaterial)
+        private static void CreateOrUpdateMaterial(
+            string assetName,
+            Color baseColor,
+            float metallic,
+            float smoothness,
+            Color? emission = null)
         {
-            var root = NewChild(parent, "GrappleBody", position);
-            var body = root.gameObject.AddComponent<Rigidbody>();
-            body.mass = mass;
-            body.linearDamping = 0.04f;
-            body.angularDamping = 0.4f;
-            body.interpolation = RigidbodyInterpolation.Interpolate;
-            body.solverIterations = 12;
-            body.solverVelocityIterations = 8;
-            var collider = root.gameObject.AddComponent<BoxCollider>();
-            collider.size = new Vector3(0.24f, 0.09f, 0.24f) * GrappleVisualScale;
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                throw new InvalidOperationException("项目中找不到 Universal Render Pipeline/Lit Shader。");
+            }
 
-            var spool = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            spool.name = "CentralSpool";
-            spool.transform.SetParent(root, false);
-            spool.transform.localScale = new Vector3(0.09f, 0.06f, 0.09f) * GrappleVisualScale;
-            spool.GetComponent<MeshRenderer>().sharedMaterial = darkMaterial;
-            UnityEngine.Object.DestroyImmediate(spool.GetComponent<Collider>());
-
-            var ring = NewChild(root, "IndustrialRing", Vector3.down * (0.04f * GrappleVisualScale));
-            ring.localScale = Vector3.one * GrappleVisualScale;
-            ring.gameObject.AddComponent<MeshFilter>().sharedMesh = ringMesh;
-            ring.gameObject.AddComponent<MeshRenderer>().sharedMaterial = orangeMaterial;
-            return body;
+            var path = $"{MaterialRoot}/{assetName}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material == null)
+            {
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, path);
+            }
+            material.name = assetName;
+            material.shader = shader;
+            material.SetColor("_BaseColor", baseColor);
+            material.SetFloat("_Metallic", metallic);
+            material.SetFloat("_Smoothness", smoothness);
+            if (emission.HasValue)
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", emission.Value);
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            }
+            else
+            {
+                material.DisableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", Color.black);
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            }
+            EditorUtility.SetDirty(material);
         }
 
-        private static void CreateClaw(
-            Transform parent,
-            Rigidbody grappleBody,
-            int index,
-            Mesh upperMesh,
-            Mesh tipMesh,
-            Material orangeMaterial,
-            Material darkMaterial,
-            ICollection<Transform> clawRoots,
-            ICollection<Collider[]> clawColliders)
+        private static void BuildOfficialModel(GameObject root)
         {
-            var angle = index * 60f;
-            var radial = Quaternion.Euler(0f, angle, 0f) * Vector3.forward;
-            var root = NewChild(parent, $"Claw_{index + 1}", radial * (0.14f * GrappleVisualScale));
-            root.localRotation = Quaternion.Euler(0f, angle, 0f);
-            root.localScale = Vector3.one;
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+            if (source == null)
+            {
+                throw new InvalidOperationException($"正式无人机模型尚未导入：{ModelPath}");
+            }
 
-            CreateSegment(root, "UpperSegment", upperMesh, orangeMaterial,
-                new Vector3(0f, -0.08f, 0.09f) * GrappleVisualScale, Quaternion.Euler(28f, 0f, 0f), new Vector3(0.055f, 0.045f, 0.22f));
-            CreateSegment(root, "TipSegment", tipMesh, orangeMaterial,
-                new Vector3(0f, -0.19f, 0.17f) * GrappleVisualScale, Quaternion.Euler(118f, 0f, 0f), new Vector3(0.045f, 0.04f, 0.16f));
+            DestroyChild(root.transform, "Body");
+            DestroyChild(root.transform, "Arm_FL_RR");
+            DestroyChild(root.transform, "Arm_FR_RL");
+            DestroyChild(root.transform, "NoseForward");
+            DestroyChild(root.transform, "OfficialVisual");
+            DestroyChild(root.transform, "DroneModel");
+            DestroyChild(root.transform, "Rotor_FL_CCW");
+            DestroyChild(root.transform, "Rotor_FR_CW");
+            DestroyChild(root.transform, "Rotor_RL_CW");
+            DestroyChild(root.transform, "Rotor_RR_CCW");
+            DestroyChild(root.transform, "LandingGear");
+            DestroyChild(root.transform, "BodyCollider");
+            DestroyChild(root.transform, "ArmCollider_FL_RR");
+            DestroyChild(root.transform, "ArmCollider_FR_RL");
+            DestroyChild(root.transform, "CollisionProxies");
 
-            var pivot = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            pivot.name = "Pivot";
-            pivot.transform.SetParent(root, false);
-            pivot.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            pivot.transform.localScale = new Vector3(0.035f, 0.045f, 0.035f) * GrappleVisualScale;
-            pivot.GetComponent<MeshRenderer>().sharedMaterial = darkMaterial;
-            UnityEngine.Object.DestroyImmediate(pivot.GetComponent<Collider>());
-            clawRoots.Add(root);
-            clawColliders.Add(root.GetComponentsInChildren<Collider>(true));
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(source, root.transform);
+            if (model == null)
+            {
+                throw new InvalidOperationException($"无法实例化正式无人机 FBX：{ModelPath}");
+            }
+            model.name = "DroneModel";
+            model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            model.transform.localScale = Vector3.one;
+            ApplyMappedMaterials(model);
+            BuildAirframeColliders(root.transform);
+            BuildRotors(root, model);
+            BuildLandingGear(root, model);
+            ValidateGimbal(model);
         }
 
-        private static void CreateSegment(
+        private static void BuildAirframeColliders(Transform root)
+        {
+            var proxies = EnsureChild(root, "CollisionProxies", Vector3.zero);
+            var body = EnsureChild(proxies, "BodyCollider", Vector3.zero);
+            var bodyCollider = EnsureComponent<BoxCollider>(body.gameObject);
+            bodyCollider.center = Vector3.zero;
+            bodyCollider.size = new Vector3(0.26f, 0.10f, 0.37f);
+
+            CreateBoxCollider(proxies, "ArmCollider_FL_RR", new Vector3(0f, 0.025f, 0f),
+                Quaternion.Euler(0f, 45f, 0f), new Vector3(0.035f, 0.038f, 0.66f));
+            CreateBoxCollider(proxies, "ArmCollider_FR_RL", new Vector3(0f, 0.025f, 0f),
+                Quaternion.Euler(0f, -45f, 0f), new Vector3(0.035f, 0.038f, 0.66f));
+        }
+
+        private static void BuildRotors(GameObject root, GameObject model)
+        {
+            for (var index = 0; index < 4; index++)
+            {
+                var hubName = RotorHubName(index);
+                var hub = FindDeepChild(model.transform, hubName);
+                if (hub == null)
+                {
+                    throw new InvalidOperationException($"正式 FBX 缺少旋翼轮毂：{hubName}");
+                }
+
+                var bladeName = index is 0 or 3 ? "RotorBlade_CCW" : "RotorBlade_CW";
+                var blade = CloneRotorBlade(model, bladeName, hub, bladeName + "_Visual");
+                var rotorVisual = EnsureComponent<DroneRotorVisual>(blade.gameObject);
+                var rotor = EnsureComponent<DroneRotor>(hub.gameObject);
+                var position = (DroneRotorPosition)index;
+                var direction = index is 0 or 3
+                    ? DroneRotorDirection.CounterClockwise
+                    : DroneRotorDirection.Clockwise;
+                rotor.Configure(position, direction, blade, rotorVisual, root.transform);
+
+                var actualPosition = root.transform.InverseTransformPoint(hub.position);
+                if (Vector3.Distance(actualPosition, RotorPositions[index]) > 0.0001f)
+                {
+                    throw new InvalidOperationException(
+                        $"{hub.name} 施力坐标错误，期望 {RotorPositions[index]}，实际 {actualPosition}。");
+                }
+
+                var thrustAxis = root.transform.InverseTransformDirection(rotor.ForceDirection).normalized;
+                if (Vector3.Dot(thrustAxis, Vector3.up) < 0.9999f)
+                {
+                    throw new InvalidOperationException(
+                        $"{hub.name} 物理推力轴未朝向机体局部 +Y，实际推力轴 {thrustAxis}。");
+                }
+            }
+
+            SetModelNodeRenderersEnabled(model, "RotorBlade_CCW", false);
+            SetModelNodeRenderersEnabled(model, "RotorBlade_CW", false);
+        }
+
+        private static string RotorHubName(int index)
+        {
+            return index switch
+            {
+                0 => "RotorHub_FL",
+                1 => "RotorHub_FR",
+                2 => "RotorHub_RL",
+                3 => "RotorHub_RR",
+                _ => throw new ArgumentOutOfRangeException(nameof(index), index, null)
+            };
+        }
+
+        private static void BuildLandingGear(GameObject root, GameObject model)
+        {
+            var legs = new Transform[4];
+            var retractedOffsets = new Vector3[4];
+            for (var index = 0; index < legs.Length; index++)
+            {
+                var leg = FindDeepChild(model.transform, LandingGearMeshNames[index]);
+                if (leg == null)
+                {
+                    throw new InvalidOperationException($"正式 FBX 缺少起落架节点：{LandingGearMeshNames[index]}");
+                }
+                legs[index] = leg;
+                var hingePosition = root.transform.InverseTransformPoint(leg.position);
+                if (Vector3.Distance(hingePosition, LandingGearHinges[index]) > 0.0001f)
+                {
+                    throw new InvalidOperationException(
+                        $"{leg.name} 铰链坐标错误，期望 {LandingGearHinges[index]}，实际 {hingePosition}。");
+                }
+
+                DestroyChild(leg, "Foot");
+                DestroyChild(leg, "StrutCollider");
+                var footWorld = root.transform.TransformPoint(LandingGearFeet[index]);
+                var footLocal = leg.InverseTransformPoint(footWorld);
+                var rootAlignedRotation = Quaternion.Inverse(leg.rotation) * root.transform.rotation;
+                CreateBoxCollider(leg, "Foot", footLocal, rootAlignedRotation,
+                    new Vector3(0.05f, 0.012f, 0.024f));
+                var strutVector = footLocal * 0.88f;
+                CreateBoxCollider(leg, "StrutCollider", strutVector * 0.5f,
+                    Quaternion.FromToRotation(Vector3.down, strutVector.normalized),
+                    new Vector3(0.026f, strutVector.magnitude, 0.026f));
+
+                var radialRoot = new Vector3(
+                    LandingGearFeet[index].x - LandingGearHinges[index].x,
+                    0f,
+                    LandingGearFeet[index].z - LandingGearHinges[index].z).normalized;
+                var tangentRoot = Vector3.Cross(Vector3.up, radialRoot).normalized;
+                var tangentLocal = leg.InverseTransformDirection(root.transform.TransformDirection(tangentRoot));
+                retractedOffsets[index] = Quaternion.AngleAxis(67f, tangentLocal).eulerAngles;
+            }
+
+            var controller = EnsureComponent<DroneLandingGearController>(root);
+            controller.Configure(root.GetComponent<DroneFlightController>(), root.GetComponent<Rigidbody>(), legs,
+                retractedOffsets);
+        }
+
+        private static void ValidateGimbal(GameObject model)
+        {
+            var yaw = FindDeepChild(model.transform, "GimbalYaw");
+            var pitch = FindDeepChild(model.transform, "GimbalPitch");
+            var camera = FindDeepChild(model.transform, "CameraBody");
+            if (yaw == null || pitch == null || camera == null || pitch.parent != yaw || camera.parent != pitch)
+            {
+                throw new InvalidOperationException("正式 FBX 云台层级必须为 GimbalYaw/GimbalPitch/CameraBody。");
+            }
+        }
+
+        private static Transform CloneRotorBlade(GameObject model, string sourceName, Transform parent, string name)
+        {
+            var source = FindDeepChild(model.transform, sourceName);
+            if (source == null)
+            {
+                throw new InvalidOperationException($"正式无人机 FBX 缺少节点：{sourceName}");
+            }
+
+            var clone = Object.Instantiate(source.gameObject, parent, false);
+            clone.name = name;
+            clone.transform.localPosition = Vector3.zero;
+            clone.transform.rotation = source.rotation;
+            clone.transform.localScale = Vector3.one;
+            return clone.transform;
+        }
+
+        private static void ApplyMappedMaterials(GameObject model)
+        {
+            foreach (var renderer in model.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var sourceMaterials = renderer.sharedMaterials;
+                var mappedMaterials = new Material[sourceMaterials.Length];
+                for (var index = 0; index < sourceMaterials.Length; index++)
+                {
+                    mappedMaterials[index] = LoadMappedMaterial(sourceMaterials[index]?.name);
+                }
+                renderer.sharedMaterials = mappedMaterials;
+            }
+        }
+
+        private static void SetModelNodeRenderersEnabled(GameObject model, string nodeName, bool enabled)
+        {
+            var node = FindDeepChild(model.transform, nodeName);
+            if (node == null)
+            {
+                throw new InvalidOperationException($"正式无人机 FBX 缺少节点：{nodeName}");
+            }
+            foreach (var renderer in node.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.enabled = enabled;
+            }
+        }
+
+        private static Transform FindDeepChild(Transform root, string name)
+        {
+            foreach (var child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == name)
+                {
+                    return child;
+                }
+            }
+            return null;
+        }
+
+        private static Material LoadMappedMaterial(string sourceName)
+        {
+            var assetName = sourceName switch
+            {
+                "MAT_Graphite" => "DroneGraphite",
+                "MAT_ShellTop" => "DroneShellTop",
+                "MAT_MechanicalBlack" => "DroneMechanicalBlack",
+                "MAT_SafetyOrange" => "DroneSafetyOrange",
+                "MAT_FrontLED" => "DroneFrontLED",
+                "MAT_CameraLens" => "DroneCameraLens",
+                _ => throw new InvalidOperationException($"正式模型包含未映射材质槽：{sourceName}")
+            };
+            return AssetDatabase.LoadAssetAtPath<Material>($"{MaterialRoot}/{assetName}.mat");
+        }
+
+        private static void CreateBoxCollider(
             Transform parent,
             string name,
-            Mesh mesh,
-            Material material,
             Vector3 localPosition,
             Quaternion localRotation,
-            Vector3 colliderSize)
+            Vector3 size)
         {
-            var segment = NewChild(parent, name, localPosition);
-            segment.localRotation = localRotation;
-            segment.localScale = Vector3.one * GrappleVisualScale;
-            segment.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            segment.gameObject.AddComponent<MeshRenderer>().sharedMaterial = material;
-            var collider = segment.gameObject.AddComponent<BoxCollider>();
-            collider.center = Vector3.forward * (colliderSize.z * 0.5f);
-            collider.size = colliderSize;
+            var target = EnsureChild(parent, name, localPosition);
+            target.localRotation = localRotation;
+            var collider = EnsureComponent<BoxCollider>(target.gameObject);
+            collider.center = Vector3.zero;
+            collider.size = size;
         }
 
-        private static ConfigurableJoint AddSuspensionJoint(
-            Rigidbody body,
-            Rigidbody connectedBody,
-            float cableLength,
-            Vector3 connectedAnchor,
-            DroneFlightConfig config)
+        private static void BuildCommonCameraAndRuntime(GameObject root)
         {
-            var joint = body.gameObject.AddComponent<ConfigurableJoint>();
-            joint.connectedBody = connectedBody;
-            joint.autoConfigureConnectedAnchor = false;
-            joint.anchor = Vector3.up * cableLength;
-            joint.connectedAnchor = connectedAnchor;
-            joint.xMotion = ConfigurableJointMotion.Locked;
-            joint.yMotion = ConfigurableJointMotion.Locked;
-            joint.zMotion = ConfigurableJointMotion.Locked;
-            joint.axis = Vector3.up;
-            joint.secondaryAxis = Vector3.forward;
-            joint.angularXMotion = ConfigurableJointMotion.Limited;
-            joint.angularYMotion = ConfigurableJointMotion.Limited;
-            joint.angularZMotion = ConfigurableJointMotion.Limited;
-            joint.lowAngularXLimit = new SoftJointLimit { limit = -config.SuspensionTwistLimitDegrees };
-            joint.highAngularXLimit = new SoftJointLimit { limit = config.SuspensionTwistLimitDegrees };
-            joint.angularYLimit = new SoftJointLimit { limit = config.SuspensionSwingLimitDegrees };
-            joint.angularZLimit = new SoftJointLimit { limit = config.SuspensionSwingLimitDegrees };
-            joint.angularXLimitSpring = new SoftJointLimitSpring();
-            joint.angularYZLimitSpring = new SoftJointLimitSpring();
-            joint.breakForce = float.PositiveInfinity;
-            joint.breakTorque = float.PositiveInfinity;
-            joint.projectionMode = JointProjectionMode.None;
-            joint.enablePreprocessing = true;
-            joint.massScale = 1f;
-            joint.connectedMassScale = 1f;
-            joint.enableCollision = false;
-            joint.rotationDriveMode = RotationDriveMode.Slerp;
-            joint.slerpDrive = new JointDrive
+            var cameraObject = new GameObject("DroneCameraOutput", typeof(Camera), typeof(AudioListener),
+                typeof(DroneCameraRig), typeof(DroneCameraInput));
+            cameraObject.transform.SetParent(root.transform, false);
+            var camera = cameraObject.GetComponent<Camera>();
+            camera.enabled = false;
+            cameraObject.GetComponent<AudioListener>().enabled = false;
+
+            var cameraRig = cameraObject.GetComponent<DroneCameraRig>();
+            var model = root.transform.Find("DroneModel");
+            cameraRig.Configure(
+                camera,
+                root.transform,
+                model != null ? FindDeepChild(model, "GimbalYaw") : null,
+                model != null ? FindDeepChild(model, "GimbalPitch") : null,
+                root.transform.Find("FixedForwardMount"),
+                root.transform.Find("BellyCameraMount"));
+
+            root.AddComponent<DroneEquipmentHost>();
+            root.AddComponent<DroneHookInput>();
+            root.AddComponent<DroneRemoteControllerExperience>();
+            root.AddComponent<DroneFlightSceneContext>();
+        }
+
+        private static void BuildGrappleEquipmentPrefab(DroneGrappleConfig config)
+        {
+            var preview = EditorSceneManager.NewPreviewScene();
+            try
             {
-                positionSpring = 0f,
-                positionDamper = 2f * config.SuspensionDampingRatio
-                                     * Mathf.Sqrt(Mathf.Abs(Physics.gravity.y) / Mathf.Max(0.03f, cableLength)),
-                maximumForce = config.SuspensionMaximumDampingTorque,
-                useAcceleration = true
-            };
-            return joint;
+                var equipment = BuildGrapple(config);
+                SceneManager.MoveGameObjectToScene(equipment, preview);
+                PrefabUtility.SaveAsPrefabAsset(equipment, GrappleEquipmentPrefabPath);
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(preview);
+            }
         }
 
-        private static Transform NewChild(Transform parent, string name, Vector3 localPosition)
+        private static void BuildHarpoonEquipmentPrefab(DroneHarpoonConfig config)
         {
-            var child = new GameObject(name).transform;
-            child.SetParent(parent, false);
+            var preview = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                var equipment = BuildHarpoon(config);
+                SceneManager.MoveGameObjectToScene(equipment, preview);
+                PrefabUtility.SaveAsPrefabAsset(equipment, HarpoonEquipmentPrefabPath);
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(preview);
+            }
+        }
+
+        private static void BuildVariant(DroneEquipmentKind kind, string equipmentPrefabPath, string path)
+        {
+            var preview = EditorSceneManager.NewPreviewScene();
+            try
+            {
+                var basePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePrefabPath);
+                var root = (GameObject)PrefabUtility.InstantiatePrefab(basePrefab, preview);
+                root.name = kind switch
+                {
+                    DroneEquipmentKind.Grapple => "DroneGrappleVariant",
+                    DroneEquipmentKind.Harpoon => "DroneHarpoonVariant",
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "组合机体必须包含一种装备。")
+                };
+                root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                root.transform.localScale = Vector3.one;
+                var equipmentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(equipmentPrefabPath);
+                if (equipmentPrefab == null)
+                {
+                    throw new InvalidOperationException($"无法加载装备 Prefab：{equipmentPrefabPath}");
+                }
+
+                var equipment = (GameObject)PrefabUtility.InstantiatePrefab(equipmentPrefab, root.transform);
+                equipment.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                equipment.transform.localScale = Vector3.one;
+                MonoBehaviour module = kind switch
+                {
+                    DroneEquipmentKind.Grapple => equipment.GetComponent<DroneGrappleModule>(),
+                    DroneEquipmentKind.Harpoon => equipment.GetComponent<DroneHarpoonModule>(),
+                    _ => null
+                };
+                if (module == null)
+                {
+                    throw new InvalidOperationException($"装备 Prefab 缺少 {kind} 模块：{equipmentPrefabPath}");
+                }
+                if (module is DroneGrappleModule grappleModule)
+                {
+                    grappleModule.BindBellyMount(root.transform.Find("BellyEquipmentMount"));
+                }
+                WireVariant(root, module);
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally
+            {
+                EditorSceneManager.ClosePreviewScene(preview);
+            }
+        }
+
+        private static GameObject BuildGrapple(DroneGrappleConfig config)
+        {
+            var equipment = new GameObject("GrappleEquipment", typeof(DroneGrappleModule));
+            equipment.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            equipment.transform.localScale = Vector3.one;
+            var orange = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Art/Generated/GrappleOrange.mat");
+
+            var baseObject = new GameObject(
+                "GrappleBase",
+                typeof(Rigidbody),
+                typeof(CapsuleCollider),
+                typeof(ConfigurableJoint),
+                typeof(DroneGrappleContactCollector));
+            baseObject.transform.SetParent(equipment.transform, false);
+            baseObject.transform.localPosition = new Vector3(0f, -0.20f, 0f);
+            baseObject.transform.localScale = Vector3.one;
+            var baseCollider = baseObject.GetComponent<CapsuleCollider>();
+            baseCollider.direction = 1;
+            baseCollider.radius = 0.075f;
+            baseCollider.height = 0.04f;
+            CreateVisualPrimitive(baseObject.transform, "BaseRing", PrimitiveType.Cylinder,
+                Vector3.zero, Quaternion.identity, new Vector3(0.075f, 0.009f, 0.075f), null);
+            CreateVisualPrimitive(baseObject.transform, "CentralMechanism", PrimitiveType.Cylinder,
+                new Vector3(0f, 0.012f, 0f), Quaternion.identity, new Vector3(0.038f, 0.01f, 0.038f), null);
+
+            var baseBody = baseObject.GetComponent<Rigidbody>();
+            baseBody.useGravity = true;
+            var suspension = baseObject.GetComponent<ConfigurableJoint>();
+            suspension.connectedBody = null;
+            suspension.autoConfigureConnectedAnchor = false;
+            suspension.anchor = Vector3.zero;
+            suspension.projectionMode = JointProjectionMode.None;
+            var collector = baseObject.GetComponent<DroneGrappleContactCollector>();
+
+            var clawBodies = new Rigidbody[4];
+            var clawJoints = new HingeJoint[4];
+            var clawColliders = new List<Collider>();
+            const float pivotRadius = 0.065f;
+            for (var index = 0; index < 4; index++)
+            {
+                var yaw = index * 90f;
+                var radial = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+                var claw = new GameObject(
+                    "Claw_" + (index + 1),
+                    typeof(Rigidbody),
+                    typeof(HingeJoint),
+                    typeof(DroneGrappleContactSensor));
+                claw.transform.SetParent(equipment.transform, false);
+                claw.transform.localPosition = baseObject.transform.localPosition + radial * pivotRadius;
+                claw.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+                claw.transform.localScale = Vector3.one;
+
+                var body = claw.GetComponent<Rigidbody>();
+                body.useGravity = true;
+                var hinge = claw.GetComponent<HingeJoint>();
+                hinge.connectedBody = baseBody;
+                hinge.autoConfigureConnectedAnchor = false;
+                hinge.axis = Vector3.right;
+                hinge.anchor = Vector3.zero;
+                hinge.connectedAnchor = baseObject.transform.InverseTransformPoint(claw.transform.position);
+                hinge.limits = new JointLimits { min = -25f, max = 48f };
+                hinge.useLimits = true;
+
+                CreateVisualPrimitive(claw.transform, "PivotPin", PrimitiveType.Cylinder,
+                    Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(0.018f, 0.025f, 0.018f), null);
+                var upper = CreateClawSegment(
+                    claw.transform,
+                    "Upper",
+                    new Vector3(0f, 0f, 0.035f),
+                    new Vector3(0.025f, 0.02f, 0.07f),
+                    Vector3.zero,
+                    orange);
+                var tip = CreateClawSegment(
+                    claw.transform,
+                    "Tip",
+                    new Vector3(0f, 0f, 0.095f),
+                    new Vector3(0.022f, 0.018f, 0.05f),
+                    Vector3.zero,
+                    orange);
+                clawBodies[index] = body;
+                clawJoints[index] = hinge;
+                clawColliders.Add(upper);
+                clawColliders.Add(tip);
+                claw.GetComponent<DroneGrappleContactSensor>().Configure(collector, index);
+            }
+
+            var module = equipment.GetComponent<DroneGrappleModule>();
+            module.Configure(config, null, baseBody, suspension, collector, clawBodies, clawJoints,
+                clawColliders.ToArray());
+            return equipment;
+        }
+
+        private static Collider CreateClawSegment(
+            Transform parent,
+            string name,
+            Vector3 localPosition,
+            Vector3 size,
+            Vector3 localEuler,
+            Material material)
+        {
+            var segment = new GameObject(name, typeof(BoxCollider));
+            segment.transform.SetParent(parent, false);
+            segment.transform.localPosition = localPosition;
+            segment.transform.localEulerAngles = localEuler;
+            segment.transform.localScale = Vector3.one;
+            segment.GetComponent<BoxCollider>().size = size;
+            CreateVisualPrimitive(segment.transform, "Visual", PrimitiveType.Cube,
+                Vector3.zero, Quaternion.identity, size, material);
+            return segment.GetComponent<Collider>();
+        }
+
+        private static GameObject BuildHarpoon(DroneHarpoonConfig config)
+        {
+            var equipment = new GameObject("HarpoonEquipment", typeof(DroneHarpoonModule));
+            equipment.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            equipment.transform.localScale = Vector3.one;
+
+            var launcher = new GameObject(
+                "HarpoonLauncher",
+                typeof(Rigidbody),
+                typeof(BoxCollider),
+                typeof(ConfigurableJoint));
+            launcher.transform.SetParent(equipment.transform, false);
+            launcher.transform.localPosition = new Vector3(0f, -0.12f, 0f);
+            launcher.transform.localScale = Vector3.one;
+            var launcherCollider = launcher.GetComponent<BoxCollider>();
+            launcherCollider.center = new Vector3(0f, 0f, 0.07f);
+            launcherCollider.size = new Vector3(0.20f, 0.08f, 0.30f);
+
+            CreateVisualPrimitive(launcher.transform, "GimbalYawRing", PrimitiveType.Cylinder,
+                new Vector3(0f, 0.028f, 0f), Quaternion.identity, new Vector3(0.08f, 0.012f, 0.08f), null);
+            CreateVisualPrimitive(launcher.transform, "YokeLeft", PrimitiveType.Cube,
+                new Vector3(-0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), null);
+            CreateVisualPrimitive(launcher.transform, "YokeRight", PrimitiveType.Cube,
+                new Vector3(0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), null);
+
+            var launcherBody = launcher.GetComponent<Rigidbody>();
+            var launcherJoint = launcher.GetComponent<ConfigurableJoint>();
+            launcherJoint.connectedBody = null;
+            launcherJoint.xMotion = ConfigurableJointMotion.Locked;
+            launcherJoint.yMotion = ConfigurableJointMotion.Locked;
+            launcherJoint.zMotion = ConfigurableJointMotion.Locked;
+            launcherJoint.angularXMotion = ConfigurableJointMotion.Locked;
+            launcherJoint.angularYMotion = ConfigurableJointMotion.Locked;
+            launcherJoint.angularZMotion = ConfigurableJointMotion.Locked;
+            launcherJoint.projectionMode = JointProjectionMode.None;
+
+            var gimbal = new GameObject("HarpoonGimbal").transform;
+            gimbal.SetParent(launcher.transform, false);
+            gimbal.localPosition = new Vector3(0f, -0.01f, 0.015f);
+            gimbal.localScale = Vector3.one;
+            CreateVisualPrimitive(gimbal, "PitchTrunnion", PrimitiveType.Cylinder,
+                Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(0.028f, 0.09f, 0.028f), null);
+            CreateVisualPrimitive(gimbal, "LaunchTube", PrimitiveType.Cylinder,
+                new Vector3(0f, 0f, 0.13f), Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(0.035f, 0.14f, 0.035f), null);
+            var muzzle = new GameObject("Muzzle").transform;
+            muzzle.SetParent(gimbal, false);
+            muzzle.localPosition = new Vector3(0f, 0f, 0.28f);
+            muzzle.localRotation = Quaternion.identity;
+            muzzle.localScale = Vector3.one;
+
+            var projectileObject = new GameObject(
+                "HarpoonProjectile",
+                typeof(Rigidbody),
+                typeof(CapsuleCollider),
+                typeof(DroneHarpoonProjectile));
+            projectileObject.transform.SetParent(equipment.transform, false);
+            projectileObject.transform.SetPositionAndRotation(muzzle.position, muzzle.rotation);
+            projectileObject.transform.localScale = Vector3.one;
+            var projectileColliderComponent = projectileObject.GetComponent<CapsuleCollider>();
+            projectileColliderComponent.radius = 0.016f;
+            projectileColliderComponent.height = 0.26f;
+            projectileColliderComponent.direction = 2;
+            CreateVisualPrimitive(projectileObject.transform, "Shaft", PrimitiveType.Cylinder,
+                new Vector3(0f, 0f, -0.005f), Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(0.012f, 0.11f, 0.012f), null);
+            CreateConeVisual(projectileObject.transform, new Vector3(0f, 0f, 0.14f));
+            for (var index = 0; index < 4; index++)
+            {
+                var rotation = Quaternion.Euler(0f, 0f, index * 90f);
+                var offset = rotation * new Vector3(0.025f, 0f, -0.085f);
+                CreateVisualPrimitive(projectileObject.transform, "TailFin_" + (index + 1), PrimitiveType.Cube,
+                    offset, rotation, new Vector3(0.04f, 0.008f, 0.06f), null);
+            }
+
+            var projectileBody = projectileObject.GetComponent<Rigidbody>();
+            var projectileCollider = projectileObject.GetComponent<Collider>();
+            var relay = projectileObject.GetComponent<DroneHarpoonProjectile>();
+
+            var ropeObject = new GameObject("HarpoonRopeVisual", typeof(LineRenderer), typeof(DroneHarpoonRopeVisual));
+            ropeObject.transform.SetParent(equipment.transform, false);
+            var line = ropeObject.GetComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.widthMultiplier = 0.012f;
+            line.material = new Material(Shader.Find("Sprites/Default"));
+            line.startColor = line.endColor = new Color(0.95f, 0.8f, 0.25f);
+
+            var module = equipment.GetComponent<DroneHarpoonModule>();
+            module.Configure(config, launcherBody, launcherJoint, gimbal, muzzle, projectileBody,
+                projectileCollider, relay, ropeObject.GetComponent<DroneHarpoonRopeVisual>());
+            return equipment;
+        }
+
+        private static void CreateVisualPrimitive(
+            Transform parent,
+            string name,
+            PrimitiveType primitiveType,
+            Vector3 localPosition,
+            Quaternion localRotation,
+            Vector3 localScale,
+            Material material)
+        {
+            var visual = GameObject.CreatePrimitive(primitiveType);
+            visual.name = name;
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = localPosition;
+            visual.transform.localRotation = localRotation;
+            visual.transform.localScale = localScale;
+            Object.DestroyImmediate(visual.GetComponent<Collider>());
+            if (material != null)
+            {
+                visual.GetComponent<Renderer>().sharedMaterial = material;
+            }
+        }
+
+        private static void CreateConeVisual(Transform parent, Vector3 localPosition)
+        {
+            var visual = new GameObject("HarpoonTip", typeof(MeshFilter), typeof(MeshRenderer));
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = localPosition;
+            visual.transform.localRotation = Quaternion.identity;
+            visual.transform.localScale = Vector3.one;
+            visual.GetComponent<MeshFilter>().sharedMesh = GetOrCreateHarpoonCone();
+        }
+
+        private static Mesh GetOrCreateHarpoonCone()
+        {
+            const string path = Root + "/Art/Generated/HarpoonCone.asset";
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (mesh != null)
+            {
+                return mesh;
+            }
+
+            mesh = new Mesh { name = "HarpoonCone" };
+            const int sides = 8;
+            var vertices = new Vector3[sides + 2];
+            vertices[0] = new Vector3(0f, 0f, 0.14f);
+            vertices[1] = Vector3.zero;
+            for (var index = 0; index < sides; index++)
+            {
+                var angle = index * Mathf.PI * 2f / sides;
+                vertices[index + 2] = new Vector3(Mathf.Cos(angle) * 0.045f, Mathf.Sin(angle) * 0.045f, 0f);
+            }
+
+            var triangles = new int[sides * 6];
+            for (var index = 0; index < sides; index++)
+            {
+                var next = (index + 1) % sides;
+                var offset = index * 6;
+                triangles[offset] = 0;
+                triangles[offset + 1] = index + 2;
+                triangles[offset + 2] = next + 2;
+                triangles[offset + 3] = 1;
+                triangles[offset + 4] = next + 2;
+                triangles[offset + 5] = index + 2;
+            }
+            mesh.vertices = vertices;
+            mesh.triangles = triangles;
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            AssetDatabase.CreateAsset(mesh, path);
+            return mesh;
+        }
+
+        private static void WireVariant(GameObject root, MonoBehaviour module)
+        {
+            var controller = root.GetComponent<DroneFlightController>();
+            var body = root.GetComponent<Rigidbody>();
+            var cameraRig = root.GetComponentInChildren<DroneCameraRig>(true);
+            var camera = cameraRig.OutputCamera;
+            var host = root.GetComponent<DroneEquipmentHost>();
+            SetReference(host, "flightController", controller);
+            SetReference(host, "droneBody", body);
+            SetReference(host, "aimCamera", camera);
+            SetReference(host, "moduleSource", module);
+
+            var remote = root.GetComponent<DroneRemoteControllerExperience>();
+            SetReference(remote, "droneCameraRig", cameraRig);
+            SetReference(remote, "flightInput", root.GetComponent<DronePlayerInput>());
+            SetReference(remote, "flightController", controller);
+            SetReference(remote, "mechanismInput", root.GetComponent<DroneHookInput>());
+
+            var equipmentInput = root.GetComponent<DroneHookInput>();
+            SetReference(equipmentInput, "equipmentHost", host);
+            SetReference(equipmentInput, "landingGear", root.GetComponent<DroneLandingGearController>());
+            SetReference(equipmentInput, "controlSession", remote);
+
+            root.GetComponent<DroneFlightSceneContext>().Configure(
+                controller,
+                root.GetComponent<DronePlayerInput>(),
+                cameraRig,
+                remote,
+                host,
+                root.GetComponent<DroneLandingGearController>());
+        }
+
+        private static T GetOrCreateAsset<T>(string path) where T : ScriptableObject
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null)
+            {
+                return asset;
+            }
+
+            asset = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
+        }
+
+        private static Transform EnsureChild(Transform parent, string name, Vector3 localPosition)
+        {
+            var child = parent.Find(name);
+            if (child == null)
+            {
+                child = new GameObject(name).transform;
+                child.SetParent(parent, false);
+            }
             child.localPosition = localPosition;
             child.localRotation = Quaternion.identity;
             child.localScale = Vector3.one;
             return child;
         }
 
-        private static Mesh CreateTaperedSegment(float length, float startWidth, float endWidth)
+        private static void DestroyChild(Transform root, string path)
         {
-            var height = 0.04f;
-            var vertices = new[]
+            var child = root.Find(path);
+            if (child != null)
             {
-                new Vector3(-startWidth * 0.5f, -height * 0.5f, 0f), new Vector3(startWidth * 0.5f, -height * 0.5f, 0f),
-                new Vector3(-startWidth * 0.5f, height * 0.5f, 0f), new Vector3(startWidth * 0.5f, height * 0.5f, 0f),
-                new Vector3(-endWidth * 0.5f, -height * 0.5f, length), new Vector3(endWidth * 0.5f, -height * 0.5f, length),
-                new Vector3(-endWidth * 0.5f, height * 0.5f, length), new Vector3(endWidth * 0.5f, height * 0.5f, length)
-            };
-            var triangles = new[]
-            {
-                0,2,1, 1,2,3, 4,5,6, 5,7,6,
-                0,1,4, 1,5,4, 2,6,3, 3,6,7,
-                0,4,2, 2,4,6, 1,3,5, 3,7,5
-            };
-            var mesh = new Mesh { name = "GrappleTaperedSegment" };
-            mesh.SetVertices(vertices);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            return mesh;
+                Object.DestroyImmediate(child.gameObject);
+            }
         }
 
-        private static Mesh CreateRingMesh(float radius, float thickness, int segments)
+        private static void RemoveAll<T>(GameObject root) where T : Component
         {
-            const int sides = 4;
-            var vertices = new List<Vector3>();
-            var triangles = new List<int>();
-            for (var segment = 0; segment < segments; segment++)
+            foreach (var component in root.GetComponentsInChildren<T>(true))
             {
-                var angle = segment * Mathf.PI * 2f / segments;
-                var radial = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
-                for (var side = 0; side < sides; side++)
-                {
-                    var sideAngle = side * Mathf.PI * 2f / sides;
-                    vertices.Add(radial * (radius + Mathf.Cos(sideAngle) * thickness) + Vector3.up * (Mathf.Sin(sideAngle) * thickness));
-                }
+                Object.DestroyImmediate(component);
             }
-            for (var segment = 0; segment < segments; segment++)
-            {
-                var next = (segment + 1) % segments;
-                for (var side = 0; side < sides; side++)
-                {
-                    var nextSide = (side + 1) % sides;
-                    var a = segment * sides + side;
-                    var b = next * sides + side;
-                    var c = segment * sides + nextSide;
-                    var d = next * sides + nextSide;
-                    triangles.AddRange(new[] { a, c, b, b, c, d });
-                }
-            }
-            var mesh = new Mesh { name = "GrappleIndustrialRing" };
-            mesh.SetVertices(vertices);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            return mesh;
         }
 
-        private static Mesh CreateOrReplaceMesh(string path, Mesh mesh)
+        private static T EnsureComponent<T>(GameObject gameObject) where T : Component
         {
-            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
-            if (existing == null)
-            {
-                AssetDatabase.CreateAsset(mesh, path);
-                return mesh;
-            }
-            EditorUtility.CopySerialized(mesh, existing);
-            UnityEngine.Object.DestroyImmediate(mesh);
-            EditorUtility.SetDirty(existing);
-            return existing;
+            var component = gameObject.GetComponent<T>();
+            return component != null ? component : gameObject.AddComponent<T>();
         }
 
-        private static Material CreateOrReplaceMaterial(string path, Color color)
+        private static void SetReference(Object target, string propertyName, Object value)
         {
-            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (material == null)
+            var serialized = new SerializedObject(target);
+            var property = serialized.FindProperty(propertyName);
+            if (property == null)
             {
-                var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                material = new Material(shader);
-                AssetDatabase.CreateAsset(material, path);
+                throw new InvalidOperationException($"{target.GetType().Name} 缺少序列化字段 {propertyName}。");
             }
-            material.color = color;
-            EditorUtility.SetDirty(material);
-            return material;
+            property.objectReferenceValue = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetFloat(Object target, string propertyName, float value)
+        {
+            var serialized = new SerializedObject(target);
+            var property = serialized.FindProperty(propertyName);
+            if (property == null)
+            {
+                throw new InvalidOperationException($"{target.GetType().Name} 缺少序列化字段 {propertyName}。");
+            }
+            property.floatValue = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void EnsureFolder(string path)
         {
-            var current = "Assets";
-            foreach (var part in path.Split('/').Skip(1))
+            var parts = path.Split('/');
+            var current = parts[0];
+            for (var index = 1; index < parts.Length; index++)
             {
-                var next = $"{current}/{part}";
+                var next = current + "/" + parts[index];
                 if (!AssetDatabase.IsValidFolder(next))
                 {
-                    AssetDatabase.CreateFolder(current, part);
+                    AssetDatabase.CreateFolder(current, parts[index]);
                 }
                 current = next;
             }

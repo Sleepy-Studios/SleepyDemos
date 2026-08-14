@@ -76,6 +76,12 @@ Hotfix 入口位于：
 - 返回 Hub 只卸载当前 Demo 并恢复 Hub 相机和主菜单，不以 Single 模式重载 `AppEntrance`。
 - 启动期 `StartupLoading` 与运行期 `CommonLoadingView` 分属两条生命周期，不互相依赖。
 
+## Unity Editor Demo 直启旁路
+
+Editor 可在 Demo 场景通过独立 `DemoIslandEditorBootstrap` 补齐最小运行时：读取正式 `HotfixConfig`，初始化 `ResourceServices`/YooAsset 和 `UIManager`，扫描 Hotfix View，幂等运行 `HotfixBootService`，注册世界过渡并建立 Editor 直启导航器。
+
+该旁路不执行 HybridCLR 元数据补充、热更新程序集装配、完整 `HotfixEntry` 或 MainMenuView。Development Build 和 Release 不启用此旁路，仍固定从 AppEntrance 进入。Bootstrap 发现正式 Navigator 已存在时必须立即退出。
+
 ## 修改这里时必须注意
 
 - 不要把业务 UI 初始化提前塞进 Core 的低层系统里

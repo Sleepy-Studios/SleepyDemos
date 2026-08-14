@@ -3,6 +3,9 @@ using NUnit.Framework;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证四轴飞行输入始终被限制在合法范围，并将 NaN、Infinity 等非法值安全收口为零。
+     */
     public sealed class DroneControlInputTests
     {
         [Test]
@@ -29,4 +32,3 @@ namespace Hotfix.Tests
         }
     }
 }
-

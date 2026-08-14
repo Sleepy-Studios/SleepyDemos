@@ -6,6 +6,7 @@ namespace Hotfix.DroneFlight
     public sealed class DroneRotorVisual : MonoBehaviour
     {
         [SerializeField] private Transform bladeRoot;
+        [SerializeField] private Transform rotationAxis;
 
         private DroneRotorDirection direction;
 
@@ -25,10 +26,14 @@ namespace Hotfix.DroneFlight
         /// </summary>
         /// <param name="root">只承载视觉网格的旋转根节点。</param>
         /// <param name="rotorDirection">从机体上方俯视的旋翼方向。</param>
-        internal void Configure(Transform root, DroneRotorDirection rotorDirection)
+        internal void Configure(
+            Transform root,
+            DroneRotorDirection rotorDirection,
+            Transform physicalRotationAxis = null)
         {
             bladeRoot = root;
             direction = rotorDirection;
+            rotationAxis = physicalRotationAxis;
         }
 
         /// <summary>
@@ -53,7 +58,14 @@ namespace Hotfix.DroneFlight
 
             var degrees = CurrentRpm * 6d * deltaTime * (float)direction;
             AccumulatedDegrees += degrees;
-            bladeRoot.Rotate(0f, (float)degrees, 0f, Space.Self);
+            if (rotationAxis != null)
+            {
+                bladeRoot.Rotate(rotationAxis.up, (float)degrees, Space.World);
+            }
+            else
+            {
+                bladeRoot.Rotate(0f, (float)degrees, 0f, Space.Self);
+            }
         }
 
         /// 将视觉转速和累计相位归零。

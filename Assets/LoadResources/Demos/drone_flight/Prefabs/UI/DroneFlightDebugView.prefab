@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7317020082220815165}
   - component: {fileID: 6590860456166944369}
-  - component: {fileID: 215305883822813910}
   - component: {fileID: 3474892725633556714}
   m_Layer: 0
   m_Name: DroneFlightDebugView
@@ -51,20 +50,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &215305883822813910
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5176993334554794846}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c9e95e07af409b145a996196d1bb667a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneDebugPresenter
-  debugText: {fileID: 7050227005790658793}
-  refreshIntervalSeconds: 0.1
 --- !u!114 &3474892725633556714
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -78,11 +63,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 215305883822813910}
+  - {fileID: 7050227005790658793}
   componentTypes:
-  - Hotfix.DroneFlight.DroneDebugPresenter
+  - TMPro.TextMeshProUGUI
   bindingKeys:
-  - DroneFlightDebugView|Hotfix.DroneFlight.DroneDebugPresenter
+  - DroneFlightDebugView/DebugPanel/DebugText|TMPro.TextMeshProUGUI
   bindingMethods:
   - 
 --- !u!1 &7081515983903271957

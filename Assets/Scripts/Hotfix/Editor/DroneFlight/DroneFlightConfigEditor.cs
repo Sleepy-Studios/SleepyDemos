@@ -76,35 +76,6 @@ namespace Hotfix.Editor.DroneFlight
             ["automaticLandingSpeedMetersPerSecond"] = new("自动降落速度 (m/s)", "Automatic Landing Speed (m/s)", "自动降落阶段的下降速度。", "Descent speed during automatic landing."),
             ["defaultResponseProfile"] = new("默认飞行档位", "Default Flight Profile", "进入场景时使用的档位。", "Profile selected when entering the scene."),
             ["landingGearTransitionSeconds"] = new("起落架过渡时间 (s)", "Gear Transition Time (s)", "完全收放需要的时间。", "Time for a full gear transition."),
-            ["winchStowedLengthMeters"] = new("卷扬收纳长度 (m)", "Winch Stowed Length (m)", "空载完全收纳时长度。", "Length when fully stowed without payload."),
-            ["grappleHardwareMassKilograms"] = new("机载抓斗设备质量 (kg)", "Installed Grapple Hardware Mass (kg)", "抓斗始终属于整机总质量；收纳时合并在机体 Rigidbody，放出后转移到单一抓斗 Rigidbody，不属于有效载荷。", "The grapple always belongs to aircraft gross mass. It is merged into the body while stowed and transferred to the single grapple Rigidbody when deployed; it is not payload."),
-            ["winchDeployedLengthMeters"] = new("卷扬放出长度 (m)", "Winch Deployed Length (m)", "工作状态最大长度。", "Working deployed length."),
-            ["winchCarryLengthMeters"] = new("卷扬运输长度 (m)", "Winch Carry Length (m)", "携带载荷时最短安全长度。", "Shortest safe length while carrying payload."),
-            ["winchSpeedMetersPerSecond"] = new("卷扬速度 (m/s)", "Winch Speed (m/s)", "收放锚点的速度。", "Anchor deployment and retraction speed."),
-            ["topSuspensionTwistLimitDegrees"] = new("机体连接扭转限位 (°)", "Top Joint Twist Limit (°)", "无人机与连接杆沿竖直吊杆轴线允许的扭转角，限制水平无限旋转。", "Allowed axial twist between drone and link; prevents unlimited horizontal spinning."),
-            ["topSuspensionSwingLimitDegrees"] = new("机体连接摆角限位 (°)", "Top Joint Swing Limit (°)", "无人机与连接杆的万向摆动半角。", "Omnidirectional swing half-angle between drone and link."),
-            ["bottomSuspensionTwistLimitDegrees"] = new("底座连接扭转限位 (°)", "Bottom Joint Twist Limit (°)", "连接杆与抓斗底座沿吊杆轴线允许的扭转角。", "Allowed axial twist between link and grapple base."),
-            ["bottomSuspensionSwingLimitDegrees"] = new("底座连接摆角限位 (°)", "Bottom Joint Swing Limit (°)", "连接杆与抓斗底座的万向摆动半角。", "Omnidirectional swing half-angle between link and grapple base."),
-            ["suspensionJointAngularSpring"] = new("吊挂关节角度弹簧", "Suspension Angular Spring", "将吊杆和抓斗拉回限位内稳定姿态的弹簧强度。", "Spring strength that returns the link and grapple toward a stable pose within limits."),
-            ["suspensionJointAngularDamper"] = new("吊挂关节角度阻尼", "Suspension Angular Damper", "抑制吊挂关节持续扭转和摆动的阻尼。", "Damping that suppresses persistent joint twist and swing."),
-            ["suspensionTwistLimitDegrees"] = new("单摆扭转限位 (°)", "Pendulum Twist Limit (°)", "抓斗绕吊索轴线允许的最大转角，默认 ±25°。", "Maximum grapple rotation around the cable axis; default is ±25°."),
-            ["suspensionSwingLimitDegrees"] = new("单摆摆角限位 (°)", "Pendulum Swing Limit (°)", "抓斗相对竖直方向的安全摆角半径，默认 45°。", "Safe swing cone half-angle from vertical; default is 45°."),
-            ["suspensionDampingRatio"] = new("单摆阻尼比", "Pendulum Damping Ratio", "连续衰减摆动的阻尼比；不是 Rigidbody Drag。", "Continuous swing damping ratio; this is not Rigidbody drag."),
-            ["suspensionMaximumDampingTorque"] = new("最大阻尼扭矩 (N·m)", "Maximum Damping Torque (N·m)", "限制单摆加速度 Drive 可使用的最大阻尼扭矩。", "Caps the damping torque used by the pendulum acceleration drive."),
-            ["maximumPayloadMassKilograms"] = new("最大载荷质量 (kg)", "Maximum Payload Mass (kg)", "超过此质量拒绝弱约束抓取。", "Reject assisted grip above this mass."),
-            ["grappleBreakForceNewtons"] = new("抓取断裂力 (N)", "Grip Break Force (N)", "超过此力弱约束断裂。", "Assisted grip breaks above this force."),
-            ["grappleBreakTorqueNewtonMeters"] = new("抓取断裂扭矩 (N·m)", "Grip Break Torque (N·m)", "超过此扭矩弱约束断裂。", "Assisted grip breaks above this torque."),
-            ["grappleStrength"] = new("抓取牢固度", "Grip Strength", "0～100 映射到抓取弱约束的断裂力和断裂扭矩。", "0-100 mapping to grip break force and torque."),
-            ["grappleLinearFreedomMeters"] = new("抓取线性活动范围 (m)", "Grip Linear Freedom (m)", "弱约束允许的线性活动范围。", "Linear movement allowed by the assisted grip."),
-            ["grappleAngularFreedomDegrees"] = new("抓取角度活动范围 (°)", "Grip Angular Freedom (°)", "弱约束允许的角度活动范围。", "Angular movement allowed by the assisted grip."),
-            ["grappleTakeupSeconds"] = new("软抓取接入时间 (s)", "Soft Grip Take-up (s)", "从零刚度渐进到工作刚度的时间，避免接触瞬间拉拽。", "Time used to ramp from zero to working stiffness and avoid an attachment snap."),
-            ["grappleWorkingSpring"] = new("软抓取工作弹簧 (N/m)", "Soft Grip Spring (N/m)", "超过活动余量后用于防止 PhysX 接触泄漏的弹簧。", "Spring used beyond the slack distance to prevent PhysX contact leakage."),
-            ["grappleWorkingDamper"] = new("软抓取工作阻尼 (N·s/m)", "Soft Grip Damper (N·s/m)", "软保险约束的线性阻尼。", "Linear damping of the soft safety constraint."),
-            ["grappleDockPositionToleranceMeters"] = new("停靠位置容差 (m)", "Dock Position Tolerance (m)", "抓斗进入此位置误差后才允许合并回机体质量。", "The grapple must be within this position error before merging back into the body."),
-            ["grappleDockSpeedToleranceMetersPerSecond"] = new("停靠相对速度 (m/s)", "Dock Relative Speed (m/s)", "抓斗相对机体低于此速度后才允许停靠。", "Maximum relative speed allowed before docking."),
-            ["antiSwingStrength"] = new("吊载防摆辅助", "Suspended Load Assist", "只修正无人机目标加速度；0 为关闭。", "Only adjusts drone acceleration targets; zero disables it."),
-            ["antiSwingMaximumAcceleration"] = new("防摆最大修正加速度 (m/s²)", "Maximum Anti-Swing Acceleration", "防摆可使用的绝对加速度上限。", "Absolute anti-swing acceleration cap."),
-            ["externalMassBlendSeconds"] = new("载荷承载比例滤波 (s)", "Payload Support Filter", "地面支持力变化转为飞控承载比例时的平滑时间。", "Smoothing time used when ground support transfers payload mass to the aircraft."),
             ["resetHoldSeconds"] = new("长按重载场景时间 (s)", "Scene Reload Hold Time (s)", "R 键达到此时间后卸载并重新加载当前 DroneFlight 场景。", "Hold R for this duration to unload and reload the current DroneFlight scene.")
         };
 
@@ -186,25 +157,8 @@ namespace Hotfix.Editor.DroneFlight
             DrawSection(useChinese ? "起落架" : "Landing Gear");
             DrawNamed("landingGearTransitionSeconds");
 
-            DrawSection(useChinese ? "卷扬与抓斗" : "Winch And Grapple");
-            using (new EditorGUI.DisabledScope(true))
-            {
-                EditorGUILayout.FloatField(
-                    useChinese ? "机载抓斗质量（始终计入整机）" : "Installed Grapple Mass (Always Included)",
-                    ((DroneFlightConfig)target).GrappleHardwareMassKilograms);
-            }
-            DrawNamed("winchStowedLengthMeters");
-            DrawNamed("winchDeployedLengthMeters");
-            DrawNamed("winchCarryLengthMeters");
-            DrawNamed("winchSpeedMetersPerSecond");
-            DrawNamed("grappleStrength");
-            DrawNamed("antiSwingStrength");
+            DrawSection(useChinese ? "输入与场景重载" : "Input And Scene Reload");
             DrawNamed("resetHoldSeconds");
-            EditorGUILayout.HelpBox(
-                useChinese
-                    ? "抓斗设备始终属于整机总质量：收纳时合并在机体 Rigidbody，放出后等量转移到单一抓斗 Rigidbody，不进入有效载荷比例。"
-                    : "Grapple hardware always belongs to aircraft gross mass: it is merged into the body while stowed, transferred to the single grapple Rigidbody when deployed, and never counted as payload.",
-                MessageType.Info);
         }
 
         private void DrawAdvancedSettings()
@@ -288,33 +242,7 @@ namespace Hotfix.Editor.DroneFlight
             DrawSection(useChinese ? "起落架" : "Landing Gear");
             DrawNamed("landingGearTransitionSeconds");
 
-            DrawSection(useChinese ? "卷扬" : "Winch");
-            DrawNamed("grappleHardwareMassKilograms");
-            DrawNamed("winchStowedLengthMeters");
-            DrawNamed("winchDeployedLengthMeters");
-            DrawNamed("winchCarryLengthMeters");
-            DrawNamed("winchSpeedMetersPerSecond");
-
-            DrawSection(useChinese ? "单摆吊挂" : "Single Pendulum Suspension");
-            DrawNamed("suspensionTwistLimitDegrees");
-            DrawNamed("suspensionSwingLimitDegrees");
-            DrawNamed("suspensionDampingRatio");
-            DrawNamed("suspensionMaximumDampingTorque");
-
-            DrawSection(useChinese ? "抓取弱约束" : "Assisted Grip Constraint");
-            DrawNamedDisabled("maximumPayloadMassKilograms", true);
-            DrawNamed("grappleStrength");
-            DrawNamedDisabled("grappleBreakForceNewtons", mode == DronePowerConfigurationMode.AutomaticPayloadTuning);
-            DrawNamedDisabled("grappleBreakTorqueNewtonMeters", mode == DronePowerConfigurationMode.AutomaticPayloadTuning);
-            DrawNamed("grappleLinearFreedomMeters");
-            DrawNamed("grappleTakeupSeconds");
-            DrawNamed("grappleWorkingSpring");
-            DrawNamed("grappleWorkingDamper");
-            DrawNamed("grappleDockPositionToleranceMeters");
-            DrawNamed("grappleDockSpeedToleranceMetersPerSecond");
-            DrawNamed("antiSwingStrength");
-            DrawNamed("antiSwingMaximumAcceleration");
-            DrawNamed("externalMassBlendSeconds");
+            DrawSection(useChinese ? "输入与场景重载" : "Input And Scene Reload");
             DrawNamed("resetHoldSeconds");
 
             if (mode == DronePowerConfigurationMode.AutomaticPayloadTuning)
@@ -322,11 +250,6 @@ namespace Hotfix.Editor.DroneFlight
                 DrawAutomaticResults();
             }
 
-            EditorGUILayout.HelpBox(
-                useChinese
-                    ? "旧版“最大载荷质量”字段仅为资产兼容保留；当前抓取门禁始终由额定载重 × 最大载荷倍率计算。"
-                    : "Legacy Maximum Payload Mass is retained for asset compatibility. The active gate is always Rated Payload × Maximum Payload Multiplier.",
-                MessageType.Info);
         }
 
         private void DrawAutomaticResults()
@@ -337,7 +260,6 @@ namespace Hotfix.Editor.DroneFlight
             using (new EditorGUI.DisabledScope(true))
             {
                 EditorGUILayout.FloatField(useChinese ? "自动机体质量 (kg)" : "Automatic Body Mass (kg)", result.BodyMassKilograms);
-                EditorGUILayout.FloatField(useChinese ? "机载抓斗设备质量 (kg)" : "Installed Grapple Hardware Mass (kg)", ((DroneFlightConfig)target).GrappleHardwareMassKilograms);
                 EditorGUILayout.FloatField(useChinese ? "最大允许载荷 (kg)" : "Maximum Payload (kg)", result.MaximumPayloadKilograms);
                 EditorGUILayout.FloatField(useChinese ? "额定工况总质量 (kg)" : "Rated Operating Mass (kg)", result.RatedOperatingMassKilograms);
                 EditorGUILayout.FloatField(useChinese ? "自动推力系数" : "Automatic Thrust Coefficient", result.ThrustCoefficient);
@@ -353,14 +275,6 @@ namespace Hotfix.Editor.DroneFlight
                     MessageType.Warning);
             }
 
-            if (((DroneFlightConfig)target).HasHighHardwareMassWarning)
-            {
-                EditorGUILayout.HelpBox(
-                    useChinese
-                        ? "机载抓斗质量超过基础机体质量的 20%，会显著改变惯量和关节求解；超过 50% 时配置将被拒绝。"
-                        : "Installed grapple mass exceeds 20% of base airframe mass and can strongly affect inertia and joint solving. Values above 50% are rejected.",
-                    MessageType.Warning);
-            }
         }
 
         private void DrawNamed(string propertyName)

@@ -6,279 +6,353 @@ using UnityEngine;
 
 namespace Hotfix.Tests
 {
+    /*
+     * 测试说明：验证正式 FBX、URP 材质、基础 Prefab、旋翼坐标与推力轴、起落架净空及两种装备 Variant 的静态契约。
+     */
     public sealed class DronePrototypeContractTests
     {
-        private const string PrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/DronePrototype.prefab";
-        private const string ConfigPath = "Assets/LoadResources/Demos/drone_flight/Data/DroneFlightConfig.asset";
+        private const string BasePath = "Assets/LoadResources/Demos/drone_flight/Prefabs/DronePrototype.prefab";
+        private const string GrappleEquipmentPath =
+            "Assets/LoadResources/Demos/drone_flight/Prefabs/Equipment/DroneGrappleEquipment.prefab";
+        private const string HarpoonEquipmentPath =
+            "Assets/LoadResources/Demos/drone_flight/Prefabs/Equipment/DroneHarpoonEquipment.prefab";
+        private const string GrapplePath = "Assets/LoadResources/Demos/drone_flight/Prefabs/DroneGrappleVariant.prefab";
+        private const string HarpoonPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/DroneHarpoonVariant.prefab";
+        private const string ModelPath = "Assets/LoadResources/Demos/drone_flight/Art/Models/DroneFlight.fbx";
+        private const string MaterialRoot = "Assets/LoadResources/Demos/drone_flight/Art/Materials/";
 
         [Test]
-        public void Prefab_ContainsExactlyOneConfiguredRotorForEveryPosition()
+        public void BasePrefab_ContainsOnlySharedFlightRuntime()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
             Assert.That(prefab, Is.Not.Null);
-            var rotors = prefab.GetComponentsInChildren<DroneRotor>(true);
-            Assert.That(rotors, Has.Length.EqualTo(4));
-            Assert.That(rotors.Select(rotor => rotor.Position).Distinct().Count(), Is.EqualTo(4));
-            Assert.That(rotors.All(rotor => rotor.VisualPropeller != null), Is.True);
-            Assert.That(rotors.All(rotor => rotor.VisualPropeller.GetComponent<DroneRotorVisual>() != null), Is.True);
-            Assert.That(rotors.All(rotor => rotor.VisualPropeller.Find("Hub") != null), Is.True);
-            Assert.That(rotors.All(rotor => rotor.VisualPropeller.Find("Blade") != null), Is.True);
+            Assert.That(prefab.GetComponentsInChildren<DroneRotor>(true), Has.Length.EqualTo(4));
+            Assert.That(prefab.GetComponent<DroneFlightController>(), Is.Not.Null);
+            Assert.That(prefab.GetComponent<DroneEquipmentHost>(), Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
+            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
+            Assert.That(prefab.GetComponent<DroneWinchController>(), Is.Null);
+            Assert.That(prefab.GetComponent<PayloadMount>(), Is.Null);
+            Assert.That(prefab.transform.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(prefab.transform.localRotation, Is.EqualTo(Quaternion.identity));
+            Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
         }
 
         [Test]
-        public void Prefab_ContainsLandingGearSinglePendulumAndSixCompoundColliderClaws()
+        public void BasePrefab_UsesOfficialMeshesSharedRotorSourcesAndUrpMaterials()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-
-            Assert.That(prefab.GetComponent<DroneLandingGearController>(), Is.Not.Null);
-            var landingGear = prefab.transform.Find("LandingGear");
-            Assert.That(landingGear, Is.Not.Null);
-            Assert.That(landingGear.Cast<Transform>().Count(), Is.EqualTo(4));
-            Assert.That(prefab.transform.Find("SuspensionRig/DynamicBodies/ChainLink_1"), Is.Null);
-            Assert.That(prefab.transform.Find("PayloadMount"), Is.Null, "旧双爪视觉节点必须被六爪抓斗替换。");
-            var contactCollectors = prefab.GetComponentsInChildren<DroneGrappleContactCollector>(true);
-            Assert.That(contactCollectors, Has.Length.EqualTo(1));
-            Assert.That(prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true), Is.Empty);
-            Assert.That(prefab.GetComponentsInChildren<HingeJoint>(true), Is.Empty);
-
-            var suspensionRig = prefab.GetComponent<DroneSuspensionRig>();
-            var grappleRoot = suspensionRig.GrappleBody != null
-                ? suspensionRig.GrappleBody.transform
-                : null;
-            Assert.That(grappleRoot, Is.Not.Null);
-            var claws = Enumerable.Range(1, 6)
-                .Select(index => grappleRoot.Find($"Claw_{index}"))
-                .ToArray();
-            Assert.That(claws.All(claw => claw != null), Is.True);
-            Assert.That(claws.All(claw => claw.localScale == Vector3.one), Is.True);
-            Assert.That(claws.All(claw => claw.Find("UpperSegment") != null), Is.True);
-            Assert.That(claws.All(claw => claw.Find("TipSegment") != null), Is.True);
-            Assert.That(claws.Count(claw => claw.Find("UpperSegment").GetComponent<MeshFilter>() != null), Is.EqualTo(6));
-            Assert.That(claws.Count(claw => claw.Find("TipSegment").GetComponent<MeshFilter>() != null), Is.EqualTo(6));
-            Assert.That(claws.All(claw => claw.Find("UpperSegment").localScale == Vector3.one * 0.7f), Is.True);
-            Assert.That(claws.All(claw => claw.Find("TipSegment").localScale == Vector3.one * 0.7f), Is.True);
-            Assert.That(contactCollectors[0].ConfiguredClawCount, Is.EqualTo(6),
-                "六爪 Collider 编号必须写入 Prefab，不能只保存在生成器进程的运行时字典中。");
-            for (var clawIndex = 0; clawIndex < claws.Length; clawIndex++)
-            {
-                foreach (var clawCollider in claws[clawIndex].GetComponentsInChildren<Collider>(true))
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(model, Is.Not.Null);
+            Assert.That(AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Mesh>().Select(mesh => mesh.name),
+                Is.SupersetOf(new[]
                 {
-                    Assert.That(contactCollectors[0].TryGetClawIndex(clawCollider, out var resolvedIndex), Is.True);
-                    Assert.That(resolvedIndex, Is.EqualTo(clawIndex));
-                }
-            }
+                    "Airframe", "RotorHub_FL", "RotorHub_FR", "RotorHub_RL", "RotorHub_RR",
+                    "RotorBlade_CCW", "RotorBlade_CW", "LandingGear_FL", "LandingGear_FR",
+                    "LandingGear_RL", "LandingGear_RR", "GimbalYaw", "GimbalPitch", "CameraBody"
+                }));
 
-            var hook = prefab.GetComponent<DroneMechanicalHook>();
-            var baseRotations = new UnityEditor.SerializedObject(hook).FindProperty("clawBaseRotations");
-            Assert.That(baseRotations.arraySize, Is.EqualTo(6),
-                "爪动画中性姿态必须持久化，避免运行时把已张开的姿态再次当作旋转基准。");
-
-            var suspensionJoints = grappleRoot.GetComponents<ConfigurableJoint>();
-            Assert.That(suspensionJoints, Has.Length.EqualTo(1));
-            var suspensionJoint = suspensionJoints.Single();
-            Assert.That(float.IsPositiveInfinity(suspensionJoint.breakForce), Is.True);
-            Assert.That(float.IsPositiveInfinity(suspensionJoint.breakTorque), Is.True);
-            Assert.That(suspensionJoint.projectionMode, Is.EqualTo(JointProjectionMode.None));
-            Assert.That(suspensionJoint.axis, Is.EqualTo(Vector3.up));
-            Assert.That(suspensionJoint.secondaryAxis, Is.EqualTo(Vector3.forward));
-            Assert.That(suspensionJoint.rotationDriveMode, Is.EqualTo(RotationDriveMode.Slerp));
-            Assert.That(suspensionJoint.slerpDrive.useAcceleration, Is.True);
-
-            var mechanismMass = suspensionRig.HardwareMassKilograms;
-            var config = AssetDatabase.LoadAssetAtPath<DroneFlightConfig>(ConfigPath);
-            Assert.That(suspensionJoint.highAngularXLimit.limit, Is.EqualTo(config.SuspensionTwistLimitDegrees));
-            Assert.That(suspensionJoint.angularYLimit.limit, Is.EqualTo(config.SuspensionSwingLimitDegrees));
-            Assert.That(suspensionJoint.angularZLimit.limit, Is.EqualTo(config.SuspensionSwingLimitDegrees));
-            Assert.That(suspensionJoint.anchor.y, Is.EqualTo(config.WinchStowedLengthMeters).Within(0.0001f));
-            Assert.That(mechanismMass, Is.EqualTo(config.GrappleHardwareMassKilograms).Within(0.0001f));
-            Assert.That(config.GrappleHardwareMassKilograms, Is.EqualTo(0.05f).Within(0.0001f));
-            Assert.That(config.WinchDeployedLengthMeters, Is.EqualTo(0.45f).Within(0.0001f));
-            Assert.That(prefab.GetComponentsInChildren<Rigidbody>(true)
-                .Count(body => body != prefab.GetComponent<Rigidbody>()), Is.EqualTo(1));
-            Assert.That(grappleRoot.GetComponent<Rigidbody>().interpolation, Is.EqualTo(RigidbodyInterpolation.Interpolate));
-            Assert.That(grappleRoot.GetComponentsInChildren<Collider>(true).All(collider => !collider.enabled), Is.True);
-            Assert.That(suspensionJoint.connectedBody, Is.Null,
-                "抓斗在 Prefab 收纳态必须断开单摆关节，部署时再连接无人机刚体。");
-            Assert.That(prefab.GetComponent<DroneWinchController>().SupportedMassKilograms, Is.Zero,
-                "抓斗收纳时不得向飞控贡献设备或载荷质量。");
-        }
-
-        [Test]
-        public void Prefab_RotorDirectionsMatchDocumentedXLayout()
-        {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            var rotors = prefab.GetComponentsInChildren<DroneRotor>(true)
-                .ToDictionary(rotor => rotor.Position);
-
-            Assert.That(rotors[DroneRotorPosition.FrontLeft].Direction, Is.EqualTo(DroneRotorDirection.CounterClockwise));
-            Assert.That(rotors[DroneRotorPosition.FrontRight].Direction, Is.EqualTo(DroneRotorDirection.Clockwise));
-            Assert.That(rotors[DroneRotorPosition.RearLeft].Direction, Is.EqualTo(DroneRotorDirection.Clockwise));
-            Assert.That(rotors[DroneRotorPosition.RearRight].Direction, Is.EqualTo(DroneRotorDirection.CounterClockwise));
-
-            Assert.That(rotors[DroneRotorPosition.FrontLeft].transform.localPosition.x, Is.LessThan(0f));
-            Assert.That(rotors[DroneRotorPosition.FrontLeft].transform.localPosition.z, Is.GreaterThan(0f));
-            Assert.That(rotors[DroneRotorPosition.RearRight].transform.localPosition.x, Is.GreaterThan(0f));
-            Assert.That(rotors[DroneRotorPosition.RearRight].transform.localPosition.z, Is.LessThan(0f));
-        }
-
-        [Test]
-        public void Prefab_DynamicBodyUsesPrimitiveCompositeColliders()
-        {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-
-            Assert.That(prefab.GetComponentsInChildren<BoxCollider>(true).Length, Is.GreaterThanOrEqualTo(3));
+            var officialVisual = prefab.GetComponentsInChildren<MeshFilter>(true)
+                .FirstOrDefault(filter => filter.sharedMesh != null && filter.sharedMesh.name == "Airframe");
+            Assert.That(officialVisual, Is.Not.Null);
+            Assert.That(officialVisual.sharedMesh.name, Is.EqualTo("Airframe"));
             Assert.That(prefab.GetComponentsInChildren<MeshCollider>(true), Is.Empty);
+
+            foreach (var filter in prefab.GetComponentsInChildren<MeshFilter>(true)
+                         .Where(filter => IsOfficialMesh(filter.sharedMesh)))
+            {
+                Assert.That(filter.transform.localScale, Is.EqualTo(Vector3.one), filter.name);
+                var renderer = filter.GetComponent<MeshRenderer>();
+                Assert.That(renderer, Is.Not.Null, filter.name);
+                foreach (var material in renderer.sharedMaterials)
+                {
+                    Assert.That(material, Is.Not.Null, filter.name);
+                    Assert.That(material.shader.name, Is.EqualTo("Universal Render Pipeline/Lit"), material.name);
+                    Assert.That(AssetDatabase.GetAssetPath(material), Does.StartWith(MaterialRoot), material.name);
+                }
+            }
+
+            var rotors = prefab.GetComponentsInChildren<DroneRotor>(true);
+            var frontLeft = rotors.Single(rotor => rotor.Position == DroneRotorPosition.FrontLeft).transform;
+            var frontRight = rotors.Single(rotor => rotor.Position == DroneRotorPosition.FrontRight).transform;
+            var rearLeft = rotors.Single(rotor => rotor.Position == DroneRotorPosition.RearLeft).transform;
+            var rearRight = rotors.Single(rotor => rotor.Position == DroneRotorPosition.RearRight).transform;
+            AssertPosition(prefab.transform, frontLeft, new Vector3(-0.255f, 0.04f, 0.255f));
+            AssertPosition(prefab.transform, frontRight, new Vector3(0.255f, 0.04f, 0.255f));
+            AssertPosition(prefab.transform, rearLeft, new Vector3(-0.255f, 0.04f, -0.255f));
+            AssertPosition(prefab.transform, rearRight, new Vector3(0.255f, 0.04f, -0.255f));
+            foreach (var rotor in rotors)
+            {
+                var thrustAxis = prefab.transform.InverseTransformDirection(rotor.ForceDirection).normalized;
+                Assert.That(Vector3.Dot(thrustAxis, Vector3.up), Is.GreaterThan(0.9999f),
+                    $"{rotor.name} 的物理推力轴必须与机体局部 +Y 一致，否则正式飞行无法建立控制分配矩阵。");
+            }
+            Assert.That(GetRotorBlade(frontLeft), Is.SameAs(GetRotorBlade(rearRight)));
+            Assert.That(GetRotorBlade(frontRight), Is.SameAs(GetRotorBlade(rearLeft)));
+            Assert.That(GetRotorBlade(frontLeft).name, Is.EqualTo("RotorBlade_CCW"));
+            Assert.That(GetRotorBlade(frontRight).name, Is.EqualTo("RotorBlade_CW"));
+
+            var yaw = FindDeep(prefab.transform, "GimbalYaw");
+            var pitch = FindDeep(prefab.transform, "GimbalPitch");
+            var cameraBody = FindDeep(prefab.transform, "CameraBody");
+            Assert.That(yaw, Is.Not.Null);
+            Assert.That(pitch?.parent, Is.EqualTo(yaw));
+            Assert.That(cameraBody?.parent, Is.EqualTo(pitch));
+            Assert.That(prefab.transform.Find("BellyEquipmentMount").localPosition,
+                Is.EqualTo(new Vector3(0f, -0.12f, 0f)));
         }
 
         [Test]
-        public void Config_DefaultValuesArePhysicallyValid()
+        public void BasePrefab_LandingGearUsesRealHingesAndKeepsPointTwoThreeMeterClearance()
         {
-            var config = AssetDatabase.LoadAssetAtPath<DroneFlightConfig>(ConfigPath);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
+            var hinges = new[]
+            {
+                new Vector3(-0.112f, -0.035f, 0.118f), new Vector3(0.112f, -0.035f, 0.118f),
+                new Vector3(-0.112f, -0.035f, -0.118f), new Vector3(0.112f, -0.035f, -0.118f)
+            };
+            for (var index = 0; index < hinges.Length; index++)
+            {
+                var leg = FindDeep(prefab.transform, new[]
+                {
+                    "LandingGear_FL", "LandingGear_FR", "LandingGear_RL", "LandingGear_RR"
+                }[index]);
+                Assert.That(leg, Is.Not.Null);
+                AssertPosition(prefab.transform, leg, hinges[index]);
+                Assert.That(leg.localScale, Is.EqualTo(Vector3.one));
+                Assert.That(leg.Find("Foot")?.GetComponent<BoxCollider>(), Is.Not.Null);
+            }
 
-            Assert.That(config, Is.Not.Null);
-            Assert.That(config.TryValidate(out var diagnostic), Is.True, diagnostic);
-            Assert.That(config.MaximumRpm, Is.GreaterThan(0f));
-            Assert.That(config.ThrustCoefficient, Is.GreaterThan(0f));
+            var footMinimum = prefab.GetComponentsInChildren<BoxCollider>(true)
+                .Where(collider => collider.name == "Foot")
+                .Min(GetMinimumY);
+            Assert.That(footMinimum, Is.EqualTo(-0.236f).Within(0.001f));
         }
 
         [Test]
-        public void Prefab_DeployedSuspensionRemainsConnectedDuringPhysicsSimulation()
+        public void GrappleVariant_HasOneBaseFourClawsFourHingesAndOneSuspensionJoint()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            PrefabUtility.UnpackPrefabInstance(
-                instance,
-                PrefabUnpackMode.Completely,
-                InteractionMode.AutomatedAction);
-            var droneBody = instance.GetComponent<Rigidbody>();
-            droneBody.isKinematic = true;
-            instance.transform.position = Vector3.up * 5f;
-            var rig = instance.GetComponent<DroneSuspensionRig>();
-            var grapple = rig.GrappleBody;
-            var mechanismJoints = grapple.GetComponentsInChildren<Joint>(true);
-            var previousMode = Physics.simulationMode;
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GrapplePath);
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Has.Length.EqualTo(1));
+            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
+            Assert.That(prefab.GetComponentsInChildren<HingeJoint>(true), Has.Length.EqualTo(4));
+            Assert.That(prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true), Has.Length.EqualTo(4));
+            var clawBodies = prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true)
+                .Select(sensor => sensor.GetComponent<Rigidbody>())
+                .ToArray();
+            Assert.That(clawBodies.All(body => body != null && body.transform.localScale == Vector3.one), Is.True);
+            Assert.That(prefab.GetComponentsInChildren<ConfigurableJoint>(true)
+                .Count(joint => joint.gameObject.name == "GrappleBase"), Is.EqualTo(1));
+            var grappleModule = prefab.GetComponentInChildren<DroneGrappleModule>(true);
+            var grappleBody = grappleModule.transform.Find("GrappleBase")?.GetComponent<Rigidbody>();
+            Assert.That(grappleBody, Is.Not.Null);
+            Assert.That(grappleBody.mass + clawBodies.Sum(body => body.mass),
+                Is.EqualTo(0.05f).Within(0.0001f));
+            Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
+            var grappleBase = grappleModule.transform.Find("GrappleBase");
+            foreach (var sensor in prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true))
+            {
+                var distance = Vector2.Distance(
+                    new Vector2(sensor.transform.position.x, sensor.transform.position.z),
+                    new Vector2(grappleBase.position.x, grappleBase.position.z));
+                Assert.That(distance, Is.EqualTo(0.065f).Within(0.002f), sensor.name);
+                var hinge = sensor.GetComponent<HingeJoint>();
+                var clawAnchor = hinge.transform.TransformPoint(hinge.anchor);
+                var baseAnchor = hinge.connectedBody.transform.TransformPoint(hinge.connectedAnchor);
+                Assert.That(Vector3.Distance(clawAnchor, baseAnchor), Is.LessThan(0.0001f), sensor.name);
+                Assert.That(sensor.transform.Find("Upper/Visual"), Is.Not.Null);
+                Assert.That(sensor.transform.Find("Tip/Visual"), Is.Not.Null);
+            }
+        }
 
+        [Test]
+        public void BasePrefab_IsThePureDroneSelectionWithoutAdditionalEquipment()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
+            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
+            Assert.That(prefab.transform.Find("GrappleEquipment"), Is.Null);
+            Assert.That(prefab.transform.Find("HarpoonEquipment"), Is.Null);
+            Assert.That(prefab.GetComponent<DroneEquipmentHost>().Kind, Is.EqualTo(DroneEquipmentKind.None));
+            Assert.That(prefab.transform.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(prefab.transform.localRotation, Is.EqualTo(Quaternion.identity));
+            Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(
+                DroneFlightSceneCoordinator.PlainDroneAddress,
+                Is.EqualTo("LoadResources/Demos/drone_flight/Prefabs/DronePrototype"));
+        }
+
+        [Test]
+        public void EquipmentPrefabs_AreIndependentAssetsAndVariantsKeepNestedInstances()
+        {
+            AssertNestedEquipment(
+                GrappleEquipmentPath,
+                GrapplePath,
+                typeof(DroneGrappleModule));
+            AssertNestedEquipment(
+                HarpoonEquipmentPath,
+                HarpoonPath,
+                typeof(DroneHarpoonModule));
+        }
+
+        [TestCase(GrapplePath)]
+        [TestCase(HarpoonPath)]
+        public void EquipmentVariant_IsSavedAsBaseDronePrefabVariant(string path)
+        {
+            var variant = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            Assert.That(variant, Is.Not.Null);
+            Assert.That(PrefabUtility.GetPrefabAssetType(variant), Is.EqualTo(PrefabAssetType.Variant));
+            var source = PrefabUtility.GetCorrespondingObjectFromSource(variant);
+            Assert.That(AssetDatabase.GetAssetPath(source), Is.EqualTo(BasePath));
+        }
+
+        [Test]
+        public void HarpoonVariant_HasOnlyHarpoonAndSingleReusableProjectile()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(HarpoonPath);
+            Assert.That(prefab, Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Has.Length.EqualTo(1));
+            Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
+            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonProjectile>(true), Has.Length.EqualTo(1));
+            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonRopeVisual>(true), Has.Length.EqualTo(1));
+            var harpoonModule = prefab.GetComponentInChildren<DroneHarpoonModule>(true);
+            var muzzle = harpoonModule.transform.Find("HarpoonLauncher/HarpoonGimbal/Muzzle");
+            var tube = harpoonModule.transform.Find("HarpoonLauncher/HarpoonGimbal/LaunchTube");
+            var projectile = prefab.GetComponentInChildren<DroneHarpoonProjectile>(true);
+            var capsule = projectile.GetComponent<CapsuleCollider>();
+            Assert.That(muzzle, Is.Not.Null);
+            Assert.That(tube, Is.Not.Null);
+            Assert.That(capsule.direction, Is.EqualTo(2));
+            Assert.That(Vector3.Angle(tube.up, muzzle.forward), Is.LessThan(0.1f));
+            Assert.That(Vector3.Angle(projectile.transform.forward, muzzle.forward), Is.LessThan(0.1f));
+            Assert.That(projectile.transform.Find("Shaft"), Is.Not.Null);
+            Assert.That(projectile.transform.Find("HarpoonTip"), Is.Not.Null);
+            Assert.That(projectile.transform.Cast<Transform>().Count(child => child.name.StartsWith("TailFin_")),
+                Is.EqualTo(4));
+        }
+
+        [TestCase(BasePath)]
+        [TestCase(GrapplePath)]
+        [TestCase(HarpoonPath)]
+        public void Variant_CanBePlacedFromGroundMarkerWithoutLandingGearPenetration(string path)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var staging = new GameObject("InactiveStaging");
+            var marker = new GameObject("GroundMarker").transform;
+            staging.SetActive(false);
+            marker.position = new Vector3(4f, 0.012f, -3f);
+            marker.rotation = Quaternion.Euler(0f, 37f, 0f);
+            var instance = Object.Instantiate(prefab, staging.transform);
             try
             {
-                Physics.simulationMode = SimulationMode.Script;
-                rig.SetDeploymentProgress(1f);
-                rig.SetCableLength(0.45f);
-                rig.SetPhysicsActive(true);
-                Assert.That(mechanismJoints.All(joint => joint.connectedBody != null), Is.True);
-                var suspensionJoint = grapple.GetComponent<ConfigurableJoint>();
-                Assert.That(
-                    Vector3.Distance(
-                        suspensionJoint.transform.TransformPoint(suspensionJoint.anchor),
-                        droneBody.transform.TransformPoint(suspensionJoint.connectedAnchor)),
-                    Is.LessThan(0.001f),
-                    "真实 Prefab 启用单摆物理前必须按当前卷扬长度对齐锚点。");
-                for (var step = 0; step < 150; step++)
-                {
-                    Physics.Simulate(0.02f);
-                }
-
-                Assert.That(grapple.GetComponent<ConfigurableJoint>(), Is.Not.Null);
-                Assert.That(Vector3.Distance(droneBody.position, grapple.position), Is.LessThan(0.8f));
+                Assert.That(DroneSpawnPlacement.TryPlaceOnGround(
+                    instance,
+                    marker,
+                    DroneSpawnPlacement.DefaultGroundClearanceMeters,
+                    out var footMinimumY), Is.True);
+                Assert.That(footMinimumY, Is.EqualTo(0.022f).Within(0.0001f));
+                Assert.That(instance.transform.position.y, Is.EqualTo(0.258f).Within(0.002f));
+                Assert.That(instance.transform.localScale, Is.EqualTo(Vector3.one));
             }
             finally
             {
-                rig.SetPhysicsActive(false);
-                Physics.simulationMode = previousMode;
-                Object.DestroyImmediate(instance);
+                Object.DestroyImmediate(staging);
+                Object.DestroyImmediate(marker.gameObject);
             }
         }
 
-        [Test]
-        public void Prefab_SinglePendulumPassiveDampingSettlesTwentyDegreeSwingWithinFiveSeconds()
+        [TestCase(GrapplePath)]
+        [TestCase(HarpoonPath)]
+        public void EquipmentVariant_StowedVisualAndEnabledCollidersStayAboveLandingFeet(string path)
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            var droneBody = instance.GetComponent<Rigidbody>();
-            droneBody.isKinematic = true;
-            instance.transform.position = Vector3.up * 5f;
-            var rig = instance.GetComponent<DroneSuspensionRig>();
-            var grapple = rig.GrappleBody;
-            var joint = grapple.GetComponent<ConfigurableJoint>();
-            var previousMode = Physics.simulationMode;
-
-            try
-            {
-                Physics.simulationMode = SimulationMode.Script;
-                rig.SetCableLength(0.45f);
-                rig.SetPhysicsActive(true);
-                var ownerAnchor = droneBody.transform.TransformPoint(joint.connectedAnchor);
-                var tiltedRotation = Quaternion.AngleAxis(20f, droneBody.transform.forward) * droneBody.rotation;
-                grapple.transform.SetPositionAndRotation(ownerAnchor - tiltedRotation * joint.anchor, tiltedRotation);
-                grapple.linearVelocity = Vector3.zero;
-                grapple.angularVelocity = Vector3.zero;
-                Physics.SyncTransforms();
-                Assert.That(rig.JointTelemetry.SwingDegrees, Is.EqualTo(20f).Within(1f));
-
-                for (var step = 0; step < 250; step++)
-                {
-                    rig.ApplyPassiveDampingDrive(0f);
-                    Physics.Simulate(0.02f);
-                }
-
-                Assert.That(rig.JointTelemetry.SwingDegrees, Is.LessThan(3f));
-            }
-            finally
-            {
-                rig.SetPhysicsActive(false);
-                Physics.simulationMode = previousMode;
-                Object.DestroyImmediate(instance);
-            }
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var module = prefab.GetComponentsInChildren<MonoBehaviour>(true)
+                .FirstOrDefault(component => component is IDroneEquipmentModule);
+            Assert.That(module, Is.Not.Null);
+            var rendererMinimum = module.GetComponentsInChildren<Renderer>(true).Min(renderer => renderer.bounds.min.y);
+            var colliderMinimum = module.GetComponentsInChildren<Collider>(true)
+                .Where(collider => collider.enabled)
+                .Min(collider => collider.bounds.min.y);
+            Assert.That(rendererMinimum, Is.GreaterThanOrEqualTo(-0.221f), path);
+            Assert.That(colliderMinimum, Is.GreaterThanOrEqualTo(-0.221f), path);
         }
 
         [Test]
-        public void Prefab_StowedSuspensionDoesNotTipDroneOnLandingGear()
+        public void FlightConfig_HasNoEquipmentSerializedFields()
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            var droneBody = instance.GetComponent<Rigidbody>();
-            var landingGear = instance.transform.Find("LandingGear");
-            var feet = landingGear.GetComponentsInChildren<Collider>(true);
-            var ground = new GameObject("DroneLandingStabilityGround");
-            var groundCollider = ground.AddComponent<BoxCollider>();
-            groundCollider.size = new Vector3(20f, 0.1f, 20f);
-            ground.transform.position = new Vector3(0f, -0.05f, 0f);
-            var previousMode = Physics.simulationMode;
-
+            var config = ScriptableObject.CreateInstance<DroneFlightConfig>();
             try
             {
-                instance.GetComponent<DroneSuspensionRig>().SetPhysicsActive(false);
-                Assert.That(instance.GetComponentsInChildren<Joint>(true)
-                    .All(joint => joint.connectedBody == null), Is.True,
-                    "停靠状态必须断开所有内部 Joint 与无人机的求解连接。");
-                instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
-                Physics.SyncTransforms();
-                var lowestFoot = feet.Min(collider => collider.bounds.min.y);
-                instance.transform.position = Vector3.up * (0.015f - lowestFoot);
-                droneBody.linearVelocity = Vector3.zero;
-                droneBody.angularVelocity = Vector3.zero;
-                Physics.SyncTransforms();
-
-                Physics.simulationMode = SimulationMode.Script;
-                for (var step = 0; step < 150; step++)
+                var serialized = new SerializedObject(config);
+                foreach (var field in new[] { "grappleHardwareMassKilograms", "winchStowedLengthMeters",
+                             "grappleBreakForceNewtons", "harpoon", "ropeSpring" })
                 {
-                    Physics.Simulate(0.02f);
+                    Assert.That(serialized.FindProperty(field), Is.Null, field);
                 }
-
-                Assert.That(Vector3.Angle(instance.transform.up, Vector3.up), Is.LessThan(3f),
-                    "无人机应能依靠四个放下的脚架稳定停在水平地面。");
-                Assert.That(droneBody.angularVelocity.magnitude, Is.LessThan(0.2f));
-                Assert.That(instance.GetComponentsInChildren<Joint>(true)
-                    .All(joint => joint.connectedBody == null), Is.True);
             }
             finally
             {
-                Physics.simulationMode = previousMode;
-                Object.DestroyImmediate(instance);
-                Object.DestroyImmediate(ground);
+                Object.DestroyImmediate(config);
             }
+        }
+
+        private static void AssertNestedEquipment(
+            string equipmentPath,
+            string variantPath,
+            System.Type moduleType)
+        {
+            var equipmentPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(equipmentPath);
+            var variant = AssetDatabase.LoadAssetAtPath<GameObject>(variantPath);
+            Assert.That(equipmentPrefab, Is.Not.Null, equipmentPath);
+            Assert.That(variant, Is.Not.Null, variantPath);
+            Assert.That(equipmentPrefab.transform.localPosition, Is.EqualTo(Vector3.zero));
+            Assert.That(equipmentPrefab.transform.localRotation, Is.EqualTo(Quaternion.identity));
+            Assert.That(equipmentPrefab.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(equipmentPrefab.GetComponent(moduleType), Is.Not.Null);
+
+            var nestedModule = variant.GetComponentInChildren(moduleType, true) as Component;
+            Assert.That(nestedModule, Is.Not.Null, $"{variantPath} 缺少嵌套装备模块 {moduleType.Name}");
+            var nestedSource = PrefabUtility.GetCorrespondingObjectFromSource(nestedModule.gameObject);
+            Assert.That(AssetDatabase.GetAssetPath(nestedSource), Is.EqualTo(equipmentPath));
+        }
+
+        private static bool IsOfficialMesh(Mesh mesh)
+        {
+            return mesh != null && AssetDatabase.GetAssetPath(mesh) == ModelPath;
+        }
+
+        private static Mesh GetRotorBlade(Transform rotor)
+        {
+            return rotor.GetComponent<DroneRotor>()?.VisualPropeller
+                ?.GetComponentInChildren<MeshFilter>(true)?.sharedMesh;
+        }
+
+        private static Transform FindDeep(Transform root, string name)
+        {
+            return root.GetComponentsInChildren<Transform>(true).FirstOrDefault(child => child.name == name);
+        }
+
+        private static void AssertPosition(Transform root, Transform target, Vector3 expected)
+        {
+            Assert.That(Vector3.Distance(root.InverseTransformPoint(target.position), expected),
+                Is.LessThan(0.0001f), target.name);
+        }
+
+        private static float GetMinimumY(BoxCollider collider)
+        {
+            var minimum = float.PositiveInfinity;
+            var half = collider.size * 0.5f;
+            for (var x = -1; x <= 1; x += 2)
+            for (var y = -1; y <= 1; y += 2)
+            for (var z = -1; z <= 1; z += 2)
+            {
+                var point = collider.center + Vector3.Scale(half, new Vector3(x, y, z));
+                minimum = Mathf.Min(minimum, collider.transform.TransformPoint(point).y);
+            }
+            return minimum;
         }
     }
 }

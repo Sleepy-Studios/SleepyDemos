@@ -106,33 +106,4 @@ MonoBehaviour:
   automaticLandingSpeedMetersPerSecond: 0.5
   defaultResponseProfile: 0
   landingGearTransitionSeconds: 0.45
-  grappleHardwareMassKilograms: 0.05
-  winchStowedLengthMeters: 0.08
-  winchDeployedLengthMeters: 0.45
-  winchCarryLengthMeters: 0.24
-  winchSpeedMetersPerSecond: 0.35
-  topSuspensionTwistLimitDegrees: 25
-  topSuspensionSwingLimitDegrees: 45
-  bottomSuspensionTwistLimitDegrees: 25
-  bottomSuspensionSwingLimitDegrees: 45
-  suspensionJointAngularSpring: 0
-  suspensionJointAngularDamper: 0
-  suspensionTwistLimitDegrees: 25
-  suspensionSwingLimitDegrees: 45
-  suspensionDampingRatio: 0.35
-  suspensionMaximumDampingTorque: 2.5
-  maximumPayloadMassKilograms: 0.6
-  grappleBreakForceNewtons: 180
-  grappleBreakTorqueNewtonMeters: 80
-  grappleStrength: 50
-  grappleLinearFreedomMeters: 0.025
-  grappleAngularFreedomDegrees: 12
-  grappleTakeupSeconds: 0.3
-  grappleWorkingSpring: 250
-  grappleWorkingDamper: 25
-  grappleDockPositionToleranceMeters: 0.02
-  grappleDockSpeedToleranceMetersPerSecond: 0.15
-  antiSwingStrength: 18
-  antiSwingMaximumAcceleration: 1
-  externalMassBlendSeconds: 0.15
   resetHoldSeconds: 3
