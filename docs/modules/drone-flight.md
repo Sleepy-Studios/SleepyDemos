@@ -52,7 +52,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 上述节点、坐标、轴向、材质槽和挂点的机器真源是 `DroneFlightModelContract`。Builder 与 `DronePrototypeContractTests` 必须读取同一契约；完整语义见[正式模型契约](./drone-flight-model-contract.md)。
 
-FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的 Transform 朝向不能直接当作物理推力方向。`DroneRotor` 仍直接挂在 RotorHub 上，但由 Prefab 根节点显式提供机体局部 `+Y` 作为物理推力轴；桨叶视觉也绕同一机体轴旋转。Builder 和契约测试同时校验四个施力坐标及推力轴，避免模型能显示但控制分配矩阵失效。
+正式 FBX 在 Unity ModelImporter 启用 `Bake Axis Conversion`，并由 `DroneFlightModelAxisPostprocessor` 把当前 FBX 固有的航向手性与残留 Bind 旋转继续烘焙到导入数据，最终将 Blender `+Z Up / -Y Forward` 统一为 Unity `+Y Up / +Z Forward`，不新增包装节点。`DroneRotor` 仍直接挂在 RotorHub 上，物理推力继续由 Prefab 根节点显式提供机体局部 `+Y`；Importer 迁移不改变四个施力坐标、控制分配或飞控。
 
 ## 进入和 UI 生命周期
 
@@ -113,7 +113,7 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 
 ## 镜头与 HUD
 
-- Gimbal 的机械姿态仍由正式 FBX 的 `GimbalYaw/GimbalPitch` 驱动，但输出位置取 `CameraBody`，观察方向取可见镜面的本地 `-Z` 光轴并保持世界地平线，默认 FOV `65°`；ThirdPerson 按机体偏航追尾，使用 `(0, 0.85, -2.2) m` 偏移与 `0.18 s` 速度前瞻；Orbit 绕世界竖直轴、默认距离 `2.5 m`。
+- Gimbal 的机械姿态由正式 FBX 的 `GimbalYaw/GimbalPitch` 驱动：Yaw 绕烘焙后的本地 `+Y`，Pitch 绕本地 `+X`，输出位置与光轴分别取 `CameraBody.position/forward`。运行角度叠加到导入 Bind Pose 上并保持世界地平线，默认 FOV `65°`；ThirdPerson 按机体偏航追尾，使用 `(0, 0.85, -2.2) m` 偏移与 `0.18 s` 速度前瞻；Orbit 绕世界竖直轴、默认距离 `2.5 m`。
 - FixedForward 保留机体横滚/俯仰，默认 FOV `75°`；Belly 与 HarpoonAim 使用机腹稳定向下视角，默认 FOV 分别为 `60°`、`55°`。
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
 - HUD 保留顶部状态、左下飞行遥测和底部装备提示；操作面板默认展开，标题、飞行/档位、视角/系统和装备操作分区显示，按 F1 整体收起或展开，不显示虚构的电池、GNSS 或图传信号。

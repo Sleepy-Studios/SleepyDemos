@@ -43,8 +43,14 @@ namespace Hotfix.DroneFlight
         /// Unity 机体局部前轴。
         public static Vector3 ForwardAxis => Vector3.forward;
 
-        /// 正式 CameraBody 节点中，从机身内部指向可见镜面的本地光轴。
-        public static Vector3 GimbalOpticalAxis => Vector3.back;
+        /// 正式云台偏航节点的 Unity 本地旋转轴。
+        public static Vector3 GimbalYawAxis => Vector3.up;
+
+        /// 正式云台俯仰节点的 Unity 本地旋转轴。
+        public static Vector3 GimbalPitchAxis => Vector3.right;
+
+        /// 轴转换烘焙后 CameraBody 的 Unity 本地光轴。
+        public static Vector3 GimbalOpticalAxis => Vector3.forward;
 
         /// Unity 机体坐标约定：+X 向右、+Y 向上、+Z 向前。
         public static Vector3 PhysicalThrustAxis => Vector3.up;

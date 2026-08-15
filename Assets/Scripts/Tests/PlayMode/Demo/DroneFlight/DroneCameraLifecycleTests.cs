@@ -4,6 +4,9 @@ using Hotfix.DroneFlight;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Tests.Demo
 {
@@ -78,7 +81,7 @@ namespace Tests.Demo
         }
 
         [UnityTest]
-        public IEnumerator GimbalView_UsesCameraBodyVisibleLensAxisInsteadOfPitchPositiveZ()
+        public IEnumerator GimbalView_UsesBakedUnityAxesAndPreservesImportedBindPose()
         {
             var root = new GameObject("GimbalOpticalAxisFixture");
             var yaw = new GameObject("GimbalYaw").transform;
@@ -87,7 +90,11 @@ namespace Tests.Demo
             pitch.SetParent(yaw, false);
             var cameraBody = new GameObject("CameraBody").transform;
             cameraBody.SetParent(pitch, false);
-            cameraBody.localPosition = new Vector3(0f, 0f, -0.05f);
+            cameraBody.localPosition = new Vector3(0f, 0f, 0.05f);
+            var yawBindRotation = Quaternion.Euler(0f, 5f, 0f);
+            var pitchBindRotation = Quaternion.Euler(3f, 0f, 0f);
+            yaw.localRotation = yawBindRotation;
+            pitch.localRotation = pitchBindRotation;
 
             var cameraObject = new GameObject("GimbalOutput", typeof(Camera));
             var camera = cameraObject.GetComponent<Camera>();
@@ -101,10 +108,14 @@ namespace Tests.Demo
                 yield return null;
             }
 
-            var visibleLensDirection = cameraBody.TransformDirection(Vector3.back);
+            var visibleLensDirection = cameraBody.forward;
             Assert.That(Vector3.Angle(rig.GimbalOpticalForward, visibleLensDirection), Is.LessThan(0.01f));
             Assert.That(Vector3.Angle(camera.transform.forward, visibleLensDirection), Is.LessThan(1f));
             Assert.That(Vector3.Distance(camera.transform.position, cameraBody.position), Is.LessThan(0.01f));
+            Assert.That(Quaternion.Angle(
+                    yaw.localRotation,
+                    yawBindRotation * Quaternion.AngleAxis(90f, Vector3.up)),
+                Is.LessThan(0.01f));
 
             rig.ApplyLookInput(0f, 1f, 1.5f);
             for (var index = 0; index < 40; index++)
@@ -112,13 +123,79 @@ namespace Tests.Demo
                 yield return null;
             }
 
-            visibleLensDirection = cameraBody.TransformDirection(Vector3.back);
-            Assert.That(Vector3.Angle(visibleLensDirection, Vector3.down), Is.LessThan(0.01f));
+            visibleLensDirection = cameraBody.forward;
             Assert.That(Vector3.Angle(camera.transform.forward, visibleLensDirection), Is.LessThan(1f));
+            Assert.That(Quaternion.Angle(
+                    pitch.localRotation,
+                    pitchBindRotation * Quaternion.AngleAxis(-90f, Vector3.right)),
+                Is.LessThan(0.01f));
 
             Object.Destroy(cameraObject);
             Object.Destroy(root);
         }
+
+#if UNITY_EDITOR
+        [UnityTest]
+        public IEnumerator FormalDronePrototype_GimbalModelAndOutputUseBakedUnityAxes()
+        {
+            const string prefabPath =
+                "Assets/LoadResources/Demos/drone_flight/Prefabs/DronePrototype.prefab";
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            var drone = Object.Instantiate(source);
+            try
+            {
+                var yaw = drone.GetComponentsInChildren<Transform>(true)
+                    .Single(node => node.name == DroneFlightModelContract.GimbalYawName);
+                var pitch = drone.GetComponentsInChildren<Transform>(true)
+                    .Single(node => node.name == DroneFlightModelContract.GimbalPitchName);
+                var cameraBody = drone.GetComponentsInChildren<Transform>(true)
+                    .Single(node => node.name == DroneFlightModelContract.CameraBodyName);
+                var rig = drone.GetComponentInChildren<DroneCameraRig>(true);
+                var camera = rig.OutputCamera;
+                var yawBindRotation = yaw.localRotation;
+                var pitchBindRotation = pitch.localRotation;
+
+                rig.SetMode(DroneCameraMode.Gimbal);
+                rig.ApplyLookInput(1f, 0f, 1.5f);
+                for (var index = 0; index < 40; index++)
+                {
+                    yield return null;
+                }
+
+                Assert.That(Quaternion.Angle(
+                        yaw.localRotation,
+                        yawBindRotation * Quaternion.AngleAxis(90f, DroneFlightModelContract.GimbalYawAxis)),
+                    Is.LessThan(0.01f));
+                Assert.That(Vector3.Angle(cameraBody.forward, drone.transform.right), Is.LessThan(0.1f));
+                Assert.That(Vector3.Angle(camera.transform.forward, cameraBody.forward), Is.LessThan(1f));
+
+                rig.ApplyLookInput(-1f, 0f, 3f);
+                for (var index = 0; index < 40; index++)
+                {
+                    yield return null;
+                }
+                Assert.That(Vector3.Angle(cameraBody.forward, -drone.transform.right), Is.LessThan(0.1f));
+                Assert.That(Vector3.Angle(camera.transform.forward, cameraBody.forward), Is.LessThan(1f));
+
+                rig.ApplyLookInput(1f, 0f, 1.5f);
+                rig.ApplyLookInput(0f, 1f, 1.5f);
+                for (var index = 0; index < 40; index++)
+                {
+                    yield return null;
+                }
+                Assert.That(Quaternion.Angle(
+                        pitch.localRotation,
+                        pitchBindRotation * Quaternion.AngleAxis(-90f, DroneFlightModelContract.GimbalPitchAxis)),
+                    Is.LessThan(0.01f));
+                Assert.That(Vector3.Angle(cameraBody.forward, drone.transform.up), Is.LessThan(0.1f));
+                Assert.That(Vector3.Angle(rig.GimbalOpticalForward, cameraBody.forward), Is.LessThan(0.01f));
+            }
+            finally
+            {
+                Object.Destroy(drone);
+            }
+        }
+#endif
 
         [UnityTest]
         public IEnumerator HarpoonAim_RestoresSavedModeWithoutChangingCameraOrBodyOwnership()

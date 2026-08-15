@@ -42,5 +42,28 @@ namespace Tests.Demo
             Assert.That(visual.AccumulatedDegrees, Is.EqualTo(-360d).Within(0.001d));
             Object.DestroyImmediate(root);
         }
+
+        [Test]
+        public void StepVisual_UsesExplicitBodyAxisWhenImportedHubHasRotation()
+        {
+            var root = new GameObject("RotorVisualAxisFixture");
+            root.transform.rotation = Quaternion.Euler(17f, 31f, -12f);
+            var hub = new GameObject("ImportedHub").transform;
+            hub.SetParent(root.transform, false);
+            hub.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var blade = new GameObject("BladeRoot").transform;
+            blade.SetParent(hub, false);
+            blade.localRotation = Quaternion.Euler(0f, 13f, 0f);
+            var initialRotation = blade.rotation;
+            var visual = hub.gameObject.AddComponent<DroneRotorVisual>();
+            visual.Configure(blade, DroneRotorDirection.CounterClockwise, root.transform);
+
+            visual.SetRpm(60f);
+            visual.StepVisual(0.25f);
+
+            var expected = Quaternion.AngleAxis(90f, root.transform.up) * initialRotation;
+            Assert.That(Quaternion.Angle(blade.rotation, expected), Is.LessThan(0.01f));
+            Object.DestroyImmediate(root);
+        }
     }
 }

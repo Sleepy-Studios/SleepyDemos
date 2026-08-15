@@ -6,9 +6,9 @@
 
 ## 坐标和根节点
 
-- Blender 使用米制；当前源文件前向按 Blender `-Y`，FBX 导出为 `-Z Forward / Y Up`。
-- Unity 机体坐标固定为 `+X` 右、`+Y` 上、`+Z` 前，正式 Mesh 必须应用 Scale 且无负缩放。
-- FBX 标准轴转换产生的节点旋转只负责视觉坐标承载，不能直接作为物理推力方向。
+- Blender 使用米制和原生 `+Z Up / -Y Forward`；FBX 继续使用固定导出参数，不在源文件中预旋转网格或 Pivot。
+- Unity ModelImporter 必须启用 `Bake Axis Conversion`，把 DCC 坐标转换烘焙进几何和节点数据。当前 FBX 的导出手性还会留下反向航向和节点 Bind 旋转，`DroneFlightModelAxisPostprocessor` 在同一次导入中将它们继续烘焙到顶点、法线、切线和子节点坐标；不新增包装 Empty。导入后的正式层级统一为 `+X` 右、`+Y` 上、`+Z` 前，`DroneModel` 与 `Airframe` 不得保留额外 90° 包装旋转。
+- 正式 Mesh 必须应用 Scale 且无负缩放；FBX GUID、14 个正式节点名、Mesh 名称与材质槽不因轴迁移变化。
 - `DronePrototype` 根的局部 `+Y` 是四个 Rotor 的唯一物理推力轴。
 
 ## 14 个正式导出对象
@@ -18,7 +18,7 @@
 - 两个共享桨叶源：`RotorBlade_CCW`、`RotorBlade_CW`。FL/RR 使用 CCW，FR/RL 使用 CW。
 - 四个起落架：`LandingGear_FL`、`LandingGear_FR`、`LandingGear_RL`、`LandingGear_RR`。
 - 三级云台：`GimbalYaw/GimbalPitch/CameraBody`，Pitch 必须是 Yaw 子节点，CameraBody 必须是 Pitch 子节点。
-- `CameraBody` 的可见镜面朝本地 `-Z`，该方向是 Gimbal 画面的唯一光轴；`GimbalPitch +Z` 只是层级坐标轴，不能直接作为输出 Camera 的观察方向。
+- 轴烘焙后的机械语义固定为：`GimbalYaw` 绕本地 `+Y`，`GimbalPitch` 绕本地 `+X`，画面沿 `CameraBody +Z`。CameraRig 保存导入 Bind Pose，再叠加运行角度，不得用绝对欧拉角覆盖模型初始局部旋转。
 
 不要导出预览相机、灯光、地面、标注、辅助 Empty 或第二套 Rotor/起落架/云台包装层。隐藏的两套桨叶源仍必须进入 FBX。
 
@@ -55,7 +55,7 @@
 ## 修改流程
 
 1. 使用项目技能 `unity-demo-model-pipeline` 从玩法和物理需求形成建模需求并确认。
-2. 修改 Blender 源文件并按固定参数导出 FBX。
+2. 只有几何或 Pivot 真正变化时才修改 Blender 源文件并按固定参数导出 FBX；单纯轴迁移只调整 Unity Importer。
 3. 核对源侧与项目内 FBX 的 SHA-256。
 4. 执行唯一 Builder 入口重建基础机体、装备和 Variant。
 5. 运行 `DronePrototypeContractTests` 和直接受影响的 PlayMode 物理测试。

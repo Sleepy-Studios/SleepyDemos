@@ -43,8 +43,12 @@ namespace Tests.Demo
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+            var importer = AssetImporter.GetAtPath(ModelPath) as ModelImporter;
             Assert.That(prefab, Is.Not.Null);
             Assert.That(model, Is.Not.Null);
+            Assert.That(importer, Is.Not.Null);
+            Assert.That(importer.bakeAxisConversion, Is.True,
+                "正式 FBX 必须把 Blender 坐标转换烘焙到导入数据，不能留在 Airframe 根 Transform。");
             Assert.That(AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Mesh>().Select(mesh => mesh.name),
                 Is.SupersetOf(DroneFlightModelContract.FormalObjectNames));
             Assert.That(DroneFlightModelContract.FormalObjectNames,
@@ -96,10 +100,38 @@ namespace Tests.Demo
             var yaw = FindDeep(prefab.transform, DroneFlightModelContract.GimbalYawName);
             var pitch = FindDeep(prefab.transform, DroneFlightModelContract.GimbalPitchName);
             var cameraBody = FindDeep(prefab.transform, DroneFlightModelContract.CameraBodyName);
+            var droneModel = prefab.transform.Find(DroneFlightModelContract.ModelRootName);
+            var airframe = FindDeep(prefab.transform, DroneFlightModelContract.AirframeName);
+            Assert.That(droneModel, Is.Not.Null);
+            Assert.That(Quaternion.Angle(droneModel.localRotation, Quaternion.identity), Is.LessThan(0.01f));
+            Assert.That(droneModel.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(airframe, Is.Not.Null);
+            Assert.That(Quaternion.Angle(airframe.localRotation, Quaternion.identity), Is.LessThan(0.01f));
             Assert.That(yaw, Is.Not.Null);
             Assert.That(pitch?.parent, Is.EqualTo(yaw));
             Assert.That(cameraBody?.parent, Is.EqualTo(pitch));
-            Assert.That(DroneFlightModelContract.GimbalOpticalAxis, Is.EqualTo(Vector3.back));
+            Assert.That(DroneFlightModelContract.GimbalYawAxis, Is.EqualTo(Vector3.up));
+            Assert.That(DroneFlightModelContract.GimbalPitchAxis, Is.EqualTo(Vector3.right));
+            Assert.That(DroneFlightModelContract.GimbalOpticalAxis, Is.EqualTo(Vector3.forward));
+            Assert.That(Vector3.Angle(yaw.up, prefab.transform.up), Is.LessThan(0.01f));
+            Assert.That(Vector3.Angle(pitch.right, prefab.transform.right), Is.LessThan(0.01f));
+            Assert.That(Vector3.Angle(cameraBody.forward, prefab.transform.forward), Is.LessThan(0.01f));
+            foreach (var nodeName in DroneFlightModelContract.FormalObjectNames)
+            {
+                var matchingNodes = droneModel.GetComponentsInChildren<Transform>(true)
+                    .Where(node => node.name == nodeName)
+                    .ToArray();
+                Assert.That(matchingNodes, Has.Length.EqualTo(1), nodeName);
+                var node = matchingNodes[0];
+                Assert.That(node, Is.Not.Null, nodeName);
+                Assert.That(node.localScale, Is.EqualTo(Vector3.one), nodeName);
+                Assert.That(node.lossyScale.x, Is.GreaterThan(0f), nodeName);
+                Assert.That(node.lossyScale.y, Is.GreaterThan(0f), nodeName);
+                Assert.That(node.lossyScale.z, Is.GreaterThan(0f), nodeName);
+                Assert.That(node.localToWorldMatrix.determinant, Is.GreaterThan(0f), nodeName);
+                var source = PrefabUtility.GetCorrespondingObjectFromSource(node.gameObject);
+                Assert.That(AssetDatabase.GetAssetPath(source), Is.EqualTo(ModelPath), nodeName);
+            }
             var cameraRig = prefab.GetComponentInChildren<DroneCameraRig>(true);
             var serializedCameraRig = new SerializedObject(cameraRig);
             Assert.That(
@@ -107,6 +139,66 @@ namespace Tests.Demo
                 Is.EqualTo(cameraBody));
             Assert.That(prefab.transform.Find(DroneFlightModelContract.BellyEquipmentMountName).localPosition,
                 Is.EqualTo(DroneFlightModelContract.BellyEquipmentMountPosition));
+        }
+
+        [Test]
+        public void BasePrefab_BakedAxisConversionKeepsSerializedFbxBindings()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
+            var yaw = FindDeep(prefab.transform, DroneFlightModelContract.GimbalYawName);
+            var pitch = FindDeep(prefab.transform, DroneFlightModelContract.GimbalPitchName);
+            var cameraBody = FindDeep(prefab.transform, DroneFlightModelContract.CameraBodyName);
+
+            foreach (var rotor in prefab.GetComponentsInChildren<DroneRotor>(true))
+            {
+                var serializedRotor = new SerializedObject(rotor);
+                Assert.That(serializedRotor.FindProperty("forceAxis").objectReferenceValue,
+                    Is.EqualTo(prefab.transform), rotor.name);
+                var visual = rotor.GetComponentInChildren<DroneRotorVisual>(true);
+                Assert.That(visual, Is.Not.Null, rotor.name);
+                var serializedVisual = new SerializedObject(visual);
+                Assert.That(serializedVisual.FindProperty("bladeRoot").objectReferenceValue, Is.Not.Null, rotor.name);
+                Assert.That(serializedVisual.FindProperty("rotationAxis").objectReferenceValue,
+                    Is.EqualTo(prefab.transform), rotor.name);
+            }
+
+            var cameraRig = prefab.GetComponentInChildren<DroneCameraRig>(true);
+            var serializedCameraRig = new SerializedObject(cameraRig);
+            Assert.That(serializedCameraRig.FindProperty("gimbalYaw").objectReferenceValue, Is.EqualTo(yaw));
+            Assert.That(serializedCameraRig.FindProperty("gimbalPitch").objectReferenceValue, Is.EqualTo(pitch));
+            Assert.That(serializedCameraRig.FindProperty("gimbalOpticalBody").objectReferenceValue,
+                Is.EqualTo(cameraBody));
+
+            var landingGear = new SerializedObject(prefab.GetComponent<DroneLandingGearController>());
+            var legRoots = landingGear.FindProperty("legRoots");
+            Assert.That(legRoots.arraySize, Is.EqualTo(DroneFlightModelContract.LandingGearNames.Count));
+            for (var index = 0; index < legRoots.arraySize; index++)
+            {
+                Assert.That(legRoots.GetArrayElementAtIndex(index).objectReferenceValue,
+                    Is.EqualTo(FindDeep(prefab.transform, DroneFlightModelContract.LandingGearNames[index])));
+            }
+        }
+
+        [TestCase(BasePath)]
+        [TestCase(GrapplePath)]
+        [TestCase(HarpoonPath)]
+        public void EveryFinishedDrone_CameraRigReferencesOfficialGimbalHierarchy(string path)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var yaw = FindDeep(prefab.transform, DroneFlightModelContract.GimbalYawName);
+            var pitch = FindDeep(prefab.transform, DroneFlightModelContract.GimbalPitchName);
+            var cameraBody = FindDeep(prefab.transform, DroneFlightModelContract.CameraBodyName);
+            var cameraRig = prefab.GetComponentInChildren<DroneCameraRig>(true);
+            Assert.That(yaw, Is.Not.Null, path);
+            Assert.That(pitch, Is.Not.Null, path);
+            Assert.That(cameraBody, Is.Not.Null, path);
+            Assert.That(cameraRig, Is.Not.Null, path);
+            var serializedCameraRig = new SerializedObject(cameraRig);
+            Assert.That(serializedCameraRig.FindProperty("gimbalYaw").objectReferenceValue, Is.EqualTo(yaw), path);
+            Assert.That(serializedCameraRig.FindProperty("gimbalPitch").objectReferenceValue,
+                Is.EqualTo(pitch), path);
+            Assert.That(serializedCameraRig.FindProperty("gimbalOpticalBody").objectReferenceValue,
+                Is.EqualTo(cameraBody), path);
         }
 
         [Test]

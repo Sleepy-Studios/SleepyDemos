@@ -116,7 +116,7 @@ namespace Hotfix.Editor.DroneFlight
 
             var changed = !Mathf.Approximately(importer.globalScale, 1f)
                           || !importer.useFileScale
-                          || importer.bakeAxisConversion
+                          || !importer.bakeAxisConversion
                           || importer.importAnimation
                           || importer.importCameras
                           || importer.importLights
@@ -129,8 +129,9 @@ namespace Hotfix.Editor.DroneFlight
 
             importer.globalScale = 1f;
             importer.useFileScale = true;
-            // 保留 FBX 标准轴转换；物理推力轴由机体根的局部 +Y 显式提供。
-            importer.bakeAxisConversion = false;
+            // 把 Blender +Z Up / -Y Forward 烘焙为 Unity +Y Up / +Z Forward，
+            // 避免把 90 度坐标转换残留在 Airframe 根节点上。
+            importer.bakeAxisConversion = true;
             importer.importAnimation = false;
             importer.importCameras = false;
             importer.importLights = false;

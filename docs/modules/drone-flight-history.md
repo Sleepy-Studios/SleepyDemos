@@ -118,10 +118,18 @@
 
 ## 2026-08-15：云台模型光轴校准
 
-- 正式模型的 `CameraBody` 可见镜面朝节点本地 `-Z`，此前 CameraRig 却从 `GimbalPitch +Z` 出图，导致偏航后模型与画面方向互为相反方向。
-- Gimbal 输出改为使用 `CameraBody` 的位置与本地 `-Z` 光轴；Yaw/Pitch 机械节点、输入角度、世界地平线稳定和其他镜头模式保持不变。
+- 当时根据未烘焙 FBX 的 Unity 子节点坐标，曾把 `CameraBody -Z` 认作正式光轴并用于 CameraRig。
+- 后续对 Blender 原生几何、对象 Bind Pose 与 Unity Importer 的联合核验表明，该结论混入了留在 `Airframe` 根节点上的轴转换，已被下一节的正式轴迁移取代。
 
-长期规则：机械层级轴与可见镜头光轴必须分别建模；CameraRig 不得绕过 `CameraBody` 直接从 `GimbalPitch.forward` 推断正式镜头正面。
+历史结论：未烘焙导入层级中的 Local Gizmo 不能直接当成最终 Unity 运行契约。
+
+## 2026-08-15：正式模型 Unity 轴向迁移
+
+- Blender 源文件继续采用原生 `+Z Up / -Y Forward`，不旋转网格、不改 Pivot、不重建源 FBX。Unity ModelImporter 改为启用 `Bake Axis Conversion`；真实重导入发现当前 FBX 元数据还会把前后/左右航向同时反转并保留节点 Bind 旋转，因此专用 AssetPostprocessor 继续把该确定性校正烘焙到导入网格和节点数据，最终消除 `Airframe` 根节点承担的坐标包装。
+- 正式 Unity 轴统一为 `+X` 右、`+Y` 上、`+Z` 前；云台 Yaw/Pitch 分别绕本地 `+Y/+X`，镜头沿 `CameraBody +Z`。CameraRig 保存导入 Bind Pose，并将玩家输入作为局部增量叠加。
+- 旋翼施力仍显式使用机体根局部 `+Y`；飞控、Rigidbody、装备、Collider、挂点坐标、FBX GUID、节点名和材质槽均不随本次视觉坐标迁移改变。
+
+长期规则：DCC 坐标转换必须由唯一 Importer 策略确定；不得再同时用根节点补偿旋转和运行时代码反向光轴修补同一问题。
 
 ## 始终有效的禁区
 

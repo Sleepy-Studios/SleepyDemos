@@ -53,6 +53,9 @@ namespace Hotfix.DroneFlight
         private float transitionStartFieldOfView;
         private float transitionElapsed;
         private bool isTransitioning;
+        private Quaternion gimbalYawBindLocalRotation = Quaternion.identity;
+        private Quaternion gimbalPitchBindLocalRotation = Quaternion.identity;
+        private bool hasGimbalBindPose;
         private readonly float[] modeFieldOfViews = { 65f, 60f, 60f, 75f, 60f, 55f };
 
         /// <summary>唯一的无人机画面输出 Camera。</summary>
@@ -72,6 +75,11 @@ namespace Hotfix.DroneFlight
 
         /// <summary>当前镜头视场角，单位度。</summary>
         internal float FieldOfView => outputCamera != null ? outputCamera.fieldOfView : 0f;
+
+        private void Awake()
+        {
+            CaptureGimbalBindPose();
+        }
 
         private void LateUpdate()
         {
@@ -217,6 +225,8 @@ namespace Hotfix.DroneFlight
             fixedForwardMount = forward;
             bellyMount = belly;
             bodyRigidbody = body != null ? body.GetComponent<Rigidbody>() : null;
+            hasGimbalBindPose = false;
+            CaptureGimbalBindPose();
             if (outputCamera != null && droneBody != null)
             {
                 CalculatePose(out var position, out var rotation, out _);
@@ -228,15 +238,38 @@ namespace Hotfix.DroneFlight
 
         private void UpdateGimbalTransforms()
         {
+            CaptureGimbalBindPose();
             if (gimbalYaw != null)
             {
-                gimbalYaw.localRotation = Quaternion.Euler(0f, gimbalYawDegrees, 0f);
+                gimbalYaw.localRotation = gimbalYawBindLocalRotation
+                                          * Quaternion.AngleAxis(
+                                              gimbalYawDegrees,
+                                              DroneFlightModelContract.GimbalYawAxis);
             }
 
             if (gimbalPitch != null)
             {
-                gimbalPitch.localRotation = Quaternion.Euler(gimbalPitchDegrees, 0f, 0f);
+                gimbalPitch.localRotation = gimbalPitchBindLocalRotation
+                                            * Quaternion.AngleAxis(
+                                                gimbalPitchDegrees,
+                                                DroneFlightModelContract.GimbalPitchAxis);
             }
+        }
+
+        private void CaptureGimbalBindPose()
+        {
+            if (hasGimbalBindPose)
+            {
+                return;
+            }
+
+            gimbalYawBindLocalRotation = gimbalYaw != null
+                ? gimbalYaw.localRotation
+                : Quaternion.identity;
+            gimbalPitchBindLocalRotation = gimbalPitch != null
+                ? gimbalPitch.localRotation
+                : Quaternion.identity;
+            hasGimbalBindPose = true;
         }
 
         private void CalculatePose(out Vector3 position, out Quaternion rotation, out Vector3 focusPoint)

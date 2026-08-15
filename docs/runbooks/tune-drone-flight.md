@@ -52,7 +52,7 @@
 2. 只导出 14 个正式对象到同级 `DroneFlight.fbx`，确认 `RotorBlade_CCW`、`RotorBlade_CW` 即使在 Blender 预览中隐藏也已纳入导出。不要导出相机、灯光、地面、标注、预览旋翼或辅助 Empty。
 3. 将同一 FBX 复制到 `Assets/LoadResources/Demos/drone_flight/Art/Models/DroneFlight.fbx`，确认仓库外与项目内文件 SHA-256 一致。
 4. 在 Unity 执行 `Tools > SleepyDemos > DroneFlight > 重建基础、装备与组合机体`。工具会更新六个外部 URP Lit 材质、基础视觉和代理碰撞，并重建抓斗/渔叉装备与两个 Variant；不会修改飞控、Rotor 施力点或运行时公开接口。
-5. 检查 `DronePrototype/DroneModel` 中完整嵌套的 FBX；`DroneRotor` 应直接位于四个 `RotorHub_*`，四个 Hub 下各有一个共享 Mesh 的桨叶实例，起落架控制器直接引用 `LandingGear_FL/FR/RL/RR`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch/CameraBody`。根节点只额外保留 `CollisionProxies` 和必要运行时挂点，不得再出现第二套 Rotor、LandingGear、Gimbal 包装层。正式 Mesh 节点必须 Scale=1，项目中不得出现动态 MeshCollider 或自动提取位图贴图。四个 Rotor 的物理推力轴必须显式绑定机体根的局部 `+Y`，不得直接使用 FBX 导入节点的轴转换朝向；Gimbal 画面必须沿 `CameraBody` 可见镜面的本地 `-Z`，在 Scene 中把 Yaw 转到左右侧时确认模型镜面和 Game 画面指向同一侧。
+5. 检查 `DronePrototype/DroneModel` 中完整嵌套的 FBX；ModelImporter 必须启用 `Bake Axis Conversion`，`DroneModel`、`Airframe` 与正式节点不得存在额外 90° 包装旋转或负缩放。`DroneRotor` 应直接位于四个 `RotorHub_*`，四个 Hub 下各有一个共享 Mesh 的桨叶实例，起落架控制器直接引用 `LandingGear_FL/FR/RL/RR`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch/CameraBody`。根节点只额外保留 `CollisionProxies` 和必要运行时挂点，不得再出现第二套 Rotor、LandingGear、Gimbal 包装层。四个 Rotor 的物理推力轴继续显式绑定机体根局部 `+Y`；在 Scene 的 Local 模式确认 Yaw `+Y`、Pitch `+X`、CameraBody `+Z`，再把 Yaw 转到左右侧检查模型镜面和 Game 画面同向。
 
 ## 飞控调参顺序
 
