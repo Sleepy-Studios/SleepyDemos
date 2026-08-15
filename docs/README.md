@@ -39,6 +39,8 @@
   - [Luban 配置模块](./modules/luban-config.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)
   - [DroneFlight 无人机飞行仿真](./modules/drone-flight.md)
+  - [DroneFlight 正式模型契约](./modules/drone-flight-model-contract.md)
+  - [DroneFlight 设计演进与决策记录](./modules/drone-flight-history.md)
 - `agent/`
   - Agent 协作入口与项目级技能说明
   - [项目 Skill 入口](./agent/skills.md)
@@ -57,6 +59,7 @@
   - [使用 Luban 配置](./runbooks/use-luban-config.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
   - [调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)
+  - [迁移 DroneFlight 到正式项目](./runbooks/migrate-drone-flight.md)
 
 ## 如何判断文档该写到哪里
 - 这是全局规则、设计原则或架构边界：写到 `architecture/`

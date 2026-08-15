@@ -14,18 +14,29 @@ namespace Hotfix.DroneFlight
         private DroneFlightHudView hudView;
         private DroneFlightDebugView debugView;
         private DroneFlightDebugDrawRenderer debugDrawRenderer;
-        private bool isDebugVisible;
+        private bool isDebugPanelVisible;
+        private bool isDebugDrawVisible;
         private bool isShuttingDown;
 
         private void Update()
         {
-            if (isShuttingDown || viewData == null || Keyboard.current == null
-                || !Keyboard.current.f3Key.wasPressedThisFrame)
+            if (isShuttingDown || viewData == null || Keyboard.current == null)
             {
                 return;
             }
 
-            ToggleDebugAsync().Forget();
+            var shortcut = DroneFlightDebugShortcutRequest.FromPressedKeys(
+                Keyboard.current.f2Key.wasPressedThisFrame,
+                Keyboard.current.f3Key.wasPressedThisFrame);
+            if (shortcut.ToggleDraw)
+            {
+                ToggleDebugDraw();
+            }
+
+            if (shortcut.TogglePanel)
+            {
+                ToggleDebugPanelAsync().Forget();
+            }
         }
 
         internal async UniTask<DroneVehicleKind?> ShowVehicleSelectAsync(
@@ -71,6 +82,8 @@ namespace Hotfix.DroneFlight
         {
             isShuttingDown = false;
             debugDrawRenderer = renderer;
+            isDebugDrawVisible = false;
+            debugDrawRenderer?.SetEnabled(false);
             viewData = new DroneFlightViewData(telemetrySource, sessionId);
             var result = await UIManager.Instance.ShowAsync<DroneFlightHudView, DroneFlightViewData>(
                 viewData,
@@ -99,7 +112,8 @@ namespace Hotfix.DroneFlight
             vehicleSelectView = null;
             debugView = null;
             hudView = null;
-            isDebugVisible = false;
+            isDebugPanelVisible = false;
+            isDebugDrawVisible = false;
         }
 
         internal async UniTask<bool> RestoreFlightViewsAsync()
@@ -117,16 +131,21 @@ namespace Hotfix.DroneFlight
             return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
         }
 
-        private async UniTaskVoid ToggleDebugAsync()
+        private void ToggleDebugDraw()
         {
-            if (isDebugVisible)
+            isDebugDrawVisible = !isDebugDrawVisible;
+            debugDrawRenderer?.SetEnabled(isDebugDrawVisible);
+        }
+
+        private async UniTaskVoid ToggleDebugPanelAsync()
+        {
+            if (isDebugPanelVisible)
             {
                 var close = await UIManager.Instance.CloseAsync(debugView, false);
                 if (close.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored or UIOperationStatus.Canceled)
                 {
                     debugView = null;
-                    isDebugVisible = false;
-                    debugDrawRenderer?.SetEnabled(false);
+                    isDebugPanelVisible = false;
                 }
 
                 return;
@@ -138,8 +157,7 @@ namespace Hotfix.DroneFlight
             if (show.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored)
             {
                 debugView = show.View as DroneFlightDebugView;
-                isDebugVisible = true;
-                debugDrawRenderer?.SetEnabled(true);
+                isDebugPanelVisible = true;
             }
             else if (show.Status == UIOperationStatus.Failed)
             {
@@ -154,6 +172,30 @@ namespace Hotfix.DroneFlight
                 await UIManager.Instance.CloseAsync(view, false);
             }
         }
+    }
+
+    /// <summary>单帧 F2/F3 调试快捷键请求，避免 UI 与绘制开关再次耦合。</summary>
+    internal readonly struct DroneFlightDebugShortcutRequest
+    {
+        private DroneFlightDebugShortcutRequest(bool toggleDraw, bool togglePanel)
+        {
+            ToggleDraw = toggleDraw;
+            TogglePanel = togglePanel;
+        }
+
+        /// 是否切换 Game View 动力矢量。
+        internal bool ToggleDraw { get; }
+
+        /// 是否切换调试数据面板。
+        internal bool TogglePanel { get; }
+
+        /// <summary>
+        /// 把本帧按键边沿转换为两个互不影响的调试请求。
+        /// </summary>
+        /// <param name="f2Pressed">本帧是否按下 F2。</param>
+        /// <param name="f3Pressed">本帧是否按下 F3。</param>
+        internal static DroneFlightDebugShortcutRequest FromPressedKeys(bool f2Pressed, bool f3Pressed) =>
+            new(f2Pressed, f3Pressed);
     }
 
     internal static class DroneFlightDebugRendererExtensions

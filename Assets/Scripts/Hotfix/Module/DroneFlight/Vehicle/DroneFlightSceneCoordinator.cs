@@ -132,89 +132,24 @@ namespace Hotfix.DroneFlight
                     DroneVehicleKind.Harpoon => "DroneHarpoonVariant",
                     _ => "DronePrototype"
                 };
-                currentDrone.transform.localScale = Vector3.one;
-                if (!DroneSpawnPlacement.TryPlaceOnGround(
+                if (!DroneFlightVehicleAssembler.TryPrepare(
                         currentDrone,
+                        selection,
+                        playerCamera,
                         spawnPoint,
-                        DroneSpawnPlacement.DefaultGroundClearanceMeters,
-                        out _))
+                        out var runtime,
+                        out var assemblyError))
                 {
-                    Debug.LogError("[DroneFlight] 无法从四个起落架脚部计算安全出生高度。", currentDrone);
+                    Debug.LogError($"[DroneFlight] {assemblyError}", currentDrone);
                     return;
                 }
 
-                var controller = currentDrone.GetComponent<DroneFlightController>();
-                var body = currentDrone.GetComponent<Rigidbody>();
-                var cameraRig = currentDrone.GetComponentInChildren<DroneCameraRig>(true);
-                currentInput = currentDrone.GetComponent<DronePlayerInput>();
-                var landingGear = currentDrone.GetComponent<DroneLandingGearController>();
-                var equipmentHost = currentDrone.GetComponent<DroneEquipmentHost>();
-                var equipmentInput = currentDrone.GetComponent<DroneHookInput>();
-                var remote = currentDrone.GetComponent<DroneRemoteControllerExperience>();
-                var context = currentDrone.GetComponent<DroneFlightSceneContext>();
-                var module = FindEquipmentModule(currentDrone);
-                var requiresEquipmentModule = selection != DroneVehicleKind.Plain;
-                if (context == null || controller == null || body == null || equipmentHost == null
-                    || requiresEquipmentModule && module == null)
-                {
-                    Debug.LogError("[DroneFlight] 所选机型缺少 Context、飞控、刚体或装备宿主。", currentDrone);
-                    return;
-                }
-
-                var telemetry = currentDrone.GetComponent<DroneFlightUiTelemetrySource>()
-                                ?? currentDrone.AddComponent<DroneFlightUiTelemetrySource>();
-                var debugRenderer = currentDrone.GetComponent<DroneFlightDebugDrawRenderer>()
-                                    ?? currentDrone.AddComponent<DroneFlightDebugDrawRenderer>();
-                equipmentHost.Configure(controller, body, cameraRig != null ? cameraRig.OutputCamera : null, module);
-                equipmentInput?.Configure(equipmentHost, landingGear, remote);
-                remote?.Configure(playerCamera, cameraRig, currentInput, controller, equipmentInput);
-                // 生成首帧先屏蔽玩法 Update，避免消费进入 Play 或点击机型前残留的按键边沿。
-                if (remote != null)
-                {
-                    remote.enabled = false;
-                }
-                if (currentInput != null)
-                {
-                    currentInput.enabled = false;
-                }
-                if (equipmentInput != null)
-                {
-                    equipmentInput.enabled = false;
-                }
-                context.Configure(
-                    controller,
-                    currentInput,
-                    cameraRig,
-                    remote,
-                    equipmentHost,
-                    landingGear,
-                    telemetry,
-                    debugRenderer);
-                PrepareDockedEquipment(currentDrone, selection);
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-                controller.SetArmed(false);
-
-                telemetry.Configure(context);
-                debugRenderer.Configure(context);
+                currentInput = runtime.Input;
                 currentInput.ReloadRequested += HandleReloadRequested;
-
-                currentDrone.SetActive(false);
-                currentDrone.transform.SetParent(null, true);
-                currentDrone.SetActive(true);
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-                Physics.SyncTransforms();
+                runtime.Activate();
                 await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
-                remote?.ReturnToWaiting();
-                controller.SetArmed(false);
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-                if (remote != null)
-                {
-                    remote.enabled = true;
-                }
-                await uiController.ShowFlightViewsAsync(telemetry, debugRenderer, sessionId);
+                runtime.FinalizeAfterFirstPhysicsStep();
+                await uiController.ShowFlightViewsAsync(runtime.Telemetry, runtime.DebugRenderer, sessionId);
             }
             finally
             {
@@ -283,53 +218,5 @@ namespace Hotfix.DroneFlight
             }
         }
 
-        private static MonoBehaviour FindEquipmentModule(GameObject drone)
-        {
-            foreach (var candidate in drone.GetComponentsInChildren<MonoBehaviour>(true))
-            {
-                if (candidate is IDroneEquipmentModule)
-                {
-                    return candidate;
-                }
-            }
-            return null;
-        }
-
-        private static void PrepareDockedEquipment(GameObject drone, DroneVehicleKind selection)
-        {
-            if (selection == DroneVehicleKind.Plain)
-            {
-                return;
-            }
-
-            if (selection == DroneVehicleKind.Grapple)
-            {
-                foreach (var sensor in drone.GetComponentsInChildren<DroneGrappleContactSensor>(true))
-                {
-                    foreach (var collider in sensor.GetComponentsInChildren<Collider>(true))
-                    {
-                        collider.enabled = false;
-                    }
-                }
-                return;
-            }
-
-            var projectile = drone.GetComponentInChildren<DroneHarpoonProjectile>(true);
-            if (projectile == null)
-            {
-                return;
-            }
-            var body = projectile.GetComponent<Rigidbody>();
-            var colliderComponent = projectile.GetComponent<Collider>();
-            if (body != null)
-            {
-                body.isKinematic = true;
-                body.useGravity = false;
-            }
-            if (colliderComponent != null)
-            {
-                colliderComponent.enabled = false;
-            }
-        }
     }
 }

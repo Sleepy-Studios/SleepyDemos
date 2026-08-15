@@ -443,8 +443,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
-  payloadType: LightCargo
-  connectionPoint: {fileID: 0}
 --- !u!1 &553083878
 GameObject:
   m_ObjectHideFlags: 0
@@ -598,8 +596,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
-  payloadType: MediumCargo
-  connectionPoint: {fileID: 0}
 --- !u!1 &596816896
 GameObject:
   m_ObjectHideFlags: 0
@@ -795,8 +791,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
-  payloadType: MediumCargo
-  connectionPoint: {fileID: 0}
 --- !u!54 &795199936
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1055,8 +1049,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b24eb200f766834ca34c7d1e55655e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePayload
-  payloadType: OverloadCargo
-  connectionPoint: {fileID: 0}
 --- !u!1 &995074657
 GameObject:
   m_ObjectHideFlags: 0

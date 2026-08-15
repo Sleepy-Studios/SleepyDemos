@@ -6,7 +6,6 @@ namespace Hotfix.DroneFlight
     [CreateAssetMenu(fileName = "DroneGrappleConfig", menuName = "SleepyDemos/Drone Flight/Grapple Config")]
     public sealed class DroneGrappleConfig : ScriptableObject
     {
-        [Header("Mass And Travel")]
         [SerializeField] private float hardwareMassKilograms = 0.05f;
         [SerializeField] private float stowedDistanceMeters = 0.08f;
         [SerializeField] private float deployedDistanceMeters = 0.26f;
@@ -14,23 +13,19 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float dockPositionToleranceMeters = 0.015f;
         [SerializeField] private float dockSpeedToleranceMetersPerSecond = 0.12f;
 
-        [Header("Suspension")]
         [SerializeField] private float twistLimitDegrees = 25f;
         [SerializeField] private float swingLimitDegrees = 35f;
         [SerializeField, Range(0f, 1f)] private float dampingRatio = 0.45f;
         [SerializeField] private float maximumDampingTorqueNewtonMeters = 3f;
 
-        [Header("Claws")]
         [SerializeField] private float openAngleDegrees = 42f;
         [SerializeField] private float closedAngleDegrees = -18f;
         [SerializeField] private float clawSpring = 90f;
         [SerializeField] private float clawDamper = 10f;
-        [SerializeField] private float clawMaximumForce = 80f;
         [SerializeField] private int stableContactSteps = 3;
         [SerializeField] private float enclosureRadiusMeters = 0.23f;
         [SerializeField] private float enclosureHalfHeightMeters = 0.2f;
 
-        [Header("Assisted Grip")]
         [SerializeField] private float linearFreedomMeters = 0.02f;
         [SerializeField] private float constraintSpring = 220f;
         [SerializeField] private float constraintDamper = 24f;
@@ -52,7 +47,6 @@ namespace Hotfix.DroneFlight
         internal float ClosedAngleDegrees => closedAngleDegrees;
         internal float ClawSpring => clawSpring;
         internal float ClawDamper => clawDamper;
-        internal float ClawMaximumForce => clawMaximumForce;
         internal int StableContactSteps => stableContactSteps;
         internal float EnclosureRadiusMeters => enclosureRadiusMeters;
         internal float EnclosureHalfHeightMeters => enclosureHalfHeightMeters;
@@ -65,39 +59,50 @@ namespace Hotfix.DroneFlight
 
         internal bool TryValidate(out string diagnostic)
         {
+            var result = Validate();
+            diagnostic = result.ChineseMessage;
+            return result.IsValid;
+        }
+
+        /// 返回供运行时与双语 Inspector 共用的结构化校验结果。
+        internal DroneConfigValidationResult Validate()
+        {
             if (!IsPositive(hardwareMassKilograms) || hardwareMassKilograms > 0.5f)
             {
-                diagnostic = "抓斗设备总质量必须位于 (0, 0.5] kg。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "抓斗设备总质量必须位于 (0, 0.5] kg。",
+                    "Grapple hardware mass must be within (0, 0.5] kg.");
             }
 
             if (!IsPositive(stowedDistanceMeters) || deployedDistanceMeters <= stowedDistanceMeters
                 || !IsPositive(travelSpeedMetersPerSecond))
             {
-                diagnostic = "抓斗距离必须满足 0 < 收纳距离 < 放下距离，且短行程速度为正数。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "抓斗距离必须满足 0 < 收纳距离 < 放下距离，且短行程速度为正数。",
+                    "Grapple travel must satisfy 0 < stowed < deployed, and travel speed must be positive.");
             }
 
             if (!IsAngle(twistLimitDegrees) || !IsAngle(swingLimitDegrees)
                 || !float.IsFinite(dampingRatio) || dampingRatio <= 0f || dampingRatio > 1f)
             {
-                diagnostic = "抓斗摆角、扭转限位和阻尼参数无效。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "抓斗摆角、扭转限位和阻尼参数无效。",
+                    "Grapple swing, twist limits, or damping parameters are invalid.");
             }
 
-            if (!IsPositive(clawSpring) || !IsPositive(clawDamper) || !IsPositive(clawMaximumForce)
+            if (!IsPositive(clawSpring) || !IsPositive(clawDamper)
                 || stableContactSteps < 1 || !IsPositive(enclosureRadiusMeters)
                 || !IsPositive(enclosureHalfHeightMeters) || !IsPositive(linearFreedomMeters)
                 || !IsPositive(constraintSpring) || !IsPositive(constraintDamper)
                 || !IsPositive(breakForceNewtons) || !IsPositive(breakTorqueNewtonMeters)
                 || !IsPositive(supportedLoadSmoothingSeconds))
             {
-                diagnostic = "四爪驱动、接触门禁或辅助约束参数无效。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "四爪驱动、接触门禁或辅助约束参数无效。",
+                    "Claw drive, contact gate, or assisted-constraint parameters are invalid.");
             }
 
-            diagnostic = string.Empty;
-            return true;
+            return DroneConfigValidationResult.Valid;
         }
 
         private static bool IsPositive(float value) => float.IsFinite(value) && value > 0f;

@@ -17,7 +17,7 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8047582089225968800}
     - target: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
-      propertyPath: mechanismInput
+      propertyPath: equipmentInput
       value: 
       objectReference: {fileID: 2867699091313759726}
     - target: {fileID: 789631522917921022, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}
@@ -181,7 +181,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d4768632d00d9f4ba16519f9a3bff89, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHookInput
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneEquipmentInput
 --- !u!4 &5798584123685455399 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5297355456007271591, guid: 572e84d0451b0ae4888dc290cda88bcc, type: 3}

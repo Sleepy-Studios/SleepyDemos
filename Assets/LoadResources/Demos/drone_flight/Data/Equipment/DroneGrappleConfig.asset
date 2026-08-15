@@ -26,7 +26,6 @@ MonoBehaviour:
   closedAngleDegrees: -18
   clawSpring: 90
   clawDamper: 10
-  clawMaximumForce: 80
   stableContactSteps: 3
   enclosureRadiusMeters: 0.12
   enclosureHalfHeightMeters: 0.12

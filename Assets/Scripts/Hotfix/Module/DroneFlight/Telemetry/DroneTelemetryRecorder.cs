@@ -25,9 +25,7 @@ namespace Hotfix.DroneFlight
             Vector3 actualWorldVelocity = default,
             float attitudeTrackingErrorDegrees = 0f,
             DroneControlSaturation saturation = default,
-            float yawScale = 1f,
-            float swingAngleDegrees = 0f,
-            Vector3 antiSwingCorrection = default)
+            float yawScale = 1f)
         {
             Time = time;
             Height = height;
@@ -46,8 +44,6 @@ namespace Hotfix.DroneFlight
             AttitudeTrackingErrorDegrees = attitudeTrackingErrorDegrees;
             Saturation = saturation;
             YawScale = yawScale;
-            SwingAngleDegrees = swingAngleDegrees;
-            AntiSwingCorrection = antiSwingCorrection;
         }
 
         internal float Time { get; }
@@ -67,8 +63,6 @@ namespace Hotfix.DroneFlight
         internal float AttitudeTrackingErrorDegrees { get; }
         internal DroneControlSaturation Saturation { get; }
         internal float YawScale { get; }
-        internal float SwingAngleDegrees { get; }
-        internal Vector3 AntiSwingCorrection { get; }
 
         internal bool IsFinite => float.IsFinite(Time)
                                   && float.IsFinite(Height)
@@ -79,9 +73,7 @@ namespace Hotfix.DroneFlight
                                   && IsFiniteVector(TargetWorldVelocity)
                                   && IsFiniteVector(ActualWorldVelocity)
                                   && float.IsFinite(AttitudeTrackingErrorDegrees)
-                                  && float.IsFinite(YawScale)
-                                  && float.IsFinite(SwingAngleDegrees)
-                                  && IsFiniteVector(AntiSwingCorrection);
+                                  && float.IsFinite(YawScale);
 
         private static bool IsFiniteVector(Vector3 value)
         {
@@ -137,7 +129,6 @@ namespace Hotfix.DroneFlight
             var maximumVelocityError = 0f;
             var attitudeErrorSum = 0f;
             var maximumAttitudeError = 0f;
-            var maximumSwingAngle = 0f;
             var commandStartTime = float.NaN;
             var responseStartTime = float.NaN;
             var invalidSamples = 0;
@@ -163,7 +154,6 @@ namespace Hotfix.DroneFlight
                 maximumVelocityError = Math.Max(maximumVelocityError, velocityError);
                 attitudeErrorSum += sample.AttitudeTrackingErrorDegrees;
                 maximumAttitudeError = Math.Max(maximumAttitudeError, sample.AttitudeTrackingErrorDegrees);
-                maximumSwingAngle = Math.Max(maximumSwingAngle, sample.SwingAngleDegrees);
                 var horizontalTarget = Vector3.ProjectOnPlane(sample.TargetWorldVelocity, Vector3.up);
                 var horizontalActual = Vector3.ProjectOnPlane(sample.ActualWorldVelocity, Vector3.up);
                 if (float.IsNaN(commandStartTime) && horizontalTarget.magnitude > 0.1f)
@@ -188,7 +178,7 @@ namespace Hotfix.DroneFlight
             builder.AppendLine($"velocity.mae={velocityErrorSum / Count:F3}m/s, velocity.maxError={maximumVelocityError:F3}m/s");
             builder.AppendLine($"attitude.mae={attitudeErrorSum / Count:F2}deg, attitude.maxError={maximumAttitudeError:F2}deg");
             builder.AppendLine($"motor.saturated={saturatedSamples}/{Count}, axis.thrust/pitch/yaw/roll={thrustSaturatedSamples}/{pitchSaturatedSamples}/{yawSaturatedSamples}/{rollSaturatedSamples}, yawReduced={yawReducedSamples}");
-            builder.AppendLine($"input.responseDelay={(float.IsNaN(responseStartTime) ? -1f : Math.Max(0f, responseStartTime - commandStartTime)):F3}s, suspended.swingEnvelope={maximumSwingAngle:F2}deg");
+            builder.AppendLine($"input.responseDelay={(float.IsNaN(responseStartTime) ? -1f : Math.Max(0f, responseStartTime - commandStartTime)):F3}s");
             builder.AppendLine($"invalid={invalidSamples}");
             builder.Append($"last.rateTarget={last.TargetLocalRate:F3}, last.rateActual={last.ActualLocalRate:F3}");
             return builder.ToString();
@@ -242,9 +232,7 @@ namespace Hotfix.DroneFlight
                 body.linearVelocity,
                 CalculateAttitudeError(controller),
                 controller.LastAllocation.Saturation,
-                controller.LastAllocation.YawScale,
-                CalculateSwingAngle(controller),
-                controller.LastAntiSwingCorrection));
+                controller.LastAllocation.YawScale));
         }
 
         private static float CalculateAttitudeError(DroneFlightController controller)
@@ -252,14 +240,6 @@ namespace Hotfix.DroneFlight
             var force = controller.LastDesiredWorldForce;
             return force.sqrMagnitude > 0.000001f
                 ? Vector3.Angle(controller.transform.up, force.normalized)
-                : 0f;
-        }
-
-        private static float CalculateSwingAngle(DroneFlightController controller)
-        {
-            var suspension = controller.CurrentSuspensionState;
-            return suspension.IsActive && suspension.CableDirection.sqrMagnitude > 0.000001f
-                ? Vector3.Angle(Vector3.down, suspension.CableDirection)
                 : 0f;
         }
 

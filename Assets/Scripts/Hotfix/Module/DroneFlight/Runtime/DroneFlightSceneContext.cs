@@ -12,7 +12,6 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneEquipmentHost equipmentHost;
         [SerializeField] private DroneLandingGearController landingGear;
         [SerializeField] private DroneFlightUiTelemetrySource telemetrySource;
-        [SerializeField] private DroneFlightDebugDrawRenderer debugDrawRenderer;
 
         internal DroneFlightController FlightController => flightController;
         internal DronePlayerInput PlayerInput => playerInput;
@@ -21,7 +20,6 @@ namespace Hotfix.DroneFlight
         internal DroneEquipmentHost EquipmentHost => equipmentHost;
         internal DroneLandingGearController LandingGear => landingGear;
         internal DroneFlightUiTelemetrySource TelemetrySource => telemetrySource;
-        internal DroneFlightDebugDrawRenderer DebugDrawRenderer => debugDrawRenderer;
 
         internal void Configure(
             DroneFlightController controller,
@@ -30,8 +28,7 @@ namespace Hotfix.DroneFlight
             DroneRemoteControllerExperience remote,
             DroneEquipmentHost equipment,
             DroneLandingGearController gear,
-            DroneFlightUiTelemetrySource telemetry = null,
-            DroneFlightDebugDrawRenderer debugRenderer = null)
+            DroneFlightUiTelemetrySource telemetry = null)
         {
             flightController = controller;
             playerInput = input;
@@ -40,7 +37,6 @@ namespace Hotfix.DroneFlight
             equipmentHost = equipment;
             landingGear = gear;
             telemetrySource = telemetry;
-            debugDrawRenderer = debugRenderer;
         }
     }
 

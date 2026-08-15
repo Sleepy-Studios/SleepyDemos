@@ -24,8 +24,6 @@ namespace Hotfix.DroneFlight
 
         internal float Progress => isHolding ? Mathf.Clamp01(elapsedSeconds / holdSeconds) : 0f;
 
-        internal bool IsHolding => isHolding;
-
         internal void Begin()
         {
             elapsedSeconds = 0f;

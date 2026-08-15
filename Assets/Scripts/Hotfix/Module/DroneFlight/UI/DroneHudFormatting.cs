@@ -19,13 +19,6 @@ namespace Hotfix.DroneFlight
             float gimbalYaw,
             float gimbalPitch,
             float fieldOfView,
-            bool hasPayload,
-            string payloadType,
-            float payloadMass,
-            PayloadReleaseReason releaseReason,
-            DroneGrappleState grappleState = DroneGrappleState.Open,
-            int grappleContacts = 0,
-            DroneWinchState winchState = DroneWinchState.Stowed,
             DroneLandingGearState landingGearState = DroneLandingGearState.Deployed)
         {
             OperationState = operationState;
@@ -41,13 +34,6 @@ namespace Hotfix.DroneFlight
             GimbalYaw = gimbalYaw;
             GimbalPitch = gimbalPitch;
             FieldOfView = fieldOfView;
-            HasPayload = hasPayload;
-            PayloadType = payloadType;
-            PayloadMass = payloadMass;
-            ReleaseReason = releaseReason;
-            GrappleState = grappleState;
-            GrappleContacts = grappleContacts;
-            WinchState = winchState;
             LandingGearState = landingGearState;
         }
 
@@ -64,13 +50,6 @@ namespace Hotfix.DroneFlight
         internal float GimbalYaw { get; }
         internal float GimbalPitch { get; }
         internal float FieldOfView { get; }
-        internal bool HasPayload { get; }
-        internal string PayloadType { get; }
-        internal float PayloadMass { get; }
-        internal PayloadReleaseReason ReleaseReason { get; }
-        internal DroneGrappleState GrappleState { get; }
-        internal int GrappleContacts { get; }
-        internal DroneWinchState WinchState { get; }
         internal DroneLandingGearState LandingGearState { get; }
     }
 
@@ -90,24 +69,11 @@ namespace Hotfix.DroneFlight
             return $"{FormatCameraMode(snapshot.CameraMode)}   云台 Y {snapshot.GimbalYaw:F0}° / P {snapshot.GimbalPitch:F0}°   FOV {snapshot.FieldOfView:F0}°";
         }
 
-        internal static string FormatPayload(DroneHudSnapshot snapshot)
-        {
-            var payload = snapshot.HasPayload
-                ? $"已抓取 {snapshot.PayloadType} {snapshot.PayloadMass:F2} kg"
-                : $"{FormatGrappleState(snapshot.GrappleState)} 接触 {snapshot.GrappleContacts}/2";
-            return $"四爪 {payload}   卷扬 {FormatWinchState(snapshot.WinchState)}   起落架 {FormatLandingGearState(snapshot.LandingGearState)}";
-        }
-
         internal static string FormatWarning(DroneHudSnapshot snapshot)
         {
             if (snapshot.OperationState == DroneFlightOperationState.Fault)
             {
                 return "飞控故障：请长按 R 重新运行场景";
-            }
-
-            if (snapshot.ReleaseReason == PayloadReleaseReason.Overload)
-            {
-                return "载荷超重：挂载已拒绝";
             }
 
             if (snapshot.OperationState == DroneFlightOperationState.Landing
@@ -141,7 +107,7 @@ namespace Hotfix.DroneFlight
                    + "1 / 2 / 3  平稳 / 普通 / 运动\n"
                    + "C  切换视角    方向键 / - / =  镜头\n"
                    + "L  起落架收放    " + equipment
-                   + "F3  调试面板    F4  复制遥测\n"
+                   + "F2  动力矢量    F3  调试面板    F4  复制遥测\n"
                    + "Backspace  返回主界面";
         }
 
@@ -165,31 +131,6 @@ namespace Hotfix.DroneFlight
                 DroneCameraMode.FixedForward => "机头（Forward）",
                 DroneCameraMode.Belly => "机腹（Belly）",
                 _ => mode.ToString()
-            };
-        }
-
-        private static string FormatGrappleState(DroneGrappleState state)
-        {
-            return state switch
-            {
-                DroneGrappleState.Closing => "闭合中",
-                DroneGrappleState.Contacting => "接触中",
-                DroneGrappleState.AssistedGrip => "抓取",
-                DroneGrappleState.Releasing => "释放中",
-                DroneGrappleState.Broken => "已脱落",
-                _ => "张开"
-            };
-        }
-
-        private static string FormatWinchState(DroneWinchState state)
-        {
-            return state switch
-            {
-                DroneWinchState.Deploying => "放出中",
-                DroneWinchState.Deployed => "已放出",
-                DroneWinchState.Retracting => "收回中",
-                DroneWinchState.Carrying => "运输高度",
-                _ => "已收纳"
             };
         }
 

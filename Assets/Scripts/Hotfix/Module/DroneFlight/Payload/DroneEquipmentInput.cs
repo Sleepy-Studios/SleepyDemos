@@ -3,8 +3,8 @@ using UnityEngine.InputSystem;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>腹部装备通用输入；保留类名以兼容现有 Prefab 序列化引用。</summary>
-    public sealed class DroneHookInput : MonoBehaviour
+    /// <summary>处理腹部装备和起落架的玩家输入。</summary>
+    public sealed class DroneEquipmentInput : MonoBehaviour
     {
         [SerializeField] private DroneEquipmentHost equipmentHost;
         [SerializeField] private DroneLandingGearController landingGear;

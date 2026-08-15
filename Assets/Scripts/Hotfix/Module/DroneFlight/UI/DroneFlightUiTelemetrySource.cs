@@ -81,7 +81,6 @@ namespace Hotfix.DroneFlight
             var equipment = context.EquipmentHost != null ? context.EquipmentHost.Snapshot : default;
             var planarVelocity = new Vector2(body.linearVelocity.x, body.linearVelocity.z);
             var planarOffset = new Vector2(body.position.x - homePosition.x, body.position.z - homePosition.z);
-            var hasPayload = equipment.PayloadMassKilograms > 0f;
             var hud = new DroneHudSnapshot(
                 controller.OperationState,
                 controller.ResponseProfile,
@@ -96,13 +95,6 @@ namespace Hotfix.DroneFlight
                 cameraRig.GimbalYawDegrees,
                 cameraRig.GimbalPitchDegrees,
                 cameraRig.FieldOfView,
-                hasPayload,
-                hasPayload ? "目标" : string.Empty,
-                equipment.PayloadMassKilograms,
-                PayloadReleaseReason.None,
-                DroneGrappleState.Open,
-                equipment.ContactCount,
-                DroneWinchState.Stowed,
                 context.LandingGear != null ? context.LandingGear.State : DroneLandingGearState.Deployed);
             var equipmentText = equipment.Kind switch
             {

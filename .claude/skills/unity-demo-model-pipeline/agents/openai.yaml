@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Demo 建模流水线"
+  short_description: "从玩法需求到 Blender 建模、Unity 导入与验收闭环"
+  default_prompt: "Use $unity-demo-model-pipeline to turn this Unity Demo gameplay requirement into a confirmed model, import, and validation workflow."

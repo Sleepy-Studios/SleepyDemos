@@ -14,9 +14,9 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneResponseProfile responseProfile = DroneResponseProfile.Normal;
         [SerializeField] private MonoBehaviour externalMassProviderSource;
 
-        private readonly DroneRotor[] orderedRotors = new DroneRotor[4];
-        private readonly DroneMotorModel[] motors = new DroneMotorModel[4];
-        private readonly DroneMotorState[] motorStates = new DroneMotorState[4];
+        private readonly DroneRotor[] orderedRotors = new DroneRotor[DroneRotorActuatorRuntime.RotorCount];
+        private readonly DroneMotorModel[] motors = new DroneMotorModel[DroneRotorActuatorRuntime.RotorCount];
+        private readonly DroneMotorState[] motorStates = new DroneMotorState[DroneRotorActuatorRuntime.RotorCount];
 
         private Rigidbody body;
         private DronePidController rollRateController;
@@ -37,16 +37,12 @@ namespace Hotfix.DroneFlight
         private float unsafeTiltDuration;
         private float hoverCommand;
         private IDroneExternalMassProvider externalMassProvider;
-        private IDroneSuspensionStateProvider suspensionStateProvider;
         private bool initialized;
         private Vector3 lastTargetLocalRate;
         private Vector3 lastActualLocalRate;
         private Vector3 lastDesiredWorldVelocity;
         private Vector3 lastDesiredWorldAcceleration;
         private Vector3 lastDesiredWorldForce;
-        private Vector3 lastDesiredLocalTorque;
-        private Vector3 lastRealizedLocalTorque;
-        private Vector3 lastAntiSwingCorrection;
         private Vector3 previousVelocity;
         private Vector3 previousLocalAngularVelocity;
         private Vector3 filteredAcceleration;
@@ -100,31 +96,13 @@ namespace Hotfix.DroneFlight
 
         internal DronePidTelemetry YawRateTelemetry => yawRateController?.Telemetry ?? default;
 
-        internal DronePidTelemetry VerticalSpeedTelemetry => verticalSpeedController?.Telemetry ?? default;
-
-        internal DronePidTelemetry HorizontalVelocityXTelemetry => horizontalVelocityXController?.Telemetry ?? default;
-
-        internal DronePidTelemetry HorizontalVelocityZTelemetry => horizontalVelocityZController?.Telemetry ?? default;
-
         internal Vector3 LastDesiredWorldForce => lastDesiredWorldForce;
-
-        internal Vector3 LastDesiredLocalTorque => lastDesiredLocalTorque;
-
-        internal Vector3 LastRealizedLocalTorque => lastRealizedLocalTorque;
-
-        internal Vector3 LastAntiSwingCorrection => lastAntiSwingCorrection;
 
         internal DroneAllocationResult LastAllocation => lastAllocation;
 
-        internal DroneSuspensionState CurrentSuspensionState => suspensionStateProvider?.SuspensionState ?? default;
-
         internal float CurrentHardwareMassKilograms => externalMassProvider?.HardwareMassKilograms ?? 0f;
 
-        internal float CurrentInstalledHardwareMassKilograms => externalMassProvider?.InstalledHardwareMassKilograms ?? 0f;
-
         internal float CurrentPayloadMassKilograms => externalMassProvider?.PayloadMassKilograms ?? 0f;
-
-        internal float CurrentSupportedPayloadMassKilograms => externalMassProvider?.SupportedPayloadMassKilograms ?? 0f;
 
         internal float CurrentSupportedMassKilograms => body != null
             ? body.mass + (externalMassProvider?.SupportedMassKilograms ?? 0f)
@@ -138,12 +116,6 @@ namespace Hotfix.DroneFlight
             : 0f;
 
         internal float CurrentPowerReserve => Mathf.Clamp01(1f - CurrentHoverCommand);
-
-        internal DronePayloadOperatingZone CurrentPayloadZone => CurrentPayloadMassKilograms > config.MaximumPayloadMassKilograms
-            ? DronePayloadOperatingZone.OverloadRejected
-            : CurrentPayloadMassKilograms > config.RatedPayloadKilograms
-                ? DronePayloadOperatingZone.AboveRated
-                : DronePayloadOperatingZone.Rated;
 
         /// <summary>当前档位的键盘输入上升率。</summary>
         internal float InputRiseRate => initialized ? config.GetProfile(responseProfile).InputRiseRate : 0f;
@@ -164,7 +136,6 @@ namespace Hotfix.DroneFlight
         {
             externalMassProviderSource = provider;
             externalMassProvider = provider as IDroneExternalMassProvider;
-            suspensionStateProvider = provider as IDroneSuspensionStateProvider;
             body ??= GetComponent<Rigidbody>();
             RefreshMassDistribution();
         }
@@ -225,14 +196,6 @@ namespace Hotfix.DroneFlight
                 trajectory.WorldAcceleration.y,
                 deltaTime);
             var desiredAcceleration = new Vector3(horizontalX, vertical, horizontalZ);
-            var suspensionState = suspensionStateProvider?.SuspensionState ?? default;
-            lastAntiSwingCorrection = DroneSuspendedLoadAssist.CalculateCorrection(
-                suspensionState,
-                config.AntiSwingStrength,
-                config.AntiSwingMaximumAcceleration,
-                profile.MaximumHorizontalAcceleration,
-                responseProfile == DroneResponseProfile.Sport);
-            desiredAcceleration += lastAntiSwingCorrection;
             var horizontalAcceleration = Vector3.ClampMagnitude(
                 new Vector3(desiredAcceleration.x, 0f, desiredAcceleration.z),
                 profile.MaximumHorizontalAcceleration);
@@ -283,20 +246,25 @@ namespace Hotfix.DroneFlight
                 pitchAcceleration,
                 yawAcceleration,
                 rollAcceleration);
-            lastDesiredLocalTorque = DronePhysicalControlMath.CalculateLocalTorque(
+            var desiredLocalTorque = DronePhysicalControlMath.CalculateLocalTorque(
                 desiredLocalAngularAcceleration,
                 state.LocalAngularVelocity,
                 body.inertiaTensor,
                 body.inertiaTensorRotation);
-            lastAllocation = controlAllocator.Allocate(desiredForce.magnitude, lastDesiredLocalTorque);
-            lastRealizedLocalTorque = lastAllocation.RealizedTorqueNewtonMeters;
+            lastAllocation = controlAllocator.Allocate(desiredForce.magnitude, desiredLocalTorque);
             pitchRateController.ApplyDirectionalSaturation(lastAllocation.Saturation.Pitch);
             yawRateController.ApplyDirectionalSaturation(lastAllocation.Saturation.Yaw);
             rollRateController.ApplyDirectionalSaturation(lastAllocation.Saturation.Roll);
             verticalSpeedController.ApplyDirectionalSaturation(lastAllocation.Saturation.Thrust);
 
             LastMotorOutput = BuildMotorOutput(lastAllocation);
-            StepAndApplyMotors(LastMotorOutput, deltaTime);
+            LastTotalThrustNewtons = DroneRotorActuatorRuntime.StepAndApply(
+                body,
+                orderedRotors,
+                motors,
+                motorStates,
+                LastMotorOutput,
+                deltaTime);
         }
 
         /// <summary>
@@ -391,9 +359,6 @@ namespace Hotfix.DroneFlight
             lastDesiredWorldVelocity = Vector3.zero;
             lastDesiredWorldAcceleration = Vector3.zero;
             lastDesiredWorldForce = Vector3.zero;
-            lastDesiredLocalTorque = Vector3.zero;
-            lastRealizedLocalTorque = Vector3.zero;
-            lastAntiSwingCorrection = Vector3.zero;
             lastAllocation = default;
             filteredAcceleration = Vector3.zero;
             filteredLocalAngularAcceleration = Vector3.zero;
@@ -444,17 +409,13 @@ namespace Hotfix.DroneFlight
 
             body = GetComponent<Rigidbody>();
             externalMassProvider = externalMassProviderSource as IDroneExternalMassProvider;
-            suspensionStateProvider = externalMassProviderSource as IDroneSuspensionStateProvider;
-            if (externalMassProvider == null)
-            {
-                var winch = GetComponent<DroneWinchController>();
-                externalMassProvider = winch;
-                externalMassProviderSource = winch;
-                suspensionStateProvider = winch;
-            }
             ApplyBodySettings();
-            if (!TryOrderRotors(GetComponentsInChildren<DroneRotor>(true)))
+            if (!DroneRotorActuatorRuntime.TryOrder(
+                    GetComponentsInChildren<DroneRotor>(true),
+                    orderedRotors,
+                    out var rotorError))
             {
+                Debug.LogError($"[DroneFlight] {rotorError}", this);
                 return false;
             }
 
@@ -806,84 +767,21 @@ namespace Hotfix.DroneFlight
             }
         }
 
-        private bool TryOrderRotors(DroneRotor[] rotors)
-        {
-            if (rotors.Length != orderedRotors.Length)
-            {
-                Debug.LogError($"[DroneFlight] 需要 4 个 DroneRotor，当前找到 {rotors.Length} 个。", this);
-                return false;
-            }
-
-            var assigned = new bool[orderedRotors.Length];
-            foreach (var rotor in rotors)
-            {
-                var index = (int)rotor.Position;
-                if (index < 0 || index >= orderedRotors.Length || assigned[index])
-                {
-                    Debug.LogError($"[DroneFlight] Rotor 位置重复或越界：{rotor.Position}。", rotor);
-                    return false;
-                }
-
-                assigned[index] = true;
-                orderedRotors[index] = rotor;
-            }
-
-            return true;
-        }
-
-        private void StepAndApplyMotors(QuadrotorMotorOutput output, float deltaTime)
-        {
-            var commands = new[] { output.FrontLeft, output.FrontRight, output.RearLeft, output.RearRight };
-            LastTotalThrustNewtons = 0f;
-            for (var index = 0; index < motors.Length; index++)
-            {
-                var state = motors[index].Step(commands[index], deltaTime);
-                motorStates[index] = state;
-                LastTotalThrustNewtons += state.ThrustNewtons;
-                var rotor = orderedRotors[index];
-                body.AddForceAtPosition(
-                    rotor.ForceDirection * state.ThrustNewtons,
-                    rotor.ForceTransform.position,
-                    ForceMode.Force);
-                body.AddTorque(
-                    rotor.ForceDirection
-                    * state.ReactionTorqueNewtonMeters
-                    * (float)rotor.Direction,
-                    ForceMode.Force);
-
-                rotor.SetVisualRpm(state.Rpm);
-            }
-        }
-
         internal bool TryGetRotorDebugVector(int index, out Vector3 origin, out Vector3 thrustForce)
         {
-            if (index < 0 || index >= orderedRotors.Length || orderedRotors[index] == null)
-            {
-                origin = Vector3.zero;
-                thrustForce = Vector3.zero;
-                return false;
-            }
-
-            var forceTransform = orderedRotors[index].ForceTransform;
-            origin = forceTransform.position;
-            thrustForce = orderedRotors[index].ForceDirection * motorStates[index].ThrustNewtons;
-            return true;
+            return DroneRotorActuatorRuntime.TryGetDebugVector(
+                orderedRotors,
+                motorStates,
+                index,
+                out origin,
+                out thrustForce);
         }
 
         internal Vector3 CurrentTotalThrustVector
         {
             get
             {
-                var total = Vector3.zero;
-                for (var index = 0; index < orderedRotors.Length; index++)
-                {
-                    if (orderedRotors[index] != null)
-                    {
-                        total += orderedRotors[index].ForceDirection * motorStates[index].ThrustNewtons;
-                    }
-                }
-
-                return total;
+                return DroneRotorActuatorRuntime.SumThrust(orderedRotors, motorStates);
             }
         }
 

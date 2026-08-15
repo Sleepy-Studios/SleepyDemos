@@ -57,3 +57,4 @@ powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_
 | `task-retrospective` | 任务完成后沉淀复盘和更优提示词 | 按技能内保存路径执行 |
 | `gen-module` | 生成或修改 Flux 模块的 Action / Data / Handler 三件套 | 从钓鱼项目迁入；使用前必须确认 SleepyDemos 当前模块结构、协议类型和网络发送方式是否匹配 |
 | `module-docs` | 按 `architecture` / `modules` / `runbooks` 三层体系补齐模块文档 | 做完大型模块或调整模块文档边界时使用 |
+| `unity-demo-model-pipeline` | 从 Unity 玩法需求形成建模契约，完成 Blender、FBX、Unity 装配与验收闭环 | 建模前必须确认尺寸、轴向、层级、Pivot、材质、碰撞和交付路径 |

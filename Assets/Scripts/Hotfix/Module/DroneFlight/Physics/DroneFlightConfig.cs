@@ -141,7 +141,6 @@ namespace Hotfix.DroneFlight
 
         [Header("Altitude")]
         [SerializeField] private float altitudeGain = 1.5f;
-        [SerializeField] private float maximumVerticalSpeedMetersPerSecond = 2f;
         [SerializeField] private float verticalSpeedProportionalGain = 2.4f;
         [SerializeField] private float verticalSpeedIntegralGain = 0.8f;
         [SerializeField] private float verticalSpeedDerivativeGain = 0.15f;
@@ -150,7 +149,6 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float verticalSpeedDerivativeFilterHz = 5f;
 
         [Header("Horizontal Position")]
-        [SerializeField] private float maximumHorizontalSpeedMetersPerSecond = 4f;
         [SerializeField] private float horizontalPositionGain = 0.35f;
         [SerializeField] private float horizontalVelocityGain = 1.2f;
         [SerializeField] private float horizontalVelocityIntegralGain = 0.25f;
@@ -158,7 +156,6 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float horizontalVelocityOutputLimit = 10f;
         [SerializeField] private float horizontalVelocityIntegralLimit = 3f;
         [SerializeField] private float horizontalVelocityDerivativeFilterHz = 5f;
-        [SerializeField] private float maximumHorizontalAccelerationMetersPerSecondSquared = 2.5f;
 
         [Header("Response Profiles")]
         [SerializeField] private DroneResponseProfileConfig cineProfile = new(
@@ -179,8 +176,6 @@ namespace Hotfix.DroneFlight
         [Header("Input And Reset")]
         [SerializeField] private float resetHoldSeconds = 5f;
 
-        internal DronePowerConfigurationMode PowerConfigurationMode => powerConfigurationMode;
-
         internal float RatedPayloadKilograms => ratedPayloadKilograms;
 
         internal float BodyMassMultiplier => bodyMassMultiplier;
@@ -188,8 +183,6 @@ namespace Hotfix.DroneFlight
         internal float MaximumPayloadMultiplier => maximumPayloadMultiplier;
 
         internal float RatedPayloadHoverCommand => ratedPayloadHoverCommand;
-
-        internal float MotorResponsiveness => motorResponsiveness;
 
         internal DronePayloadTuningResult AutomaticTuning => DronePayloadTuningCalculator.Calculate(
             new DronePayloadTuningInput(
@@ -242,25 +235,8 @@ namespace Hotfix.DroneFlight
         /// <summary>高度误差到目标垂直速度的比例。</summary>
         internal float AltitudeGain => altitudeGain;
 
-        /// <summary>目标垂直速度限幅，单位 m/s。</summary>
-        internal float MaximumVerticalSpeedMetersPerSecond => maximumVerticalSpeedMetersPerSecond;
-
-        /// <summary>Normal 档最大水平速度，单位 m/s。</summary>
-        internal float MaximumHorizontalSpeedMetersPerSecond => maximumHorizontalSpeedMetersPerSecond;
-
         /// <summary>位置误差到目标水平速度的比例。</summary>
         internal float HorizontalPositionGain => horizontalPositionGain;
-
-        /// <summary>速度误差到目标水平加速度的比例。</summary>
-        internal float HorizontalVelocityGain => horizontalVelocityGain;
-
-        // 新装备宿主不提供主动防摆状态；保留只读零值以维持飞控二进制契约。
-        internal float AntiSwingStrength => 0f;
-
-        internal float AntiSwingMaximumAcceleration => 0f;
-
-        /// <summary>水平加速度限幅，单位 m/s²。</summary>
-        internal float MaximumHorizontalAccelerationMetersPerSecondSquared => maximumHorizontalAccelerationMetersPerSecondSquared;
 
         internal float AutomaticTakeoffHeightMeters => automaticTakeoffHeightMeters;
 
@@ -404,21 +380,19 @@ namespace Hotfix.DroneFlight
                 return false;
             }
 
-            if (!IsPositiveFinite(altitudeGain) || !IsPositiveFinite(maximumVerticalSpeedMetersPerSecond))
+            if (!IsPositiveFinite(altitudeGain))
             {
-                diagnostic = "高度增益和最大垂直速度必须是大于 0 的有限值。";
+                diagnostic = "高度增益必须是大于 0 的有限值。";
                 return false;
             }
 
-            if (!IsPositiveFinite(maximumHorizontalSpeedMetersPerSecond)
-                || !IsPositiveFinite(horizontalPositionGain)
+            if (!IsPositiveFinite(horizontalPositionGain)
                 || !IsPositiveFinite(horizontalVelocityGain)
                 || !float.IsFinite(horizontalVelocityIntegralGain) || horizontalVelocityIntegralGain < 0f
                 || !float.IsFinite(horizontalVelocityDerivativeGain) || horizontalVelocityDerivativeGain < 0f
                 || !IsPositiveFinite(horizontalVelocityOutputLimit)
                 || !IsPositiveFinite(horizontalVelocityIntegralLimit)
-                || !IsPositiveFinite(horizontalVelocityDerivativeFilterHz)
-                || !IsPositiveFinite(maximumHorizontalAccelerationMetersPerSecondSquared))
+                || !IsPositiveFinite(horizontalVelocityDerivativeFilterHz))
             {
                 diagnostic = "水平速度、位置增益和加速度限制必须是大于 0 的有限值。";
                 return false;
@@ -465,6 +439,35 @@ namespace Hotfix.DroneFlight
 
             diagnostic = string.Empty;
             return true;
+        }
+
+        /// 返回供运行时与双语 Inspector 共用的结构化校验结果。
+        internal DroneConfigValidationResult Validate()
+        {
+            if (TryValidate(out var diagnostic))
+            {
+                return DroneConfigValidationResult.Valid;
+            }
+
+            var english = diagnostic switch
+            {
+                "额定载重必须是大于 0 的有限值。" => "Rated payload must be a finite value greater than zero.",
+                "最大载荷倍率必须是大于等于 1 的有限值。" => "Maximum payload multiplier must be a finite value greater than or equal to one.",
+                "机体质量必须是大于 0 的有限值。" => "Airframe mass must be a finite value greater than zero.",
+                "最大转速和推力系数必须是大于 0 的有限值。" => "Maximum RPM and thrust coefficient must be finite values greater than zero.",
+                "电机响应时间和反扭矩系数必须是大于 0 的有限值。" => "Motor response time and reaction-torque coefficient must be finite values greater than zero.",
+                "姿态增益、偏航权重、Rate 前馈必须合法，状态导数滤波必须位于 (0, 10] Hz。" => "Attitude gains, yaw weight, and rate feed-forward must be valid; the state-derivative filter must be within (0, 10] Hz.",
+                "高度增益和最大垂直速度必须是大于 0 的有限值。" => "Altitude gain and maximum vertical speed must be finite values greater than zero.",
+                "水平速度、位置增益和加速度限制必须是大于 0 的有限值。" => "Horizontal speed, position gains, and acceleration limits must be finite values greater than zero.",
+                "Cine、Normal、Sport 响应档位必须全部存在且参数有效。" => "Cine, Normal, and Sport profiles must all exist and contain valid parameters.",
+                "起落架过渡时间必须为正数。" => "Landing-gear transition time must be positive.",
+                "长按重载场景时间必须是大于 0 的有限值。" => "Scene-reload hold time must be a finite value greater than zero.",
+                "自动起飞高度和自动降落速度必须是大于 0 的有限值。" => "Automatic takeoff height and landing speed must be finite values greater than zero.",
+                "手动物理参数的最大推力不足，额定载重工况无法悬停。" => "Manual physics cannot provide enough thrust to hover at the rated payload.",
+                "自动载重调校无法满足额定工况悬停。" => "Automatic payload tuning cannot hover at the rated operating condition.",
+                _ => "Automatic payload tuning inputs are invalid; check rated payload, mass multiplier, hover command, and maximum RPM."
+            };
+            return DroneConfigValidationResult.Invalid(diagnostic, english);
         }
 
         private static bool IsPositiveFinite(float value)

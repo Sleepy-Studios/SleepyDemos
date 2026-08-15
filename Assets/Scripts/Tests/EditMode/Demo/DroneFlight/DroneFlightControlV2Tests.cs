@@ -155,25 +155,6 @@ namespace Tests.Demo
             Assert.That(state.ThrustNewtons, Is.EqualTo(4f).Within(0.001f));
         }
 
-        [Test]
-        public void AntiSwing_IsCappedAndSportUsesHalfStrength()
-        {
-            var suspension = new DroneSuspensionState(
-                true,
-                0.5f,
-                1f,
-                new Vector3(0.05f, -0.9987f, 0f).normalized,
-                new Vector3(0.05f, 0f, 0f));
-
-            var normal = DroneSuspendedLoadAssist.CalculateCorrection(suspension, 35f, 1f, 4f, false);
-            var sport = DroneSuspendedLoadAssist.CalculateCorrection(suspension, 35f, 1f, 4f, true);
-            var stowed = DroneSuspendedLoadAssist.CalculateCorrection(default, 35f, 1f, 4f, false);
-
-            Assert.That(normal.magnitude, Is.LessThanOrEqualTo(1.001f));
-            Assert.That(sport.magnitude, Is.EqualTo(normal.magnitude * 0.5f).Within(0.001f));
-            Assert.That(stowed, Is.EqualTo(Vector3.zero));
-        }
-
         private static QuadrotorControlAllocator CreateAllocator(float maximumRotorThrust)
         {
             return new QuadrotorControlAllocator(

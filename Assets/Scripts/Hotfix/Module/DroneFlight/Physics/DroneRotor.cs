@@ -49,8 +49,6 @@ namespace Hotfix.DroneFlight
         internal Transform VisualPropeller => visualPropeller;
 
         /// 平滑旋翼视觉驱动；不得参与推力计算。
-        internal DroneRotorVisual RotorVisual => rotorVisual;
-
         /// <summary>
         /// 由运行时装配器或测试工况显式设置旋翼语义。
         /// </summary>

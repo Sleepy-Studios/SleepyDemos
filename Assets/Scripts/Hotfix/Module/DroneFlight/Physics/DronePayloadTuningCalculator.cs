@@ -9,13 +9,6 @@ namespace Hotfix.DroneFlight
         ManualPhysics
     }
 
-    internal enum DronePayloadOperatingZone
-    {
-        Rated,
-        AboveRated,
-        OverloadRejected
-    }
-
     /// <summary>自动载重调校的纯数据输入。</summary>
     internal readonly struct DronePayloadTuningInput
     {

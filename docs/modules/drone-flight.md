@@ -40,6 +40,8 @@ Assets/LoadResources/Demos/drone_flight/
 
 `DroneFlightMechanismBuilder` 是视觉装配的唯一编辑期入口：它关闭 FBX 动画、灯光、相机和 BlendShape 导入，按 `MAT_*` 槽确定性映射到六个外部 URP Lit 材质，并把完整 FBX 嵌套为 `DronePrototype/DroneModel`。`DroneRotor` 直接挂到四个 `RotorHub_*`，起落架控制器直接引用四个 `LandingGear_*`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch`；只在各轮毂下实例化必要的共享 CW/CCW 桨叶，不再维护第二套 Rotor、LandingGear 或 Gimbal 包装层。机体与机臂 BoxCollider 统一收在 `CollisionProxies`，脚底代理跟随真实起落架节点，不使用动态 MeshCollider。灯带材质启用 Emission，本阶段不生成 BaseColor、Normal 或 ORM 位图。
 
+上述节点、坐标、轴向、材质槽和挂点的机器真源是 `DroneFlightModelContract`。Builder 与 `DronePrototypeContractTests` 必须读取同一契约；完整语义见[正式模型契约](./drone-flight-model-contract.md)。
+
 FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的 Transform 朝向不能直接当作物理推力方向。`DroneRotor` 仍直接挂在 RotorHub 上，但由 Prefab 根节点显式提供机体局部 `+Y` 作为物理推力轴；桨叶视觉也绕同一机体轴旋转。Builder 和契约测试同时校验四个施力坐标及推力轴，避免模型能显示但控制分配矩阵失效。
 
 ## 进入和 UI 生命周期
@@ -47,10 +49,10 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
 2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView, DroneFlightVehicleSelectionData>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
 3. 选择后关闭 Pop，通过资源 Loader 直接实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，但不会在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
-4. 在失活状态完成 Context、装备、Camera 和输入装配，关闭收纳爪/停靠弹体碰撞；激活后经过首个物理步再次强制 `Waiting`、锁定和零初速度，最后才开放 F 输入并显示 HUD。
-5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`。
+4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配，关闭收纳爪/停靠弹体碰撞；它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步再次强制 `Waiting`、锁定和零初速度，最后才开放 F 输入并显示 HUD。
+5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制不属于 UI Prefab 的 Game View 动力矢量绘制。
 6. 无人机处于 `Waiting`；按 F 进入第三人称 `Active`，但保持锁定。
-7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F3，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
+7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
 ## 配置边界
 
@@ -62,7 +64,7 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 
 ## 装备公共接口
 
-`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理。Host 同时适配既有 `IDroneExternalMassProvider`：
+`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理，并直接实现飞控需要的 `IDroneExternalMassProvider`。`DroneEquipmentInput` 只把 H/J/K/L 输入路由到当前 Host 和起落架，不包含任何旧抓钩或卷扬分支：
 
 - 纯无人机保留零质量 Host 作为飞控接口适配层，但不包含 `IDroneEquipmentModule`、装备刚体或装备 Collider，HUD 不显示 H/J/K 装备操作。
 - 设备质量和当前被装备实际承载的载荷质量进入悬停前馈。
@@ -100,11 +102,13 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 
 主控制链保持：输入整形 → 位置/速度控制 → 推力方向姿态控制 → 三轴角速度 PID → 物理控制分配 → RPM → 四点施力与反扭矩。装备只通过外部质量接口提供受支持质量。
 
-F3 保留四旋翼独立升力、总升力、重力、目标/实际速度、目标加速度、目标推力、可实现合力和目标力矩绘制，并按机型追加：
+F3 面板保留未经视觉平滑的原始遥测数据，并按机型追加：
 
 - 纯无人机：明确显示无附加模块，装备质量和载荷均为零。
 - 抓斗：短行程、四爪接触、辅助约束拉力、真实/受支持载荷。
 - 渔叉：瞄准有效性、弹体状态、目标绳长、张力与命中点。
+
+F2 单独控制 Game View 中的四旋翼升力、总升力、重力、目标/实际速度和目标加速度矢量。物理真值继续在 `FixedUpdate` 产生；`DroneFlightDebugDrawRenderer` 在 `LateUpdate` 读取插值后的机体 Transform，并对离散物理向量做帧率无关的显示平滑；`OnGUI` 只投影并绘制缓存，不参与物理计算。F2 的轻微显示延迟不得用于判断精确调参值，精确数值以 F3 面板为准。
 
 ## 边界规则
 
@@ -115,6 +119,7 @@ F3 保留四旋翼独立升力、总升力、重力、目标/实际速度、目�
 - 装备内部碰撞必须忽略，装备与载荷/场景碰撞保留。
 - 场景卸载、断绳、释放与回收必须清理临时 Joint、碰撞忽略和弹体引用。
 - 正式模型节点必须保持旋转已应用、Scale `(1,1,1)` 且无负缩放；四个 Rotor 施力坐标和 `BellyEquipmentMount (0,-0.12,0)` 不随视觉迭代改变。
+- 当前仍是 Demo 快速迭代阶段，不为已废弃的序列化字段、组件类名或旧 Prefab 层级保留兼容壳。字段或组件重命名时应同步重建/重序列化本 Demo 的场景、Prefab 与配置资产，并由契约测试锁定当前唯一结构。
 
 ## 验证
 
@@ -123,3 +128,4 @@ F3 保留四旋翼独立升力、总升力、重力、目标/实际速度、目�
 DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。`Tests/EditMode/Demo/DroneFlight` 中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；日志包含测试组目的、完整用例名、中文结果和耗时，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
 
 操作和调参见[调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)，Editor 直启见[直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)，进度见[实施计划](../superpowers/plans/2026-08-13-drone-flight-simulation.md)。
+设计演进见[DroneFlight 设计演进与决策记录](./drone-flight-history.md)，未来接入正式项目见[迁移 DroneFlight](../runbooks/migrate-drone-flight.md)。

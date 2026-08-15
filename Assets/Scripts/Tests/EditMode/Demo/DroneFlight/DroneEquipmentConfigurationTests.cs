@@ -1,5 +1,5 @@
-using System.IO;
 using Hotfix.DroneFlight;
+using Hotfix.Editor.DroneFlight;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -48,24 +48,12 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void EquipmentHost_DoesNotExposeSuspensionStateProvider()
+        public void EquipmentInspectors_UseExpectedCustomEditorTypesAndSharedLanguageState()
         {
-            Assert.That(typeof(IDroneSuspensionStateProvider).IsAssignableFrom(typeof(DroneEquipmentHost)), Is.False,
-                "新装备宿主不得重新启用飞控主动防摆。 ");
-        }
-
-        [Test]
-        public void EquipmentInspectors_ExposeBilingualBasicAndAdvancedPages()
-        {
-            const string path = "Assets/Scripts/Hotfix/Editor/DroneFlight/DroneEquipmentConfigEditors.cs";
-            var source = File.ReadAllText(Path.GetFullPath(path));
-            StringAssert.Contains("CustomEditor(typeof(DroneGrappleConfig))", source);
-            StringAssert.Contains("CustomEditor(typeof(DroneHarpoonConfig))", source);
-            StringAssert.Contains("普通设置", source);
-            StringAssert.Contains("高级设置", source);
-            StringAssert.Contains("中文", source);
-            StringAssert.Contains("English", source);
-            Assert.That(AssetDatabase.LoadAssetAtPath<MonoScript>(path), Is.Not.Null);
+            Assert.That(typeof(DroneGrappleConfigEditor).GetCustomAttributes(typeof(CustomEditor), false), Is.Not.Empty);
+            Assert.That(typeof(DroneHarpoonConfigEditor).GetCustomAttributes(typeof(CustomEditor), false), Is.Not.Empty);
+            Assert.That(DroneConfigInspectorUi.IsChineseSelection(0), Is.True);
+            Assert.That(DroneConfigInspectorUi.IsChineseSelection(1), Is.False);
         }
     }
 }

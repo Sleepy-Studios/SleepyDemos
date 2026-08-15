@@ -1,5 +1,5 @@
-using System.IO;
 using Hotfix.DroneFlight;
+using Hotfix.Editor.DroneFlight;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -87,15 +87,8 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void Inspector_ContainsBasicAdvancedLanguageAndAllNewFriendlyFields()
+        public void Inspector_ProvidesBilingualLabelsForFriendlyFields()
         {
-            const string path = "Assets/Scripts/Hotfix/Editor/DroneFlight/DroneFlightConfigEditor.cs";
-            var source = File.ReadAllText(Path.GetFullPath(path));
-
-            StringAssert.Contains("普通设置", source);
-            StringAssert.Contains("高级设置", source);
-            StringAssert.Contains("中文", source);
-            StringAssert.Contains("English", source);
             foreach (var field in new[]
                      {
                          "ratedPayloadKilograms", "maximumPayloadMultiplier", "ratedPayloadHoverCommand",
@@ -103,10 +96,13 @@ namespace Tests.Demo
                          "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile", "resetHoldSeconds"
                      })
             {
-                StringAssert.Contains(field, source, $"Inspector 缺少字段 {field} 的双层展示契约。");
+                Assert.That(DroneFlightConfigEditor.SerializedFieldLabels.TryGetValue(field, out var label), Is.True,
+                    $"Inspector 缺少字段 {field} 的双语标签。");
+                Assert.That(label.Chinese, Is.Not.Empty);
+                Assert.That(label.English, Is.Not.Empty);
+                Assert.That(label.ChineseTooltip, Is.Not.Empty);
+                Assert.That(label.EnglishTooltip, Is.Not.Empty);
             }
-
-            Assert.That(AssetDatabase.LoadAssetAtPath<MonoScript>(path), Is.Not.Null);
         }
 
         [Test]

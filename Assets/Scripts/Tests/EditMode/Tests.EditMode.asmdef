@@ -5,6 +5,7 @@
         "Core.Runtime",
         "Core.Editor",
         "Hotfix",
+        "Hotfix.Editor",
         "Luban.Runtime",
         "UnityEngine.UI",
         "Unity.TextMeshPro",

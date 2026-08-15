@@ -79,12 +79,6 @@ namespace Hotfix.DroneFlight
         float SupportedPayloadMassKilograms { get; }
     }
 
-    /// <summary>飞控读取的吊挂方向和相对运动来源。</summary>
-    internal interface IDroneSuspensionStateProvider
-    {
-        DroneSuspensionState SuspensionState { get; }
-    }
-
     /// <summary>在飞控读取质量前原子同步可热调的外部刚体质量。</summary>
     internal interface IDroneExternalMassSynchronizer
     {

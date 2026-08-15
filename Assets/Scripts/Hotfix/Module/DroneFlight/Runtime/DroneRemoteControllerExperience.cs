@@ -11,7 +11,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneCameraRig droneCameraRig;
         [SerializeField] private DronePlayerInput flightInput;
         [SerializeField] private DroneFlightController flightController;
-        [SerializeField] private DroneHookInput mechanismInput;
+        [SerializeField] private DroneEquipmentInput equipmentInput;
 
         private readonly DroneControlSession session = new();
 
@@ -78,9 +78,9 @@ namespace Hotfix.DroneFlight
             {
                 flightInput.enabled = true;
             }
-            if (mechanismInput != null)
+            if (equipmentInput != null)
             {
-                mechanismInput.enabled = true;
+                equipmentInput.enabled = true;
             }
 
             BindUiCameraIfReady(droneCamera);
@@ -98,13 +98,13 @@ namespace Hotfix.DroneFlight
             DroneCameraRig rig,
             DronePlayerInput input,
             DroneFlightController controller = null,
-            DroneHookInput mechanisms = null)
+            DroneEquipmentInput equipment = null)
         {
             playerCamera = player;
             droneCameraRig = rig;
             flightInput = input;
             flightController = controller;
-            mechanismInput = mechanisms;
+            equipmentInput = equipment;
             ApplyWaiting();
         }
 
@@ -116,9 +116,9 @@ namespace Hotfix.DroneFlight
             {
                 flightInput.enabled = false;
             }
-            if (mechanismInput != null)
+            if (equipmentInput != null)
             {
-                mechanismInput.enabled = false;
+                equipmentInput.enabled = false;
             }
 
             var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;

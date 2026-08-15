@@ -29,10 +29,9 @@ namespace Tests.Demo
             Assert.That(prefab.GetComponentsInChildren<DroneRotor>(true), Has.Length.EqualTo(4));
             Assert.That(prefab.GetComponent<DroneFlightController>(), Is.Not.Null);
             Assert.That(prefab.GetComponent<DroneEquipmentHost>(), Is.Not.Null);
+            Assert.That(prefab.GetComponent<DroneEquipmentInput>(), Is.Not.Null);
             Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
-            Assert.That(prefab.GetComponent<DroneWinchController>(), Is.Null);
-            Assert.That(prefab.GetComponent<PayloadMount>(), Is.Null);
             Assert.That(prefab.transform.localPosition, Is.EqualTo(Vector3.zero));
             Assert.That(prefab.transform.localRotation, Is.EqualTo(Quaternion.identity));
             Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
@@ -46,12 +45,9 @@ namespace Tests.Demo
             Assert.That(prefab, Is.Not.Null);
             Assert.That(model, Is.Not.Null);
             Assert.That(AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Mesh>().Select(mesh => mesh.name),
-                Is.SupersetOf(new[]
-                {
-                    "Airframe", "RotorHub_FL", "RotorHub_FR", "RotorHub_RL", "RotorHub_RR",
-                    "RotorBlade_CCW", "RotorBlade_CW", "LandingGear_FL", "LandingGear_FR",
-                    "LandingGear_RL", "LandingGear_RR", "GimbalYaw", "GimbalPitch", "CameraBody"
-                }));
+                Is.SupersetOf(DroneFlightModelContract.FormalObjectNames));
+            Assert.That(DroneFlightModelContract.FormalObjectNames,
+                Has.Count.EqualTo(DroneFlightModelContract.FormalObjectCount));
 
             var officialVisual = prefab.GetComponentsInChildren<MeshFilter>(true)
                 .FirstOrDefault(filter => filter.sharedMesh != null && filter.sharedMesh.name == "Airframe");
@@ -78,48 +74,43 @@ namespace Tests.Demo
             var frontRight = rotors.Single(rotor => rotor.Position == DroneRotorPosition.FrontRight).transform;
             var rearLeft = rotors.Single(rotor => rotor.Position == DroneRotorPosition.RearLeft).transform;
             var rearRight = rotors.Single(rotor => rotor.Position == DroneRotorPosition.RearRight).transform;
-            AssertPosition(prefab.transform, frontLeft, new Vector3(-0.255f, 0.04f, 0.255f));
-            AssertPosition(prefab.transform, frontRight, new Vector3(0.255f, 0.04f, 0.255f));
-            AssertPosition(prefab.transform, rearLeft, new Vector3(-0.255f, 0.04f, -0.255f));
-            AssertPosition(prefab.transform, rearRight, new Vector3(0.255f, 0.04f, -0.255f));
+            AssertPosition(prefab.transform, frontLeft, DroneFlightModelContract.RotorPositions[0]);
+            AssertPosition(prefab.transform, frontRight, DroneFlightModelContract.RotorPositions[1]);
+            AssertPosition(prefab.transform, rearLeft, DroneFlightModelContract.RotorPositions[2]);
+            AssertPosition(prefab.transform, rearRight, DroneFlightModelContract.RotorPositions[3]);
             foreach (var rotor in rotors)
             {
                 var thrustAxis = prefab.transform.InverseTransformDirection(rotor.ForceDirection).normalized;
-                Assert.That(Vector3.Dot(thrustAxis, Vector3.up), Is.GreaterThan(0.9999f),
+                Assert.That(Vector3.Dot(thrustAxis, DroneFlightModelContract.PhysicalThrustAxis),
+                    Is.GreaterThan(0.9999f),
                     $"{rotor.name} 的物理推力轴必须与机体局部 +Y 一致，否则正式飞行无法建立控制分配矩阵。");
             }
             Assert.That(GetRotorBlade(frontLeft), Is.SameAs(GetRotorBlade(rearRight)));
             Assert.That(GetRotorBlade(frontRight), Is.SameAs(GetRotorBlade(rearLeft)));
-            Assert.That(GetRotorBlade(frontLeft).name, Is.EqualTo("RotorBlade_CCW"));
-            Assert.That(GetRotorBlade(frontRight).name, Is.EqualTo("RotorBlade_CW"));
+            Assert.That(GetRotorBlade(frontLeft).name,
+                Is.EqualTo(DroneFlightModelContract.CounterClockwiseBladeName));
+            Assert.That(GetRotorBlade(frontRight).name,
+                Is.EqualTo(DroneFlightModelContract.ClockwiseBladeName));
 
-            var yaw = FindDeep(prefab.transform, "GimbalYaw");
-            var pitch = FindDeep(prefab.transform, "GimbalPitch");
-            var cameraBody = FindDeep(prefab.transform, "CameraBody");
+            var yaw = FindDeep(prefab.transform, DroneFlightModelContract.GimbalYawName);
+            var pitch = FindDeep(prefab.transform, DroneFlightModelContract.GimbalPitchName);
+            var cameraBody = FindDeep(prefab.transform, DroneFlightModelContract.CameraBodyName);
             Assert.That(yaw, Is.Not.Null);
             Assert.That(pitch?.parent, Is.EqualTo(yaw));
             Assert.That(cameraBody?.parent, Is.EqualTo(pitch));
-            Assert.That(prefab.transform.Find("BellyEquipmentMount").localPosition,
-                Is.EqualTo(new Vector3(0f, -0.12f, 0f)));
+            Assert.That(prefab.transform.Find(DroneFlightModelContract.BellyEquipmentMountName).localPosition,
+                Is.EqualTo(DroneFlightModelContract.BellyEquipmentMountPosition));
         }
 
         [Test]
         public void BasePrefab_LandingGearUsesRealHingesAndKeepsPointTwoThreeMeterClearance()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
-            var hinges = new[]
+            for (var index = 0; index < DroneFlightModelContract.LandingGearHingePositions.Count; index++)
             {
-                new Vector3(-0.112f, -0.035f, 0.118f), new Vector3(0.112f, -0.035f, 0.118f),
-                new Vector3(-0.112f, -0.035f, -0.118f), new Vector3(0.112f, -0.035f, -0.118f)
-            };
-            for (var index = 0; index < hinges.Length; index++)
-            {
-                var leg = FindDeep(prefab.transform, new[]
-                {
-                    "LandingGear_FL", "LandingGear_FR", "LandingGear_RL", "LandingGear_RR"
-                }[index]);
+                var leg = FindDeep(prefab.transform, DroneFlightModelContract.LandingGearNames[index]);
                 Assert.That(leg, Is.Not.Null);
-                AssertPosition(prefab.transform, leg, hinges[index]);
+                AssertPosition(prefab.transform, leg, DroneFlightModelContract.LandingGearHingePositions[index]);
                 Assert.That(leg.localScale, Is.EqualTo(Vector3.one));
                 Assert.That(leg.Find("Foot")?.GetComponent<BoxCollider>(), Is.Not.Null);
             }

@@ -53,14 +53,12 @@ MonoBehaviour:
     integralLimit: 3
     derivativeFilterHz: 8
   altitudeGain: 1.5
-  maximumVerticalSpeedMetersPerSecond: 2
   verticalSpeedProportionalGain: 2.4
   verticalSpeedIntegralGain: 0.8
   verticalSpeedDerivativeGain: 0.15
   verticalSpeedOutputLimit: 5
   verticalSpeedIntegralLimit: 3
   verticalSpeedDerivativeFilterHz: 5
-  maximumHorizontalSpeedMetersPerSecond: 4
   horizontalPositionGain: 0.35
   horizontalVelocityGain: 1.2
   horizontalVelocityIntegralGain: 0.25
@@ -68,7 +66,6 @@ MonoBehaviour:
   horizontalVelocityOutputLimit: 10
   horizontalVelocityIntegralLimit: 3
   horizontalVelocityDerivativeFilterHz: 5
-  maximumHorizontalAccelerationMetersPerSecondSquared: 2.5
   cineProfile:
     maximumHorizontalSpeed: 2
     maximumHorizontalAcceleration: 1.2

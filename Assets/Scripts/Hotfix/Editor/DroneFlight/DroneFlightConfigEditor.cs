@@ -12,7 +12,8 @@ namespace Hotfix.Editor.DroneFlight
         private const string LanguagePreferenceKey = "SleepyDemos.DroneFlight.ConfigInspector.Chinese";
         private const string PagePreferenceKey = "SleepyDemos.DroneFlight.ConfigInspector.Page";
 
-        private static readonly IReadOnlyDictionary<string, LabelPair> Labels = new Dictionary<string, LabelPair>
+        internal static readonly IReadOnlyDictionary<string, DroneInspectorLabel> SerializedFieldLabels =
+            new Dictionary<string, DroneInspectorLabel>
         {
             ["powerConfigurationMode"] = new("动力配置模式", "Power Configuration Mode", "自动载重调校会派生机体质量、推力系数与电机响应时间；手动模式使用真实物理字段。", "Automatic tuning derives body mass, thrust coefficient and motor response time; Manual uses raw physics fields."),
             ["ratedPayloadKilograms"] = new("额定载重 (kg)", "Rated Payload (kg)", "无人机可以长期稳定运输的标准载荷。接近该重量时会明显减少剩余动力。", "Standard payload for continuous transport. Power reserve becomes limited near this mass."),
@@ -43,14 +44,12 @@ namespace Hotfix.Editor.DroneFlight
             ["integralLimit"] = new("积分限制", "Integral Limit", "当前 PID 轴的积分状态上限。", "Integral-state limit of this PID axis."),
             ["derivativeFilterHz"] = new("微分滤波 (Hz)", "Derivative Filter (Hz)", "当前 PID 轴微分低通截止频率。", "Derivative low-pass cutoff of this PID axis."),
             ["altitudeGain"] = new("高度增益", "Altitude Gain", "高度误差到目标垂直速度。", "Altitude error to target vertical speed."),
-            ["maximumVerticalSpeedMetersPerSecond"] = new("最大垂直速度 (m/s)", "Maximum Vertical Speed (m/s)", "垂直速度外层限幅。", "Vertical-speed outer limit."),
             ["verticalSpeedProportionalGain"] = new("垂直速度 P", "Vertical Speed P", "垂直速度比例增益。", "Vertical-speed proportional gain."),
             ["verticalSpeedIntegralGain"] = new("垂直速度 I", "Vertical Speed I", "垂直速度积分增益。", "Vertical-speed integral gain."),
             ["verticalSpeedDerivativeGain"] = new("垂直速度 D", "Vertical Speed D", "垂直速度微分增益。", "Vertical-speed derivative gain."),
             ["verticalSpeedOutputLimit"] = new("垂直输出限制", "Vertical Output Limit", "总推力归一化修正限幅。", "Normalized collective correction limit."),
             ["verticalSpeedIntegralLimit"] = new("垂直积分限制", "Vertical Integral Limit", "积分状态限幅。", "Integral state limit."),
             ["verticalSpeedDerivativeFilterHz"] = new("垂直 D 滤波 (Hz)", "Vertical D Filter (Hz)", "微分低通截止频率。", "Derivative low-pass cutoff."),
-            ["maximumHorizontalSpeedMetersPerSecond"] = new("普通档最大水平速度", "Normal Maximum Horizontal Speed", "兼容普通档的水平速度基线。", "Compatibility baseline for Normal speed."),
             ["horizontalPositionGain"] = new("水平位置增益", "Horizontal Position Gain", "位置误差到目标速度。", "Position error to desired velocity."),
             ["horizontalVelocityGain"] = new("水平速度增益", "Horizontal Velocity Gain", "速度误差到目标加速度。", "Velocity error to desired acceleration."),
             ["horizontalVelocityIntegralGain"] = new("水平速度积分 I", "Horizontal Velocity I", "消除持续水平速度误差。", "Removes persistent horizontal velocity error."),
@@ -58,7 +57,6 @@ namespace Hotfix.Editor.DroneFlight
             ["horizontalVelocityOutputLimit"] = new("水平速度输出限制", "Horizontal Velocity Output Limit", "单轴目标加速度上限，单位 m/s²。", "Per-axis acceleration output limit in m/s²."),
             ["horizontalVelocityIntegralLimit"] = new("水平速度积分限制", "Horizontal Velocity Integral Limit", "水平速度积分状态上限。", "Horizontal velocity integral-state limit."),
             ["horizontalVelocityDerivativeFilterHz"] = new("水平速度 D 滤波 (Hz)", "Horizontal Velocity D Filter (Hz)", "水平速度微分低通截止频率。", "Horizontal velocity derivative cutoff."),
-            ["maximumHorizontalAccelerationMetersPerSecondSquared"] = new("最大水平加速度", "Maximum Horizontal Acceleration", "目标水平加速度限幅。", "Desired horizontal acceleration limit."),
             ["cineProfile"] = new("平稳档 (Cine)", "Cine Profile", "低速、低倾角、柔和输入。", "Slow, low-tilt and smooth response."),
             ["normalProfile"] = new("普通档 (Normal)", "Normal Profile", "默认综合响应。", "Default balanced response."),
             ["sportProfile"] = new("运动档 (Sport)", "Sport Profile", "高速、高倾角和快速响应。", "Fast, high-tilt response."),
@@ -88,21 +86,11 @@ namespace Hotfix.Editor.DroneFlight
             selectedPage = EditorPrefs.GetInt(PagePreferenceKey, 0);
         }
 
+        /// 绘制飞控配置的互斥语言选择、普通/高级分页和当前语言诊断。
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
-            {
-                GUILayout.Label(useChinese ? "配置语言" : "Inspector Language", GUILayout.Width(110f));
-                var nextChinese = GUILayout.Toggle(useChinese, "中文", EditorStyles.toolbarButton);
-                var nextEnglish = GUILayout.Toggle(!useChinese, "English", EditorStyles.toolbarButton);
-                var selectedChinese = nextChinese || !nextEnglish;
-                if (selectedChinese != useChinese)
-                {
-                    useChinese = selectedChinese;
-                    EditorPrefs.SetBool(LanguagePreferenceKey, useChinese);
-                }
-            }
+            useChinese = DroneConfigInspectorUi.DrawLanguageToolbar(useChinese, LanguagePreferenceKey);
 
             EditorGUILayout.Space(4f);
             var pages = useChinese
@@ -126,11 +114,11 @@ namespace Hotfix.Editor.DroneFlight
             }
 
             serializedObject.ApplyModifiedProperties();
-            var config = (DroneFlightConfig)target;
-            if (!config.TryValidate(out var diagnostic))
+            var validation = ((DroneFlightConfig)target).Validate();
+            if (!validation.IsValid)
             {
                 EditorGUILayout.HelpBox(
-                    useChinese ? diagnostic : "Configuration is invalid. Switch to Chinese for the detailed validation message.",
+                    useChinese ? validation.ChineseMessage : validation.EnglishMessage,
                     MessageType.Error);
             }
         }
@@ -207,7 +195,7 @@ namespace Hotfix.Editor.DroneFlight
             DrawSection(useChinese ? "高度控制" : "Altitude Control");
             foreach (var field in new[]
                      {
-                         "altitudeGain", "maximumVerticalSpeedMetersPerSecond",
+                         "altitudeGain",
                          "verticalSpeedProportionalGain", "verticalSpeedIntegralGain",
                          "verticalSpeedDerivativeGain", "verticalSpeedOutputLimit",
                          "verticalSpeedIntegralLimit", "verticalSpeedDerivativeFilterHz"
@@ -219,11 +207,10 @@ namespace Hotfix.Editor.DroneFlight
             DrawSection(useChinese ? "水平位置保持" : "Horizontal Position Hold");
             foreach (var field in new[]
                      {
-                         "maximumHorizontalSpeedMetersPerSecond", "horizontalPositionGain",
+                         "horizontalPositionGain",
                          "horizontalVelocityGain", "horizontalVelocityIntegralGain",
                          "horizontalVelocityDerivativeGain", "horizontalVelocityOutputLimit",
-                         "horizontalVelocityIntegralLimit", "horizontalVelocityDerivativeFilterHz",
-                         "maximumHorizontalAccelerationMetersPerSecondSquared"
+                         "horizontalVelocityIntegralLimit", "horizontalVelocityDerivativeFilterHz"
                      })
             {
                 DrawNamed(field);
@@ -339,8 +326,8 @@ namespace Hotfix.Editor.DroneFlight
 
         private GUIContent ResolveContent(SerializedProperty property)
         {
-            if (Labels.TryGetValue(property.propertyPath, out var pathLabel)
-                || Labels.TryGetValue(property.name, out pathLabel))
+            if (SerializedFieldLabels.TryGetValue(property.propertyPath, out var pathLabel)
+                || SerializedFieldLabels.TryGetValue(property.name, out pathLabel))
             {
                 return pathLabel.Content(useChinese);
             }
@@ -348,27 +335,5 @@ namespace Hotfix.Editor.DroneFlight
             return new GUIContent(property.displayName);
         }
 
-        private readonly struct LabelPair
-        {
-            private readonly string chinese;
-            private readonly string english;
-            private readonly string chineseTooltip;
-            private readonly string englishTooltip;
-
-            internal LabelPair(string chinese, string english, string chineseTooltip, string englishTooltip)
-            {
-                this.chinese = chinese;
-                this.english = english;
-                this.chineseTooltip = chineseTooltip;
-                this.englishTooltip = englishTooltip;
-            }
-
-            internal GUIContent Content(bool isChinese)
-            {
-                return new GUIContent(
-                    isChinese ? chinese : english,
-                    isChinese ? chineseTooltip : englishTooltip);
-            }
-        }
     }
 }

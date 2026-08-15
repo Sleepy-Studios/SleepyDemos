@@ -6,7 +6,6 @@ namespace Hotfix.DroneFlight
     [CreateAssetMenu(fileName = "DroneHarpoonConfig", menuName = "SleepyDemos/Drone Flight/Harpoon Config")]
     public sealed class DroneHarpoonConfig : ScriptableObject
     {
-        [Header("Launcher")]
         [SerializeField] private float hardwareMassKilograms = 0.05f;
         [SerializeField] private float projectileMassKilograms = 0.02f;
         [SerializeField] private float muzzleSpeedMetersPerSecond = 18f;
@@ -16,7 +15,6 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float gimbalPitchDownLimitDegrees = 60f;
         [SerializeField] private float allowedAimErrorDegrees = 2.5f;
 
-        [Header("Rope")]
         [SerializeField] private float minimumRopeLengthMeters = 0.25f;
         [SerializeField] private float maximumRopeLengthMeters = 30f;
         [SerializeField] private float reelSpeedMetersPerSecond = 3f;
@@ -28,7 +26,6 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float dockPositionToleranceMeters = 0.08f;
         [SerializeField] private float dockSpeedToleranceMetersPerSecond = 0.8f;
 
-        [Header("Hit Rules")]
         [SerializeField] private LayerMask hittableLayers = ~0;
         [SerializeField] private LayerMask ignoredLayers;
 
@@ -55,30 +52,40 @@ namespace Hotfix.DroneFlight
 
         internal bool TryValidate(out string diagnostic)
         {
+            var result = Validate();
+            diagnostic = result.ChineseMessage;
+            return result.IsValid;
+        }
+
+        /// 返回供运行时与双语 Inspector 共用的结构化校验结果。
+        internal DroneConfigValidationResult Validate()
+        {
             if (!IsPositive(hardwareMassKilograms) || !IsPositive(projectileMassKilograms)
                 || projectileMassKilograms >= hardwareMassKilograms)
             {
-                diagnostic = "渔叉设备质量必须为正，且弹体质量必须小于设备总质量。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "渔叉设备质量必须为正，且弹体质量必须小于设备总质量。",
+                    "Harpoon hardware mass must be positive and projectile mass must be lower than total hardware mass.");
             }
 
             if (!IsPositive(muzzleSpeedMetersPerSecond) || !IsPositive(maximumFlightDistanceMeters)
                 || !IsPositive(minimumRopeLengthMeters) || maximumRopeLengthMeters <= minimumRopeLengthMeters)
             {
-                diagnostic = "渔叉速度、距离或绳长范围无效。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "渔叉速度、距离或绳长范围无效。",
+                    "Harpoon speed, flight distance, or rope-length range is invalid.");
             }
 
             if (!IsPositive(ropeSpringNewtonsPerMeter) || !IsPositive(ropeDamperNewtonSecondsPerMeter)
                 || !IsPositive(maximumTensionNewtons) || ropeBreakForceNewtons <= maximumTensionNewtons
                 || !IsPositive(automaticRecoverySpeedMetersPerSecond))
             {
-                diagnostic = "绳索弹簧、阻尼、张力或回收参数无效。";
-                return false;
+                return DroneConfigValidationResult.Invalid(
+                    "绳索弹簧、阻尼、张力或回收参数无效。",
+                    "Rope spring, damping, tension, or recovery parameters are invalid.");
             }
 
-            diagnostic = string.Empty;
-            return true;
+            return DroneConfigValidationResult.Valid;
         }
 
         private static bool IsPositive(float value) => float.IsFinite(value) && value > 0f;

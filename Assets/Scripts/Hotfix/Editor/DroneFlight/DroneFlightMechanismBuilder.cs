@@ -6,6 +6,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
+using static Hotfix.Editor.DroneFlight.DroneFlightBuilderAssetUtility;
 
 namespace Hotfix.Editor.DroneFlight
 {
@@ -14,7 +15,6 @@ namespace Hotfix.Editor.DroneFlight
     {
         private const string Root = "Assets/LoadResources/Demos/drone_flight";
         private const string BasePrefabPath = Root + "/Prefabs/DronePrototype.prefab";
-        private const string ObsoletePlainPrefabPath = Root + "/Prefabs/DronePlainVariant.prefab";
         private const string GrappleEquipmentPrefabPath =
             Root + "/Prefabs/Equipment/DroneGrappleEquipment.prefab";
         private const string HarpoonEquipmentPrefabPath =
@@ -26,29 +26,7 @@ namespace Hotfix.Editor.DroneFlight
         private const string ModelPath = Root + "/Art/Models/DroneFlight.fbx";
         private const string MaterialRoot = Root + "/Art/Materials";
 
-        private static readonly string[] LandingGearMeshNames =
-        {
-            "LandingGear_FL", "LandingGear_FR", "LandingGear_RL", "LandingGear_RR"
-        };
-
-        private static readonly Vector3[] RotorPositions =
-        {
-            new(-0.255f, 0.04f, 0.255f), new(0.255f, 0.04f, 0.255f),
-            new(-0.255f, 0.04f, -0.255f), new(0.255f, 0.04f, -0.255f)
-        };
-
-        private static readonly Vector3[] LandingGearHinges =
-        {
-            new(-0.112f, -0.035f, 0.118f), new(0.112f, -0.035f, 0.118f),
-            new(-0.112f, -0.035f, -0.118f), new(0.112f, -0.035f, -0.118f)
-        };
-
-        private static readonly Vector3[] LandingGearFeet =
-        {
-            new(-0.205f, -0.23f, 0.18f), new(0.205f, -0.23f, 0.18f),
-            new(-0.205f, -0.23f, -0.18f), new(0.205f, -0.23f, -0.18f)
-        };
-
+        /// 重建正式基础机体、独立装备 Prefab 和两个组合 Variant。
         [MenuItem("Tools/SleepyDemos/DroneFlight/重建基础、装备与组合机体")]
         public static void RebuildAll()
         {
@@ -72,7 +50,6 @@ namespace Hotfix.Editor.DroneFlight
                 DroneEquipmentKind.Harpoon,
                 HarpoonEquipmentPrefabPath,
                 HarpoonPrefabPath);
-            AssetDatabase.DeleteAsset(ObsoletePlainPrefabPath);
             AssetDatabase.ForceReserializeAssets(new[]
             {
                 Root + "/Data/DroneFlightConfig.asset", GrappleConfigPath, HarpoonConfigPath,
@@ -92,22 +69,18 @@ namespace Hotfix.Editor.DroneFlight
             {
                 root.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                 root.transform.localScale = Vector3.one;
-                RemoveAll<DroneResetCoordinator>(root);
-                RemoveAll<PayloadMount>(root);
-                RemoveAll<DroneMechanicalHook>(root);
-                RemoveAll<DroneSuspensionRig>(root);
-                RemoveAll<DroneWinchController>(root);
                 RemoveAll<DroneEquipmentHost>(root);
-                RemoveAll<DroneHookInput>(root);
+                RemoveAll<DroneEquipmentInput>(root);
                 RemoveAll<DroneRemoteControllerExperience>(root);
                 RemoveAll<DroneFlightSceneContext>(root);
-                DestroyChild(root.transform, "SuspensionRig");
                 DestroyChild(root.transform, "GrappleEquipment");
                 DestroyChild(root.transform, "HarpoonEquipment");
                 DestroyChild(root.transform, "DroneCameraOutput");
-                DestroyChild(root.transform, "GimbalCameraMount");
 
-                EnsureChild(root.transform, "BellyEquipmentMount", new Vector3(0f, -0.12f, 0f));
+                EnsureChild(
+                    root.transform,
+                    DroneFlightModelContract.BellyEquipmentMountName,
+                    DroneFlightModelContract.BellyEquipmentMountPosition);
                 BuildOfficialModel(root);
                 BuildCommonCameraAndRuntime(root);
                 PrefabUtility.SaveAsPrefabAsset(root, BasePrefabPath);
@@ -214,7 +187,7 @@ namespace Hotfix.Editor.DroneFlight
             DestroyChild(root.transform, "Arm_FR_RL");
             DestroyChild(root.transform, "NoseForward");
             DestroyChild(root.transform, "OfficialVisual");
-            DestroyChild(root.transform, "DroneModel");
+            DestroyChild(root.transform, DroneFlightModelContract.ModelRootName);
             DestroyChild(root.transform, "Rotor_FL_CCW");
             DestroyChild(root.transform, "Rotor_FR_CW");
             DestroyChild(root.transform, "Rotor_RL_CW");
@@ -223,16 +196,16 @@ namespace Hotfix.Editor.DroneFlight
             DestroyChild(root.transform, "BodyCollider");
             DestroyChild(root.transform, "ArmCollider_FL_RR");
             DestroyChild(root.transform, "ArmCollider_FR_RL");
-            DestroyChild(root.transform, "CollisionProxies");
+            DestroyChild(root.transform, DroneFlightModelContract.CollisionProxyRootName);
 
             var model = (GameObject)PrefabUtility.InstantiatePrefab(source, root.transform);
             if (model == null)
             {
                 throw new InvalidOperationException($"无法实例化正式无人机 FBX：{ModelPath}");
             }
-            model.name = "DroneModel";
+            model.name = DroneFlightModelContract.ModelRootName;
             model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-            model.transform.localScale = Vector3.one;
+            model.transform.localScale = Vector3.one * DroneFlightModelContract.ImportScale;
             ApplyMappedMaterials(model);
             BuildAirframeColliders(root.transform);
             BuildRotors(root, model);
@@ -242,7 +215,7 @@ namespace Hotfix.Editor.DroneFlight
 
         private static void BuildAirframeColliders(Transform root)
         {
-            var proxies = EnsureChild(root, "CollisionProxies", Vector3.zero);
+            var proxies = EnsureChild(root, DroneFlightModelContract.CollisionProxyRootName, Vector3.zero);
             var body = EnsureChild(proxies, "BodyCollider", Vector3.zero);
             var bodyCollider = EnsureComponent<BoxCollider>(body.gameObject);
             bodyCollider.center = Vector3.zero;
@@ -258,14 +231,14 @@ namespace Hotfix.Editor.DroneFlight
         {
             for (var index = 0; index < 4; index++)
             {
-                var hubName = RotorHubName(index);
+                var hubName = DroneFlightModelContract.RotorHubNames[index];
                 var hub = FindDeepChild(model.transform, hubName);
                 if (hub == null)
                 {
                     throw new InvalidOperationException($"正式 FBX 缺少旋翼轮毂：{hubName}");
                 }
 
-                var bladeName = index is 0 or 3 ? "RotorBlade_CCW" : "RotorBlade_CW";
+                var bladeName = DroneFlightModelContract.GetRotorBladeName(index);
                 var blade = CloneRotorBlade(model, bladeName, hub, bladeName + "_Visual");
                 var rotorVisual = EnsureComponent<DroneRotorVisual>(blade.gameObject);
                 var rotor = EnsureComponent<DroneRotor>(hub.gameObject);
@@ -276,34 +249,23 @@ namespace Hotfix.Editor.DroneFlight
                 rotor.Configure(position, direction, blade, rotorVisual, root.transform);
 
                 var actualPosition = root.transform.InverseTransformPoint(hub.position);
-                if (Vector3.Distance(actualPosition, RotorPositions[index]) > 0.0001f)
+                if (Vector3.Distance(actualPosition, DroneFlightModelContract.RotorPositions[index])
+                    > DroneFlightModelContract.CoordinateTolerance)
                 {
                     throw new InvalidOperationException(
-                        $"{hub.name} 施力坐标错误，期望 {RotorPositions[index]}，实际 {actualPosition}。");
+                        $"{hub.name} 施力坐标错误，期望 {DroneFlightModelContract.RotorPositions[index]}，实际 {actualPosition}。");
                 }
 
                 var thrustAxis = root.transform.InverseTransformDirection(rotor.ForceDirection).normalized;
-                if (Vector3.Dot(thrustAxis, Vector3.up) < 0.9999f)
+                if (Vector3.Dot(thrustAxis, DroneFlightModelContract.PhysicalThrustAxis) < 0.9999f)
                 {
                     throw new InvalidOperationException(
                         $"{hub.name} 物理推力轴未朝向机体局部 +Y，实际推力轴 {thrustAxis}。");
                 }
             }
 
-            SetModelNodeRenderersEnabled(model, "RotorBlade_CCW", false);
-            SetModelNodeRenderersEnabled(model, "RotorBlade_CW", false);
-        }
-
-        private static string RotorHubName(int index)
-        {
-            return index switch
-            {
-                0 => "RotorHub_FL",
-                1 => "RotorHub_FR",
-                2 => "RotorHub_RL",
-                3 => "RotorHub_RR",
-                _ => throw new ArgumentOutOfRangeException(nameof(index), index, null)
-            };
+            SetModelNodeRenderersEnabled(model, DroneFlightModelContract.CounterClockwiseBladeName, false);
+            SetModelNodeRenderersEnabled(model, DroneFlightModelContract.ClockwiseBladeName, false);
         }
 
         private static void BuildLandingGear(GameObject root, GameObject model)
@@ -312,22 +274,26 @@ namespace Hotfix.Editor.DroneFlight
             var retractedOffsets = new Vector3[4];
             for (var index = 0; index < legs.Length; index++)
             {
-                var leg = FindDeepChild(model.transform, LandingGearMeshNames[index]);
+                var leg = FindDeepChild(model.transform, DroneFlightModelContract.LandingGearNames[index]);
                 if (leg == null)
                 {
-                    throw new InvalidOperationException($"正式 FBX 缺少起落架节点：{LandingGearMeshNames[index]}");
+                    throw new InvalidOperationException(
+                        $"正式 FBX 缺少起落架节点：{DroneFlightModelContract.LandingGearNames[index]}");
                 }
                 legs[index] = leg;
                 var hingePosition = root.transform.InverseTransformPoint(leg.position);
-                if (Vector3.Distance(hingePosition, LandingGearHinges[index]) > 0.0001f)
+                if (Vector3.Distance(
+                        hingePosition,
+                        DroneFlightModelContract.LandingGearHingePositions[index])
+                    > DroneFlightModelContract.CoordinateTolerance)
                 {
                     throw new InvalidOperationException(
-                        $"{leg.name} 铰链坐标错误，期望 {LandingGearHinges[index]}，实际 {hingePosition}。");
+                        $"{leg.name} 铰链坐标错误，期望 {DroneFlightModelContract.LandingGearHingePositions[index]}，实际 {hingePosition}。");
                 }
 
                 DestroyChild(leg, "Foot");
                 DestroyChild(leg, "StrutCollider");
-                var footWorld = root.transform.TransformPoint(LandingGearFeet[index]);
+                var footWorld = root.transform.TransformPoint(DroneFlightModelContract.LandingGearFootPositions[index]);
                 var footLocal = leg.InverseTransformPoint(footWorld);
                 var rootAlignedRotation = Quaternion.Inverse(leg.rotation) * root.transform.rotation;
                 CreateBoxCollider(leg, "Foot", footLocal, rootAlignedRotation,
@@ -338,9 +304,11 @@ namespace Hotfix.Editor.DroneFlight
                     new Vector3(0.026f, strutVector.magnitude, 0.026f));
 
                 var radialRoot = new Vector3(
-                    LandingGearFeet[index].x - LandingGearHinges[index].x,
+                    DroneFlightModelContract.LandingGearFootPositions[index].x
+                    - DroneFlightModelContract.LandingGearHingePositions[index].x,
                     0f,
-                    LandingGearFeet[index].z - LandingGearHinges[index].z).normalized;
+                    DroneFlightModelContract.LandingGearFootPositions[index].z
+                    - DroneFlightModelContract.LandingGearHingePositions[index].z).normalized;
                 var tangentRoot = Vector3.Cross(Vector3.up, radialRoot).normalized;
                 var tangentLocal = leg.InverseTransformDirection(root.transform.TransformDirection(tangentRoot));
                 retractedOffsets[index] = Quaternion.AngleAxis(67f, tangentLocal).eulerAngles;
@@ -353,9 +321,9 @@ namespace Hotfix.Editor.DroneFlight
 
         private static void ValidateGimbal(GameObject model)
         {
-            var yaw = FindDeepChild(model.transform, "GimbalYaw");
-            var pitch = FindDeepChild(model.transform, "GimbalPitch");
-            var camera = FindDeepChild(model.transform, "CameraBody");
+            var yaw = FindDeepChild(model.transform, DroneFlightModelContract.GimbalYawName);
+            var pitch = FindDeepChild(model.transform, DroneFlightModelContract.GimbalPitchName);
+            var camera = FindDeepChild(model.transform, DroneFlightModelContract.CameraBodyName);
             if (yaw == null || pitch == null || camera == null || pitch.parent != yaw || camera.parent != pitch)
             {
                 throw new InvalidOperationException("正式 FBX 云台层级必须为 GimbalYaw/GimbalPitch/CameraBody。");
@@ -405,30 +373,10 @@ namespace Hotfix.Editor.DroneFlight
             }
         }
 
-        private static Transform FindDeepChild(Transform root, string name)
-        {
-            foreach (var child in root.GetComponentsInChildren<Transform>(true))
-            {
-                if (child.name == name)
-                {
-                    return child;
-                }
-            }
-            return null;
-        }
-
         private static Material LoadMappedMaterial(string sourceName)
         {
-            var assetName = sourceName switch
-            {
-                "MAT_Graphite" => "DroneGraphite",
-                "MAT_ShellTop" => "DroneShellTop",
-                "MAT_MechanicalBlack" => "DroneMechanicalBlack",
-                "MAT_SafetyOrange" => "DroneSafetyOrange",
-                "MAT_FrontLED" => "DroneFrontLED",
-                "MAT_CameraLens" => "DroneCameraLens",
-                _ => throw new InvalidOperationException($"正式模型包含未映射材质槽：{sourceName}")
-            };
+            var assetName = DroneFlightModelContract.GetMappedMaterialName(sourceName)
+                            ?? throw new InvalidOperationException($"正式模型包含未映射材质槽：{sourceName}");
             return AssetDatabase.LoadAssetAtPath<Material>($"{MaterialRoot}/{assetName}.mat");
         }
 
@@ -456,17 +404,17 @@ namespace Hotfix.Editor.DroneFlight
             cameraObject.GetComponent<AudioListener>().enabled = false;
 
             var cameraRig = cameraObject.GetComponent<DroneCameraRig>();
-            var model = root.transform.Find("DroneModel");
+            var model = root.transform.Find(DroneFlightModelContract.ModelRootName);
             cameraRig.Configure(
                 camera,
                 root.transform,
-                model != null ? FindDeepChild(model, "GimbalYaw") : null,
-                model != null ? FindDeepChild(model, "GimbalPitch") : null,
+                model != null ? FindDeepChild(model, DroneFlightModelContract.GimbalYawName) : null,
+                model != null ? FindDeepChild(model, DroneFlightModelContract.GimbalPitchName) : null,
                 root.transform.Find("FixedForwardMount"),
                 root.transform.Find("BellyCameraMount"));
 
             root.AddComponent<DroneEquipmentHost>();
-            root.AddComponent<DroneHookInput>();
+            root.AddComponent<DroneEquipmentInput>();
             root.AddComponent<DroneRemoteControllerExperience>();
             root.AddComponent<DroneFlightSceneContext>();
         }
@@ -537,7 +485,8 @@ namespace Hotfix.Editor.DroneFlight
                 }
                 if (module is DroneGrappleModule grappleModule)
                 {
-                    grappleModule.BindBellyMount(root.transform.Find("BellyEquipmentMount"));
+                    grappleModule.BindBellyMount(
+                        root.transform.Find(DroneFlightModelContract.BellyEquipmentMountName));
                 }
                 WireVariant(root, module);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -840,9 +789,9 @@ namespace Hotfix.Editor.DroneFlight
             SetReference(remote, "droneCameraRig", cameraRig);
             SetReference(remote, "flightInput", root.GetComponent<DronePlayerInput>());
             SetReference(remote, "flightController", controller);
-            SetReference(remote, "mechanismInput", root.GetComponent<DroneHookInput>());
+            SetReference(remote, "equipmentInput", root.GetComponent<DroneEquipmentInput>());
 
-            var equipmentInput = root.GetComponent<DroneHookInput>();
+            var equipmentInput = root.GetComponent<DroneEquipmentInput>();
             SetReference(equipmentInput, "equipmentHost", host);
             SetReference(equipmentInput, "landingGear", root.GetComponent<DroneLandingGearController>());
             SetReference(equipmentInput, "controlSession", remote);
@@ -856,93 +805,5 @@ namespace Hotfix.Editor.DroneFlight
                 root.GetComponent<DroneLandingGearController>());
         }
 
-        private static T GetOrCreateAsset<T>(string path) where T : ScriptableObject
-        {
-            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
-            if (asset != null)
-            {
-                return asset;
-            }
-
-            asset = ScriptableObject.CreateInstance<T>();
-            AssetDatabase.CreateAsset(asset, path);
-            return asset;
-        }
-
-        private static Transform EnsureChild(Transform parent, string name, Vector3 localPosition)
-        {
-            var child = parent.Find(name);
-            if (child == null)
-            {
-                child = new GameObject(name).transform;
-                child.SetParent(parent, false);
-            }
-            child.localPosition = localPosition;
-            child.localRotation = Quaternion.identity;
-            child.localScale = Vector3.one;
-            return child;
-        }
-
-        private static void DestroyChild(Transform root, string path)
-        {
-            var child = root.Find(path);
-            if (child != null)
-            {
-                Object.DestroyImmediate(child.gameObject);
-            }
-        }
-
-        private static void RemoveAll<T>(GameObject root) where T : Component
-        {
-            foreach (var component in root.GetComponentsInChildren<T>(true))
-            {
-                Object.DestroyImmediate(component);
-            }
-        }
-
-        private static T EnsureComponent<T>(GameObject gameObject) where T : Component
-        {
-            var component = gameObject.GetComponent<T>();
-            return component != null ? component : gameObject.AddComponent<T>();
-        }
-
-        private static void SetReference(Object target, string propertyName, Object value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(propertyName);
-            if (property == null)
-            {
-                throw new InvalidOperationException($"{target.GetType().Name} 缺少序列化字段 {propertyName}。");
-            }
-            property.objectReferenceValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void SetFloat(Object target, string propertyName, float value)
-        {
-            var serialized = new SerializedObject(target);
-            var property = serialized.FindProperty(propertyName);
-            if (property == null)
-            {
-                throw new InvalidOperationException($"{target.GetType().Name} 缺少序列化字段 {propertyName}。");
-            }
-            property.floatValue = value;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private static void EnsureFolder(string path)
-        {
-            var parts = path.Split('/');
-            var current = parts[0];
-            for (var index = 1; index < parts.Length; index++)
-            {
-                var next = current + "/" + parts[index];
-                if (!AssetDatabase.IsValidFolder(next))
-                {
-                    AssetDatabase.CreateFolder(current, parts[index]);
-                }
-                current = next;
-            }
-        }
     }
 }
