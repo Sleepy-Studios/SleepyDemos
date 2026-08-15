@@ -89,14 +89,14 @@ namespace Hotfix.Editor.DroneFlight
     {
         private static readonly string[] Basic =
         {
-            "hardwareMassKilograms", "armLengthMeters", "swingLimitDegrees",
+            "armLengthMeters", "maximumLiftTravelMeters", "liftSpeedMetersPerSecond", "swingLimitDegrees",
             "openAngleDegrees", "closedAngleDegrees",
             "clawSpring", "clawDamper", "breakForceNewtons", "breakTorqueNewtonMeters"
         };
 
         private static readonly string[] All =
         {
-            "hardwareMassKilograms", "armLengthMeters", "swingLimitDegrees",
+            "armLengthMeters", "maximumLiftTravelMeters", "liftSpeedMetersPerSecond", "swingLimitDegrees",
             "dampingRatio", "maximumDampingTorqueNewtonMeters", "openAngleDegrees",
             "closedAngleDegrees", "clawSpring", "clawDamper",
             "enclosureRadiusMeters", "enclosureHalfHeightMeters", "breakForceNewtons",
@@ -106,8 +106,9 @@ namespace Hotfix.Editor.DroneFlight
         private static readonly IReadOnlyDictionary<string, DroneInspectorLabel> FieldLabels =
             new Dictionary<string, DroneInspectorLabel>
             {
-                ["hardwareMassKilograms"] = L("设备总质量 (kg)", "Hardware Mass (kg)", "抓斗底座与四爪的总质量。", "Combined mass of the grapple base and four claws."),
                 ["armLengthMeters"] = L("固定吊臂长度 (m)", "Fixed Arm Length (m)", "与抓斗底座刚性连接的单根吊臂长度。", "Length of the single arm rigidly attached to the grapple base."),
+                ["maximumLiftTravelMeters"] = L("最大升降行程 (m)", "Maximum Lift Travel (m)", "K 下放允许的最大万向节吊点行程。", "Maximum universal-joint anchor travel allowed by K."),
+                ["liftSpeedMetersPerSecond"] = L("升降速度 (m/s)", "Lift Speed (m/s)", "J 上收、K 下放吊点的速度。", "Anchor speed used by J to retract and K to lower."),
                 ["swingLimitDegrees"] = L("万向节双轴摆角 (°)", "Universal Joint Swing (°)", "前后、左右两个被动摆动方向的共同限位。", "Shared limit for passive fore-aft and left-right swing."),
                 ["dampingRatio"] = L("悬挂阻尼比", "Suspension Damping Ratio", "悬挂 Drive 的无量纲阻尼比例。", "Dimensionless damping ratio of the suspension drive."),
                 ["maximumDampingTorqueNewtonMeters"] = L("最大阻尼扭矩 (N·m)", "Maximum Damping Torque (N·m)", "被动摆动衰减允许的最大扭矩。", "Maximum torque used for passive swing damping."),
@@ -137,8 +138,8 @@ namespace Hotfix.Editor.DroneFlight
         {
             return fieldName switch
             {
-                "hardwareMassKilograms" or "armLengthMeters" =>
-                    L("质量与吊臂", "Mass And Arm", "抓斗质量与固定吊臂长度。", "Grapple mass and fixed-arm length."),
+                "armLengthMeters" or "maximumLiftTravelMeters" or "liftSpeedMetersPerSecond" =>
+                    L("吊臂与升降", "Arm And Lift", "固定吊臂与万向节升降行程。", "Fixed arm and universal-joint lift travel."),
                 "swingLimitDegrees" or "dampingRatio"
                     or "maximumDampingTorqueNewtonMeters" =>
                     L("万向节", "Universal Joint", "双轴摆动、轴向锁定与被动阻尼。", "Dual-axis swing, axial lock and passive damping."),
@@ -160,27 +161,28 @@ namespace Hotfix.Editor.DroneFlight
     {
         private static readonly string[] Basic =
         {
-            "hardwareMassKilograms", "projectileMassKilograms", "launchImpulseNewtonSeconds",
+            "projectileMassKilograms", "launchImpulseNewtonSeconds",
             "maximumFlightDistanceMeters", "maximumAimRadiusMeters", "maximumAimConeDegrees",
             "minimumRopeLengthMeters", "maximumRopeLengthMeters",
-            "reelSpeedMetersPerSecond", "ropeBreakForceNewtons", "automaticRecoverySpeedMetersPerSecond"
+            "reelSpeedMetersPerSecond", "ropeBreakForceNewtons", "automaticRecoverySpeedMetersPerSecond",
+            "recoveryResponseSeconds", "maximumRecoveryAccelerationMetersPerSecondSquared"
         };
 
         private static readonly string[] All =
         {
-            "hardwareMassKilograms", "projectileMassKilograms", "launchImpulseNewtonSeconds",
+            "projectileMassKilograms", "launchImpulseNewtonSeconds",
             "maximumFlightDistanceMeters", "maximumAimRadiusMeters", "maximumAimConeDegrees",
             "allowedAimErrorDegrees", "minimumRopeLengthMeters",
             "maximumRopeLengthMeters", "reelSpeedMetersPerSecond", "ropeSpringNewtonsPerMeter",
             "ropeDamperNewtonSecondsPerMeter", "maximumTensionNewtons", "ropeBreakForceNewtons",
-            "automaticRecoverySpeedMetersPerSecond", "dockPositionToleranceMeters",
+            "automaticRecoverySpeedMetersPerSecond", "recoveryResponseSeconds",
+            "maximumRecoveryAccelerationMetersPerSecondSquared", "dockPositionToleranceMeters",
             "dockSpeedToleranceMetersPerSecond", "hittableLayers", "ignoredLayers"
         };
 
         private static readonly IReadOnlyDictionary<string, DroneInspectorLabel> FieldLabels =
             new Dictionary<string, DroneInspectorLabel>
             {
-                ["hardwareMassKilograms"] = L("设备总质量 (kg)", "Hardware Mass (kg)", "发射器与停靠弹体的总质量。", "Combined mass of the launcher and docked projectile."),
                 ["projectileMassKilograms"] = L("弹体质量 (kg)", "Projectile Mass (kg)", "参与真实冲量和飞行的弹体质量。", "Projectile mass used by launch impulse and flight physics."),
                 ["launchImpulseNewtonSeconds"] = L("弹体发射冲量 (N·s)", "Launch Impulse (N·s)", "同时施加给弹体与机体的等量反向冲量；默认 0.12 N·s。", "Equal and opposite impulse applied to projectile and drone; default 0.12 N·s."),
                 ["maximumFlightDistanceMeters"] = L("最大飞行距离 (m)", "Maximum Flight Distance (m)", "未命中时进入悬挂状态的最大距离。", "Maximum distance before an unhit projectile becomes suspended."),
@@ -195,6 +197,8 @@ namespace Hotfix.Editor.DroneFlight
                 ["maximumTensionNewtons"] = L("最大计算张力 (N)", "Maximum Tension (N)", "单步绳索物理允许施加的张力上限。", "Maximum rope tension applied during one physics step."),
                 ["ropeBreakForceNewtons"] = L("绳索断裂力 (N)", "Rope Break Force (N)", "超过该张力时进入断裂/回收流程。", "Tension threshold that starts break and recovery."),
                 ["automaticRecoverySpeedMetersPerSecond"] = L("自动回收速度 (m/s)", "Automatic Recovery Speed (m/s)", "解除或未命中后的弹体回收速度。", "Projectile recovery speed after release or miss."),
+                ["recoveryResponseSeconds"] = L("回收响应时间 (s)", "Recovery Response (s)", "弹体相对 Muzzle 速度收敛到回收速度的时间。", "Time for projectile velocity relative to the muzzle to converge."),
+                ["maximumRecoveryAccelerationMetersPerSecondSquared"] = L("最大回收加速度 (m/s²)", "Maximum Recovery Acceleration (m/s²)", "限制 PD 回收力，避免弹体甩锤。", "Caps PD recovery force to prevent slinging."),
                 ["dockPositionToleranceMeters"] = L("停靠位置容差 (m)", "Dock Position Tolerance (m)", "弹体重新锁回发射器的位置阈值。", "Position threshold for docking the projectile."),
                 ["dockSpeedToleranceMetersPerSecond"] = L("停靠速度容差 (m/s)", "Dock Speed Tolerance (m/s)", "弹体重新锁回发射器的相对速度阈值。", "Relative-speed threshold for docking the projectile."),
                 ["hittableLayers"] = L("可命中层", "Hittable Layers", "允许渔叉建立命中的物理层。", "Physics layers that allow harpoon attachment."),
@@ -216,7 +220,7 @@ namespace Hotfix.Editor.DroneFlight
         {
             return fieldName switch
             {
-                "hardwareMassKilograms" or "projectileMassKilograms" or "launchImpulseNewtonSeconds"
+                "projectileMassKilograms" or "launchImpulseNewtonSeconds"
                     or "maximumFlightDistanceMeters" or "maximumAimRadiusMeters"
                     or "maximumAimConeDegrees"
                     or "allowedAimErrorDegrees" =>

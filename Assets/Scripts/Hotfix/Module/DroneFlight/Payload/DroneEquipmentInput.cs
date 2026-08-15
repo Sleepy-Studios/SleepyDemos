@@ -52,7 +52,7 @@ namespace Hotfix.DroneFlight
 
             if (equipmentHost.Kind == DroneEquipmentKind.Grapple)
             {
-                equipmentHost.SetLineInput(0f);
+                equipmentHost.SetLineInput(ReadLineInput(keyboard));
                 return;
             }
 
@@ -70,13 +70,7 @@ namespace Hotfix.DroneFlight
                     Mathf.Clamp01(position.y / Screen.height)));
             }
 
-            var lineInput = keyboard.kKey.isPressed ? 1f : 0f;
-            if (keyboard.jKey.isPressed)
-            {
-                lineInput -= 1f;
-            }
-
-            equipmentHost.SetLineInput(lineInput);
+            equipmentHost.SetLineInput(ReadLineInput(keyboard));
         }
 
         /// 清理瞄准与绳索输入，供退出遥控时恢复唯一相机。
@@ -84,6 +78,16 @@ namespace Hotfix.DroneFlight
         {
             equipmentHost?.SetLineInput(0f);
             equipmentHost?.ExitAimMode();
+        }
+
+        private static float ReadLineInput(Keyboard keyboard)
+        {
+            var value = keyboard.kKey.isPressed ? 1f : 0f;
+            if (keyboard.jKey.isPressed)
+            {
+                value -= 1f;
+            }
+            return value;
         }
     }
 }

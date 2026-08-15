@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b907f7a81d18314582cd2dd6d6f8139, type: 3}
   m_Name: DroneHarpoonConfig
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHarpoonConfig
-  hardwareMassKilograms: 0.05
   projectileMassKilograms: 0.02
   launchImpulseNewtonSeconds: 0.12
   maximumFlightDistanceMeters: 30
@@ -26,7 +25,9 @@ MonoBehaviour:
   ropeDamperNewtonSecondsPerMeter: 12
   maximumTensionNewtons: 180
   ropeBreakForceNewtons: 240
-  automaticRecoverySpeedMetersPerSecond: 6
+  automaticRecoverySpeedMetersPerSecond: 2
+  recoveryResponseSeconds: 0.18
+  maximumRecoveryAccelerationMetersPerSecondSquared: 15
   dockPositionToleranceMeters: 0.08
   dockSpeedToleranceMetersPerSecond: 0.8
   hittableLayers:

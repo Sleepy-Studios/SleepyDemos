@@ -59,14 +59,14 @@ namespace Hotfix.DroneFlight
         internal static string FormatFlight(DroneHudSnapshot snapshot)
         {
             var armState = snapshot.IsArmed ? "ARMED" : "DISARMED";
-            return $"位置保持  {FormatProfile(snapshot.Profile)}  {armState}\n"
-                   + $"高度 {snapshot.Height:F1} m   距离 {snapshot.Distance:F1} m\n"
-                   + $"水平 {snapshot.HorizontalSpeed:F1} m/s   垂直 {snapshot.VerticalSpeed:+0.0;-0.0;0.0} m/s   升降 {snapshot.LiftInput:+0.00;-0.00;0.00}";
+            return $"{FormatProfile(snapshot.Profile)}  {armState}\n"
+                   + $"H {snapshot.Height:F1} m   D {snapshot.Distance:F1} m\n"
+                   + $"HS {snapshot.HorizontalSpeed:F1} m/s   VS {snapshot.VerticalSpeed:+0.0;-0.0;0.0} m/s";
         }
 
         internal static string FormatCamera(DroneHudSnapshot snapshot)
         {
-            return $"{FormatCameraMode(snapshot.CameraMode)}   云台 Y {snapshot.GimbalYaw:F0}° / P {snapshot.GimbalPitch:F0}°   FOV {snapshot.FieldOfView:F0}°";
+            return $"{FormatCameraMode(snapshot.CameraMode)}   云台 Y {snapshot.GimbalYaw:F0}° / P {snapshot.GimbalPitch:F0}°   FOV {snapshot.FieldOfView:F0}°   F1 操作";
         }
 
         internal static string FormatWarning(DroneHudSnapshot snapshot)
@@ -94,11 +94,11 @@ namespace Hotfix.DroneFlight
         {
             var equipment = kind switch
             {
-                DroneEquipmentKind.Grapple => "H  四爪开合\n",
+                DroneEquipmentKind.Grapple => "H  四爪开合    J / K  上收 / 下放\n",
                 DroneEquipmentKind.Harpoon => "V  机腹瞄准    H  发射 / 解除回收    J / K  收线 / 放线\n",
                 _ => string.Empty
             };
-            return "操作说明\n"
+            return "操作说明（F1 隐藏）\n"
                    + "F  开始控制（第三人称）\n"
                    + "T / G  自动起飞 / 降落\n"
                    + "R  解锁 / 锁定（长按重新运行场景）\n"

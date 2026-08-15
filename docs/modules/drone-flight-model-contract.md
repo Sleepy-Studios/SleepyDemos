@@ -42,8 +42,11 @@
 - `BellyEquipmentMount` 位于机体局部 `(0, -0.12, 0)`，装备 Variant 通过该挂点绑定。
 - 起落架状态保持 `0=放下、1=收起`；Builder 使用契约角 `-67°` 向机臂折叠，四个 Foot 收起后的机体局部高度必须同时升高。
 - 抓斗固定吊臂默认长 `0.08 m`，吊臂没有独立 Rigidbody；万向节 Anchor 位于吊臂顶端并与 `BellyEquipmentMount` 重合。
+- 抓斗 J/K 升降只移动 ConfigurableJoint 的机体侧 `ConnectedAnchor`；可见伸缩套筒不得成为独立 Rigidbody，也不得改变双轴摆动自由度。
 - 抓斗张开态有效口径不小于 `0.38 m`，四爪可见结构和非 Trigger Collider 不得低于展开起落架脚底；闭合后允许向下包围载荷。
+- 抓斗捕获辅助环与高度标签是纯显示节点，不得带 Rigidbody 或 Collider。
 - 停靠渔叉朝机体局部 `-Y`，其可见结构和启用 Collider 必须高于展开起落架脚底；尺寸变化不得改写发射冲量或飞控反馈。
+- 渔叉发射器并入机体复合 Collider，不得有独立 Rigidbody；弹体仅在离开发射器后成为动态刚体。
 - 机体和机臂使用 `CollisionProxies` 下的 BoxCollider；脚部代理跟随真实起落架节点。
 - 不给动态机体添加 MeshCollider，不让视觉 Mesh 承担抓取或地面接触代理职责。
 - 新增可动节点时先补机器契约、Builder 和测试，再替换 FBX；禁止只在文档中约定。

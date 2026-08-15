@@ -8,6 +8,8 @@ namespace Hotfix.DroneFlight
     {
         [SerializeField] private DroneGrappleConfig configSource;
         [SerializeField] private Transform bellyMount;
+        [SerializeField] private Transform liftCarriage;
+        [SerializeField] private Transform liftSleeveVisual;
         [SerializeField] private Rigidbody grappleBody;
         [SerializeField] private ConfigurableJoint suspensionJoint;
         [SerializeField] private BoxCollider captureVolume;
@@ -26,10 +28,21 @@ namespace Hotfix.DroneFlight
         private bool initialized;
         private float maximumPayloadKilograms = float.PositiveInfinity;
         private int captureCandidateCount;
+        private float currentLiftTravel;
+        private float lineInput;
+        private LineRenderer assistRing;
+        private TextMesh assistLabel;
+        private Material assistMaterial;
+        private DronePayload nearestCaptureCandidate;
+
+        private const float GrappleSolverMassKilograms = 0.05f;
+        private const int AssistRingSegments = 48;
 
         public DroneEquipmentKind Kind => DroneEquipmentKind.Grapple;
         public DroneEquipmentState State { get; private set; } = DroneEquipmentState.Ready;
-        public float HardwareMassKilograms => runtimeConfig != null ? runtimeConfig.HardwareMassKilograms : 0f;
+        public float IntegratedDynamicMassKilograms => CalculateIntegratedDynamicMass();
+        public float SupportedIntegratedDynamicMassKilograms => IntegratedDynamicMassKilograms;
+        public float HardwareMassKilograms => 0f;
         public float PayloadMassKilograms => attachedPayload != null ? attachedPayload.Body.mass : 0f;
         public float SupportedPayloadMassKilograms => supportedPayloadMass;
         public string LastHint { get; private set; } = string.Empty;
@@ -40,7 +53,7 @@ namespace Hotfix.DroneFlight
             HardwareMassKilograms,
             PayloadMassKilograms,
             SupportedPayloadMassKilograms,
-            runtimeConfig != null ? runtimeConfig.ArmLengthMeters : 0f,
+            currentLiftTravel,
             gripJoint != null ? gripJoint.currentForce.magnitude : 0f,
             captureCandidateCount,
             State is DroneEquipmentState.Ready or DroneEquipmentState.Carrying,
@@ -55,6 +68,7 @@ namespace Hotfix.DroneFlight
             SetClaws(false);
             SetClawCollision(true);
             TryInitializeAssembly();
+            EnsureAssistVisual();
         }
 
         private void FixedUpdate()
@@ -66,12 +80,18 @@ namespace Hotfix.DroneFlight
             }
 
             StepGrip();
+            StepLift(Time.fixedDeltaTime);
             StepSupportedLoad(Time.fixedDeltaTime);
+            UpdateAssistVisual();
         }
 
         private void OnDestroy()
         {
             ReleaseAndCleanup();
+            if (assistMaterial != null)
+            {
+                Destroy(assistMaterial);
+            }
             if (runtimeConfig != null)
             {
                 Destroy(runtimeConfig);
@@ -110,6 +130,7 @@ namespace Hotfix.DroneFlight
 
         public void SetLineInput(float input)
         {
+            lineInput = Mathf.Clamp(input, -1f, 1f);
         }
 
         public void SynchronizeRuntimeConfig()
@@ -146,11 +167,16 @@ namespace Hotfix.DroneFlight
         {
             ReleaseGrip();
             captureCandidateCount = 0;
+            lineInput = 0f;
+            nearestCaptureCandidate = null;
+            SetAssistVisible(false);
         }
 
         internal void Configure(
             DroneGrappleConfig config,
             Transform mount,
+            Transform carriage,
+            Transform sleeveVisual,
             Rigidbody body,
             ConfigurableJoint suspension,
             BoxCollider capture,
@@ -160,6 +186,8 @@ namespace Hotfix.DroneFlight
         {
             configSource = config;
             bellyMount = mount;
+            liftCarriage = carriage;
+            liftSleeveVisual = sleeveVisual;
             grappleBody = body;
             suspensionJoint = suspension;
             captureVolume = capture;
@@ -196,8 +224,8 @@ namespace Hotfix.DroneFlight
             }
 
             var clawCount = Mathf.Max(1, clawBodies?.Length ?? 0);
-            var clawMass = runtimeConfig.HardwareMassKilograms * 0.6f / clawCount;
-            grappleBody.mass = runtimeConfig.HardwareMassKilograms * 0.4f;
+            var clawMass = GrappleSolverMassKilograms * 0.6f / clawCount;
+            grappleBody.mass = GrappleSolverMassKilograms * 0.4f;
             foreach (var body in clawBodies)
             {
                 if (body != null)
@@ -227,7 +255,8 @@ namespace Hotfix.DroneFlight
             suspensionJoint.angularZLimit = new SoftJointLimit { limit = runtimeConfig.SwingLimitDegrees };
             var damping = Mathf.Min(
                 runtimeConfig.MaximumDampingTorqueNewtonMeters,
-                2f * runtimeConfig.DampingRatio * Mathf.Sqrt(Mathf.Max(0.001f, HardwareMassKilograms * 9.81f)));
+                2f * runtimeConfig.DampingRatio
+                * Mathf.Sqrt(Mathf.Max(0.001f, IntegratedDynamicMassKilograms * 9.81f)));
             suspensionJoint.rotationDriveMode = RotationDriveMode.Slerp;
             suspensionJoint.slerpDrive = new JointDrive
             {
@@ -249,7 +278,7 @@ namespace Hotfix.DroneFlight
             }
 
             SetAssemblyKinematic(true);
-            var desiredBasePosition = bellyMount.position - bellyMount.up * runtimeConfig.ArmLengthMeters;
+            var desiredBasePosition = GetLiftAnchorPosition() - bellyMount.up * runtimeConfig.ArmLengthMeters;
             var delta = desiredBasePosition - grappleBody.position;
             grappleBody.position += delta;
             foreach (var body in clawBodies)
@@ -285,8 +314,10 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            suspensionJoint.anchor = grappleBody.transform.InverseTransformPoint(bellyMount.position);
-            suspensionJoint.connectedAnchor = droneBody.transform.InverseTransformPoint(bellyMount.position);
+            var worldAnchor = GetLiftAnchorPosition();
+            suspensionJoint.anchor = new Vector3(0f, runtimeConfig.ArmLengthMeters, 0f);
+            suspensionJoint.connectedAnchor = droneBody.transform.InverseTransformPoint(worldAnchor);
+            UpdateLiftVisual(worldAnchor);
         }
 
         private void EnableAssemblyPhysics()
@@ -357,7 +388,9 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            var payload = FindNearestEnclosedPayload();
+            var payload = nearestCaptureCandidate != null
+                ? nearestCaptureCandidate
+                : FindNearestEnclosedPayload();
             if (payload != null)
             {
                 AttachPayload(payload);
@@ -408,6 +441,169 @@ namespace Hotfix.DroneFlight
 
             captureCandidateCount = candidates;
             return nearest;
+        }
+
+        private void StepLift(float deltaTime)
+        {
+            if (runtimeConfig == null || suspensionJoint == null || bellyMount == null || droneBody == null)
+            {
+                return;
+            }
+
+            var target = Mathf.Clamp(
+                currentLiftTravel + lineInput * runtimeConfig.LiftSpeedMetersPerSecond * deltaTime,
+                0f,
+                runtimeConfig.MaximumLiftTravelMeters);
+            if (Mathf.Approximately(target, currentLiftTravel))
+            {
+                return;
+            }
+
+            currentLiftTravel = target;
+            UpdateJointAnchors();
+        }
+
+        private Vector3 GetLiftAnchorPosition()
+        {
+            return bellyMount != null
+                ? bellyMount.position - bellyMount.up * currentLiftTravel
+                : transform.position;
+        }
+
+        private void UpdateLiftVisual(Vector3 worldAnchor)
+        {
+            if (liftCarriage != null)
+            {
+                liftCarriage.SetPositionAndRotation(worldAnchor, bellyMount.rotation);
+            }
+
+            if (liftSleeveVisual == null || bellyMount == null)
+            {
+                return;
+            }
+
+            var midpoint = Vector3.Lerp(bellyMount.position, worldAnchor, 0.5f);
+            liftSleeveVisual.SetPositionAndRotation(midpoint, bellyMount.rotation);
+            var scale = liftSleeveVisual.localScale;
+            scale.y = Mathf.Max(0.002f, currentLiftTravel * 0.5f);
+            liftSleeveVisual.localScale = scale;
+        }
+
+        private float CalculateIntegratedDynamicMass()
+        {
+            var result = grappleBody != null ? grappleBody.mass : 0f;
+            if (clawBodies == null)
+            {
+                return Mathf.Max(0f, result);
+            }
+
+            foreach (var body in clawBodies)
+            {
+                if (body != null)
+                {
+                    result += body.mass;
+                }
+            }
+
+            return Mathf.Max(0f, result);
+        }
+
+        private void EnsureAssistVisual()
+        {
+            if (assistRing != null)
+            {
+                return;
+            }
+
+            var root = new GameObject("GrappleAssistVisual");
+            root.transform.SetParent(transform, false);
+            assistRing = root.AddComponent<LineRenderer>();
+            assistMaterial = new Material(Shader.Find("Sprites/Default"))
+            {
+                name = "Grapple Assist Material"
+            };
+            assistRing.sharedMaterial = assistMaterial;
+            assistRing.useWorldSpace = true;
+            assistRing.loop = true;
+            assistRing.positionCount = AssistRingSegments;
+            assistRing.widthMultiplier = 0.008f;
+            assistRing.numCapVertices = 2;
+
+            var labelObject = new GameObject("HeightLabel", typeof(TextMesh));
+            labelObject.transform.SetParent(root.transform, false);
+            assistLabel = labelObject.GetComponent<TextMesh>();
+            assistLabel.anchor = TextAnchor.MiddleCenter;
+            assistLabel.alignment = TextAlignment.Center;
+            assistLabel.characterSize = 0.035f;
+            assistLabel.fontSize = 32;
+        }
+
+        private void UpdateAssistVisual()
+        {
+            EnsureAssistVisual();
+            if (assistRing == null || assistLabel == null || captureVolume == null
+                || State == DroneEquipmentState.Carrying)
+            {
+                SetAssistVisible(false);
+                return;
+            }
+
+            nearestCaptureCandidate = FindNearestEnclosedPayload();
+            var center = captureVolume.transform.TransformPoint(captureVolume.center);
+            var hits = Physics.RaycastAll(center, Vector3.down, 5f, ~0, QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+            var hasSurface = false;
+            var point = center - Vector3.up;
+            var distance = 0f;
+            foreach (var hit in hits)
+            {
+                if (hit.collider == null || hit.transform.IsChildOf(transform)
+                    || (droneBody != null && hit.transform.IsChildOf(droneBody.transform)))
+                {
+                    continue;
+                }
+
+                hasSurface = true;
+                point = hit.point + Vector3.up * 0.01f;
+                distance = hit.distance;
+                break;
+            }
+
+            var color = !hasSurface
+                ? new Color(1f, 0.2f, 0.15f)
+                : nearestCaptureCandidate != null ? Color.green : new Color(1f, 0.55f, 0.05f);
+            assistRing.startColor = assistRing.endColor = color;
+            assistLabel.color = color;
+            SetAssistVisible(true);
+            var radius = runtimeConfig != null ? runtimeConfig.EnclosureRadiusMeters : 0.23f;
+            for (var index = 0; index < AssistRingSegments; index++)
+            {
+                var radians = index * Mathf.PI * 2f / AssistRingSegments;
+                assistRing.SetPosition(index, point + new Vector3(Mathf.Cos(radians), 0f, Mathf.Sin(radians)) * radius);
+            }
+
+            assistLabel.text = hasSurface ? $"抓斗 {distance:0.00} m" : "抓斗 无投射面";
+            assistLabel.transform.position = point + Vector3.forward * (radius + 0.06f);
+            var camera = Camera.main;
+            if (camera != null)
+            {
+                assistLabel.transform.rotation = Quaternion.LookRotation(
+                    assistLabel.transform.position - camera.transform.position,
+                    camera.transform.up);
+            }
+        }
+
+        private void SetAssistVisible(bool value)
+        {
+            if (assistRing != null)
+            {
+                assistRing.enabled = value;
+            }
+
+            if (assistLabel != null)
+            {
+                assistLabel.gameObject.SetActive(value);
+            }
         }
 
         private void AttachPayload(DronePayload payload)

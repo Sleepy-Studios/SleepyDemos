@@ -8,6 +8,7 @@ namespace Hotfix
     public partial class DroneFlightHudView : View<DroneFlightViewData>
     {
         private DroneFlightUiTelemetrySource telemetrySource;
+        private bool controlsVisible;
 
         protected override void OnGameObjectInitialize()
         {
@@ -17,6 +18,7 @@ namespace Hotfix
         {
             base.OnShow();
             Unsubscribe();
+            SetControlsVisible(false);
             telemetrySource = params1?.TelemetrySource;
             if (TextMeshProUGUI_ControlsText != null)
             {
@@ -81,6 +83,21 @@ namespace Hotfix
                 telemetrySource.SnapshotChanged -= OnSnapshotChanged;
             }
             telemetrySource = null;
+        }
+
+        /// 切换完整操作说明；HUD 默认只保留飞行关键量。
+        internal void ToggleControls()
+        {
+            SetControlsVisible(!controlsVisible);
+        }
+
+        private void SetControlsVisible(bool value)
+        {
+            controlsVisible = value;
+            if (TextMeshProUGUI_ControlsText != null)
+            {
+                TextMeshProUGUI_ControlsText.transform.parent.gameObject.SetActive(value);
+            }
         }
     }
 }

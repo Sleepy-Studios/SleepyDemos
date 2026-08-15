@@ -112,5 +112,32 @@ namespace Tests.Demo
             Object.Destroy(cameraObject);
             Object.Destroy(root);
         }
+
+        [UnityTest]
+        public IEnumerator ThirdPerson_UsesCollisionSafePositionWithoutChangingBodyPhysics()
+        {
+            var root = new GameObject("CameraCollisionFixture", typeof(Rigidbody));
+            var body = root.GetComponent<Rigidbody>();
+            body.useGravity = false;
+            body.linearVelocity = Vector3.right;
+            var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.transform.position = new Vector3(0f, 0.85f, -1.2f);
+            wall.transform.localScale = new Vector3(3f, 3f, 0.2f);
+            var cameraObject = new GameObject("CollisionSafeCamera", typeof(Camera));
+            var camera = cameraObject.GetComponent<Camera>();
+            var rig = cameraObject.AddComponent<DroneCameraRig>();
+            rig.Configure(camera, root.transform, null, null, root.transform, root.transform);
+            var initialVelocity = body.linearVelocity;
+            for (var index = 0; index < 30; index++)
+            {
+                yield return null;
+            }
+
+            Assert.That(camera.transform.position.z, Is.GreaterThan(-1.2f));
+            Assert.That(body.linearVelocity, Is.EqualTo(initialVelocity));
+            Object.Destroy(cameraObject);
+            Object.Destroy(wall);
+            Object.Destroy(root);
+        }
     }
 }

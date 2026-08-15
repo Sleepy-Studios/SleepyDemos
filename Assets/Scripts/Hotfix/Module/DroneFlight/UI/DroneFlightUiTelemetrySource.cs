@@ -99,7 +99,7 @@ namespace Hotfix.DroneFlight
             var equipmentText = equipment.Kind switch
             {
                 DroneEquipmentKind.Grapple =>
-                    $"四爪 {FormatEquipmentState(equipment.State)}   接触 {equipment.ContactCount}   载荷 {equipment.SupportedPayloadMassKilograms:F2}/{equipment.PayloadMassKilograms:F2} kg",
+                    $"四爪 {FormatEquipmentState(equipment.State)}   吊点 {equipment.TravelMeters:F2} m   候选 {equipment.ContactCount}   载荷 {equipment.SupportedPayloadMassKilograms:F2}/{equipment.PayloadMassKilograms:F2} kg",
                 DroneEquipmentKind.Harpoon =>
                     $"渔叉 {FormatEquipmentState(equipment.State)}   绳长 {equipment.TravelMeters:F1} m   张力 {equipment.TensionNewtons:F1} N",
                 _ => "纯无人机   无附加模块"
@@ -138,7 +138,7 @@ namespace Hotfix.DroneFlight
             {
                 DroneEquipmentKind.Grapple =>
                     $"四爪状态 {FormatEquipmentState(equipment.State)}  捕获候选 {equipment.ContactCount}\n"
-                    + $"固定吊臂 {equipment.TravelMeters:F2} m  抓取拉力 {equipment.TensionNewtons:F1} N\n"
+                    + $"升降行程 {equipment.TravelMeters:F2} m  抓取拉力 {equipment.TensionNewtons:F1} N\n"
                     + $"载荷真实/受支持 {equipment.PayloadMassKilograms:F2}/{equipment.SupportedPayloadMassKilograms:F2} kg",
                 DroneEquipmentKind.Harpoon =>
                     $"渔叉状态 {FormatEquipmentState(equipment.State)}  可发射 {(equipment.CanUsePrimary ? "是" : "否")}\n"
@@ -152,7 +152,7 @@ namespace Hotfix.DroneFlight
                    + FormatAxis("俯仰(Pitch)", pitch) + "\n"
                    + FormatAxis("偏航(Yaw)", yaw) + "\n"
                    + $"总升力 {controller.LastTotalThrustNewtons:F1} N  物理步长 {Time.fixedDeltaTime:F3} s\n"
-                   + $"主刚体 {controller.Body.mass:F2} kg  装备 {equipment.HardwareMassKilograms:F2} kg  当前总承载 {controller.CurrentSupportedMassKilograms:F2} kg\n"
+                   + $"主刚体 {controller.Body.mass:F2} kg  附加装备 0.00 kg  当前总承载 {controller.CurrentSupportedMassKilograms:F2} kg\n"
                    + $"额定载重 {controller.Config.RatedPayloadKilograms:F2} kg  当前悬停指令 {controller.CurrentHoverCommand:F3}  动力余量 {controller.CurrentPowerReserve:P0}\n"
                    + $"起落架 {FormatGear(landingGear != null ? landingGear.State : DroneLandingGearState.Deployed)}\n"
                    + equipmentText;

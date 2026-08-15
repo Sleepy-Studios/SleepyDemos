@@ -73,7 +73,7 @@ namespace Hotfix.DroneFlight
     internal interface IDroneExternalMassProvider
     {
         float SupportedMassKilograms { get; }
-        float InstalledHardwareMassKilograms { get; }
+        float IntegratedDynamicMassKilograms { get; }
         float HardwareMassKilograms { get; }
         float PayloadMassKilograms { get; }
         float SupportedPayloadMassKilograms { get; }
@@ -89,6 +89,8 @@ namespace Hotfix.DroneFlight
     {
         DroneEquipmentKind Kind { get; }
         DroneEquipmentState State { get; }
+        float IntegratedDynamicMassKilograms { get; }
+        float SupportedIntegratedDynamicMassKilograms { get; }
         float HardwareMassKilograms { get; }
         float PayloadMassKilograms { get; }
         float SupportedPayloadMassKilograms { get; }

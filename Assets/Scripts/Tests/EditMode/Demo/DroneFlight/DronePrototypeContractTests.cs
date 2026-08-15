@@ -169,6 +169,7 @@ namespace Tests.Demo
             Assert.That(grappleModule.transform.Find("GrappleBase/GrappleArm"), Is.Not.Null);
             Assert.That(grappleModule.transform.Find("GrappleBase/GrappleArm").GetComponent<Rigidbody>(), Is.Null);
             Assert.That(grappleModule.transform.Find("UniversalJointUpperSeat"), Is.Not.Null);
+            Assert.That(grappleModule.transform.Find("LiftSleeveVisual"), Is.Not.Null);
             Assert.That(prefab.GetComponentsInChildren<Rigidbody>(true).Length, Is.EqualTo(6));
             var suspension = grappleBody.GetComponent<ConfigurableJoint>();
             Assert.That(suspension.xMotion, Is.EqualTo(ConfigurableJointMotion.Locked));
@@ -258,12 +259,15 @@ namespace Tests.Demo
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonProjectile>(true), Has.Length.EqualTo(1));
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonRopeVisual>(true), Has.Length.EqualTo(1));
             var harpoonModule = prefab.GetComponentInChildren<DroneHarpoonModule>(true);
+            var launcher = harpoonModule.transform.Find("HarpoonLauncher");
             var muzzle = harpoonModule.transform.Find("HarpoonLauncher/HarpoonGimbal/Muzzle");
             var tube = harpoonModule.transform.Find("HarpoonLauncher/HarpoonGimbal/LaunchTube");
             var projectile = prefab.GetComponentInChildren<DroneHarpoonProjectile>(true);
             var projectileBody = projectile.GetComponent<Rigidbody>();
             var capsule = projectile.GetComponent<CapsuleCollider>();
             Assert.That(muzzle, Is.Not.Null);
+            Assert.That(launcher.GetComponent<Rigidbody>(), Is.Null);
+            Assert.That(launcher.GetComponent<ConfigurableJoint>(), Is.Null);
             Assert.That(tube, Is.Not.Null);
             Assert.That(capsule.direction, Is.EqualTo(2));
             Assert.That(Vector3.Angle(tube.up, muzzle.forward), Is.LessThan(0.1f));

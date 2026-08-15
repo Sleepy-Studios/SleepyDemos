@@ -96,7 +96,7 @@ namespace Tests.Demo
             try
             {
                 var serializedGrapple = new UnityEditor.SerializedObject(grapple);
-                serializedGrapple.FindProperty("hardwareMassKilograms").floatValue = 0f;
+                serializedGrapple.FindProperty("maximumLiftTravelMeters").floatValue = 0f;
                 serializedGrapple.ApplyModifiedPropertiesWithoutUndo();
                 var grappleResult = grapple.Validate();
                 Assert.That(grappleResult.IsValid, Is.False);
@@ -104,7 +104,7 @@ namespace Tests.Demo
                 Assert.That(grappleResult.EnglishMessage, Is.Not.Empty);
 
                 var serializedHarpoon = new UnityEditor.SerializedObject(harpoon);
-                serializedHarpoon.FindProperty("projectileMassKilograms").floatValue = 1f;
+                serializedHarpoon.FindProperty("projectileMassKilograms").floatValue = 0f;
                 serializedHarpoon.ApplyModifiedPropertiesWithoutUndo();
                 var harpoonResult = harpoon.Validate();
                 Assert.That(harpoonResult.IsValid, Is.False);

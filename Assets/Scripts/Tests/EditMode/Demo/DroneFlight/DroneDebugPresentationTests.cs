@@ -1,6 +1,7 @@
 using Hotfix.DroneFlight;
 using NUnit.Framework;
 using System.Reflection;
+using TMPro;
 using UnityEngine;
 
 namespace Tests.Demo
@@ -88,7 +89,7 @@ namespace Tests.Demo
                 Assert.That(typeof(DroneFlightDebugDrawRenderer).GetMethod(
                     "OnGUI", BindingFlags.Instance | BindingFlags.NonPublic), Is.Null);
                 Assert.That(owner.GetComponentsInChildren<LineRenderer>(true).Length, Is.EqualTo(27));
-                Assert.That(owner.GetComponentsInChildren<TextMesh>(true).Length, Is.EqualTo(9));
+                Assert.That(owner.GetComponentsInChildren<TextMeshPro>(true).Length, Is.EqualTo(9));
                 Assert.That(owner.GetComponentInChildren<Rigidbody>(true), Is.Null);
                 Assert.That(owner.GetComponentInChildren<Collider>(true), Is.Null);
 
@@ -101,6 +102,37 @@ namespace Tests.Demo
             finally
             {
                 Object.DestroyImmediate(owner);
+            }
+        }
+
+        [Test]
+        public void PresentationMath_SaturatesLargeValuesAndClampsEndpointInsideViewport()
+        {
+            Assert.That(DroneDebugVectorPresentationMath.CalculateSaturatedLength(10f, 10f, 2f),
+                Is.InRange(1.2f, 1.3f));
+            Assert.That(DroneDebugVectorPresentationMath.CalculateSaturatedLength(100000f, 10f, 2f),
+                Is.EqualTo(2f).Within(0.0001f));
+
+            var cameraObject = new GameObject("DebugVectorCamera", typeof(Camera));
+            try
+            {
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.pixelRect = new Rect(0f, 0f, 1920f, 1080f);
+                camera.transform.position = new Vector3(0f, 0f, -5f);
+                camera.transform.rotation = Quaternion.identity;
+                var origin = Vector3.zero;
+                var result = DroneDebugVectorPresentationMath.ClampVectorToViewport(
+                    camera,
+                    origin,
+                    Vector3.right * 1000f,
+                    new Rect(0.06f, 0.08f, 0.88f, 0.84f));
+                var viewport = camera.WorldToViewportPoint(origin + result);
+                Assert.That(viewport.x, Is.InRange(0.06f, 0.9401f));
+                Assert.That(viewport.y, Is.InRange(0.08f, 0.92f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraObject);
             }
         }
 

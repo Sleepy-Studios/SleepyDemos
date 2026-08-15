@@ -7,8 +7,6 @@ namespace Hotfix.DroneFlight
     public sealed class DroneHarpoonModule : MonoBehaviour, IDroneEquipmentModule, IDroneAimingEquipment
     {
         [SerializeField] private DroneHarpoonConfig configSource;
-        [SerializeField] private Rigidbody launcherBody;
-        [SerializeField] private ConfigurableJoint launcherJoint;
         [SerializeField] private Transform gimbal;
         [SerializeField] private Transform muzzle;
         [SerializeField] private Rigidbody projectileBody;
@@ -39,7 +37,11 @@ namespace Hotfix.DroneFlight
 
         public DroneEquipmentKind Kind => DroneEquipmentKind.Harpoon;
         public DroneEquipmentState State { get; private set; } = DroneEquipmentState.Stowed;
-        public float HardwareMassKilograms => runtimeConfig != null ? runtimeConfig.HardwareMassKilograms : 0f;
+        public float IntegratedDynamicMassKilograms => projectileBody != null && !projectileBody.isKinematic
+            ? Mathf.Max(0f, projectileBody.mass)
+            : 0f;
+        public float SupportedIntegratedDynamicMassKilograms => 0f;
+        public float HardwareMassKilograms => 0f;
         public float PayloadMassKilograms => hitBody != null ? hitBody.mass : 0f;
         public float SupportedPayloadMassKilograms => supportedPayloadMass;
         public string LastHint { get; private set; } = string.Empty;
@@ -98,12 +100,6 @@ namespace Hotfix.DroneFlight
         {
             droneBody = body;
             aimCamera = camera;
-            if (launcherJoint != null)
-            {
-                launcherJoint.connectedBody = droneBody;
-                launcherJoint.projectionMode = JointProjectionMode.None;
-            }
-
             ConfigureInternalCollisions();
             DockProjectileImmediate();
         }
@@ -213,8 +209,6 @@ namespace Hotfix.DroneFlight
 
         internal void Configure(
             DroneHarpoonConfig config,
-            Rigidbody launcher,
-            ConfigurableJoint launcherConnection,
             Transform aimingGimbal,
             Transform firePoint,
             Rigidbody projectileRigidBody,
@@ -224,8 +218,6 @@ namespace Hotfix.DroneFlight
             LineRenderer reticle)
         {
             configSource = config;
-            launcherBody = launcher;
-            launcherJoint = launcherConnection;
             gimbal = aimingGimbal;
             muzzle = firePoint;
             projectileBody = projectileRigidBody;
@@ -271,18 +263,14 @@ namespace Hotfix.DroneFlight
 
         private void ApplyMassDistribution()
         {
-            if (runtimeConfig == null || projectileBody == null || launcherBody == null)
+            if (runtimeConfig == null || projectileBody == null)
             {
                 return;
             }
 
             projectileBody.mass = runtimeConfig.ProjectileMassKilograms;
-            launcherBody.mass = Mathf.Max(
-                0.001f,
-                runtimeConfig.HardwareMassKilograms - runtimeConfig.ProjectileMassKilograms);
             projectileBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
             projectileBody.interpolation = RigidbodyInterpolation.Interpolate;
-            launcherBody.interpolation = RigidbodyInterpolation.Interpolate;
         }
 
         private void UpdateAim()
@@ -395,19 +383,24 @@ namespace Hotfix.DroneFlight
                         Vector3.Distance(muzzle.position, projectileBody.position)));
             }
 
-            var speed = State == DroneEquipmentState.Recovering
-                ? runtimeConfig.AutomaticRecoverySpeedMetersPerSecond
-                : runtimeConfig.ReelSpeedMetersPerSecond;
-            var direction = State == DroneEquipmentState.Recovering ? -1f : lineInput;
+            if (State == DroneEquipmentState.Recovering)
+            {
+                targetRopeLength = Mathf.MoveTowards(
+                    targetRopeLength,
+                    0f,
+                    runtimeConfig.AutomaticRecoverySpeedMetersPerSecond * deltaTime);
+                return;
+            }
+
             targetRopeLength = Mathf.Clamp(
-                targetRopeLength + direction * speed * deltaTime,
+                targetRopeLength + lineInput * runtimeConfig.ReelSpeedMetersPerSecond * deltaTime,
                 runtimeConfig.MinimumRopeLengthMeters,
                 runtimeConfig.MaximumRopeLengthMeters);
         }
 
         private void StepRopePhysics(float deltaTime)
         {
-            if (State == DroneEquipmentState.Stowed)
+            if (State is DroneEquipmentState.Stowed or DroneEquipmentState.Recovering)
             {
                 ropeTension = 0f;
                 supportedPayloadMass = 0f;
@@ -474,6 +467,7 @@ namespace Hotfix.DroneFlight
                 runtimeConfig.MaximumRopeLengthMeters);
             ropeVisual?.ResetSimulation(muzzle.position, projectileBody.position);
             State = DroneEquipmentState.Recovering;
+            projectileBody.useGravity = true;
             SetHint(hint);
         }
 
@@ -484,8 +478,29 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            var positionError = Vector3.Distance(projectileBody.position, muzzle.position);
-            var relativeSpeed = (projectileBody.linearVelocity - droneBody.GetPointVelocity(muzzle.position)).magnitude;
+            var toMuzzle = muzzle.position - projectileBody.worldCenterOfMass;
+            var positionError = toMuzzle.magnitude;
+            var muzzleVelocity = droneBody.GetPointVelocity(muzzle.position);
+            var relativeVelocity = projectileBody.linearVelocity - muzzleVelocity;
+            var responseSeconds = Mathf.Max(0.01f, runtimeConfig.RecoveryResponseSeconds);
+            var desiredRelativeVelocity = positionError > 0.0001f
+                ? toMuzzle / positionError
+                  * Mathf.Min(runtimeConfig.AutomaticRecoverySpeedMetersPerSecond, positionError / responseSeconds)
+                : Vector3.zero;
+            var acceleration = Vector3.ClampMagnitude(
+                (desiredRelativeVelocity - relativeVelocity) / responseSeconds - Physics.gravity,
+                runtimeConfig.MaximumRecoveryAccelerationMetersPerSecondSquared);
+            var recoveryForce = acceleration * projectileBody.mass;
+            projectileBody.AddForce(recoveryForce, ForceMode.Force);
+            droneBody.AddForceAtPosition(-recoveryForce, muzzle.position, ForceMode.Force);
+            ropeTension = recoveryForce.magnitude;
+
+            if (projectileCollider != null && positionError <= 0.3f)
+            {
+                projectileCollider.enabled = false;
+            }
+
+            var relativeSpeed = relativeVelocity.magnitude;
             if (positionError <= runtimeConfig.DockPositionToleranceMeters
                 && relativeSpeed <= runtimeConfig.DockSpeedToleranceMetersPerSecond)
             {
@@ -558,18 +573,6 @@ namespace Hotfix.DroneFlight
                 }
             }
 
-            if (launcherBody == null)
-            {
-                return;
-            }
-
-            foreach (var launcherCollider in launcherBody.GetComponentsInChildren<Collider>(true))
-            {
-                if (launcherCollider != null && launcherCollider != projectileCollider)
-                {
-                    Physics.IgnoreCollision(projectileCollider, launcherCollider, true);
-                }
-            }
         }
 
         private static void DestroyJoint<T>(ref T joint) where T : Joint

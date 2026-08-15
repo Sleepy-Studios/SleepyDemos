@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -24,7 +25,15 @@ namespace Hotfix.DroneFlight
         [SerializeField] private Transform gimbalPitch;
         [SerializeField] private Transform fixedForwardMount;
         [SerializeField] private Transform bellyMount;
-        [SerializeField] private float followSharpness = 10f;
+        [SerializeField] private Vector3 thirdPersonOffset = new(0f, 0.85f, -2.2f);
+        [SerializeField] private float thirdPersonLookAheadSeconds = 0.18f;
+        [SerializeField] private float orbitDistanceMeters = 2.5f;
+        [SerializeField] private float transitionSeconds = 0.35f;
+        [SerializeField] private float followSmoothTimeSeconds = 0.16f;
+        [SerializeField] private float rotationSharpness = 12f;
+        [SerializeField] private float collisionRadiusMeters = 0.18f;
+        [SerializeField] private float collisionMinimumDistanceMeters = 0.55f;
+        [SerializeField] private float collisionBufferMeters = 0.1f;
         [SerializeField] private float gimbalPitchMinimum = -90f;
         [SerializeField] private float gimbalPitchMaximum = 30f;
         [SerializeField] private float minimumFieldOfView = 20f;
@@ -36,6 +45,14 @@ namespace Hotfix.DroneFlight
         private float orbitYawDegrees;
         private float orbitPitchDegrees = 20f;
         private DroneCameraMode savedMode = DroneCameraMode.ThirdPerson;
+        private Rigidbody bodyRigidbody;
+        private Vector3 followVelocity;
+        private Vector3 transitionStartPosition;
+        private Quaternion transitionStartRotation;
+        private float transitionStartFieldOfView;
+        private float transitionElapsed;
+        private bool isTransitioning;
+        private readonly float[] modeFieldOfViews = { 65f, 60f, 60f, 75f, 60f, 55f };
 
         /// <summary>唯一的无人机画面输出 Camera。</summary>
         internal Camera OutputCamera => outputCamera;
@@ -60,10 +77,40 @@ namespace Hotfix.DroneFlight
             }
 
             UpdateGimbalTransforms();
-            CalculatePose(out var targetPosition, out var targetRotation);
-            var blend = 1f - Mathf.Exp(-Mathf.Max(0.01f, followSharpness) * Time.unscaledDeltaTime);
-            outputCamera.transform.position = Vector3.Lerp(outputCamera.transform.position, targetPosition, blend);
+            CalculatePose(out var targetPosition, out var targetRotation, out var focusPoint);
+            targetPosition = ResolveObstruction(targetPosition, focusPoint);
+            var targetFieldOfView = GetModeFieldOfView(mode);
+            ApplyNearClipPlane();
+
+            if (isTransitioning)
+            {
+                transitionElapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+                var normalized = Mathf.Clamp01(transitionElapsed / Mathf.Max(0.01f, transitionSeconds));
+                var eased = normalized * normalized * (3f - 2f * normalized);
+                outputCamera.transform.position = Vector3.Lerp(transitionStartPosition, targetPosition, eased);
+                outputCamera.transform.rotation = Quaternion.Slerp(transitionStartRotation, targetRotation, eased);
+                outputCamera.fieldOfView = Mathf.Lerp(transitionStartFieldOfView, targetFieldOfView, eased);
+                if (normalized >= 1f)
+                {
+                    isTransitioning = false;
+                    followVelocity = Vector3.zero;
+                }
+                return;
+            }
+
+            var smoothTime = mode is DroneCameraMode.ThirdPerson or DroneCameraMode.Orbit
+                ? followSmoothTimeSeconds
+                : 0.06f;
+            outputCamera.transform.position = Vector3.SmoothDamp(
+                outputCamera.transform.position,
+                targetPosition,
+                ref followVelocity,
+                Mathf.Max(0.01f, smoothTime),
+                Mathf.Infinity,
+                Time.unscaledDeltaTime);
+            var blend = 1f - Mathf.Exp(-Mathf.Max(0.01f, rotationSharpness) * Time.unscaledDeltaTime);
             outputCamera.transform.rotation = Quaternion.Slerp(outputCamera.transform.rotation, targetRotation, blend);
+            outputCamera.fieldOfView = Mathf.Lerp(outputCamera.fieldOfView, targetFieldOfView, blend);
         }
 
         /// <summary>
@@ -72,6 +119,12 @@ namespace Hotfix.DroneFlight
         /// <param name="cameraMode">目标视角。</param>
         internal void SetMode(DroneCameraMode cameraMode)
         {
+            if (mode == cameraMode)
+            {
+                return;
+            }
+
+            BeginTransition();
             mode = cameraMode;
         }
 
@@ -83,7 +136,7 @@ namespace Hotfix.DroneFlight
                 savedMode = mode;
             }
 
-            mode = DroneCameraMode.HarpoonAim;
+            SetMode(DroneCameraMode.HarpoonAim);
         }
 
         /// 恢复进入渔叉瞄准前的视角。
@@ -91,7 +144,7 @@ namespace Hotfix.DroneFlight
         {
             if (mode == DroneCameraMode.HarpoonAim)
             {
-                mode = savedMode == DroneCameraMode.HarpoonAim ? DroneCameraMode.ThirdPerson : savedMode;
+                SetMode(savedMode == DroneCameraMode.HarpoonAim ? DroneCameraMode.ThirdPerson : savedMode);
             }
         }
 
@@ -137,6 +190,7 @@ namespace Hotfix.DroneFlight
                 outputCamera.fieldOfView + delta,
                 minimumFieldOfView,
                 maximumFieldOfView);
+            modeFieldOfViews[(int)mode] = outputCamera.fieldOfView;
         }
 
         /// <summary>
@@ -156,6 +210,14 @@ namespace Hotfix.DroneFlight
             gimbalPitch = pitch;
             fixedForwardMount = forward;
             bellyMount = belly;
+            bodyRigidbody = body != null ? body.GetComponent<Rigidbody>() : null;
+            if (outputCamera != null && droneBody != null)
+            {
+                CalculatePose(out var position, out var rotation, out _);
+                outputCamera.transform.SetPositionAndRotation(position, rotation);
+                outputCamera.fieldOfView = GetModeFieldOfView(mode);
+                ApplyNearClipPlane();
+            }
         }
 
         private void UpdateGimbalTransforms()
@@ -171,23 +233,33 @@ namespace Hotfix.DroneFlight
             }
         }
 
-        private void CalculatePose(out Vector3 position, out Quaternion rotation)
+        private void CalculatePose(out Vector3 position, out Quaternion rotation, out Vector3 focusPoint)
         {
+            focusPoint = droneBody.position;
             switch (mode)
             {
                 case DroneCameraMode.HarpoonAim:
                     var aimMount = bellyMount != null ? bellyMount : droneBody;
                     position = aimMount.position;
-                    rotation = aimMount.rotation;
+                    rotation = CalculateDownwardRotation();
                     break;
                 case DroneCameraMode.ThirdPerson:
-                    position = droneBody.TransformPoint(0f, 1.2f, -3f);
-                    rotation = Quaternion.LookRotation(droneBody.position - position + Vector3.up * 0.2f, Vector3.up);
+                    var yawRotation = Quaternion.Euler(0f, droneBody.eulerAngles.y, 0f);
+                    var lookAhead = bodyRigidbody != null
+                        ? bodyRigidbody.linearVelocity * thirdPersonLookAheadSeconds
+                        : Vector3.zero;
+                    focusPoint = droneBody.position + Vector3.up * 0.1f + lookAhead;
+                    position = droneBody.position + yawRotation * thirdPersonOffset + lookAhead;
+                    rotation = Quaternion.LookRotation(focusPoint - position, Vector3.up);
                     break;
                 case DroneCameraMode.Orbit:
-                    var orbitRotation = Quaternion.Euler(orbitPitchDegrees, orbitYawDegrees, 0f);
-                    position = droneBody.position + orbitRotation * new Vector3(0f, 0f, -3f);
-                    rotation = Quaternion.LookRotation(droneBody.position - position, Vector3.up);
+                    var orbitRotation = Quaternion.Euler(
+                        orbitPitchDegrees,
+                        orbitYawDegrees + droneBody.eulerAngles.y,
+                        0f);
+                    focusPoint = droneBody.position + Vector3.up * 0.08f;
+                    position = focusPoint + orbitRotation * new Vector3(0f, 0f, -orbitDistanceMeters);
+                    rotation = Quaternion.LookRotation(focusPoint - position, Vector3.up);
                     break;
                 case DroneCameraMode.FixedForward when fixedForwardMount != null:
                     position = fixedForwardMount.position;
@@ -195,14 +267,102 @@ namespace Hotfix.DroneFlight
                     break;
                 case DroneCameraMode.Belly when bellyMount != null:
                     position = bellyMount.position;
-                    rotation = bellyMount.rotation;
+                    rotation = CalculateDownwardRotation();
                     break;
                 default:
                     var mount = gimbalPitch != null ? gimbalPitch : droneBody;
                     position = mount.position;
-                    rotation = mount.rotation;
+                    var forward = mount.forward;
+                    rotation = Mathf.Abs(Vector3.Dot(forward, Vector3.up)) < 0.98f
+                        ? Quaternion.LookRotation(forward, Vector3.up)
+                        : mount.rotation;
                     break;
             }
+        }
+
+        private Quaternion CalculateDownwardRotation()
+        {
+            var screenUp = Vector3.ProjectOnPlane(droneBody.forward, Vector3.down).normalized;
+            if (screenUp.sqrMagnitude < 0.001f)
+            {
+                screenUp = Vector3.forward;
+            }
+            return Quaternion.LookRotation(Vector3.down, screenUp);
+        }
+
+        private Vector3 ResolveObstruction(Vector3 desiredPosition, Vector3 focusPoint)
+        {
+            if (mode is not DroneCameraMode.ThirdPerson and not DroneCameraMode.Orbit)
+            {
+                return desiredPosition;
+            }
+
+            var delta = desiredPosition - focusPoint;
+            var distance = delta.magnitude;
+            if (distance <= 0.0001f)
+            {
+                return desiredPosition;
+            }
+
+            var hits = Physics.SphereCastAll(
+                focusPoint,
+                Mathf.Max(0.01f, collisionRadiusMeters),
+                delta / distance,
+                distance,
+                ~0,
+                QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+            foreach (var hit in hits)
+            {
+                if (hit.collider == null || hit.transform.IsChildOf(droneBody))
+                {
+                    continue;
+                }
+
+                var resolvedDistance = Mathf.Clamp(
+                    hit.distance - collisionBufferMeters,
+                    collisionMinimumDistanceMeters,
+                    distance);
+                return focusPoint + delta.normalized * resolvedDistance;
+            }
+
+            return desiredPosition;
+        }
+
+        private void BeginTransition()
+        {
+            if (outputCamera == null)
+            {
+                return;
+            }
+
+            transitionStartPosition = outputCamera.transform.position;
+            transitionStartRotation = outputCamera.transform.rotation;
+            transitionStartFieldOfView = outputCamera.fieldOfView;
+            transitionElapsed = 0f;
+            isTransitioning = true;
+            followVelocity = Vector3.zero;
+        }
+
+        private float GetModeFieldOfView(DroneCameraMode cameraMode)
+        {
+            var index = Mathf.Clamp((int)cameraMode, 0, modeFieldOfViews.Length - 1);
+            return Mathf.Clamp(modeFieldOfViews[index], minimumFieldOfView, maximumFieldOfView);
+        }
+
+        private void ApplyNearClipPlane()
+        {
+            if (outputCamera == null)
+            {
+                return;
+            }
+
+            outputCamera.nearClipPlane = mode is DroneCameraMode.FixedForward
+                or DroneCameraMode.Belly
+                or DroneCameraMode.HarpoonAim
+                or DroneCameraMode.Gimbal
+                ? 0.02f
+                : 0.08f;
         }
     }
 }

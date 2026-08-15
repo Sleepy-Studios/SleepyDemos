@@ -727,7 +727,7 @@ namespace Hotfix.DroneFlight
             RefreshMassDistribution();
         }
 
-        /// <summary>按抓斗停靠或部署状态重新分配机体与动态设备质量。</summary>
+        /// <summary>从机体扣除已由子刚体求解的整机内含质量，保持空载总质量不变。</summary>
         internal void RefreshMassDistribution()
         {
             if (body == null || config == null)
@@ -735,13 +735,10 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            var installedHardwareMass = externalMassProvider != null
-                ? Mathf.Max(0f, externalMassProvider.InstalledHardwareMassKilograms)
+            var integratedDynamicMass = externalMassProvider != null
+                ? Mathf.Max(0f, externalMassProvider.IntegratedDynamicMassKilograms)
                 : 0f;
-            var separatedHardwareMass = externalMassProvider != null
-                ? Mathf.Clamp(externalMassProvider.HardwareMassKilograms, 0f, installedHardwareMass)
-                : 0f;
-            var targetMass = config.BodyMassKilograms + installedHardwareMass - separatedHardwareMass;
+            var targetMass = config.BodyMassKilograms - integratedDynamicMass;
             if (!float.IsFinite(targetMass) || targetMass <= 0f)
             {
                 return;
@@ -750,8 +747,8 @@ namespace Hotfix.DroneFlight
             if (!Mathf.Approximately(body.mass, targetMass))
             {
                 body.mass = targetMass;
+                body.ResetInertiaTensor();
             }
-            body.ResetInertiaTensor();
         }
 
         private int CalculateRuntimeTuningSignature()

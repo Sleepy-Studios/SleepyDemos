@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6bcf0549e76bcf49a775e9c517f5f0b, type: 3}
   m_Name: DroneGrappleConfig
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneGrappleConfig
-  hardwareMassKilograms: 0.05
   armLengthMeters: 0.08
+  maximumLiftTravelMeters: 0.35
+  liftSpeedMetersPerSecond: 0.18
   swingLimitDegrees: 35
   dampingRatio: 0.45
   maximumDampingTorqueNewtonMeters: 3

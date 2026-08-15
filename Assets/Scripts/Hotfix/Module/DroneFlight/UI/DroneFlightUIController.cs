@@ -37,6 +37,11 @@ namespace Hotfix.DroneFlight
             {
                 ToggleDebugPanelAsync().Forget();
             }
+
+            if (Keyboard.current.f1Key.wasPressedThisFrame)
+            {
+                hudView?.ToggleControls();
+            }
         }
 
         internal async UniTask<DroneVehicleKind?> ShowVehicleSelectAsync(

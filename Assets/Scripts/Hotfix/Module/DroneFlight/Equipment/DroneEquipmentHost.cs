@@ -20,14 +20,21 @@ namespace Hotfix.DroneFlight
         public DroneEquipmentSnapshot Snapshot => module?.Snapshot ?? default;
 
         float IDroneExternalMassProvider.SupportedMassKilograms =>
-            Mathf.Max(0f, HardwareMassKilograms + SupportedPayloadMassKilograms);
+            Mathf.Max(0f, SupportedIntegratedDynamicMassKilograms + SupportedPayloadMassKilograms);
 
-        float IDroneExternalMassProvider.InstalledHardwareMassKilograms => HardwareMassKilograms;
+        float IDroneExternalMassProvider.IntegratedDynamicMassKilograms => IntegratedDynamicMassKilograms;
         float IDroneExternalMassProvider.HardwareMassKilograms => HardwareMassKilograms;
         float IDroneExternalMassProvider.PayloadMassKilograms => PayloadMassKilograms;
         float IDroneExternalMassProvider.SupportedPayloadMassKilograms => SupportedPayloadMassKilograms;
 
-        internal float HardwareMassKilograms => Mathf.Max(0f, module?.HardwareMassKilograms ?? 0f);
+        internal float IntegratedDynamicMassKilograms =>
+            Mathf.Max(0f, module?.IntegratedDynamicMassKilograms ?? 0f);
+        internal float SupportedIntegratedDynamicMassKilograms =>
+            Mathf.Clamp(
+                module?.SupportedIntegratedDynamicMassKilograms ?? 0f,
+                0f,
+                IntegratedDynamicMassKilograms);
+        internal float HardwareMassKilograms => 0f;
         internal float PayloadMassKilograms => Mathf.Max(0f, module?.PayloadMassKilograms ?? 0f);
         internal float SupportedPayloadMassKilograms => Mathf.Clamp(
             module?.SupportedPayloadMassKilograms ?? 0f,
@@ -38,6 +45,11 @@ namespace Hotfix.DroneFlight
         {
             ResolveModule();
             ConfigureRuntimeReferences();
+        }
+
+        private void FixedUpdate()
+        {
+            flightController?.RefreshMassDistribution();
         }
 
         private void OnDestroy()
@@ -62,6 +74,7 @@ namespace Hotfix.DroneFlight
         internal void PrimaryAction()
         {
             module?.PrimaryAction();
+            flightController?.RefreshMassDistribution();
         }
 
         internal void ToggleAimMode()

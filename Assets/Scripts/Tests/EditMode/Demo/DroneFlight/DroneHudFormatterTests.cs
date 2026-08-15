@@ -14,7 +14,7 @@ namespace Tests.Demo
             var snapshot = CreateSnapshot(saturated: false);
 
             StringAssert.Contains("普通（Normal）", DroneHudFormatter.FormatFlight(snapshot));
-            StringAssert.Contains("高度 1.5 m", DroneHudFormatter.FormatFlight(snapshot));
+            StringAssert.Contains("H 1.5 m", DroneHudFormatter.FormatFlight(snapshot));
             StringAssert.Contains("Gimbal", DroneHudFormatter.FormatCamera(snapshot));
         }
 

@@ -6,8 +6,9 @@ namespace Hotfix.DroneFlight
     [CreateAssetMenu(fileName = "DroneGrappleConfig", menuName = "SleepyDemos/Drone Flight/Grapple Config")]
     public sealed class DroneGrappleConfig : ScriptableObject
     {
-        [SerializeField] private float hardwareMassKilograms = 0.05f;
         [SerializeField] private float armLengthMeters = 0.08f;
+        [SerializeField] private float maximumLiftTravelMeters = 0.35f;
+        [SerializeField] private float liftSpeedMetersPerSecond = 0.18f;
         [SerializeField] private float swingLimitDegrees = 35f;
         [SerializeField, Range(0f, 1f)] private float dampingRatio = 0.45f;
         [SerializeField] private float maximumDampingTorqueNewtonMeters = 3f;
@@ -23,8 +24,9 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float breakTorqueNewtonMeters = 80f;
         [SerializeField] private float supportedLoadSmoothingSeconds = 0.18f;
 
-        internal float HardwareMassKilograms => hardwareMassKilograms;
         internal float ArmLengthMeters => armLengthMeters;
+        internal float MaximumLiftTravelMeters => maximumLiftTravelMeters;
+        internal float LiftSpeedMetersPerSecond => liftSpeedMetersPerSecond;
         internal float SwingLimitDegrees => swingLimitDegrees;
         internal float DampingRatio => dampingRatio;
         internal float MaximumDampingTorqueNewtonMeters => maximumDampingTorqueNewtonMeters;
@@ -48,18 +50,19 @@ namespace Hotfix.DroneFlight
         /// 返回供运行时与双语 Inspector 共用的结构化校验结果。
         internal DroneConfigValidationResult Validate()
         {
-            if (!IsPositive(hardwareMassKilograms) || hardwareMassKilograms > 0.5f)
-            {
-                return DroneConfigValidationResult.Invalid(
-                    "抓斗设备总质量必须位于 (0, 0.5] kg。",
-                    "Grapple hardware mass must be within (0, 0.5] kg.");
-            }
-
             if (!IsPositive(armLengthMeters) || armLengthMeters > 0.2f)
             {
                 return DroneConfigValidationResult.Invalid(
                     "抓斗固定吊臂长度必须位于 (0, 0.2] m。",
                     "Grapple fixed-arm length must be within (0, 0.2] m.");
+            }
+
+            if (!IsPositive(maximumLiftTravelMeters) || maximumLiftTravelMeters > 1f
+                || !IsPositive(liftSpeedMetersPerSecond) || liftSpeedMetersPerSecond > 2f)
+            {
+                return DroneConfigValidationResult.Invalid(
+                    "抓斗升降行程或速度无效。",
+                    "Grapple lift travel or speed is invalid.");
             }
 
             if (!IsAngle(swingLimitDegrees)

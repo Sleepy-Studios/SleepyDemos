@@ -6,7 +6,6 @@ namespace Hotfix.DroneFlight
     [CreateAssetMenu(fileName = "DroneHarpoonConfig", menuName = "SleepyDemos/Drone Flight/Harpoon Config")]
     public sealed class DroneHarpoonConfig : ScriptableObject
     {
-        [SerializeField] private float hardwareMassKilograms = 0.05f;
         [SerializeField] private float projectileMassKilograms = 0.02f;
         [SerializeField] private float launchImpulseNewtonSeconds = 0.12f;
         [SerializeField] private float maximumFlightDistanceMeters = 30f;
@@ -21,14 +20,15 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float ropeDamperNewtonSecondsPerMeter = 12f;
         [SerializeField] private float maximumTensionNewtons = 180f;
         [SerializeField] private float ropeBreakForceNewtons = 240f;
-        [SerializeField] private float automaticRecoverySpeedMetersPerSecond = 6f;
+        [SerializeField] private float automaticRecoverySpeedMetersPerSecond = 2f;
+        [SerializeField] private float recoveryResponseSeconds = 0.18f;
+        [SerializeField] private float maximumRecoveryAccelerationMetersPerSecondSquared = 15f;
         [SerializeField] private float dockPositionToleranceMeters = 0.08f;
         [SerializeField] private float dockSpeedToleranceMetersPerSecond = 0.8f;
 
         [SerializeField] private LayerMask hittableLayers = ~0;
         [SerializeField] private LayerMask ignoredLayers;
 
-        internal float HardwareMassKilograms => hardwareMassKilograms;
         internal float ProjectileMassKilograms => projectileMassKilograms;
         internal float LaunchImpulseNewtonSeconds => launchImpulseNewtonSeconds;
         internal float MaximumFlightDistanceMeters => maximumFlightDistanceMeters;
@@ -43,6 +43,9 @@ namespace Hotfix.DroneFlight
         internal float MaximumTensionNewtons => maximumTensionNewtons;
         internal float RopeBreakForceNewtons => ropeBreakForceNewtons;
         internal float AutomaticRecoverySpeedMetersPerSecond => automaticRecoverySpeedMetersPerSecond;
+        internal float RecoveryResponseSeconds => recoveryResponseSeconds;
+        internal float MaximumRecoveryAccelerationMetersPerSecondSquared =>
+            maximumRecoveryAccelerationMetersPerSecondSquared;
         internal float DockPositionToleranceMeters => dockPositionToleranceMeters;
         internal float DockSpeedToleranceMetersPerSecond => dockSpeedToleranceMetersPerSecond;
         internal LayerMask HittableLayers => hittableLayers;
@@ -58,12 +61,11 @@ namespace Hotfix.DroneFlight
         /// 返回供运行时与双语 Inspector 共用的结构化校验结果。
         internal DroneConfigValidationResult Validate()
         {
-            if (!IsPositive(hardwareMassKilograms) || !IsPositive(projectileMassKilograms)
-                || projectileMassKilograms >= hardwareMassKilograms)
+            if (!IsPositive(projectileMassKilograms))
             {
                 return DroneConfigValidationResult.Invalid(
-                    "渔叉设备质量必须为正，且弹体质量必须小于设备总质量。",
-                    "Harpoon hardware mass must be positive and projectile mass must be lower than total hardware mass.");
+                    "渔叉弹体质量必须为正。",
+                    "Harpoon projectile mass must be positive.");
             }
 
             if (!IsPositive(launchImpulseNewtonSeconds) || !IsPositive(maximumFlightDistanceMeters)
@@ -76,7 +78,9 @@ namespace Hotfix.DroneFlight
 
             if (!IsPositive(ropeSpringNewtonsPerMeter) || !IsPositive(ropeDamperNewtonSecondsPerMeter)
                 || !IsPositive(maximumTensionNewtons) || ropeBreakForceNewtons <= maximumTensionNewtons
-                || !IsPositive(automaticRecoverySpeedMetersPerSecond))
+                || !IsPositive(automaticRecoverySpeedMetersPerSecond)
+                || !IsPositive(recoveryResponseSeconds)
+                || !IsPositive(maximumRecoveryAccelerationMetersPerSecondSquared))
             {
                 return DroneConfigValidationResult.Invalid(
                     "绳索弹簧、阻尼、张力或回收参数无效。",

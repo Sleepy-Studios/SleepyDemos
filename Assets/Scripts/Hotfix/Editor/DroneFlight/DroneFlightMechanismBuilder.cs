@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Hotfix.DroneFlight;
+using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -23,6 +24,7 @@ namespace Hotfix.Editor.DroneFlight
         private const string HarpoonPrefabPath = Root + "/Prefabs/DroneHarpoonVariant.prefab";
         private const string GrappleConfigPath = Root + "/Data/Equipment/DroneGrappleConfig.asset";
         private const string HarpoonConfigPath = Root + "/Data/Equipment/DroneHarpoonConfig.asset";
+        private const string HudPrefabPath = Root + "/Prefabs/UI/DroneFlightHudView.prefab";
         private const string ModelPath = Root + "/Art/Models/DroneFlight.fbx";
         private const string MaterialRoot = Root + "/Art/Materials";
 
@@ -41,7 +43,12 @@ namespace Hotfix.Editor.DroneFlight
             SetFloat(grappleConfig, "closedAngleDegrees", 75f);
             SetFloat(grappleConfig, "enclosureRadiusMeters", 0.23f);
             SetFloat(grappleConfig, "enclosureHalfHeightMeters", 0.2f);
+            SetFloat(grappleConfig, "maximumLiftTravelMeters", 0.35f);
+            SetFloat(grappleConfig, "liftSpeedMetersPerSecond", 0.18f);
             SetFloat(harpoonConfig, "launchImpulseNewtonSeconds", 0.12f);
+            SetFloat(harpoonConfig, "automaticRecoverySpeedMetersPerSecond", 2f);
+            SetFloat(harpoonConfig, "recoveryResponseSeconds", 0.18f);
+            SetFloat(harpoonConfig, "maximumRecoveryAccelerationMetersPerSecondSquared", 15f);
             RebuildBasePrefab();
             BuildGrappleEquipmentPrefab(grappleConfig);
             BuildHarpoonEquipmentPrefab(harpoonConfig);
@@ -53,11 +60,12 @@ namespace Hotfix.Editor.DroneFlight
                 DroneEquipmentKind.Harpoon,
                 HarpoonEquipmentPrefabPath,
                 HarpoonPrefabPath);
+            ConfigureHudPrefab();
             AssetDatabase.ForceReserializeAssets(new[]
             {
                 Root + "/Data/DroneFlightConfig.asset", GrappleConfigPath, HarpoonConfigPath,
                 BasePrefabPath, GrappleEquipmentPrefabPath, HarpoonEquipmentPrefabPath,
-                GrapplePrefabPath, HarpoonPrefabPath
+                GrapplePrefabPath, HarpoonPrefabPath, HudPrefabPath
             });
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -84,6 +92,10 @@ namespace Hotfix.Editor.DroneFlight
                     root.transform,
                     DroneFlightModelContract.BellyEquipmentMountName,
                     DroneFlightModelContract.BellyEquipmentMountPosition);
+                var forwardMount = EnsureChild(root.transform, "FixedForwardMount", new Vector3(0f, 0.02f, 0.2f));
+                forwardMount.localRotation = Quaternion.identity;
+                var bellyCameraMount = EnsureChild(root.transform, "BellyCameraMount", new Vector3(0f, -0.14f, 0.06f));
+                bellyCameraMount.localRotation = Quaternion.Euler(90f, 0f, 0f);
                 BuildOfficialModel(root);
                 BuildCommonCameraAndRuntime(root);
                 PrefabUtility.SaveAsPrefabAsset(root, BasePrefabPath);
@@ -424,6 +436,70 @@ namespace Hotfix.Editor.DroneFlight
             root.AddComponent<DroneFlightSceneContext>();
         }
 
+        private static void ConfigureHudPrefab()
+        {
+            var root = PrefabUtility.LoadPrefabContents(HudPrefabPath);
+            try
+            {
+                ConfigureHudText(root.transform, "TelemetryRoot/FlightText",
+                    new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24f, -20f),
+                    new Vector2(520f, 100f), TextAlignmentOptions.TopLeft, 26f);
+                ConfigureHudText(root.transform, "TelemetryRoot/CameraText",
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f),
+                    new Vector2(720f, 48f), TextAlignmentOptions.Top, 24f);
+                ConfigureHudText(root.transform, "TelemetryRoot/PayloadText",
+                    new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 24f),
+                    new Vector2(900f, 48f), TextAlignmentOptions.Bottom, 24f);
+                ConfigureHudText(root.transform, "TelemetryRoot/WarningText",
+                    new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f),
+                    new Vector2(760f, 48f), TextAlignmentOptions.Top, 26f);
+                var controls = root.transform.Find("ControlsPanel") as RectTransform;
+                if (controls != null)
+                {
+                    controls.anchorMin = controls.anchorMax = controls.pivot = new Vector2(1f, 1f);
+                    controls.anchoredPosition = new Vector2(-24f, -76f);
+                    controls.sizeDelta = new Vector2(420f, 560f);
+                    controls.gameObject.SetActive(false);
+                }
+
+                var controlsText = root.transform.Find("ControlsPanel/ControlsText")?.GetComponent<TextMeshProUGUI>();
+                if (controlsText != null)
+                {
+                    controlsText.fontSize = 22f;
+                }
+                PrefabUtility.SaveAsPrefabAsset(root, HudPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        private static void ConfigureHudText(
+            Transform root,
+            string path,
+            Vector2 anchor,
+            Vector2 pivot,
+            Vector2 position,
+            Vector2 size,
+            TextAlignmentOptions alignment,
+            float fontSize)
+        {
+            var text = root.Find(path)?.GetComponent<TextMeshProUGUI>();
+            if (text == null)
+            {
+                throw new InvalidOperationException($"HUD 缺少文本节点：{path}");
+            }
+
+            var rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = anchor;
+            rect.pivot = pivot;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+            text.alignment = alignment;
+            text.fontSize = fontSize;
+        }
+
         private static void BuildGrappleEquipmentPrefab(DroneGrappleConfig config)
         {
             var preview = EditorSceneManager.NewPreviewScene();
@@ -518,6 +594,11 @@ namespace Hotfix.Editor.DroneFlight
             CreateVisualPrimitive(upperSeat, "CrossPin", PrimitiveType.Cylinder,
                 new Vector3(0f, -0.018f, 0f), Quaternion.Euler(0f, 0f, 90f),
                 new Vector3(0.018f, 0.055f, 0.018f), orange);
+            CreateVisualPrimitive(equipment.transform, "LiftSleeveVisual", PrimitiveType.Cylinder,
+                DroneFlightModelContract.BellyEquipmentMountPosition,
+                Quaternion.identity,
+                new Vector3(0.012f, 0.002f, 0.012f), dark);
+            var liftSleeveVisual = equipment.transform.Find("LiftSleeveVisual");
 
             var baseObject = new GameObject(
                 "GrappleBase",
@@ -544,6 +625,7 @@ namespace Hotfix.Editor.DroneFlight
                 new Vector3(0.018f, config.ArmLengthMeters * 0.5f, 0.018f), orange);
 
             var baseBody = baseObject.GetComponent<Rigidbody>();
+            baseBody.mass = 0.02f;
             baseBody.useGravity = false;
             baseBody.isKinematic = true;
             var suspension = baseObject.GetComponent<ConfigurableJoint>();
@@ -589,6 +671,7 @@ namespace Hotfix.Editor.DroneFlight
                 claw.transform.localScale = Vector3.one;
 
                 var body = claw.GetComponent<Rigidbody>();
+                body.mass = 0.0075f;
                 body.useGravity = false;
                 body.isKinematic = true;
                 var hinge = claw.GetComponent<HingeJoint>();
@@ -623,8 +706,8 @@ namespace Hotfix.Editor.DroneFlight
             }
 
             var module = equipment.GetComponent<DroneGrappleModule>();
-            module.Configure(config, null, baseBody, suspension, captureVolume, clawBodies, clawJoints,
-                clawColliders.ToArray());
+            module.Configure(config, null, upperSeat, liftSleeveVisual, baseBody, suspension,
+                captureVolume, clawBodies, clawJoints, clawColliders.ToArray());
             return equipment;
         }
 
@@ -657,9 +740,7 @@ namespace Hotfix.Editor.DroneFlight
 
             var launcher = new GameObject(
                 "HarpoonLauncher",
-                typeof(Rigidbody),
-                typeof(BoxCollider),
-                typeof(ConfigurableJoint));
+                typeof(BoxCollider));
             launcher.transform.SetParent(equipment.transform, false);
             launcher.transform.localPosition = new Vector3(0f, 0.02f, 0f);
             launcher.transform.localScale = Vector3.one;
@@ -673,17 +754,6 @@ namespace Hotfix.Editor.DroneFlight
                 new Vector3(-0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), mechanicalBlack);
             CreateVisualPrimitive(launcher.transform, "YokeRight", PrimitiveType.Cube,
                 new Vector3(0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), mechanicalBlack);
-
-            var launcherBody = launcher.GetComponent<Rigidbody>();
-            var launcherJoint = launcher.GetComponent<ConfigurableJoint>();
-            launcherJoint.connectedBody = null;
-            launcherJoint.xMotion = ConfigurableJointMotion.Locked;
-            launcherJoint.yMotion = ConfigurableJointMotion.Locked;
-            launcherJoint.zMotion = ConfigurableJointMotion.Locked;
-            launcherJoint.angularXMotion = ConfigurableJointMotion.Locked;
-            launcherJoint.angularYMotion = ConfigurableJointMotion.Locked;
-            launcherJoint.angularZMotion = ConfigurableJointMotion.Locked;
-            launcherJoint.projectionMode = JointProjectionMode.None;
 
             var gimbal = new GameObject("HarpoonGimbal").transform;
             gimbal.SetParent(launcher.transform, false);
@@ -750,7 +820,7 @@ namespace Hotfix.Editor.DroneFlight
             reticle.enabled = false;
 
             var module = equipment.GetComponent<DroneHarpoonModule>();
-            module.Configure(config, launcherBody, launcherJoint, gimbal, muzzle, projectileBody,
+            module.Configure(config, gimbal, muzzle, projectileBody,
                 projectileCollider, relay, ropeObject.GetComponent<DroneHarpoonRopeVisual>(), reticle);
             return equipment;
         }

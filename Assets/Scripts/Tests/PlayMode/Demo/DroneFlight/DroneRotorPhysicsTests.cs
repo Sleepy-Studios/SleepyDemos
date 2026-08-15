@@ -294,9 +294,10 @@ namespace Tests.Demo
         public IEnumerator RatedCapacity_ChangesReserveWhileMaximumMultiplierOnlyChangesGate()
         {
             var fixture = CreateFixture(armOnStart: false);
-            fixture.MassProvider.HardwareMassKilograms = 0.05f;
+            fixture.MassProvider.IntegratedDynamicMassKilograms = 0.05f;
             fixture.MassProvider.PayloadMassKilograms = 0.95f;
             fixture.MassProvider.SupportedPayloadMassKilograms = 0.95f;
+            fixture.Controller.RefreshMassDistribution();
             yield return new WaitForFixedUpdate();
             var oneKilogramHover = fixture.Controller.CurrentHoverCommand;
             var profileBefore = fixture.Config.GetProfile(DroneResponseProfile.Normal);
@@ -314,7 +315,7 @@ namespace Tests.Demo
             Assert.That(multiplierOnlyHover, Is.EqualTo(oneKilogramHover).Within(0.0001f));
             Assert.That(oneKilogramHover - tenKilogramHover, Is.GreaterThan(0.15f));
             Assert.That(fixture.Controller.CurrentPayloadMassKilograms, Is.EqualTo(0.95f));
-            Assert.That(fixture.Controller.CurrentHardwareMassKilograms, Is.EqualTo(0.05f));
+            Assert.That(fixture.Controller.CurrentHardwareMassKilograms, Is.Zero);
             Assert.That(profileAfter.MaximumHorizontalSpeed, Is.EqualTo(profileBefore.MaximumHorizontalSpeed));
             fixture.Dispose();
         }
@@ -367,7 +368,8 @@ namespace Tests.Demo
             joint.angularXMotion = ConfigurableJointMotion.Free;
             joint.angularYMotion = ConfigurableJointMotion.Free;
             joint.angularZMotion = ConfigurableJointMotion.Free;
-            fixture.MassProvider.HardwareMassKilograms = hardwareBody.mass;
+            fixture.MassProvider.IntegratedDynamicMassKilograms = hardwareBody.mass;
+            fixture.Controller.RefreshMassDistribution();
 
             for (var index = 0; index < 50; index++)
             {
@@ -650,13 +652,14 @@ namespace Tests.Demo
 
     internal sealed class DroneTestExternalMassProvider : MonoBehaviour, IDroneExternalMassProvider
     {
-        public float HardwareMassKilograms { get; set; }
+        public float IntegratedDynamicMassKilograms { get; set; }
+
+        public float HardwareMassKilograms => 0f;
 
         public float PayloadMassKilograms { get; set; }
 
         public float SupportedPayloadMassKilograms { get; set; }
 
-        public float SupportedMassKilograms => HardwareMassKilograms + SupportedPayloadMassKilograms;
-        public float InstalledHardwareMassKilograms => HardwareMassKilograms;
+        public float SupportedMassKilograms => IntegratedDynamicMassKilograms + SupportedPayloadMassKilograms;
     }
 }
