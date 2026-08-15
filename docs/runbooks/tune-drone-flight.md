@@ -8,13 +8,13 @@
 
 ## 公共操作
 
-- `F`：Waiting → 第三人称 Active，仍保持锁定。
+- 选择机型后会在首个物理步直接进入第三人称 Active，但电机仍锁定；`F` 只兼容旧 Waiting 会话，不是正常启动步骤。
 - `R`：短按解锁/锁定；长按达到配置时间后重载整个 DroneFlight 并返回机型选择。
 - `T/G`：自动起飞/降落。
 - `WASD`：水平移动；`Q/E`：偏航；`Space/左 Ctrl`：升降。
 - `1/2/3`：平稳（Cine）/普通（Normal）/运动（Sport）。
 - `C`：切视角；方向键：云台/环绕；`-/=`：FOV。
-- `F1`：显示/隐藏完整操作说明；默认隐藏。
+- `F1`：收起/展开分类操作面板；默认展开。
 - `L`：手动起落架。
 - `F2`：Game 与 Scene 视图共享的世界空间受力/运动矢量；显示层会平滑 FixedUpdate 的离散数据，不改变真实物理。
 - `F3`：中文原始遥测调试面板。
@@ -23,7 +23,7 @@
 
 纯无人机：没有 H/J/K 装备操作，只保留公共飞行、镜头和起落架控制。
 
-抓斗机：`H` 四爪开合；`J` 上收、`K` 下放万向节机体侧吊点。
+抓斗机：`H` 四爪开合；`J` 上收、`K` 下放伸缩吊臂。
 
 渔叉机：`V` 进入/退出机腹向下瞄准，瞄准有效时 `H` 发射；再次 `H` 解除回收，按住 `J` 缩短目标绳长，按住 `K` 增加目标绳长。
 
@@ -52,7 +52,7 @@
 2. 只导出 14 个正式对象到同级 `DroneFlight.fbx`，确认 `RotorBlade_CCW`、`RotorBlade_CW` 即使在 Blender 预览中隐藏也已纳入导出。不要导出相机、灯光、地面、标注、预览旋翼或辅助 Empty。
 3. 将同一 FBX 复制到 `Assets/LoadResources/Demos/drone_flight/Art/Models/DroneFlight.fbx`，确认仓库外与项目内文件 SHA-256 一致。
 4. 在 Unity 执行 `Tools > SleepyDemos > DroneFlight > 重建基础、装备与组合机体`。工具会更新六个外部 URP Lit 材质、基础视觉和代理碰撞，并重建抓斗/渔叉装备与两个 Variant；不会修改飞控、Rotor 施力点或运行时公开接口。
-5. 检查 `DronePrototype/DroneModel` 中完整嵌套的 FBX；`DroneRotor` 应直接位于四个 `RotorHub_*`，四个 Hub 下各有一个共享 Mesh 的桨叶实例，起落架控制器直接引用 `LandingGear_FL/FR/RL/RR`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch`。根节点只额外保留 `CollisionProxies` 和必要运行时挂点，不得再出现第二套 Rotor、LandingGear、Gimbal 包装层。正式 Mesh 节点必须 Scale=1，项目中不得出现动态 MeshCollider 或自动提取位图贴图。四个 Rotor 的物理推力轴必须显式绑定机体根的局部 `+Y`，不得直接使用 FBX 导入节点的轴转换朝向。
+5. 检查 `DronePrototype/DroneModel` 中完整嵌套的 FBX；`DroneRotor` 应直接位于四个 `RotorHub_*`，四个 Hub 下各有一个共享 Mesh 的桨叶实例，起落架控制器直接引用 `LandingGear_FL/FR/RL/RR`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch/CameraBody`。根节点只额外保留 `CollisionProxies` 和必要运行时挂点，不得再出现第二套 Rotor、LandingGear、Gimbal 包装层。正式 Mesh 节点必须 Scale=1，项目中不得出现动态 MeshCollider 或自动提取位图贴图。四个 Rotor 的物理推力轴必须显式绑定机体根的局部 `+Y`，不得直接使用 FBX 导入节点的轴转换朝向；Gimbal 画面必须沿 `CameraBody` 可见镜面的本地 `-Z`，在 Scene 中把 Yaw 转到左右侧时确认模型镜面和 Game 画面指向同一侧。
 
 ## 飞控调参顺序
 
@@ -66,32 +66,34 @@
 
 ## F2/F3 必看项
 
-F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精确数值。F2 长度经过饱和并限制为屏幕短边的 `22%`，标签会限制在安全区，因此即使极端力值也不应跑出 Game 画面；不要用视觉长度反推单帧 PID 或电机输出。
+F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精确数值。F2 长度经过饱和并限制为屏幕短边的 `22%`，标签会限制在安全区，因此即使极端力值也不应跑出 Game 画面。标签的 TMP Auto Size 必须关闭，基础字号为 `36`，实际显示高度限制为 `18–26 px`（1080p 约 `22 px`）；布局会优先保留总量/加速度，再放置旋翼标签，并避开机体投影和其他标签。不要用视觉长度反推单帧 PID 或电机输出。
 
 - 四电机指令、RPM、单 Rotor 升力与总升力。
 - 目标/实际速度、目标加速度、目标推力、可实现合力、重力和目标力矩。
 - Roll/Pitch/Yaw 误差、P/I/D、输出和饱和。
 - 当前主刚体质量、附加设备质量（固定 `0 kg`）、关节求解质量、真实载荷和飞控受支持载荷。主刚体与空载动态装备质量之和应等于 `BodyMassKilograms`。
 
-抓斗额外观察万向节双轴摆动、捕获候选数、FixedJoint 拉力和载荷接入比例。渔叉额外观察机腹准星有效性、弹体状态、目标绳长、实际距离、张力和命中点。
+抓斗额外观察升降行程、机腹固定锚点、双轴摆动、捕获候选数、FixedJoint 拉力和载荷接入比例。渔叉额外观察机腹准星有效性、弹体状态、目标绳长、实际距离、张力和命中点。
 
 ## 四爪抓斗调试
 
-1. 地面 Waiting 选择抓斗机，确认 `0.08 m` 单根吊臂与底座刚性连接，抓斗已是 `Ready`；张开态口径不小于 `0.38 m` 且非 Trigger 爪 Collider 不与地面接触。
-2. 按 F、解锁并起飞到稳定悬停，观察上端万向节只在前后、左右两个方向自然摆动；吊臂不得从底座分离或产生独立 Rigidbody。
+1. 选择抓斗机后确认已经进入 Active、仍为 `DISARMED`，抓斗处于 `Ready`；结构应为机腹固定上座、单根刚性吊臂、底座和四爪，不得残留 `GrappleCableVisual` 或防扭吊缆组件。张开态口径不小于 `0.38 m` 且非 Trigger 爪 Collider 不与地面接触。
+2. 按 R 解锁并起飞到稳定悬停，观察抓斗在前后、左右方向自然摆动；底座上应只有一个连接主刚体的 ConfigurableJoint，三个线性自由度和轴向扭转锁定、双轴摆动 Limited。
 3. 空抓斗仍应有真实摆动与机体反作用，并由被动阻尼自然衰减；主刚体加底座/四爪动态质量之和必须等于 `BodyMassKilograms`，不能产生额外重量。
-4. 按住 J/K，确认吊点只在默认 `0–0.35 m` 行程内以 `0.18 m/s` 上下移动；万向节仍能双轴自由摆动，松键后保持高度且不清速度。
-5. 观察辅助环：橙色为无候选、绿色为捕获体积中存在 `DronePayload`、红色为下方无有效地面；标签应显示离投射面高度，Carrying 后隐藏。
-6. 将底座中心对准 `DronePayload` 后按 H 闭合。目标质心进入底座下方捕获体积时建立临时 FixedJoint；不要求四个爪面同时接触。
-7. 载荷仍在地面时，F3 的 FixedJoint 竖直拉力应接近零，飞控受支持载荷不得瞬间跳到完整质量；缓慢抬升时应随真实拉力平滑增加。F2 只用于确认力方向和变化趋势。
-8. 张开 H 后载荷自由释放；不能有脚本 AddForce、速度覆写或 RPM 清零。
+4. 按住 J/K，确认额外行程只在默认 `0–0.35 m` 内变化，速度不超过 `0.18 m/s`、约束长度加速度不超过 `0.45 m/s²`；抓斗侧 `anchor.y` 随行程增加，但机体侧 `connectedAnchor` 始终与 `BellyEquipmentMount` 重合，松键保持当前长度。
+5. 从侧面观察伸缩套筒：它必须沿抓斗底座局部 `+Y` 与固定吊臂共线，底端接固定吊臂顶端、上端接机腹万向节；抓斗摆动时不得继续保持世界竖直。
+6. 观察辅助环：橙色为无候选、绿色为捕获体积中存在 `DronePayload`、红色为下方无有效地面；标签应显示离投射面高度，Carrying 后隐藏。
+7. 将底座中心对准 `DronePayload` 后按 H 闭合。目标质心进入底座下方捕获体积时建立临时 FixedJoint；不要求四个爪面同时接触。
+8. 载荷仍在地面时，F3 的 FixedJoint 竖直拉力应接近零，飞控受支持载荷不得瞬间跳到完整质量；缓慢抬升时应随真实拉力平滑增加。F2 只用于确认力方向和变化趋势。
+9. 张开 H 后载荷自由释放；不能有脚本 AddForce、速度覆写或 RPM 清零。
 
 常见问题：
 
-- 一运行就掉落或爆炸：检查底座/四爪是否先以 Kinematic 完成定位和关节连接，再统一开放重力；万向节两侧 Anchor 必须与机腹挂点重合，Projection 必须为 None。
-- 长期摆动：先调抓斗配置的被动阻尼与最大阻尼扭矩，不改飞控，也不加入主动防摆。
+- 一运行就掉落或爆炸：检查底座/四爪是否先以 Kinematic 完成定位和四个 HingeJoint、一个 ConfigurableJoint 的连接，再统一开放重力；确认资源中没有上一试验版本的 `DroneGrappleCableVisual`，且关节初始两端锚点重合。
+- 长期横向摆动：这是机腹万向节的真实自由度；先降低操作突变或缩短行程，不改飞控，也不加入主动防摆。若出现高速发散，检查是否误加了显式弹簧吊缆、防扭矩或 Projection 强拉。
 - 抓不到：检查 Hinge 是否闭合、载荷质心是否进入 `GrappleCaptureVolume`、载荷是否同时具备 `DronePayload` 和 Rigidbody；爪面接触不是抓取门禁。
-- 升降改变摆动：J/K 会产生符合真实物理的小幅扰动；若出现瞬移或姿态被强制对齐，检查是否错误写了底座 Transform/速度，而不是 `ConnectedAnchor`。
+- 升降改变摆动：J/K 会产生符合真实物理的小幅扰动；若机体容易被掀翻，检查是否错误移动了 `connectedAnchor`。当前实现只允许改变抓斗侧 `anchor.y`，机体侧受力点必须固定在机腹。
+- 伸缩套筒垂直悬空：检查 `LiftSleeveVisual` 是否错误留在装备根节点。它必须位于 `GrappleBase` 下，并用局部 `+Y` 表示当前额外行程。
 - 0.75 kg 被拒绝：检查 DroneFlightConfig 的 `额定载重 × 最大载荷倍率`，抓斗 `0.05 kg` 只是已包含在整机空载质量内的关节求解质量，不占该额度。
 
 ## 渔叉调试
@@ -108,9 +110,12 @@ F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精�
 
 - 准星与弹道不一致：检查瞄准 Camera、gimbal 轴、muzzle 前向和限位，不允许弹道拐弯补偿。
 - 一进入玩法弹体就落地：同时检查 Prefab 保存态和 `Stowed` 运行态；两者都必须是 Kinematic、无重力、Collider 关闭，不能只依赖 Host Awake 补救。
+- 未发射弹体相对枪口闪动：确认 Stowed 弹体的 Rigidbody 插值为 None，并由 `DroneHarpoonModule.LateUpdate` 贴合 Muzzle；不要把已经稳定的绳索 LateUpdate 当成弹体抖动修复点。
 - 后坐过大：直接降低 `DroneHarpoonConfig/弹体发射冲量 (N·s)`；不要修改 Sport 速度、机体质量、PID 或额外乘后坐缩放。
 - 绳索紫红或过粗：检查 LineRenderer 是否引用 `DroneMechanicalBlack`，宽度应为 `0.003 m`；停靠状态必须禁用。
 - 绳索推开目标：检查只受拉条件；当前距离小于目标绳长时必须零力。
+- 绳索隔帧闪烁或端点晃动：确认 `DroneHarpoonModule.FixedUpdate` 只更新物理和目标绳长，LineRenderer 顶点只由 `DroneHarpoonRopeVisual.LateUpdate` 写入；首尾点必须直接使用当前 Muzzle/弹体 Transform，不能平滑端点。停靠态下一渲染帧必须重新禁用 Renderer 并把 `positionCount` 清为 `0`，不能只依赖一次 `SetVisible(false)`。
+- 绷紧附近下垂反复跳变：检查绷紧阈值 `5 mm`、释放阈值 `8 mm` 和默认 `0.08 s` 视觉下垂响应；发射、解除、回收和停靠切换都要重置视觉缓存。
 - 回收仍绕机甩锤：检查 PD 是否同时使用弹体与 Muzzle 的相对速度并保留最大加速度限制；视觉绳必须每帧仅由两端点和目标绳长重建，不能累积上一帧节点速度。
 - 回收残留拉力：检查 hit Joint、碰撞忽略、目标引用和 ropeTension 是否在清理路径统一收口；进入停靠范围后应先关闭弹体碰撞，再等位置/速度双阈值锁回 Muzzle。
 

@@ -9,6 +9,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private float armLengthMeters = 0.08f;
         [SerializeField] private float maximumLiftTravelMeters = 0.35f;
         [SerializeField] private float liftSpeedMetersPerSecond = 0.18f;
+        [SerializeField] private float liftAccelerationMetersPerSecondSquared = 0.45f;
         [SerializeField] private float swingLimitDegrees = 35f;
         [SerializeField, Range(0f, 1f)] private float dampingRatio = 0.45f;
         [SerializeField] private float maximumDampingTorqueNewtonMeters = 3f;
@@ -27,6 +28,7 @@ namespace Hotfix.DroneFlight
         internal float ArmLengthMeters => armLengthMeters;
         internal float MaximumLiftTravelMeters => maximumLiftTravelMeters;
         internal float LiftSpeedMetersPerSecond => liftSpeedMetersPerSecond;
+        internal float LiftAccelerationMetersPerSecondSquared => liftAccelerationMetersPerSecondSquared;
         internal float SwingLimitDegrees => swingLimitDegrees;
         internal float DampingRatio => dampingRatio;
         internal float MaximumDampingTorqueNewtonMeters => maximumDampingTorqueNewtonMeters;
@@ -58,11 +60,13 @@ namespace Hotfix.DroneFlight
             }
 
             if (!IsPositive(maximumLiftTravelMeters) || maximumLiftTravelMeters > 1f
-                || !IsPositive(liftSpeedMetersPerSecond) || liftSpeedMetersPerSecond > 2f)
+                || !IsPositive(liftSpeedMetersPerSecond) || liftSpeedMetersPerSecond > 2f
+                || !IsPositive(liftAccelerationMetersPerSecondSquared)
+                || liftAccelerationMetersPerSecondSquared > 5f)
             {
                 return DroneConfigValidationResult.Invalid(
-                    "抓斗升降行程或速度无效。",
-                    "Grapple lift travel or speed is invalid.");
+                    "抓斗升降行程、速度或加速度无效。",
+                    "Grapple lift travel, speed, or acceleration is invalid.");
             }
 
             if (!IsAngle(swingLimitDegrees)

@@ -89,14 +89,16 @@ namespace Hotfix.Editor.DroneFlight
     {
         private static readonly string[] Basic =
         {
-            "armLengthMeters", "maximumLiftTravelMeters", "liftSpeedMetersPerSecond", "swingLimitDegrees",
+            "armLengthMeters", "maximumLiftTravelMeters", "liftSpeedMetersPerSecond",
+            "liftAccelerationMetersPerSecondSquared", "swingLimitDegrees",
             "openAngleDegrees", "closedAngleDegrees",
             "clawSpring", "clawDamper", "breakForceNewtons", "breakTorqueNewtonMeters"
         };
 
         private static readonly string[] All =
         {
-            "armLengthMeters", "maximumLiftTravelMeters", "liftSpeedMetersPerSecond", "swingLimitDegrees",
+            "armLengthMeters", "maximumLiftTravelMeters", "liftSpeedMetersPerSecond",
+            "liftAccelerationMetersPerSecondSquared", "swingLimitDegrees",
             "dampingRatio", "maximumDampingTorqueNewtonMeters", "openAngleDegrees",
             "closedAngleDegrees", "clawSpring", "clawDamper",
             "enclosureRadiusMeters", "enclosureHalfHeightMeters", "breakForceNewtons",
@@ -109,6 +111,7 @@ namespace Hotfix.Editor.DroneFlight
                 ["armLengthMeters"] = L("固定吊臂长度 (m)", "Fixed Arm Length (m)", "与抓斗底座刚性连接的单根吊臂长度。", "Length of the single arm rigidly attached to the grapple base."),
                 ["maximumLiftTravelMeters"] = L("最大升降行程 (m)", "Maximum Lift Travel (m)", "K 下放允许的最大万向节吊点行程。", "Maximum universal-joint anchor travel allowed by K."),
                 ["liftSpeedMetersPerSecond"] = L("升降速度 (m/s)", "Lift Speed (m/s)", "J 上收、K 下放吊点的速度。", "Anchor speed used by J to retract and K to lower."),
+                ["liftAccelerationMetersPerSecondSquared"] = L("升降加速度 (m/s²)", "Lift Acceleration (m/s²)", "限制伸缩吊臂改变约束长度的加速度，避免刚性关节冲击机体。", "Limits telescopic-arm constraint acceleration to avoid rigid-joint impulses on the drone."),
                 ["swingLimitDegrees"] = L("万向节双轴摆角 (°)", "Universal Joint Swing (°)", "前后、左右两个被动摆动方向的共同限位。", "Shared limit for passive fore-aft and left-right swing."),
                 ["dampingRatio"] = L("悬挂阻尼比", "Suspension Damping Ratio", "悬挂 Drive 的无量纲阻尼比例。", "Dimensionless damping ratio of the suspension drive."),
                 ["maximumDampingTorqueNewtonMeters"] = L("最大阻尼扭矩 (N·m)", "Maximum Damping Torque (N·m)", "被动摆动衰减允许的最大扭矩。", "Maximum torque used for passive swing damping."),
@@ -138,7 +141,8 @@ namespace Hotfix.Editor.DroneFlight
         {
             return fieldName switch
             {
-                "armLengthMeters" or "maximumLiftTravelMeters" or "liftSpeedMetersPerSecond" =>
+                "armLengthMeters" or "maximumLiftTravelMeters" or "liftSpeedMetersPerSecond"
+                    or "liftAccelerationMetersPerSecondSquared" =>
                     L("吊臂与升降", "Arm And Lift", "固定吊臂与万向节升降行程。", "Fixed arm and universal-joint lift travel."),
                 "swingLimitDegrees" or "dampingRatio"
                     or "maximumDampingTorqueNewtonMeters" =>

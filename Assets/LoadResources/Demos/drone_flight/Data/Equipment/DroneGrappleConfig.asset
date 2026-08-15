@@ -15,6 +15,7 @@ MonoBehaviour:
   armLengthMeters: 0.08
   maximumLiftTravelMeters: 0.35
   liftSpeedMetersPerSecond: 0.18
+  liftAccelerationMetersPerSecondSquared: 0.45
   swingLimitDegrees: 35
   dampingRatio: 0.45
   maximumDampingTorqueNewtonMeters: 3

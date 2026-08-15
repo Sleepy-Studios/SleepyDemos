@@ -92,23 +92,45 @@ namespace Hotfix.DroneFlight
 
         internal static string FormatControls(DroneEquipmentKind kind)
         {
-            var equipment = kind switch
-            {
-                DroneEquipmentKind.Grapple => "H  四爪开合    J / K  上收 / 下放\n",
-                DroneEquipmentKind.Harpoon => "V  机腹瞄准    H  发射 / 解除回收    J / K  收线 / 放线\n",
-                _ => string.Empty
-            };
-            return "操作说明（F1 隐藏）\n"
-                   + "F  开始控制（第三人称）\n"
+            return FormatFlightControls()
+                   + "\n" + FormatCameraControls()
+                   + "\n" + FormatSystemControls()
+                   + "\n" + FormatEquipmentControls(kind);
+        }
+
+        internal static string FormatFlightControls()
+        {
+            return "R  解锁 / 锁定（长按重新运行场景）\n"
                    + "T / G  自动起飞 / 降落\n"
-                   + "R  解锁 / 锁定（长按重新运行场景）\n"
                    + "WASD  水平移动    Q / E  偏航\n"
                    + "Space / 左 Ctrl  升降\n"
-                   + "1 / 2 / 3  平稳 / 普通 / 运动\n"
-                   + "C  切换视角    方向键 / - / =  镜头\n"
-                   + "L  起落架收放    " + equipment
-                   + "F2  动力矢量    F3  调试面板    F4  复制遥测\n"
+                   + "1 / 2 / 3  平稳 / 普通 / 运动";
+        }
+
+        internal static string FormatCameraControls()
+        {
+            return "C  切换视角\n"
+                   + "方向键  调整镜头\n"
+                   + "- / =  缩放镜头\n"
+                   + "L  起落架收放";
+        }
+
+        internal static string FormatSystemControls()
+        {
+            return "F2  动力矢量\n"
+                   + "F3  调试面板\n"
+                   + "F4  复制遥测\n"
                    + "Backspace  返回主界面";
+        }
+
+        internal static string FormatEquipmentControls(DroneEquipmentKind kind)
+        {
+            return kind switch
+            {
+                DroneEquipmentKind.Grapple => "H  四爪开合    J / K  上收 / 下放",
+                DroneEquipmentKind.Harpoon => "V  机腹瞄准    H  发射 / 解除回收    J / K  收线 / 放线",
+                _ => "无附加装备操作"
+            };
         }
 
         internal static string FormatProfile(DroneResponseProfile profile)

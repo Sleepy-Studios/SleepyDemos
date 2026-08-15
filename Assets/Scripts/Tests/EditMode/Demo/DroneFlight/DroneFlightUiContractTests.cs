@@ -57,7 +57,13 @@ namespace Tests.Demo
                 component => component.GetType().Name.EndsWith("Presenter")));
             Assert.That(debug.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
                 component => component.GetType().Name.EndsWith("Presenter")));
-            Assert.That(hud.transform.Find("ControlsPanel").GetComponent<RectTransform>().anchorMin.x, Is.EqualTo(1f));
+            var controlsPanel = hud.transform.Find("ControlsPanel");
+            Assert.That(controlsPanel.GetComponent<RectTransform>().anchorMin.x, Is.EqualTo(1f));
+            Assert.That(controlsPanel.gameObject.activeSelf, Is.True);
+            Assert.That(controlsPanel.Find("ControlsHeaderText"), Is.Not.Null);
+            Assert.That(controlsPanel.Find("FlightControlsText"), Is.Not.Null);
+            Assert.That(controlsPanel.Find("CameraControlsText"), Is.Not.Null);
+            Assert.That(controlsPanel.Find("SystemControlsText"), Is.Not.Null);
             Assert.That(debug.transform.Find("DebugPanel").GetComponent<RectTransform>().anchorMin, Is.EqualTo(new Vector2(1f, 0f)));
         }
     }

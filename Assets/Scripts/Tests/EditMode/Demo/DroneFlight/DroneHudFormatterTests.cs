@@ -24,6 +24,7 @@ namespace Tests.Demo
             var controls = DroneHudFormatter.FormatControls();
 
             StringAssert.Contains("长按重新运行场景", controls);
+            StringAssert.DoesNotContain("F  开始控制", controls);
             StringAssert.DoesNotContain("抓斗收放", controls);
             StringAssert.Contains("L  起落架收放", controls);
             StringAssert.Contains("H  四爪开合", controls);
@@ -52,6 +53,16 @@ namespace Tests.Demo
         {
             var saturation = CreateSnapshot(saturated: true);
             StringAssert.Contains("电机输出饱和", DroneHudFormatter.FormatWarning(saturation));
+        }
+
+        [Test]
+        public void Controls_AreSplitIntoDeterministicSections()
+        {
+            StringAssert.Contains("WASD", DroneHudFormatter.FormatFlightControls());
+            StringAssert.Contains("C  切换视角", DroneHudFormatter.FormatCameraControls());
+            StringAssert.Contains("F2  动力矢量", DroneHudFormatter.FormatSystemControls());
+            StringAssert.Contains("H  四爪开合",
+                DroneHudFormatter.FormatEquipmentControls(DroneEquipmentKind.Grapple));
         }
 
         [Test]

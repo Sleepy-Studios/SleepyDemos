@@ -54,18 +54,17 @@ namespace Hotfix.DroneFlight
             Physics.SyncTransforms();
         }
 
-        /// 首个物理步后恢复确定性的 Waiting 状态并开放输入。
+        /// 首个物理步后直接进入未解锁的第三人称控制并开放输入。
         internal void FinalizeAfterFirstPhysicsStep()
         {
-            Remote?.ReturnToWaiting();
             Controller.SetArmed(false);
             ResetBodyMotion();
             if (Remote != null)
             {
                 Remote.enabled = true;
+                Remote.Activate();
             }
-
-            if (Input != null)
+            else if (Input != null)
             {
                 Input.enabled = true;
             }
@@ -220,6 +219,7 @@ namespace Hotfix.DroneFlight
             {
                 body.isKinematic = true;
                 body.useGravity = false;
+                body.interpolation = RigidbodyInterpolation.None;
             }
             if (colliderComponent != null)
             {

@@ -23,6 +23,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private Transform droneBody;
         [SerializeField] private Transform gimbalYaw;
         [SerializeField] private Transform gimbalPitch;
+        [SerializeField] private Transform gimbalOpticalBody;
         [SerializeField] private Transform fixedForwardMount;
         [SerializeField] private Transform bellyMount;
         [SerializeField] private Vector3 thirdPersonOffset = new(0f, 0.85f, -2.2f);
@@ -65,6 +66,9 @@ namespace Hotfix.DroneFlight
 
         /// <summary>当前云台俯仰角，单位度。</summary>
         internal float GimbalPitchDegrees => gimbalPitchDegrees;
+
+        /// <summary>当前正式镜头模型的世界空间光轴方向。</summary>
+        internal Vector3 GimbalOpticalForward => ResolveGimbalOpticalForward();
 
         /// <summary>当前镜头视场角，单位度。</summary>
         internal float FieldOfView => outputCamera != null ? outputCamera.fieldOfView : 0f;
@@ -202,12 +206,14 @@ namespace Hotfix.DroneFlight
             Transform yaw,
             Transform pitch,
             Transform forward,
-            Transform belly)
+            Transform belly,
+            Transform opticalBody = null)
         {
             outputCamera = camera;
             droneBody = body;
             gimbalYaw = yaw;
             gimbalPitch = pitch;
+            gimbalOpticalBody = opticalBody;
             fixedForwardMount = forward;
             bellyMount = belly;
             bodyRigidbody = body != null ? body.GetComponent<Rigidbody>() : null;
@@ -270,14 +276,41 @@ namespace Hotfix.DroneFlight
                     rotation = CalculateDownwardRotation();
                     break;
                 default:
-                    var mount = gimbalPitch != null ? gimbalPitch : droneBody;
+                    var mount = gimbalOpticalBody != null
+                        ? gimbalOpticalBody
+                        : gimbalPitch != null
+                            ? gimbalPitch
+                            : droneBody;
                     position = mount.position;
-                    var forward = mount.forward;
-                    rotation = Mathf.Abs(Vector3.Dot(forward, Vector3.up)) < 0.98f
-                        ? Quaternion.LookRotation(forward, Vector3.up)
-                        : mount.rotation;
+                    var forward = ResolveGimbalOpticalForward();
+                    rotation = CalculateHorizonStableRotation(forward);
                     break;
             }
+        }
+
+        private Vector3 ResolveGimbalOpticalForward()
+        {
+            return gimbalOpticalBody != null
+                ? gimbalOpticalBody.TransformDirection(DroneFlightModelContract.GimbalOpticalAxis).normalized
+                : gimbalPitch != null
+                    ? gimbalPitch.forward
+                    : droneBody != null
+                        ? droneBody.forward
+                        : Vector3.forward;
+        }
+
+        private Quaternion CalculateHorizonStableRotation(Vector3 forward)
+        {
+            var screenUp = Vector3.ProjectOnPlane(Vector3.up, forward).normalized;
+            if (screenUp.sqrMagnitude < 0.001f)
+            {
+                screenUp = Vector3.ProjectOnPlane(droneBody.forward, forward).normalized;
+            }
+            if (screenUp.sqrMagnitude < 0.001f)
+            {
+                screenUp = Vector3.ProjectOnPlane(droneBody.right, forward).normalized;
+            }
+            return Quaternion.LookRotation(forward, screenUp);
         }
 
         private Quaternion CalculateDownwardRotation()

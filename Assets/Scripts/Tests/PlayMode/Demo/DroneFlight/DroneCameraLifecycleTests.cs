@@ -78,6 +78,49 @@ namespace Tests.Demo
         }
 
         [UnityTest]
+        public IEnumerator GimbalView_UsesCameraBodyVisibleLensAxisInsteadOfPitchPositiveZ()
+        {
+            var root = new GameObject("GimbalOpticalAxisFixture");
+            var yaw = new GameObject("GimbalYaw").transform;
+            yaw.SetParent(root.transform, false);
+            var pitch = new GameObject("GimbalPitch").transform;
+            pitch.SetParent(yaw, false);
+            var cameraBody = new GameObject("CameraBody").transform;
+            cameraBody.SetParent(pitch, false);
+            cameraBody.localPosition = new Vector3(0f, 0f, -0.05f);
+
+            var cameraObject = new GameObject("GimbalOutput", typeof(Camera));
+            var camera = cameraObject.GetComponent<Camera>();
+            var rig = cameraObject.AddComponent<DroneCameraRig>();
+            rig.Configure(camera, root.transform, yaw, pitch, null, null, cameraBody);
+            rig.SetMode(DroneCameraMode.Gimbal);
+            rig.ApplyLookInput(1f, 0f, 1.5f);
+
+            for (var index = 0; index < 40; index++)
+            {
+                yield return null;
+            }
+
+            var visibleLensDirection = cameraBody.TransformDirection(Vector3.back);
+            Assert.That(Vector3.Angle(rig.GimbalOpticalForward, visibleLensDirection), Is.LessThan(0.01f));
+            Assert.That(Vector3.Angle(camera.transform.forward, visibleLensDirection), Is.LessThan(1f));
+            Assert.That(Vector3.Distance(camera.transform.position, cameraBody.position), Is.LessThan(0.01f));
+
+            rig.ApplyLookInput(0f, 1f, 1.5f);
+            for (var index = 0; index < 40; index++)
+            {
+                yield return null;
+            }
+
+            visibleLensDirection = cameraBody.TransformDirection(Vector3.back);
+            Assert.That(Vector3.Angle(visibleLensDirection, Vector3.down), Is.LessThan(0.01f));
+            Assert.That(Vector3.Angle(camera.transform.forward, visibleLensDirection), Is.LessThan(1f));
+
+            Object.Destroy(cameraObject);
+            Object.Destroy(root);
+        }
+
+        [UnityTest]
         public IEnumerator HarpoonAim_RestoresSavedModeWithoutChangingCameraOrBodyOwnership()
         {
             var root = new GameObject("HarpoonAimCameraFixture", typeof(Rigidbody));

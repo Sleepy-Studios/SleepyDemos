@@ -59,15 +59,15 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
 2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView, DroneFlightVehicleSelectionData>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
 3. 选择后关闭 Pop，通过资源 Loader 直接实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，但不会在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
-4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配；抓斗先放置底座与四爪、连接万向节和 HingeJoint，最后才开放重力。它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步再次强制 `Waiting`、锁定和零初速度，最后才开放 F 输入并显示 HUD。
+4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配；抓斗先放置底座与四爪、连接 HingeJoint，最后才开放重力。它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步清零速度、保持电机锁定，并直接进入第三人称 `Active`。
 5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。
-6. 无人机处于 `Waiting`；按 F 进入第三人称 `Active`，但保持锁定。
+6. 选择完成后无需再按 F；`R` 仍是唯一的电机解锁/锁定入口。F 只保留为旧 `Waiting` 状态的兼容入口，不进入常驻操作提示。
 7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
 ## 配置边界
 
 - `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降、起落架、公共镜头/输入/重载参数。
-- `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存固定吊臂长度、万向节双轴摆角与阻尼、吊点升降、四爪驱动、捕获体积、FixedJoint 断裂和载荷平滑参数。
+- `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存固定吊臂长度、升降行程/速度/加速度、万向节摆角与被动阻尼、四爪驱动、捕获体积、FixedJoint 断裂和载荷平滑参数。
 - `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存弹体质量、发射冲量、瞄准半径、向下圆锥角、命中规则、绳长、卷线、弹簧阻尼、张力和受限 PD 回收参数。
 - 三个配置各自创建运行时副本；Play Mode 修改源资产后只在安全物理步同步，不回写资产、不清零速度或飞控状态。
 - 三个自定义 Inspector 均支持中文/English；装备 Inspector 提供普通/高级页，偏好只写本机 `EditorPrefs`。
@@ -85,12 +85,14 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 
 ## 四爪抓斗
 
-抓斗由一个紧凑底座 Rigidbody、与底座刚性连接的单根 `GrappleArm`、四个按 90° 分布的爪 Rigidbody、四个 HingeJoint 和一个连接机腹的 ConfigurableJoint 组成。吊臂没有独立 Rigidbody，Collider 归入底座复合碰撞；底座与四爪保留默认合计 `0.05 kg` 的正质量供 Joint 求解，主刚体同时扣除该值，因此不会重复增加整机重量。
+抓斗恢复为上一稳定版本的单根刚性吊臂方案：机腹固定上座、底座 Rigidbody、与底座组成复合刚体的 `GrappleArm`、四个按 90° 分布的爪 Rigidbody 和四个 HingeJoint。底座通过唯一 ConfigurableJoint 连接主刚体，锁定三个线性自由度和轴向扭转，只允许前后、左右在限位内被动摆动。底座与四爪保留默认合计 `0.05 kg` 的正质量供物理解算，主刚体同时扣除该值，因此不会重复增加整机重量。
 
-- 固定吊臂默认长 `0.08 m`；上端 Anchor 与 `BellyEquipmentMount` 重合。三条线性自由度和绕吊臂轴的扭转锁定，只开放默认 `35°` 的前后、左右被动摆动。
+- 固定吊臂默认长 `0.08 m`。机体侧 `connectedAnchor` 永久固定在 `BellyEquipmentMount`，不再随下放行程下移；因此抓斗反作用始终施加在真实机腹挂点，不形成额外的长力臂。
 - 新机体四个脚板最低点约为局部 `-0.236 m`，出生定位额外保留 `0.01 m` 净空。张开态四爪最低点高于脚底且有效口径不小于 `0.38 m`；捕获体积默认使用 `0.23 m` 水平半径和 `0.2 m` 半高。
-- 抓斗初始化完成后直接进入 `Ready`。J 上收、K 下放只沿机体局部竖直方向渐进移动 ConfigurableJoint 的机体侧 `ConnectedAnchor`，默认行程 `0–0.35 m`、速度 `0.18 m/s`；不覆盖底座旋转、线速度或万向节自由度。
-- 空抓斗保留真实双轴摆动和向机体传递的反作用，被动阻尼只衰减摆动，不实现主动防摆。抓到载荷后，载荷的重力、速度与惯性继续参与同一物理链。
+- 抓斗初始化完成后直接进入 `Ready`。J 上收、K 下放只改变抓斗侧 `anchor.y = 固定吊臂长度 + 当前行程`，额外行程 `0–0.35 m`、最大速度 `0.18 m/s`，并以默认 `0.45 m/s²` 限制约束长度变化；机体侧锚点与万向节自由度保持不变。
+- `LiftSleeveVisual` 是 `GrappleBase` 下的纯视觉子节点，从固定吊臂顶端延伸到抓斗侧 Joint Anchor；其中心、长度和方向全部使用底座局部 `+Y`，因此会随万向节自然摆动，而不会沿机体竖直轴形成脱节的第二根杆。
+- 前后、左右摆动由万向节被动限位与阻尼自然衰减，不写飞控目标姿态，不使用主动防摆或高刚度弹簧吊缆。
+- 空抓斗保留真实摆动和向机体传递的反作用；抓到载荷后，载荷的重力、速度与惯性继续参与同一物理链。
 - 捕获辅助环跟随抓斗摆动且不含 Rigidbody/Collider：橙色表示没有候选、绿色表示捕获体积内存在候选、红色表示下方没有有效投射面；标签显示距投射面的高度，Carrying 时隐藏。
 - H 在张开和闭合之间切换；闭合时选择捕获体积内距中心最近且未超载的 `DronePayload`，不再依赖爪面接触计数。
 - 抓取成功后由 `GrappleBase` 临时创建 `FixedJoint` 连接载荷 Rigidbody；四个 HingeJoint 仍负责真实闭爪碰撞和抓娃娃机视觉。
@@ -102,19 +104,19 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 渔叉发射器、停靠弹体和初始发射轴固定为机体局部 `-Y`。V 保存当前视角并切换到现有 `BellyCameraMount` 的机腹向下视角；鼠标移动世界空间准星，目标受默认 `3 m` 水平半径和 `25°` 向下圆锥限制。只有瞄准模式内的有效目标可按 H 发射，退出 V 或遥控会恢复原视角。
 
 - H 发射唯一可回收弹体；飞行、命中或悬挂状态再次按 H 会解除并自动回收。
-- 弹体保存态与 `Stowed` 运行态均关闭重力、设为 Kinematic、关闭 Collider，并持续跟随 Muzzle；只有发射时才开放真实重力、Collider 与连续碰撞检测。
+- 弹体保存态与 `Stowed` 运行态均关闭重力、设为 Kinematic、关闭 Collider，并把 Rigidbody 插值设为 None；模块在 FixedUpdate 维持物理停靠，在 LateUpdate 贴合当前 Muzzle 的渲染姿态。只有发射时才恢复 Interpolate 并开放真实重力、Collider 与连续碰撞检测。
 - 发射时直接读取配置冲量，默认 `0.12 N·s`，并在同一物理步从发射口向无人机施加等量反向冲量；不增加人为向下力。
 - 动态目标用 FixedJoint 连接目标 Rigidbody；静态目标连接世界。锚点在接触点重合，Projection 关闭。
 - 绳索为无质量、只受拉的弹簧阻尼约束：松弛不施力，超出目标绳长才向两端施加等量反向力。
-- J 缩短、K 增加目标绳长，不瞬移弹体或目标。深灰 `3 mm` 视觉绳由当前两端点和目标绳长确定稳定下垂曲线，不累计 Verlet 历史能量，停靠时隐藏。
+- J 缩短、K 增加目标绳长，不瞬移弹体或目标。深灰 `3 mm` 视觉绳由独立 `DroneHarpoonRopeVisual` 在 `LateUpdate` 读取 Rigidbody 插值后的端点并逐渲染帧重建；端点不平滑，中段下垂使用 `0.08 s` 响应和 `5/8 mm` 滞回，不累计 Verlet 历史能量。停靠态每个渲染帧都会强制禁用 LineRenderer、清空旧顶点和下垂缓存，避免生命周期重启时闪回残线。
 - 未命中达到最大绳长后悬挂；解除后以默认 `2 m/s`、响应时间 `0.18 s`、最大加速度 `15 m/s²` 的受限 PD 同时衰减径向和切向相对速度，回收力向机体施加等量反作用。接近枪口后关闭碰撞，满足位置和速度阈值才重新锁回发射器。
 
 ## 镜头与 HUD
 
-- Gimbal 保持世界地平线，默认 FOV `65°`；ThirdPerson 按机体偏航追尾，使用 `(0, 0.85, -2.2) m` 偏移与 `0.18 s` 速度前瞻；Orbit 绕世界竖直轴、默认距离 `2.5 m`。
+- Gimbal 的机械姿态仍由正式 FBX 的 `GimbalYaw/GimbalPitch` 驱动，但输出位置取 `CameraBody`，观察方向取可见镜面的本地 `-Z` 光轴并保持世界地平线，默认 FOV `65°`；ThirdPerson 按机体偏航追尾，使用 `(0, 0.85, -2.2) m` 偏移与 `0.18 s` 速度前瞻；Orbit 绕世界竖直轴、默认距离 `2.5 m`。
 - FixedForward 保留机体横滚/俯仰，默认 FOV `75°`；Belly 与 HarpoonAim 使用机腹稳定向下视角，默认 FOV 分别为 `60°`、`55°`。
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
-- HUD 只保留顶部状态、左下飞行遥测和底部装备提示；完整操作说明默认隐藏，按 F1 切换，不显示虚构的电池、GNSS 或图传信号。
+- HUD 保留顶部状态、左下飞行遥测和底部装备提示；操作面板默认展开，标题、飞行/档位、视角/系统和装备操作分区显示，按 F1 整体收起或展开，不显示虚构的电池、GNSS 或图传信号。
 
 ## 飞控与遥测
 
@@ -126,7 +128,7 @@ F3 面板保留未经视觉平滑的原始遥测数据，并按机型追加：
 - 抓斗：四爪开合、当前升降行程、捕获候选数、FixedJoint 拉力、真实/受支持载荷。
 - 渔叉：瞄准有效性、弹体状态、目标绳长、张力与命中点。
 
-F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/实际速度和目标加速度箭头。`DroneFlightDebugDrawRenderer` 在 `LateUpdate` 读取物理真值并更新 LineRenderer、箭头和 TMP 3D 标签；这些对象没有 Rigidbody/Collider，关闭 F2 或销毁机体时统一隐藏/清理。视觉长度使用饱和曲线并限制为画面短边的 `22%`，端点与标签再裁剪进视口安全区；线宽和箭头按像素换算，所以极大数值仍在 Game 画面内，完整物理数值仍由标签/F3 显示。
+F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/实际速度和目标加速度箭头。`DroneFlightDebugDrawRenderer` 在 `LateUpdate` 读取物理真值并更新 LineRenderer、箭头和 TMP 3D 标签；这些对象没有 Rigidbody/Collider，关闭 F2 或销毁机体时统一隐藏/清理。视觉长度使用饱和曲线并限制为画面短边的 `22%`，端点与标签再裁剪进视口安全区。TMP 关闭 Auto Size、基础字号固定 `36`，使用粗体、深色描边和轻微阴影，Transform 按相机距离换算为 `18–26 px`（1080p 约 `22 px`）；全局布局按总量/加速度、旋翼的优先级避开机体投影和已有标签，不隐藏任何数值。线宽和箭头同样按像素换算，完整物理数值仍由标签/F3 显示。
 
 ## 边界规则
 

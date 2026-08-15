@@ -45,6 +45,7 @@ namespace Hotfix.Editor.DroneFlight
             SetFloat(grappleConfig, "enclosureHalfHeightMeters", 0.2f);
             SetFloat(grappleConfig, "maximumLiftTravelMeters", 0.35f);
             SetFloat(grappleConfig, "liftSpeedMetersPerSecond", 0.18f);
+            SetFloat(grappleConfig, "liftAccelerationMetersPerSecondSquared", 0.45f);
             SetFloat(harpoonConfig, "launchImpulseNewtonSeconds", 0.12f);
             SetFloat(harpoonConfig, "automaticRecoverySpeedMetersPerSecond", 2f);
             SetFloat(harpoonConfig, "recoveryResponseSeconds", 0.18f);
@@ -428,7 +429,8 @@ namespace Hotfix.Editor.DroneFlight
                 model != null ? FindDeepChild(model, DroneFlightModelContract.GimbalYawName) : null,
                 model != null ? FindDeepChild(model, DroneFlightModelContract.GimbalPitchName) : null,
                 root.transform.Find("FixedForwardMount"),
-                root.transform.Find("BellyCameraMount"));
+                root.transform.Find("BellyCameraMount"),
+                model != null ? FindDeepChild(model, DroneFlightModelContract.CameraBodyName) : null);
 
             root.AddComponent<DroneEquipmentHost>();
             root.AddComponent<DroneEquipmentInput>();
@@ -458,14 +460,51 @@ namespace Hotfix.Editor.DroneFlight
                 {
                     controls.anchorMin = controls.anchorMax = controls.pivot = new Vector2(1f, 1f);
                     controls.anchoredPosition = new Vector2(-24f, -76f);
-                    controls.sizeDelta = new Vector2(420f, 560f);
-                    controls.gameObject.SetActive(false);
+                    controls.sizeDelta = new Vector2(520f, 365f);
+                    controls.gameObject.SetActive(true);
                 }
 
                 var controlsText = root.transform.Find("ControlsPanel/ControlsText")?.GetComponent<TextMeshProUGUI>();
                 if (controlsText != null)
                 {
-                    controlsText.fontSize = 22f;
+                    ConfigureControlSection(
+                        controlsText,
+                        new Vector2(22f, -315f),
+                        new Vector2(476f, 34f),
+                        18f,
+                        TextAlignmentOptions.TopLeft);
+                    controlsText.text = "<b>当前装备</b>    无附加装备操作";
+                }
+
+                if (controls != null && controlsText != null)
+                {
+                    ConfigureControlSection(
+                        EnsureControlSection(controls, "ControlsHeaderText", controlsText),
+                        new Vector2(22f, -14f),
+                        new Vector2(476f, 32f),
+                        22f,
+                        TextAlignmentOptions.TopLeft).text = "操作提示  ·  F1 收起";
+                    ConfigureControlSection(
+                        EnsureControlSection(controls, "FlightControlsText", controlsText),
+                        new Vector2(22f, -58f),
+                        new Vector2(238f, 238f),
+                        18f,
+                        TextAlignmentOptions.TopLeft).text =
+                        "<b>飞行与档位</b>\n" + DroneHudFormatter.FormatFlightControls();
+                    ConfigureControlSection(
+                        EnsureControlSection(controls, "CameraControlsText", controlsText),
+                        new Vector2(278f, -58f),
+                        new Vector2(220f, 116f),
+                        18f,
+                        TextAlignmentOptions.TopLeft).text =
+                        "<b>视角与机构</b>\n" + DroneHudFormatter.FormatCameraControls();
+                    ConfigureControlSection(
+                        EnsureControlSection(controls, "SystemControlsText", controlsText),
+                        new Vector2(278f, -190f),
+                        new Vector2(220f, 116f),
+                        18f,
+                        TextAlignmentOptions.TopLeft).text =
+                        "<b>系统</b>\n" + DroneHudFormatter.FormatSystemControls();
                 }
                 PrefabUtility.SaveAsPrefabAsset(root, HudPrefabPath);
             }
@@ -498,6 +537,51 @@ namespace Hotfix.Editor.DroneFlight
             rect.sizeDelta = size;
             text.alignment = alignment;
             text.fontSize = fontSize;
+        }
+
+        private static TextMeshProUGUI EnsureControlSection(
+            RectTransform panel,
+            string name,
+            TextMeshProUGUI template)
+        {
+            var existing = panel.Find(name)?.GetComponent<TextMeshProUGUI>();
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            var section = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI));
+            section.transform.SetParent(panel, false);
+            var text = section.GetComponent<TextMeshProUGUI>();
+            text.font = template.font;
+            text.fontSharedMaterial = template.fontSharedMaterial;
+            text.color = template.color;
+            return text;
+        }
+
+        private static TextMeshProUGUI ConfigureControlSection(
+            TextMeshProUGUI text,
+            Vector2 anchoredPosition,
+            Vector2 size,
+            float fontSize,
+            TextAlignmentOptions alignment)
+        {
+            var rect = text.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
+            text.fontSize = fontSize;
+            text.enableAutoSizing = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
+            text.overflowMode = TextOverflowModes.Overflow;
+            text.alignment = alignment;
+            text.lineSpacing = 3f;
+            text.raycastTarget = false;
+            return text;
         }
 
         private static void BuildGrappleEquipmentPrefab(DroneGrappleConfig config)
@@ -594,12 +678,6 @@ namespace Hotfix.Editor.DroneFlight
             CreateVisualPrimitive(upperSeat, "CrossPin", PrimitiveType.Cylinder,
                 new Vector3(0f, -0.018f, 0f), Quaternion.Euler(0f, 0f, 90f),
                 new Vector3(0.018f, 0.055f, 0.018f), orange);
-            CreateVisualPrimitive(equipment.transform, "LiftSleeveVisual", PrimitiveType.Cylinder,
-                DroneFlightModelContract.BellyEquipmentMountPosition,
-                Quaternion.identity,
-                new Vector3(0.012f, 0.002f, 0.012f), dark);
-            var liftSleeveVisual = equipment.transform.Find("LiftSleeveVisual");
-
             var baseObject = new GameObject(
                 "GrappleBase",
                 typeof(Rigidbody),
@@ -623,6 +701,12 @@ namespace Hotfix.Editor.DroneFlight
             CreateVisualPrimitive(arm.transform, "ArmVisual", PrimitiveType.Cylinder,
                 Vector3.zero, Quaternion.identity,
                 new Vector3(0.018f, config.ArmLengthMeters * 0.5f, 0.018f), orange);
+            CreateVisualPrimitive(baseObject.transform, "LiftSleeveVisual", PrimitiveType.Cylinder,
+                new Vector3(0f, config.ArmLengthMeters, 0f),
+                Quaternion.identity,
+                new Vector3(0.012f, 0.002f, 0.012f), dark);
+            var liftSleeveVisual = baseObject.transform.Find("LiftSleeveVisual");
+            liftSleeveVisual.gameObject.SetActive(false);
 
             var baseBody = baseObject.GetComponent<Rigidbody>();
             baseBody.mass = 0.02f;
@@ -799,6 +883,7 @@ namespace Hotfix.Editor.DroneFlight
             var projectileCollider = projectileObject.GetComponent<Collider>();
             projectileBody.useGravity = false;
             projectileBody.isKinematic = true;
+            projectileBody.interpolation = RigidbodyInterpolation.None;
             projectileCollider.enabled = false;
             var relay = projectileObject.GetComponent<DroneHarpoonProjectile>();
 
@@ -809,6 +894,7 @@ namespace Hotfix.Editor.DroneFlight
             line.widthMultiplier = 0.003f;
             line.sharedMaterial = mechanicalBlack;
             line.startColor = line.endColor = new Color(0.12f, 0.14f, 0.16f);
+            line.positionCount = 0;
             line.enabled = false;
 
             var reticleObject = new GameObject("HarpoonAimReticle", typeof(LineRenderer));

@@ -108,8 +108,107 @@ namespace Tests.Demo
             Assert.That(Vector3.Angle(projectileBody.transform.forward, muzzle.forward), Is.LessThan(0.1f));
             Assert.That(projectileBody.isKinematic, Is.True);
             Assert.That(projectileBody.useGravity, Is.False);
+            Assert.That(projectileBody.interpolation, Is.EqualTo(RigidbodyInterpolation.None));
             Assert.That(projectileCollider.enabled, Is.False);
+
+            var originalLocalRotation = muzzle.localRotation;
+            muzzle.localRotation = originalLocalRotation * Quaternion.Euler(7f, -11f, 0f);
+            muzzle.localPosition += new Vector3(0.015f, -0.01f, 0.02f);
+            yield return new WaitForEndOfFrame();
+            Assert.That(Vector3.Distance(projectileBody.transform.position, muzzle.position), Is.LessThan(0.0001f));
+            Assert.That(Quaternion.Angle(projectileBody.transform.rotation, muzzle.rotation), Is.LessThan(0.01f));
             Assert.That(rope.enabled, Is.False);
+            Assert.That(rope.positionCount, Is.Zero);
+            Object.Destroy(instance);
+        }
+
+        [UnityTest]
+        public IEnumerator HarpoonRopeVisual_LateFrameKeepsEndpointsOnInterpolatedTransforms()
+        {
+            var start = new GameObject("Start").transform;
+            var end = new GameObject("End").transform;
+            var ropeObject = new GameObject(
+                "Rope",
+                typeof(LineRenderer),
+                typeof(DroneHarpoonRopeVisual));
+            var visual = ropeObject.GetComponent<DroneHarpoonRopeVisual>();
+            var line = ropeObject.GetComponent<LineRenderer>();
+            start.position = new Vector3(-0.2f, 1f, 0f);
+            end.position = new Vector3(0.4f, -0.5f, 0.3f);
+            visual.ConfigureEndpoints(start, end);
+            visual.SetTargetLength(2f);
+            visual.ResetSimulation(start.position, end.position);
+            visual.SetVisible(true);
+
+            yield return null;
+            Assert.That(Vector3.Distance(line.GetPosition(0), start.position), Is.LessThan(0.0001f));
+            Assert.That(Vector3.Distance(line.GetPosition(line.positionCount - 1), end.position),
+                Is.LessThan(0.0001f));
+
+            start.position += Vector3.right * 0.15f;
+            end.position += Vector3.down * 0.2f;
+            yield return null;
+            Assert.That(Vector3.Distance(line.GetPosition(0), start.position), Is.LessThan(0.0001f));
+            Assert.That(Vector3.Distance(line.GetPosition(line.positionCount - 1), end.position),
+                Is.LessThan(0.0001f));
+
+            Object.Destroy(start.gameObject);
+            Object.Destroy(end.gameObject);
+            Object.Destroy(ropeObject);
+        }
+
+        [UnityTest]
+        public IEnumerator HarpoonRopeVisual_StowedFrameClearsUnexpectedRendererState()
+        {
+            const string path = "Assets/LoadResources/Demos/drone_flight/Prefabs/DroneHarpoonVariant.prefab";
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var instance = Object.Instantiate(source, new Vector3(0f, 2f, 0f), Quaternion.identity);
+            instance.GetComponent<Rigidbody>().isKinematic = true;
+            var module = instance.GetComponentInChildren<DroneHarpoonModule>(true);
+            var rope = module.transform.Find("HarpoonRopeVisual").GetComponent<LineRenderer>();
+            yield return new WaitForFixedUpdate();
+
+            rope.positionCount = 2;
+            rope.SetPosition(0, Vector3.zero);
+            rope.SetPosition(1, Vector3.one);
+            rope.enabled = true;
+            yield return new WaitForEndOfFrame();
+
+            Assert.That(module.State, Is.EqualTo(DroneEquipmentState.Stowed));
+            Assert.That(rope.enabled, Is.False);
+            Assert.That(rope.positionCount, Is.Zero);
+            Object.Destroy(instance);
+        }
+
+        [UnityTest]
+        public IEnumerator HarpoonVariant_FireRestoresDynamicInterpolation()
+        {
+            const string path = "Assets/LoadResources/Demos/drone_flight/Prefabs/DroneHarpoonVariant.prefab";
+            var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            var instance = Object.Instantiate(source, new Vector3(0f, 2f, 0f), Quaternion.identity);
+            var droneBody = instance.GetComponent<Rigidbody>();
+            droneBody.isKinematic = true;
+            var module = instance.GetComponentInChildren<DroneHarpoonModule>(true);
+            var cameraRig = instance.GetComponentInChildren<DroneCameraRig>(true);
+            var projectileBody = module.GetComponentInChildren<DroneHarpoonProjectile>(true).GetComponent<Rigidbody>();
+            var muzzle = module.transform.Find("HarpoonLauncher/HarpoonGimbal/Muzzle");
+            module.ConfigureHost(droneBody, cameraRig.OutputCamera, 1f);
+            ((IDroneAimingEquipment)module).ConfigureAim(cameraRig);
+            cameraRig.EnterHarpoonAim();
+            yield return null;
+
+            typeof(DroneHarpoonModule).GetField(
+                "aimValid",
+                BindingFlags.Instance | BindingFlags.NonPublic)?.SetValue(module, true);
+            typeof(DroneHarpoonModule).GetField(
+                "aimDirection",
+                BindingFlags.Instance | BindingFlags.NonPublic)?.SetValue(module, muzzle.forward);
+            module.PrimaryAction();
+
+            Assert.That(module.State, Is.EqualTo(DroneEquipmentState.Fired));
+            Assert.That(projectileBody.isKinematic, Is.False);
+            Assert.That(projectileBody.useGravity, Is.True);
+            Assert.That(projectileBody.interpolation, Is.EqualTo(RigidbodyInterpolation.Interpolate));
             Object.Destroy(instance);
         }
 
@@ -125,9 +224,13 @@ namespace Tests.Demo
             var baseBody = module.transform.Find("GrappleBase").GetComponent<Rigidbody>();
             var suspension = baseBody.GetComponent<ConfigurableJoint>();
 
-            for (var index = 0; index < 4; index++)
+            for (var index = 0; index < 100; index++)
             {
                 yield return new WaitForFixedUpdate();
+                Assert.That(float.IsFinite(baseBody.position.x), Is.True);
+                Assert.That(float.IsFinite(baseBody.position.y), Is.True);
+                Assert.That(float.IsFinite(baseBody.position.z), Is.True);
+                Assert.That(float.IsFinite(baseBody.linearVelocity.sqrMagnitude), Is.True);
             }
 
             var localAnchor = baseBody.transform.TransformPoint(suspension.anchor);
@@ -139,7 +242,7 @@ namespace Tests.Demo
         }
 
         [UnityTest]
-        public IEnumerator GrappleVariant_KLowersAndJRetractsOnlyConnectedAnchorHeight()
+        public IEnumerator GrappleVariant_KLowersByExtendingBodyAnchorWhileBellyAnchorStaysFixed()
         {
             const string path = "Assets/LoadResources/Demos/drone_flight/Prefabs/DroneGrappleVariant.prefab";
             var source = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -147,31 +250,44 @@ namespace Tests.Demo
             instance.GetComponent<Rigidbody>().isKinematic = true;
             var module = instance.GetComponentInChildren<DroneGrappleModule>(true);
             var suspension = module.transform.Find("GrappleBase").GetComponent<ConfigurableJoint>();
+            var liftSleeve = module.transform.Find("GrappleBase/LiftSleeveVisual");
             yield return new WaitForFixedUpdate();
-            var initialAnchor = suspension.connectedAnchor;
+            var initialConnectedAnchor = suspension.connectedAnchor;
+            var initialBodyAnchor = suspension.anchor;
 
             module.SetLineInput(1f);
-            for (var index = 0; index < 10; index++)
+            for (var index = 0; index < 140; index++)
             {
                 yield return new WaitForFixedUpdate();
             }
             module.SetLineInput(0f);
-            var loweredAnchor = suspension.connectedAnchor;
-            Assert.That(loweredAnchor.x, Is.EqualTo(initialAnchor.x).Within(0.0001f));
-            Assert.That(loweredAnchor.z, Is.EqualTo(initialAnchor.z).Within(0.0001f));
-            Assert.That(loweredAnchor.y, Is.LessThan(initialAnchor.y));
-            Assert.That(module.Snapshot.TravelMeters, Is.GreaterThan(0f));
+            Assert.That(module.Snapshot.TravelMeters, Is.EqualTo(0.35f).Within(0.002f));
+            Assert.That(suspension.connectedAnchor.x, Is.EqualTo(initialConnectedAnchor.x).Within(0.0001f));
+            Assert.That(suspension.connectedAnchor.y, Is.EqualTo(initialConnectedAnchor.y).Within(0.0001f));
+            Assert.That(suspension.connectedAnchor.z, Is.EqualTo(initialConnectedAnchor.z).Within(0.0001f));
+            Assert.That(suspension.anchor.y, Is.GreaterThan(initialBodyAnchor.y));
+            var bodyWorldAnchor = suspension.transform.TransformPoint(suspension.anchor);
+            var bellyWorldAnchor = suspension.connectedBody.transform.TransformPoint(suspension.connectedAnchor);
+            Assert.That(Vector3.Distance(bodyWorldAnchor, bellyWorldAnchor), Is.LessThan(0.01f));
+            Assert.That(liftSleeve.gameObject.activeSelf, Is.True);
+            Assert.That(Vector3.Angle(liftSleeve.up, suspension.transform.up), Is.LessThan(0.01f));
+            var fixedArmTop = suspension.transform.TransformPoint(Vector3.up * initialBodyAnchor.y);
+            Assert.That(Vector3.Distance(liftSleeve.TransformPoint(Vector3.down), fixedArmTop),
+                Is.LessThan(0.001f));
+            Assert.That(Vector3.Distance(liftSleeve.TransformPoint(Vector3.up), bodyWorldAnchor),
+                Is.LessThan(0.001f));
             Assert.That(suspension.angularXMotion, Is.EqualTo(ConfigurableJointMotion.Locked));
             Assert.That(suspension.angularYMotion, Is.EqualTo(ConfigurableJointMotion.Limited));
             Assert.That(suspension.angularZMotion, Is.EqualTo(ConfigurableJointMotion.Limited));
 
             module.SetLineInput(-1f);
-            for (var index = 0; index < 20; index++)
+            for (var index = 0; index < 160; index++)
             {
                 yield return new WaitForFixedUpdate();
             }
             module.SetLineInput(0f);
             Assert.That(module.Snapshot.TravelMeters, Is.Zero.Within(0.001f));
+            Assert.That(liftSleeve.gameObject.activeSelf, Is.False);
             Object.Destroy(instance);
         }
 
@@ -243,6 +359,8 @@ namespace Tests.Demo
                 Assert.That(Vector3.Distance(projectile.position, muzzle.position), Is.LessThan(0.001f));
                 Assert.That(Mathf.Abs(projectile.linearVelocity.z), Is.LessThan(initialTangentialSpeed));
                 Assert.That(module.transform.Find("HarpoonRopeVisual").GetComponent<LineRenderer>().enabled, Is.False);
+                Assert.That(module.transform.Find("HarpoonRopeVisual").GetComponent<LineRenderer>().positionCount,
+                    Is.Zero);
             }
             Object.Destroy(instance);
         }

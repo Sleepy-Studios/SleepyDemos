@@ -64,6 +64,8 @@ namespace Hotfix.DroneFlight
             CreateRuntimeConfig();
             projectile?.Configure(this);
             targetRopeLength = runtimeConfig != null ? runtimeConfig.MinimumRopeLengthMeters : 0.25f;
+            ropeVisual?.ConfigureEndpoints(muzzle, projectileBody != null ? projectileBody.transform : null);
+            ropeVisual?.SetTargetLength(targetRopeLength);
             ApplyMassDistribution();
             DockProjectileImmediate();
         }
@@ -84,7 +86,15 @@ namespace Hotfix.DroneFlight
             StepRopeLength(Time.fixedDeltaTime);
             StepRopePhysics(Time.fixedDeltaTime);
             StepRecovery();
-            ropeVisual?.Step(muzzle.position, projectileBody.position, targetRopeLength, Time.fixedDeltaTime);
+            ropeVisual?.SetTargetLength(targetRopeLength);
+        }
+
+        private void LateUpdate()
+        {
+            if (State == DroneEquipmentState.Stowed)
+            {
+                MaintainDockedRenderPose();
+            }
         }
 
         private void OnDestroy()
@@ -225,6 +235,7 @@ namespace Hotfix.DroneFlight
             projectile = projectileRelay;
             ropeVisual = rope;
             aimReticle = reticle;
+            ropeVisual?.ConfigureEndpoints(muzzle, projectileBody != null ? projectileBody.transform : null);
             CreateRuntimeConfig();
             ApplyMassDistribution();
             projectile?.Configure(this);
@@ -270,7 +281,9 @@ namespace Hotfix.DroneFlight
 
             projectileBody.mass = runtimeConfig.ProjectileMassKilograms;
             projectileBody.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            projectileBody.interpolation = RigidbodyInterpolation.Interpolate;
+            projectileBody.interpolation = State == DroneEquipmentState.Stowed
+                ? RigidbodyInterpolation.None
+                : RigidbodyInterpolation.Interpolate;
         }
 
         private void UpdateAim()
@@ -348,11 +361,13 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
+            MaintainDockedRenderPose();
+            projectileBody.position = muzzle.position;
+            projectileBody.rotation = muzzle.rotation;
+            projectileBody.interpolation = RigidbodyInterpolation.Interpolate;
             projectileBody.isKinematic = false;
             projectileBody.useGravity = true;
             projectileCollider.enabled = true;
-            projectileBody.position = muzzle.position;
-            projectileBody.rotation = muzzle.rotation;
             projectileBody.linearVelocity = droneBody.GetPointVelocity(muzzle.position);
             projectileBody.angularVelocity = Vector3.zero;
             var impulse = DroneEquipmentPhysicsMath.CalculateHarpoonImpulse(
@@ -516,8 +531,6 @@ namespace Hotfix.DroneFlight
             }
 
             DestroyJoint(ref hitJoint);
-            projectileBody.position = muzzle.position;
-            projectileBody.rotation = muzzle.rotation;
             if (!projectileBody.isKinematic)
             {
                 projectileBody.linearVelocity = Vector3.zero;
@@ -525,6 +538,10 @@ namespace Hotfix.DroneFlight
             }
             projectileBody.useGravity = false;
             projectileBody.isKinematic = true;
+            projectileBody.interpolation = RigidbodyInterpolation.None;
+            projectileBody.position = muzzle.position;
+            projectileBody.rotation = muzzle.rotation;
+            MaintainDockedRenderPose();
             projectileCollider.enabled = false;
             targetRopeLength = runtimeConfig != null ? runtimeConfig.MinimumRopeLengthMeters : 0.25f;
             ropeTension = 0f;
@@ -547,12 +564,25 @@ namespace Hotfix.DroneFlight
             projectileBody.rotation = muzzle.rotation;
             projectileBody.useGravity = false;
             projectileBody.isKinematic = true;
+            projectileBody.interpolation = RigidbodyInterpolation.None;
             if (projectileCollider != null)
             {
                 projectileCollider.enabled = false;
             }
 
+            MaintainDockedRenderPose();
             ropeVisual?.SetVisible(false);
+        }
+
+        // 停靠态禁用 Rigidbody 插值后，在渲染帧末贴合当前枪口，避免弹体落后于机体插值姿态。
+        private void MaintainDockedRenderPose()
+        {
+            if (projectileBody == null || muzzle == null)
+            {
+                return;
+            }
+
+            projectileBody.transform.SetPositionAndRotation(muzzle.position, muzzle.rotation);
         }
 
         private bool IsHittableLayer(int layer) => (runtimeConfig.HittableLayers.value & (1 << layer)) != 0;

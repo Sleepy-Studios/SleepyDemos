@@ -29,6 +29,8 @@ namespace Hotfix.DroneFlight
         private float maximumPayloadKilograms = float.PositiveInfinity;
         private int captureCandidateCount;
         private float currentLiftTravel;
+        private float targetLiftTravel;
+        private float currentLiftSpeed;
         private float lineInput;
         private LineRenderer assistRing;
         private TextMesh assistLabel;
@@ -157,6 +159,14 @@ namespace Hotfix.DroneFlight
             }
 
             sourceSignature = json;
+            currentLiftTravel = Mathf.Clamp(
+                currentLiftTravel,
+                0f,
+                runtimeConfig.MaximumLiftTravelMeters);
+            targetLiftTravel = Mathf.Clamp(
+                targetLiftTravel,
+                0f,
+                runtimeConfig.MaximumLiftTravelMeters);
             ApplyMassDistribution();
             ConfigureSuspensionJoint();
             ApplyClawDrive();
@@ -168,6 +178,7 @@ namespace Hotfix.DroneFlight
             ReleaseGrip();
             captureCandidateCount = 0;
             lineInput = 0f;
+            currentLiftSpeed = 0f;
             nearestCaptureCandidate = null;
             SetAssistVisible(false);
         }
@@ -278,7 +289,8 @@ namespace Hotfix.DroneFlight
             }
 
             SetAssemblyKinematic(true);
-            var desiredBasePosition = GetLiftAnchorPosition() - bellyMount.up * runtimeConfig.ArmLengthMeters;
+            var totalArmLength = runtimeConfig.ArmLengthMeters + currentLiftTravel;
+            var desiredBasePosition = bellyMount.position - bellyMount.up * totalArmLength;
             var delta = desiredBasePosition - grappleBody.position;
             grappleBody.position += delta;
             foreach (var body in clawBodies)
@@ -314,10 +326,13 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            var worldAnchor = GetLiftAnchorPosition();
-            suspensionJoint.anchor = new Vector3(0f, runtimeConfig.ArmLengthMeters, 0f);
-            suspensionJoint.connectedAnchor = droneBody.transform.InverseTransformPoint(worldAnchor);
-            UpdateLiftVisual(worldAnchor);
+            var fixedBellyAnchor = bellyMount.position;
+            suspensionJoint.anchor = new Vector3(
+                0f,
+                runtimeConfig.ArmLengthMeters + currentLiftTravel,
+                0f);
+            suspensionJoint.connectedAnchor = droneBody.transform.InverseTransformPoint(fixedBellyAnchor);
+            UpdateLiftVisual();
         }
 
         private void EnableAssemblyPhysics()
@@ -450,42 +465,67 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            var target = Mathf.Clamp(
-                currentLiftTravel + lineInput * runtimeConfig.LiftSpeedMetersPerSecond * deltaTime,
+            targetLiftTravel = Mathf.Clamp(
+                targetLiftTravel + lineInput * runtimeConfig.LiftSpeedMetersPerSecond * deltaTime,
                 0f,
                 runtimeConfig.MaximumLiftTravelMeters);
-            if (Mathf.Approximately(target, currentLiftTravel))
+            var remaining = targetLiftTravel - currentLiftTravel;
+            if (Mathf.Abs(remaining) <= 0.00001f)
             {
+                currentLiftTravel = targetLiftTravel;
+                currentLiftSpeed = 0f;
                 return;
             }
 
-            currentLiftTravel = target;
+            var acceleration = runtimeConfig.LiftAccelerationMetersPerSecondSquared;
+            var brakingSpeed = Mathf.Sqrt(2f * acceleration * Mathf.Abs(remaining));
+            var desiredSpeed = Mathf.Sign(remaining)
+                               * Mathf.Min(runtimeConfig.LiftSpeedMetersPerSecond, brakingSpeed);
+            currentLiftSpeed = Mathf.MoveTowards(
+                currentLiftSpeed,
+                desiredSpeed,
+                acceleration * deltaTime);
+            var step = currentLiftSpeed * deltaTime;
+            if (Mathf.Sign(step) != Mathf.Sign(remaining) || Mathf.Abs(step) >= Mathf.Abs(remaining))
+            {
+                currentLiftTravel = targetLiftTravel;
+                currentLiftSpeed = 0f;
+            }
+            else
+            {
+                currentLiftTravel += step;
+            }
             UpdateJointAnchors();
         }
 
-        private Vector3 GetLiftAnchorPosition()
-        {
-            return bellyMount != null
-                ? bellyMount.position - bellyMount.up * currentLiftTravel
-                : transform.position;
-        }
-
-        private void UpdateLiftVisual(Vector3 worldAnchor)
+        private void UpdateLiftVisual()
         {
             if (liftCarriage != null)
             {
-                liftCarriage.SetPositionAndRotation(worldAnchor, bellyMount.rotation);
+                liftCarriage.SetPositionAndRotation(bellyMount.position, bellyMount.rotation);
             }
 
-            if (liftSleeveVisual == null || bellyMount == null)
+            if (liftSleeveVisual == null || suspensionJoint == null || runtimeConfig == null)
             {
                 return;
             }
 
-            var midpoint = Vector3.Lerp(bellyMount.position, worldAnchor, 0.5f);
-            liftSleeveVisual.SetPositionAndRotation(midpoint, bellyMount.rotation);
+            var armLength = runtimeConfig.ArmLengthMeters;
+            var extensionLength = Mathf.Max(0f, suspensionJoint.anchor.y - armLength);
+            var visible = extensionLength > 0.001f;
+            liftSleeveVisual.gameObject.SetActive(visible);
+            if (!visible)
+            {
+                return;
+            }
+
+            liftSleeveVisual.localPosition = new Vector3(
+                0f,
+                armLength + extensionLength * 0.5f,
+                0f);
+            liftSleeveVisual.localRotation = Quaternion.identity;
             var scale = liftSleeveVisual.localScale;
-            scale.y = Mathf.Max(0.002f, currentLiftTravel * 0.5f);
+            scale.y = extensionLength * 0.5f;
             liftSleeveVisual.localScale = scale;
         }
 

@@ -20,7 +20,7 @@ MonoBehaviour:
   allowedAimErrorDegrees: 2.5
   minimumRopeLengthMeters: 0.25
   maximumRopeLengthMeters: 30
-  reelSpeedMetersPerSecond: 3
+  reelSpeedMetersPerSecond: 0.5
   ropeSpringNewtonsPerMeter: 90
   ropeDamperNewtonSecondsPerMeter: 12
   maximumTensionNewtons: 180

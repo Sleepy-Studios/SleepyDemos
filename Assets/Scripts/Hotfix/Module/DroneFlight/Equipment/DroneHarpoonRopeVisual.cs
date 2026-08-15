@@ -8,10 +8,19 @@ namespace Hotfix.DroneFlight
     {
         [SerializeField, Range(8, 32)] private int segmentCount = 18;
         [SerializeField] private float maximumVisualSagMeters = 0.75f;
+        [SerializeField] private float sagResponseSeconds = 0.08f;
+        [SerializeField] private float tautThresholdMeters = 0.005f;
+        [SerializeField] private float slackReleaseThresholdMeters = 0.008f;
+        [SerializeField] private Transform startPoint;
+        [SerializeField] private Transform endPoint;
 
         private LineRenderer line;
         private Vector3[] positions;
         private bool visible;
+        private bool consideredTaut = true;
+        private float targetLength;
+        private float smoothedSag;
+        private float sagVelocity;
 
         private void Awake()
         {
@@ -20,12 +29,55 @@ namespace Hotfix.DroneFlight
             SetVisible(false);
         }
 
+        private void OnEnable()
+        {
+            line ??= GetComponent<LineRenderer>();
+            if (!visible)
+            {
+                ForceHiddenAndClear();
+            }
+        }
+
+        private void OnDisable()
+        {
+            ForceHiddenAndClear();
+        }
+
+        private void LateUpdate()
+        {
+            if (!visible || line == null || startPoint == null || endPoint == null)
+            {
+                ForceHiddenAndClear();
+                return;
+            }
+
+            line.enabled = true;
+            DrawInterpolatedFrame(startPoint.position, endPoint.position, Time.unscaledDeltaTime);
+        }
+
+        internal void ConfigureEndpoints(Transform start, Transform end)
+        {
+            startPoint = start;
+            endPoint = end;
+        }
+
+        internal void SetTargetLength(float value)
+        {
+            targetLength = Mathf.Max(0f, value);
+        }
+
         internal void SetVisible(bool value)
         {
             visible = value;
+            if (!value)
+            {
+                ForceHiddenAndClear();
+                return;
+            }
+
             if (line != null)
             {
-                line.enabled = value;
+                line.enabled = true;
             }
         }
 
@@ -37,6 +89,9 @@ namespace Hotfix.DroneFlight
                 Rebuild();
             }
 
+            smoothedSag = 0f;
+            sagVelocity = 0f;
+            consideredTaut = true;
             InitializeLine(start, end);
             if (line != null)
             {
@@ -45,13 +100,8 @@ namespace Hotfix.DroneFlight
             }
         }
 
-        internal void Step(Vector3 start, Vector3 end, float targetLength, float deltaTime)
+        private void DrawInterpolatedFrame(Vector3 start, Vector3 end, float deltaTime)
         {
-            if (!visible || line == null)
-            {
-                return;
-            }
-
             if (positions == null || positions.Length != segmentCount + 1)
             {
                 Rebuild();
@@ -64,14 +114,33 @@ namespace Hotfix.DroneFlight
             }
 
             var distance = Vector3.Distance(start, end);
-            var effectiveLength = Mathf.Max(distance, Mathf.Max(0f, targetLength));
+            var slackDistance = Mathf.Max(0f, targetLength - distance);
+            if (consideredTaut)
+            {
+                consideredTaut = slackDistance <= Mathf.Max(tautThresholdMeters, slackReleaseThresholdMeters);
+            }
+            else
+            {
+                consideredTaut = slackDistance <= Mathf.Max(0f, tautThresholdMeters);
+            }
+
+            var effectiveLength = Mathf.Max(distance, targetLength);
             var slack = Mathf.Sqrt(Mathf.Max(0f, effectiveLength * effectiveLength - distance * distance));
-            var sag = Mathf.Min(Mathf.Max(0f, maximumVisualSagMeters), slack * 0.5f);
+            var targetSag = consideredTaut
+                ? 0f
+                : Mathf.Min(Mathf.Max(0f, maximumVisualSagMeters), slack * 0.5f);
+            smoothedSag = Mathf.SmoothDamp(
+                smoothedSag,
+                targetSag,
+                ref sagVelocity,
+                Mathf.Max(0.001f, sagResponseSeconds),
+                Mathf.Infinity,
+                Mathf.Max(0f, deltaTime));
             for (var index = 0; index < positions.Length; index++)
             {
                 var value = index / (float)(positions.Length - 1);
                 positions[index] = Vector3.Lerp(start, end, value)
-                                   + Vector3.down * (4f * value * (1f - value) * sag);
+                                   + Vector3.down * (4f * value * (1f - value) * smoothedSag);
             }
 
             line.positionCount = positions.Length;
@@ -95,6 +164,21 @@ namespace Hotfix.DroneFlight
                 var value = index / (float)(positions.Length - 1);
                 positions[index] = Vector3.Lerp(start, end, value);
             }
+        }
+
+        // 隐藏态每个渲染帧都清除 Renderer 与旧顶点，避免生命周期重启时闪回上一条长曲线。
+        private void ForceHiddenAndClear()
+        {
+            smoothedSag = 0f;
+            sagVelocity = 0f;
+            consideredTaut = true;
+            if (line == null)
+            {
+                return;
+            }
+
+            line.enabled = false;
+            line.positionCount = 0;
         }
 
         private static bool IsFinite(Vector3 value) =>

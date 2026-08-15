@@ -1,5 +1,6 @@
 using Hotfix.DroneFlight;
 using NUnit.Framework;
+using System.Collections.Generic;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
@@ -90,6 +91,12 @@ namespace Tests.Demo
                     "OnGUI", BindingFlags.Instance | BindingFlags.NonPublic), Is.Null);
                 Assert.That(owner.GetComponentsInChildren<LineRenderer>(true).Length, Is.EqualTo(27));
                 Assert.That(owner.GetComponentsInChildren<TextMeshPro>(true).Length, Is.EqualTo(9));
+                Assert.That(owner.GetComponentsInChildren<TextMeshPro>(true), Has.All.Matches<TextMeshPro>(
+                    text => !text.enableAutoSizing
+                            && Mathf.Approximately(text.fontSize, 36f)
+                            && (text.fontStyle & FontStyles.Bold) != 0));
+                Assert.That(owner.GetComponentInChildren<TextMeshPro>(true).fontSharedMaterial
+                    .IsKeywordEnabled(ShaderUtilities.Keyword_Underlay), Is.True);
                 Assert.That(owner.GetComponentInChildren<Rigidbody>(true), Is.Null);
                 Assert.That(owner.GetComponentInChildren<Collider>(true), Is.Null);
 
@@ -103,6 +110,29 @@ namespace Tests.Demo
             {
                 Object.DestroyImmediate(owner);
             }
+        }
+
+        [Test]
+        public void LabelLayout_UsesReadablePixelHeightAndAvoidsReservedRects()
+        {
+            Assert.That(DroneDebugLabelLayoutMath.CalculateTargetPixelHeight(720f), Is.EqualTo(18f));
+            Assert.That(DroneDebugLabelLayoutMath.CalculateTargetPixelHeight(1080f),
+                Is.EqualTo(22f).Within(0.1f));
+            Assert.That(DroneDebugLabelLayoutMath.CalculateTargetPixelHeight(2160f), Is.EqualTo(26f));
+
+            var safe = new Rect(60f, 80f, 880f, 840f);
+            var reserved = new Rect(430f, 430f, 140f, 100f);
+            var occupied = new List<Rect> { new(570f, 430f, 160f, 30f) };
+            var desired = new Rect(450f, 450f, 160f, 30f);
+
+            var placed = DroneDebugLabelLayoutMath.PlaceLabelRect(desired, safe, reserved, occupied);
+
+            Assert.That(placed.Overlaps(reserved), Is.False);
+            Assert.That(placed.Overlaps(occupied[0]), Is.False);
+            Assert.That(placed.xMin, Is.GreaterThanOrEqualTo(safe.xMin));
+            Assert.That(placed.yMin, Is.GreaterThanOrEqualTo(safe.yMin));
+            Assert.That(placed.xMax, Is.LessThanOrEqualTo(safe.xMax));
+            Assert.That(placed.yMax, Is.LessThanOrEqualTo(safe.yMax));
         }
 
         [Test]

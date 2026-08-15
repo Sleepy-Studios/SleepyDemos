@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -25,11 +26,17 @@ namespace Hotfix.DroneFlight
         private Material labelMaterial;
         private Transform visualRoot;
         private Vector3 bodyCenter;
+        private Renderer[] bodyRenderers = Array.Empty<Renderer>();
+
+        private static readonly int[] LabelLayoutPriority = { 4, 5, 8, 7, 6, 0, 1, 2, 3 };
 
         internal void Configure(DroneFlightSceneContext context)
         {
             flightController = context != null ? context.FlightController : null;
             cameraRig = context != null ? context.CameraRig : null;
+            bodyRenderers = flightController != null
+                ? flightController.GetComponentsInChildren<Renderer>(true)
+                : Array.Empty<Renderer>();
             ResetSnapshot();
             enabled = false;
         }
@@ -92,19 +99,108 @@ namespace Hotfix.DroneFlight
             for (var index = 0; index < RotorCount; index++)
             {
                 var thrust = rotorForces[index].Current;
-                visuals[index].Update(rotorOrigins[index], thrust, 10f,
+                visuals[index].UpdateGeometry(rotorOrigins[index], thrust, 10f,
                     $"{RotorNames[index]} {thrust.magnitude:F1} N", camera, GetRotorLabelOffset(index));
             }
-            visuals[4].Update(bodyCenter, totalThrust.Current, 10f,
+            visuals[4].UpdateGeometry(bodyCenter, totalThrust.Current, 10f,
                 $"总升力 {totalThrust.Current.magnitude:F1} N", camera, new Vector2(-34f, 20f));
-            visuals[5].Update(bodyCenter, gravity.Current, 10f,
+            visuals[5].UpdateGeometry(bodyCenter, gravity.Current, 10f,
                 $"重力 {gravity.Current.magnitude:F1} N", camera, new Vector2(28f, -20f));
-            visuals[6].Update(bodyCenter, actualVelocity.Current, 4f,
+            visuals[6].UpdateGeometry(bodyCenter, actualVelocity.Current, 4f,
                 $"实际速度 {actualVelocity.Current.magnitude:F1} m/s", camera, new Vector2(24f, 22f));
-            visuals[7].Update(bodyCenter, desiredVelocity.Current, 4f,
+            visuals[7].UpdateGeometry(bodyCenter, desiredVelocity.Current, 4f,
                 $"目标速度 {desiredVelocity.Current.magnitude:F1} m/s", camera, new Vector2(24f, 46f));
-            visuals[8].Update(bodyCenter, desiredAcceleration.Current, 4f,
+            visuals[8].UpdateGeometry(bodyCenter, desiredAcceleration.Current, 4f,
                 $"目标加速度 {desiredAcceleration.Current.magnitude:F1} m/s²", camera, new Vector2(-36f, 46f));
+
+            LayoutLabels(camera);
+        }
+
+        private void LayoutLabels(Camera camera)
+        {
+            if (camera == null)
+            {
+                return;
+            }
+
+            var pixelRect = camera.pixelRect;
+            var safeRect = new Rect(
+                pixelRect.xMin + pixelRect.width * 0.06f,
+                pixelRect.yMin + pixelRect.height * 0.08f,
+                pixelRect.width * 0.88f,
+                pixelRect.height * 0.84f);
+            var reservedRect = CalculateBodyScreenRect(camera);
+            var occupied = new List<Rect>(VectorCount);
+            foreach (var index in LabelLayoutPriority)
+            {
+                if (!visuals[index].IsVisible)
+                {
+                    continue;
+                }
+
+                var placed = DroneDebugLabelLayoutMath.PlaceLabelRect(
+                    visuals[index].DesiredLabelRect,
+                    safeRect,
+                    reservedRect,
+                    occupied);
+                visuals[index].PlaceLabel(camera, placed.center);
+                occupied.Add(placed);
+            }
+        }
+
+        private Rect CalculateBodyScreenRect(Camera camera)
+        {
+            var initialized = false;
+            var minimum = Vector2.zero;
+            var maximum = Vector2.zero;
+            foreach (var renderer in bodyRenderers)
+            {
+                if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                var bounds = renderer.bounds;
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var world = bounds.center + Vector3.Scale(
+                        bounds.extents,
+                        new Vector3(
+                            (corner & 1) == 0 ? -1f : 1f,
+                            (corner & 2) == 0 ? -1f : 1f,
+                            (corner & 4) == 0 ? -1f : 1f));
+                    var screen = camera.WorldToScreenPoint(world);
+                    if (screen.z <= 0f)
+                    {
+                        continue;
+                    }
+
+                    var point = new Vector2(screen.x, screen.y);
+                    if (!initialized)
+                    {
+                        minimum = maximum = point;
+                        initialized = true;
+                    }
+                    else
+                    {
+                        minimum = Vector2.Min(minimum, point);
+                        maximum = Vector2.Max(maximum, point);
+                    }
+                }
+            }
+
+            if (!initialized)
+            {
+                var center = camera.WorldToScreenPoint(bodyCenter);
+                return new Rect(center.x - 60f, center.y - 40f, 120f, 80f);
+            }
+
+            const float padding = 12f;
+            return Rect.MinMaxRect(
+                minimum.x - padding,
+                minimum.y - padding,
+                maximum.x + padding,
+                maximum.y + padding);
         }
 
         private void EnsureVisuals()
@@ -120,6 +216,12 @@ namespace Hotfix.DroneFlight
                 labelMaterial = new Material(defaultFont.material) { name = "F2 World Vector Label Material" };
                 labelMaterial.SetColor(ShaderUtilities.ID_OutlineColor, new Color32(8, 10, 12, 255));
                 labelMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.28f);
+                labelMaterial.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+                labelMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, new Color32(0, 0, 0, 170));
+                labelMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.18f);
+                labelMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.18f);
+                labelMaterial.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.08f);
+                labelMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.12f);
             }
             var colors = new[] { Color.cyan, Color.cyan, Color.cyan, Color.cyan, Color.yellow,
                 new Color(1f, 0.25f, 0.2f), Color.green, new Color(0.2f, 0.65f, 1f), new Color(1f, 0.35f, 1f) };
@@ -160,9 +262,13 @@ namespace Hotfix.DroneFlight
             private readonly LineRenderer leftHead;
             private readonly LineRenderer rightHead;
             private readonly TextMeshPro label;
+            private float labelScreenDepth;
 
             private WorldVectorVisual(GameObject owner, LineRenderer line, LineRenderer left, LineRenderer right, TextMeshPro text)
             { root = owner; shaft = line; leftHead = left; rightHead = right; label = text; }
+
+            internal bool IsVisible => root.activeSelf;
+            internal Rect DesiredLabelRect { get; private set; }
 
             internal static WorldVectorVisual Create(
                 Transform parent,
@@ -177,8 +283,12 @@ namespace Hotfix.DroneFlight
                 var right = CreateLine(owner.transform, "ArrowHeadRight", color, material);
                 var labelObject = new GameObject("ValueLabel", typeof(TextMeshPro)); labelObject.transform.SetParent(owner.transform, false);
                 var text = labelObject.GetComponent<TextMeshPro>();
-                text.alignment = TextAlignmentOptions.MidlineLeft;
-                text.fontSize = 3f;
+                text.alignment = TextAlignmentOptions.Center;
+                text.fontSize = 36f;
+                text.enableAutoSizing = false;
+                text.fontStyle = FontStyles.Bold;
+                text.textWrappingMode = TextWrappingModes.NoWrap;
+                text.overflowMode = TextOverflowModes.Overflow;
                 text.color = color;
                 if (textMaterial != null)
                 {
@@ -187,7 +297,7 @@ namespace Hotfix.DroneFlight
                 return new WorldVectorVisual(owner, shaft, left, right, text);
             }
 
-            internal void Update(
+            internal void UpdateGeometry(
                 Vector3 origin,
                 Vector3 physicalVector,
                 float referenceMagnitude,
@@ -197,7 +307,11 @@ namespace Hotfix.DroneFlight
             {
                 var visible = physicalVector.sqrMagnitude >= 0.000001f && camera != null;
                 root.SetActive(visible);
-                if (!visible) return;
+                if (!visible)
+                {
+                    DesiredLabelRect = default;
+                    return;
+                }
                 var direction = physicalVector.normalized;
                 var unitsPerPixel = CalculateWorldUnitsPerPixel(camera, origin);
                 var maximumPixels = Mathf.Min(camera.pixelWidth, camera.pixelHeight) * 0.22f;
@@ -222,14 +336,34 @@ namespace Hotfix.DroneFlight
                 var width = unitsPerPixel * 3f;
                 shaft.widthMultiplier = leftHead.widthMultiplier = rightHead.widthMultiplier = width;
                 label.text = text;
+                label.ForceMeshUpdate();
                 var screen = camera.WorldToScreenPoint(end);
-                screen.x = Mathf.Clamp(screen.x + labelPixelOffset.x, camera.pixelWidth * 0.06f, camera.pixelWidth * 0.94f);
-                screen.y = Mathf.Clamp(screen.y + labelPixelOffset.y, camera.pixelHeight * 0.08f, camera.pixelHeight * 0.92f);
+                labelScreenDepth = screen.z;
+                var targetPixelHeight = DroneDebugLabelLayoutMath.CalculateTargetPixelHeight(
+                    Mathf.Min(camera.pixelWidth, camera.pixelHeight));
+                var renderedSize = label.textBounds.size;
+                var localHeight = Mathf.Max(0.001f, renderedSize.y);
+                var labelUnitsPerPixel = CalculateWorldUnitsPerPixel(camera, end);
+                var worldScale = labelUnitsPerPixel * targetPixelHeight / localHeight;
+                label.transform.localScale = Vector3.one * worldScale;
+                var pixelWidth = Mathf.Max(
+                    targetPixelHeight,
+                    renderedSize.x * worldScale / labelUnitsPerPixel);
+                var center = new Vector2(screen.x + labelPixelOffset.x, screen.y + labelPixelOffset.y);
+                DesiredLabelRect = new Rect(
+                    center.x - pixelWidth * 0.5f - 4f,
+                    center.y - targetPixelHeight * 0.5f - 3f,
+                    pixelWidth + 8f,
+                    targetPixelHeight + 6f);
+            }
+
+            internal void PlaceLabel(Camera camera, Vector2 screenCenter)
+            {
+                var screen = new Vector3(screenCenter.x, screenCenter.y, labelScreenDepth);
                 label.transform.position = camera.ScreenToWorldPoint(screen);
                 label.transform.rotation = Quaternion.LookRotation(
                     label.transform.position - camera.transform.position,
                     camera.transform.up);
-                label.transform.localScale = Vector3.one * unitsPerPixel * 6f;
             }
 
             private static float CalculateWorldUnitsPerPixel(Camera camera, Vector3 worldPosition)
@@ -250,6 +384,109 @@ namespace Hotfix.DroneFlight
                 line.widthMultiplier = 0.008f; line.sharedMaterial = material; line.startColor = line.endColor = color; line.numCapVertices = 2;
                 return line;
             }
+        }
+    }
+
+    /// <summary>F2 标签的恒定像素字号与确定性屏幕避让算法。</summary>
+    internal static class DroneDebugLabelLayoutMath
+    {
+        private static readonly Vector2[] SearchDirections =
+        {
+            Vector2.up,
+            Vector2.right,
+            Vector2.left,
+            Vector2.down,
+            new Vector2(1f, 1f).normalized,
+            new Vector2(-1f, 1f).normalized,
+            new Vector2(1f, -1f).normalized,
+            new Vector2(-1f, -1f).normalized
+        };
+
+        internal static float CalculateTargetPixelHeight(float screenShortSide) =>
+            Mathf.Clamp(screenShortSide * 0.02037f, 18f, 26f);
+
+        internal static Rect PlaceLabelRect(
+            Rect desired,
+            Rect safeRect,
+            Rect reservedRect,
+            IReadOnlyList<Rect> occupied)
+        {
+            var origin = ClampInside(desired, safeRect);
+            if (!HasOverlap(origin, reservedRect, occupied))
+            {
+                return origin;
+            }
+
+            var best = origin;
+            var bestScore = CalculateOverlapScore(origin, reservedRect, occupied);
+            var step = Mathf.Max(12f, desired.height * 0.8f);
+            for (var ring = 1; ring <= 12; ring++)
+            {
+                foreach (var direction in SearchDirections)
+                {
+                    var candidate = origin;
+                    candidate.center += direction * (ring * step);
+                    candidate = ClampInside(candidate, safeRect);
+                    if (!HasOverlap(candidate, reservedRect, occupied))
+                    {
+                        return candidate;
+                    }
+
+                    var score = CalculateOverlapScore(candidate, reservedRect, occupied)
+                                + Vector2.Distance(origin.center, candidate.center) * 0.001f;
+                    if (score < bestScore)
+                    {
+                        best = candidate;
+                        bestScore = score;
+                    }
+                }
+            }
+
+            return best;
+        }
+
+        private static Rect ClampInside(Rect value, Rect bounds)
+        {
+            var width = Mathf.Min(value.width, bounds.width);
+            var height = Mathf.Min(value.height, bounds.height);
+            var x = Mathf.Clamp(value.x, bounds.xMin, bounds.xMax - width);
+            var y = Mathf.Clamp(value.y, bounds.yMin, bounds.yMax - height);
+            return new Rect(x, y, width, height);
+        }
+
+        private static bool HasOverlap(Rect value, Rect reserved, IReadOnlyList<Rect> occupied)
+        {
+            if (value.Overlaps(reserved))
+            {
+                return true;
+            }
+
+            for (var index = 0; index < occupied.Count; index++)
+            {
+                if (value.Overlaps(occupied[index]))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static float CalculateOverlapScore(Rect value, Rect reserved, IReadOnlyList<Rect> occupied)
+        {
+            var result = IntersectionArea(value, reserved);
+            for (var index = 0; index < occupied.Count; index++)
+            {
+                result += IntersectionArea(value, occupied[index]);
+            }
+            return result;
+        }
+
+        private static float IntersectionArea(Rect left, Rect right)
+        {
+            var width = Mathf.Max(0f, Mathf.Min(left.xMax, right.xMax) - Mathf.Max(left.xMin, right.xMin));
+            var height = Mathf.Max(0f, Mathf.Min(left.yMax, right.yMax) - Mathf.Max(left.yMin, right.yMin));
+            return width * height;
         }
     }
 

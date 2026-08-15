@@ -1,5 +1,6 @@
 using Hotfix.DroneFlight;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests.Demo
 {
@@ -19,6 +20,27 @@ namespace Tests.Demo
             Assert.That(session.Activate(), Is.False);
             Assert.That(session.ReturnToWaiting(), Is.True);
             Assert.That(session.State, Is.EqualTo(DroneControlSessionState.Waiting));
+        }
+
+        [Test]
+        public void FinalizeAfterFirstPhysicsStep_EntersActiveButKeepsMotorsDisarmed()
+        {
+            var root = new GameObject("AutoActiveVehicleFixture");
+            var body = root.AddComponent<Rigidbody>();
+            body.useGravity = false;
+            var controller = root.AddComponent<DroneFlightController>();
+            var input = root.AddComponent<DronePlayerInput>();
+            var remote = root.AddComponent<DroneRemoteControllerExperience>();
+            remote.enabled = false;
+            input.enabled = false;
+            var runtime = new DroneFlightVehicleRuntime(root, body, controller, input, remote, null, null);
+
+            runtime.FinalizeAfterFirstPhysicsStep();
+
+            Assert.That(remote.State, Is.EqualTo(DroneControlSessionState.Active));
+            Assert.That(remote.enabled, Is.True);
+            Assert.That(controller.IsArmed, Is.False);
+            Object.DestroyImmediate(root);
         }
     }
 }

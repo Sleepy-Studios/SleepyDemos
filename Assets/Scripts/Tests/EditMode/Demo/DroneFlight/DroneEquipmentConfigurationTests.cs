@@ -21,6 +21,7 @@ namespace Tests.Demo
                 Assert.That(config.ArmLengthMeters, Is.EqualTo(0.08f).Within(0.0001f));
                 Assert.That(config.MaximumLiftTravelMeters, Is.EqualTo(0.35f).Within(0.0001f));
                 Assert.That(config.LiftSpeedMetersPerSecond, Is.EqualTo(0.18f).Within(0.0001f));
+                Assert.That(config.LiftAccelerationMetersPerSecondSquared, Is.EqualTo(0.45f));
                 Assert.That(config.SwingLimitDegrees, Is.EqualTo(35f));
             }
             finally
