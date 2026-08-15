@@ -13,6 +13,8 @@
 - 单位与真实尺寸：
 - Blender 前向 / 上方向：
 - Unity 前向 / 上方向：
+- 机头、机尾、左、右的几何或临时标记证据：
+- DCC → FBX → Unity 的预期轴映射：
 - 根节点原点与 Pivot：
 - 是否允许负缩放：否，除非契约明确允许。
 
@@ -45,6 +47,8 @@
 - FBX 导出位置：
 - Unity 目标目录：
 - Forward / Up / Apply Transform：
+- Blender / FBX Exporter / Unity 版本：
+- 临时候选 FBX 路径与轴向门禁：
 - 导出对象集合：
 - Unity Builder / 装配入口：
 - 自动化测试与人工验收项：

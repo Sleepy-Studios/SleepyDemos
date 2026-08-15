@@ -6,8 +6,9 @@
 
 ## 坐标和根节点
 
-- Blender 使用米制和原生 `+Z Up / -Y Forward`；FBX 继续使用固定导出参数，不在源文件中预旋转网格或 Pivot。
-- Unity ModelImporter 必须启用 `Bake Axis Conversion`，把 DCC 坐标转换烘焙进几何和节点数据。当前 FBX 的导出手性还会留下反向航向和节点 Bind 旋转，`DroneFlightModelAxisPostprocessor` 在同一次导入中将它们继续烘焙到顶点、法线、切线和子节点坐标；不新增包装 Empty。导入后的正式层级统一为 `+X` 右、`+Y` 上、`+Z` 前，`DroneModel` 与 `Airframe` 不得保留额外 90° 包装旋转。
+- Blender 使用米制和原生 `+Z Up`，正式机头固定为 Blender `+Y Forward`；源文件中的 14 个正式节点必须应用 Transform，Rotation 为零、Scale 为一且无负缩放。
+- 仓库外建模脚本和迁移脚本是唯一导出入口，固定只导出 14 个正式 Mesh，并按 `Z Forward / Y Up / Apply Transform / Scale 1` 生成 FBX。Blender 5.2 对嵌套 Mesh 直接烘焙会破坏云台子节点，因此脚本只在未保存的导出暂存态转换 FBX 坐标；保存的 `.blend` 始终保持 Blender 原生 `+Y Forward / +Z Up`。
+- Unity ModelImporter 必须启用 `Bake Axis Conversion`，把 DCC 坐标转换烘焙进几何和节点数据；不再使用专用 AssetPostprocessor、包装 Empty 或运行时光轴补偿。导入后的正式层级统一为 `+X` 右、`+Y` 上、`+Z` 前，`DroneModel`、`Airframe` 和全部正式节点不得保留轴向包装旋转。
 - 正式 Mesh 必须应用 Scale 且无负缩放；FBX GUID、14 个正式节点名、Mesh 名称与材质槽不因轴迁移变化。
 - `DronePrototype` 根的局部 `+Y` 是四个 Rotor 的唯一物理推力轴。
 
@@ -55,7 +56,7 @@
 ## 修改流程
 
 1. 使用项目技能 `unity-demo-model-pipeline` 从玩法和物理需求形成建模需求并确认。
-2. 只有几何或 Pivot 真正变化时才修改 Blender 源文件并按固定参数导出 FBX；单纯轴迁移只调整 Unity Importer。
+2. 修改 Blender 源文件后运行仓库外 `build_drone_graybox.py`；对历史源执行一次性轴迁移时使用同目录 `migrate_axis_and_export.py`。不要在 Unity 侧增加第二套方向补偿。
 3. 核对源侧与项目内 FBX 的 SHA-256。
 4. 执行唯一 Builder 入口重建基础机体、装备和 Variant。
 5. 运行 `DronePrototypeContractTests` 和直接受影响的 PlayMode 物理测试。

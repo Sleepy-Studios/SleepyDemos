@@ -53,6 +53,13 @@ namespace Tests.Demo
                 Is.SupersetOf(DroneFlightModelContract.FormalObjectNames));
             Assert.That(DroneFlightModelContract.FormalObjectNames,
                 Has.Count.EqualTo(DroneFlightModelContract.FormalObjectCount));
+            var importedFormalNodes = model.GetComponentsInChildren<Transform>(true)
+                .Where(node => node != model.transform)
+                .ToArray();
+            Assert.That(importedFormalNodes, Has.Length.EqualTo(DroneFlightModelContract.FormalObjectCount),
+                "正式 FBX 只能包含 14 个契约节点，不能夹带相机、灯光、标注或辅助节点。");
+            Assert.That(importedFormalNodes.Select(node => node.name),
+                Is.EquivalentTo(DroneFlightModelContract.FormalObjectNames));
 
             var officialVisual = prefab.GetComponentsInChildren<MeshFilter>(true)
                 .FirstOrDefault(filter => filter.sharedMesh != null && filter.sharedMesh.name == "Airframe");
@@ -124,6 +131,8 @@ namespace Tests.Demo
                 Assert.That(matchingNodes, Has.Length.EqualTo(1), nodeName);
                 var node = matchingNodes[0];
                 Assert.That(node, Is.Not.Null, nodeName);
+                Assert.That(Quaternion.Angle(node.localRotation, Quaternion.identity), Is.LessThan(0.01f),
+                    $"{nodeName} 不得残留 DCC 轴向包装旋转。");
                 Assert.That(node.localScale, Is.EqualTo(Vector3.one), nodeName);
                 Assert.That(node.lossyScale.x, Is.GreaterThan(0f), nodeName);
                 Assert.That(node.lossyScale.y, Is.GreaterThan(0f), nodeName);

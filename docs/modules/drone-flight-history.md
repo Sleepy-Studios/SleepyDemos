@@ -131,6 +131,15 @@
 
 长期规则：DCC 坐标转换必须由唯一 Importer 策略确定；不得再同时用根节点补偿旋转和运行时代码反向光轴修补同一问题。
 
+## 2026-08-15：源模型 180° 修正与标准导入
+
+- 真实 Blender 源复核确认，上一节保留的 `-Y Forward` 是建模阶段遗留约定，而不是必须长期维持的 DCC 规则。正式 14 节点整体绕世界 Z 轴旋转 180°并重烘焙为 Blender `+Y Forward / +Z Up`；旋转后按实际左右位置交换 Hub 与 LandingGear 的 FL/FR 名称，删除 `ANNOTATIONS` 技术标注。
+- 固定导出流程改为 `Z Forward / Y Up / Apply Transform / Scale 1`，只输出 14 个正式 Mesh。Blender 5.2 直接对嵌套 Mesh 执行轴烘焙会破坏 Pitch/CameraBody，所以脚本在保存原生 `.blend` 后，仅对内存中的 FBX 导出暂存态做坐标基变换；这不是 Unity 后处理，也不会污染源文件 Transform。
+- Unity 继续启用 `Bake Axis Conversion`，删除专用 `DroneFlightModelAxisPostprocessor`。导入后的 Airframe、Yaw、Pitch、CameraBody、四个 Hub 和四个 LandingGear 均为单位正缩放、Identity 旋转，并保持既有 Unity 契约坐标。
+- FBX GUID、14 个节点名、Mesh 名、材质槽、Prefab 绑定、旋翼施力、飞控、装备和 Collider 均保持不变；仓库外生成脚本同步采用同一迁移与导出函数，避免未来重建回到旧方向。
+
+本节取代上一节的长期实现策略，但保留上一节作为问题发现与过渡方案的历史记录。
+
 ## 始终有效的禁区
 
 - 不用中心总推力替代四个 Rotor，不用高阻尼掩盖振荡。

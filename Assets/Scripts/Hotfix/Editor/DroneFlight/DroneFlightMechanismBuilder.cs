@@ -129,8 +129,8 @@ namespace Hotfix.Editor.DroneFlight
 
             importer.globalScale = 1f;
             importer.useFileScale = true;
-            // 把 Blender +Z Up / -Y Forward 烘焙为 Unity +Y Up / +Z Forward，
-            // 避免把 90 度坐标转换残留在 Airframe 根节点上。
+            // 正式 FBX 已按 Blender +Y Forward / +Z Up 导出；Unity 继续把
+            // DCC 坐标转换烘焙到导入数据，禁止在 Airframe 根节点保留包装旋转。
             importer.bakeAxisConversion = true;
             importer.importAnimation = false;
             importer.importCameras = false;

@@ -46,13 +46,13 @@ Assets/LoadResources/Demos/drone_flight/
 
 `DronePrototype` 既是共享飞行基础，也是“纯无人机”选项直接加载的成品 Prefab。抓斗和渔叉分别保存为独立装备 Prefab；`DroneGrappleVariant`、`DroneHarpoonVariant` 是编辑期已组合并保存的机体，内部以嵌套 Prefab 引用对应装备。运行时不会调用 Builder、不会临时创建装备结构，也不会把模块动态挂到基础无人机上。场景不预放活动无人机；选择机型后只实例化一个对应成品 Prefab。
 
-正式视觉模型由仓库外 `F:/个人/DroneFlight/DroneFlight.blend` 维护，FBX 副本进入 Demo 私有 `Art/Models`。模型使用米制、Unity `+X` 右 / `+Y` 上 / `+Z` 前；导出层只有 Airframe、四个 RotorHub、两套 CW/CCW 共享桨叶、四个 LandingGear 和三级云台共 14 个正式对象。Prefab 中 FL/RR 共用 CCW Mesh，FR/RL 共用 CW Mesh，不复制四份桨叶资源。
+正式视觉模型由仓库外 `F:/个人/DroneFlight/DroneFlight.blend` 维护，FBX 副本进入 Demo 私有 `Art/Models`。Blender 源使用米制、`+X` 右 / `+Y` 前 / `+Z` 上，导入 Unity 后统一为 `+X` 右 / `+Y` 上 / `+Z` 前；导出层只有 Airframe、四个 RotorHub、两套 CW/CCW 共享桨叶、四个 LandingGear 和三级云台共 14 个正式对象。Prefab 中 FL/RR 共用 CCW Mesh，FR/RL 共用 CW Mesh，不复制四份桨叶资源。
 
 `DroneFlightMechanismBuilder` 是视觉装配的唯一编辑期入口：它关闭 FBX 动画、灯光、相机和 BlendShape 导入，按 `MAT_*` 槽确定性映射到六个外部 URP Lit 材质，并把完整 FBX 嵌套为 `DronePrototype/DroneModel`。`DroneRotor` 直接挂到四个 `RotorHub_*`，起落架控制器直接引用四个 `LandingGear_*`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch`；只在各轮毂下实例化必要的共享 CW/CCW 桨叶，不再维护第二套 Rotor、LandingGear 或 Gimbal 包装层。机体与机臂 BoxCollider 统一收在 `CollisionProxies`，脚底代理跟随真实起落架节点，不使用动态 MeshCollider。灯带材质启用 Emission，本阶段不生成 BaseColor、Normal 或 ORM 位图。
 
 上述节点、坐标、轴向、材质槽和挂点的机器真源是 `DroneFlightModelContract`。Builder 与 `DronePrototypeContractTests` 必须读取同一契约；完整语义见[正式模型契约](./drone-flight-model-contract.md)。
 
-正式 FBX 在 Unity ModelImporter 启用 `Bake Axis Conversion`，并由 `DroneFlightModelAxisPostprocessor` 把当前 FBX 固有的航向手性与残留 Bind 旋转继续烘焙到导入数据，最终将 Blender `+Z Up / -Y Forward` 统一为 Unity `+Y Up / +Z Forward`，不新增包装节点。`DroneRotor` 仍直接挂在 RotorHub 上，物理推力继续由 Prefab 根节点显式提供机体局部 `+Y`；Importer 迁移不改变四个施力坐标、控制分配或飞控。
+正式 FBX 由仓库外脚本按 `Z Forward / Y Up / Apply Transform / Scale 1` 固定导出，Unity ModelImporter 启用 `Bake Axis Conversion`。源模型、FBX 导出暂存和 Unity 原生导入共同完成坐标变换，不再保留 `DroneFlightModelAxisPostprocessor` 或运行时方向补偿，也不新增包装节点。`DroneRotor` 仍直接挂在 RotorHub 上，物理推力继续由 Prefab 根节点显式提供机体局部 `+Y`；模型迁移不改变四个施力坐标、控制分配或飞控。
 
 ## 进入和 UI 生命周期
 
