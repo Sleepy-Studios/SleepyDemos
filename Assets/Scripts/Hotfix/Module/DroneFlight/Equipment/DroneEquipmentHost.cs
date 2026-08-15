@@ -101,6 +101,26 @@ namespace Hotfix.DroneFlight
             }
         }
 
+        internal bool TrySetAutomatedAimTarget(Vector3 worldPoint)
+        {
+            return module is IDroneAutomatedAimingEquipment automated
+                   && automated.TrySetAutomatedAimTarget(worldPoint);
+        }
+
+        internal void ClearAutomatedAimTarget()
+        {
+            if (module is IDroneAutomatedAimingEquipment automated)
+            {
+                automated.ClearAutomatedAimTarget();
+            }
+        }
+
+        internal void ReleaseAndCleanup()
+        {
+            module?.ReleaseAndCleanup();
+            flightController?.RefreshMassDistribution();
+        }
+
         internal void SetLineInput(float input)
         {
             module?.SetLineInput(Mathf.Clamp(input, -1f, 1f));

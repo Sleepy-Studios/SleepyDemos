@@ -14,7 +14,7 @@ namespace Tests.Demo
 
         private static readonly string[] PortableDirectories =
         {
-            "Control", "Physics", "Equipment", "Payload", "Input", "Camera", "Telemetry"
+            "Control", "Physics", "Equipment", "Payload", "Input", "Camera", "Telemetry", "Mission"
         };
 
         private static readonly string[] PortableVehicleFiles =

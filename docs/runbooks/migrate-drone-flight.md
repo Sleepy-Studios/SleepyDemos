@@ -36,8 +36,9 @@
 | Editor 直启 | `DemoIslandEditorBootstrap` | 正式项目可删除或适配自己的 Editor 启动宿主。 |
 | 绑定 | `ComponentItemIndex` | 目标项目有同类绑定组件时重新生成/核对索引，不手改生成 Component。 |
 | 字体 | `HarmonyOS_CN` Font Asset/Material | 复制字体依赖或在三个 UI Prefab 中替换为目标项目字体。 |
+| 捕鱼 MVP UI | `FishingBurstMvp` 场景内 Canvas | 正式项目替换单按钮 QTE 和完成/失败 Pop；`Mission` 路径、自动驾驶和状态机保持宿主无关。 |
 
-`Control`、`Physics`、`Equipment`、`Payload`、`Input`、`Camera`、`Telemetry` 以及同步机体装配器属于可迁移核心，不得新增 UIManager、ResourceServices 或 GameSceneNavigator 引用。
+`Control`、`Physics`、`Equipment`、`Payload`、`Input`、`Camera`、`Telemetry`、`Mission` 以及同步机体装配器属于可迁移核心，不得新增 UIManager、ResourceServices 或 GameSceneNavigator 引用。
 
 ## 接入顺序
 
@@ -48,6 +49,14 @@
 5. 重新生成或适配三个 UI View，替换字体引用。
 6. 合入 DroneFlight 测试到目标项目已有 Test Runner 程序集。
 7. 运行配置、模型、数学、场景适配和 PlayMode 物理测试。
+
+### 先迁移捕鱼演出 MVP
+
+1. 直接打开 `Scenes/FishingBurstMvp.unity`，确认目标项目可加载 `DroneHarpoonVariant` 及路径 Prefab。
+2. 保留 `DroneMissionAutopilot` 向现有飞控提交输入的边界，不用 Tween、Transform 或刚体速度替换物理飞行。
+3. 把正式鱼的世界坐标和 Rigidbody 交给任务协调器；水面高度、随机区域、环绕次数、射击高度和返航点均由目标场景配置。
+4. 正式 QTE 成功后调用任务启动入口；失败或取消时清理当前机体、渔叉 Joint 和动态鱼载荷。
+5. 若需重建练习场景和默认路径，在 SleepyDemos 使用 `Tools > SleepyDemos > DroneFlight > Build Fishing MVP Scene`；目标项目不必迁移该 Builder。
 
 ## 编译错误分类
 
@@ -64,4 +73,5 @@
 - 起飞、降落、档位、镜头、重载和退出工作。
 - 抓斗连续完成放下、抓取、运输、释放、收纳；渔叉完成发射、命中/未命中、收放线和回收。
 - 正式模型旋翼方向、推力轴、起落架、云台、材质、碰撞代理和脚底净空符合契约。
+- 捕鱼 MVP 能完成场外入场、1～2 圈环绕、水面上方射击、真实载荷返航和连续重播；固定机位跟拍期间相机世界坐标不变。
 - 迁移报告明确列出改过的宿主适配器和未执行的人工验收，不宣称“双目录原样零修改运行”。

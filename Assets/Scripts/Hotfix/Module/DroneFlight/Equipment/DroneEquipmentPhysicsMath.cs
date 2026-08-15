@@ -12,6 +12,48 @@ namespace Hotfix.DroneFlight
                 : Vector3.zero;
         }
 
+        internal static bool TryCalculateBallisticDirection(
+            Vector3 origin,
+            Vector3 target,
+            float launchSpeed,
+            Vector3 gravity,
+            out Vector3 direction)
+        {
+            direction = Vector3.zero;
+            var gravityMagnitude = gravity.magnitude;
+            if (!float.IsFinite(launchSpeed) || launchSpeed <= 0f
+                || !float.IsFinite(gravityMagnitude) || gravityMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            var up = -gravity / gravityMagnitude;
+            var displacement = target - origin;
+            var verticalDistance = Vector3.Dot(displacement, up);
+            var horizontalDisplacement = displacement - up * verticalDistance;
+            var horizontalDistance = horizontalDisplacement.magnitude;
+            if (horizontalDistance <= 0.0001f)
+            {
+                direction = verticalDistance >= 0f ? up : -up;
+                return verticalDistance <= 0f
+                       || launchSpeed * launchSpeed >= 2f * gravityMagnitude * verticalDistance;
+            }
+
+            var speedSquared = launchSpeed * launchSpeed;
+            var discriminant = speedSquared * speedSquared
+                               - gravityMagnitude * (gravityMagnitude * horizontalDistance * horizontalDistance
+                                                     + 2f * verticalDistance * speedSquared);
+            if (!float.IsFinite(discriminant) || discriminant < 0f)
+            {
+                return false;
+            }
+
+            var tangent = (speedSquared - Mathf.Sqrt(discriminant))
+                          / (gravityMagnitude * horizontalDistance);
+            direction = (horizontalDisplacement.normalized + up * tangent).normalized;
+            return direction.sqrMagnitude > 0.0001f;
+        }
+
         internal static bool IsWithinHarpoonAimEnvelope(
             Vector3 bodyPosition,
             Vector3 launchPosition,

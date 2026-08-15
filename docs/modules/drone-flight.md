@@ -11,6 +11,7 @@ DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型�
 ```text
 Assets/LoadResources/Demos/drone_flight/
 ├── Scenes/Main.unity
+├── Scenes/FishingBurstMvp.unity
 ├── Art/
 │   ├── Models/DroneFlight.fbx
 │   ├── Generated/Arena/*.asset
@@ -30,6 +31,7 @@ Assets/LoadResources/Demos/drone_flight/
     ├── DronePrototype.prefab
     ├── DroneGrappleVariant.prefab
     ├── DroneHarpoonVariant.prefab
+    ├── Mission/DroneFishingBezierRoute.prefab
     ├── Equipment/
     │   ├── DroneGrappleEquipment.prefab
     │   └── DroneHarpoonEquipment.prefab
@@ -43,6 +45,17 @@ Assets/LoadResources/Demos/drone_flight/
 训练路线按 `01_StartGate → 02_Slalom → 03_OffsetWalls → 04_LowGantry → 05_ElevatedWindow → 06_FrameTunnel` 顺时针组织，地面箭头从西侧引导返回中心。障碍视觉使用深灰、蓝灰、橙色和黄色无贴图 URP Lit 材质；所有可碰撞结构只使用独立 `BoxCollider`，不使用 MeshCollider。
 
 场地几何由 ProBuilder 6.0.9 在编辑期制作并烘焙到 `Art/Generated/Arena` 的普通 Unity Mesh Asset。提交的 Scene、Prefab 与 Mesh 不保留 `ProBuilderMesh`、`ProBuilderShape` 或包内资源引用；运行和迁移 DroneFlight 不要求安装 ProBuilder。
+
+## 捕鱼演出 MVP
+
+`FishingBurstMvp.unity` 是 Editor 可直接运行的独立迁移验证场景，不注册 Hub，也不修改正式 `Main.unity` 的机型选择流程。场景用一个按钮代表三次鱼群爆发 QTE 全部成功，随后执行场外入场、固定机位跟拍、环绕、俯冲、渔叉命中、真实载荷返航和重播。
+
+- `Mission/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
+- `DroneMissionAutopilot` 只生成 `DroneControlInput`、目标高度和偏航输入，禁止直接写 Transform 或刚体速度；实际飞行继续经过现有四旋翼控制链。
+- `DroneFishingMissionCoordinator` 管理阶段、超时、鱼随机位置和重播。鱼在命中前为 Kinematic，命中后解除冻结，质量通过现有渔叉绳索进入飞控载荷反馈。
+- `DroneCinematicCameraTracker` 缓动旋转和 FOV，但持续保持初始世界坐标。自动渔叉瞄准通过 `IDroneAutomatedAimingEquipment` 适配世界坐标目标，玩家原有 `V/H` 入口不变。
+
+确定性重建入口为 `Tools > SleepyDemos > DroneFlight > Build Fishing MVP Scene`。Builder 只重建捕鱼路径 Prefab、场景和两套 MVP 材质，不修改无人机 FBX、正式机体 Prefab 或模型契约。
 
 `DronePrototype` 既是共享飞行基础，也是“纯无人机”选项直接加载的成品 Prefab。抓斗和渔叉分别保存为独立装备 Prefab；`DroneGrappleVariant`、`DroneHarpoonVariant` 是编辑期已组合并保存的机体，内部以嵌套 Prefab 引用对应装备。运行时不会调用 Builder、不会临时创建装备结构，也不会把模块动态挂到基础无人机上。场景不预放活动无人机；选择机型后只实例化一个对应成品 Prefab。
 

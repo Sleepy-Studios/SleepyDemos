@@ -70,6 +70,23 @@ namespace Hotfix.DroneFlight
             }
         }
 
+        /// 首个物理步后保持玩家输入关闭，交由任务自动驾驶接管。
+        internal void FinalizeForAutomation()
+        {
+            Remote?.ReturnToWaiting();
+            Controller.SetArmed(false);
+            ResetBodyMotion();
+            if (Remote != null)
+            {
+                Remote.enabled = false;
+            }
+
+            if (Input != null)
+            {
+                Input.enabled = false;
+            }
+        }
+
         // 禁止出生阶段残留资源加载或选择界面的输入速度。
         private void ResetBodyMotion()
         {

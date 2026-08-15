@@ -4,7 +4,8 @@ using UnityEngine;
 namespace Hotfix.DroneFlight
 {
     /// <summary>单发可回收渔叉、真实后坐、刚性命中与只受拉柔性绳索。</summary>
-    public sealed class DroneHarpoonModule : MonoBehaviour, IDroneEquipmentModule, IDroneAimingEquipment
+    public sealed class DroneHarpoonModule : MonoBehaviour, IDroneEquipmentModule, IDroneAimingEquipment,
+        IDroneAutomatedAimingEquipment
     {
         [SerializeField] private DroneHarpoonConfig configSource;
         [SerializeField] private Transform gimbal;
@@ -28,7 +29,9 @@ namespace Hotfix.DroneFlight
         private float supportedPayloadMass;
         private float lineInput;
         private bool aimValid;
+        private bool automatedAimActive;
         private Vector3 aimDirection;
+        private Vector3 automatedAimTarget;
         private Vector3 hitPoint;
         private Vector2 aimViewportPosition = new(0.5f, 0.5f);
 
@@ -154,6 +157,28 @@ namespace Hotfix.DroneFlight
             }
         }
 
+        bool IDroneAutomatedAimingEquipment.TrySetAutomatedAimTarget(Vector3 worldPoint)
+        {
+            if (!IsFinite(worldPoint) || runtimeConfig == null || State != DroneEquipmentState.Stowed)
+            {
+                return false;
+            }
+
+            automatedAimTarget = worldPoint;
+            automatedAimActive = true;
+            return true;
+        }
+
+        void IDroneAutomatedAimingEquipment.ClearAutomatedAimTarget()
+        {
+            automatedAimActive = false;
+            aimValid = false;
+            if (aimReticle != null)
+            {
+                aimReticle.enabled = false;
+            }
+        }
+
         void IDroneAimingEquipment.SetAimViewportPosition(Vector2 viewportPosition)
         {
             aimViewportPosition = new Vector2(
@@ -215,6 +240,7 @@ namespace Hotfix.DroneFlight
                 aimReticle.enabled = false;
             }
             cameraRig?.ExitHarpoonAim();
+            automatedAimActive = false;
         }
 
         internal void Configure(
@@ -288,14 +314,21 @@ namespace Hotfix.DroneFlight
 
         private void UpdateAim()
         {
-            if (aimCamera == null || gimbal == null || muzzle == null || droneBody == null
-                || cameraRig == null || cameraRig.Mode != DroneCameraMode.HarpoonAim)
+            if (gimbal == null || muzzle == null || droneBody == null || runtimeConfig == null)
             {
-                aimValid = false;
-                if (aimReticle != null)
-                {
-                    aimReticle.enabled = false;
-                }
+                InvalidateAim();
+                return;
+            }
+
+            if (automatedAimActive)
+            {
+                UpdateAutomatedAim();
+                return;
+            }
+
+            if (aimCamera == null || cameraRig == null || cameraRig.Mode != DroneCameraMode.HarpoonAim)
+            {
+                InvalidateAim();
                 return;
             }
 
@@ -353,9 +386,92 @@ namespace Hotfix.DroneFlight
             }
         }
 
+        private void UpdateAutomatedAim()
+        {
+            var delta = automatedAimTarget - muzzle.position;
+            var maximumDistance = runtimeConfig.MaximumFlightDistanceMeters;
+            if (delta.sqrMagnitude <= 0.0001f || delta.magnitude > maximumDistance)
+            {
+                InvalidateAim();
+                return;
+            }
+
+            var direction = delta.normalized;
+            var hits = Physics.RaycastAll(
+                muzzle.position,
+                direction,
+                maximumDistance,
+                runtimeConfig.HittableLayers,
+                QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+            var foundTarget = false;
+            foreach (var candidate in hits)
+            {
+                if (candidate.collider == null || candidate.transform.IsChildOf(transform)
+                    || candidate.transform.IsChildOf(droneBody.transform))
+                {
+                    continue;
+                }
+
+                hitPoint = candidate.point;
+                foundTarget = true;
+                break;
+            }
+
+            if (!foundTarget)
+            {
+                InvalidateAim();
+                SetHint("自动瞄准射线上没有有效目标");
+                return;
+            }
+
+            var verticalAxis = -droneBody.transform.up;
+            var worldDirection = (hitPoint - muzzle.position).normalized;
+            var withinEnvelope = DroneEquipmentPhysicsMath.IsWithinHarpoonAimEnvelope(
+                droneBody.worldCenterOfMass,
+                muzzle.position,
+                verticalAxis,
+                hitPoint,
+                runtimeConfig.MaximumAimRadiusMeters,
+                runtimeConfig.MaximumAimConeDegrees);
+            var launchSpeed = runtimeConfig.LaunchImpulseNewtonSeconds
+                              / Mathf.Max(0.0001f, runtimeConfig.ProjectileMassKilograms);
+            if (!DroneEquipmentPhysicsMath.TryCalculateBallisticDirection(
+                    muzzle.position,
+                    hitPoint,
+                    launchSpeed,
+                    Physics.gravity,
+                    out var ballisticDirection))
+            {
+                InvalidateAim();
+                SetHint("自动目标超出渔叉弹道范围");
+                return;
+            }
+
+            gimbal.rotation = Quaternion.LookRotation(ballisticDirection, droneBody.transform.forward);
+            aimDirection = muzzle.forward;
+            aimValid = withinEnvelope
+                       && Vector3.Angle(aimDirection, ballisticDirection) <= runtimeConfig.AllowedAimErrorDegrees;
+            UpdateAimReticle();
+            if (!aimValid)
+            {
+                SetHint("自动目标超出渔叉射界");
+            }
+        }
+
+        private void InvalidateAim()
+        {
+            aimValid = false;
+            if (aimReticle != null)
+            {
+                aimReticle.enabled = false;
+            }
+        }
+
         private void Fire()
         {
-            if (cameraRig == null || cameraRig.Mode != DroneCameraMode.HarpoonAim || !aimValid)
+            var manualAimActive = cameraRig != null && cameraRig.Mode == DroneCameraMode.HarpoonAim;
+            if ((!manualAimActive && !automatedAimActive) || !aimValid)
             {
                 SetHint("请先按 V 进入机腹瞄准，并将准星移入有效范围");
                 return;
@@ -380,6 +496,7 @@ namespace Hotfix.DroneFlight
             ropeVisual?.ResetSimulation(muzzle.position, projectileBody.position);
             ropeVisual?.SetVisible(true);
             State = DroneEquipmentState.Fired;
+            automatedAimActive = false;
             SetHint("渔叉已发射");
         }
 
@@ -619,6 +736,11 @@ namespace Hotfix.DroneFlight
         private void SetHint(string value)
         {
             LastHint = value;
+        }
+
+        private static bool IsFinite(Vector3 value)
+        {
+            return float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
         }
 
         private void UpdateAimReticle()

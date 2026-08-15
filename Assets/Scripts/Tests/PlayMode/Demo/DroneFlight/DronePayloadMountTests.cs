@@ -23,6 +23,26 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void AutomatedHarpoonBallisticDirection_ReachesLowerOffsetTarget()
+        {
+            var origin = new Vector3(0f, 1.5f, 2.8f);
+            var target = new Vector3(0f, -5f, 0f);
+            Assert.That(DroneEquipmentPhysicsMath.TryCalculateBallisticDirection(
+                origin,
+                target,
+                6f,
+                Physics.gravity,
+                out var direction), Is.True);
+
+            var horizontalDistance = Vector3.ProjectOnPlane(target - origin, Vector3.up).magnitude;
+            var horizontalSpeed = Vector3.ProjectOnPlane(direction * 6f, Vector3.up).magnitude;
+            var flightTime = horizontalDistance / horizontalSpeed;
+            var simulatedTarget = origin + direction * (6f * flightTime)
+                                       + Physics.gravity * (0.5f * flightTime * flightTime);
+            Assert.That(Vector3.Distance(simulatedTarget, target), Is.LessThan(0.01f));
+        }
+
+        [Test]
         public void Rope_IsTensionOnlyAndClamped()
         {
             Assert.That(DroneEquipmentPhysicsMath.CalculateTension(1f, 2f, 10f, 90f, 12f, 180f), Is.Zero);

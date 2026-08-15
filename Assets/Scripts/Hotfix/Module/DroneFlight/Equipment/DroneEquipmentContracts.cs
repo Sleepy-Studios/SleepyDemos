@@ -112,4 +112,11 @@ namespace Hotfix.DroneFlight
         void SetAimMode(bool active);
         void SetAimViewportPosition(Vector2 viewportPosition);
     }
+
+    /// <summary>由需要脱离玩家相机执行世界坐标瞄准的装备实现。</summary>
+    internal interface IDroneAutomatedAimingEquipment
+    {
+        bool TrySetAutomatedAimTarget(Vector3 worldPoint);
+        void ClearAutomatedAimTarget();
+    }
 }
