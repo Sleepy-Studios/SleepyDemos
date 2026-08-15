@@ -76,5 +76,41 @@ namespace Tests.Demo
             Object.Destroy(cameraObject);
             Object.Destroy(root);
         }
+
+        [UnityTest]
+        public IEnumerator HarpoonAim_RestoresSavedModeWithoutChangingCameraOrBodyOwnership()
+        {
+            var root = new GameObject("HarpoonAimCameraFixture", typeof(Rigidbody));
+            root.GetComponent<Rigidbody>().useGravity = false;
+            var cameraObject = new GameObject("SingleDroneCamera", typeof(Camera), typeof(AudioListener));
+            var camera = cameraObject.GetComponent<Camera>();
+            var rig = cameraObject.AddComponent<DroneCameraRig>();
+            rig.Configure(camera, root.transform, null, null, root.transform, root.transform);
+            rig.SetMode(DroneCameraMode.Orbit);
+
+            var belly = new GameObject("BellyMount").transform;
+            belly.SetParent(root.transform, false);
+            belly.localPosition = new Vector3(0f, -0.12f, 0f);
+            belly.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            rig.Configure(camera, root.transform, null, null, root.transform, belly);
+
+            rig.EnterHarpoonAim();
+            for (var index = 0; index < 30; index++)
+            {
+                yield return null;
+            }
+            Assert.That(rig.Mode, Is.EqualTo(DroneCameraMode.HarpoonAim));
+            Assert.That(cameraObject.GetComponents<AudioListener>(), Has.Length.EqualTo(1));
+            Assert.That(Vector3.Distance(camera.transform.position, belly.position),
+                Is.LessThan(Vector3.Distance(camera.transform.position, root.transform.position)));
+            Assert.That(Vector3.Angle(camera.transform.forward, Vector3.down), Is.LessThan(1f));
+
+            rig.ExitHarpoonAim();
+            yield return null;
+            Assert.That(rig.Mode, Is.EqualTo(DroneCameraMode.Orbit));
+            Assert.That(root.GetComponent<Rigidbody>().angularVelocity, Is.EqualTo(Vector3.zero));
+            Object.Destroy(cameraObject);
+            Object.Destroy(root);
+        }
     }
 }

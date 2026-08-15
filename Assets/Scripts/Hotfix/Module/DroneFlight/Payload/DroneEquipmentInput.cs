@@ -52,13 +52,22 @@ namespace Hotfix.DroneFlight
 
             if (equipmentHost.Kind == DroneEquipmentKind.Grapple)
             {
-                if (keyboard.jKey.wasPressedThisFrame)
-                {
-                    equipmentHost.ToggleDeployment();
-                }
-
                 equipmentHost.SetLineInput(0f);
                 return;
+            }
+
+            if (keyboard.vKey.wasPressedThisFrame)
+            {
+                equipmentHost.ToggleAimMode();
+            }
+
+            var mouse = Mouse.current;
+            if (mouse != null && Screen.width > 0 && Screen.height > 0)
+            {
+                var position = mouse.position.ReadValue();
+                equipmentHost.SetAimViewportPosition(new Vector2(
+                    Mathf.Clamp01(position.x / Screen.width),
+                    Mathf.Clamp01(position.y / Screen.height)));
             }
 
             var lineInput = keyboard.kKey.isPressed ? 1f : 0f;
@@ -68,6 +77,13 @@ namespace Hotfix.DroneFlight
             }
 
             equipmentHost.SetLineInput(lineInput);
+        }
+
+        /// 清理瞄准与绳索输入，供退出遥控时恢复唯一相机。
+        internal void ResetTransientState()
+        {
+            equipmentHost?.SetLineInput(0f);
+            equipmentHost?.ExitAimMode();
         }
     }
 }

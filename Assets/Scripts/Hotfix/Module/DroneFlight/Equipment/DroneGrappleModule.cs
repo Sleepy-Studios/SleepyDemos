@@ -3,32 +3,32 @@ using UnityEngine;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>紧凑短行程四爪抓斗；四爪由 HingeJoint 驱动并以真实接触建立软保险约束。</summary>
+    /// <summary>单根刚性吊臂四爪抓斗；上端万向节被动摆动，闭爪包围载荷后建立临时刚性连接。</summary>
     public sealed class DroneGrappleModule : MonoBehaviour, IDroneEquipmentModule
     {
         [SerializeField] private DroneGrappleConfig configSource;
         [SerializeField] private Transform bellyMount;
         [SerializeField] private Rigidbody grappleBody;
         [SerializeField] private ConfigurableJoint suspensionJoint;
-        [SerializeField] private DroneGrappleContactCollector contactCollector;
+        [SerializeField] private BoxCollider captureVolume;
         [SerializeField] private Rigidbody[] clawBodies = Array.Empty<Rigidbody>();
         [SerializeField] private HingeJoint[] clawJoints = Array.Empty<HingeJoint>();
         [SerializeField] private Collider[] clawColliders = Array.Empty<Collider>();
 
         private DroneGrappleConfig runtimeConfig;
         private Rigidbody droneBody;
-        private ConfigurableJoint gripJoint;
+        private readonly Collider[] captureHits = new Collider[32];
+        private FixedJoint gripJoint;
         private DronePayload attachedPayload;
         private string sourceSignature;
-        private float currentDistance;
-        private float targetDistance;
         private float supportedPayloadMass;
         private bool clawsClosed;
         private bool initialized;
         private float maximumPayloadKilograms = float.PositiveInfinity;
+        private int captureCandidateCount;
 
         public DroneEquipmentKind Kind => DroneEquipmentKind.Grapple;
-        public DroneEquipmentState State { get; private set; } = DroneEquipmentState.Stowed;
+        public DroneEquipmentState State { get; private set; } = DroneEquipmentState.Ready;
         public float HardwareMassKilograms => runtimeConfig != null ? runtimeConfig.HardwareMassKilograms : 0f;
         public float PayloadMassKilograms => attachedPayload != null ? attachedPayload.Body.mass : 0f;
         public float SupportedPayloadMassKilograms => supportedPayloadMass;
@@ -40,22 +40,21 @@ namespace Hotfix.DroneFlight
             HardwareMassKilograms,
             PayloadMassKilograms,
             SupportedPayloadMassKilograms,
-            currentDistance,
+            runtimeConfig != null ? runtimeConfig.ArmLengthMeters : 0f,
             gripJoint != null ? gripJoint.currentForce.magnitude : 0f,
-            contactCollector != null ? contactCollector.ActiveContactCount : 0,
-            State == DroneEquipmentState.Ready,
+            captureCandidateCount,
+            State is DroneEquipmentState.Ready or DroneEquipmentState.Carrying,
             Vector3.zero,
             attachedPayload != null ? attachedPayload.Body.worldCenterOfMass : transform.position);
 
         private void Awake()
         {
             CreateRuntimeConfig();
-            currentDistance = runtimeConfig != null ? runtimeConfig.StowedDistanceMeters : 0.08f;
-            targetDistance = currentDistance;
             ApplyMassDistribution();
             ConfigureInternalCollisions();
             SetClaws(false);
-            SetClawCollision(false);
+            SetClawCollision(true);
+            TryInitializeAssembly();
         }
 
         private void FixedUpdate()
@@ -66,7 +65,6 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            StepTravel(Time.fixedDeltaTime);
             StepGrip();
             StepSupportedLoad(Time.fixedDeltaTime);
         }
@@ -86,16 +84,14 @@ namespace Hotfix.DroneFlight
             maximumPayloadKilograms = float.IsFinite(maximumPayloadMass)
                 ? Mathf.Max(0f, maximumPayloadMass)
                 : float.PositiveInfinity;
-            initialized = droneBody != null && grappleBody != null && suspensionJoint != null;
-            ConfigureSuspensionJoint();
-            ConfigureInternalCollisions();
+            TryInitializeAssembly();
         }
 
         public void PrimaryAction()
         {
             if (State is not DroneEquipmentState.Ready and not DroneEquipmentState.Carrying)
             {
-                SetHint("请先按 J 放下抓斗");
+                SetHint("抓斗当前不可操作");
                 return;
             }
 
@@ -110,39 +106,6 @@ namespace Hotfix.DroneFlight
                 SetClaws(true);
                 SetHint("四爪闭合中");
             }
-        }
-
-        public void ToggleDeployment()
-        {
-            if (runtimeConfig == null)
-            {
-                return;
-            }
-
-            if (State is DroneEquipmentState.Stowed or DroneEquipmentState.Retracting)
-            {
-                targetDistance = runtimeConfig.DeployedDistanceMeters;
-                State = DroneEquipmentState.Deploying;
-                SetClawCollision(true);
-                SetHint("抓斗放下中");
-                return;
-            }
-
-            if (attachedPayload != null)
-            {
-                SetHint("请先释放载荷再收纳抓斗");
-                return;
-            }
-
-            if (clawsClosed)
-            {
-                SetHint("请先按 H 张开四爪");
-                return;
-            }
-
-            targetDistance = runtimeConfig.StowedDistanceMeters;
-            State = DroneEquipmentState.Retracting;
-            SetHint("抓斗收纳中");
         }
 
         public void SetLineInput(float input)
@@ -176,12 +139,13 @@ namespace Hotfix.DroneFlight
             ApplyMassDistribution();
             ConfigureSuspensionJoint();
             ApplyClawDrive();
+            TryInitializeAssembly();
         }
 
         public void ReleaseAndCleanup()
         {
             ReleaseGrip();
-            contactCollector?.Clear();
+            captureCandidateCount = 0;
         }
 
         internal void Configure(
@@ -189,7 +153,7 @@ namespace Hotfix.DroneFlight
             Transform mount,
             Rigidbody body,
             ConfigurableJoint suspension,
-            DroneGrappleContactCollector contacts,
+            BoxCollider capture,
             Rigidbody[] bodies,
             HingeJoint[] joints,
             Collider[] colliders)
@@ -198,7 +162,7 @@ namespace Hotfix.DroneFlight
             bellyMount = mount;
             grappleBody = body;
             suspensionJoint = suspension;
-            contactCollector = contacts;
+            captureVolume = capture;
             clawBodies = bodies ?? Array.Empty<Rigidbody>();
             clawJoints = joints ?? Array.Empty<HingeJoint>();
             clawColliders = colliders ?? Array.Empty<Collider>();
@@ -259,8 +223,6 @@ namespace Hotfix.DroneFlight
             suspensionJoint.yMotion = ConfigurableJointMotion.Locked;
             suspensionJoint.zMotion = ConfigurableJointMotion.Locked;
             suspensionJoint.projectionMode = JointProjectionMode.None;
-            suspensionJoint.lowAngularXLimit = new SoftJointLimit { limit = -runtimeConfig.TwistLimitDegrees };
-            suspensionJoint.highAngularXLimit = new SoftJointLimit { limit = runtimeConfig.TwistLimitDegrees };
             suspensionJoint.angularYLimit = new SoftJointLimit { limit = runtimeConfig.SwingLimitDegrees };
             suspensionJoint.angularZLimit = new SoftJointLimit { limit = runtimeConfig.SwingLimitDegrees };
             var damping = Mathf.Min(
@@ -273,73 +235,83 @@ namespace Hotfix.DroneFlight
                 positionDamper = damping,
                 maximumForce = runtimeConfig.MaximumDampingTorqueNewtonMeters
             };
-            ApplyAngularMode(State == DroneEquipmentState.Ready || State == DroneEquipmentState.Carrying);
-            UpdateConnectedAnchor();
+            suspensionJoint.angularXMotion = ConfigurableJointMotion.Locked;
+            suspensionJoint.angularYMotion = ConfigurableJointMotion.Limited;
+            suspensionJoint.angularZMotion = ConfigurableJointMotion.Limited;
+            UpdateJointAnchors();
         }
 
-        private void StepTravel(float deltaTime)
+        private void PrepareInitialAssembly()
         {
-            currentDistance = Mathf.MoveTowards(
-                currentDistance,
-                targetDistance,
-                runtimeConfig.TravelSpeedMetersPerSecond * deltaTime);
-            UpdateConnectedAnchor();
-            var reached = Mathf.Abs(currentDistance - targetDistance) <= runtimeConfig.DockPositionToleranceMeters;
-            if (!reached)
+            if (runtimeConfig == null || bellyMount == null || grappleBody == null)
             {
                 return;
             }
 
-            if (State == DroneEquipmentState.Deploying)
+            SetAssemblyKinematic(true);
+            var desiredBasePosition = bellyMount.position - bellyMount.up * runtimeConfig.ArmLengthMeters;
+            var delta = desiredBasePosition - grappleBody.position;
+            grappleBody.position += delta;
+            foreach (var body in clawBodies)
             {
-                State = attachedPayload != null ? DroneEquipmentState.Carrying : DroneEquipmentState.Ready;
-                ApplyAngularMode(true);
-                SetHint("抓斗已放下，可按 H 开合四爪");
-            }
-            else if (State == DroneEquipmentState.Retracting)
-            {
-                var relativeSpeed = droneBody != null
-                    ? (grappleBody.linearVelocity - droneBody.GetPointVelocity(grappleBody.worldCenterOfMass)).magnitude
-                    : grappleBody.linearVelocity.magnitude;
-                if (relativeSpeed > runtimeConfig.DockSpeedToleranceMetersPerSecond)
+                if (body != null)
                 {
-                    return;
+                    body.position += delta;
                 }
-
-                State = DroneEquipmentState.Stowed;
-                ApplyAngularMode(false);
-                SetClawCollision(false);
-                SetHint("抓斗已收纳");
             }
         }
 
-        private void UpdateConnectedAnchor()
+        private void TryInitializeAssembly()
+        {
+            if (initialized || runtimeConfig == null || droneBody == null || bellyMount == null
+                || grappleBody == null || suspensionJoint == null)
+            {
+                return;
+            }
+
+            PrepareInitialAssembly();
+            ConfigureSuspensionJoint();
+            ConfigureInternalCollisions();
+            EnableAssemblyPhysics();
+            initialized = true;
+            State = DroneEquipmentState.Ready;
+            SetHint("抓斗已就绪，可按 H 开合四爪");
+        }
+
+        private void UpdateJointAnchors()
         {
             if (suspensionJoint == null || droneBody == null || bellyMount == null)
             {
                 return;
             }
 
-            var worldPoint = bellyMount.position - bellyMount.up * currentDistance;
-            suspensionJoint.connectedAnchor = droneBody.transform.InverseTransformPoint(worldPoint);
+            suspensionJoint.anchor = grappleBody.transform.InverseTransformPoint(bellyMount.position);
+            suspensionJoint.connectedAnchor = droneBody.transform.InverseTransformPoint(bellyMount.position);
         }
 
-        private void ApplyAngularMode(bool allowSwing)
+        private void EnableAssemblyPhysics()
         {
-            if (suspensionJoint == null)
+            SetAssemblyKinematic(false);
+        }
+
+        private void SetAssemblyKinematic(bool value)
+        {
+            SetBodyKinematic(grappleBody, value);
+            foreach (var body in clawBodies)
+            {
+                SetBodyKinematic(body, value);
+            }
+        }
+
+        private static void SetBodyKinematic(Rigidbody body, bool value)
+        {
+            if (body == null)
             {
                 return;
             }
 
-            suspensionJoint.angularXMotion = allowSwing
-                ? ConfigurableJointMotion.Limited
-                : ConfigurableJointMotion.Locked;
-            suspensionJoint.angularYMotion = allowSwing
-                ? ConfigurableJointMotion.Limited
-                : ConfigurableJointMotion.Locked;
-            suspensionJoint.angularZMotion = allowSwing
-                ? ConfigurableJointMotion.Limited
-                : ConfigurableJointMotion.Locked;
+            body.useGravity = !value;
+            body.isKinematic = value;
         }
 
         private void SetClaws(bool closed)
@@ -380,25 +352,65 @@ namespace Hotfix.DroneFlight
         private void StepGrip()
         {
             if (!clawsClosed || attachedPayload != null || State != DroneEquipmentState.Ready
-                || contactCollector == null)
+                || captureVolume == null)
             {
                 return;
             }
 
-            if (contactCollector.TryGetOpposingCandidate(
-                    grappleBody.transform,
-                    runtimeConfig.EnclosureRadiusMeters,
-                    runtimeConfig.EnclosureHalfHeightMeters,
-                    runtimeConfig.StableContactSteps,
-                    out var payload,
-                    out var centroid,
-                    out _))
+            var payload = FindNearestEnclosedPayload();
+            if (payload != null)
             {
-                AttachPayload(payload, centroid);
+                AttachPayload(payload);
             }
         }
 
-        private void AttachPayload(DronePayload payload, Vector3 worldAnchor)
+        private DronePayload FindNearestEnclosedPayload()
+        {
+            var center = captureVolume.transform.TransformPoint(captureVolume.center);
+            var halfExtents = Vector3.Scale(captureVolume.size * 0.5f, captureVolume.transform.lossyScale);
+            var hitCount = Physics.OverlapBoxNonAlloc(
+                center,
+                halfExtents,
+                captureHits,
+                captureVolume.transform.rotation,
+                ~0,
+                QueryTriggerInteraction.Collide);
+            DronePayload nearest = null;
+            var nearestDistanceSquared = float.PositiveInfinity;
+            var candidates = 0;
+            for (var index = 0; index < hitCount; index++)
+            {
+                var collider = captureHits[index];
+                captureHits[index] = null;
+                var payload = collider != null ? collider.GetComponentInParent<DronePayload>() : null;
+                if (payload == null || payload.Body == null || payload.Body == grappleBody)
+                {
+                    continue;
+                }
+
+                var localCenter = captureVolume.transform.InverseTransformPoint(payload.Body.worldCenterOfMass)
+                                  - captureVolume.center;
+                var horizontalDistance = new Vector2(localCenter.x, localCenter.z).magnitude;
+                if (horizontalDistance > runtimeConfig.EnclosureRadiusMeters
+                    || Mathf.Abs(localCenter.y) > runtimeConfig.EnclosureHalfHeightMeters)
+                {
+                    continue;
+                }
+
+                candidates++;
+                var distanceSquared = localCenter.sqrMagnitude;
+                if (distanceSquared < nearestDistanceSquared)
+                {
+                    nearest = payload;
+                    nearestDistanceSquared = distanceSquared;
+                }
+            }
+
+            captureCandidateCount = candidates;
+            return nearest;
+        }
+
+        private void AttachPayload(DronePayload payload)
         {
             if (payload == null || payload.Body == null || payload.Body == grappleBody)
             {
@@ -411,30 +423,15 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            gripJoint = grappleBody.gameObject.AddComponent<ConfigurableJoint>();
+            var worldAnchor = payload.Body.worldCenterOfMass;
+            gripJoint = grappleBody.gameObject.AddComponent<FixedJoint>();
             gripJoint.connectedBody = payload.Body;
             gripJoint.autoConfigureConnectedAnchor = false;
             gripJoint.anchor = grappleBody.transform.InverseTransformPoint(worldAnchor);
             gripJoint.connectedAnchor = payload.Body.transform.InverseTransformPoint(worldAnchor);
-            gripJoint.xMotion = ConfigurableJointMotion.Limited;
-            gripJoint.yMotion = ConfigurableJointMotion.Limited;
-            gripJoint.zMotion = ConfigurableJointMotion.Limited;
-            gripJoint.angularXMotion = ConfigurableJointMotion.Free;
-            gripJoint.angularYMotion = ConfigurableJointMotion.Free;
-            gripJoint.angularZMotion = ConfigurableJointMotion.Free;
-            gripJoint.linearLimit = new SoftJointLimit { limit = runtimeConfig.LinearFreedomMeters };
-            var drive = new JointDrive
-            {
-                positionSpring = runtimeConfig.ConstraintSpring,
-                positionDamper = runtimeConfig.ConstraintDamper,
-                maximumForce = runtimeConfig.BreakForceNewtons
-            };
-            gripJoint.xDrive = drive;
-            gripJoint.yDrive = drive;
-            gripJoint.zDrive = drive;
             gripJoint.breakForce = runtimeConfig.BreakForceNewtons;
             gripJoint.breakTorque = runtimeConfig.BreakTorqueNewtonMeters;
-            gripJoint.projectionMode = JointProjectionMode.None;
+            gripJoint.enableCollision = false;
             attachedPayload = payload;
             supportedPayloadMass = 0f;
             State = DroneEquipmentState.Carrying;
@@ -445,6 +442,12 @@ namespace Hotfix.DroneFlight
         {
             if (attachedPayload == null || gripJoint == null)
             {
+                if (attachedPayload != null)
+                {
+                    attachedPayload = null;
+                    State = DroneEquipmentState.Ready;
+                    SetHint("抓取连接已断开");
+                }
                 supportedPayloadMass = Mathf.MoveTowards(supportedPayloadMass, 0f, deltaTime * 10f);
                 return;
             }
@@ -460,13 +463,13 @@ namespace Hotfix.DroneFlight
         {
             if (gripJoint != null)
             {
-                gripJoint.connectedBody = null;
                 Destroy(gripJoint);
             }
 
             gripJoint = null;
             attachedPayload = null;
             supportedPayloadMass = 0f;
+            captureCandidateCount = 0;
             if (State == DroneEquipmentState.Carrying)
             {
                 State = DroneEquipmentState.Ready;
@@ -507,7 +510,7 @@ namespace Hotfix.DroneFlight
             {
                 foreach (var bodyCollider in droneBody.GetComponentsInChildren<Collider>(true))
                 {
-                    if (collider != null && bodyCollider != null)
+                    if (collider != null && bodyCollider != null && collider != bodyCollider)
                     {
                         Physics.IgnoreCollision(collider, bodyCollider, true);
                     }

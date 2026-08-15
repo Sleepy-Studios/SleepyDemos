@@ -204,14 +204,7 @@ namespace Hotfix.DroneFlight
 
             if (selection == DroneVehicleKind.Grapple)
             {
-                foreach (var sensor in drone.GetComponentsInChildren<DroneGrappleContactSensor>(true))
-                {
-                    foreach (var collider in sensor.GetComponentsInChildren<Collider>(true))
-                    {
-                        collider.enabled = false;
-                    }
-                }
-
+                // 抓斗 Prefab 已以 Kinematic 完成装配，模块会在 Joint 与锚点就绪后统一开放物理。
                 return;
             }
 

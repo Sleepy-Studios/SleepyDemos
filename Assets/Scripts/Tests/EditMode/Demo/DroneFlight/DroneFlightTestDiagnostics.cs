@@ -36,7 +36,7 @@ namespace Tests.Demo
                 ["DronePidControllerTests"] = "验证 PID、滤波、限幅和抗积分饱和",
                 ["DronePayloadTuningCalculatorTests"] = "验证载荷、悬停前馈和动力储备计算",
                 ["DroneRotorPhysicsTests"] = "验证可视化夹具、正式无人机起飞及四旋翼飞控物理",
-                ["DroneEquipmentPhysicsPlayModeTests"] = "验证抓斗接触、渔叉冲量和绳索受力",
+                ["DroneEquipmentPhysicsPlayModeTests"] = "验证抓斗包围吸附、渔叉停靠冲量和绳索受力",
                 ["DroneCameraLifecycleTests"] = "验证第三人称、机腹和云台镜头生命周期"
             };
 

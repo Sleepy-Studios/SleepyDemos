@@ -19,9 +19,7 @@ namespace Tests.Demo
             {
                 Assert.That(config.TryValidate(out var diagnostic), Is.True, diagnostic);
                 Assert.That(config.HardwareMassKilograms, Is.EqualTo(0.05f).Within(0.0001f));
-                Assert.That(config.StowedDistanceMeters, Is.EqualTo(0.08f).Within(0.0001f));
-                Assert.That(config.DeployedDistanceMeters, Is.EqualTo(0.26f).Within(0.0001f));
-                Assert.That(config.TwistLimitDegrees, Is.EqualTo(25f));
+                Assert.That(config.ArmLengthMeters, Is.EqualTo(0.08f).Within(0.0001f));
                 Assert.That(config.SwingLimitDegrees, Is.EqualTo(35f));
             }
             finally
@@ -40,6 +38,9 @@ namespace Tests.Demo
                 Assert.That(config.HardwareMassKilograms, Is.GreaterThan(config.ProjectileMassKilograms));
                 Assert.That(config.RopeBreakForceNewtons, Is.GreaterThan(config.MaximumTensionNewtons));
                 Assert.That(config.MaximumRopeLengthMeters, Is.GreaterThan(config.MinimumRopeLengthMeters));
+                Assert.That(config.MaximumAimRadiusMeters, Is.EqualTo(3f));
+                Assert.That(config.MaximumAimConeDegrees, Is.EqualTo(25f));
+                Assert.That(config.LaunchImpulseNewtonSeconds, Is.EqualTo(0.12f).Within(0.0001f));
             }
             finally
             {

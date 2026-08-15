@@ -14,11 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneHarpoonConfig
   hardwareMassKilograms: 0.05
   projectileMassKilograms: 0.02
-  muzzleSpeedMetersPerSecond: 18
+  launchImpulseNewtonSeconds: 0.12
   maximumFlightDistanceMeters: 30
-  gimbalYawLimitDegrees: 55
-  gimbalPitchUpLimitDegrees: 25
-  gimbalPitchDownLimitDegrees: 60
+  maximumAimRadiusMeters: 3
+  maximumAimConeDegrees: 25
   allowedAimErrorDegrees: 2.5
   minimumRopeLengthMeters: 0.25
   maximumRopeLengthMeters: 30

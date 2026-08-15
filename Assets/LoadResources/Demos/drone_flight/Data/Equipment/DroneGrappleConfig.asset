@@ -13,25 +13,16 @@ MonoBehaviour:
   m_Name: DroneGrappleConfig
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneGrappleConfig
   hardwareMassKilograms: 0.05
-  stowedDistanceMeters: 0.08
-  deployedDistanceMeters: 0.26
-  travelSpeedMetersPerSecond: 0.3
-  dockPositionToleranceMeters: 0.015
-  dockSpeedToleranceMetersPerSecond: 0.12
-  twistLimitDegrees: 25
+  armLengthMeters: 0.08
   swingLimitDegrees: 35
   dampingRatio: 0.45
   maximumDampingTorqueNewtonMeters: 3
-  openAngleDegrees: 42
-  closedAngleDegrees: -18
+  openAngleDegrees: 0
+  closedAngleDegrees: 75
   clawSpring: 90
   clawDamper: 10
-  stableContactSteps: 3
-  enclosureRadiusMeters: 0.12
-  enclosureHalfHeightMeters: 0.12
-  linearFreedomMeters: 0.02
-  constraintSpring: 220
-  constraintDamper: 24
+  enclosureRadiusMeters: 0.23
+  enclosureHalfHeightMeters: 0.2
   breakForceNewtons: 180
   breakTorqueNewtonMeters: 80
   supportedLoadSmoothingSeconds: 0.18

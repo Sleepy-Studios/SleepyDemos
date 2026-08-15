@@ -37,8 +37,11 @@ namespace Hotfix.Editor.DroneFlight
             ConfigureModelImporter();
             var grappleConfig = GetOrCreateAsset<DroneGrappleConfig>(GrappleConfigPath);
             var harpoonConfig = GetOrCreateAsset<DroneHarpoonConfig>(HarpoonConfigPath);
-            SetFloat(grappleConfig, "enclosureRadiusMeters", 0.12f);
-            SetFloat(grappleConfig, "enclosureHalfHeightMeters", 0.12f);
+            SetFloat(grappleConfig, "openAngleDegrees", 0f);
+            SetFloat(grappleConfig, "closedAngleDegrees", 75f);
+            SetFloat(grappleConfig, "enclosureRadiusMeters", 0.23f);
+            SetFloat(grappleConfig, "enclosureHalfHeightMeters", 0.2f);
+            SetFloat(harpoonConfig, "launchImpulseNewtonSeconds", 0.12f);
             RebuildBasePrefab();
             BuildGrappleEquipmentPrefab(grappleConfig);
             BuildHarpoonEquipmentPrefab(harpoonConfig);
@@ -311,7 +314,9 @@ namespace Hotfix.Editor.DroneFlight
                     - DroneFlightModelContract.LandingGearHingePositions[index].z).normalized;
                 var tangentRoot = Vector3.Cross(Vector3.up, radialRoot).normalized;
                 var tangentLocal = leg.InverseTransformDirection(root.transform.TransformDirection(tangentRoot));
-                retractedOffsets[index] = Quaternion.AngleAxis(67f, tangentLocal).eulerAngles;
+                retractedOffsets[index] = Quaternion.AngleAxis(
+                    DroneFlightModelContract.LandingGearRetractionAngleDegrees,
+                    tangentLocal).eulerAngles;
             }
 
             var controller = EnsureComponent<DroneLandingGearController>(root);
@@ -502,14 +507,23 @@ namespace Hotfix.Editor.DroneFlight
             var equipment = new GameObject("GrappleEquipment", typeof(DroneGrappleModule));
             equipment.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             equipment.transform.localScale = Vector3.one;
-            var orange = AssetDatabase.LoadAssetAtPath<Material>(Root + "/Art/Generated/GrappleOrange.mat");
+            var orange = AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "/DroneSafetyOrange.mat");
+            var dark = AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "/DroneMechanicalBlack.mat");
+
+            var upperSeat = new GameObject("UniversalJointUpperSeat").transform;
+            upperSeat.SetParent(equipment.transform, false);
+            upperSeat.localPosition = DroneFlightModelContract.BellyEquipmentMountPosition;
+            CreateVisualPrimitive(upperSeat, "MountPlate", PrimitiveType.Cylinder,
+                Vector3.zero, Quaternion.identity, new Vector3(0.055f, 0.008f, 0.055f), orange);
+            CreateVisualPrimitive(upperSeat, "CrossPin", PrimitiveType.Cylinder,
+                new Vector3(0f, -0.018f, 0f), Quaternion.Euler(0f, 0f, 90f),
+                new Vector3(0.018f, 0.055f, 0.018f), orange);
 
             var baseObject = new GameObject(
                 "GrappleBase",
                 typeof(Rigidbody),
                 typeof(CapsuleCollider),
-                typeof(ConfigurableJoint),
-                typeof(DroneGrappleContactCollector));
+                typeof(ConfigurableJoint));
             baseObject.transform.SetParent(equipment.transform, false);
             baseObject.transform.localPosition = new Vector3(0f, -0.20f, 0f);
             baseObject.transform.localScale = Vector3.one;
@@ -518,18 +532,44 @@ namespace Hotfix.Editor.DroneFlight
             baseCollider.radius = 0.075f;
             baseCollider.height = 0.04f;
             CreateVisualPrimitive(baseObject.transform, "BaseRing", PrimitiveType.Cylinder,
-                Vector3.zero, Quaternion.identity, new Vector3(0.075f, 0.009f, 0.075f), null);
+                Vector3.zero, Quaternion.identity, new Vector3(0.075f, 0.009f, 0.075f), dark);
             CreateVisualPrimitive(baseObject.transform, "CentralMechanism", PrimitiveType.Cylinder,
-                new Vector3(0f, 0.012f, 0f), Quaternion.identity, new Vector3(0.038f, 0.01f, 0.038f), null);
+                new Vector3(0f, 0.012f, 0f), Quaternion.identity, new Vector3(0.038f, 0.01f, 0.038f), dark);
+            var arm = new GameObject("GrappleArm", typeof(BoxCollider));
+            arm.transform.SetParent(baseObject.transform, false);
+            arm.transform.localPosition = new Vector3(0f, config.ArmLengthMeters * 0.5f, 0f);
+            arm.GetComponent<BoxCollider>().size = new Vector3(0.035f, config.ArmLengthMeters, 0.035f);
+            CreateVisualPrimitive(arm.transform, "ArmVisual", PrimitiveType.Cylinder,
+                Vector3.zero, Quaternion.identity,
+                new Vector3(0.018f, config.ArmLengthMeters * 0.5f, 0.018f), orange);
 
             var baseBody = baseObject.GetComponent<Rigidbody>();
-            baseBody.useGravity = true;
+            baseBody.useGravity = false;
+            baseBody.isKinematic = true;
             var suspension = baseObject.GetComponent<ConfigurableJoint>();
             suspension.connectedBody = null;
             suspension.autoConfigureConnectedAnchor = false;
-            suspension.anchor = Vector3.zero;
+            suspension.anchor = new Vector3(0f, config.ArmLengthMeters, 0f);
+            suspension.connectedAnchor = DroneFlightModelContract.BellyEquipmentMountPosition;
+            suspension.xMotion = ConfigurableJointMotion.Locked;
+            suspension.yMotion = ConfigurableJointMotion.Locked;
+            suspension.zMotion = ConfigurableJointMotion.Locked;
+            suspension.angularXMotion = ConfigurableJointMotion.Locked;
+            suspension.angularYMotion = ConfigurableJointMotion.Limited;
+            suspension.angularZMotion = ConfigurableJointMotion.Limited;
+            suspension.angularYLimit = new SoftJointLimit { limit = config.SwingLimitDegrees };
+            suspension.angularZLimit = new SoftJointLimit { limit = config.SwingLimitDegrees };
             suspension.projectionMode = JointProjectionMode.None;
-            var collector = baseObject.GetComponent<DroneGrappleContactCollector>();
+            var captureObject = new GameObject("GrappleCaptureVolume", typeof(BoxCollider));
+            captureObject.transform.SetParent(baseObject.transform, false);
+            captureObject.transform.localPosition = Vector3.zero;
+            var captureVolume = captureObject.GetComponent<BoxCollider>();
+            captureVolume.isTrigger = true;
+            captureVolume.center = new Vector3(0f, -config.EnclosureHalfHeightMeters, 0f);
+            captureVolume.size = new Vector3(
+                config.EnclosureRadiusMeters * 2f,
+                config.EnclosureHalfHeightMeters * 2f,
+                config.EnclosureRadiusMeters * 2f);
 
             var clawBodies = new Rigidbody[4];
             var clawJoints = new HingeJoint[4];
@@ -542,49 +582,48 @@ namespace Hotfix.Editor.DroneFlight
                 var claw = new GameObject(
                     "Claw_" + (index + 1),
                     typeof(Rigidbody),
-                    typeof(HingeJoint),
-                    typeof(DroneGrappleContactSensor));
+                    typeof(HingeJoint));
                 claw.transform.SetParent(equipment.transform, false);
                 claw.transform.localPosition = baseObject.transform.localPosition + radial * pivotRadius;
                 claw.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
                 claw.transform.localScale = Vector3.one;
 
                 var body = claw.GetComponent<Rigidbody>();
-                body.useGravity = true;
+                body.useGravity = false;
+                body.isKinematic = true;
                 var hinge = claw.GetComponent<HingeJoint>();
                 hinge.connectedBody = baseBody;
                 hinge.autoConfigureConnectedAnchor = false;
                 hinge.axis = Vector3.right;
                 hinge.anchor = Vector3.zero;
                 hinge.connectedAnchor = baseObject.transform.InverseTransformPoint(claw.transform.position);
-                hinge.limits = new JointLimits { min = -25f, max = 48f };
+                hinge.limits = new JointLimits { min = -5f, max = 80f };
                 hinge.useLimits = true;
 
                 CreateVisualPrimitive(claw.transform, "PivotPin", PrimitiveType.Cylinder,
-                    Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(0.018f, 0.025f, 0.018f), null);
+                    Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(0.018f, 0.025f, 0.018f), dark);
                 var upper = CreateClawSegment(
                     claw.transform,
                     "Upper",
-                    new Vector3(0f, 0f, 0.035f),
-                    new Vector3(0.025f, 0.02f, 0.07f),
-                    Vector3.zero,
+                    new Vector3(0f, 0.035f, 0.06f),
+                    new Vector3(0.03f, 0.025f, 0.14f),
+                    new Vector3(-30f, 0f, 0f),
                     orange);
                 var tip = CreateClawSegment(
                     claw.transform,
                     "Tip",
-                    new Vector3(0f, 0f, 0.095f),
-                    new Vector3(0.022f, 0.018f, 0.05f),
-                    Vector3.zero,
+                    new Vector3(0f, 0.028f, 0.137f),
+                    new Vector3(0.028f, 0.022f, 0.09f),
+                    new Vector3(70f, 0f, 0f),
                     orange);
                 clawBodies[index] = body;
                 clawJoints[index] = hinge;
                 clawColliders.Add(upper);
                 clawColliders.Add(tip);
-                claw.GetComponent<DroneGrappleContactSensor>().Configure(collector, index);
             }
 
             var module = equipment.GetComponent<DroneGrappleModule>();
-            module.Configure(config, null, baseBody, suspension, collector, clawBodies, clawJoints,
+            module.Configure(config, null, baseBody, suspension, captureVolume, clawBodies, clawJoints,
                 clawColliders.ToArray());
             return equipment;
         }
@@ -613,6 +652,8 @@ namespace Hotfix.Editor.DroneFlight
             var equipment = new GameObject("HarpoonEquipment", typeof(DroneHarpoonModule));
             equipment.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             equipment.transform.localScale = Vector3.one;
+            var mechanicalBlack = AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "/DroneMechanicalBlack.mat");
+            var safetyOrange = AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "/DroneSafetyOrange.mat");
 
             var launcher = new GameObject(
                 "HarpoonLauncher",
@@ -620,18 +661,18 @@ namespace Hotfix.Editor.DroneFlight
                 typeof(BoxCollider),
                 typeof(ConfigurableJoint));
             launcher.transform.SetParent(equipment.transform, false);
-            launcher.transform.localPosition = new Vector3(0f, -0.12f, 0f);
+            launcher.transform.localPosition = new Vector3(0f, 0.02f, 0f);
             launcher.transform.localScale = Vector3.one;
             var launcherCollider = launcher.GetComponent<BoxCollider>();
             launcherCollider.center = new Vector3(0f, 0f, 0.07f);
             launcherCollider.size = new Vector3(0.20f, 0.08f, 0.30f);
 
             CreateVisualPrimitive(launcher.transform, "GimbalYawRing", PrimitiveType.Cylinder,
-                new Vector3(0f, 0.028f, 0f), Quaternion.identity, new Vector3(0.08f, 0.012f, 0.08f), null);
+                new Vector3(0f, 0.028f, 0f), Quaternion.identity, new Vector3(0.08f, 0.012f, 0.08f), mechanicalBlack);
             CreateVisualPrimitive(launcher.transform, "YokeLeft", PrimitiveType.Cube,
-                new Vector3(-0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), null);
+                new Vector3(-0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), mechanicalBlack);
             CreateVisualPrimitive(launcher.transform, "YokeRight", PrimitiveType.Cube,
-                new Vector3(0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), null);
+                new Vector3(0.078f, -0.018f, 0.04f), Quaternion.identity, new Vector3(0.025f, 0.065f, 0.055f), mechanicalBlack);
 
             var launcherBody = launcher.GetComponent<Rigidbody>();
             var launcherJoint = launcher.GetComponent<ConfigurableJoint>();
@@ -646,16 +687,17 @@ namespace Hotfix.Editor.DroneFlight
 
             var gimbal = new GameObject("HarpoonGimbal").transform;
             gimbal.SetParent(launcher.transform, false);
-            gimbal.localPosition = new Vector3(0f, -0.01f, 0.015f);
+            gimbal.localPosition = Vector3.zero;
+            gimbal.localRotation = Quaternion.Euler(90f, 0f, 0f);
             gimbal.localScale = Vector3.one;
             CreateVisualPrimitive(gimbal, "PitchTrunnion", PrimitiveType.Cylinder,
-                Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(0.028f, 0.09f, 0.028f), null);
+                Vector3.zero, Quaternion.Euler(0f, 0f, 90f), new Vector3(0.028f, 0.09f, 0.028f), mechanicalBlack);
             CreateVisualPrimitive(gimbal, "LaunchTube", PrimitiveType.Cylinder,
-                new Vector3(0f, 0f, 0.13f), Quaternion.Euler(90f, 0f, 0f),
-                new Vector3(0.035f, 0.14f, 0.035f), null);
+                new Vector3(0f, 0f, 0.05f), Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(0.025f, 0.05f, 0.025f), mechanicalBlack);
             var muzzle = new GameObject("Muzzle").transform;
             muzzle.SetParent(gimbal, false);
-            muzzle.localPosition = new Vector3(0f, 0f, 0.28f);
+            muzzle.localPosition = new Vector3(0f, 0f, 0.10f);
             muzzle.localRotation = Quaternion.identity;
             muzzle.localScale = Vector3.one;
 
@@ -668,36 +710,48 @@ namespace Hotfix.Editor.DroneFlight
             projectileObject.transform.SetPositionAndRotation(muzzle.position, muzzle.rotation);
             projectileObject.transform.localScale = Vector3.one;
             var projectileColliderComponent = projectileObject.GetComponent<CapsuleCollider>();
-            projectileColliderComponent.radius = 0.016f;
-            projectileColliderComponent.height = 0.26f;
+            projectileColliderComponent.radius = 0.01f;
+            projectileColliderComponent.height = 0.15f;
             projectileColliderComponent.direction = 2;
             CreateVisualPrimitive(projectileObject.transform, "Shaft", PrimitiveType.Cylinder,
                 new Vector3(0f, 0f, -0.005f), Quaternion.Euler(90f, 0f, 0f),
-                new Vector3(0.012f, 0.11f, 0.012f), null);
-            CreateConeVisual(projectileObject.transform, new Vector3(0f, 0f, 0.14f));
+                new Vector3(0.008f, 0.045f, 0.008f), mechanicalBlack);
+            CreateConeVisual(projectileObject.transform, new Vector3(0f, 0f, 0.055f), safetyOrange);
             for (var index = 0; index < 4; index++)
             {
                 var rotation = Quaternion.Euler(0f, 0f, index * 90f);
-                var offset = rotation * new Vector3(0.025f, 0f, -0.085f);
+                var offset = rotation * new Vector3(0.014f, 0f, -0.04f);
                 CreateVisualPrimitive(projectileObject.transform, "TailFin_" + (index + 1), PrimitiveType.Cube,
-                    offset, rotation, new Vector3(0.04f, 0.008f, 0.06f), null);
+                    offset, rotation, new Vector3(0.022f, 0.005f, 0.028f), mechanicalBlack);
             }
 
             var projectileBody = projectileObject.GetComponent<Rigidbody>();
             var projectileCollider = projectileObject.GetComponent<Collider>();
+            projectileBody.useGravity = false;
+            projectileBody.isKinematic = true;
+            projectileCollider.enabled = false;
             var relay = projectileObject.GetComponent<DroneHarpoonProjectile>();
 
             var ropeObject = new GameObject("HarpoonRopeVisual", typeof(LineRenderer), typeof(DroneHarpoonRopeVisual));
             ropeObject.transform.SetParent(equipment.transform, false);
             var line = ropeObject.GetComponent<LineRenderer>();
             line.useWorldSpace = true;
-            line.widthMultiplier = 0.012f;
-            line.material = new Material(Shader.Find("Sprites/Default"));
-            line.startColor = line.endColor = new Color(0.95f, 0.8f, 0.25f);
+            line.widthMultiplier = 0.003f;
+            line.sharedMaterial = mechanicalBlack;
+            line.startColor = line.endColor = new Color(0.12f, 0.14f, 0.16f);
+            line.enabled = false;
+
+            var reticleObject = new GameObject("HarpoonAimReticle", typeof(LineRenderer));
+            reticleObject.transform.SetParent(equipment.transform, false);
+            var reticle = reticleObject.GetComponent<LineRenderer>();
+            reticle.useWorldSpace = true;
+            reticle.widthMultiplier = 0.006f;
+            reticle.sharedMaterial = safetyOrange;
+            reticle.enabled = false;
 
             var module = equipment.GetComponent<DroneHarpoonModule>();
             module.Configure(config, launcherBody, launcherJoint, gimbal, muzzle, projectileBody,
-                projectileCollider, relay, ropeObject.GetComponent<DroneHarpoonRopeVisual>());
+                projectileCollider, relay, ropeObject.GetComponent<DroneHarpoonRopeVisual>(), reticle);
             return equipment;
         }
 
@@ -723,14 +777,15 @@ namespace Hotfix.Editor.DroneFlight
             }
         }
 
-        private static void CreateConeVisual(Transform parent, Vector3 localPosition)
+        private static void CreateConeVisual(Transform parent, Vector3 localPosition, Material material)
         {
             var visual = new GameObject("HarpoonTip", typeof(MeshFilter), typeof(MeshRenderer));
             visual.transform.SetParent(parent, false);
             visual.transform.localPosition = localPosition;
             visual.transform.localRotation = Quaternion.identity;
-            visual.transform.localScale = Vector3.one;
+            visual.transform.localScale = new Vector3(0.45f, 0.45f, 0.35f);
             visual.GetComponent<MeshFilter>().sharedMesh = GetOrCreateHarpoonCone();
+            visual.GetComponent<MeshRenderer>().sharedMaterial = material;
         }
 
         private static Mesh GetOrCreateHarpoonCone()
@@ -783,6 +838,7 @@ namespace Hotfix.Editor.DroneFlight
             SetReference(host, "flightController", controller);
             SetReference(host, "droneBody", body);
             SetReference(host, "aimCamera", camera);
+            SetReference(host, "cameraRig", cameraRig);
             SetReference(host, "moduleSource", module);
 
             var remote = root.GetComponent<DroneRemoteControllerExperience>();

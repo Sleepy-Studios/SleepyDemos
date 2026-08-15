@@ -3,23 +3,26 @@ using UnityEngine;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>Editor Game 视图中的飞行动力向量绘制；不属于 UI Prefab。</summary>
+    /// <summary>以无物理组件的世界空间箭头显示飞行动力数据，Game 与 Scene 视图共用。</summary>
     public sealed class DroneFlightDebugDrawRenderer : MonoBehaviour
     {
         private const int RotorCount = 4;
+        private const int VectorCount = 9;
         private const float VisualSmoothingSharpness = 18f;
-
-        private DroneFlightController flightController;
-        private DroneCameraRig cameraRig;
+        private static readonly string[] RotorNames = { "左前 (FL)", "右前 (FR)", "左后 (RL)", "右后 (RR)" };
         private readonly Vector3[] rotorOrigins = new Vector3[RotorCount];
         private readonly DroneDebugVectorSmoother[] rotorForces = new DroneDebugVectorSmoother[RotorCount];
+        private readonly WorldVectorVisual[] visuals = new WorldVectorVisual[VectorCount];
+        private DroneFlightController flightController;
+        private DroneCameraRig cameraRig;
         private DroneDebugVectorSmoother totalThrust;
         private DroneDebugVectorSmoother gravity;
         private DroneDebugVectorSmoother actualVelocity;
         private DroneDebugVectorSmoother desiredVelocity;
         private DroneDebugVectorSmoother desiredAcceleration;
+        private Material lineMaterial;
+        private Transform visualRoot;
         private Vector3 bodyCenter;
-        private bool hasSnapshot;
 
         internal void Configure(DroneFlightSceneContext context)
         {
@@ -29,25 +32,36 @@ namespace Hotfix.DroneFlight
             enabled = false;
         }
 
-#if UNITY_EDITOR
         private void OnEnable()
         {
             ResetSnapshot();
+            EnsureVisuals();
+            SetVisualsActive(true);
         }
 
         private void OnDisable()
         {
             ResetSnapshot();
+            SetVisualsActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            if (visualRoot != null) Destroy(visualRoot.gameObject);
+            if (lineMaterial != null) Destroy(lineMaterial);
         }
 
         private void LateUpdate()
         {
             if (flightController == null || flightController.Body == null)
             {
+                SetVisualsActive(false);
                 ResetSnapshot();
                 return;
             }
 
+            EnsureVisuals();
+            SetVisualsActive(true);
             var deltaTime = Mathf.Max(0f, Time.unscaledDeltaTime);
             for (var index = 0; index < RotorCount; index++)
             {
@@ -64,116 +78,97 @@ namespace Hotfix.DroneFlight
             }
 
             var body = flightController.Body;
-            bodyCenter = DroneDebugVectorSmoother.Sanitize(
-                body.transform.TransformPoint(body.centerOfMass));
+            bodyCenter = DroneDebugVectorSmoother.Sanitize(body.transform.TransformPoint(body.centerOfMass));
             totalThrust.Step(flightController.CurrentTotalThrustVector, VisualSmoothingSharpness, deltaTime);
-            gravity.Step(
-                Physics.gravity * flightController.CurrentSupportedMassKilograms,
-                VisualSmoothingSharpness,
-                deltaTime);
+            gravity.Step(Physics.gravity * flightController.CurrentSupportedMassKilograms, VisualSmoothingSharpness, deltaTime);
             actualVelocity.Step(body.linearVelocity, VisualSmoothingSharpness, deltaTime);
-            desiredVelocity.Step(
-                flightController.LastDesiredWorldVelocity,
-                VisualSmoothingSharpness,
-                deltaTime);
-            desiredAcceleration.Step(
-                flightController.LastDesiredWorldAcceleration,
-                VisualSmoothingSharpness,
-                deltaTime);
-            hasSnapshot = true;
-        }
+            desiredVelocity.Step(flightController.LastDesiredWorldVelocity, VisualSmoothingSharpness, deltaTime);
+            desiredAcceleration.Step(flightController.LastDesiredWorldAcceleration, VisualSmoothingSharpness, deltaTime);
 
-        private void OnGUI()
-        {
-            if (Event.current.type != EventType.Repaint || !hasSnapshot)
-            {
-                return;
-            }
-
-            var outputCamera = cameraRig != null ? cameraRig.OutputCamera : Camera.main;
-            if (outputCamera == null)
-            {
-                return;
-            }
-
-            var names = new[] { "左前 (FL)", "右前 (FR)", "左后 (RL)", "右后 (RR)" };
+            var camera = cameraRig != null ? cameraRig.OutputCamera : Camera.main;
             for (var index = 0; index < RotorCount; index++)
             {
                 var thrust = rotorForces[index].Current;
-                DrawWorldVector(outputCamera, rotorOrigins[index], thrust * 0.08f, Color.cyan,
-                    $"{names[index]} {thrust.magnitude:F1} N");
+                visuals[index].Update(rotorOrigins[index], thrust * 0.08f, $"{RotorNames[index]} {thrust.magnitude:F1} N", camera);
             }
-
-            DrawWorldVector(outputCamera, bodyCenter, totalThrust.Current * 0.06f,
-                Color.yellow, $"总升力 {totalThrust.Current.magnitude:F1} N");
-            DrawWorldVector(outputCamera, bodyCenter, gravity.Current * 0.06f,
-                new Color(1f, 0.25f, 0.2f), "重力");
-            DrawWorldVector(outputCamera, bodyCenter, actualVelocity.Current * 0.35f,
-                Color.green, $"实际速度 {actualVelocity.Current.magnitude:F1} m/s");
-            DrawWorldVector(outputCamera, bodyCenter, desiredVelocity.Current * 0.35f,
-                new Color(0.2f, 0.65f, 1f), "目标速度");
-            DrawWorldVector(outputCamera, bodyCenter, desiredAcceleration.Current * 0.25f,
-                new Color(1f, 0.35f, 1f), "目标加速度");
-
-            GUI.Label(new Rect(12f, Screen.height - 90f, 760f, 72f),
-                "F2 动力矢量：青=单旋翼升力  黄=总升力  红=重力\n绿=实际速度  蓝=目标速度  紫=目标加速度");
+            visuals[4].Update(bodyCenter, totalThrust.Current * 0.06f, $"总升力 {totalThrust.Current.magnitude:F1} N", camera);
+            visuals[5].Update(bodyCenter, gravity.Current * 0.06f, $"重力 {gravity.Current.magnitude:F1} N", camera);
+            visuals[6].Update(bodyCenter, actualVelocity.Current * 0.35f, $"实际速度 {actualVelocity.Current.magnitude:F1} m/s", camera);
+            visuals[7].Update(bodyCenter, desiredVelocity.Current * 0.35f, $"目标速度 {desiredVelocity.Current.magnitude:F1} m/s", camera);
+            visuals[8].Update(bodyCenter, desiredAcceleration.Current * 0.25f, $"目标加速度 {desiredAcceleration.Current.magnitude:F1} m/s²", camera);
         }
 
-        private static void DrawWorldVector(Camera camera, Vector3 origin, Vector3 vector, Color color, string label)
+        private void EnsureVisuals()
         {
-            if (vector.sqrMagnitude < 0.000001f)
-            {
-                return;
-            }
-
-            var startWorld = camera.WorldToScreenPoint(origin);
-            var endWorld = camera.WorldToScreenPoint(origin + vector);
-            if (startWorld.z <= 0f || endWorld.z <= 0f)
-            {
-                return;
-            }
-
-            var start = new Vector2(startWorld.x, Screen.height - startWorld.y);
-            var end = new Vector2(endWorld.x, Screen.height - endWorld.y);
-            DrawLine(start, end, color, 3f);
-            var direction = (end - start).normalized;
-            var perpendicular = new Vector2(-direction.y, direction.x);
-            DrawLine(end, end - direction * 10f + perpendicular * 5f, color, 3f);
-            DrawLine(end, end - direction * 10f - perpendicular * 5f, color, 3f);
-            var style = new GUIStyle(GUI.skin.label) { fontSize = 11 };
-            style.normal.textColor = color;
-            GUI.Label(new Rect(end.x + 5f, end.y - 10f, 220f, 22f), label, style);
+            if (visualRoot != null) return;
+            var rootObject = new GameObject("F2WorldVectors");
+            visualRoot = rootObject.transform;
+            visualRoot.SetParent(transform, false);
+            lineMaterial = new Material(Shader.Find("Sprites/Default")) { name = "F2 World Vector Material" };
+            var colors = new[] { Color.cyan, Color.cyan, Color.cyan, Color.cyan, Color.yellow,
+                new Color(1f, 0.25f, 0.2f), Color.green, new Color(0.2f, 0.65f, 1f), new Color(1f, 0.35f, 1f) };
+            for (var index = 0; index < visuals.Length; index++)
+                visuals[index] = WorldVectorVisual.Create(visualRoot, $"Vector_{index + 1}", colors[index], lineMaterial);
         }
 
-        private static void DrawLine(Vector2 start, Vector2 end, Color color, float width)
+        private void SetVisualsActive(bool value)
         {
-            var delta = end - start;
-            if (delta.sqrMagnitude < 0.01f)
-            {
-                return;
-            }
-
-            var matrix = GUI.matrix;
-            var previous = GUI.color;
-            GUI.color = color;
-            GUIUtility.RotateAroundPivot(Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg, start);
-            GUI.DrawTexture(new Rect(start.x, start.y - width * 0.5f, delta.magnitude, width), Texture2D.whiteTexture);
-            GUI.matrix = matrix;
-            GUI.color = previous;
+            if (visualRoot != null && visualRoot.gameObject.activeSelf != value) visualRoot.gameObject.SetActive(value);
         }
-#endif
 
         private void ResetSnapshot()
         {
-            hasSnapshot = false;
             bodyCenter = Vector3.zero;
             Array.Clear(rotorOrigins, 0, rotorOrigins.Length);
             Array.Clear(rotorForces, 0, rotorForces.Length);
-            totalThrust.Reset();
-            gravity.Reset();
-            actualVelocity.Reset();
-            desiredVelocity.Reset();
-            desiredAcceleration.Reset();
+            totalThrust.Reset(); gravity.Reset(); actualVelocity.Reset(); desiredVelocity.Reset(); desiredAcceleration.Reset();
+        }
+
+        private sealed class WorldVectorVisual
+        {
+            private readonly GameObject root;
+            private readonly LineRenderer shaft;
+            private readonly LineRenderer leftHead;
+            private readonly LineRenderer rightHead;
+            private readonly TextMesh label;
+
+            private WorldVectorVisual(GameObject owner, LineRenderer line, LineRenderer left, LineRenderer right, TextMesh text)
+            { root = owner; shaft = line; leftHead = left; rightHead = right; label = text; }
+
+            internal static WorldVectorVisual Create(Transform parent, string name, Color color, Material material)
+            {
+                var owner = new GameObject(name); owner.transform.SetParent(parent, false);
+                var shaft = CreateLine(owner.transform, "Shaft", color, material);
+                var left = CreateLine(owner.transform, "ArrowHeadLeft", color, material);
+                var right = CreateLine(owner.transform, "ArrowHeadRight", color, material);
+                var labelObject = new GameObject("ValueLabel", typeof(TextMesh)); labelObject.transform.SetParent(owner.transform, false);
+                var text = labelObject.GetComponent<TextMesh>();
+                text.anchor = TextAnchor.MiddleLeft; text.alignment = TextAlignment.Left; text.characterSize = 0.035f; text.fontSize = 32; text.color = color;
+                return new WorldVectorVisual(owner, shaft, left, right, text);
+            }
+
+            internal void Update(Vector3 origin, Vector3 vector, string text, Camera camera)
+            {
+                var visible = vector.sqrMagnitude >= 0.000001f; root.SetActive(visible); if (!visible) return;
+                var end = origin + vector; shaft.SetPosition(0, origin); shaft.SetPosition(1, end);
+                var direction = vector.normalized;
+                var viewNormal = camera != null ? camera.transform.forward : Vector3.forward;
+                var side = Vector3.Cross(direction, viewNormal).normalized;
+                if (side.sqrMagnitude < 0.001f) side = Vector3.Cross(direction, Vector3.up).normalized;
+                var headLength = Mathf.Clamp(vector.magnitude * 0.22f, 0.025f, 0.10f);
+                leftHead.SetPosition(0, end); leftHead.SetPosition(1, end - direction * headLength + side * headLength * 0.45f);
+                rightHead.SetPosition(0, end); rightHead.SetPosition(1, end - direction * headLength - side * headLength * 0.45f);
+                label.text = text; label.transform.position = end + side * 0.025f;
+                if (camera != null) label.transform.rotation = Quaternion.LookRotation(label.transform.position - camera.transform.position, camera.transform.up);
+            }
+
+            private static LineRenderer CreateLine(Transform parent, string name, Color color, Material material)
+            {
+                var child = new GameObject(name, typeof(LineRenderer)); child.transform.SetParent(parent, false);
+                var line = child.GetComponent<LineRenderer>(); line.useWorldSpace = true; line.positionCount = 2;
+                line.widthMultiplier = 0.008f; line.sharedMaterial = material; line.startColor = line.endColor = color; line.numCapVertices = 2;
+                return line;
+            }
         }
     }
 
@@ -182,53 +177,17 @@ namespace Hotfix.DroneFlight
     {
         /// 当前可直接绘制的有限向量。
         internal Vector3 Current { get; private set; }
-
         /// 是否已经捕获过首帧目标。
         internal bool HasValue { get; private set; }
-
-        /// <summary>
-        /// 捕获并平滑目标；首帧直接采用目标，非有限目标立即归零。
-        /// </summary>
-        /// <param name="target">本渲染帧读取的物理目标向量。</param>
-        /// <param name="sharpness">指数平滑锐度；值越大跟随越快。</param>
-        /// <param name="deltaTime">当前非缩放渲染帧时长。</param>
-        /// <returns>本帧可用于绘制的有限向量。</returns>
         internal Vector3 Step(Vector3 target, float sharpness, float deltaTime)
         {
-            if (!IsFinite(target))
-            {
-                Current = Vector3.zero;
-                HasValue = true;
-                return Current;
-            }
-
-            if (!HasValue || !float.IsFinite(deltaTime) || deltaTime <= 0f)
-            {
-                Current = target;
-                HasValue = true;
-                return Current;
-            }
-
+            if (!IsFinite(target)) { Current = Vector3.zero; HasValue = true; return Current; }
+            if (!HasValue || !float.IsFinite(deltaTime) || deltaTime <= 0f) { Current = target; HasValue = true; return Current; }
             var blend = 1f - Mathf.Exp(-Mathf.Max(0f, sharpness) * deltaTime);
-            Current = Vector3.LerpUnclamped(Current, target, blend);
-            return Current;
+            Current = Vector3.LerpUnclamped(Current, target, blend); return Current;
         }
-
-        /// 清空平滑历史，使下一帧直接捕获目标。
-        internal void Reset()
-        {
-            Current = Vector3.zero;
-            HasValue = false;
-        }
-
-        /// <summary>
-        /// 把非有限向量转换为零，保证世界坐标投影安全。
-        /// </summary>
-        /// <param name="value">待检查的世界空间向量或坐标。</param>
-        /// <returns>有限原值或零向量。</returns>
+        internal void Reset() { Current = Vector3.zero; HasValue = false; }
         internal static Vector3 Sanitize(Vector3 value) => IsFinite(value) ? value : Vector3.zero;
-
-        private static bool IsFinite(Vector3 value) =>
-            float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
+        private static bool IsFinite(Vector3 value) => float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
     }
 }

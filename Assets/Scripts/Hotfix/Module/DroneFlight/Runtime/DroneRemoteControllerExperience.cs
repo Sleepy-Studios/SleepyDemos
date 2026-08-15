@@ -118,6 +118,7 @@ namespace Hotfix.DroneFlight
             }
             if (equipmentInput != null)
             {
+                equipmentInput.ResetTransientState();
                 equipmentInput.enabled = false;
             }
 

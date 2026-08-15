@@ -8,11 +8,10 @@ namespace Hotfix.DroneFlight
     {
         [SerializeField] private float hardwareMassKilograms = 0.05f;
         [SerializeField] private float projectileMassKilograms = 0.02f;
-        [SerializeField] private float muzzleSpeedMetersPerSecond = 18f;
+        [SerializeField] private float launchImpulseNewtonSeconds = 0.12f;
         [SerializeField] private float maximumFlightDistanceMeters = 30f;
-        [SerializeField] private float gimbalYawLimitDegrees = 55f;
-        [SerializeField] private float gimbalPitchUpLimitDegrees = 25f;
-        [SerializeField] private float gimbalPitchDownLimitDegrees = 60f;
+        [SerializeField] private float maximumAimRadiusMeters = 3f;
+        [SerializeField] private float maximumAimConeDegrees = 25f;
         [SerializeField] private float allowedAimErrorDegrees = 2.5f;
 
         [SerializeField] private float minimumRopeLengthMeters = 0.25f;
@@ -31,11 +30,10 @@ namespace Hotfix.DroneFlight
 
         internal float HardwareMassKilograms => hardwareMassKilograms;
         internal float ProjectileMassKilograms => projectileMassKilograms;
-        internal float MuzzleSpeedMetersPerSecond => muzzleSpeedMetersPerSecond;
+        internal float LaunchImpulseNewtonSeconds => launchImpulseNewtonSeconds;
         internal float MaximumFlightDistanceMeters => maximumFlightDistanceMeters;
-        internal float GimbalYawLimitDegrees => gimbalYawLimitDegrees;
-        internal float GimbalPitchUpLimitDegrees => gimbalPitchUpLimitDegrees;
-        internal float GimbalPitchDownLimitDegrees => gimbalPitchDownLimitDegrees;
+        internal float MaximumAimRadiusMeters => maximumAimRadiusMeters;
+        internal float MaximumAimConeDegrees => maximumAimConeDegrees;
         internal float AllowedAimErrorDegrees => allowedAimErrorDegrees;
         internal float MinimumRopeLengthMeters => minimumRopeLengthMeters;
         internal float MaximumRopeLengthMeters => maximumRopeLengthMeters;
@@ -68,12 +66,12 @@ namespace Hotfix.DroneFlight
                     "Harpoon hardware mass must be positive and projectile mass must be lower than total hardware mass.");
             }
 
-            if (!IsPositive(muzzleSpeedMetersPerSecond) || !IsPositive(maximumFlightDistanceMeters)
+            if (!IsPositive(launchImpulseNewtonSeconds) || !IsPositive(maximumFlightDistanceMeters)
                 || !IsPositive(minimumRopeLengthMeters) || maximumRopeLengthMeters <= minimumRopeLengthMeters)
             {
                 return DroneConfigValidationResult.Invalid(
-                    "渔叉速度、距离或绳长范围无效。",
-                    "Harpoon speed, flight distance, or rope-length range is invalid.");
+                    "渔叉发射冲量、距离或绳长范围无效。",
+                    "Harpoon launch impulse, flight distance, or rope-length range is invalid.");
             }
 
             if (!IsPositive(ropeSpringNewtonsPerMeter) || !IsPositive(ropeDamperNewtonSecondsPerMeter)
@@ -83,6 +81,15 @@ namespace Hotfix.DroneFlight
                 return DroneConfigValidationResult.Invalid(
                     "绳索弹簧、阻尼、张力或回收参数无效。",
                     "Rope spring, damping, tension, or recovery parameters are invalid.");
+            }
+
+            if (!IsPositive(maximumAimRadiusMeters)
+                || !float.IsFinite(maximumAimConeDegrees) || maximumAimConeDegrees <= 0f
+                || maximumAimConeDegrees > 60f)
+            {
+                return DroneConfigValidationResult.Invalid(
+                    "渔叉瞄准半径或向下圆锥角无效。",
+                    "Harpoon aim radius or downward cone angle is invalid.");
             }
 
             return DroneConfigValidationResult.Valid;

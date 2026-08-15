@@ -24,7 +24,7 @@ namespace Tests.Demo
             var controls = DroneHudFormatter.FormatControls();
 
             StringAssert.Contains("长按重新运行场景", controls);
-            StringAssert.Contains("J  抓斗收放", controls);
+            StringAssert.DoesNotContain("抓斗收放", controls);
             StringAssert.Contains("L  起落架收放", controls);
             StringAssert.Contains("H  四爪开合", controls);
             StringAssert.DoesNotContain("RT", controls);
@@ -52,6 +52,15 @@ namespace Tests.Demo
         {
             var saturation = CreateSnapshot(saturated: true);
             StringAssert.Contains("电机输出饱和", DroneHudFormatter.FormatWarning(saturation));
+        }
+
+        [Test]
+        public void HarpoonControls_ContainAimAndDedicatedLineBindings()
+        {
+            var controls = DroneHudFormatter.FormatControls(DroneEquipmentKind.Harpoon);
+
+            StringAssert.Contains("V  机腹瞄准", controls);
+            StringAssert.Contains("J / K  收线 / 放线", controls);
         }
 
         private static DroneHudSnapshot CreateSnapshot(bool saturated)

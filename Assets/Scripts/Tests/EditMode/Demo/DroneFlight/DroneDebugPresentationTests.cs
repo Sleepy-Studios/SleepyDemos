@@ -1,5 +1,6 @@
 using Hotfix.DroneFlight;
 using NUnit.Framework;
+using System.Reflection;
 using UnityEngine;
 
 namespace Tests.Demo
@@ -73,6 +74,34 @@ namespace Tests.Demo
 
             Assert.That(result, Is.EqualTo(Vector3.zero));
             Assert.That(smoother.Current, Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
+        public void Renderer_UsesWorldObjectsWithoutGuiOrPhysicsComponents()
+        {
+            var owner = new GameObject("DebugRendererTest");
+            try
+            {
+                var renderer = owner.AddComponent<DroneFlightDebugDrawRenderer>();
+                typeof(DroneFlightDebugDrawRenderer).GetMethod(
+                    "EnsureVisuals", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(renderer, null);
+                Assert.That(typeof(DroneFlightDebugDrawRenderer).GetMethod(
+                    "OnGUI", BindingFlags.Instance | BindingFlags.NonPublic), Is.Null);
+                Assert.That(owner.GetComponentsInChildren<LineRenderer>(true).Length, Is.EqualTo(27));
+                Assert.That(owner.GetComponentsInChildren<TextMesh>(true).Length, Is.EqualTo(9));
+                Assert.That(owner.GetComponentInChildren<Rigidbody>(true), Is.Null);
+                Assert.That(owner.GetComponentInChildren<Collider>(true), Is.Null);
+
+                renderer.enabled = false;
+                typeof(DroneFlightDebugDrawRenderer).GetMethod(
+                    "SetVisualsActive", BindingFlags.Instance | BindingFlags.NonPublic)?.Invoke(
+                    renderer, new object[] { false });
+                Assert.That(owner.transform.Find("F2WorldVectors").gameObject.activeSelf, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(owner);
+            }
         }
 
         private static DroneDebugVectorSmoother CreateInitializedSmoother()

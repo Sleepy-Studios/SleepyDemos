@@ -98,8 +98,16 @@ namespace Hotfix.DroneFlight
         void ConfigureHost(Rigidbody droneBody, Camera aimCamera, float maximumPayloadKilograms);
         void PrimaryAction();
         void SetLineInput(float input);
-        void ToggleDeployment();
         void SynchronizeRuntimeConfig();
         void ReleaseAndCleanup();
+    }
+
+    /// <summary>仅由需要专用相机瞄准的装备实现。</summary>
+    internal interface IDroneAimingEquipment
+    {
+        bool IsAimModeActive { get; }
+        void ConfigureAim(DroneCameraRig cameraRig);
+        void SetAimMode(bool active);
+        void SetAimViewportPosition(Vector2 viewportPosition);
     }
 }

@@ -49,22 +49,22 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
 2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView, DroneFlightVehicleSelectionData>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
 3. 选择后关闭 Pop，通过资源 Loader 直接实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，但不会在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
-4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配，关闭收纳爪/停靠弹体碰撞；它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步再次强制 `Waiting`、锁定和零初速度，最后才开放 F 输入并显示 HUD。
-5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制不属于 UI Prefab 的 Game View 动力矢量绘制。
+4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配；抓斗先放置底座与四爪、连接万向节和 HingeJoint，最后才开放重力。它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步再次强制 `Waiting`、锁定和零初速度，最后才开放 F 输入并显示 HUD。
+5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。
 6. 无人机处于 `Waiting`；按 F 进入第三人称 `Active`，但保持锁定。
 7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
 ## 配置边界
 
 - `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降、起落架、公共镜头/输入/重载参数。
-- `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存设备质量、短行程、关节限位与阻尼、四爪驱动、接触门禁、辅助约束、断裂和载荷平滑参数。
-- `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存设备/弹体质量、出膛速度、云台限位、命中规则、绳长、卷线、弹簧阻尼、张力和回收参数。
+- `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存设备质量、固定吊臂长度、万向节双轴摆角与阻尼、四爪驱动、捕获体积、FixedJoint 断裂和载荷平滑参数。
+- `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存设备/弹体质量、发射冲量、瞄准半径、向下圆锥角、命中规则、绳长、卷线、弹簧阻尼、张力和回收参数。
 - 三个配置各自创建运行时副本；Play Mode 修改源资产后只在安全物理步同步，不回写资产、不清零速度或飞控状态。
 - 三个自定义 Inspector 均支持中文/English；装备 Inspector 提供普通/高级页，偏好只写本机 `EditorPrefs`。
 
 ## 装备公共接口
 
-`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理，并直接实现飞控需要的 `IDroneExternalMassProvider`。`DroneEquipmentInput` 只把 H/J/K/L 输入路由到当前 Host 和起落架，不包含任何旧抓钩或卷扬分支：
+`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理，并直接实现飞控需要的 `IDroneExternalMassProvider`。可瞄准装备另实现 `IDroneAimingEquipment`，由 Host 保存/恢复 CameraRig。`DroneEquipmentInput` 只把 H/J/K/L/V 输入路由到当前 Host 和起落架，不包含任何旧抓钩或卷扬分支：
 
 - 纯无人机保留零质量 Host 作为飞控接口适配层，但不包含 `IDroneEquipmentModule`、装备刚体或装备 Collider，HUD 不显示 H/J/K 装备操作。
 - 设备质量和当前被装备实际承载的载荷质量进入悬停前馈。
@@ -74,28 +74,26 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 
 ## 四爪抓斗
 
-抓斗由一个紧凑底座 Rigidbody、四个按 90° 分布的爪 Rigidbody、四个 HingeJoint 和一个连接机腹的 ConfigurableJoint 组成。四爪总质量与底座质量之和始终等于配置设备总质量，默认 `0.05 kg`；物理根统一 `scale=1`。
+抓斗由一个紧凑底座 Rigidbody、与底座刚性连接的单根 `GrappleArm`、四个按 90° 分布的爪 Rigidbody、四个 HingeJoint 和一个连接机腹的 ConfigurableJoint 组成。吊臂没有独立 Rigidbody，Collider 归入底座复合碰撞；四爪总质量与底座质量之和始终等于配置设备总质量，默认 `0.05 kg`。
 
-- J 在约 `0.08 m` 收纳与 `0.26 m` 放下之间切换，物理锚点只在 FixedUpdate 推进。
-- 新机体四个脚板最低点约为局部 `-0.236 m`，出生定位额外保留 `0.01 m` 净空。抓斗收纳包围判定使用约 `0.12 m` 半径和 `0.12 m` 半高；设备质量仍为 `0.05 kg`，不进入额定载荷门禁。
-- 收纳时锁定角度并关闭爪外部碰撞；完全放下后开放默认 `35°` 摆角与 `±25°` 扭转，并由被动 Drive 衰减摆动。
-- 不使用 Transform 跟随、速度清零或 Joint Projection。带载或四爪未张开时拒绝收纳。
-- H 只在完全放下后驱动四个 HingeJoint 的限位弹簧开合。
-- 同一载荷需被一对非相邻爪稳定接触并位于包围区，才建立辅助 ConfigurableJoint。
-- 辅助约束两端使用同一个世界接触质心，角度自由、Projection 关闭；真实爪碰撞负责主要支撑。
-- 飞控承载质量由辅助约束的实际竖直拉力换算并平滑，载荷仍受地面支撑且拉力接近零时不会提前加入完整负荷。
+- 固定吊臂默认长 `0.08 m`；上端 Anchor 与 `BellyEquipmentMount` 重合。三条线性自由度和绕吊臂轴的扭转锁定，只开放默认 `35°` 的前后、左右被动摆动。
+- 新机体四个脚板最低点约为局部 `-0.236 m`，出生定位额外保留 `0.01 m` 净空。张开态四爪最低点高于脚底且有效口径不小于 `0.38 m`；捕获体积默认使用 `0.23 m` 水平半径和 `0.2 m` 半高。
+- 抓斗初始化完成后直接进入 `Ready`，没有 J 收放、伸缩行程或主动防摆；不使用 Transform 跟随、速度清零或 Joint Projection。
+- H 在张开和闭合之间切换；闭合时选择捕获体积内距中心最近且未超载的 `DronePayload`，不再依赖爪面接触计数。
+- 抓取成功后由 `GrappleBase` 临时创建 `FixedJoint` 连接载荷 Rigidbody；四个 HingeJoint 仍负责真实闭爪碰撞和抓娃娃机视觉。
+- 飞控承载质量由 FixedJoint 的实际竖直拉力换算并平滑，载荷仍受地面支撑且拉力接近零时不会提前加入完整负荷。
 - 张开爪只解除约束，不施加冲量、不改速度、不清空 RPM。
 
 ## 渔叉
 
-渔叉机使用屏幕中心射线瞄准；发射器云台在配置偏航/俯仰限位内对准目标。超限时准星不可发射。
+渔叉发射器、停靠弹体和初始发射轴固定为机体局部 `-Y`。V 保存当前视角并切换到现有 `BellyCameraMount` 的机腹向下视角；鼠标移动世界空间准星，目标受默认 `3 m` 水平半径和 `25°` 向下圆锥限制。只有瞄准模式内的有效目标可按 H 发射，退出 V 或遥控会恢复原视角。
 
 - H 发射唯一可回收弹体；飞行、命中或悬挂状态再次按 H 会解除并自动回收。
-- 弹体为独立 Rigidbody，使用真实重力、Collider 与连续碰撞检测。
-- 发射时按 `弹体质量 × 出膛速度` 给弹体冲量，并在同一物理步从发射口向无人机施加等量反向冲量；不增加人为向下力。
+- 弹体保存态与 `Stowed` 运行态均关闭重力、设为 Kinematic、关闭 Collider，并持续跟随 Muzzle；只有发射时才开放真实重力、Collider 与连续碰撞检测。
+- 发射时直接读取配置冲量，默认 `0.12 N·s`，并在同一物理步从发射口向无人机施加等量反向冲量；不增加人为向下力。
 - 动态目标用 FixedJoint 连接目标 Rigidbody；静态目标连接世界。锚点在接触点重合，Projection 关闭。
 - 绳索为无质量、只受拉的弹簧阻尼约束：松弛不施力，超出目标绳长才向两端施加等量反向力。
-- J 缩短、K 增加目标绳长，不瞬移弹体或目标。视觉绳使用无碰撞 Verlet/PBD 下垂表现。
+- J 缩短、K 增加目标绳长，不瞬移弹体或目标。深灰 `3 mm` 视觉绳使用无碰撞 Verlet/PBD 下垂表现，停靠时隐藏。
 - 未命中达到最大绳长后悬挂；解除后自动卷线，满足停靠位置和相对速度阈值后重新锁回发射器。
 
 ## 飞控与遥测
@@ -105,10 +103,10 @@ FBX 标准轴转换会在导入层保留坐标承载旋转，因此 RotorHub 的
 F3 面板保留未经视觉平滑的原始遥测数据，并按机型追加：
 
 - 纯无人机：明确显示无附加模块，装备质量和载荷均为零。
-- 抓斗：短行程、四爪接触、辅助约束拉力、真实/受支持载荷。
+- 抓斗：四爪开合、捕获候选数、FixedJoint 拉力、真实/受支持载荷。
 - 渔叉：瞄准有效性、弹体状态、目标绳长、张力与命中点。
 
-F2 单独控制 Game View 中的四旋翼升力、总升力、重力、目标/实际速度和目标加速度矢量。物理真值继续在 `FixedUpdate` 产生；`DroneFlightDebugDrawRenderer` 在 `LateUpdate` 读取插值后的机体 Transform，并对离散物理向量做帧率无关的显示平滑；`OnGUI` 只投影并绘制缓存，不参与物理计算。F2 的轻微显示延迟不得用于判断精确调参值，精确数值以 F3 面板为准。
+F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/实际速度和目标加速度箭头。`DroneFlightDebugDrawRenderer` 在 `LateUpdate` 读取物理真值并更新 LineRenderer、箭头和 3D 标签；这些对象没有 Rigidbody/Collider，关闭 F2 或销毁机体时统一隐藏/清理。显示平滑不得用于判断精确调参值，精确数值以 F3 面板为准。
 
 ## 边界规则
 

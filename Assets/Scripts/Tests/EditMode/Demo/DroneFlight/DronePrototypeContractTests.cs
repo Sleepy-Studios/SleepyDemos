@@ -122,6 +122,32 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void BasePrefab_RetractedLandingGearRaisesEveryFoot()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
+            var instance = Object.Instantiate(prefab);
+            try
+            {
+                var gear = instance.GetComponent<DroneLandingGearController>();
+                var serialized = new SerializedObject(gear);
+                var offsets = serialized.FindProperty("retractedEulerOffsets");
+                for (var index = 0; index < DroneFlightModelContract.LandingGearNames.Count; index++)
+                {
+                    var leg = FindDeep(instance.transform, DroneFlightModelContract.LandingGearNames[index]);
+                    var foot = leg.Find("Foot");
+                    var deployedY = instance.transform.InverseTransformPoint(foot.position).y;
+                    leg.localRotation *= Quaternion.Euler(offsets.GetArrayElementAtIndex(index).vector3Value);
+                    var retractedY = instance.transform.InverseTransformPoint(foot.position).y;
+                    Assert.That(retractedY, Is.GreaterThan(deployedY), leg.name);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(instance);
+            }
+        }
+
+        [Test]
         public void GrappleVariant_HasOneBaseFourClawsFourHingesAndOneSuspensionJoint()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GrapplePath);
@@ -129,32 +155,54 @@ namespace Tests.Demo
             Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Has.Length.EqualTo(1));
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
             Assert.That(prefab.GetComponentsInChildren<HingeJoint>(true), Has.Length.EqualTo(4));
-            Assert.That(prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true), Has.Length.EqualTo(4));
-            var clawBodies = prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true)
-                .Select(sensor => sensor.GetComponent<Rigidbody>())
+            var grappleModule = prefab.GetComponentInChildren<DroneGrappleModule>(true);
+            var claws = Enumerable.Range(1, 4)
+                .Select(index => grappleModule.transform.Find($"Claw_{index}"))
                 .ToArray();
+            Assert.That(claws.All(claw => claw != null), Is.True);
+            var clawBodies = claws.Select(claw => claw.GetComponent<Rigidbody>()).ToArray();
             Assert.That(clawBodies.All(body => body != null && body.transform.localScale == Vector3.one), Is.True);
             Assert.That(prefab.GetComponentsInChildren<ConfigurableJoint>(true)
                 .Count(joint => joint.gameObject.name == "GrappleBase"), Is.EqualTo(1));
-            var grappleModule = prefab.GetComponentInChildren<DroneGrappleModule>(true);
             var grappleBody = grappleModule.transform.Find("GrappleBase")?.GetComponent<Rigidbody>();
             Assert.That(grappleBody, Is.Not.Null);
+            Assert.That(grappleModule.transform.Find("GrappleBase/GrappleArm"), Is.Not.Null);
+            Assert.That(grappleModule.transform.Find("GrappleBase/GrappleArm").GetComponent<Rigidbody>(), Is.Null);
+            Assert.That(grappleModule.transform.Find("UniversalJointUpperSeat"), Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<Rigidbody>(true).Length, Is.EqualTo(6));
+            var suspension = grappleBody.GetComponent<ConfigurableJoint>();
+            Assert.That(suspension.xMotion, Is.EqualTo(ConfigurableJointMotion.Locked));
+            Assert.That(suspension.yMotion, Is.EqualTo(ConfigurableJointMotion.Locked));
+            Assert.That(suspension.zMotion, Is.EqualTo(ConfigurableJointMotion.Locked));
+            Assert.That(suspension.angularXMotion, Is.EqualTo(ConfigurableJointMotion.Locked));
+            Assert.That(suspension.angularYMotion, Is.EqualTo(ConfigurableJointMotion.Limited));
+            Assert.That(suspension.angularZMotion, Is.EqualTo(ConfigurableJointMotion.Limited));
+            Assert.That(suspension.anchor.y, Is.EqualTo(0.08f).Within(0.0001f));
+            var captureVolume = grappleBody.transform.Find("GrappleCaptureVolume")?.GetComponent<BoxCollider>();
+            Assert.That(captureVolume, Is.Not.Null);
+            Assert.That(captureVolume.isTrigger, Is.True);
+            Assert.That(captureVolume.GetComponent<Rigidbody>(), Is.Null);
+            Assert.That(captureVolume.size.x, Is.GreaterThanOrEqualTo(0.46f));
             Assert.That(grappleBody.mass + clawBodies.Sum(body => body.mass),
                 Is.EqualTo(0.05f).Within(0.0001f));
             Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
             var grappleBase = grappleModule.transform.Find("GrappleBase");
-            foreach (var sensor in prefab.GetComponentsInChildren<DroneGrappleContactSensor>(true))
+            foreach (var claw in claws)
             {
                 var distance = Vector2.Distance(
-                    new Vector2(sensor.transform.position.x, sensor.transform.position.z),
+                    new Vector2(claw.position.x, claw.position.z),
                     new Vector2(grappleBase.position.x, grappleBase.position.z));
-                Assert.That(distance, Is.EqualTo(0.065f).Within(0.002f), sensor.name);
-                var hinge = sensor.GetComponent<HingeJoint>();
+                Assert.That(distance, Is.EqualTo(0.065f).Within(0.002f), claw.name);
+                var hinge = claw.GetComponent<HingeJoint>();
                 var clawAnchor = hinge.transform.TransformPoint(hinge.anchor);
                 var baseAnchor = hinge.connectedBody.transform.TransformPoint(hinge.connectedAnchor);
-                Assert.That(Vector3.Distance(clawAnchor, baseAnchor), Is.LessThan(0.0001f), sensor.name);
-                Assert.That(sensor.transform.Find("Upper/Visual"), Is.Not.Null);
-                Assert.That(sensor.transform.Find("Tip/Visual"), Is.Not.Null);
+                Assert.That(Vector3.Distance(clawAnchor, baseAnchor), Is.LessThan(0.0001f), claw.name);
+                Assert.That(claw.transform.Find("Upper/Visual"), Is.Not.Null);
+                Assert.That(claw.transform.Find("Tip/Visual"), Is.Not.Null);
+                var tipRadius = Vector2.Distance(
+                    new Vector2(claw.transform.Find("Tip").position.x, claw.transform.Find("Tip").position.z),
+                    new Vector2(grappleBase.position.x, grappleBase.position.z));
+                Assert.That(tipRadius * 2f, Is.GreaterThanOrEqualTo(0.38f), claw.name);
             }
         }
 
@@ -213,16 +261,30 @@ namespace Tests.Demo
             var muzzle = harpoonModule.transform.Find("HarpoonLauncher/HarpoonGimbal/Muzzle");
             var tube = harpoonModule.transform.Find("HarpoonLauncher/HarpoonGimbal/LaunchTube");
             var projectile = prefab.GetComponentInChildren<DroneHarpoonProjectile>(true);
+            var projectileBody = projectile.GetComponent<Rigidbody>();
             var capsule = projectile.GetComponent<CapsuleCollider>();
             Assert.That(muzzle, Is.Not.Null);
             Assert.That(tube, Is.Not.Null);
             Assert.That(capsule.direction, Is.EqualTo(2));
             Assert.That(Vector3.Angle(tube.up, muzzle.forward), Is.LessThan(0.1f));
             Assert.That(Vector3.Angle(projectile.transform.forward, muzzle.forward), Is.LessThan(0.1f));
+            Assert.That(Vector3.Angle(prefab.transform.InverseTransformDirection(muzzle.forward), Vector3.down),
+                Is.LessThan(0.1f));
             Assert.That(projectile.transform.Find("Shaft"), Is.Not.Null);
             Assert.That(projectile.transform.Find("HarpoonTip"), Is.Not.Null);
             Assert.That(projectile.transform.Cast<Transform>().Count(child => child.name.StartsWith("TailFin_")),
                 Is.EqualTo(4));
+            Assert.That(harpoonModule.transform.Find("HarpoonAimReticle")?.GetComponent<LineRenderer>(), Is.Not.Null);
+            Assert.That(prefab.GetComponentsInChildren<Renderer>(true)
+                .All(renderer => renderer.sharedMaterials.All(material => material != null)), Is.True);
+            Assert.That(harpoonModule.transform.Find("HarpoonRopeVisual").GetComponent<LineRenderer>().enabled,
+                Is.False);
+            Assert.That(projectileBody.useGravity, Is.False);
+            Assert.That(projectileBody.isKinematic, Is.True);
+            Assert.That(capsule.enabled, Is.False);
+            var rope = harpoonModule.transform.Find("HarpoonRopeVisual").GetComponent<LineRenderer>();
+            Assert.That(rope.widthMultiplier, Is.EqualTo(0.003f).Within(0.0001f));
+            Assert.That(rope.sharedMaterial, Is.Not.Null);
         }
 
         [TestCase(BasePath)]

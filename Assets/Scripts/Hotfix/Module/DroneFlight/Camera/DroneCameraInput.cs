@@ -28,8 +28,11 @@ namespace Hotfix.DroneFlight
 
             if (keyboard.cKey.wasPressedThisFrame)
             {
-                var count = System.Enum.GetValues(typeof(DroneCameraMode)).Length;
-                cameraRig.SetMode((DroneCameraMode)(((int)cameraRig.Mode + 1) % count));
+                if (cameraRig.Mode != DroneCameraMode.HarpoonAim)
+                {
+                    var publicModeCount = (int)DroneCameraMode.HarpoonAim;
+                    cameraRig.SetMode((DroneCameraMode)(((int)cameraRig.Mode + 1) % publicModeCount));
+                }
             }
 
             if (keyboard.equalsKey.isPressed)

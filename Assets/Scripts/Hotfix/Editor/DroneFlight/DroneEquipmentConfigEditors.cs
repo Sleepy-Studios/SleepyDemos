@@ -89,20 +89,17 @@ namespace Hotfix.Editor.DroneFlight
     {
         private static readonly string[] Basic =
         {
-            "hardwareMassKilograms", "stowedDistanceMeters", "deployedDistanceMeters",
-            "travelSpeedMetersPerSecond", "openAngleDegrees", "closedAngleDegrees",
+            "hardwareMassKilograms", "armLengthMeters", "swingLimitDegrees",
+            "openAngleDegrees", "closedAngleDegrees",
             "clawSpring", "clawDamper", "breakForceNewtons", "breakTorqueNewtonMeters"
         };
 
         private static readonly string[] All =
         {
-            "hardwareMassKilograms", "stowedDistanceMeters", "deployedDistanceMeters",
-            "travelSpeedMetersPerSecond", "dockPositionToleranceMeters",
-            "dockSpeedToleranceMetersPerSecond", "twistLimitDegrees", "swingLimitDegrees",
+            "hardwareMassKilograms", "armLengthMeters", "swingLimitDegrees",
             "dampingRatio", "maximumDampingTorqueNewtonMeters", "openAngleDegrees",
             "closedAngleDegrees", "clawSpring", "clawDamper",
-            "stableContactSteps", "enclosureRadiusMeters", "enclosureHalfHeightMeters",
-            "linearFreedomMeters", "constraintSpring", "constraintDamper", "breakForceNewtons",
+            "enclosureRadiusMeters", "enclosureHalfHeightMeters", "breakForceNewtons",
             "breakTorqueNewtonMeters", "supportedLoadSmoothingSeconds"
         };
 
@@ -110,27 +107,18 @@ namespace Hotfix.Editor.DroneFlight
             new Dictionary<string, DroneInspectorLabel>
             {
                 ["hardwareMassKilograms"] = L("设备总质量 (kg)", "Hardware Mass (kg)", "抓斗底座与四爪的总质量。", "Combined mass of the grapple base and four claws."),
-                ["stowedDistanceMeters"] = L("收纳距离 (m)", "Stowed Distance (m)", "抓斗收纳时距腹部挂点的距离。", "Distance from the belly mount while stowed."),
-                ["deployedDistanceMeters"] = L("放下距离 (m)", "Deployed Distance (m)", "抓斗完全放下时距腹部挂点的距离。", "Distance from the belly mount when fully deployed."),
-                ["travelSpeedMetersPerSecond"] = L("短行程速度 (m/s)", "Travel Speed (m/s)", "收纳与放下的物理推进速度。", "Physical travel speed between stowed and deployed positions."),
-                ["dockPositionToleranceMeters"] = L("停靠位置容差 (m)", "Dock Position Tolerance (m)", "判定短行程到位的位置误差。", "Position tolerance used to complete docking."),
-                ["dockSpeedToleranceMetersPerSecond"] = L("停靠速度容差 (m/s)", "Dock Speed Tolerance (m/s)", "判定短行程稳定到位的相对速度。", "Relative-speed tolerance used to complete docking."),
-                ["twistLimitDegrees"] = L("扭转限位 (°)", "Twist Limit (°)", "放下后绕吊索轴允许的扭转角。", "Allowed twist around the suspension axis while deployed."),
-                ["swingLimitDegrees"] = L("摆动限位 (°)", "Swing Limit (°)", "放下后允许的被动摆角。", "Allowed passive swing angle while deployed."),
+                ["armLengthMeters"] = L("固定吊臂长度 (m)", "Fixed Arm Length (m)", "与抓斗底座刚性连接的单根吊臂长度。", "Length of the single arm rigidly attached to the grapple base."),
+                ["swingLimitDegrees"] = L("万向节双轴摆角 (°)", "Universal Joint Swing (°)", "前后、左右两个被动摆动方向的共同限位。", "Shared limit for passive fore-aft and left-right swing."),
                 ["dampingRatio"] = L("悬挂阻尼比", "Suspension Damping Ratio", "悬挂 Drive 的无量纲阻尼比例。", "Dimensionless damping ratio of the suspension drive."),
                 ["maximumDampingTorqueNewtonMeters"] = L("最大阻尼扭矩 (N·m)", "Maximum Damping Torque (N·m)", "被动摆动衰减允许的最大扭矩。", "Maximum torque used for passive swing damping."),
                 ["openAngleDegrees"] = L("张开角度 (°)", "Open Angle (°)", "四爪张开时的 Hinge 目标角。", "Hinge target angle while the claws are open."),
                 ["closedAngleDegrees"] = L("闭合角度 (°)", "Closed Angle (°)", "四爪闭合时的 Hinge 目标角。", "Hinge target angle while the claws are closed."),
                 ["clawSpring"] = L("爪驱动弹簧", "Claw Spring", "四个爪 HingeJoint 的驱动弹簧。", "Drive spring applied to all four claw hinges."),
                 ["clawDamper"] = L("爪驱动阻尼", "Claw Damper", "四个爪 HingeJoint 的驱动阻尼。", "Drive damper applied to all four claw hinges."),
-                ["stableContactSteps"] = L("稳定接触物理步", "Stable Contact Steps", "建立辅助约束前要求连续满足接触门禁的 FixedUpdate 次数。", "Consecutive FixedUpdate contacts required before assisted attachment."),
-                ["enclosureRadiusMeters"] = L("包围半径 (m)", "Enclosure Radius (m)", "载荷质心必须进入的水平包围半径。", "Horizontal enclosure radius required for payload attachment."),
-                ["enclosureHalfHeightMeters"] = L("包围半高 (m)", "Enclosure Half Height (m)", "载荷质心必须进入的竖直半范围。", "Vertical half range required for payload attachment."),
-                ["linearFreedomMeters"] = L("辅助约束线性自由度 (m)", "Constraint Linear Freedom (m)", "辅助抓取约束允许的微小线性活动。", "Small linear freedom allowed by the assisted grip constraint."),
-                ["constraintSpring"] = L("辅助约束弹簧", "Constraint Spring", "辅助抓取约束的线性弹簧。", "Linear spring of the assisted grip constraint."),
-                ["constraintDamper"] = L("辅助约束阻尼", "Constraint Damper", "辅助抓取约束的线性阻尼。", "Linear damper of the assisted grip constraint."),
-                ["breakForceNewtons"] = L("断裂力 (N)", "Break Force (N)", "辅助抓取约束的断裂力。", "Break force of the assisted grip constraint."),
-                ["breakTorqueNewtonMeters"] = L("断裂扭矩 (N·m)", "Break Torque (N·m)", "辅助抓取约束的断裂扭矩。", "Break torque of the assisted grip constraint."),
+                ["enclosureRadiusMeters"] = L("捕获水平半径 (m)", "Capture Radius (m)", "闭爪时允许吸附 DronePayload 质心的水平半径。", "Horizontal radius that accepts a DronePayload center while closing."),
+                ["enclosureHalfHeightMeters"] = L("捕获半高 (m)", "Capture Half Height (m)", "底座下方捕获体积的半高；总体积从底座向下延伸两倍此值。", "Half-height of the capture volume extending downward from the base."),
+                ["breakForceNewtons"] = L("断裂力 (N)", "Break Force (N)", "刚性抓取连接的断裂力。", "Break force of the rigid grip connection."),
+                ["breakTorqueNewtonMeters"] = L("断裂扭矩 (N·m)", "Break Torque (N·m)", "刚性抓取连接的断裂扭矩。", "Break torque of the rigid grip connection."),
                 ["supportedLoadSmoothingSeconds"] = L("承载质量平滑时间 (s)", "Supported Load Smoothing (s)", "真实竖直拉力换算为飞控承载质量的平滑时间。", "Smoothing time from vertical constraint force to supported flight mass.")
             };
 
@@ -149,18 +137,16 @@ namespace Hotfix.Editor.DroneFlight
         {
             return fieldName switch
             {
-                "hardwareMassKilograms" or "stowedDistanceMeters" or "deployedDistanceMeters"
-                    or "travelSpeedMetersPerSecond" or "dockPositionToleranceMeters"
-                    or "dockSpeedToleranceMetersPerSecond" =>
-                    L("质量与行程", "Mass And Travel", "抓斗质量、收纳与放下行程。", "Grapple mass, stow and deploy travel."),
-                "twistLimitDegrees" or "swingLimitDegrees" or "dampingRatio"
+                "hardwareMassKilograms" or "armLengthMeters" =>
+                    L("质量与吊臂", "Mass And Arm", "抓斗质量与固定吊臂长度。", "Grapple mass and fixed-arm length."),
+                "swingLimitDegrees" or "dampingRatio"
                     or "maximumDampingTorqueNewtonMeters" =>
-                    L("悬挂", "Suspension", "吊索摆动、扭转与阻尼。", "Suspension swing, twist and damping."),
+                    L("万向节", "Universal Joint", "双轴摆动、轴向锁定与被动阻尼。", "Dual-axis swing, axial lock and passive damping."),
                 "openAngleDegrees" or "closedAngleDegrees" or "clawSpring" or "clawDamper"
-                    or "stableContactSteps" or "enclosureRadiusMeters"
+                    or "enclosureRadiusMeters"
                     or "enclosureHalfHeightMeters" =>
-                    L("四爪机构", "Claws", "四爪驱动与接触门禁。", "Claw drive and contact gate."),
-                _ => L("辅助抓取", "Assisted Grip", "辅助约束和承载反馈。", "Assisted constraint and supported-load feedback.")
+                    L("四爪机构", "Claws", "四爪驱动与闭合捕获范围。", "Claw drive and closing capture volume."),
+                _ => L("刚性抓取", "Rigid Grip", "临时 FixedJoint 和承载反馈。", "Temporary FixedJoint and supported-load feedback.")
             };
         }
         private protected override DroneConfigValidationResult Validate() => ((DroneGrappleConfig)target).Validate();
@@ -174,17 +160,17 @@ namespace Hotfix.Editor.DroneFlight
     {
         private static readonly string[] Basic =
         {
-            "hardwareMassKilograms", "projectileMassKilograms", "muzzleSpeedMetersPerSecond",
-            "maximumFlightDistanceMeters", "gimbalYawLimitDegrees", "gimbalPitchUpLimitDegrees",
-            "gimbalPitchDownLimitDegrees", "minimumRopeLengthMeters", "maximumRopeLengthMeters",
+            "hardwareMassKilograms", "projectileMassKilograms", "launchImpulseNewtonSeconds",
+            "maximumFlightDistanceMeters", "maximumAimRadiusMeters", "maximumAimConeDegrees",
+            "minimumRopeLengthMeters", "maximumRopeLengthMeters",
             "reelSpeedMetersPerSecond", "ropeBreakForceNewtons", "automaticRecoverySpeedMetersPerSecond"
         };
 
         private static readonly string[] All =
         {
-            "hardwareMassKilograms", "projectileMassKilograms", "muzzleSpeedMetersPerSecond",
-            "maximumFlightDistanceMeters", "gimbalYawLimitDegrees", "gimbalPitchUpLimitDegrees",
-            "gimbalPitchDownLimitDegrees", "allowedAimErrorDegrees", "minimumRopeLengthMeters",
+            "hardwareMassKilograms", "projectileMassKilograms", "launchImpulseNewtonSeconds",
+            "maximumFlightDistanceMeters", "maximumAimRadiusMeters", "maximumAimConeDegrees",
+            "allowedAimErrorDegrees", "minimumRopeLengthMeters",
             "maximumRopeLengthMeters", "reelSpeedMetersPerSecond", "ropeSpringNewtonsPerMeter",
             "ropeDamperNewtonSecondsPerMeter", "maximumTensionNewtons", "ropeBreakForceNewtons",
             "automaticRecoverySpeedMetersPerSecond", "dockPositionToleranceMeters",
@@ -196,11 +182,10 @@ namespace Hotfix.Editor.DroneFlight
             {
                 ["hardwareMassKilograms"] = L("设备总质量 (kg)", "Hardware Mass (kg)", "发射器与停靠弹体的总质量。", "Combined mass of the launcher and docked projectile."),
                 ["projectileMassKilograms"] = L("弹体质量 (kg)", "Projectile Mass (kg)", "参与真实冲量和飞行的弹体质量。", "Projectile mass used by launch impulse and flight physics."),
-                ["muzzleSpeedMetersPerSecond"] = L("出膛速度 (m/s)", "Muzzle Speed (m/s)", "弹体离开发射口的初速度。", "Projectile velocity when leaving the muzzle."),
+                ["launchImpulseNewtonSeconds"] = L("弹体发射冲量 (N·s)", "Launch Impulse (N·s)", "同时施加给弹体与机体的等量反向冲量；默认 0.12 N·s。", "Equal and opposite impulse applied to projectile and drone; default 0.12 N·s."),
                 ["maximumFlightDistanceMeters"] = L("最大飞行距离 (m)", "Maximum Flight Distance (m)", "未命中时进入悬挂状态的最大距离。", "Maximum distance before an unhit projectile becomes suspended."),
-                ["gimbalYawLimitDegrees"] = L("云台偏航限位 (°)", "Gimbal Yaw Limit (°)", "发射器左右瞄准范围。", "Left/right aiming range of the launcher."),
-                ["gimbalPitchUpLimitDegrees"] = L("云台上仰限位 (°)", "Gimbal Pitch-Up Limit (°)", "发射器最大上仰角。", "Maximum upward launcher pitch."),
-                ["gimbalPitchDownLimitDegrees"] = L("云台下俯限位 (°)", "Gimbal Pitch-Down Limit (°)", "发射器最大下俯角。", "Maximum downward launcher pitch."),
+                ["maximumAimRadiusMeters"] = L("瞄准水平半径 (m)", "Aim Radius (m)", "准星相对机体正下方允许的最大水平距离。", "Maximum horizontal cursor distance from directly below the drone."),
+                ["maximumAimConeDegrees"] = L("向下圆锥半角 (°)", "Downward Cone Half-Angle (°)", "发射方向相对机体局部 -Y 的最大夹角。", "Maximum angle from the drone local -Y launch axis."),
                 ["allowedAimErrorDegrees"] = L("允许瞄准误差 (°)", "Allowed Aim Error (°)", "发射方向与屏幕射线的最大夹角。", "Maximum angle between launcher direction and screen-center ray."),
                 ["minimumRopeLengthMeters"] = L("最短目标绳长 (m)", "Minimum Rope Length (m)", "卷线操作允许的最短目标长度。", "Minimum target length allowed by reel input."),
                 ["maximumRopeLengthMeters"] = L("最长目标绳长 (m)", "Maximum Rope Length (m)", "放线操作允许的最长目标长度。", "Maximum target length allowed by reel input."),
@@ -231,9 +216,9 @@ namespace Hotfix.Editor.DroneFlight
         {
             return fieldName switch
             {
-                "hardwareMassKilograms" or "projectileMassKilograms" or "muzzleSpeedMetersPerSecond"
-                    or "maximumFlightDistanceMeters" or "gimbalYawLimitDegrees"
-                    or "gimbalPitchUpLimitDegrees" or "gimbalPitchDownLimitDegrees"
+                "hardwareMassKilograms" or "projectileMassKilograms" or "launchImpulseNewtonSeconds"
+                    or "maximumFlightDistanceMeters" or "maximumAimRadiusMeters"
+                    or "maximumAimConeDegrees"
                     or "allowedAimErrorDegrees" =>
                     L("发射器", "Launcher", "发射器、弹体和云台瞄准。", "Launcher, projectile and gimbal aiming."),
                 "hittableLayers" or "ignoredLayers" =>

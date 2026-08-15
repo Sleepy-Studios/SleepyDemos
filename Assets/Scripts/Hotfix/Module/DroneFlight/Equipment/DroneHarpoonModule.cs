@@ -1,9 +1,10 @@
+using System;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
 {
     /// <summary>单发可回收渔叉、真实后坐、刚性命中与只受拉柔性绳索。</summary>
-    public sealed class DroneHarpoonModule : MonoBehaviour, IDroneEquipmentModule
+    public sealed class DroneHarpoonModule : MonoBehaviour, IDroneEquipmentModule, IDroneAimingEquipment
     {
         [SerializeField] private DroneHarpoonConfig configSource;
         [SerializeField] private Rigidbody launcherBody;
@@ -14,11 +15,12 @@ namespace Hotfix.DroneFlight
         [SerializeField] private Collider projectileCollider;
         [SerializeField] private DroneHarpoonProjectile projectile;
         [SerializeField] private DroneHarpoonRopeVisual ropeVisual;
+        [SerializeField] private LineRenderer aimReticle;
 
         private DroneHarpoonConfig runtimeConfig;
         private Rigidbody droneBody;
         private Camera aimCamera;
-        private FixedJoint dockJoint;
+        private DroneCameraRig cameraRig;
         private FixedJoint hitJoint;
         private Rigidbody hitBody;
         private Collider hitCollider;
@@ -30,6 +32,10 @@ namespace Hotfix.DroneFlight
         private bool aimValid;
         private Vector3 aimDirection;
         private Vector3 hitPoint;
+        private Vector2 aimViewportPosition = new(0.5f, 0.5f);
+
+        bool IDroneAimingEquipment.IsAimModeActive => cameraRig != null
+                                                     && cameraRig.Mode == DroneCameraMode.HarpoonAim;
 
         public DroneEquipmentKind Kind => DroneEquipmentKind.Harpoon;
         public DroneEquipmentState State { get; private set; } = DroneEquipmentState.Stowed;
@@ -57,6 +63,7 @@ namespace Hotfix.DroneFlight
             projectile?.Configure(this);
             targetRopeLength = runtimeConfig != null ? runtimeConfig.MinimumRopeLengthMeters : 0.25f;
             ApplyMassDistribution();
+            DockProjectileImmediate();
         }
 
         private void FixedUpdate()
@@ -68,6 +75,10 @@ namespace Hotfix.DroneFlight
             }
 
             UpdateAim();
+            if (State == DroneEquipmentState.Stowed)
+            {
+                MaintainDockedPose();
+            }
             StepRopeLength(Time.fixedDeltaTime);
             StepRopePhysics(Time.fixedDeltaTime);
             StepRecovery();
@@ -109,8 +120,39 @@ namespace Hotfix.DroneFlight
             }
         }
 
-        public void ToggleDeployment()
+        void IDroneAimingEquipment.ConfigureAim(DroneCameraRig rig)
         {
+            cameraRig = rig;
+        }
+
+        void IDroneAimingEquipment.SetAimMode(bool active)
+        {
+            if (cameraRig == null || runtimeConfig == null)
+            {
+                return;
+            }
+
+            if (active)
+            {
+                cameraRig.EnterHarpoonAim();
+                SetHint("机腹瞄准已开启，移动鼠标后按 H 发射");
+            }
+            else
+            {
+                cameraRig.ExitHarpoonAim();
+                aimValid = false;
+                if (aimReticle != null)
+                {
+                    aimReticle.enabled = false;
+                }
+            }
+        }
+
+        void IDroneAimingEquipment.SetAimViewportPosition(Vector2 viewportPosition)
+        {
+            aimViewportPosition = new Vector2(
+                Mathf.Clamp01(viewportPosition.x),
+                Mathf.Clamp01(viewportPosition.y));
         }
 
         public void SetLineInput(float input)
@@ -157,12 +199,16 @@ namespace Hotfix.DroneFlight
             }
 
             DestroyJoint(ref hitJoint);
-            DestroyJoint(ref dockJoint);
             hitBody = null;
             hitCollider = null;
             ropeTension = 0f;
             supportedPayloadMass = 0f;
             ropeVisual?.SetVisible(false);
+            if (aimReticle != null)
+            {
+                aimReticle.enabled = false;
+            }
+            cameraRig?.ExitHarpoonAim();
         }
 
         internal void Configure(
@@ -174,7 +220,8 @@ namespace Hotfix.DroneFlight
             Rigidbody projectileRigidBody,
             Collider projectileCollision,
             DroneHarpoonProjectile projectileRelay,
-            DroneHarpoonRopeVisual rope)
+            DroneHarpoonRopeVisual rope,
+            LineRenderer reticle)
         {
             configSource = config;
             launcherBody = launcher;
@@ -185,6 +232,7 @@ namespace Hotfix.DroneFlight
             projectileCollider = projectileCollision;
             projectile = projectileRelay;
             ropeVisual = rope;
+            aimReticle = reticle;
             CreateRuntimeConfig();
             ApplyMassDistribution();
             projectile?.Configure(this);
@@ -239,47 +287,79 @@ namespace Hotfix.DroneFlight
 
         private void UpdateAim()
         {
-            if (aimCamera == null || gimbal == null)
+            if (aimCamera == null || gimbal == null || muzzle == null || droneBody == null
+                || cameraRig == null || cameraRig.Mode != DroneCameraMode.HarpoonAim)
             {
                 aimValid = false;
+                if (aimReticle != null)
+                {
+                    aimReticle.enabled = false;
+                }
                 return;
             }
 
-            var ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            var ray = aimCamera.ViewportPointToRay(new Vector3(aimViewportPosition.x, aimViewportPosition.y, 0f));
             var maximumDistance = runtimeConfig.MaximumFlightDistanceMeters;
-            hitPoint = Physics.Raycast(ray, out var hit, maximumDistance, runtimeConfig.HittableLayers,
-                QueryTriggerInteraction.Ignore)
-                ? hit.point
-                : ray.GetPoint(maximumDistance);
+            var hits = Physics.RaycastAll(ray, maximumDistance, runtimeConfig.HittableLayers,
+                QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+            var hasHit = false;
+            var hit = default(RaycastHit);
+            foreach (var candidate in hits)
+            {
+                if (candidate.collider == null || candidate.transform.IsChildOf(transform)
+                    || candidate.transform.IsChildOf(droneBody.transform))
+                {
+                    continue;
+                }
+
+                hit = candidate;
+                hasHit = true;
+                break;
+            }
+            if (hasHit)
+            {
+                hitPoint = hit.point;
+            }
+            else
+            {
+                var fallbackPlane = new Plane(Vector3.up, droneBody.position - Vector3.up * 3f);
+                hitPoint = fallbackPlane.Raycast(ray, out var enter)
+                    ? ray.GetPoint(Mathf.Min(enter, maximumDistance))
+                    : ray.GetPoint(maximumDistance);
+            }
+
+            var verticalAxis = -droneBody.transform.up;
             var worldDirection = (hitPoint - muzzle.position).normalized;
-            var local = droneBody.transform.InverseTransformDirection(worldDirection);
-            var yaw = Mathf.Atan2(local.x, local.z) * Mathf.Rad2Deg;
-            var pitch = -Mathf.Asin(Mathf.Clamp(local.y, -1f, 1f)) * Mathf.Rad2Deg;
-            var clampedYaw = Mathf.Clamp(yaw, -runtimeConfig.GimbalYawLimitDegrees, runtimeConfig.GimbalYawLimitDegrees);
-            var clampedPitch = Mathf.Clamp(
-                pitch,
-                -runtimeConfig.GimbalPitchUpLimitDegrees,
-                runtimeConfig.GimbalPitchDownLimitDegrees);
-            gimbal.localRotation = Quaternion.Euler(clampedPitch, clampedYaw, 0f);
+            var withinEnvelope = DroneEquipmentPhysicsMath.IsWithinHarpoonAimEnvelope(
+                droneBody.worldCenterOfMass,
+                muzzle.position,
+                verticalAxis,
+                hitPoint,
+                runtimeConfig.MaximumAimRadiusMeters,
+                runtimeConfig.MaximumAimConeDegrees);
+            if (worldDirection.sqrMagnitude > 0.0001f)
+            {
+                gimbal.rotation = Quaternion.LookRotation(worldDirection, droneBody.transform.forward);
+            }
             aimDirection = muzzle.forward;
-            aimValid = Mathf.Abs(yaw - clampedYaw) <= runtimeConfig.AllowedAimErrorDegrees
-                       && Mathf.Abs(pitch - clampedPitch) <= runtimeConfig.AllowedAimErrorDegrees
+            aimValid = withinEnvelope
                        && Vector3.Angle(aimDirection, worldDirection) <= runtimeConfig.AllowedAimErrorDegrees;
+            UpdateAimReticle();
             if (!aimValid && State == DroneEquipmentState.Stowed)
             {
-                SetHint("目标超出渔叉云台限位");
+                SetHint("目标超出 3 m 水平范围或向下射界");
             }
         }
 
         private void Fire()
         {
-            if (!aimValid)
+            if (cameraRig == null || cameraRig.Mode != DroneCameraMode.HarpoonAim || !aimValid)
             {
-                SetHint("当前瞄准方向不可发射");
+                SetHint("请先按 V 进入机腹瞄准，并将准星移入有效范围");
                 return;
             }
 
-            DestroyJoint(ref dockJoint);
             projectileBody.isKinematic = false;
             projectileBody.useGravity = true;
             projectileCollider.enabled = true;
@@ -289,8 +369,7 @@ namespace Hotfix.DroneFlight
             projectileBody.angularVelocity = Vector3.zero;
             var impulse = DroneEquipmentPhysicsMath.CalculateHarpoonImpulse(
                 aimDirection,
-                runtimeConfig.ProjectileMassKilograms,
-                runtimeConfig.MuzzleSpeedMetersPerSecond);
+                runtimeConfig.LaunchImpulseNewtonSeconds);
             projectileBody.AddForce(impulse, ForceMode.Impulse);
             droneBody.AddForceAtPosition(-impulse, muzzle.position, ForceMode.Impulse);
             targetRopeLength = runtimeConfig.MinimumRopeLengthMeters;
@@ -416,13 +495,12 @@ namespace Hotfix.DroneFlight
 
         private void DockProjectileImmediate()
         {
-            if (droneBody == null || projectileBody == null || muzzle == null)
+            if (projectileBody == null || muzzle == null)
             {
                 return;
             }
 
             DestroyJoint(ref hitJoint);
-            DestroyJoint(ref dockJoint);
             projectileBody.position = muzzle.position;
             projectileBody.rotation = muzzle.rotation;
             if (!projectileBody.isKinematic)
@@ -440,6 +518,26 @@ namespace Hotfix.DroneFlight
             ropeVisual?.SetVisible(false);
             State = DroneEquipmentState.Stowed;
             SetHint("渔叉已回到发射器");
+        }
+
+        // 停靠弹体是发射器的一部分；瞄准云台转动时必须持续跟随 Muzzle，且绝不能参与物理。
+        private void MaintainDockedPose()
+        {
+            if (projectileBody == null || muzzle == null)
+            {
+                return;
+            }
+
+            projectileBody.position = muzzle.position;
+            projectileBody.rotation = muzzle.rotation;
+            projectileBody.useGravity = false;
+            projectileBody.isKinematic = true;
+            if (projectileCollider != null)
+            {
+                projectileCollider.enabled = false;
+            }
+
+            ropeVisual?.SetVisible(false);
         }
 
         private bool IsHittableLayer(int layer) => (runtimeConfig.HittableLayers.value & (1 << layer)) != 0;
@@ -488,6 +586,28 @@ namespace Hotfix.DroneFlight
         private void SetHint(string value)
         {
             LastHint = value;
+        }
+
+        private void UpdateAimReticle()
+        {
+            if (aimReticle == null)
+            {
+                return;
+            }
+
+            const int segmentCount = 24;
+            const float radius = 0.12f;
+            aimReticle.enabled = true;
+            aimReticle.positionCount = segmentCount;
+            aimReticle.loop = true;
+            aimReticle.startColor = aimReticle.endColor = aimValid ? Color.green : Color.red;
+            for (var index = 0; index < segmentCount; index++)
+            {
+                var angle = index * Mathf.PI * 2f / segmentCount;
+                aimReticle.SetPosition(index,
+                    hitPoint + Vector3.up * 0.01f
+                    + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius);
+            }
         }
     }
 }

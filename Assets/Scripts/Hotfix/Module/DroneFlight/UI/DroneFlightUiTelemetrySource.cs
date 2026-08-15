@@ -137,8 +137,8 @@ namespace Hotfix.DroneFlight
             var equipmentText = equipment.Kind switch
             {
                 DroneEquipmentKind.Grapple =>
-                    $"四爪状态 {FormatEquipmentState(equipment.State)}  有效接触 {equipment.ContactCount}\n"
-                    + $"短行程 {equipment.TravelMeters:F2} m  约束拉力 {equipment.TensionNewtons:F1} N\n"
+                    $"四爪状态 {FormatEquipmentState(equipment.State)}  捕获候选 {equipment.ContactCount}\n"
+                    + $"固定吊臂 {equipment.TravelMeters:F2} m  抓取拉力 {equipment.TensionNewtons:F1} N\n"
                     + $"载荷真实/受支持 {equipment.PayloadMassKilograms:F2}/{equipment.SupportedPayloadMassKilograms:F2} kg",
                 DroneEquipmentKind.Harpoon =>
                     $"渔叉状态 {FormatEquipmentState(equipment.State)}  可发射 {(equipment.CanUsePrimary ? "是" : "否")}\n"

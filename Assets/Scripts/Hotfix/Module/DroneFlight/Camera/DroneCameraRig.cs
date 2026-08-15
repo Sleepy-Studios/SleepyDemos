@@ -9,7 +9,8 @@ namespace Hotfix.DroneFlight
         ThirdPerson,
         Orbit,
         FixedForward,
-        Belly
+        Belly,
+        HarpoonAim
     }
 
     /// <summary>
@@ -34,6 +35,7 @@ namespace Hotfix.DroneFlight
         private float gimbalYawDegrees;
         private float orbitYawDegrees;
         private float orbitPitchDegrees = 20f;
+        private DroneCameraMode savedMode = DroneCameraMode.ThirdPerson;
 
         /// <summary>唯一的无人机画面输出 Camera。</summary>
         internal Camera OutputCamera => outputCamera;
@@ -71,6 +73,26 @@ namespace Hotfix.DroneFlight
         internal void SetMode(DroneCameraMode cameraMode)
         {
             mode = cameraMode;
+        }
+
+        /// <summary>保存当前视角并切换到机腹向下瞄准。</summary>
+        internal void EnterHarpoonAim()
+        {
+            if (mode != DroneCameraMode.HarpoonAim)
+            {
+                savedMode = mode;
+            }
+
+            mode = DroneCameraMode.HarpoonAim;
+        }
+
+        /// 恢复进入渔叉瞄准前的视角。
+        internal void ExitHarpoonAim()
+        {
+            if (mode == DroneCameraMode.HarpoonAim)
+            {
+                mode = savedMode == DroneCameraMode.HarpoonAim ? DroneCameraMode.ThirdPerson : savedMode;
+            }
         }
 
         /// <summary>
@@ -153,6 +175,11 @@ namespace Hotfix.DroneFlight
         {
             switch (mode)
             {
+                case DroneCameraMode.HarpoonAim:
+                    var aimMount = bellyMount != null ? bellyMount : droneBody;
+                    position = aimMount.position;
+                    rotation = aimMount.rotation;
+                    break;
                 case DroneCameraMode.ThirdPerson:
                     position = droneBody.TransformPoint(0f, 1.2f, -3f);
                     rotation = Quaternion.LookRotation(droneBody.position - position + Vector3.up * 0.2f, Vector3.up);

@@ -94,8 +94,8 @@ namespace Hotfix.DroneFlight
         {
             var equipment = kind switch
             {
-                DroneEquipmentKind.Grapple => "J  抓斗收放    H  四爪开合\n",
-                DroneEquipmentKind.Harpoon => "H  发射 / 解除回收    J / K  收线 / 放线\n",
+                DroneEquipmentKind.Grapple => "H  四爪开合\n",
+                DroneEquipmentKind.Harpoon => "V  机腹瞄准    H  发射 / 解除回收    J / K  收线 / 放线\n",
                 _ => string.Empty
             };
             return "操作说明\n"

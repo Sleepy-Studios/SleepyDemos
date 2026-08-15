@@ -31,6 +31,8 @@ namespace Hotfix.DroneFlight
         public const float CoordinateTolerance = 0.0001f;
         /// FBX 导入后模型根节点必须保持的单位缩放。
         public const float ImportScale = 1f;
+        /// 起落架从放下姿态向机臂方向收起的局部旋转角。
+        public const float LandingGearRetractionAngleDegrees = -67f;
 
         /// Unity 机体局部右轴。
         public static Vector3 RightAxis => Vector3.right;

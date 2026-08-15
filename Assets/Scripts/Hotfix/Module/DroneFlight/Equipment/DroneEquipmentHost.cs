@@ -9,6 +9,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneFlightController flightController;
         [SerializeField] private Rigidbody droneBody;
         [SerializeField] private Camera aimCamera;
+        [SerializeField] private DroneCameraRig cameraRig;
         [SerializeField] private MonoBehaviour moduleSource;
 
         private IDroneEquipmentModule module;
@@ -63,9 +64,28 @@ namespace Hotfix.DroneFlight
             module?.PrimaryAction();
         }
 
-        internal void ToggleDeployment()
+        internal void ToggleAimMode()
         {
-            module?.ToggleDeployment();
+            if (module is IDroneAimingEquipment aiming)
+            {
+                aiming.SetAimMode(!aiming.IsAimModeActive);
+            }
+        }
+
+        internal void ExitAimMode()
+        {
+            if (module is IDroneAimingEquipment aiming)
+            {
+                aiming.SetAimMode(false);
+            }
+        }
+
+        internal void SetAimViewportPosition(Vector2 viewportPosition)
+        {
+            if (module is IDroneAimingEquipment aiming)
+            {
+                aiming.SetAimViewportPosition(viewportPosition);
+            }
         }
 
         internal void SetLineInput(float input)
@@ -101,13 +121,20 @@ namespace Hotfix.DroneFlight
             droneBody ??= GetComponent<Rigidbody>();
             if (aimCamera == null)
             {
-                aimCamera = GetComponentInChildren<DroneCameraRig>(true)?.OutputCamera;
+                cameraRig = GetComponentInChildren<DroneCameraRig>(true);
+                aimCamera = cameraRig?.OutputCamera;
             }
+
+            cameraRig ??= GetComponentInChildren<DroneCameraRig>(true);
 
             var maximumPayloadKilograms = flightController != null && flightController.Config != null
                 ? flightController.Config.MaximumPayloadMassKilograms
                 : float.PositiveInfinity;
             module?.ConfigureHost(droneBody, aimCamera, maximumPayloadKilograms);
+            if (module is IDroneAimingEquipment aiming)
+            {
+                aiming.ConfigureAim(cameraRig);
+            }
             flightController?.ConfigureExternalMassProvider(this);
         }
     }
