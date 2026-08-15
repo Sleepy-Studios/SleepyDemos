@@ -13,6 +13,7 @@ Assets/LoadResources/Demos/drone_flight/
 ├── Scenes/Main.unity
 ├── Art/
 │   ├── Models/DroneFlight.fbx
+│   ├── Generated/Arena/*.asset
 │   └── Materials/
 │       ├── DroneGraphite.mat
 │       ├── DroneShellTop.mat
@@ -25,6 +26,7 @@ Assets/LoadResources/Demos/drone_flight/
 │   ├── DroneGrappleConfig.asset
 │   └── DroneHarpoonConfig.asset
 └── Prefabs/
+    ├── Environment/DroneFlightArena.prefab
     ├── DronePrototype.prefab
     ├── DroneGrappleVariant.prefab
     ├── DroneHarpoonVariant.prefab
@@ -33,6 +35,14 @@ Assets/LoadResources/Demos/drone_flight/
     │   └── DroneHarpoonEquipment.prefab
     └── UI/DroneFlightVehicleSelectView.prefab
 ```
+
+## 工业训练场
+
+`Main.unity` 使用 `DroneFlightArena` 作为独立环境 Prefab。地坪以原点为中心，顶面位于 `Y=0`，有效尺寸严格为 `100 × 100 m`；四面 1 米厚围墙的内侧边界位于 `X/Z = ±50 m`，墙高 `10 m`。原点周围半径 8 米保留给三机型出生、载荷抓取与投放，不移动 `SpawnPoint`、`PayloadDropZone` 或测试载荷。
+
+训练路线按 `01_StartGate → 02_Slalom → 03_OffsetWalls → 04_LowGantry → 05_ElevatedWindow → 06_FrameTunnel` 顺时针组织，地面箭头从西侧引导返回中心。障碍视觉使用深灰、蓝灰、橙色和黄色无贴图 URP Lit 材质；所有可碰撞结构只使用独立 `BoxCollider`，不使用 MeshCollider。
+
+场地几何由 ProBuilder 6.0.9 在编辑期制作并烘焙到 `Art/Generated/Arena` 的普通 Unity Mesh Asset。提交的 Scene、Prefab 与 Mesh 不保留 `ProBuilderMesh`、`ProBuilderShape` 或包内资源引用；运行和迁移 DroneFlight 不要求安装 ProBuilder。
 
 `DronePrototype` 既是共享飞行基础，也是“纯无人机”选项直接加载的成品 Prefab。抓斗和渔叉分别保存为独立装备 Prefab；`DroneGrappleVariant`、`DroneHarpoonVariant` 是编辑期已组合并保存的机体，内部以嵌套 Prefab 引用对应装备。运行时不会调用 Builder、不会临时创建装备结构，也不会把模块动态挂到基础无人机上。场景不预放活动无人机；选择机型后只实例化一个对应成品 Prefab。
 

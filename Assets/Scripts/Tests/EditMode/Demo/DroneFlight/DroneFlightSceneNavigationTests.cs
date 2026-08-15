@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using Core.Runtime;
@@ -16,6 +17,9 @@ namespace Tests.Demo
      */
     public sealed class DroneFlightSceneNavigationTests
     {
+        private const string ArenaPrefabPath =
+            "Assets/LoadResources/Demos/drone_flight/Prefabs/Environment/DroneFlightArena.prefab";
+
         [Test]
         public void BuildSettings_OnlyContainsHubBootstrapScene()
         {
@@ -126,6 +130,96 @@ namespace Tests.Demo
             {
                 EditorSceneManager.CloseScene(scene, true);
             }
+        }
+
+        [Test]
+        public void IndustrialArena_UsesExactGroundAndBoundaryDimensions()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ArenaPrefabPath);
+            Assert.That(prefab, Is.Not.Null);
+
+            var ground = RequireChild(prefab.transform, "Ground/GroundSurface").GetComponent<BoxCollider>();
+            Assert.That(ground, Is.Not.Null);
+            Assert.That(ground.size.x, Is.EqualTo(100f).Within(0.001f));
+            Assert.That(ground.size.z, Is.EqualTo(100f).Within(0.001f));
+            Assert.That(ground.transform.localPosition.y + ground.center.y + ground.size.y * 0.5f,
+                Is.EqualTo(0f).Within(0.001f));
+
+            var north = RequireChild(prefab.transform, "Boundary/NorthWall").GetComponent<BoxCollider>();
+            var south = RequireChild(prefab.transform, "Boundary/SouthWall").GetComponent<BoxCollider>();
+            var east = RequireChild(prefab.transform, "Boundary/EastWall").GetComponent<BoxCollider>();
+            var west = RequireChild(prefab.transform, "Boundary/WestWall").GetComponent<BoxCollider>();
+
+            Assert.That(new[] { north, south, east, west }, Has.All.Not.Null);
+            Assert.That(new[] { north.size.y, south.size.y, east.size.y, west.size.y },
+                Has.All.EqualTo(10f).Within(0.001f));
+            Assert.That(north.transform.localPosition.z + north.center.z - north.size.z * 0.5f,
+                Is.EqualTo(50f).Within(0.001f));
+            Assert.That(south.transform.localPosition.z + south.center.z + south.size.z * 0.5f,
+                Is.EqualTo(-50f).Within(0.001f));
+            Assert.That(east.transform.localPosition.x + east.center.x - east.size.x * 0.5f,
+                Is.EqualTo(50f).Within(0.001f));
+            Assert.That(west.transform.localPosition.x + west.center.x + west.size.x * 0.5f,
+                Is.EqualTo(-50f).Within(0.001f));
+        }
+
+        [Test]
+        public void IndustrialArena_IsBakedAndContainsSixCourseGroups()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ArenaPrefabPath);
+            Assert.That(prefab, Is.Not.Null);
+
+            var course = RequireChild(prefab.transform, "Course");
+            for (var index = 1; index <= 6; index++)
+            {
+                Assert.That(course.Cast<Transform>().Any(child => child.name.StartsWith($"{index:00}_")),
+                    Is.True,
+                    $"训练路线缺少第 {index} 组障碍。");
+            }
+
+            Assert.That(prefab.GetComponentsInChildren<MeshCollider>(true), Is.Empty,
+                "静态训练场使用独立 BoxCollider，不应让视觉 Mesh 承担碰撞。");
+            Assert.That(prefab.GetComponentsInChildren<MonoBehaviour>(true), Is.Empty,
+                "烘焙后的训练场不得残留 ProBuilder 或其它运行时脚本组件。");
+
+            var dependencies = AssetDatabase.GetDependencies(
+                new[] { GameSceneCatalog.DroneFlightAddress, ArenaPrefabPath },
+                true);
+            Assert.That(dependencies, Has.None.Contains("com.unity.probuilder").IgnoreCase,
+                "场景和训练场 Prefab 的递归依赖不得包含 ProBuilder 包资源。");
+        }
+
+        [Test]
+        public void DroneDemoScene_PreservesCentralGameplayMarkers()
+        {
+            var scene = EditorSceneManager.OpenScene(
+                GameSceneCatalog.DroneFlightAddress,
+                OpenSceneMode.Additive);
+            try
+            {
+                var transforms = scene.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<Transform>(true))
+                    .ToArray();
+                var spawnPoint = transforms.Single(transform => transform.name == "SpawnPoint");
+                var dropZone = transforms.Single(transform => transform.name == "PayloadDropZone");
+
+                Assert.That(spawnPoint.position.x, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(spawnPoint.position.z, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(dropZone.position.x, Is.EqualTo(0f).Within(0.001f));
+                Assert.That(dropZone.position.z, Is.EqualTo(4f).Within(0.001f));
+                Assert.That(transforms.Count(transform => transform.name == "DroneFlightArena"), Is.EqualTo(1));
+            }
+            finally
+            {
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        private static Transform RequireChild(Transform root, string path)
+        {
+            var child = root.Find(path);
+            Assert.That(child, Is.Not.Null, $"训练场 Prefab 缺少节点：{path}");
+            return child;
         }
     }
 }

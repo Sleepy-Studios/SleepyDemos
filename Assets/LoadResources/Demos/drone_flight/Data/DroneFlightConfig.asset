@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: DroneFlightConfig
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightConfig
   powerConfigurationMode: 0
-  ratedPayloadKilograms: 1
+  ratedPayloadKilograms: 10
   bodyMassMultiplier: 1.2
-  maximumPayloadMultiplier: 1.25
-  ratedPayloadHoverCommand: 0.701
-  motorResponsiveness: 57.3
+  maximumPayloadMultiplier: 1.5
+  ratedPayloadHoverCommand: 0.5
+  motorResponsiveness: 60
   bodyMassKilograms: 1.2
   bodyLinearDamping: 0
   bodyAngularDamping: 0.05

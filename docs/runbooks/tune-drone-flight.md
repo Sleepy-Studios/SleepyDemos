@@ -34,6 +34,15 @@
 
 不要在 DroneFlightConfig 中寻找装备参数。三个 Inspector 顶部均可切换中文/English；装备配置另有普通/高级分页。运行时修改只同步到各自运行时副本。
 
+## 工业训练场路线
+
+场地是中心位于原点的 `100 × 100 m` 地坪，四面围墙高 `10 m`。从中心起飞区朝 `+Z` 飞行，依次通过北侧起始门、三柱蛇形区、东北错位墙、东侧低空横梁、东南抬升窗口和南侧连续框架，最后沿西侧地面箭头返回中心。
+
+- 起飞、抓取和投放调试优先留在黄色 8 米安全圈内，避免障碍碰撞干扰载荷调校。
+- 低空横梁用于验证精细高度控制；抬升窗口用于验证爬升和下降；连续框架用于验证直线姿态与偏航修正。
+- 围墙、门框、立柱和面板使用 BoxCollider；地面标线与安全带无碰撞。发现 MeshCollider 或 ProBuilder 组件时视为烘焙失败。
+- ProBuilder 只用于编辑期灰盒制作。交付资源是 `Art/Generated/Arena` 下的 Mesh Asset 和 `Prefabs/Environment/DroneFlightArena.prefab`，运行时不依赖插件，也不需要 FBX Exporter。
+
 ## 正式模型重建
 
 开始前先读[DroneFlight 正式模型契约](../modules/drone-flight-model-contract.md)；新建、换皮或扩展模型时使用项目技能 `unity-demo-model-pipeline` 先形成并确认建模需求。
