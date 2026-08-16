@@ -48,7 +48,8 @@
 - `AppDelegate`
 - `Eventing`
 - `Module/Main`
-- `Module/Test`
+- `Module/Common`
+- `Demos/DroneFlight`
 
 不要放：
 - 通用资源加载框架
@@ -61,6 +62,12 @@
 
 通用 MvcBind、构建、导入和跨业务检查工具仍放 `Core.Editor`。禁止为了实现业务 Inspector 让 `Core.Editor` 反向引用 `Hotfix`。
 
+### `Assets/Scripts/Hotfix/Demos/<DemoName>`
+
+放独立 Demo 的运行时代码。Demo 内可以继续按职责拆分控制、物理、输入、装备和宿主适配，但仍归属 `Hotfix.dll`；不要为了单个 Demo 新建生产程序集。
+
+Demo 里只有该项目需要的 UI、资源、Hub 导航和演出编排应收口到明确的 `Adapters/` 子目录。可以脱离宿主复用的核心代码不得反向引用这些适配器。
+
 ## 资源布局
 
 可加载资源的**目录矩阵、文件名与地址规则**见 [资源命名规范](./asset-naming.md)：类型由目录与扩展名决定，文件名为纯语义 PascalCase。`DemoId` 目录名使用小写 + 下划线（如 `gravity_well`）。
@@ -70,7 +77,7 @@
 适合放：
 - 该 Demo 专属预制体、材质、音效、脚本引用资产
 - 该 Demo 的可加载资源
-- 当前目录还比较空，后续新增 Demo 建议优先收口到这里
+- 当前 `drone_flight` 已按此规则收口场景、三机型、装备、配置和美术资源
 
 ### `Assets/LoadResources/UI` / `Art` / `Audio` / `VFX`
 
@@ -97,5 +104,6 @@
 - 这是“跨业务编辑器底座”吗：去 `Core.Editor`
 - 这是“只服务某个 Hotfix 模块的 Editor 扩展”吗：去 `Hotfix/Editor`
 - 这是“业务或玩法”吗：去 `Hotfix`
+- 这是“独立 Demo 玩法”吗：去 `Hotfix/Demos/<DemoName>`
 - 这是“某个 Demo 独有资源”吗：去 `Assets/LoadResources/Demos/<DemoId>/`
 - 这是“多个 Demo 共享资源”吗：去公共资源目录

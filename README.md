@@ -30,9 +30,10 @@
 4. `ResourceStartupState`
 5. `BeforeHotfixStartupState`
 6. `HotfixEntry`
-7. `LubanConfigSystem`
-8. `GlobalDataSystem`
-9. `MainMenuView`
+7. `HotfixBootService`
+8. `LubanConfigSystem`
+9. `GlobalDataSystem`
+10. `MainMenuView`
 
 也就是说，Core 先完成准备、资源和热更装配，Hotfix 再接管业务入口和主界面。
 
@@ -50,13 +51,18 @@
 
 - `Assets/Scripts/Hotfix`
   - 业务层与界面层
-  - 放主菜单、玩法入口、业务模块、View 和交互逻辑
+  - `Module/` 放主菜单、公共业务模块、View 和交互逻辑
+  - `Demos/<DemoName>/` 放独立 Demo 玩法；Demo 专属适配层也收在这里
+
+- `Assets/Scripts/Hotfix/Editor`
+  - 只服务 Hotfix 业务或某个 Demo 的 Builder、Inspector 和装配工具
+  - 继续归属独立的 `Hotfix.Editor`，不迫使 `Core.Editor` 反向依赖业务
 
 ### 资源目录
 
 - `Assets/LoadResources/Demos/<DemoId>/`
   - 单个 Demo 的可加载资源
-  - 当前仓库里这个目录还基本空着，后续新增 Demo 时建议从这里收口
+  - 当前 `drone_flight` 的场景、三机型、装备、配置和美术都收口在这里
 
 - `Assets/LoadResources/UI` / `Art` / `Audio` / `VFX`
   - 多个 Demo 稳定复用的公共资源
@@ -95,12 +101,13 @@
 
 最简版是：
 
-1. 确定 `DemoId`
+1. 确定资源用 `DemoId` 和代码用 `DemoName`
 2. 在 `Assets/LoadResources/Demos/<DemoId>/` 下建立资源目录
-3. 复制或创建该 Demo 的场景
-4. 业务代码优先接到 `Assets/Scripts/Hotfix/Module/`
-5. 从主入口暴露该 Demo
-6. 检查是否真的需要把能力上提到 Core
+3. 在 `Assets/Scripts/Hotfix/Demos/<DemoName>/` 下建立玩法代码
+4. 创建 YooAsset 可加载场景并登记运行期场景目录
+5. 通过 `GameSceneNavigator` 从 Hub 暴露该 Demo，并提供返回 Hub 的入口
+6. 把测试放入现有 `Tests.EditMode` / `Tests.PlayMode`，不要新建 Demo 测试程序集
+7. 检查是否真的需要把能力上提到 Core
 
 ## 文档地图
 

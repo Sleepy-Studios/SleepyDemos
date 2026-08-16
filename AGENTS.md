@@ -18,6 +18,7 @@
 - `Assets/Scripts/Core/Runtime`：通用运行时基础设施。包括启动流程、资源管理、UI 框架、服务注册、通用组件。
 - `Assets/Scripts/Core/Editor`：编辑器工具。包括热更构建、MvcBind 工具、导入和检查类工具。
 - `Assets/Scripts/Hotfix`：业务层与界面层。包括主菜单、玩法入口、各业务模块逻辑。
+- `Assets/Scripts/Hotfix/Demos/<DemoName>`：独立 Demo 玩法和宿主适配；普通业务模块继续使用 `Hotfix/Module`。
 - `Assets/Scripts/Hotfix/Editor`：只服务 Hotfix 业务模块的编辑器扩展，使用独立 `Hotfix.Editor` 程序集；允许引用 Hotfix，不得迫使 `Core.Editor` 反向依赖业务层。
 - `Assets/LoadResources`：可加载资源主干；`Assets/Scenes`：启动入口场景与相关对象。
 - 不允许 `Core.Runtime` 反向依赖 `Hotfix`。
@@ -40,6 +41,7 @@
 - 如果当前改动不足以影响架构或流程，可不改文档，但需要显式判断“本次无需同步文档”。
 - 启动系统、热更新、Flux、资源运行时、公共 UI 等大型模块必须形成完整模块文档；小型 Data 三件套可先不单独建文档，等形成独立入口或复杂规则后再补。
 - 文档按三层落点：`docs/architecture/` 给开发人员看设计思路，`docs/modules/*.md` 给维护模块的人看边界和生命周期，`docs/runbooks/*.md` 给使用者或接入者看具体步骤。
+- 需要追溯的 Demo 原始 Goal 放在 `docs/agent/prompts/demos/<demo_id>/`，只作为历史需求来源，不作为当前实现或进度真源。
 - C# 注释与命名按 `docs/architecture/documentation-rules.md` 执行：只有带参数的公开方法使用完整 XML 注释；无参公开方法、公开字段/属性/事件只写简短 `///`；私有成员用 `//`；命名遵循 PascalCase / camelCase，不使用 `_` 私有字段前缀，避免拼音和无意义缩写。
 - 如果规则变化影响入口判断或协作约定，要同时更新 `CLAUDE.md`，保持两份入口文件同步。
 
@@ -50,6 +52,7 @@
 - `docs/architecture/`：全局架构与规则
 - `docs/modules/`：关键模块说明
 - `docs/agent/`：Agent 协作入口与项目级技能说明
+- `docs/agent/prompts/`：需要长期追溯的 Demo 原始 Goal，不保存阶段实施计划
 - `docs/runbooks/`：操作流程与排障指引
 
 ## 完成任务时至少说明

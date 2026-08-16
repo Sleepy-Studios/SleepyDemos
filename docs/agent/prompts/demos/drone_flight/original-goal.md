@@ -1,9 +1,12 @@
+# DroneFlight 原始 Goal
+
+> 本文保存 DroneFlight 的初始需求提示词，仅用于追溯需求来源，不代表当前代码、目录或完成状态。当前实现以 [DroneFlight 模块入口](../../../../modules/drone-flight.md)、[实现原理](../../../../architecture/drone-flight-design.md)、[正式模型契约](../../../../modules/drone-flight-model-contract.md)和相关 runbook 为准。下方原始内容保留了任务创建时的路径与阶段约束，请勿把其中的旧计划引用当作现行入口。
+
 # 无人机飞行仿真 Codex Goal
 
 ## 使用方式
 
-将下方“Goal 提示词”完整复制到新的 Codex Goal。执行时以本文件和
-[`实施计划`](../plans/2026-08-13-drone-flight-simulation.md) 为共同约束：本文件定义最终目标、边界与验收，实施计划定义阶段顺序和每个门禁的证据。
+以下内容是当时交给 Codex 的原始 Goal 提示词。正文按原样保留，其中提到的旧路径和旧实施计划已经失效，不应继续执行。
 
 本 Goal 是持续任务，不授权一次性跳过物理验证直奔美术效果，也不授权自动提交或推送 Git。
 

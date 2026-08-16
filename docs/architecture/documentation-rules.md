@@ -64,6 +64,12 @@
 
 适合放：新增 Demo、构建热更、使用资源 loader、接入某个模块能力等具体流程。
 
+### 原始 Goal 归档
+
+较完整的 Demo 初始 Goal 如果需要保留需求来源，放在 `docs/agent/prompts/demos/<demo_id>/`。归档文件必须注明它只用于追溯，不代表当前路径、接口、进度或实现状态，并链接到当前模块文档。
+
+原始 Goal 不属于 architecture / modules / runbooks 第四层，也不能充当实施计划或进度真源。阶段计划、复选框和已被实现替代的规格不长期归档；其中仍有效的约束应改写进正确的三层文档。
+
 ## 应该更新哪一类文档
 
 - 全局规则变化：更新 `docs/architecture/`
@@ -71,6 +77,7 @@
 - 使用方式、接入步骤、排障步骤变化：更新 `docs/runbooks/`
 - 只是局部实现细节变化：通常不需要单独写 md
 - 如果规则变化影响 agent 的入口判断或协作约定：同时更新 `AGENTS.md` 和 `CLAUDE.md`
+- 需要保存 Demo 初始需求来源：归档到 `docs/agent/prompts/demos/<demo_id>/`，当前事实仍写入三层文档
 
 ## 模块文档什么时候要增减
 

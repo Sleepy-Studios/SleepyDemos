@@ -12,7 +12,7 @@
 
 - 使用 Rigidbody 与四个真实施力点，不采用中心总推力动画方案。
 - 飞控核心用可独立测试的数学类型承载，MonoBehaviour 负责与 Unity 物理桥接。
-- Demo 从一开始同时维护模块文档、调参 runbook、Goal 和实施计划。
+- Demo 从一开始同步维护模块文档和调参 runbook；原始 Goal 现只作为需求来源归档，阶段实施计划不再作为长期文档。
 
 后来被替代：
 
@@ -143,7 +143,7 @@
 ## 2026-08-16：源码迁移边界、集中配置与通用巡航
 
 - 放弃新增 `DroneFlight.Runtime` / `DroneFlight.Editor` 程序集，运行时继续归属 `Hotfix.dll`，避免触碰 HybridCLR 构建基线。
-- 新增 `Adapters/SleepyDemos`，把 UI、资源、导航、Hub 生命周期和捕鱼演出收拢为宿主适配；核心边界由源码扫描测试锁定。
+- 新增 `Adapters/{Scene,UI,Fishing,Experience}`，把 UI、资源、导航、Hub 生命周期、捕鱼和遥控器体验收拢为宿主适配；核心边界由源码扫描测试锁定。
 - 镜头、输入、自动驾驶、诊断和捕鱼演出参数分别进入 ScriptableObject；运行时注入引用不再暴露在 Inspector。
 - 新增通用航点巡航和 `DroneFlightStandaloneBootstrap`，支持新场景最小手动/自动接入；捕鱼贝塞尔继续作为特定演出。
 

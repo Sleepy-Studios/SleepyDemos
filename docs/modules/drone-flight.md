@@ -1,10 +1,21 @@
 # DroneFlight 无人机飞行仿真
 
+## 文档地图
+
+- 想理解无人机为什么能飞：看[实现原理与架构设计](../architecture/drone-flight-design.md)。
+- 想维护当前 Demo、三机型和生命周期：继续阅读本文。
+- 想换模型或调整轴向：看[正式模型契约](./drone-flight-model-contract.md)。
+- 想调参、重建资源或运行测试：看[调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)。
+- 想迁移到其它项目：看[迁移 DroneFlight](../runbooks/migrate-drone-flight.md)。
+- 想在独立场景接入：看[在独立场景使用 DroneFlight](../runbooks/use-drone-flight-standalone.md)。
+- 想了解方案为什么演变成现在这样：看[设计演进与决策记录](./drone-flight-history.md)。
+- 想追溯最初需求：看[DroneFlight 原始 Goal](../agent/prompts/demos/drone_flight/original-goal.md)。
+
 ## 职责与边界
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。核心源码与 `Adapters/SleepyDemos` 形成迁移边界，详见[实现原理与架构设计](../architecture/drone-flight-design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
+业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。核心源码与 `Adapters/{Scene,UI,Fishing,Experience}` 形成迁移边界，详见[实现原理与架构设计](../architecture/drone-flight-design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -50,7 +61,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 `FishingBurstMvp.unity` 是 Editor 可直接运行的独立迁移验证场景，不注册 Hub，也不修改正式 `Main.unity` 的机型选择流程。场景用一个按钮代表三次鱼群爆发 QTE 全部成功，随后执行场外入场、固定机位跟拍、环绕、俯冲、渔叉命中、真实载荷返航和重播。
 
-- `Adapters/SleepyDemos/Fishing/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
+- `Adapters/Fishing/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
 - `DroneMissionAutopilot` 只生成 `DroneControlInput`、目标高度和偏航输入，禁止直接写 Transform 或刚体速度；实际飞行继续经过现有四旋翼控制链。
 - `DroneFishingMissionCoordinator` 管理阶段、超时、鱼随机位置和重播。鱼在命中前为 Kinematic，命中后解除冻结，质量通过现有渔叉绳索进入飞控载荷反馈。
 - `DroneCinematicCameraTracker` 缓动旋转和 FOV，但持续保持初始世界坐标。自动渔叉瞄准通过 `IDroneAutomatedAimingEquipment` 适配世界坐标目标，玩家原有 `V/H` 入口不变。
@@ -81,7 +92,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 - `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降与起落架。
 - `DroneCameraConfig`、`DroneInputConfig`、`DroneAutopilotConfig`、`DroneDiagnosticsConfig` 分别管理镜头、输入、巡航自动驾驶和诊断刷新参数。
-- `DroneFishingMissionConfig` 属于 `Adapters/SleepyDemos/Fishing`，只管理捕鱼演出节奏与固定机位。
+- `DroneFishingMissionConfig` 属于 `Adapters/Fishing`，只管理捕鱼演出节奏与固定机位。
 - `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存固定吊臂长度、升降行程/速度/加速度、万向节摆角与被动阻尼、四爪驱动、捕获体积、FixedJoint 断裂和载荷平滑参数。
 - `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存弹体质量、发射冲量、瞄准半径、向下圆锥角、命中规则、绳长、卷线、弹簧阻尼、张力和受限 PD 回收参数。
 - 需要跨场景复用的数值进入配置资产，场景结构引用保留序列化，装配器能够注入的运行时连接不显示在 Inspector。
@@ -133,7 +144,7 @@ Assets/LoadResources/Demos/drone_flight/
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
 - HUD 保留顶部状态、左下飞行遥测和底部装备提示；操作面板默认展开，标题、飞行/档位、视角/系统和装备操作分区显示，按 F1 整体收起或展开，不显示虚构的电池、GNSS 或图传信号。
 - HUD、Debug 和机型选择 View 中固定存在的 Prefab 节点统一进入根节点 `ComponentItemIndex`，业务代码只使用 MvcBind 生成的强类型字段，不在 `OnShow()` 或其它生命周期内按名称重复查找。
-- `DroneFlightMechanismBuilder` 修改 HUD 节点后会同步完整绑定索引，并把生成代码写回 `Adapters/SleepyDemos/UI/<View名>/View`。重新执行 Builder 不得丢失绑定或把代码生成到旧 `Hotfix/Module` 目录。
+- `DroneFlightMechanismBuilder` 修改 HUD 节点后会同步完整绑定索引，并把生成代码写回 `Adapters/UI/<View名>/View`。重新执行 Builder 不得丢失绑定或把代码生成到旧 `Hotfix/Module` 目录。
 - 相机监听器、运行时机体组件以及捕鱼场景显式注入的 Canvas/Button 属于运行时组合或场景结构，不是 View Prefab 固定节点；这些位置可以在组合阶段缓存组件，但必须用中文注释说明原因。
 
 ## 飞控与遥测
@@ -166,5 +177,5 @@ F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/�
 
 DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。`Tests/EditMode/Demo/DroneFlight` 中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；日志包含测试组目的、完整用例名、中文结果和耗时，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
 
-操作和调参见[调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)，Editor 直启见[直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)，进度见[实施计划](../superpowers/plans/2026-08-13-drone-flight-simulation.md)。
-设计演进见[DroneFlight 设计演进与决策记录](./drone-flight-history.md)，未来接入正式项目见[迁移 DroneFlight](../runbooks/migrate-drone-flight.md)。
+操作和调参见[调试和整定 DroneFlight](../runbooks/tune-drone-flight.md)，Editor 直启见[直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)。
+设计演进见[DroneFlight 设计演进与决策记录](./drone-flight-history.md)，未来接入正式项目见[迁移 DroneFlight](../runbooks/migrate-drone-flight.md)，最初需求见[原始 Goal](../agent/prompts/demos/drone_flight/original-goal.md)。

@@ -45,10 +45,7 @@
 - `agent/`
   - Agent 协作入口与项目级技能说明
   - [项目 Skill 入口](./agent/skills.md)
-- `superpowers/`
-  - 大型任务的设计规格与可执行实施计划
-  - [无人机飞行仿真 Codex Goal](./superpowers/specs/2026-08-13-drone-flight-simulation-goal.md)
-  - [无人机飞行仿真实施计划](./superpowers/plans/2026-08-13-drone-flight-simulation.md)
+  - [原始 Goal 归档规则](./agent/prompts/README.md)
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
@@ -63,10 +60,25 @@
   - [迁移 DroneFlight 到正式项目](./runbooks/migrate-drone-flight.md)
   - [在独立场景使用 DroneFlight](./runbooks/use-drone-flight-standalone.md)
 
+## 按关键 Demo 查文档
+
+### DroneFlight
+
+从 [DroneFlight 模块入口](./modules/drone-flight.md) 可以发现全部长期文档。常用入口如下：
+
+- 原理和架构：[DroneFlight 实现原理与架构设计](./architecture/drone-flight-design.md)
+- 模块维护：[DroneFlight 无人机飞行仿真](./modules/drone-flight.md)
+- 模型换皮：[DroneFlight 正式模型契约](./modules/drone-flight-model-contract.md)
+- 调试与测试：[调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)
+- 独立接入：[在独立场景使用 DroneFlight](./runbooks/use-drone-flight-standalone.md)
+- 迁移：[迁移 DroneFlight 到正式项目](./runbooks/migrate-drone-flight.md)
+- 初始需求追溯：[DroneFlight 原始 Goal](./agent/prompts/demos/drone_flight/original-goal.md)
+
 ## 如何判断文档该写到哪里
 - 这是全局规则、设计原则或架构边界：写到 `architecture/`
 - 这是关键模块维护说明：写到 `modules/`
 - 这是 Agent 技能入口、技能发现或技能同步约定：写到 `agent/`
+- 这是需要长期追溯的原始 Goal：按 `agent/prompts/demos/<demo_id>/` 归档，并明确它不是当前实现真源
 - 这是使用者接入步骤或可执行流程：写到 `runbooks/`
 - 只是单个函数实现细节：优先留在代码和注释里，不额外建 md
 

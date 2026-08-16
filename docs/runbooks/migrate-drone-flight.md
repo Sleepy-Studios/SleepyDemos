@@ -8,7 +8,7 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 
 必须复制：
 
-- `Assets/Scripts/Hotfix/Demos/DroneFlight` 中除 `Adapters/SleepyDemos` 外的核心目录。
+- `Assets/Scripts/Hotfix/Demos/DroneFlight` 中除 `Adapters` 外的核心目录。
 - `Assets/LoadResources/Demos/drone_flight` 中的 `Art`、`Data` 与 `Prefabs`；按正式项目需要选择场景。
 - 所有脚本与资源对应的 `.meta`，以保留 GUID 和 Prefab 引用。
 
@@ -20,7 +20,7 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 
 ## 只重写宿主适配
 
-`Adapters/SleepyDemos` 是唯一预期重写区：
+`Adapters/{Scene,UI,Fishing,Experience}` 是预期按目标宿主选择、替换或删除的区域：
 
 | 当前能力 | 正式项目处理 |
 |---|---|
