@@ -2,7 +2,7 @@ namespace Hotfix
 {
     using Core.Runtime;
     using DroneFlight;
-    using DroneFlight.Adapters.SleepyDemos;
+    using DroneFlight.Adapters;
 
     [Module("DroneFlight")]
     [Mvc("DroneFlightDebugView")]

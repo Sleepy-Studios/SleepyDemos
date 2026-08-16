@@ -5,7 +5,7 @@ using Hotfix.DroneFlight;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>仅通过正式 UIManager 管理当前 DroneFlight 会话拥有的 View 实例。</summary>
     public sealed class DroneFlightUIController : MonoBehaviour

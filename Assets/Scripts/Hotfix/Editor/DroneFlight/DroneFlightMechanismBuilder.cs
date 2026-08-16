@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Core.Editor.MvcBind;
 using Core.Runtime;
 using Hotfix.DroneFlight;
-using Hotfix.DroneFlight.Adapters.SleepyDemos;
+using Hotfix.DroneFlight.Adapters;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;

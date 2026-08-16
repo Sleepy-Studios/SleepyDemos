@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>在 DroneFlight 场景中按 Backspace 返回 Hub。</summary>
     public sealed class DroneFlightDemoExit : MonoBehaviour

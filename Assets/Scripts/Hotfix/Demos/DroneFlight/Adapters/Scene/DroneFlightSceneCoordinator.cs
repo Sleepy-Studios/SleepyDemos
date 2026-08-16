@@ -6,7 +6,7 @@ using Hotfix.DroneFlight;
 using Hotfix.SceneManagement;
 using UnityEngine;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>场景级机型选择、单实例生成和会话切换协调器。</summary>
     public sealed class DroneFlightSceneCoordinator : MonoBehaviour

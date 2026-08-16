@@ -2,7 +2,7 @@ using System;
 using Hotfix.DroneFlight;
 using UnityEngine;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>捕鱼任务可重复采样的路径阶段。</summary>
     internal enum DroneMissionPathSection

@@ -1,6 +1,6 @@
 using System;
 using Hotfix.DroneFlight;
-using Hotfix.DroneFlight.Adapters.SleepyDemos;
+using Hotfix.DroneFlight.Adapters;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

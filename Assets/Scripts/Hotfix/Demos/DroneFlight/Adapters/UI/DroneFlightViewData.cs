@@ -1,6 +1,6 @@
 using Hotfix.DroneFlight;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>SleepyDemos HUD 与调试 View 使用的强类型数据。</summary>
     public sealed class DroneFlightViewData

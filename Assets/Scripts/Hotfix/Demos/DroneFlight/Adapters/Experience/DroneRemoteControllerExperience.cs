@@ -3,7 +3,7 @@ using Hotfix.DroneFlight;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>F 直接进入第三人称控制，Escape 返回场景等待视角。</summary>
     public sealed class DroneRemoteControllerExperience : MonoBehaviour, IDroneControlSession

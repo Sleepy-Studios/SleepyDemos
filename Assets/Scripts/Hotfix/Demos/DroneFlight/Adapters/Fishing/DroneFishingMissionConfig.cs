@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>SleepyDemos 捕鱼演出的任务与固定机位参数。</summary>
     [CreateAssetMenu(fileName = "DroneFishingMissionConfig", menuName = "SleepyDemos/Drone Flight/Fishing Mission Config")]

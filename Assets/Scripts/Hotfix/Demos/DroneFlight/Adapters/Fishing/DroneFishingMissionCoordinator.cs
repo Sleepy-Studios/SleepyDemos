@@ -3,7 +3,7 @@ using Hotfix.DroneFlight;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>捕鱼演出阶段；失败只允许重播，不伪造后续成功。</summary>
     internal enum DroneFishingMissionState

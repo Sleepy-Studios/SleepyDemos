@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Hotfix.DroneFlight.Adapters.SleepyDemos
+namespace Hotfix.DroneFlight.Adapters
 {
     /// <summary>保持相机世界坐标不变，只平滑旋转和收窄视场角追踪无人机。</summary>
     [RequireComponent(typeof(Camera))]
