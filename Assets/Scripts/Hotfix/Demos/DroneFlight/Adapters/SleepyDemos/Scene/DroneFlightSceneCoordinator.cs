@@ -34,6 +34,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
         {
             lifetimeCancellation = new CancellationTokenSource();
             sessionId = Guid.NewGuid().ToString("N");
+            // 场景协调组件按同对象组合，生命周期固定但不属于 View Prefab 子节点。
             demoExit ??= GetComponent<DroneFlightDemoExit>();
             if (demoExit != null)
             {
@@ -89,6 +90,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
             }
 
             await navigator.WaitUntilStableAsync(GameSceneId.DroneFlight, cancellationToken);
+            // UIController 是场景根对象上的宿主适配组件，不是 View 内部节点。
             uiController ??= GetComponent<DroneFlightUIController>();
             if (uiController == null)
             {
@@ -133,6 +135,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
                     DroneVehicleKind.Harpoon => "DroneHarpoonVariant",
                     _ => "DronePrototype"
                 };
+                // 机体和镜头均为本次运行时生成实例，在组合阶段一次性取得并传入装配器。
                 var remote = currentDrone.GetComponent<DroneRemoteControllerExperience>();
                 if (remote != null)
                 {

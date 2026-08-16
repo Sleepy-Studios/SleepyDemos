@@ -81,7 +81,10 @@ namespace Core.Editor.MvcBind
 
                 foreach (var record in moduleGroup.OrderBy(item => item.viewName))
                 {
-                    var viewItem = NewItem(2, record.viewName, MvcBindTreeItemKind.View, record, string.Empty);
+                    var displayName = record.isValid || string.IsNullOrEmpty(record.validationMessage)
+                        ? record.viewName
+                        : $"{record.viewName}  —  {record.validationMessage}";
+                    var viewItem = NewItem(2, displayName, MvcBindTreeItemKind.View, record, string.Empty);
                     moduleItem.AddChild(viewItem);
 
                     if (record.hasViewScript)
@@ -199,9 +202,7 @@ namespace Core.Editor.MvcBind
 
         private static bool ShouldWarn(MvcBindModuleTreeItem item)
         {
-            return item.kind == MvcBindTreeItemKind.View &&
-                   item.record != null &&
-                   (!item.record.hasPrefab || !item.record.hasViewScript || !item.record.hasComponentScript);
+            return item.kind == MvcBindTreeItemKind.View && item.record != null && !item.record.isValid;
         }
 
         private static bool ContainsSearch(string value, string search)

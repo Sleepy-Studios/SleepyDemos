@@ -73,6 +73,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
                 droneCamera.enabled = true;
             }
 
+            // AudioListener 是相机实例上的可选同对象组件，不属于固定 UI Prefab 节点。
             var droneListener = droneCamera != null ? droneCamera.GetComponent<AudioListener>() : null;
             if (droneListener != null)
             {
@@ -130,6 +131,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
             var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;
             if (droneCamera != null)
             {
+                // 相机可能由不同机型运行时提供，因此按同对象可选组件恢复监听状态。
                 var listener = droneCamera.GetComponent<AudioListener>();
                 if (listener != null)
                 {
@@ -142,6 +144,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
             if (playerCamera != null)
             {
                 playerCamera.enabled = true;
+                // 玩家相机是场景外部对象，AudioListener 并非所有场景都强制存在。
                 var listener = playerCamera.GetComponent<AudioListener>();
                 if (listener != null)
                 {

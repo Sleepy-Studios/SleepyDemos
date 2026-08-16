@@ -53,6 +53,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
 
         internal void CaptureInitialPose()
         {
+            // Camera 由 RequireComponent 保证并在组合阶段缓存，不是 UI 子节点查找。
             outputCamera = GetComponent<Camera>();
             initialPosition = transform.position;
             initialRotation = transform.rotation;

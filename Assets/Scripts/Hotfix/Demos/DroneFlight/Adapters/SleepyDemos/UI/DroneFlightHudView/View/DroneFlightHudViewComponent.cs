@@ -30,6 +30,10 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_PayloadText;
         private TextMeshProUGUI TextMeshProUGUI_WarningText;
         private TextMeshProUGUI TextMeshProUGUI_ControlsText;
+        private TextMeshProUGUI TextMeshProUGUI_ControlsHeaderText;
+        private TextMeshProUGUI TextMeshProUGUI_FlightControlsText;
+        private TextMeshProUGUI TextMeshProUGUI_CameraControlsText;
+        private TextMeshProUGUI TextMeshProUGUI_SystemControlsText;
         private Image Image_ResetProgressFill;
         private TextMeshProUGUI TextMeshProUGUI_ResetProgressText;
 
@@ -49,8 +53,12 @@ namespace Hotfix
             TextMeshProUGUI_PayloadText = componentItemIndex.Get<TextMeshProUGUI>(3);
             TextMeshProUGUI_WarningText = componentItemIndex.Get<TextMeshProUGUI>(4);
             TextMeshProUGUI_ControlsText = componentItemIndex.Get<TextMeshProUGUI>(5);
-            Image_ResetProgressFill = componentItemIndex.Get<Image>(6);
-            TextMeshProUGUI_ResetProgressText = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_ControlsHeaderText = componentItemIndex.Get<TextMeshProUGUI>(6);
+            TextMeshProUGUI_FlightControlsText = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_CameraControlsText = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_SystemControlsText = componentItemIndex.Get<TextMeshProUGUI>(9);
+            Image_ResetProgressFill = componentItemIndex.Get<Image>(10);
+            TextMeshProUGUI_ResetProgressText = componentItemIndex.Get<TextMeshProUGUI>(11);
         }
     }
 }

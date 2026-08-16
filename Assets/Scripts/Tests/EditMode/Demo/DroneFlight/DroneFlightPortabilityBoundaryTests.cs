@@ -22,14 +22,15 @@ namespace Tests.Demo
         {
             "using Core.Runtime", "using Hotfix.SceneManagement", "using Cysharp.Threading.Tasks",
             "using UnityEngine.UI", "UIManager", "UIRootManager", "ResourceServices",
-            "GameSceneNavigator", "DemoIslandEditorBootstrap", "GameSceneId.Hub"
+            "GameSceneNavigator", "DemoIslandEditorBootstrap", "GameSceneId.Hub", "ComponentItemIndex"
         };
 
         private static readonly string[] AdapterConcreteTypes =
         {
             "DroneRemoteControllerExperience", "DroneFlightUIController", "DroneFlightSceneCoordinator",
             "DroneFlightDemoExit", "DroneFishingMissionCoordinator", "DroneBezierMissionPath",
-            "DroneCinematicCameraTracker", "DroneFlightViewData"
+            "DroneCinematicCameraTracker", "DroneFlightViewData", "DroneFlightHudView",
+            "DroneFlightDebugView", "DroneFlightVehicleSelectView"
         };
 
         [Test]

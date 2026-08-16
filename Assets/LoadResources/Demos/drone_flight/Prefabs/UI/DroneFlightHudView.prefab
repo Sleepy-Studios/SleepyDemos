@@ -345,10 +345,18 @@ MonoBehaviour:
   - {fileID: 710978186063983424}
   - {fileID: 2349003414220909410}
   - {fileID: 842025824650322954}
+  - {fileID: 4331412950425109964}
+  - {fileID: 1269735026338550719}
+  - {fileID: 3980699440159767123}
+  - {fileID: 7962121614508785756}
   - {fileID: 803320243231048696}
   - {fileID: 3049281913438442464}
   componentTypes:
   - UnityEngine.CanvasGroup
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
   - TMPro.TextMeshProUGUI
   - TMPro.TextMeshProUGUI
   - TMPro.TextMeshProUGUI
@@ -363,17 +371,25 @@ MonoBehaviour:
   - DroneFlightHudView/TelemetryRoot/PayloadText|TMPro.TextMeshProUGUI
   - DroneFlightHudView/TelemetryRoot/WarningText|TMPro.TextMeshProUGUI
   - DroneFlightHudView/ControlsPanel/ControlsText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/ControlsPanel/ControlsHeaderText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/ControlsPanel/FlightControlsText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/ControlsPanel/CameraControlsText|TMPro.TextMeshProUGUI
+  - DroneFlightHudView/ControlsPanel/SystemControlsText|TMPro.TextMeshProUGUI
   - DroneFlightHudView/ResetProgressRoot/ResetProgressFill|UnityEngine.UI.Image
   - DroneFlightHudView/ResetProgressRoot/ResetProgressText|TMPro.TextMeshProUGUI
   bindingMethods:
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
 --- !u!1 &3760276723602452983
 GameObject:
   m_ObjectHideFlags: 0

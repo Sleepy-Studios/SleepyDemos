@@ -41,6 +41,7 @@ namespace Tests.Demo
                 ["DroneEquipmentPhysicsPlayModeTests"] = "验证抓斗包围吸附、渔叉停靠冲量和绳索受力",
                 ["DroneFishingMissionPlayModeTests"] = "验证捕鱼 MVP 固定机位和自动渔叉瞄准",
                 ["DroneStandaloneBootstrapPlayModeTests"] = "验证独立场景无需宿主框架即可装配手动无人机",
+                ["DroneFlightHudBindingPlayModeTests"] = "验证 HUD 固定节点的 MvcBind 运行时初始化与刷新",
                 ["DroneCameraLifecycleTests"] = "验证第三人称、机腹和云台镜头生命周期"
             };
 

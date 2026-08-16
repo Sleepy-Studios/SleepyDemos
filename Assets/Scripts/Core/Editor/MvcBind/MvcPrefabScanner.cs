@@ -339,6 +339,7 @@ namespace Core.Editor.MvcBind
                 }
 
                 generatedPath = MvcCodeGenerator.Generate(settings, nodes);
+                MvcBindWindow.RefreshActiveIndex();
                 return true;
             }
             catch (InvalidDataException exception)
@@ -359,7 +360,9 @@ namespace Core.Editor.MvcBind
             itemIndex.Components = components.Select(item => item.component).ToArray();
             itemIndex.ComponentTypes = components.Select(item => item.componentType.FullName).ToArray();
             itemIndex.BindingKeys = components.Select(CreateBindingKey).ToArray();
-            itemIndex.BindingMethods = components.Select(item => string.Join("|", item.methods.Select(method => method.registerMethodName))).ToArray();
+            itemIndex.BindingMethods = components.Select(item => item.methods.Count == 0
+                ? NoneChoice
+                : string.Join("|", item.methods.Select(method => method.registerMethodName))).ToArray();
             EditorUtility.SetDirty(itemIndex);
             EditorUtility.SetDirty(targetPrefabRoot);
 
@@ -728,7 +731,7 @@ namespace Core.Editor.MvcBind
 
         private static List<string> SplitMethods(string value)
         {
-            return string.IsNullOrEmpty(value)
+            return string.IsNullOrEmpty(value) || value == NoneChoice
                 ? new List<string>()
                 : value.Split(new[] { '|', ',' }, StringSplitOptions.RemoveEmptyEntries).Distinct().ToList();
         }

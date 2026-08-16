@@ -19,10 +19,23 @@
    - `CanvasScaler`
    - `GraphicRaycaster`
 4. 打开现有 MvcBind 工具并选择正确的 `UILayer`。
-5. 显式选择 `ViewMode`：主页面用 `Page`，弹窗用 `Modal`，常驻挂件或 HUD 用 `Widget`。不要只依赖 `UILayer` 推导。
-6. 选择该 View 使用的 `UI Transition` 类型。未生成显式覆盖时，框架默认使用 `FadeScaleUITransition`；不需要视觉过渡时显式选择 `EmptyUITransition`，需要其它表现时选择自定义实现。
-7. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段不会在生成代码中实例化世界过渡；首版 Hotfix Provider 按 View 精确类型解析，Key 保留给后续业务 Provider 自定义路由，不要把实现类型名写入 Key。
-8. 完成组件和回调绑定后生成 View 与 Component 代码。生成的 Component 会显式覆盖 `ViewMode`，并通过 `CreateUITransition()` 工厂创建 UI Transition。
+5. 填写 `Module`。默认代码生成到 `Assets/Scripts/Hotfix/Module/{Module}/{Prefab名}/View`。
+6. Demo 需要把 View 留在源码适配边界时，勾选“自定义 Module 输出目录”，再用“选择文件夹”选择当前 Module 的输出目录。该路径不可手写且必须位于当前项目 `Assets` 内；生成器会自动追加 `{Prefab名}/View`，不会再次追加 Module 名。
+7. 显式选择 `ViewMode`：主页面用 `Page`，弹窗用 `Modal`，常驻挂件或 HUD 用 `Widget`。不要只依赖 `UILayer` 推导。
+8. 选择该 View 使用的 `UI Transition` 类型。未生成显式覆盖时，框架默认使用 `FadeScaleUITransition`；不需要视觉过渡时显式选择 `EmptyUITransition`，需要其它表现时选择自定义实现。
+9. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段不会在生成代码中实例化世界过渡；首版 Hotfix Provider 按 View 精确类型解析，Key 保留给后续业务 Provider 自定义路由，不要把实现类型名写入 Key。
+10. 固定存在且由业务代码访问的 Prefab 节点必须加入 `ComponentItemIndex`；完成组件和回调绑定后生成 View 与 Component 代码。不要直接修改自动生成的 `*Component.cs`，也不要在手写 View 中用 `Transform.Find` 补漏。
+11. 生成成功后，在窗口下方确认 View 出现在对应 `[Module]` 下，并能看到手写 View、生成 ViewComponent 和 `GameObject` 三项。自定义输出目录不会影响这里的归类。
+
+## 使用绑定索引
+
+- 打开 MvcBind 窗口时会自动扫描一次 `Assets/LoadResources`；只有根节点带 `ComponentItemIndex` 的 Prefab 会进入索引。
+- 在 Prefab Mode 打开已有 View Prefab 时，窗口按原有流程回填顶部配置；Module 和自定义输出目录可以从 `Assets/Scripts/Hotfix` 下的默认或自定义代码目录解析。
+- 下方索引只负责展示并定位 Prefab/脚本，不会因为点击条目而改写顶部配置；在 Project 面板普通选择 Prefab 也不会触发回填。
+- MvcBind 生成、Prefab 保存生成或业务 Builder 调用统一生成流程成功后，已打开的窗口会自动刷新。
+- 通过 Inspector、外部脚本或其它工具修改 Prefab 后，点击“刷新绑定索引”获取最新结果。工具不会监听全局项目变化，因此普通资源导入不会反复触发扫描。
+- `[异常绑定]` 表示 Prefab 已有 `ComponentItemIndex`，但缺少 View/Component 脚本、生成的 `Source` 与 Prefab 地址不一致、绑定数组长度不一致或存在丢失组件。展开条目查看中文原因，修复后重新生成并刷新。
+- Prefab Mode 下可拖动顶部配置区与下方绑定索引之间的横向分隔条；窗口空间不足时调整分隔位置，顶部配置区会独立滚动，不应与搜索框或索引树重叠。
 
 ## Transition 生命周期
 

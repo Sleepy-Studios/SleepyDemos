@@ -21,7 +21,7 @@ namespace Core.Editor.MvcBind
                 throw new InvalidDataException("MvcBind 生成失败：请先在 Hierarchy 勾选至少一个要绑定的组件。");
             }
 
-            settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings.moduleName, settings.viewName);
+            settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings);
             Directory.CreateDirectory(settings.outputFolder);
             var viewPath = Path.Combine(settings.outputFolder, settings.viewScriptName).Replace('\\', '/');
             var componentPath = Path.Combine(settings.outputFolder, settings.componentScriptName).Replace('\\', '/');
@@ -43,6 +43,18 @@ namespace Core.Editor.MvcBind
             if (string.IsNullOrEmpty(settings.prefabPath))
             {
                 throw new InvalidDataException("MvcBind 生成失败：没有检测到 Prefab 资源路径。");
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.moduleName))
+            {
+                throw new InvalidDataException("MvcBind 生成失败：必须填写 Module。");
+            }
+
+            if (settings.useCustomModuleOutputDirectory &&
+                !MvcBindPathUtility.IsValidCustomModuleOutputDirectory(settings.customModuleOutputDirectory))
+            {
+                throw new InvalidDataException(
+                    "MvcBind 生成失败：启用自定义 Module 输出目录后，必须通过文件夹选择器选择 Assets 或其子目录。");
             }
 
             if (!string.IsNullOrEmpty(settings.uiTransitionType) && settings.uiTransitionType != "null")

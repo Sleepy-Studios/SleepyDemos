@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Core.Editor.MvcBind;
+using Core.Runtime;
 using Hotfix.DroneFlight;
 using Hotfix.DroneFlight.Adapters.SleepyDemos;
 using TMPro;
@@ -26,6 +28,8 @@ namespace Hotfix.Editor.DroneFlight
         private const string GrappleConfigPath = Root + "/Data/Equipment/DroneGrappleConfig.asset";
         private const string HarpoonConfigPath = Root + "/Data/Equipment/DroneHarpoonConfig.asset";
         private const string HudPrefabPath = Root + "/Prefabs/UI/DroneFlightHudView.prefab";
+        private const string HudMvcOutputDirectory =
+            "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/SleepyDemos/UI";
         private const string ModelPath = Root + "/Art/Models/DroneFlight.fbx";
         private const string MaterialRoot = Root + "/Art/Materials";
 
@@ -70,9 +74,21 @@ namespace Hotfix.Editor.DroneFlight
                 GrapplePrefabPath, HarpoonPrefabPath, HudPrefabPath
             });
             AssetDatabase.SaveAssets();
+            MvcBindWindow.RefreshActiveIndex();
             AssetDatabase.Refresh();
             Debug.Log(
                 "[DroneFlight] 基础无人机、两个独立装备 Prefab 和两个已保存组合机体已重建；运行时不会动态拼装。");
+        }
+
+        /// 重新配置 HUD Prefab，并同步 MvcBind 索引与生成代码。
+        [MenuItem("Tools/SleepyDemos/DroneFlight/刷新 HUD UI 与绑定")]
+        public static void RebuildHudUi()
+        {
+            ConfigureHudPrefab();
+            AssetDatabase.SaveAssets();
+            MvcBindWindow.RefreshActiveIndex();
+            AssetDatabase.Refresh();
+            Debug.Log("[DroneFlight] HUD UI、ComponentItemIndex 与 MvcBind 生成代码已同步。");
         }
 
         private static void RebuildBasePrefab()
@@ -508,12 +524,96 @@ namespace Hotfix.Editor.DroneFlight
                         TextAlignmentOptions.TopLeft).text =
                         "<b>系统</b>\n" + DroneHudFormatter.FormatSystemControls();
                 }
+
+                SynchronizeHudMvcBindings(root);
                 PrefabUtility.SaveAsPrefabAsset(root, HudPrefabPath);
             }
             finally
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        private static void SynchronizeHudMvcBindings(GameObject root)
+        {
+            var nodes = CreateHudBindingNodes(root);
+            var settings = new MvcBindSettings
+            {
+                prefabPath = HudPrefabPath,
+                moduleName = "DroneFlight",
+                viewName = nameof(DroneFlightHudView),
+                namespaceName = "Hotfix",
+                address = MvcBindPathUtility.ToRuntimeAddress(HudPrefabPath),
+                viewType = ViewType.View,
+                layer = UILayer.Decorate,
+                viewMode = UIViewMode.Widget,
+                mask = MaskType.None,
+                isHotfix = true,
+                isAsync = true,
+                enableOnInit = true,
+                destroyOnHide = true,
+                uiTransitionType = typeof(EmptyUITransition).FullName,
+                useCustomModuleOutputDirectory = true,
+                customModuleOutputDirectory = HudMvcOutputDirectory
+            };
+            settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings);
+
+            if (!MvcBindComponentWindowBridge.GenerateAndBind(
+                    root,
+                    settings,
+                    nodes,
+                    false,
+                    out _,
+                    out var message))
+            {
+                throw new InvalidOperationException(message);
+            }
+        }
+
+        /// <summary>
+        /// 恢复 HUD 已有 MvcBind 选择，并确保控制说明文本始终进入绑定索引。
+        /// </summary>
+        /// <param name="root">HUD Prefab 根对象。</param>
+        /// <returns>可直接交给 MvcBind 生成流程的完整节点集合。</returns>
+        internal static List<MvcBindNode> CreateHudBindingNodes(GameObject root)
+        {
+            if (root == null)
+            {
+                throw new ArgumentNullException(nameof(root));
+            }
+
+            var nodes = MvcPrefabScanner.Scan(root);
+            MvcBindComponentWindowBridge.RestoreComponentChoices(root, nodes);
+            SelectHudTextBinding(nodes, "ControlsHeaderText");
+            SelectHudTextBinding(nodes, "FlightControlsText");
+            SelectHudTextBinding(nodes, "CameraControlsText");
+            SelectHudTextBinding(nodes, "SystemControlsText");
+            return nodes;
+        }
+
+        private static void SelectHudTextBinding(IReadOnlyList<MvcBindNode> nodes, string nodeName)
+        {
+            var expectedSuffix = $"/ControlsPanel/{nodeName}";
+            MvcBindNode targetNode = null;
+            foreach (var node in nodes)
+            {
+                if (node.path.EndsWith(expectedSuffix, StringComparison.Ordinal))
+                {
+                    targetNode = node;
+                    break;
+                }
+            }
+
+            if (targetNode == null || !targetNode.componentTypes.Contains(typeof(TextMeshProUGUI)))
+            {
+                throw new InvalidOperationException($"HUD 缺少可绑定的 TextMeshProUGUI 节点：ControlsPanel/{nodeName}");
+            }
+
+            targetNode.selectedComponentType = typeof(TextMeshProUGUI);
+            targetNode.selectedComponentTypeName = typeof(TextMeshProUGUI).FullName;
+            targetNode.selectedComponentTypes.Clear();
+            targetNode.selectedMethodNames.Clear();
+            targetNode.selectedMethodNamesByComponentTypeName.Clear();
         }
 
         private static void ConfigureHudText(

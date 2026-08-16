@@ -3,7 +3,6 @@ namespace Hotfix
     using Core.Runtime;
     using DroneFlight;
     using DroneFlight.Adapters.SleepyDemos;
-    using TMPro;
 
     [Module("DroneFlight")]
     [Mvc("DroneFlightHudView")]
@@ -11,21 +10,11 @@ namespace Hotfix
     {
         private DroneFlightUiTelemetrySource telemetrySource;
         private bool controlsVisible;
-        private TextMeshProUGUI controlsHeaderText;
-        private TextMeshProUGUI flightControlsText;
-        private TextMeshProUGUI cameraControlsText;
-        private TextMeshProUGUI systemControlsText;
-
-        protected override void OnGameObjectInitialize()
-        {
-            ResolveControlSections();
-        }
 
         protected override void OnShow()
         {
             base.OnShow();
             Unsubscribe();
-            ResolveControlSections();
             SetControlsVisible(true);
             telemetrySource = params1?.TelemetrySource;
             RefreshControlSections(telemetrySource != null
@@ -101,41 +90,29 @@ namespace Hotfix
             {
                 TextMeshProUGUI_ControlsText.transform.parent.gameObject.SetActive(value);
             }
-            if (controlsHeaderText != null)
+            if (TextMeshProUGUI_ControlsHeaderText != null)
             {
-                controlsHeaderText.text = value ? "操作提示  ·  F1 收起" : "操作提示  ·  F1 展开";
+                TextMeshProUGUI_ControlsHeaderText.text =
+                    value ? "操作提示  ·  F1 收起" : "操作提示  ·  F1 展开";
             }
-        }
-
-        private void ResolveControlSections()
-        {
-            var panel = TextMeshProUGUI_ControlsText != null
-                ? TextMeshProUGUI_ControlsText.transform.parent
-                : null;
-            if (panel == null)
-            {
-                return;
-            }
-
-            controlsHeaderText = panel.Find("ControlsHeaderText")?.GetComponent<TextMeshProUGUI>();
-            flightControlsText = panel.Find("FlightControlsText")?.GetComponent<TextMeshProUGUI>();
-            cameraControlsText = panel.Find("CameraControlsText")?.GetComponent<TextMeshProUGUI>();
-            systemControlsText = panel.Find("SystemControlsText")?.GetComponent<TextMeshProUGUI>();
         }
 
         private void RefreshControlSections(DroneEquipmentKind kind)
         {
-            if (flightControlsText != null)
+            if (TextMeshProUGUI_FlightControlsText != null)
             {
-                flightControlsText.text = "<b>飞行与档位</b>\n" + DroneHudFormatter.FormatFlightControls();
+                TextMeshProUGUI_FlightControlsText.text =
+                    "<b>飞行与档位</b>\n" + DroneHudFormatter.FormatFlightControls();
             }
-            if (cameraControlsText != null)
+            if (TextMeshProUGUI_CameraControlsText != null)
             {
-                cameraControlsText.text = "<b>视角与机构</b>\n" + DroneHudFormatter.FormatCameraControls();
+                TextMeshProUGUI_CameraControlsText.text =
+                    "<b>视角与机构</b>\n" + DroneHudFormatter.FormatCameraControls();
             }
-            if (systemControlsText != null)
+            if (TextMeshProUGUI_SystemControlsText != null)
             {
-                systemControlsText.text = "<b>系统</b>\n" + DroneHudFormatter.FormatSystemControls();
+                TextMeshProUGUI_SystemControlsText.text =
+                    "<b>系统</b>\n" + DroneHudFormatter.FormatSystemControls();
             }
             if (TextMeshProUGUI_ControlsText != null)
             {

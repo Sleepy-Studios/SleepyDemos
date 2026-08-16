@@ -132,6 +132,9 @@ Assets/LoadResources/Demos/drone_flight/
 - FixedForward 保留机体横滚/俯仰，默认 FOV `75°`；Belly 与 HarpoonAim 使用机腹稳定向下视角，默认 FOV 分别为 `60°`、`55°`。
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
 - HUD 保留顶部状态、左下飞行遥测和底部装备提示；操作面板默认展开，标题、飞行/档位、视角/系统和装备操作分区显示，按 F1 整体收起或展开，不显示虚构的电池、GNSS 或图传信号。
+- HUD、Debug 和机型选择 View 中固定存在的 Prefab 节点统一进入根节点 `ComponentItemIndex`，业务代码只使用 MvcBind 生成的强类型字段，不在 `OnShow()` 或其它生命周期内按名称重复查找。
+- `DroneFlightMechanismBuilder` 修改 HUD 节点后会同步完整绑定索引，并把生成代码写回 `Adapters/SleepyDemos/UI/<View名>/View`。重新执行 Builder 不得丢失绑定或把代码生成到旧 `Hotfix/Module` 目录。
+- 相机监听器、运行时机体组件以及捕鱼场景显式注入的 Canvas/Button 属于运行时组合或场景结构，不是 View Prefab 固定节点；这些位置可以在组合阶段缓存组件，但必须用中文注释说明原因。
 
 ## 飞控与遥测
 
@@ -150,6 +153,7 @@ F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/�
 - 不在玩法或输入代码中直接调用 `SceneManager`；切换和重载统一走导航器。
 - 装备模块必须独立保存为 Prefab；装备机体必须保存为基础无人机加嵌套装备的成品 Prefab。运行时禁止动态拼装或调用编辑器 Builder。
 - 不修改生成的 `*Component.cs`；View 数据由正式 UIManager 导航事务传入。
+- 手写 `*View.cs` 禁止通过 `Transform.Find`、`GameObject.Find` 或 `GetComponentInChildren` 获取固定 Prefab 节点；新增固定节点时先维护 `ComponentItemIndex`，再通过 MvcBind 重新生成强类型字段。
 - 不使用中心总推力替代四个 Rotor，不用高 Rigidbody 阻尼掩盖振荡。
 - 装备内部碰撞必须忽略，装备与载荷/场景碰撞保留。
 - 场景卸载、断绳、释放与回收必须清理临时 Joint、碰撞忽略和弹体引用。

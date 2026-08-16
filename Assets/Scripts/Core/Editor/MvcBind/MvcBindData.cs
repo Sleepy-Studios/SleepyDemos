@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEditor;
 using UnityEngine;
@@ -15,6 +16,8 @@ namespace Core.Editor.MvcBind
         public string viewName = "NewView";
         public string namespaceName = MvcBindToolConfig.DefaultNamespace;
         public string outputFolder = MvcBindToolConfig.ModuleRoot;
+        public bool useCustomModuleOutputDirectory;
+        public string customModuleOutputDirectory = string.Empty;
         public string address = string.Empty;
         public Core.Runtime.ViewType viewType = Core.Runtime.ViewType.View;
         public Core.Runtime.UILayer layer = Core.Runtime.UILayer.Base;
@@ -40,7 +43,7 @@ namespace Core.Editor.MvcBind
             prefabPath = MvcBindPathUtility.NormalizeAssetPath(assetPath);
             address = MvcBindPathUtility.ToRuntimeAddress(prefabPath);
             viewName = MvcBindPathUtility.ToViewClassName(prefabPath);
-            outputFolder = MvcBindPathUtility.ToOutputFolder(moduleName, viewName);
+            outputFolder = MvcBindPathUtility.ToOutputFolder(this);
             return true;
         }
     }
@@ -88,6 +91,8 @@ namespace Core.Editor.MvcBind
 
     public sealed class MvcBindViewRecord
     {
+        public const string InvalidModuleName = "异常绑定";
+
         public string moduleName = string.Empty;
         public string viewName = string.Empty;
         public string address = string.Empty;
@@ -97,6 +102,10 @@ namespace Core.Editor.MvcBind
         public bool hasPrefab;
         public bool hasViewScript;
         public bool hasComponentScript;
+        public bool isValid;
+        public string validationMessage = string.Empty;
+        public bool usesCustomModuleOutputDirectory;
+        public string moduleOutputDirectory = string.Empty;
     }
 
     public static class MvcBindPathUtility
@@ -181,6 +190,33 @@ namespace Core.Editor.MvcBind
                 : $"{moduleRoot}/{cleanView}/View";
         }
 
+        /// <summary>
+        /// 根据生成设置解析最终输出目录；自定义目录代表当前 Module 的输出目录，不重复追加 Module 名。
+        /// </summary>
+        /// <param name="settings">MvcBind 生成设置。</param>
+        /// <returns>Unity 项目内的脚本输出目录。</returns>
+        public static string ToOutputFolder(MvcBindSettings settings)
+        {
+            if (settings == null || !settings.useCustomModuleOutputDirectory)
+            {
+                return ToOutputFolder(settings?.moduleName, settings?.viewName);
+            }
+
+            var customRoot = NormalizeAssetPath(settings.customModuleOutputDirectory).TrimEnd('/');
+            var cleanView = ToPascalIdentifier(settings.viewName);
+            return string.IsNullOrEmpty(cleanView)
+                ? customRoot
+                : $"{customRoot}/{cleanView}/View";
+        }
+
+        /// 自定义 Module 输出目录是否是 Assets 或其子目录，并且不包含父级跳转。
+        public static bool IsValidCustomModuleOutputDirectory(string assetPath)
+        {
+            var normalized = NormalizeAssetPath(assetPath).TrimEnd('/');
+            return (normalized == "Assets" || normalized.StartsWith("Assets/", StringComparison.Ordinal)) &&
+                   !normalized.Split('/').Contains("..");
+        }
+
         private static string ToRelativeFolder(string value)
         {
             return (value ?? string.Empty)
@@ -223,6 +259,7 @@ namespace Core.Editor.MvcBind
     {
         public const string ScriptRoot = "Assets/Scripts/Hotfix";
         public const string ModuleRoot = ScriptRoot + "/Module";
+        public const string LoadResourcesRoot = "Assets/LoadResources";
         public const string DefaultNamespace = "Hotfix";
         public const string DefaultModuleName = "";
     }

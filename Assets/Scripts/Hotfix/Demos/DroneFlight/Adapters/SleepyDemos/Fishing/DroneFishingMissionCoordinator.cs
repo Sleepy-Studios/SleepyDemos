@@ -238,6 +238,7 @@ namespace Hotfix.DroneFlight.Adapters.SleepyDemos
             yield return new WaitForFixedUpdate();
             runtime.FinalizeForAutomation();
 
+            // 正式机体是运行时实例，装备宿主必须从本次生成的机体根对象取得。
             equipmentHost = runtime.Root.GetComponent<DroneEquipmentHost>();
             autopilot = runtime.Root.AddComponent<DroneMissionAutopilot>();
             autopilot.Configure(runtime.Controller, runtime.Body);
