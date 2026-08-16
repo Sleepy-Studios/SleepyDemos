@@ -73,8 +73,7 @@ namespace Hotfix.Editor.DroneFlight
             ["automaticTakeoffHeightMeters"] = new("自动起飞高度 (m)", "Automatic Takeoff Height (m)", "按 T 后自动起飞的目标高度。", "Target height after automatic takeoff."),
             ["automaticLandingSpeedMetersPerSecond"] = new("自动降落速度 (m/s)", "Automatic Landing Speed (m/s)", "自动降落阶段的下降速度。", "Descent speed during automatic landing."),
             ["defaultResponseProfile"] = new("默认飞行档位", "Default Flight Profile", "进入场景时使用的档位。", "Profile selected when entering the scene."),
-            ["landingGearTransitionSeconds"] = new("起落架过渡时间 (s)", "Gear Transition Time (s)", "完全收放需要的时间。", "Time for a full gear transition."),
-            ["resetHoldSeconds"] = new("长按重载场景时间 (s)", "Scene Reload Hold Time (s)", "R 键达到此时间后卸载并重新加载当前 DroneFlight 场景。", "Hold R for this duration to unload and reload the current DroneFlight scene.")
+            ["landingGearTransitionSeconds"] = new("起落架过渡时间 (s)", "Gear Transition Time (s)", "完全收放需要的时间。", "Time for a full gear transition.")
         };
 
         private bool useChinese;
@@ -145,8 +144,6 @@ namespace Hotfix.Editor.DroneFlight
             DrawSection(useChinese ? "起落架" : "Landing Gear");
             DrawNamed("landingGearTransitionSeconds");
 
-            DrawSection(useChinese ? "输入与场景重载" : "Input And Scene Reload");
-            DrawNamed("resetHoldSeconds");
         }
 
         private void DrawAdvancedSettings()
@@ -228,9 +225,6 @@ namespace Hotfix.Editor.DroneFlight
 
             DrawSection(useChinese ? "起落架" : "Landing Gear");
             DrawNamed("landingGearTransitionSeconds");
-
-            DrawSection(useChinese ? "输入与场景重载" : "Input And Scene Reload");
-            DrawNamed("resetHoldSeconds");
 
             if (mode == DronePowerConfigurationMode.AutomaticPayloadTuning)
             {

@@ -1,5 +1,6 @@
 using System;
 using Hotfix.DroneFlight;
+using Hotfix.DroneFlight.Adapters.SleepyDemos;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -19,6 +20,7 @@ namespace Hotfix.Editor.DroneFlight
         private const string PathPrefabPath = MissionPrefabFolder + "/DroneFishingBezierRoute.prefab";
         private const string ScenePath = DemoRoot + "/Scenes/FishingBurstMvp.unity";
         private const string HarpoonPrefabPath = DemoRoot + "/Prefabs/DroneHarpoonVariant.prefab";
+        private const string FishingConfigPath = DemoRoot + "/Data/DroneFishingMissionConfig.asset";
 
         [MenuItem("Tools/SleepyDemos/DroneFlight/Build Fishing MVP Scene")]
         public static void BuildAndOpen()
@@ -31,10 +33,17 @@ namespace Hotfix.Editor.DroneFlight
                 throw new InvalidOperationException($"找不到渔叉无人机 Prefab：{HarpoonPrefabPath}");
             }
 
+            var fishingConfig = AssetDatabase.LoadAssetAtPath<DroneFishingMissionConfig>(FishingConfigPath);
+            if (fishingConfig == null)
+            {
+                throw new InvalidOperationException($"找不到捕鱼演出配置：{FishingConfigPath}");
+            }
+
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "FishingBurstMvp";
             BuildLighting();
             var camera = BuildCamera(out var cameraTracker);
+            cameraTracker.Configure(fishingConfig);
             BuildEnvironment(out var fishBody, out var fishCollider);
             var path = PrefabUtility.InstantiatePrefab(pathPrefab) as GameObject;
             if (path == null)
@@ -70,6 +79,7 @@ namespace Hotfix.Editor.DroneFlight
                 completedReplayButton,
                 failedPanel,
                 failedReplayButton);
+            coordinator.Configure(fishingConfig);
 
             EditorSceneManager.MarkSceneDirty(scene);
             if (!EditorSceneManager.SaveScene(scene, ScenePath))

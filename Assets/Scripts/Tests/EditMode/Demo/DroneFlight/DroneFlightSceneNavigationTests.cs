@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Core.Runtime;
 using Hotfix.DroneFlight;
+using Hotfix.DroneFlight.Adapters.SleepyDemos;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
 using UnityEditor;

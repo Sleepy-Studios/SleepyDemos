@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Hotfix.DroneFlight;
+using Hotfix.DroneFlight.Adapters.SleepyDemos;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -98,9 +99,9 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void PortableBoundary_IncludesMissionRuntimeWithoutHostServices()
+        public void PortableBoundary_IncludesCruiseRuntimeWithoutHostServices()
         {
-            var missionRoot = Path.GetFullPath("Assets/Scripts/Hotfix/Module/DroneFlight/Mission");
+            var missionRoot = Path.GetFullPath("Assets/Scripts/Hotfix/Demos/DroneFlight/Cruise");
             var forbidden = new[]
             {
                 "using Core.Runtime", "using Hotfix.SceneManagement", "UIManager.",

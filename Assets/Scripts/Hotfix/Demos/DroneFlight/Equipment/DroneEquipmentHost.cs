@@ -6,11 +6,12 @@ namespace Hotfix.DroneFlight
     public sealed class DroneEquipmentHost : MonoBehaviour, IDroneExternalMassProvider,
         IDroneExternalMassSynchronizer
     {
-        [SerializeField] private DroneFlightController flightController;
-        [SerializeField] private Rigidbody droneBody;
-        [SerializeField] private Camera aimCamera;
-        [SerializeField] private DroneCameraRig cameraRig;
-        [SerializeField] private MonoBehaviour moduleSource;
+        // 装配器在实例化后统一注入，避免把运行时连接暴露为可调参数。
+        private DroneFlightController flightController;
+        private Rigidbody droneBody;
+        private Camera aimCamera;
+        private DroneCameraRig cameraRig;
+        private MonoBehaviour moduleSource;
 
         private IDroneEquipmentModule module;
 

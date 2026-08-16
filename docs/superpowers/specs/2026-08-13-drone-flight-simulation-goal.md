@@ -62,7 +62,7 @@
 
 ### 架构边界
 
-- 无人机是具体 Demo 玩法，主要代码放在 `Assets/Scripts/Hotfix/Module/DroneFlight/`。
+- 无人机是具体 Demo 玩法，主要代码放在 `Assets/Scripts/Hotfix/Demos/DroneFlight/`。
 - Demo 专属场景、Prefab、材质、配置和临时基础几何体放在 `Assets/LoadResources/Demos/drone_flight/` 的规范子目录。
 - 从现有 `MainMenuView`/Hub 接入，不修改 Core 启动主链路。
 - 不允许 `Core.Runtime` 反向依赖 Hotfix。只有在至少两个真实 Demo 已稳定复用且经过边界评审后，才允许把能力提取到 Core；本 Goal 默认不做该上提。

@@ -9,10 +9,20 @@ namespace Hotfix.DroneFlight
     [RequireComponent(typeof(Rigidbody))]
     public sealed class DroneFlightController : MonoBehaviour
     {
-        [SerializeField] private DroneFlightConfig config;
-        [SerializeField] private bool armOnStart;
-        [SerializeField] private DroneResponseProfile responseProfile = DroneResponseProfile.Normal;
-        [SerializeField] private MonoBehaviour externalMassProviderSource;
+        [SerializeField, InspectorName("飞行参数配置")]
+        [Tooltip("无人机动力、控制器和安全限制的统一配置资产。")]
+        private DroneFlightConfig config;
+
+        [SerializeField, InspectorName("启动时自动解锁")]
+        [Tooltip("仅用于独立调试；正式流程通常由启动器显式解锁。")]
+        private bool armOnStart;
+
+        [SerializeField, InspectorName("操控响应档位")]
+        [Tooltip("选择平稳、标准或敏捷的输入响应。")]
+        private DroneResponseProfile responseProfile = DroneResponseProfile.Normal;
+
+        // 由装备宿主在装配阶段注入，不是策划可调参数。
+        private MonoBehaviour externalMassProviderSource;
 
         private readonly DroneRotor[] orderedRotors = new DroneRotor[DroneRotorActuatorRuntime.RotorCount];
         private readonly DroneMotorModel[] motors = new DroneMotorModel[DroneRotorActuatorRuntime.RotorCount];

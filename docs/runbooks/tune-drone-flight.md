@@ -30,10 +30,15 @@
 ## 配置位置
 
 - 无人机：`Data/DroneFlightConfig.asset`。
+- 镜头：`Data/DroneCameraConfig.asset`。
+- 输入：`Data/DroneInputConfig.asset`。
+- 自动巡航：`Data/DroneAutopilotConfig.asset`。
+- 遥测诊断：`Data/DroneDiagnosticsConfig.asset`。
 - 抓斗：`Data/Equipment/DroneGrappleConfig.asset`。
 - 渔叉：`Data/Equipment/DroneHarpoonConfig.asset`。
+- 捕鱼演出：`Data/DroneFishingMissionConfig.asset`。
 
-不要在 DroneFlightConfig 中寻找装备参数。三个 Inspector 顶部均可切换中文/English；装备配置另有普通/高级分页。运行时修改只同步到各自运行时副本。
+不要在 DroneFlightConfig 中寻找镜头、输入、巡航、诊断或装备参数。Inspector 优先使用中文字段和悬浮解释；装备配置另有普通/高级分页。运行时修改只同步到各自运行时副本。
 
 ## 工业训练场路线
 

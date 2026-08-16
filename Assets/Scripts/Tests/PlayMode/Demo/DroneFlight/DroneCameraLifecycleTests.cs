@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using Hotfix.DroneFlight;
+using Hotfix.DroneFlight.Adapters.SleepyDemos;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -103,10 +104,7 @@ namespace Tests.Demo
             rig.SetMode(DroneCameraMode.Gimbal);
             rig.ApplyLookInput(1f, 0f, 1.5f);
 
-            for (var index = 0; index < 40; index++)
-            {
-                yield return null;
-            }
+            yield return new WaitForSecondsRealtime(0.8f);
 
             var visibleLensDirection = cameraBody.forward;
             Assert.That(Vector3.Angle(rig.GimbalOpticalForward, visibleLensDirection), Is.LessThan(0.01f));
@@ -118,10 +116,7 @@ namespace Tests.Demo
                 Is.LessThan(0.01f));
 
             rig.ApplyLookInput(0f, 1f, 1.5f);
-            for (var index = 0; index < 40; index++)
-            {
-                yield return null;
-            }
+            yield return new WaitForSecondsRealtime(0.8f);
 
             visibleLensDirection = cameraBody.forward;
             Assert.That(Vector3.Angle(camera.transform.forward, visibleLensDirection), Is.LessThan(1f));
@@ -157,10 +152,7 @@ namespace Tests.Demo
 
                 rig.SetMode(DroneCameraMode.Gimbal);
                 rig.ApplyLookInput(1f, 0f, 1.5f);
-                for (var index = 0; index < 40; index++)
-                {
-                    yield return null;
-                }
+                yield return new WaitForSecondsRealtime(0.8f);
 
                 Assert.That(Quaternion.Angle(
                         yaw.localRotation,
@@ -170,19 +162,13 @@ namespace Tests.Demo
                 Assert.That(Vector3.Angle(camera.transform.forward, cameraBody.forward), Is.LessThan(1f));
 
                 rig.ApplyLookInput(-1f, 0f, 3f);
-                for (var index = 0; index < 40; index++)
-                {
-                    yield return null;
-                }
+                yield return new WaitForSecondsRealtime(0.8f);
                 Assert.That(Vector3.Angle(cameraBody.forward, -drone.transform.right), Is.LessThan(0.1f));
                 Assert.That(Vector3.Angle(camera.transform.forward, cameraBody.forward), Is.LessThan(1f));
 
                 rig.ApplyLookInput(1f, 0f, 1.5f);
                 rig.ApplyLookInput(0f, 1f, 1.5f);
-                for (var index = 0; index < 40; index++)
-                {
-                    yield return null;
-                }
+                yield return new WaitForSecondsRealtime(0.8f);
                 Assert.That(Quaternion.Angle(
                         pitch.localRotation,
                         pitchBindRotation * Quaternion.AngleAxis(-90f, DroneFlightModelContract.GimbalPitchAxis)),
@@ -215,10 +201,7 @@ namespace Tests.Demo
             rig.Configure(camera, root.transform, null, null, root.transform, belly);
 
             rig.EnterHarpoonAim();
-            for (var index = 0; index < 30; index++)
-            {
-                yield return null;
-            }
+            yield return new WaitForSecondsRealtime(0.6f);
             Assert.That(rig.Mode, Is.EqualTo(DroneCameraMode.HarpoonAim));
             Assert.That(cameraObject.GetComponents<AudioListener>(), Has.Length.EqualTo(1));
             Assert.That(Vector3.Distance(camera.transform.position, belly.position),
@@ -248,10 +231,7 @@ namespace Tests.Demo
             var rig = cameraObject.AddComponent<DroneCameraRig>();
             rig.Configure(camera, root.transform, null, null, root.transform, root.transform);
             var initialVelocity = body.linearVelocity;
-            for (var index = 0; index < 30; index++)
-            {
-                yield return null;
-            }
+            yield return new WaitForSecondsRealtime(0.6f);
 
             Assert.That(camera.transform.position.z, Is.GreaterThan(-1.2f));
             Assert.That(body.linearVelocity, Is.EqualTo(initialVelocity));

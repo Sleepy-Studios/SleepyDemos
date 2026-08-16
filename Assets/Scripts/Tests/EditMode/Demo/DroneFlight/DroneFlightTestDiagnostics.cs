@@ -26,6 +26,7 @@ namespace Tests.Demo
                 ["DroneEquipmentConfigurationTests"] = "验证抓斗、渔叉配置及装备编辑器契约",
                 ["DroneConfigInspectorTests"] = "验证三套配置 Inspector 的双语状态、字段覆盖和诊断",
                 ["DroneFlightPortabilityBoundaryTests"] = "验证 DroneFlight 可迁移核心与宿主适配边界",
+                ["DroneCruiseTests"] = "验证通用航点路线有效性和单次、循环、往返推进",
                 ["DroneFishingMissionTests"] = "验证捕鱼 MVP 路径、自动驾驶和独立场景契约",
                 ["DroneDebugPresentationTests"] = "验证 F2/F3 独立路由与动力矢量显示平滑",
                 ["DroneTelemetryBufferTests"] = "验证遥测环形缓冲和摘要统计",
@@ -39,6 +40,7 @@ namespace Tests.Demo
                 ["DroneRotorPhysicsTests"] = "验证可视化夹具、正式无人机起飞及四旋翼飞控物理",
                 ["DroneEquipmentPhysicsPlayModeTests"] = "验证抓斗包围吸附、渔叉停靠冲量和绳索受力",
                 ["DroneFishingMissionPlayModeTests"] = "验证捕鱼 MVP 固定机位和自动渔叉瞄准",
+                ["DroneStandaloneBootstrapPlayModeTests"] = "验证独立场景无需宿主框架即可装配手动无人机",
                 ["DroneCameraLifecycleTests"] = "验证第三人称、机腹和云台镜头生命周期"
             };
 

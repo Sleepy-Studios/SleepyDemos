@@ -93,7 +93,7 @@ namespace Tests.Demo
                      {
                          "ratedPayloadKilograms", "maximumPayloadMultiplier", "ratedPayloadHoverCommand",
                          "motorResponsiveness", "bodyMassMultiplier", "automaticTakeoffHeightMeters",
-                         "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile", "resetHoldSeconds"
+                         "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile"
                      })
             {
                 Assert.That(DroneFlightConfigEditor.SerializedFieldLabels.TryGetValue(field, out var label), Is.True,

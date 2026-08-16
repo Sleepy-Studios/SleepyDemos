@@ -93,7 +93,7 @@
 具体文件名允许在审计后小幅调整，但职责和边界不得改变。
 
 ```text
-Assets/Scripts/Hotfix/Module/DroneFlight/
+Assets/Scripts/Hotfix/Demos/DroneFlight/
 ├── Control/          纯数学 PID、姿态误差、级联控制与模式参数
 ├── Physics/          电机、混控、旋翼施力、机体状态与载荷反馈
 ├── Input/            统一输入帧、键鼠、手柄和未来移动输入源

@@ -6,14 +6,14 @@ namespace Hotfix.DroneFlight
     /// <summary>处理腹部装备和起落架的玩家输入。</summary>
     public sealed class DroneEquipmentInput : MonoBehaviour
     {
-        [SerializeField] private DroneEquipmentHost equipmentHost;
-        [SerializeField] private DroneLandingGearController landingGear;
-        [SerializeField] private DroneRemoteControllerExperience controlSession;
+        private DroneEquipmentHost equipmentHost;
+        private DroneLandingGearController landingGear;
+        private IDroneControlSession controlSession;
 
         internal void Configure(
             DroneEquipmentHost host,
             DroneLandingGearController gear = null,
-            DroneRemoteControllerExperience session = null)
+            IDroneControlSession session = null)
         {
             equipmentHost = host;
             landingGear = gear;
@@ -24,7 +24,7 @@ namespace Hotfix.DroneFlight
         {
             var keyboard = Keyboard.current;
             if (keyboard == null
-                || (controlSession != null && controlSession.State != DroneControlSessionState.Active))
+                || (controlSession != null && !controlSession.IsActive))
             {
                 return;
             }

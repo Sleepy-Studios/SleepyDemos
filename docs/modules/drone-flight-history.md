@@ -140,6 +140,13 @@
 
 本节取代上一节的长期实现策略，但保留上一节作为问题发现与过渡方案的历史记录。
 
+## 2026-08-16：源码迁移边界、集中配置与通用巡航
+
+- 放弃新增 `DroneFlight.Runtime` / `DroneFlight.Editor` 程序集，运行时继续归属 `Hotfix.dll`，避免触碰 HybridCLR 构建基线。
+- 新增 `Adapters/SleepyDemos`，把 UI、资源、导航、Hub 生命周期和捕鱼演出收拢为宿主适配；核心边界由源码扫描测试锁定。
+- 镜头、输入、自动驾驶、诊断和捕鱼演出参数分别进入 ScriptableObject；运行时注入引用不再暴露在 Inspector。
+- 新增通用航点巡航和 `DroneFlightStandaloneBootstrap`，支持新场景最小手动/自动接入；捕鱼贝塞尔继续作为特定演出。
+
 ## 始终有效的禁区
 
 - 不用中心总推力替代四个 Rotor，不用高阻尼掩盖振荡。

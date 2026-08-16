@@ -19,6 +19,11 @@ namespace Hotfix.DroneFlight
     /// </summary>
     public sealed class DroneCameraRig : MonoBehaviour
     {
+        [SerializeField, InspectorName("相机配置")]
+        [Tooltip("集中管理跟随、碰撞、云台和视场角参数。")]
+        private DroneCameraConfig config;
+
+        [Header("Prefab 结构引用")]
         [SerializeField] private Camera outputCamera;
         [SerializeField] private Transform droneBody;
         [SerializeField] private Transform gimbalYaw;
@@ -26,19 +31,6 @@ namespace Hotfix.DroneFlight
         [SerializeField] private Transform gimbalOpticalBody;
         [SerializeField] private Transform fixedForwardMount;
         [SerializeField] private Transform bellyMount;
-        [SerializeField] private Vector3 thirdPersonOffset = new(0f, 0.85f, -2.2f);
-        [SerializeField] private float thirdPersonLookAheadSeconds = 0.18f;
-        [SerializeField] private float orbitDistanceMeters = 2.5f;
-        [SerializeField] private float transitionSeconds = 0.35f;
-        [SerializeField] private float followSmoothTimeSeconds = 0.16f;
-        [SerializeField] private float rotationSharpness = 12f;
-        [SerializeField] private float collisionRadiusMeters = 0.18f;
-        [SerializeField] private float collisionMinimumDistanceMeters = 0.55f;
-        [SerializeField] private float collisionBufferMeters = 0.1f;
-        [SerializeField] private float gimbalPitchMinimum = -90f;
-        [SerializeField] private float gimbalPitchMaximum = 30f;
-        [SerializeField] private float minimumFieldOfView = 20f;
-        [SerializeField] private float maximumFieldOfView = 80f;
 
         private DroneCameraMode mode = DroneCameraMode.ThirdPerson;
         private float gimbalPitchDegrees;
@@ -97,7 +89,7 @@ namespace Hotfix.DroneFlight
             if (isTransitioning)
             {
                 transitionElapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
-                var normalized = Mathf.Clamp01(transitionElapsed / Mathf.Max(0.01f, transitionSeconds));
+                var normalized = Mathf.Clamp01(transitionElapsed / Mathf.Max(0.01f, TransitionSeconds));
                 var eased = normalized * normalized * (3f - 2f * normalized);
                 outputCamera.transform.position = Vector3.Lerp(transitionStartPosition, targetPosition, eased);
                 outputCamera.transform.rotation = Quaternion.Slerp(transitionStartRotation, targetRotation, eased);
@@ -111,7 +103,7 @@ namespace Hotfix.DroneFlight
             }
 
             var smoothTime = mode is DroneCameraMode.ThirdPerson or DroneCameraMode.Orbit
-                ? followSmoothTimeSeconds
+                ? FollowSmoothTimeSeconds
                 : 0.06f;
             outputCamera.transform.position = Vector3.SmoothDamp(
                 outputCamera.transform.position,
@@ -120,7 +112,7 @@ namespace Hotfix.DroneFlight
                 Mathf.Max(0.01f, smoothTime),
                 Mathf.Infinity,
                 Time.unscaledDeltaTime);
-            var blend = 1f - Mathf.Exp(-Mathf.Max(0.01f, rotationSharpness) * Time.unscaledDeltaTime);
+            var blend = 1f - Mathf.Exp(-Mathf.Max(0.01f, RotationSharpness) * Time.unscaledDeltaTime);
             outputCamera.transform.rotation = Quaternion.Slerp(outputCamera.transform.rotation, targetRotation, blend);
             outputCamera.fieldOfView = Mathf.Lerp(outputCamera.fieldOfView, targetFieldOfView, blend);
         }
@@ -183,8 +175,8 @@ namespace Hotfix.DroneFlight
             gimbalYawDegrees = Mathf.Clamp(gimbalYawDegrees + yaw * 60f * deltaTime, -120f, 120f);
             gimbalPitchDegrees = Mathf.Clamp(
                 gimbalPitchDegrees - pitch * 60f * deltaTime,
-                gimbalPitchMinimum,
-                gimbalPitchMaximum);
+                GimbalPitchMinimum,
+                GimbalPitchMaximum);
         }
 
         /// <summary>
@@ -200,8 +192,8 @@ namespace Hotfix.DroneFlight
 
             outputCamera.fieldOfView = Mathf.Clamp(
                 outputCamera.fieldOfView + delta,
-                minimumFieldOfView,
-                maximumFieldOfView);
+                MinimumFieldOfView,
+                MaximumFieldOfView);
             modeFieldOfViews[(int)mode] = outputCamera.fieldOfView;
         }
 
@@ -285,10 +277,10 @@ namespace Hotfix.DroneFlight
                 case DroneCameraMode.ThirdPerson:
                     var yawRotation = Quaternion.Euler(0f, droneBody.eulerAngles.y, 0f);
                     var lookAhead = bodyRigidbody != null
-                        ? bodyRigidbody.linearVelocity * thirdPersonLookAheadSeconds
+                        ? bodyRigidbody.linearVelocity * ThirdPersonLookAheadSeconds
                         : Vector3.zero;
                     focusPoint = droneBody.position + Vector3.up * 0.1f + lookAhead;
-                    position = droneBody.position + yawRotation * thirdPersonOffset + lookAhead;
+                    position = droneBody.position + yawRotation * ThirdPersonOffset + lookAhead;
                     rotation = Quaternion.LookRotation(focusPoint - position, Vector3.up);
                     break;
                 case DroneCameraMode.Orbit:
@@ -297,7 +289,7 @@ namespace Hotfix.DroneFlight
                         orbitYawDegrees + droneBody.eulerAngles.y,
                         0f);
                     focusPoint = droneBody.position + Vector3.up * 0.08f;
-                    position = focusPoint + orbitRotation * new Vector3(0f, 0f, -orbitDistanceMeters);
+                    position = focusPoint + orbitRotation * new Vector3(0f, 0f, -OrbitDistanceMeters);
                     rotation = Quaternion.LookRotation(focusPoint - position, Vector3.up);
                     break;
                 case DroneCameraMode.FixedForward when fixedForwardMount != null:
@@ -372,7 +364,7 @@ namespace Hotfix.DroneFlight
 
             var hits = Physics.SphereCastAll(
                 focusPoint,
-                Mathf.Max(0.01f, collisionRadiusMeters),
+                Mathf.Max(0.01f, CollisionRadiusMeters),
                 delta / distance,
                 distance,
                 ~0,
@@ -386,8 +378,8 @@ namespace Hotfix.DroneFlight
                 }
 
                 var resolvedDistance = Mathf.Clamp(
-                    hit.distance - collisionBufferMeters,
-                    collisionMinimumDistanceMeters,
+                    hit.distance - CollisionBufferMeters,
+                    CollisionMinimumDistanceMeters,
                     distance);
                 return focusPoint + delta.normalized * resolvedDistance;
             }
@@ -413,7 +405,7 @@ namespace Hotfix.DroneFlight
         private float GetModeFieldOfView(DroneCameraMode cameraMode)
         {
             var index = Mathf.Clamp((int)cameraMode, 0, modeFieldOfViews.Length - 1);
-            return Mathf.Clamp(modeFieldOfViews[index], minimumFieldOfView, maximumFieldOfView);
+            return Mathf.Clamp(modeFieldOfViews[index], MinimumFieldOfView, MaximumFieldOfView);
         }
 
         private void ApplyNearClipPlane()
@@ -430,5 +422,22 @@ namespace Hotfix.DroneFlight
                 ? 0.02f
                 : 0.08f;
         }
+
+        private Vector3 ThirdPersonOffset => config != null
+            ? config.ThirdPersonOffset
+            : new Vector3(0f, 0.85f, -2.2f);
+
+        private float ThirdPersonLookAheadSeconds => config != null ? config.ThirdPersonLookAheadSeconds : 0.18f;
+        private float OrbitDistanceMeters => config != null ? config.OrbitDistanceMeters : 2.5f;
+        private float TransitionSeconds => config != null ? config.TransitionSeconds : 0.35f;
+        private float FollowSmoothTimeSeconds => config != null ? config.FollowSmoothTimeSeconds : 0.16f;
+        private float RotationSharpness => config != null ? config.RotationSharpness : 12f;
+        private float CollisionRadiusMeters => config != null ? config.CollisionRadiusMeters : 0.18f;
+        private float CollisionMinimumDistanceMeters => config != null ? config.CollisionMinimumDistanceMeters : 0.55f;
+        private float CollisionBufferMeters => config != null ? config.CollisionBufferMeters : 0.1f;
+        private float GimbalPitchMinimum => config != null ? config.GimbalPitchMinimum : -90f;
+        private float GimbalPitchMaximum => config != null ? config.GimbalPitchMaximum : 30f;
+        private float MinimumFieldOfView => config != null ? config.MinimumFieldOfView : 20f;
+        private float MaximumFieldOfView => config != null ? config.MaximumFieldOfView : 80f;
     }
 }

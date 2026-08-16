@@ -4,7 +4,7 @@
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Module/DroneFlight/`，业务 Inspector 位于独立 `Hotfix.Editor`。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
+业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。核心源码与 `Adapters/SleepyDemos` 形成迁移边界，详见[实现原理与架构设计](../architecture/drone-flight-design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -50,7 +50,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 `FishingBurstMvp.unity` 是 Editor 可直接运行的独立迁移验证场景，不注册 Hub，也不修改正式 `Main.unity` 的机型选择流程。场景用一个按钮代表三次鱼群爆发 QTE 全部成功，随后执行场外入场、固定机位跟拍、环绕、俯冲、渔叉命中、真实载荷返航和重播。
 
-- `Mission/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
+- `Adapters/SleepyDemos/Fishing/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
 - `DroneMissionAutopilot` 只生成 `DroneControlInput`、目标高度和偏航输入，禁止直接写 Transform 或刚体速度；实际飞行继续经过现有四旋翼控制链。
 - `DroneFishingMissionCoordinator` 管理阶段、超时、鱼随机位置和重播。鱼在命中前为 Kinematic，命中后解除冻结，质量通过现有渔叉绳索进入飞控载荷反馈。
 - `DroneCinematicCameraTracker` 缓动旋转和 FOV，但持续保持初始世界坐标。自动渔叉瞄准通过 `IDroneAutomatedAimingEquipment` 适配世界坐标目标，玩家原有 `V/H` 入口不变。
@@ -79,11 +79,13 @@ Assets/LoadResources/Demos/drone_flight/
 
 ## 配置边界
 
-- `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降、起落架、公共镜头/输入/重载参数。
+- `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降与起落架。
+- `DroneCameraConfig`、`DroneInputConfig`、`DroneAutopilotConfig`、`DroneDiagnosticsConfig` 分别管理镜头、输入、巡航自动驾驶和诊断刷新参数。
+- `DroneFishingMissionConfig` 属于 `Adapters/SleepyDemos/Fishing`，只管理捕鱼演出节奏与固定机位。
 - `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存固定吊臂长度、升降行程/速度/加速度、万向节摆角与被动阻尼、四爪驱动、捕获体积、FixedJoint 断裂和载荷平滑参数。
 - `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存弹体质量、发射冲量、瞄准半径、向下圆锥角、命中规则、绳长、卷线、弹簧阻尼、张力和受限 PD 回收参数。
-- 三个配置各自创建运行时副本；Play Mode 修改源资产后只在安全物理步同步，不回写资产、不清零速度或飞控状态。
-- 三个自定义 Inspector 均支持中文/English；装备 Inspector 提供普通/高级页，偏好只写本机 `EditorPrefs`。
+- 需要跨场景复用的数值进入配置资产，场景结构引用保留序列化，装配器能够注入的运行时连接不显示在 Inspector。
+- 核心配置与装备配置的 Inspector 使用中文字段和悬浮说明；飞控及装备运行时副本不回写源资产。
 
 ## 装备公共接口
 

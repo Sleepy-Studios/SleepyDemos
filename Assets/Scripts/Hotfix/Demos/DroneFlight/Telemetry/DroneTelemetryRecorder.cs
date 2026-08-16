@@ -195,15 +195,20 @@ namespace Hotfix.DroneFlight
     [RequireComponent(typeof(DroneFlightController))]
     public sealed class DroneTelemetryRecorder : MonoBehaviour
     {
-        [SerializeField] private int sampleCapacity = 500;
+        [SerializeField, InspectorName("诊断配置")]
+        [Tooltip("集中管理遥测样本容量和界面刷新频率。")]
+        private DroneDiagnosticsConfig config;
 
         private DroneFlightController controller;
         private DroneTelemetryBuffer buffer;
 
+        /// 当前遥测与调试显示共用的配置资产。
+        internal DroneDiagnosticsConfig Config => config;
+
         private void Awake()
         {
             controller = GetComponent<DroneFlightController>();
-            buffer = new DroneTelemetryBuffer(sampleCapacity);
+            buffer = new DroneTelemetryBuffer(config != null ? config.SampleCapacity : 500);
         }
 
         private void FixedUpdate()

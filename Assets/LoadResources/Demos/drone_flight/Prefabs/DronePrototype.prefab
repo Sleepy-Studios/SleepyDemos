@@ -300,7 +300,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1acc2b95e793ee848aa0fa106036c0d9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotorVisual
   bladeRoot: {fileID: 6141463056306349230}
   rotationAxis: {fileID: 1665380253375986573}
@@ -441,7 +441,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 00c2deac2a0b9114d8a9c89b51406e14, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightController
   config: {fileID: 11400000, guid: 2bb6820c92290d441bc80d748554f38a, type: 2}
   armOnStart: 0
@@ -457,10 +457,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 500c6e38d2704fe4bb857db78da889a5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePlayerInput
-  keyboardRiseRate: 3
-  keyboardFallRate: 5
+  config: {fileID: 11400000, guid: 5e0d9de2280e97e468a9fd91e501e3ef, type: 2}
 --- !u!114 &2641262617175871642
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -471,9 +470,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5eb7dd70b0503454ca4a43ada624a03c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneTelemetryRecorder
-  sampleCapacity: 500
+  config: {fileID: 11400000, guid: 9a3be7924596e8449a6b2141d4dd709b, type: 2}
 --- !u!114 &518081856289161450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -484,7 +483,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1f2ed8d256927be48b50990d851c846f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneLandingGearController
   flightController: {fileID: 5548379368839319193}
   droneBody: {fileID: 79001505466087065}
@@ -508,7 +507,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f99adbc4b92f1cb41b8b5dc22cb4908b, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneEquipmentHost
   flightController: {fileID: 0}
   droneBody: {fileID: 0}
@@ -525,11 +524,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d4768632d00d9f4ba16519f9a3bff89, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneEquipmentInput
-  equipmentHost: {fileID: 0}
-  landingGear: {fileID: 0}
-  controlSession: {fileID: 0}
 --- !u!114 &3600958436952082450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -540,7 +536,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f2afceb9552486f479f68d6daa3b309f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRemoteControllerExperience
   playerCamera: {fileID: 0}
   droneCameraRig: {fileID: 0}
@@ -557,15 +553,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 02e0aa0daf202d246be8c8fe31f54ffc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightSceneContext
-  flightController: {fileID: 0}
-  playerInput: {fileID: 0}
-  cameraRig: {fileID: 0}
-  remoteExperience: {fileID: 0}
-  equipmentHost: {fileID: 0}
-  landingGear: {fileID: 0}
-  telemetrySource: {fileID: 0}
 --- !u!1 &5648046477519024357
 GameObject:
   m_ObjectHideFlags: 0
@@ -667,7 +656,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1acc2b95e793ee848aa0fa106036c0d9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotorVisual
   bladeRoot: {fileID: 5661533711514867275}
   rotationAxis: {fileID: 1665380253375986573}
@@ -825,7 +814,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1acc2b95e793ee848aa0fa106036c0d9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotorVisual
   bladeRoot: {fileID: 9041122398631315571}
   rotationAxis: {fileID: 1665380253375986573}
@@ -983,7 +972,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1acc2b95e793ee848aa0fa106036c0d9, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotorVisual
   bladeRoot: {fileID: 5421502230948111269}
   rotationAxis: {fileID: 1665380253375986573}
@@ -1144,8 +1133,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 401c8f968df1d0f4d91cb5fd0ee4dcdd, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneCameraRig
+  config: {fileID: 11400000, guid: e33d25090689bc942b457ca52a0cef70, type: 2}
   outputCamera: {fileID: 5189020520999060693}
   droneBody: {fileID: 1665380253375986573}
   gimbalYaw: {fileID: 5960934082538768988}
@@ -1153,19 +1143,6 @@ MonoBehaviour:
   gimbalOpticalBody: {fileID: 3809791899722508966}
   fixedForwardMount: {fileID: 691047983812843335}
   bellyMount: {fileID: 2774888940864211314}
-  thirdPersonOffset: {x: 0, y: 0.85, z: -2.2}
-  thirdPersonLookAheadSeconds: 0.18
-  orbitDistanceMeters: 2.5
-  transitionSeconds: 0.35
-  followSmoothTimeSeconds: 0.16
-  rotationSharpness: 12
-  collisionRadiusMeters: 0.18
-  collisionMinimumDistanceMeters: 0.55
-  collisionBufferMeters: 0.1
-  gimbalPitchMinimum: -90
-  gimbalPitchMaximum: 30
-  minimumFieldOfView: 20
-  maximumFieldOfView: 80
 --- !u!114 &1860421567980209225
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1176,7 +1153,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a37fab87b9d6fc5499945ba2c6115639, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneCameraInput
 --- !u!1 &7788790135905000716
 GameObject:
@@ -1558,15 +1535,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -5161680192773519895, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: -3265919081782420385, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: -3265919081782420385, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 38670bc8348afef4cb070ee875195979, type: 2}
     - target: {fileID: -2460558049189528749, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: m_Enabled
@@ -1574,7 +1551,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -2460558049189528749, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 919132149155446097, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: m_Name
@@ -1582,67 +1559,67 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1540867795931395606, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 1540867795931395606, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 38670bc8348afef4cb070ee875195979, type: 2}
     - target: {fileID: 2483323762207495813, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 38670bc8348afef4cb070ee875195979, type: 2}
     - target: {fileID: 2483323762207495813, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 2483323762207495813, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[2]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: df3971a1b0f92894a84feb6d50c62e66, type: 2}
     - target: {fileID: 2612398022321524266, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 2612398022321524266, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: cfe4295e1c8b3a24cba8d22f4835a8e3, type: 2}
     - target: {fileID: 2781551709962599946, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 3852432920041656139, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 3852432920041656139, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: cfe4295e1c8b3a24cba8d22f4835a8e3, type: 2}
     - target: {fileID: 4444134561475885166, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 4444134561475885166, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: cfe4295e1c8b3a24cba8d22f4835a8e3, type: 2}
     - target: {fileID: 4571727978047531298, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 4571727978047531298, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: cfe4295e1c8b3a24cba8d22f4835a8e3, type: 2}
     - target: {fileID: 5891903784360570714, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 5891903784360570714, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 38670bc8348afef4cb070ee875195979, type: 2}
     - target: {fileID: 6241982199007067400, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: m_Enabled
@@ -1650,35 +1627,35 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6241982199007067400, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 8920675249524201277, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 38670bc8348afef4cb070ee875195979, type: 2}
     - target: {fileID: 8920675249524201277, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 1705303e6eae4634fa77acd98c95c166, type: 2}
     - target: {fileID: 8920675249524201277, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[2]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 8920675249524201277, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[3]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: cfe4295e1c8b3a24cba8d22f4835a8e3, type: 2}
     - target: {fileID: 8920675249524201277, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[4]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 23a781cd0656a47438004ef8e71ddad1, type: 2}
     - target: {fileID: 9207301097531470075, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 77034fb40c893cd45bdf996731302710, type: 2}
     - target: {fileID: 9207301097531470075, guid: 5bc4a73924e2583488766ff7e7ac1775, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 38670bc8348afef4cb070ee875195979, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1748,7 +1725,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1951c57e8c340645b237ae415380c2a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotor
   position: 1
   direction: -1
@@ -1780,7 +1757,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1951c57e8c340645b237ae415380c2a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotor
   position: 0
   direction: 1
@@ -1802,7 +1779,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1951c57e8c340645b237ae415380c2a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotor
   position: 3
   direction: 1
@@ -1869,7 +1846,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1951c57e8c340645b237ae415380c2a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRotor
   position: 2
   direction: -1

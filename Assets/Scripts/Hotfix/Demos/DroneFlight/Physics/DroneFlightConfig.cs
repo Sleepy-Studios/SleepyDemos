@@ -173,9 +173,6 @@ namespace Hotfix.DroneFlight
         [Header("Landing Gear")]
         [SerializeField] private float landingGearTransitionSeconds = 0.45f;
 
-        [Header("Input And Reset")]
-        [SerializeField] private float resetHoldSeconds = 5f;
-
         internal float RatedPayloadKilograms => ratedPayloadKilograms;
 
         internal float BodyMassMultiplier => bodyMassMultiplier;
@@ -247,8 +244,6 @@ namespace Hotfix.DroneFlight
         internal float LandingGearTransitionSeconds => landingGearTransitionSeconds;
 
         internal float MaximumPayloadMassKilograms => ratedPayloadKilograms * maximumPayloadMultiplier;
-
-        internal float ResetHoldSeconds => resetHoldSeconds;
 
         internal DronePidSettings CreateRollRateSettings()
         {
@@ -408,12 +403,6 @@ namespace Hotfix.DroneFlight
             if (!IsPositiveFinite(landingGearTransitionSeconds))
             {
                 diagnostic = "起落架过渡时间必须为正数。";
-                return false;
-            }
-
-            if (!IsPositiveFinite(resetHoldSeconds))
-            {
-                diagnostic = "长按重载场景时间必须是大于 0 的有限值。";
                 return false;
             }
 

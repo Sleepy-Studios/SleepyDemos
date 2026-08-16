@@ -650,7 +650,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af40d315d6fb05c478099012fc1a39b2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneBezierMissionPath
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.Adapters.SleepyDemos.DroneBezierMissionPath
   entrySegments:
   - start: {fileID: 3706834657443408736}
     startHandle: {fileID: 8729210025780136043}

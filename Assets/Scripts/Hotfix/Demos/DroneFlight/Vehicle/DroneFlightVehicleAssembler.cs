@@ -10,7 +10,7 @@ namespace Hotfix.DroneFlight
             Rigidbody body,
             DroneFlightController controller,
             DronePlayerInput input,
-            DroneRemoteControllerExperience remote,
+            IDroneControlSession controlSession,
             DroneFlightUiTelemetrySource telemetry,
             DroneFlightDebugDrawRenderer debugRenderer)
         {
@@ -18,7 +18,7 @@ namespace Hotfix.DroneFlight
             Body = body;
             Controller = controller;
             Input = input;
-            Remote = remote;
+            ControlSession = controlSession;
             Telemetry = telemetry;
             DebugRenderer = debugRenderer;
         }
@@ -35,8 +35,8 @@ namespace Hotfix.DroneFlight
         /// 玩家飞行输入。
         internal DronePlayerInput Input { get; }
 
-        /// 遥控器体验状态机。
-        internal DroneRemoteControllerExperience Remote { get; }
+        /// 当前宿主或独立场景提供的控制会话。
+        internal IDroneControlSession ControlSession { get; }
 
         /// HUD/F3 遥测源。
         internal DroneFlightUiTelemetrySource Telemetry { get; }
@@ -59,10 +59,9 @@ namespace Hotfix.DroneFlight
         {
             Controller.SetArmed(false);
             ResetBodyMotion();
-            if (Remote != null)
+            if (ControlSession != null)
             {
-                Remote.enabled = true;
-                Remote.Activate();
+                ControlSession.Activate();
             }
             else if (Input != null)
             {
@@ -73,14 +72,9 @@ namespace Hotfix.DroneFlight
         /// 首个物理步后保持玩家输入关闭，交由任务自动驾驶接管。
         internal void FinalizeForAutomation()
         {
-            Remote?.ReturnToWaiting();
+            ControlSession?.ReturnToWaiting();
             Controller.SetArmed(false);
             ResetBodyMotion();
-            if (Remote != null)
-            {
-                Remote.enabled = false;
-            }
-
             if (Input != null)
             {
                 Input.enabled = false;
@@ -103,15 +97,15 @@ namespace Hotfix.DroneFlight
         /// </summary>
         /// <param name="drone">待装配的基础或装备机体。</param>
         /// <param name="selection">选择的机型，用于校验装备模块并准备收纳碰撞。</param>
-        /// <param name="waitingCamera">Waiting 阶段使用的场景相机。</param>
         /// <param name="spawnPoint">只提供地面 XZ 和朝向的出生标记。</param>
+        /// <param name="controlSession">宿主或独立场景提供的控制会话；自动任务可为空。</param>
         /// <param name="runtime">成功时返回首物理步所需的运行时引用。</param>
         /// <param name="error">失败时返回可直接记录的中文诊断。</param>
         internal static bool TryPrepare(
             GameObject drone,
             DroneVehicleKind selection,
-            Camera waitingCamera,
             Transform spawnPoint,
+            IDroneControlSession controlSession,
             out DroneFlightVehicleRuntime runtime,
             out string error)
         {
@@ -141,7 +135,6 @@ namespace Hotfix.DroneFlight
             var landingGear = drone.GetComponent<DroneLandingGearController>();
             var equipmentHost = drone.GetComponent<DroneEquipmentHost>();
             var equipmentInput = drone.GetComponent<DroneEquipmentInput>();
-            var remote = drone.GetComponent<DroneRemoteControllerExperience>();
             var context = drone.GetComponent<DroneFlightSceneContext>();
             var module = FindEquipmentModule(drone);
             if (context == null || controller == null || body == null || input == null || equipmentHost == null
@@ -156,14 +149,9 @@ namespace Hotfix.DroneFlight
             var debugRenderer = drone.GetComponent<DroneFlightDebugDrawRenderer>()
                                 ?? drone.AddComponent<DroneFlightDebugDrawRenderer>();
             equipmentHost.Configure(controller, body, cameraRig != null ? cameraRig.OutputCamera : null, module);
-            equipmentInput?.Configure(equipmentHost, landingGear, remote);
-            remote?.Configure(waitingCamera, cameraRig, input, controller, equipmentInput);
+            equipmentInput?.Configure(equipmentHost, landingGear, controlSession);
 
             // 生成首帧先屏蔽玩法 Update，避免消费进入 Play 或点击机型前残留的按键边沿。
-            if (remote != null)
-            {
-                remote.enabled = false;
-            }
             if (input != null)
             {
                 input.enabled = false;
@@ -177,7 +165,7 @@ namespace Hotfix.DroneFlight
                 controller,
                 input,
                 cameraRig,
-                remote,
+                controlSession,
                 equipmentHost,
                 landingGear,
                 telemetry);
@@ -185,14 +173,14 @@ namespace Hotfix.DroneFlight
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
             controller.SetArmed(false);
-            telemetry.Configure(context);
+            telemetry.Configure(context, drone.GetComponent<DroneTelemetryRecorder>()?.Config);
             debugRenderer.Configure(context);
             runtime = new DroneFlightVehicleRuntime(
                 drone,
                 body,
                 controller,
                 input,
-                remote,
+                controlSession,
                 telemetry,
                 debugRenderer);
             return true;

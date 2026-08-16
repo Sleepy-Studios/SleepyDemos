@@ -10,8 +10,10 @@ namespace Hotfix.DroneFlight
     [RequireComponent(typeof(DroneFlightController))]
     public sealed class DronePlayerInput : MonoBehaviour
     {
-        [SerializeField] private float keyboardRiseRate = 3f;
-        [SerializeField] private float keyboardFallRate = 5f;
+        [SerializeField, InspectorName("输入配置")]
+        [Tooltip("集中管理键盘平滑和长按复位参数。")]
+        private DroneInputConfig config;
+
         private DroneFlightController controller;
         private Vector4 smoothedKeyboardInput;
         private DroneResetHoldTracker resetHoldTracker;
@@ -23,13 +25,13 @@ namespace Hotfix.DroneFlight
         /// 长按 R 的归一化复位进度。
         internal float ResetProgress => resetHoldTracker?.Progress ?? 0f;
 
+        /// 长按重载所需时间，单位秒。
+        internal float ResetHoldSeconds => config != null ? config.ResetHoldSeconds : 5f;
+
         private void Awake()
         {
             controller = GetComponent<DroneFlightController>();
-            var holdSeconds = controller != null && controller.Config != null
-                ? controller.Config.ResetHoldSeconds
-                : 5f;
-            resetHoldTracker = new DroneResetHoldTracker(holdSeconds);
+            resetHoldTracker = new DroneResetHoldTracker(ResetHoldSeconds);
         }
 
         private void Update()
@@ -43,7 +45,8 @@ namespace Hotfix.DroneFlight
             HandleResetInput(keyboard);
 
             var targetKeyboard = ReadKeyboard(keyboard);
-            var riseRate = controller.InputRiseRate > 0f ? controller.InputRiseRate : keyboardRiseRate;
+            var fallbackRiseRate = config != null ? config.KeyboardFallbackRiseRate : 3f;
+            var riseRate = controller.InputRiseRate > 0f ? controller.InputRiseRate : fallbackRiseRate;
             smoothedKeyboardInput = new Vector4(
                 StepKeyboardAxis(smoothedKeyboardInput.x, targetKeyboard.x, riseRate),
                 StepKeyboardAxis(smoothedKeyboardInput.y, targetKeyboard.y, riseRate),
@@ -153,7 +156,8 @@ namespace Hotfix.DroneFlight
 
         private float StepKeyboardAxis(float current, float target, float riseRate)
         {
-            var rate = Mathf.Approximately(target, 0f) ? keyboardFallRate : riseRate;
+            var fallRate = config != null ? config.KeyboardFallRate : 5f;
+            var rate = Mathf.Approximately(target, 0f) ? fallRate : riseRate;
             return Mathf.MoveTowards(current, target, Mathf.Max(0f, rate) * Time.unscaledDeltaTime);
         }
     }

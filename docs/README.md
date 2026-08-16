@@ -25,6 +25,7 @@
   - [配置系统设计](./architecture/config-system.md)
   - [Core UI 渲染设计原则](./architecture/ui-rendering.md)
   - [Unity 自动化测试架构](./architecture/testing.md)
+  - [DroneFlight 实现原理与架构设计](./architecture/drone-flight-design.md)
   - [文档维护与 C# 规范](./architecture/documentation-rules.md)
 - `modules/`
   - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
@@ -60,6 +61,7 @@
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
   - [调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)
   - [迁移 DroneFlight 到正式项目](./runbooks/migrate-drone-flight.md)
+  - [在独立场景使用 DroneFlight](./runbooks/use-drone-flight-standalone.md)
 
 ## 如何判断文档该写到哪里
 - 这是全局规则、设计原则或架构边界：写到 `architecture/`
