@@ -7,13 +7,20 @@
 - `CLAUDE.md`：Claude Code 的入口导航
 - 两者都只保留短导航和硬规则，详细内容统一落在 `docs/` 中
 
-## 先读哪里
-1. [架构总览](./architecture/overview.md)
-2. [代码与资源布局](./architecture/code-layout.md)
-3. [启动与热更流程](./architecture/startup-flow.md)
-4. [Core / Hotfix 边界](./architecture/hotfix-boundary.md)
-5. [资源命名规范](./architecture/asset-naming.md)
-6. 根据任务类型继续查对应模块说明、Agent 技能入口或 runbook
+## 按任务阅读
+
+以下是任务入口，不是每次修改前的必读清单。同一任务已读且未变化的内容不重复加载；纯文字、格式修正只需核对相关上下文。
+
+| 当前任务 | 阅读入口 |
+|----------|----------|
+| 了解项目或运行方式 | [项目 README](../README.md)、[架构总览](./architecture/overview.md) |
+| 新增模块，调整职责、依赖或目录 | [代码与资源布局](./architecture/code-layout.md)、[Core / Hotfix 边界](./architecture/hotfix-boundary.md) |
+| 修改 C# 命名、注释或维护文档 | [文档维护与 C# 规范](./architecture/documentation-rules.md) |
+| 修改启动或热更流程 | [启动与热更流程](./architecture/startup-flow.md)、[热更新模块](./modules/hotfix.md) |
+| 修改资源组织或加载 | [资源命名规范](./architecture/asset-naming.md)、[资源运行时](./modules/resource-runtime.md)、[使用资源 Loader](./runbooks/use-resource-loader.md) |
+| 新增 Demo | [新增 Demo](./runbooks/add-demo.md)，再按涉及的模块继续阅读 |
+| 新增或运行测试 | [测试架构](./architecture/testing.md)、[运行 Unity 自动化测试](./runbooks/run-unity-tests.md) |
+| 其他业务或工具任务 | 从下方模块、Agent 技能和 runbook 导航定位相关内容 |
 
 大型 UI 导航或过渡改动需要同时阅读 [Core UI 渲染设计原则](./architecture/ui-rendering.md)、[Core UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md) 和 [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)，不要只修改其中一层。
 

@@ -2,7 +2,7 @@
 
 ## 适用场景
 
-修改 Core.Runtime、Core.Editor、Hotfix、公共模块或 Demo 后，使用本流程运行当前任务直接相关的最小测试集。不要把“改了框架或 Demo”自动等同于运行整个测试程序集。
+修改 Core.Runtime、Core.Editor、Hotfix、公共模块或 Demo 后，需要自动化测试时使用本流程运行当前任务直接相关的最小测试集。按改动选择已有测试、编译检查、日志或目标场景验证；纯文字、格式修改不触发 Unity 测试，也不自动新增测试脚本。
 
 只有用户明确要求“全量测试”或“完整回归”时，才运行全部项目测试。全量默认仅包含项目自有的 `Tests.EditMode` 与 `Tests.PlayMode`；Package、插件或 Unity 自带测试需要用户另外明确指定。
 
@@ -25,6 +25,8 @@
 2. 同一功能涉及多条用例时，运行对应测试类。
 3. 跨模块任务运行所有直接受影响的测试类，但不自动扩大到整个程序集或全部 TestMode。
 
+相关检查通过后，只有新改动、失败或具体未解决风险才触发重复或扩大验证；不以额外测试代替目标场景的运行时或视觉验收。
+
 可在 `Window > General > Test Runner` 中选择具体方法或测试类。只有用户明确要求全量测试时，才分别运行 `Tests.EditMode` 和 `Tests.PlayMode` 的全部项目测试。
 
 通过 UnitySkills 自动运行时：
@@ -35,6 +37,8 @@
 4. 一次只启动一个目标测试任务，使用返回的 job ID 轮询 `test_get_result`，完成后才能启动下一个目标，禁止并行运行 TestRunner。
 5. 如果任务长时间没有进度，停止无边界轮询，检查 job 状态、Console 和 Test Runner；不得通过重复启动同一测试来掩盖卡死。
 6. 汇总实际运行目标的 total、passed、failed，并查询 Console，确认没有新增 Error 或 Exception。
+
+误启动超出任务范围的测试时，立即调用 `test_cancel`，并向用户说明实际启动范围和取消结果，不继续等待整套测试完成。
 
 `UIRootManagerPlayModeTests` 是标准 PlayMode 测试，不在测试代码中手工切换 Editor 状态。
 
@@ -59,6 +63,12 @@
 9. `Tests.Module.UIViewPrefabConventionTests`（EditMode）
 
 这 9 类属于 UI 模块受影响回归，不代表项目全量测试。
+
+## Hot Reload 与测试证据
+
+修改 C# 后，热重载状态由程序员校验。AI 不主动读取热重载补丁或检查是否应用，也不为确认热重载自动退出 Play Mode 或重启 Unity；只有用户明确要求排查时，再使用会话中可用的 `hotreload-log` 技能读取证据。
+
+运行 Unity Test Runner 与确认 Hot Reload 已应用是不同事项。测试结果只说明该次执行所加载代码的表现；没有最新代码已应用或正式编译的证据时，不得据此声称本次修改已生效。验证受此限制时如实报告，不擅自重启或退出 Play 来消除不确定性。
 
 ## 结果与排障
 
