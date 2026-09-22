@@ -4,6 +4,7 @@
     "references": [
         "Core.Runtime",
         "Core.Editor",
+        "Unity.Collections",
         "Hotfix",
         "Hotfix.Editor",
         "Luban.Runtime",

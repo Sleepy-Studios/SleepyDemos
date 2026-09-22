@@ -8,6 +8,7 @@
         "UnityEngine.UI",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
         "Unity.TextMeshPro",
         "DOTween.Modules"
     ],

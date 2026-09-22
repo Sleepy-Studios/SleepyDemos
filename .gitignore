@@ -52,6 +52,10 @@ HybridCLRData/
 # Crash reports / 崩溃报告
 sysinfo.txt
 
+# Streamline native outputs; reproducible from scripts/streamline and the dependency lock
+/Assets/Plugins/Streamline/x86_64/*.dll
+/Assets/Plugins/Streamline/x86_64/Streamline~/
+
 # OS files / 操作系统文件
 .DS_Store
 Thumbs.db

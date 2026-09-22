@@ -1,0 +1,15 @@
+{
+  "streamline": {
+    "version": "2.14.1",
+    "url": "https://github.com/NVIDIA-RTX/Streamline/releases/download/v2.14.1/streamline-sdk-v2.14.1.zip",
+    "sha256": "92c4d954631a1710da86ca3fa8d5034f2b9503838c95fc4ae977ae149319781b"
+  },
+  "vulkanHeaders": {
+    "version": "1.3.296",
+    "commit": "29f979ee5aa58b7b005f805ea8df7a855c39ff37",
+    "url": "https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.296.zip",
+    "sha256": "45a8c99f867a686b85bbb6fa460dad41840ecfa1ca111a29f044387f47308dce"
+  },
+  "unityVersion": "6000.3.15f1",
+  "urpVersion": "17.3.0"
+}

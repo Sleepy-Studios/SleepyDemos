@@ -25,6 +25,9 @@
 大型 UI 导航或过渡改动需要同时阅读 [Core UI 渲染设计原则](./architecture/ui-rendering.md)、[Core UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md) 和 [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)，不要只修改其中一层。
 
 ## 文档结构
+
+DLSS 接入：[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
+
 - `architecture/`
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
   - [资源命名规范](./architecture/asset-naming.md)

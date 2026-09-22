@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-22",
+  "testResult": {
+    "success": true,
+    "jobId": "9ab78f6c",
+    "status": "completed",
+    "totalTests": 1,
+    "passedTests": 1,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "inconclusiveTests": 0,
+    "otherTests": 0,
+    "failedTestNames": [],
+    "failedTestDetails": [],
+    "elapsedSeconds": 121,
+    "resultSummary": "Test run completed: 1/1 passed.",
+    "error": null
+  },
+  "bridgeSha256": "B97A05C982ADA14AFEA638953174786E0EA8C9F5244E6CCF4D906C7359AC7BB4",
+  "report": {
+    "schemaVersion": 1,
+    "state": "RequirementsProbed",
+    "sdkVersion": "2.14.1",
+    "renderer": 18,
+    "initializationResult": 0,
+    "vulkanInterceptRegistered": true,
+    "vulkanInitializationObserved": false,
+    "vulkanInterposerActive": false,
+    "vulkanPresentCount": 0,
+    "deviceBindingResult": 0,
+    "deviceAvailable": true,
+    "swapchainAvailable": false,
+    "commandListAvailable": true,
+    "renderingEnabled": false,
+    "features": [
+      {
+        "featureId": 0,
+        "requirementsResult": 0,
+        "supportResult": 0,
+        "flags": 7,
+        "requiredVulkanDeviceExtensions": [
+          "VK_KHR_push_descriptor",
+          "VK_NVX_binary_import",
+          "VK_NVX_image_view_handle",
+          "VK_EXT_buffer_device_address"
+        ]
+      },
+      {
+        "featureId": 3,
+        "requirementsResult": 0,
+        "supportResult": 0,
+        "flags": 7,
+        "requiredVulkanDeviceExtensions": [
+          "VK_NV_low_latency2",
+          "VK_NV_low_latency"
+        ]
+      },
+      {
+        "featureId": 1000,
+        "requirementsResult": 0,
+        "supportResult": 6,
+        "flags": 22,
+        "requiredVulkanDeviceExtensions": []
+      },
+      {
+        "featureId": 1001,
+        "requirementsResult": 0,
+        "supportResult": 0,
+        "flags": 7,
+        "requiredVulkanDeviceExtensions": [
+          "VK_KHR_push_descriptor",
+          "VK_NVX_binary_import",
+          "VK_NVX_image_view_handle",
+          "VK_EXT_buffer_device_address"
+        ]
+      }
+    ],
+    "reason": "Capability probe only; frame resources and presentation lifecycle not integrated"
+  }
+}
