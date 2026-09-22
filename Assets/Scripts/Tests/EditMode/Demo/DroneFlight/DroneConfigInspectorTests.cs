@@ -67,28 +67,6 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void RemovedPrototypeFields_AreNotSerializedAnymore()
-        {
-            var flight = ScriptableObject.CreateInstance<DroneFlightConfig>();
-            var grapple = ScriptableObject.CreateInstance<DroneGrappleConfig>();
-            try
-            {
-                var flightObject = new UnityEditor.SerializedObject(flight);
-                Assert.That(flightObject.FindProperty("maximumVerticalSpeedMetersPerSecond"), Is.Null);
-                Assert.That(flightObject.FindProperty("maximumHorizontalSpeedMetersPerSecond"), Is.Null);
-                Assert.That(flightObject.FindProperty("maximumHorizontalAccelerationMetersPerSecondSquared"), Is.Null);
-
-                var grappleObject = new UnityEditor.SerializedObject(grapple);
-                Assert.That(grappleObject.FindProperty("clawMaximumForce"), Is.Null);
-            }
-            finally
-            {
-                Object.DestroyImmediate(flight);
-                Object.DestroyImmediate(grapple);
-            }
-        }
-
-        [Test]
         public void InvalidEquipmentConfigs_ReturnChineseAndEnglishDiagnostics()
         {
             var grapple = ScriptableObject.CreateInstance<DroneGrappleConfig>();

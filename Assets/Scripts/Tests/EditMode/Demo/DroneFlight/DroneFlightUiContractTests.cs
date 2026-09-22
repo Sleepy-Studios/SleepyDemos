@@ -22,7 +22,7 @@ namespace Tests.Demo
         private const string DebugPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightDebugView.prefab";
         private const string SelectPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightVehicleSelectView.prefab";
         private const string ViewRoot =
-            "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/SleepyDemos/UI";
+            "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI";
 
         private static readonly string[] ControlTextNames =
         {

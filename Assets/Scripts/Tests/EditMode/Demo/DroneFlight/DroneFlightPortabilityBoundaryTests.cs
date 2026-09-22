@@ -10,7 +10,7 @@ namespace Tests.Demo
     public sealed class DroneFlightPortabilityBoundaryTests
     {
         private const string ModuleRoot = "Assets/Scripts/Hotfix/Demos/DroneFlight";
-        private const string AdapterRoot = ModuleRoot + "/Adapters/SleepyDemos";
+        private const string AdapterRoot = ModuleRoot + "/Adapters";
 
         private static readonly string[] CoreDirectories =
         {

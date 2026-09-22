@@ -1,4 +1,3 @@
-using System.IO;
 using System.Linq;
 using Hotfix.DroneFlight;
 using Hotfix.DroneFlight.Adapters;
@@ -95,25 +94,6 @@ namespace Tests.Demo
             finally
             {
                 EditorSceneManager.CloseScene(scene, true);
-            }
-        }
-
-        [Test]
-        public void PortableBoundary_IncludesCruiseRuntimeWithoutHostServices()
-        {
-            var missionRoot = Path.GetFullPath("Assets/Scripts/Hotfix/Demos/DroneFlight/Cruise");
-            var forbidden = new[]
-            {
-                "using Core.Runtime", "using Hotfix.SceneManagement", "UIManager.",
-                "ResourceServices.", "GameSceneNavigator."
-            };
-            foreach (var file in Directory.GetFiles(missionRoot, "*.cs", SearchOption.AllDirectories))
-            {
-                var source = File.ReadAllText(file);
-                foreach (var dependency in forbidden)
-                {
-                    StringAssert.DoesNotContain(dependency, source, file);
-                }
             }
         }
 

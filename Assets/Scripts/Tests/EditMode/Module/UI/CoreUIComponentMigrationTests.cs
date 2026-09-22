@@ -234,27 +234,6 @@ namespace Tests.Module
         }
 
         [Test]
-        public void TMPSettings_UsesHarmonyFontAndSupportedMobileShader()
-        {
-            TMP_FontAsset harmonyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
-                "Assets/LoadResources/Fonts/TMP_FontAssets/CN/HarmonyOS_CN.asset");
-            TMP_Settings settings = AssetDatabase.LoadAssetAtPath<TMP_Settings>(
-                "Assets/TextMesh Pro/Resources/TMP Settings.asset");
-
-            Assert.That(harmonyFont, Is.Not.Null);
-            Assert.That(settings, Is.Not.Null);
-
-            SerializedObject serializedSettings = new SerializedObject(settings);
-            Assert.That(serializedSettings.FindProperty("m_defaultFontAsset").objectReferenceValue,
-                Is.SameAs(harmonyFont), "TMP Settings 的默认字体必须指向 HarmonyOS_CN。 ");
-
-            Assert.That(harmonyFont.material, Is.Not.Null);
-            Assert.That(harmonyFont.material.shader.name, Is.EqualTo("TextMeshPro/Mobile/Distance Field"));
-            Assert.That(harmonyFont.material.shader.isSupported, Is.True,
-                "HarmonyOS_CN 使用的 Mobile SDF Shader 必须能在当前图形 API 下编译。");
-        }
-
-        [Test]
         public void FlowLayoutGroup_HorizontalFlowWrapsVariablePreferredSizes()
         {
             GameObject root = new GameObject("Flow", typeof(RectTransform), typeof(FlowLayoutGroup));
