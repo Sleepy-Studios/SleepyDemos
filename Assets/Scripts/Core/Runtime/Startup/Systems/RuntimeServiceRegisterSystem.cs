@@ -12,9 +12,10 @@ namespace Core.Runtime
 
         public override UniTask ExecuteAsync()
         {
-            Report(0f, "注册图集加载和运行时服务预留点");
+            Report(0f, "初始化运行时服务");
             SpriteAtlasManager.atlasRequested -= OnAtlasRequested;
             SpriteAtlasManager.atlasRequested += OnAtlasRequested;
+            Rendering.Streamline.StreamlineRuntime.Initialize();
             Report(1f, "运行时服务注册完成");
             return UniTask.CompletedTask;
         }

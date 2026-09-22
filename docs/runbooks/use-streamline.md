@@ -6,6 +6,8 @@ Windows x64、Unity 6000.3.15f1、URP 17.3.0、VS 2022 C++ 工具链和 Windows 
 
 ## SDK 与构建
 
+已配置本机依赖后，打开 `Assets/Scenes/AppEntrance.unity` 运行，在 Hub 选择「DLSS 实验室」，即可从面板切换关闭、SR 各档和 DLAA。操作与资源维护见 [Demo 说明](../modules/dlss-demo.md)。当前默认 DX12，Vulkan 启动参数见下文。
+
 SDK 固定为 Streamline v2.14.1，使用官方 Windows x64 Release。依赖准备必须校验 SHA-256，运行时检查 NVIDIA interposer 签名；发布包使用官方 production 库并保留许可证。原生工程独立于 Unity 自动生成的 sln/csproj。
 
 在仓库根目录运行（UnityEditor 参数指向本机对应版本）：
@@ -63,7 +65,9 @@ Vulkan 验证需先保存并关闭 Editor，再使用 `-force-vulkan -streamline
 5. 验证 Overlay UI、场景切换、Resize、暂停恢复、设置切换和异常回退。
 6. 使用独立 IL2CPP Player 复测；FG/MFG 记录实际测试 GPU，不能以 RTX 3050 的不支持结果代替成功验收。
 
-## 证据与排障
+## 验证与排障
+
+阶段截图、日志、原始 JSON 和性能样本只存放在 Git 忽略的 `Library/Streamline/evidence`，完成阶段后可删除，提交前不再复制到 docs。长期文档只保留简明结果、使用步骤和待办。
 
 每次记录版本、API、硬件、操作步骤、实际输出及未验证项。错误要区分缺失库、签名无效、初始化过晚、设备/驱动不支持、公开接口限制和渲染输入错误。
 

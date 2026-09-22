@@ -36,7 +36,7 @@
 | G5 | Player 交换链验证、FG/MFG 呈现、窗口变化与支持硬件验收 |
 | G6 | RR 输入契约、IL2CPP 发布验证、最终矩阵和交付文档 |
 
-阶段完成状态与证据统一维护在[模块文档](../modules/streamline.md)，操作见[接入手册](../runbooks/use-streamline.md)。
+阶段完成状态与简明验证结果统一维护在[模块文档](../modules/streamline.md)，操作见[接入手册](../runbooks/use-streamline.md)。截图、日志与原始测试报告只作临时开发材料，放在 Git 忽略的 Library 目录，阶段结束可删除，不再提交。
 
 每个阶段通过验收并同步文档后，单独进行本地 Git 提交，不推送远端。HybridCLR 等独立环境变更另行提交。
 

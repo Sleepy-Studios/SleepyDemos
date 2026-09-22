@@ -53,7 +53,7 @@ namespace Hotfix
         {
             //UIManager.Instance.Show<UIFrameworkValidationLauncherView>();
         }
-    
+
         private void OnDroneFlightButtonClick()
         {
             OpenDroneFlightAsync().Forget();
@@ -83,6 +83,28 @@ namespace Hotfix
                 {
                     Debug.LogError($"[MainMenuView] 无法进入 DroneFlight：{result.Error}");
                 }
+            }
+        }
+
+        private void OnDlssButtonClick()
+        {
+            OpenDlssAsync().Forget();
+        }
+
+        private async UniTaskVoid OpenDlssAsync()
+        {
+            var navigator = GameSceneNavigator.Instance;
+            if (navigator == null)
+            {
+                Debug.LogError("[MainMenuView] 场景导航尚未初始化。");
+                return;
+            }
+            if (Button_DlssButton != null) Button_DlssButton.interactable = false;
+            var result = await navigator.SwitchAsync(GameSceneId.Dlss);
+            if (result.Status == GameSceneSwitchStatus.Failed || result.Status == GameSceneSwitchStatus.Busy)
+            {
+                if (Button_DlssButton != null) Button_DlssButton.interactable = true;
+                if (result.Status == GameSceneSwitchStatus.Failed) Debug.LogError("[MainMenuView] 无法进入 DLSS Demo：" + result.Error);
             }
         }
     }

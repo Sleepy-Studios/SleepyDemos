@@ -55,6 +55,8 @@
 - `RuntimeServiceRegisterSystem`
 - `HotfixEntrySystem`
 
+`RuntimeServiceRegisterSystem` 注册 `StreamlineRuntime`，启动和 Hub 阶段不自动启用 DLSS。进入 [DLSS Demo](../modules/dlss-demo.md) 后才创建场景持有的相机会话。
+
 ## 热更入口
 
 Hotfix 入口位于：

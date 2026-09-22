@@ -4,7 +4,8 @@ namespace Hotfix.SceneManagement
     public enum GameSceneId
     {
         Hub = 0,
-        DroneFlight = 1
+        DroneFlight = 1,
+        Dlss = 2
     }
 
     /// 场景切换结果状态。
@@ -67,6 +68,7 @@ namespace Hotfix.SceneManagement
     {
         internal const string DroneFlightAddress =
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
+        internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
 
         internal static bool TryGet(GameSceneId sceneId, out GameSceneDefinition definition)
         {
@@ -80,6 +82,9 @@ namespace Hotfix.SceneManagement
                         GameSceneId.DroneFlight,
                         "无人机飞行",
                         DroneFlightAddress);
+                    return true;
+                case GameSceneId.Dlss:
+                    definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", DlssAddress);
                     return true;
                 default:
                     definition = default;

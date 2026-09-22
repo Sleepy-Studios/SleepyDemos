@@ -26,7 +26,7 @@
 
 ## 文档结构
 
-DLSS 接入：[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
+DLSS 接入：[体验 Demo](./modules/dlss-demo.md)、[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
 
 - `architecture/`
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则

@@ -24,6 +24,7 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Title;
         private Button Button_UIFrameworkValidationButton;
         private Button Button_DroneFlightButton;
+        private Button Button_DlssButton;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -39,8 +40,10 @@ namespace Hotfix
             TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
             Button_UIFrameworkValidationButton = componentItemIndex.Get<Button>(2);
             Button_DroneFlightButton = componentItemIndex.Get<Button>(3);
+            Button_DlssButton = componentItemIndex.Get<Button>(4);
             this.RegisterButton(Button_UIFrameworkValidationButton, OnUIFrameworkValidationButtonClick);
             this.RegisterButton(Button_DroneFlightButton, OnDroneFlightButtonClick);
+            this.RegisterButton(Button_DlssButton, OnDlssButtonClick);
         }
     }
 }
