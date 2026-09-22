@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-22",
+  "graphicsApi": "Direct3D12",
+  "unity": "6000.3.15f1",
+  "bridgeSha256": "883C50F145BAA801CEF827DA53DA8CA1A550D191C10356F141D5AFA83B97CD7D",
+  "test": "Tests.Module.StreamlineDlssImageTests (six image methods before sustained case was added)",
+  "result": {
+    "success": true,
+    "jobId": "004319c6",
+    "status": "completed",
+    "totalTests": 6,
+    "passedTests": 6,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "inconclusiveTests": 0,
+    "otherTests": 0,
+    "failedTestNames": [],
+    "failedTestDetails": [],
+    "elapsedSeconds": 135,
+    "resultSummary": "Test run completed: 6/6 passed.",
+    "error": null
+  }
+}

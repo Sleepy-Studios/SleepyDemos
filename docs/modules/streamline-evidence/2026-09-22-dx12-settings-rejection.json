@@ -1,0 +1,22 @@
+{
+  "date": "2026-09-22",
+  "graphicsApi": "Direct3D12",
+  "bridgeSha256": "0CF97B4F9A7E39AEEB8716B5986918F4B3069747866B8DEA5427802FB6B30C3E",
+  "test": "Tests.Module.StreamlineDlssImageTests.InvalidAndStaleSettingsRequestsAreRejected",
+  "result": {
+    "success": true,
+    "jobId": "489293ce",
+    "status": "completed",
+    "totalTests": 1,
+    "passedTests": 1,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "inconclusiveTests": 0,
+    "otherTests": 0,
+    "failedTestNames": [],
+    "failedTestDetails": [],
+    "elapsedSeconds": 52,
+    "resultSummary": "Test run completed: 1/1 passed.",
+    "error": null
+  }
+}

@@ -1,0 +1,20 @@
+{
+    "mode": "Performance",
+    "recommended": {
+        "x": 640,
+        "y": 360
+    },
+    "actual": {
+        "x": 640,
+        "y": 360
+    },
+    "minimum": {
+        "x": 640,
+        "y": 360
+    },
+    "maximum": {
+        "x": 1280,
+        "y": 720
+    },
+    "renderScale": 0.5003906488418579
+}

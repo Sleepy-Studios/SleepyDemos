@@ -1,0 +1,20 @@
+{
+    "mode": "UltraPerformance",
+    "recommended": {
+        "x": 427,
+        "y": 240
+    },
+    "actual": {
+        "x": 427,
+        "y": 240
+    },
+    "minimum": {
+        "x": 427,
+        "y": 240
+    },
+    "maximum": {
+        "x": 427,
+        "y": 240
+    },
+    "renderScale": 0.333984375
+}

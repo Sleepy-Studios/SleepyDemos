@@ -25,7 +25,7 @@ namespace Core.Runtime.Rendering.Streamline
         /// <param name="renderingData">用于匹配相机的帧数据。</param>
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (Session == null || Session.Camera != renderingData.cameraData.camera) return;
+            if (Session == null || !Session.IsCapturing || Session.Camera != renderingData.cameraData.camera) return;
             renderer.EnqueuePass(capturePass);
         }
 
@@ -34,6 +34,8 @@ namespace Core.Runtime.Rendering.Streamline
         {
             /// 当前验证相机。
             public Camera Camera { get; }
+            /// 是否接受新的捕获；停止不会释放 GPU 资源。
+            public bool IsCapturing { get; private set; } = true;
             /// 实际记录的捕获帧数。
             public int CapturedFrames { get; internal set; }
             /// URP 相机本帧的内部渲染宽度。
@@ -75,12 +77,19 @@ namespace Core.Runtime.Rendering.Streamline
                 Output = RTHandles.Alloc(output);
             }
 
+            /// 停止录入与尚未执行的捕获回调；已提交的 GPU 工作仍须等待完成。
+            public void StopCapture()
+            {
+                IsCapturing = false;
+                AfterCapture = null;
+            }
+
             /// 在 GPU 不再使用捕获资源后释放包装，不销毁调用者的 RenderTexture。
             public void Dispose()
             {
                 if (disposed) return;
                 disposed = true;
-                AfterCapture = null;
+                StopCapture();
                 if (ReferenceEquals(Session, this)) Session = null;
                 Color.Release();
                 Depth.Release();
@@ -118,7 +127,7 @@ namespace Core.Runtime.Rendering.Streamline
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
             {
                 CaptureSession session = Session;
-                if (session == null) return;
+                if (session == null || !session.IsCapturing) return;
                 UniversalCameraData camera = frameData.Get<UniversalCameraData>();
                 if (camera.camera != session.Camera) return;
                 UniversalResourceData resources = frameData.Get<UniversalResourceData>();
@@ -171,6 +180,7 @@ namespace Core.Runtime.Rendering.Streamline
                     if (data.PublishToCamera) builder.AllowGlobalStateModification(true);
                     builder.SetRenderFunc((PassData pass, UnsafeGraphContext context) =>
                     {
+                        if (!pass.Session.IsCapturing) return;
                         CommandBuffer commands = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
                         Blitter.BlitCameraTexture(commands, pass.Color, pass.ColorTarget);
                         Blitter.BlitCameraTexture(commands, pass.Depth, pass.DepthTarget);

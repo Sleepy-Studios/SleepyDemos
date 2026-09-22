@@ -1,0 +1,86 @@
+{
+  "date": "2026-09-22",
+  "stage": "G2",
+  "status": "Completed: Editor independent SR/DLAA image loop",
+  "unity": "6000.3.15f1",
+  "urp": "17.3.0",
+  "sdk": "2.14.1",
+  "gpu": "NVIDIA GeForce RTX 3050",
+  "driver": "616.92",
+  "bridgeSha256": "0CF97B4F9A7E39AEEB8716B5986918F4B3069747866B8DEA5427802FB6B30C3E",
+  "sourceHashes": [
+    {
+      "path": "Native/Streamline/src/Bridge.cpp",
+      "sha256": "B0279E388CFCFA3DDCD7C3770075C3E99DDCEEE915BFD9903381B172A5A08064"
+    },
+    {
+      "path": "Assets/Scripts/Core/Runtime/Rendering/Streamline/StreamlineCaptureFeature.cs",
+      "sha256": "E29717D051F574CDC917A199B4AB06A0068ACE3949A1F75B1E83B8DF825D96CD"
+    },
+    {
+      "path": "Assets/Scripts/Core/Runtime/Rendering/Streamline/StreamlineDlssFrame.cs",
+      "sha256": "4111B6B1EBD6777ED073EFB71FC4FD49ED66944E2C33E8F0F8FDA6BDC33364A7"
+    },
+    {
+      "path": "Assets/Scripts/Core/Runtime/Rendering/Streamline/StreamlineDlssValidation.cs",
+      "sha256": "81A56CEFC6F8AD9671DB97802DB8E159958ACE67200098F21D96E2CBB85AD46F"
+    },
+    {
+      "path": "Assets/Scripts/Tests/PlayMode/Module/Streamline/StreamlineDlssImageTests.cs",
+      "sha256": "D5974D89D9C6B92112FEBFA913A9B7C018349C0E029C807ECC7D0A2C9E577048"
+    }
+  ],
+  "tests": {
+    "scope": "Tests.Module.StreamlineDlssImageTests only, 13 PlayMode methods per backend; no whole-project regression",
+    "Direct3D12": {
+      "success": true,
+      "jobId": "028f696a",
+      "status": "completed",
+      "totalTests": 13,
+      "passedTests": 13,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "inconclusiveTests": 0,
+      "otherTests": 0,
+      "failedTestNames": [],
+      "failedTestDetails": [],
+      "elapsedSeconds": 150,
+      "resultSummary": "Test run completed: 13/13 passed.",
+      "error": null
+    },
+    "Vulkan": {
+      "success": true,
+      "jobId": "2fdb0e38",
+      "status": "completed",
+      "totalTests": 13,
+      "passedTests": 13,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "inconclusiveTests": 0,
+      "otherTests": 0,
+      "failedTestNames": [],
+      "failedTestDetails": [],
+      "elapsedSeconds": 185,
+      "resultSummary": "Test run completed: 13/13 passed.",
+      "error": null
+    }
+  },
+  "coverage": [
+    "Five quality modes with SDK optimal size/range query",
+    "URP input capture, jitter, motion and history reset",
+    "Camera translation/rotation/cut",
+    "Same viewport mode and size reconfiguration",
+    "Native output and full-size camera target comparison",
+    "Static transparent surface alpha changes and HDR brightness steps",
+    "Invalid/stale query rejection and unsafe reconfiguration rejection",
+    "240 frames per SR/DLAA mode and GPU command timing",
+    "GPU completion, explicit viewport release and SDK session cleanup"
+  ],
+  "limits": [
+    "Editor fixtures only; project UI/Hub integration is G3",
+    "No Player/swapchain/FG acceptance",
+    "GPU timing measures DLSS command scope, not whole-frame benefit",
+    "Complex particles/refraction and long-run memory behavior are not covered"
+  ],
+  "next": "Formal AppEntrance/Hub entry and DLSS Demo with Off, SR modes and DLAA panel; commit and pause for user experience"
+}

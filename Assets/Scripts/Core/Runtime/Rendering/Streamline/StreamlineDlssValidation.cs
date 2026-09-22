@@ -19,12 +19,31 @@ namespace Core.Runtime.Rendering.Streamline
         /// <returns>是否录入请求；不表示 SDK 执行或 GPU 工作完成。</returns>
         public static bool TryEnqueue(CommandBuffer commands, StreamlineDlssFrame frame, out ulong request, out string reason)
         {
+            return TryQueue(commands, frame, false, out request, out reason);
+        }
+
+        /// <summary>在渲染线程查询 SDK 推荐尺寸；提交命令并确认事件完成后读取结果。</summary>
+        /// <param name="commands">查询命令缓冲。</param>
+        /// <param name="mode">请求的质量档。</param>
+        /// <param name="outputSize">目标输出尺寸。</param>
+        /// <param name="request">用于匹配查询结果的编号。</param>
+        /// <param name="reason">无法录入请求的原因。</param>
+        /// <returns>是否录入查询；实际 SDK 支持情况由查询结果决定。</returns>
+        public static bool TryEnqueueOptimalSettings(CommandBuffer commands, StreamlineDlssMode mode, Vector2Int outputSize, out ulong request, out string reason)
+        {
+            if (outputSize.x <= 0 || outputSize.y <= 0) throw new ArgumentOutOfRangeException(nameof(outputSize));
+            var frame = new StreamlineDlssFrame { Mode = mode, OutputWidth = (uint)outputSize.x, OutputHeight = (uint)outputSize.y };
+            return TryQueue(commands, frame, true, out request, out reason);
+        }
+
+        private static bool TryQueue(CommandBuffer commands, StreamlineDlssFrame frame, bool querySettings, out ulong request, out string reason)
+        {
             if (commands == null) throw new ArgumentNullException(nameof(commands));
             request = 0;
             reason = null;
-            if (Application.platform != RuntimePlatform.WindowsEditor || SystemInfo.graphicsDeviceType != GraphicsDeviceType.Direct3D12)
+            if (Application.platform != RuntimePlatform.WindowsEditor || (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Direct3D12 && SystemInfo.graphicsDeviceType != GraphicsDeviceType.Vulkan))
             {
-                reason = "当前图像验证路径需要 Windows Editor + D3D12。";
+                reason = "当前图像验证路径需要 Windows Editor + D3D12/Vulkan；Vulkan 需以 -streamline-interpose 启动。";
                 return false;
             }
             try
@@ -35,13 +54,14 @@ namespace Core.Runtime.Rendering.Streamline
                     return false;
                 }
                 IntPtr callback = SleepyStreamlineGetDlssEvent();
+                int eventId = querySettings ? SleepyStreamlineGetOptimalSettingsEventId() : SleepyStreamlineGetProbeEventId() + 1;
                 request = SleepyStreamlineQueueFrame(ref frame);
                 if (request == 0)
                 {
                     reason = "原生待处理帧队列已满。";
                     return false;
                 }
-                commands.IssuePluginEventAndData(callback, SleepyStreamlineGetProbeEventId() + 1, new IntPtr(unchecked((long)request)));
+                commands.IssuePluginEventAndData(callback, eventId, new IntPtr(unchecked((long)request)));
                 return true;
             }
             catch (Exception exception) when (IsLoadingFailure(exception))
@@ -54,6 +74,42 @@ namespace Core.Runtime.Rendering.Streamline
                 if (request != 0) SleepyStreamlineCancelFrame(request);
                 throw;
             }
+        }
+
+        [Serializable]
+        private sealed class OptimalSettingsReport
+        {
+            public ulong requestId;
+            public string state;
+            public int result;
+            public uint mode;
+            public int outputWidth, outputHeight, optimalWidth, optimalHeight, minWidth, minHeight, maxWidth, maxHeight;
+        }
+
+        /// <summary>读取匹配编号的推荐设置；后续图像或查询事件会覆盖最近报告。</summary>
+        /// <param name="request">已完成的查询请求编号。</param>
+        /// <param name="settings">SDK 推荐输入尺寸与范围。</param>
+        /// <param name="reason">请求尚未完成、已被覆盖或 SDK 失败的诊断。</param>
+        /// <returns>是否取得有效的匹配结果。</returns>
+        public static bool TryGetOptimalSettings(ulong request, out StreamlineDlssOptimalSettings settings, out string reason)
+        {
+            settings = default;
+            if (!TryGetReport(out string json, out reason)) return false;
+            var report = JsonUtility.FromJson<OptimalSettingsReport>(json);
+            if (report == null || request == 0 || report.requestId != request || report.result != 0 || report.state != "OptimalSettings" || report.optimalWidth <= 0 || report.optimalHeight <= 0)
+            {
+                reason = "推荐设置查询未成功或结果已被覆盖：" + json;
+                return false;
+            }
+            settings = new StreamlineDlssOptimalSettings
+            {
+                Mode = (StreamlineDlssMode)report.mode,
+                OutputSize = new Vector2Int(report.outputWidth, report.outputHeight),
+                OptimalSize = new Vector2Int(report.optimalWidth, report.optimalHeight),
+                MinimumSize = new Vector2Int(report.minWidth, report.minHeight),
+                MaximumSize = new Vector2Int(report.maxWidth, report.maxHeight)
+            };
+            return true;
         }
 
         /// <summary>读取最近一次图像请求报告；应检查其中 requestId 与本次请求一致。</summary>
@@ -136,6 +192,7 @@ namespace Core.Runtime.Rendering.Streamline
         }
 
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetFrameSize();
+        [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetOptimalSettingsEventId();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SleepyStreamlineGetDlssEvent();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetProbeEventId();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetReleaseViewportEventId();

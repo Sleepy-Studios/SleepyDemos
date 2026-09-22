@@ -4,11 +4,70 @@ using UnityEngine;
 
 namespace Core.Runtime.Rendering.Streamline
 {
-    /// 已接入验证的 DLSS 模式，对应锁定 SDK 的数值。
+    /// DLSS 质量模式，对应锁定 SDK 的数值；实际支持须查询推荐设置。
     public enum StreamlineDlssMode : uint
     {
+        Performance = 1,
+        Balanced = 2,
         Quality = 3,
+        UltraPerformance = 4,
         Dlaa = 6
+    }
+
+    /// SDK 返回的输入尺寸建议与范围，查询成功不表示图像处理已启用。
+    public struct StreamlineDlssOptimalSettings
+    {
+        /// 对应的质量模式。
+        public StreamlineDlssMode Mode;
+        /// 查询时的输出尺寸。
+        public Vector2Int OutputSize;
+        /// SDK 推荐输入尺寸。
+        public Vector2Int OptimalSize;
+        /// SDK 允许的最小输入尺寸。
+        public Vector2Int MinimumSize;
+        /// SDK 允许的最大输入尺寸。
+        public Vector2Int MaximumSize;
+
+        /// <summary>把 SDK 推荐尺寸转换为 URP 17.3 的统一缩放比例，并校验截断后的输入尺寸。</summary>
+        /// <param name="renderScale">应用到独立 URP 配置的比例；本方法不修改管线资产。</param>
+        /// <param name="inputSize">按 URP 截断规则计算的实际输入尺寸。</param>
+        /// <param name="reason">SDK 范围无效或无法用统一比例表达的原因。</param>
+        /// <returns>是否得到处于 SDK 范围内的输入；宿主仍须检查实际相机捕获尺寸。</returns>
+        public bool TryGetUrpRenderScale(out float renderScale, out Vector2Int inputSize, out string reason)
+        {
+            renderScale = 1;
+            inputSize = default;
+            reason = null;
+            if (OutputSize.x <= 0 || OutputSize.y <= 0 || MinimumSize.x <= 0 || MinimumSize.y <= 0 ||
+                OptimalSize.x < MinimumSize.x || OptimalSize.y < MinimumSize.y ||
+                OptimalSize.x > MaximumSize.x || OptimalSize.y > MaximumSize.y)
+            {
+                reason = "SDK 推荐输入尺寸或允许范围无效。";
+                return false;
+            }
+            double lower = Math.Max(0.1, Math.Max(MinimumSize.x / (double)OutputSize.x, MinimumSize.y / (double)OutputSize.y));
+            double upper = Math.Min(1.0000001, Math.Min((MaximumSize.x + 1.0) / OutputSize.x, (MaximumSize.y + 1.0) / OutputSize.y));
+            if (lower >= upper)
+            {
+                reason = "SDK 输入范围不能由 URP 的统一 renderScale 表达。";
+                return false;
+            }
+            double optimalLower = Math.Max(OptimalSize.x / (double)OutputSize.x, OptimalSize.y / (double)OutputSize.y);
+            double optimalUpper = Math.Min((OptimalSize.x + 1.0) / OutputSize.x, (OptimalSize.y + 1.0) / OutputSize.y);
+            // Prefer exact integer dimensions when one scalar can represent both axes.
+            double candidate = optimalLower < optimalUpper ? (optimalLower + optimalUpper) * 0.5 : optimalLower;
+            if (candidate < lower || candidate >= upper) candidate = (lower + upper) * 0.5;
+            renderScale = Mode == StreamlineDlssMode.Dlaa ? 1 : Mathf.Min(1, (float)candidate);
+            inputSize = new Vector2Int(Mathf.Max(1, (int)(OutputSize.x * renderScale)), Mathf.Max(1, (int)(OutputSize.y * renderScale)));
+            if (inputSize.x < MinimumSize.x || inputSize.y < MinimumSize.y || inputSize.x > MaximumSize.x || inputSize.y > MaximumSize.y ||
+                (Mode == StreamlineDlssMode.Dlaa && inputSize != OutputSize))
+            {
+                reason = "URP 取整后的输入尺寸超出 SDK 允许范围。";
+                inputSize = default;
+                return false;
+            }
+            return true;
+        }
     }
 
     /// 单帧原生桥接数据。纹理必须保持有效至提交后的 GPU fence 完成。

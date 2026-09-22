@@ -1,0 +1,134 @@
+{
+  "date": "2026-09-22",
+  "unity": "6000.3.15f1",
+  "urp": "17.3.0",
+  "graphicsApi": "Vulkan",
+  "gpu": "NVIDIA GeForce RTX 3050",
+  "driver": "616.92",
+  "bridgeSha256": "883C50F145BAA801CEF827DA53DA8CA1A550D191C10356F141D5AFA83B97CD7D",
+  "launchArguments": "-force-vulkan -streamline-interpose",
+  "scope": "Six exact PlayMode methods; no full-project tests",
+  "tests": [
+    {
+      "test": "QualityAndDlaaWriteFiniteNonBlankGpuImages",
+      "result": {
+        "success": true,
+        "jobId": "9f63f96f",
+        "status": "completed",
+        "totalTests": 1,
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "inconclusiveTests": 0,
+        "otherTests": 0,
+        "failedTestNames": [],
+        "failedTestDetails": [],
+        "elapsedSeconds": 264,
+        "resultSummary": "Test run completed: 1/1 passed.",
+        "error": null
+      }
+    },
+    {
+      "test": "UrpSceneInputsProduceQualityAndDlaaImages",
+      "result": {
+        "success": true,
+        "jobId": "b7c6e44e",
+        "status": "completed",
+        "totalTests": 1,
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "inconclusiveTests": 0,
+        "otherTests": 0,
+        "failedTestNames": [],
+        "failedTestDetails": [],
+        "elapsedSeconds": 237,
+        "resultSummary": "Test run completed: 1/1 passed.",
+        "error": null
+      }
+    },
+    {
+      "test": "CameraMovementAndCutProduceValidTemporalInputs",
+      "result": {
+        "success": true,
+        "jobId": "ab1dca9f",
+        "status": "completed",
+        "totalTests": 1,
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "inconclusiveTests": 0,
+        "otherTests": 0,
+        "failedTestNames": [],
+        "failedTestDetails": [],
+        "elapsedSeconds": 212,
+        "resultSummary": "Test run completed: 1/1 passed.",
+        "error": null
+      }
+    },
+    {
+      "test": "SameViewportHandlesModeAndOutputResize",
+      "result": {
+        "success": true,
+        "jobId": "b83d224d",
+        "status": "completed",
+        "totalTests": 1,
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "inconclusiveTests": 0,
+        "otherTests": 0,
+        "failedTestNames": [],
+        "failedTestDetails": [],
+        "elapsedSeconds": 162,
+        "resultSummary": "Test run completed: 1/1 passed.",
+        "error": null
+      }
+    },
+    {
+      "test": "UnsafeViewportReconfigurationIsRejected",
+      "result": {
+        "success": true,
+        "jobId": "36170da9",
+        "status": "completed",
+        "totalTests": 1,
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "inconclusiveTests": 0,
+        "otherTests": 0,
+        "failedTestNames": [],
+        "failedTestDetails": [],
+        "elapsedSeconds": 118,
+        "resultSummary": "Test run completed: 1/1 passed.",
+        "error": null
+      }
+    },
+    {
+      "test": "DlssOutputReachesCameraTarget",
+      "result": {
+        "success": true,
+        "jobId": "4c318794",
+        "status": "completed",
+        "totalTests": 1,
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0,
+        "inconclusiveTests": 0,
+        "otherTests": 0,
+        "failedTestNames": [],
+        "failedTestDetails": [],
+        "elapsedSeconds": 69,
+        "resultSummary": "Test run completed: 1/1 passed.",
+        "error": null
+      }
+    }
+  ],
+  "limitations": [
+    "Finite Editor sessions only",
+    "No GPU timing measured; Runner elapsedSeconds is not GPU time",
+    "No Player, main camera/Overlay UI, Reflex or FG validation",
+    "New native bridge DX12 regression pending"
+  ],
+  "artifacts": "./vulkan-images/"
+}

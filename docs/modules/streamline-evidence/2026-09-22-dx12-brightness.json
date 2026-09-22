@@ -1,0 +1,29 @@
+{
+  "date": "2026-09-22",
+  "unity": "6000.3.15f1",
+  "graphicsApi": "Direct3D12",
+  "bridgeSha256": "883C50F145BAA801CEF827DA53DA8CA1A550D191C10356F141D5AFA83B97CD7D",
+  "test": "Tests.Module.StreamlineDlssImageTests.HdrBrightnessStepsRecoverWithoutHistoryReset",
+  "result": {
+    "success": true,
+    "jobId": "befcfb09",
+    "status": "completed",
+    "totalTests": 1,
+    "passedTests": 1,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "inconclusiveTests": 0,
+    "otherTests": 0,
+    "failedTestNames": [],
+    "failedTestDetails": [],
+    "elapsedSeconds": 88,
+    "resultSummary": "Test run completed: 1/1 passed.",
+    "error": null
+  },
+  "maximumSampleRelativeMeanError": 0.0008629961703067758,
+  "coverage": "Synthetic HDR multipliers 1,8,0.125,1; 8 frames each without history reset",
+  "limitations": [
+    "Mean luminance is not per-pixel image quality",
+    "No scene exposure controller is implemented by this test"
+  ]
+}

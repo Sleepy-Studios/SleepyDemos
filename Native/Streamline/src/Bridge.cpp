@@ -11,6 +11,7 @@
 #include <atomic>
 #include <unordered_map>
 #include <set>
+#include <array>
 #include "IUnityInterface.h"
 #include "IUnityGraphics.h"
 #include "IUnityGraphicsD3D12.h"
@@ -60,6 +61,71 @@ namespace
     std::set<uint32_t> activeViewports;
     struct ViewportConfiguration { uint32_t mode, width, height; };
     std::unordered_map<uint32_t, ViewportConfiguration> viewportConfigurations;
+    struct VulkanView
+    {
+        VkDevice device = VK_NULL_HANDLE;
+        VkImage image = VK_NULL_HANDLE;
+        VkImageView view = VK_NULL_HANDLE;
+        PFN_vkDestroyImageView destroy = nullptr;
+    };
+    std::unordered_map<uint32_t, std::array<VulkanView, 4>> viewportViews;
+
+    // Only call after host GPU completion and successful SDK viewport release.
+    void ReleaseVulkanViews(uint32_t viewport)
+    {
+        auto found = viewportViews.find(viewport);
+        if (found == viewportViews.end()) return;
+        for (auto& entry : found->second)
+            if (entry.view) entry.destroy(entry.device, entry.view, nullptr);
+        viewportViews.erase(found);
+    }
+
+    sl::Result PrepareVulkanResource(IUnityGraphicsVulkanV2* api, void* texture, bool writable,
+        uint32_t viewport, size_t slot, sl::Resource& resource)
+    {
+        UnityVulkanImage image{};
+        const auto layout = writable ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        const VkAccessFlags access = writable ? VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT : VK_ACCESS_SHADER_READ_BIT;
+        if (!api->AccessTexture(texture, UnityVulkanWholeImage, layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            access, kUnityVulkanResourceAccess_PipelineBarrier, &image)) return sl::Result::eErrorInvalidIntegration;
+        if (!image.image || image.type != VK_IMAGE_TYPE_2D || image.samples != VK_SAMPLE_COUNT_1_BIT ||
+            image.layers != 1 || image.mipCount != 1 || image.aspect != VK_IMAGE_ASPECT_COLOR_BIT ||
+            !(image.usage & (writable ? VK_IMAGE_USAGE_STORAGE_BIT : VK_IMAGE_USAGE_SAMPLED_BIT)))
+            return sl::Result::eErrorInvalidParameter;
+        auto instance = api->Instance();
+        auto& cached = viewportViews[viewport][slot];
+        // Host textures must remain stable until explicit viewport release, including after resize.
+        if (cached.view && (cached.image != image.image || cached.device != instance.device))
+            return sl::Result::eErrorInvalidIntegration;
+        if (!cached.view)
+        {
+            if (!instance.device || !instance.getInstanceProcAddr) return sl::Result::eErrorDeviceNotCreated;
+            auto getDeviceProc = reinterpret_cast<PFN_vkGetDeviceProcAddr>(instance.getInstanceProcAddr(instance.instance, "vkGetDeviceProcAddr"));
+            if (!getDeviceProc) return sl::Result::eErrorMissingOrInvalidAPI;
+            auto create = reinterpret_cast<PFN_vkCreateImageView>(getDeviceProc(instance.device, "vkCreateImageView"));
+            auto destroy = reinterpret_cast<PFN_vkDestroyImageView>(getDeviceProc(instance.device, "vkDestroyImageView"));
+            if (!create || !destroy) return sl::Result::eErrorMissingOrInvalidAPI;
+            VkImageViewCreateInfo info{};
+            info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            info.image = image.image;
+            info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            info.format = image.format;
+            info.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+            VkImageView view = VK_NULL_HANDLE;
+            if (create(instance.device, &info, nullptr, &view) != VK_SUCCESS) return sl::Result::eErrorInvalidIntegration;
+            cached = {instance.device, image.image, view, destroy};
+        }
+        resource = sl::Resource(sl::ResourceType::eTex2d, reinterpret_cast<void*>(image.image),
+            reinterpret_cast<void*>(image.memory.memory), reinterpret_cast<void*>(cached.view), static_cast<uint32_t>(image.layout));
+        resource.width = image.extent.width;
+        resource.height = image.extent.height;
+        resource.nativeFormat = static_cast<uint32_t>(image.format);
+        resource.mipLevels = 1;
+        resource.arrayLayers = 1;
+        resource.flags = 0;
+        resource.usage = image.usage;
+        return sl::Result::eOk;
+    }
     uintptr_t nextRequest = 0;
     std::string frameReport = R"({"requestId":0,"state":"NotEvaluated"})";
     std::string resourceReport = R"({"state":"NotProbed"})";
@@ -353,24 +419,35 @@ namespace
         resourceReport = output.str();
     }
 
-    sl::Result EvaluateDlss(const DlssFrame& frame, const char*& stage)
+    bool IsDlssMode(uint32_t mode)
     {
-        stage = "Validate";
-        if (!graphics || graphics->GetRenderer() != kUnityGfxRendererD3D12)
-            return sl::Result::eErrorMissingOrInvalidAPI;
-        if (!frame.color || !frame.depth || !frame.motion || !frame.output || frame.color == frame.output ||
-            !frame.inputWidth || !frame.inputHeight || !frame.outputWidth || !frame.outputHeight ||
-            (frame.mode != static_cast<uint32_t>(sl::DLSSMode::eMaxQuality) && frame.mode != static_cast<uint32_t>(sl::DLSSMode::eDLAA)))
-            return sl::Result::eErrorInvalidParameter;
+        return (mode >= static_cast<uint32_t>(sl::DLSSMode::eMaxPerformance) &&
+            mode <= static_cast<uint32_t>(sl::DLSSMode::eUltraPerformance)) || mode == static_cast<uint32_t>(sl::DLSSMode::eDLAA);
+    }
 
+    sl::Result InitializeDlssBackend(const char*& stage)
+    {
+        if (!graphics || (graphics->GetRenderer() != kUnityGfxRendererD3D12 && graphics->GetRenderer() != kUnityGfxRendererVulkan))
+            return sl::Result::eErrorMissingOrInvalidAPI;
+        const bool isVulkan = graphics->GetRenderer() == kUnityGfxRendererVulkan;
         stage = "Initialize";
-        auto result = InitializeSdk(sl::RenderAPI::eD3D12, true);
+        // Vulkan must have intercepted instance/device creation before Unity initialized graphics.
+        if (isVulkan && !vulkanInterposerActive) return sl::Result::eErrorInvalidIntegration;
+        auto result = InitializeSdk(isVulkan ? sl::RenderAPI::eVulkan : sl::RenderAPI::eD3D12, !isVulkan);
         if (result != sl::Result::eOk) return result;
-        auto* api = interfaces->Get<IUnityGraphicsD3D12v8>();
-        if (!api || !api->GetDevice()) return sl::Result::eErrorDeviceNotCreated;
-        stage = "BindDevice";
-        if (deviceBindingResult == sl::Result::eErrorDeviceNotCreated) deviceBindingResult = setDevice(api->GetDevice());
-        if (deviceBindingResult != sl::Result::eOk) return deviceBindingResult;
+        auto* api = isVulkan ? nullptr : interfaces->Get<IUnityGraphicsD3D12v8>();
+        auto* vkApi = isVulkan ? interfaces->Get<IUnityGraphicsVulkanV2>() : nullptr;
+        if (isVulkan)
+        {
+            if (!vkApi || !vkApi->Instance().device) return sl::Result::eErrorDeviceNotCreated;
+        }
+        else
+        {
+            if (!api || !api->GetDevice()) return sl::Result::eErrorDeviceNotCreated;
+            stage = "BindDevice";
+            if (deviceBindingResult == sl::Result::eErrorDeviceNotCreated) deviceBindingResult = setDevice(api->GetDevice());
+            if (deviceBindingResult != sl::Result::eOk) return deviceBindingResult;
+        }
         if (!setDlssOptions)
         {
             stage = "ImportDlss";
@@ -378,6 +455,43 @@ namespace
             if (result != sl::Result::eOk) return result;
         }
 
+        return sl::Result::eOk;
+    }
+
+    sl::Result QueryOptimalSettings(const DlssFrame& frame, sl::DLSSOptimalSettings& settings, const char*& stage)
+    {
+        stage = "ValidateSettings";
+        if (!IsDlssMode(frame.mode) || !frame.outputWidth || !frame.outputHeight) return sl::Result::eErrorInvalidParameter;
+        auto result = InitializeDlssBackend(stage);
+        if (result != sl::Result::eOk) return result;
+        PFun_slDLSSGetOptimalSettings* query = nullptr;
+        stage = "ImportOptimalSettings";
+        result = getFunction(sl::kFeatureDLSS, "slDLSSGetOptimalSettings", reinterpret_cast<void*&>(query));
+        if (result != sl::Result::eOk) return result;
+        sl::DLSSOptions options{};
+        options.mode = static_cast<sl::DLSSMode>(frame.mode);
+        options.outputWidth = frame.outputWidth;
+        options.outputHeight = frame.outputHeight;
+        options.colorBuffersHDR = sl::eTrue;
+        options.useAutoExposure = sl::eTrue;
+        stage = "OptimalSettings";
+        return query(options, settings);
+    }
+    sl::Result EvaluateDlss(const DlssFrame& frame, const char*& stage)
+    {
+        stage = "Validate";
+        if (!graphics || (graphics->GetRenderer() != kUnityGfxRendererD3D12 && graphics->GetRenderer() != kUnityGfxRendererVulkan))
+            return sl::Result::eErrorMissingOrInvalidAPI;
+        const bool isVulkan = graphics->GetRenderer() == kUnityGfxRendererVulkan;
+        if (!frame.color || !frame.depth || !frame.motion || !frame.output || frame.color == frame.output ||
+            !frame.inputWidth || !frame.inputHeight || !frame.outputWidth || !frame.outputHeight ||
+            !IsDlssMode(frame.mode))
+            return sl::Result::eErrorInvalidParameter;
+
+        auto result = InitializeDlssBackend(stage);
+        if (result != sl::Result::eOk) return result;
+        auto* api = isVulkan ? nullptr : interfaces->Get<IUnityGraphicsD3D12v8>();
+        auto* vkApi = isVulkan ? interfaces->Get<IUnityGraphicsVulkanV2>() : nullptr;
         stage = "ReleaseViewportBeforeReconfigure";
         auto configured = viewportConfigurations.find(frame.viewport);
         if (configured != viewportConfigurations.end() &&
@@ -431,17 +545,39 @@ namespace
         auto* motion = static_cast<ID3D12Resource*>(frame.motion);
         auto* output = static_cast<ID3D12Resource*>(frame.output);
         const auto readState = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        api->RequestResourceState(color, readState);
-        api->RequestResourceState(depth, readState);
-        api->RequestResourceState(motion, readState);
-        api->RequestResourceState(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        UnityGraphicsD3D12RecordingState recording{};
-        stage = "CommandList";
-        if (!api->CommandRecordingState(&recording) || !recording.commandList) return sl::Result::eErrorInvalidIntegration;
         sl::Resource colorResource(sl::ResourceType::eTex2d, color, readState);
         sl::Resource depthResource(sl::ResourceType::eTex2d, depth, readState);
         sl::Resource motionResource(sl::ResourceType::eTex2d, motion, readState);
         sl::Resource outputResource(sl::ResourceType::eTex2d, output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        void* commandBuffer = nullptr;
+        if (isVulkan)
+        {
+            void* textures[] = {frame.color, frame.depth, frame.motion, frame.output};
+            sl::Resource* resources[] = {&colorResource, &depthResource, &motionResource, &outputResource};
+            stage = "VulkanResources";
+            for (size_t slot = 0; slot < std::size(textures); ++slot)
+            {
+                result = PrepareVulkanResource(vkApi, textures[slot], slot == 3, frame.viewport, slot, *resources[slot]);
+                if (result != sl::Result::eOk) return result;
+            }
+            // AccessTexture may change the recording command buffer; query only after all barriers.
+            UnityVulkanRecordingState recording{};
+            stage = "VulkanCommandBuffer";
+            if (!vkApi->CommandRecordingState(&recording, kUnityVulkanGraphicsQueueAccess_DontCare) ||
+                !recording.commandBuffer || recording.renderPass) return sl::Result::eErrorInvalidIntegration;
+            commandBuffer = reinterpret_cast<void*>(recording.commandBuffer);
+        }
+        else
+        {
+            api->RequestResourceState(color, readState);
+            api->RequestResourceState(depth, readState);
+            api->RequestResourceState(motion, readState);
+            api->RequestResourceState(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            UnityGraphicsD3D12RecordingState recording{};
+            stage = "CommandList";
+            if (!api->CommandRecordingState(&recording) || !recording.commandList) return sl::Result::eErrorInvalidIntegration;
+            commandBuffer = recording.commandList;
+        }
         sl::Extent inputExtent{0, 0, frame.inputWidth, frame.inputHeight};
         sl::Extent outputExtent{0, 0, frame.outputWidth, frame.outputHeight};
         sl::ResourceTag tags[] =
@@ -452,19 +588,22 @@ namespace
             {&outputResource, sl::kBufferTypeScalingOutputColor, sl::eValidUntilEvaluate, &outputExtent}
         };
         stage = "TagResources";
-        result = setTags(*token, viewport, tags, static_cast<uint32_t>(std::size(tags)), recording.commandList);
+        result = setTags(*token, viewport, tags, static_cast<uint32_t>(std::size(tags)), commandBuffer);
         if (result == sl::Result::eOk)
         {
             stage = "Evaluate";
             const sl::BaseStructure* inputs[] = {&viewport};
-            result = evaluate(sl::kFeatureDLSS, *token, inputs, 1, recording.commandList);
+            result = evaluate(sl::kFeatureDLSS, *token, inputs, 1, commandBuffer);
         }
         // SL restores the tagged resource states after its internal transitions.
         // Mark the UAV write so Unity inserts the required dependency for readback/blit.
-        api->NotifyResourceState(color, readState, false);
-        api->NotifyResourceState(depth, readState, false);
-        api->NotifyResourceState(motion, readState, false);
-        api->NotifyResourceState(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        if (api)
+        {
+            api->NotifyResourceState(color, readState, false);
+            api->NotifyResourceState(depth, readState, false);
+            api->NotifyResourceState(motion, readState, false);
+            api->NotifyResourceState(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, true);
+        }
         return result;
     }
 
@@ -478,6 +617,7 @@ namespace
             for (uint32_t viewport : activeViewports)
             {
                 auto result = freeResources(sl::kFeatureDLSS, sl::ViewportHandle(viewport));
+                if (result == sl::Result::eOk) ReleaseVulkanViews(viewport);
                 if (result != sl::Result::eOk) releaseResult = result;
                 if (result == sl::Result::eErrorExceptionHandler) { sdkFaulted = true; break; }
             }
@@ -521,6 +661,7 @@ namespace
                 result = freeResources(sl::kFeatureDLSS, sl::ViewportHandle(viewport));
             if (result == sl::Result::eOk)
             {
+                ReleaseVulkanViews(viewport);
                 activeViewports.erase(viewport);
                 viewportConfigurations.erase(viewport);
             }
@@ -529,7 +670,7 @@ namespace
                 + ",\"result\":" + std::to_string(static_cast<int>(result)) + ",\"sdkError\":" + Quote(SdkError()) + "}";
             return;
         }
-        if (id != eventId + 1) return;
+        if (id != eventId + 1 && id != eventId + 5) return;
         auto request = reinterpret_cast<uintptr_t>(data);
         auto entry = frameRequests.find(request);
         if (entry == frameRequests.end()) return;
@@ -537,6 +678,23 @@ namespace
         frameRequests.erase(entry);
         const char* stage = "Exception";
         sl::Result result = sl::Result::eErrorExceptionHandler;
+        if (id == eventId + 5)
+        {
+            sl::DLSSOptimalSettings settings{};
+            try { result = QueryOptimalSettings(frame, settings, stage); }
+            catch (const std::exception& error) { lastLog = error.what(); }
+            if (result == sl::Result::eErrorExceptionHandler) sdkFaulted = true;
+            std::ostringstream output;
+            output << "{\"requestId\":" << request << ",\"state\":" << Quote(result == sl::Result::eOk ? "OptimalSettings" : "Failed")
+                << ",\"result\":" << static_cast<int>(result) << ",\"stage\":" << Quote(stage)
+                << ",\"mode\":" << frame.mode << ",\"outputWidth\":" << frame.outputWidth << ",\"outputHeight\":" << frame.outputHeight
+                << ",\"optimalWidth\":" << settings.optimalRenderWidth << ",\"optimalHeight\":" << settings.optimalRenderHeight
+                << ",\"minWidth\":" << settings.renderWidthMin << ",\"minHeight\":" << settings.renderHeightMin
+                << ",\"maxWidth\":" << settings.renderWidthMax << ",\"maxHeight\":" << settings.renderHeightMax
+                << ",\"sdkError\":" << Quote(SdkError()) << "}";
+            frameReport = output.str();
+            return;
+        }
         try { result = EvaluateDlss(frame, stage); }
         catch (const std::exception& error) { lastLog = error.what(); }
         if (result == sl::Result::eErrorExceptionHandler) sdkFaulted = true;
@@ -574,6 +732,7 @@ namespace
                 d3d->ConfigureEvent(eventId + 2, &config);
                 d3d->ConfigureEvent(eventId + 3, &config);
                 d3d->ConfigureEvent(eventId + 4, &config);
+                d3d->ConfigureEvent(eventId + 5, &config);
             }
         }
         if (type == kUnityGfxDeviceEventInitialize && graphics && graphics->GetRenderer() == kUnityGfxRendererVulkan)
@@ -584,7 +743,7 @@ namespace
                 config.renderPassPrecondition = kUnityVulkanRenderPass_EnsureOutside;
                 config.graphicsQueueAccess = kUnityVulkanGraphicsQueueAccess_DontCare;
                 config.flags = kUnityVulkanEventConfigFlag_EnsurePreviousFrameSubmission | kUnityVulkanEventConfigFlag_ModifiesCommandBuffersState;
-                for (int offset = 0; offset < 5; ++offset) vulkan->ConfigureEvent(eventId + offset, &config);
+                for (int offset = 0; offset < 6; ++offset) vulkan->ConfigureEvent(eventId + offset, &config);
             }
         }
         if (type == kUnityGfxDeviceEventShutdown && initialized && !sdkFaulted)
@@ -599,6 +758,7 @@ namespace
             initialized = false;
             deviceBindingResult = sl::Result::eErrorDeviceNotCreated;
             vulkanInterposerActive = false;
+            while (!viewportViews.empty()) ReleaseVulkanViews(viewportViews.begin()->first);
             activeViewports.clear();
             viewportConfigurations.clear();
             frameRequests.clear();
@@ -613,7 +773,7 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API UnityPluginLoad(IUnit
     interfaces = value;
     graphics = value->Get<IUnityGraphics>();
     if (!graphics) return;
-    eventId = graphics->ReserveEventIDRange(5);
+    eventId = graphics->ReserveEventIDRange(6);
     graphics->RegisterDeviceEventCallback(OnDeviceEvent);
     if (auto* vulkan = value->Get<IUnityGraphicsVulkanV2>())
         vulkanInterceptRegistered = vulkan->InterceptInitialization(ObserveVulkanInitialization, nullptr);
@@ -641,6 +801,7 @@ extern "C" int UNITY_INTERFACE_EXPORT __cdecl SleepyStreamlineGetResourceProbeEv
 extern "C" UnityRenderingEventAndData UNITY_INTERFACE_EXPORT __cdecl SleepyStreamlineGetResourceProbeEvent() { return OnResourceProbe; }
 extern "C" UnityRenderingEventAndData UNITY_INTERFACE_EXPORT __cdecl SleepyStreamlineGetDlssEvent() { return OnDlssEvent; }
 extern "C" int UNITY_INTERFACE_EXPORT __cdecl SleepyStreamlineGetFrameSize() { return sizeof(DlssFrame); }
+extern "C" int UNITY_INTERFACE_EXPORT __cdecl SleepyStreamlineGetOptimalSettingsEventId() { return eventId + 5; }
 extern "C" uintptr_t UNITY_INTERFACE_EXPORT __cdecl SleepyStreamlineQueueFrame(const DlssFrame* frame)
 {
     std::lock_guard<std::recursive_mutex> guard(stateMutex);

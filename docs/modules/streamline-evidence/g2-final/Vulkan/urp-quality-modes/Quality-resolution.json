@@ -1,0 +1,20 @@
+{
+    "mode": "Quality",
+    "recommended": {
+        "x": 853,
+        "y": 480
+    },
+    "actual": {
+        "x": 853,
+        "y": 480
+    },
+    "minimum": {
+        "x": 640,
+        "y": 360
+    },
+    "maximum": {
+        "x": 1280,
+        "y": 720
+    },
+    "renderScale": 0.6669270992279053
+}
