@@ -512,7 +512,9 @@ namespace
 
         stage = "FrameToken";
         sl::FrameToken* token = nullptr;
-        result = newFrameToken(token, &frame.frameIndex);
+        // Camera history indices restart when the managed session changes. Vulkan keeps SL alive
+        // across those sessions (and Editor domain reloads), so let SL allocate unique frame IDs.
+        result = newFrameToken(token, nullptr);
         if (result != sl::Result::eOk) return result;
         sl::Constants constants{};
         std::memcpy(&constants.cameraViewToClip, frame.cameraViewToClip, sizeof(frame.cameraViewToClip));

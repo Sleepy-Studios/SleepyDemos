@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 namespace Core.Runtime.Rendering.Streamline
 {
     /// 正式启动注册的 DLSS 入口；当前体验版本只启用 Windows Editor 后端。
-    public static class StreamlineRuntime
+    public static partial class StreamlineRuntime
     {
         /// 启动入口是否已注册。
         public static bool IsInitialized { get; private set; }
@@ -24,7 +24,9 @@ namespace Core.Runtime.Rendering.Streamline
         /// 注册入口，不在启动时改变相机或启用效果。
         public static void Initialize()
         {
+            if (IsInitialized || !Application.isPlaying) return;
             IsInitialized = true;
+            InitializeSharedSettings();
         }
     }
 
@@ -40,6 +42,17 @@ namespace Core.Runtime.Rendering.Streamline
         private readonly AntialiasingMode originalAntialiasing;
         private readonly bool originalPostProcessing;
         private readonly bool originalEnabled;
+        private readonly CameraOverrideOption originalRequiresDepth;
+        private readonly bool originalAllowMsaa;
+        private readonly float originalAspect;
+        private readonly LayerMask originalVolumeMask;
+        private readonly bool originalDynamicResolution;
+        private readonly UniversalRenderPipelineAsset runtimePipeline;
+        private readonly bool sharedPresentation;
+        private readonly Camera overlayCamera;
+        private Camera presentationCamera;
+        private float inputScale = 1;
+        private double firstFrameDeadline;
         private readonly List<RenderTexture> textures = new List<RenderTexture>();
         private readonly StreamlineCameraHistory history = new StreamlineCameraHistory();
         private StreamlineCaptureFeature.CaptureSession capture;
@@ -72,19 +85,22 @@ namespace Core.Runtime.Rendering.Streamline
         /// 纹理、设置或诊断变化。
         public event Action Changed;
 
-        /// <summary>创建场景相机会话，使用带 StreamlineCaptureFeature 的独立管线配置。</summary>
-        /// <param name="worldCamera">不属于 UI Camera Stack 的离屏世界相机。</param>
-        /// <param name="pipeline">宿主提供的管线，renderScale 必须为 1，避免降低 UI 分辨率。</param>
-        public StreamlineCameraSession(Camera worldCamera, UniversalRenderPipelineAsset pipeline)
+        /// <summary>创建相机会话，克隆当前管线并保留 Renderer 与后处理。</summary>
+        /// <param name="worldCamera">玩法主相机，或独立验证用离屏相机。</param>
+        /// <param name="pipeline">已添加 StreamlineCaptureFeature 的当前管线。</param>
+        /// <param name="uiCamera">公共 Overlay 相机；为空时使用独立验证输出。</param>
+        public StreamlineCameraSession(Camera worldCamera, UniversalRenderPipelineAsset pipeline, Camera uiCamera = null)
         {
             if (!StreamlineRuntime.IsInitialized) throw new InvalidOperationException("DLSS 运行时尚未注册。");
             if (StreamlineRuntime.RequiresRestart) throw new InvalidOperationException("上次 DLSS 清理失败，请重启 Editor。");
             if (StreamlineRuntime.ActiveSession != null) throw new InvalidOperationException("已有 DLSS 相机会话。");
             if (worldCamera == null || pipeline == null) throw new ArgumentNullException();
-            if (Mathf.Abs(pipeline.renderScale - 1) > 0.0001f) throw new ArgumentException("体验管线必须保持原生 UI 比例。", nameof(pipeline));
+            sharedPresentation = uiCamera != null;
+            overlayCamera = uiCamera;
             camera = worldCamera;
             cameraData = worldCamera.GetUniversalAdditionalCameraData();
-            if (cameraData.renderType != CameraRenderType.Base || cameraData.cameraStack.Count != 0)
+            if (cameraData.renderType != CameraRenderType.Base ||
+                (cameraData.cameraStack.Count != 0 && !(sharedPresentation && cameraData.cameraStack.Count == 1 && cameraData.cameraStack[0] == uiCamera)))
                 throw new ArgumentException("世界相机不能使用 Overlay Camera Stack。", nameof(worldCamera));
             originalGraphicsPipeline = GraphicsSettings.defaultRenderPipeline;
             originalQualityPipeline = QualitySettings.renderPipeline;
@@ -92,11 +108,40 @@ namespace Core.Runtime.Rendering.Streamline
             originalAntialiasing = cameraData.antialiasing;
             originalPostProcessing = cameraData.renderPostProcessing;
             originalEnabled = camera.enabled;
-            GraphicsSettings.defaultRenderPipeline = pipeline;
-            QualitySettings.renderPipeline = pipeline;
-            cameraData.SetRenderer(0);
+            originalAspect = camera.aspect;
+            originalVolumeMask = cameraData.volumeLayerMask;
+            originalDynamicResolution = camera.allowDynamicResolution;
+            originalRequiresDepth = cameraData.requiresDepthOption;
+            originalAllowMsaa = camera.allowMSAA;
+            runtimePipeline = Object.Instantiate(pipeline);
+            runtimePipeline.hideFlags = HideFlags.DontSave;
+            runtimePipeline.renderScale = 1;
+            runtimePipeline.upscalingFilter = UpscalingFilterSelection.Linear;
+            GraphicsSettings.defaultRenderPipeline = runtimePipeline;
+            QualitySettings.renderPipeline = runtimePipeline;
             cameraData.requiresDepthTexture = true;
+            camera.allowMSAA = false;
+            camera.allowDynamicResolution = false;
+            if (!originalPostProcessing) cameraData.volumeLayerMask = 0;
             cameraData.renderPostProcessing = true;
+            if (sharedPresentation)
+            {
+                cameraData.cameraStack.Remove(uiCamera);
+                var go = new GameObject("Streamline Presentation") { hideFlags = HideFlags.DontSave };
+                // 绑定发生在激活目标场景之前，呈现对象不能归即将卸载的旧场景所有。
+                Object.DontDestroyOnLoad(go);
+                presentationCamera = go.AddComponent<Camera>();
+                presentationCamera.cullingMask = 0;
+                presentationCamera.clearFlags = CameraClearFlags.SolidColor;
+                presentationCamera.backgroundColor = Color.black;
+                presentationCamera.depth = camera.depth + 0.1f;
+                presentationCamera.allowMSAA = false;
+                var presentationData = presentationCamera.GetUniversalAdditionalCameraData();
+                presentationData.renderPostProcessing = false;
+                presentationData.cameraStack.Add(uiCamera);
+                PresentationCamera = presentationCamera;
+            }
+            RenderPipelineManager.beginCameraRendering += OnBeginCamera;
             RenderPipelineManager.endCameraRendering += OnCameraRendered;
             StreamlineRuntime.ActiveSession = this;
         }
@@ -147,6 +192,11 @@ namespace Core.Runtime.Rendering.Streamline
                     if (disposed) return false;
                     if (!StreamlineDlssValidation.TryGetOptimalSettings(request, out var settings, out string queryError)) throw new InvalidOperationException(queryError);
                     InputSize = settings.OptimalSize;
+                    if (sharedPresentation)
+                    {
+                        if (!settings.TryGetUrpRenderScale(out inputScale, out var actualInput, out string scaleError)) throw new InvalidOperationException(scaleError);
+                        InputSize = actualInput;
+                    }
                 }
                 ConfigureTargets(mode);
                 Mode = mode;
@@ -183,9 +233,11 @@ namespace Core.Runtime.Rendering.Streamline
             firstRequest = lastRequest = inspectedRequest = 0;
             HasEvaluatedFrame = false;
             HasRenderedFrame = false;
-            worldTarget = CreateTexture(InputSize, GraphicsFormat.R16G16B16A16_SFloat, 24);
+            firstFrameDeadline = Time.realtimeSinceStartupAsDouble + 15;
+            worldTarget = CreateTexture(sharedPresentation ? OutputSize : InputSize, GraphicsFormat.R16G16B16A16_SFloat, sharedPresentation ? 0 : 24);
             camera.targetTexture = worldTarget;
-            camera.aspect = OutputSize.x / (float)OutputSize.y;
+            // 公共主相机保留自动/自定义 aspect 语义，目标纹理本身已经是完整显示尺寸。
+            if (!sharedPresentation) camera.aspect = OutputSize.x / (float)OutputSize.y;
             cameraData.antialiasing = mode.HasValue ? AntialiasingMode.TemporalAntiAliasing : AntialiasingMode.None;
             cameraData.resetHistory = true;
             if (mode.HasValue)
@@ -199,6 +251,7 @@ namespace Core.Runtime.Rendering.Streamline
                 var motionPointer = motion.GetNativeTexturePtr();
                 var outputPointer = output.GetNativeTexturePtr();
                 capture = new StreamlineCaptureFeature.CaptureSession(camera, color, depth, motion, output);
+                capture.PublishToCamera = sharedPresentation;
                 capture.AfterCapture = (commands, session) =>
                 {
                     if (session.InputWidth != InputSize.x || session.InputHeight != InputSize.y)
@@ -227,13 +280,26 @@ namespace Core.Runtime.Rendering.Streamline
                 OutputTexture = output;
             }
             else OutputTexture = worldTarget;
+            if (sharedPresentation) PresentationHandle = RTHandles.Alloc(worldTarget);
             camera.enabled = true;
+            if (presentationCamera != null) presentationCamera.enabled = true;
+        }
+
+        internal static Camera PresentationCamera { get; private set; }
+        internal static RTHandle PresentationHandle { get; private set; }
+
+        private void OnBeginCamera(ScriptableRenderContext context, Camera renderedCamera)
+        {
+            if (disposed || runtimePipeline == null) return;
+            runtimePipeline.renderScale = sharedPresentation && renderedCamera == camera && Mode.HasValue ? inputScale : 1;
         }
 
         /// 由宿主 Update 调用，读取实际执行失败并回退。
         public void Tick()
         {
             if (disposed || IsBusy || !Mode.HasValue) return;
+            if (!HasEvaluatedFrame && Time.realtimeSinceStartupAsDouble > firstFrameDeadline)
+                Error = "没有收到 DLSS 首帧，请检查当前 Renderer 的 Streamline Feature 与运动矢量配置。";
             if (!string.IsNullOrEmpty(capture?.Error)) Error = capture.Error;
             if (lastRequest != 0 && lastRequest != inspectedRequest && StreamlineDlssValidation.TryGetReport(out string json, out _))
             {
@@ -270,6 +336,7 @@ namespace Core.Runtime.Rendering.Streamline
         {
             capture?.StopCapture();
             if (camera != null) camera.enabled = false;
+            if (presentationCamera != null) presentationCamera.enabled = false;
         }
 
         private void OnCameraRendered(ScriptableRenderContext context, Camera renderedCamera)
@@ -293,6 +360,7 @@ namespace Core.Runtime.Rendering.Streamline
 
         private void ReleaseTextures()
         {
+            if (sharedPresentation) { PresentationHandle?.Release(); PresentationHandle = null; }
             OutputTexture = null;
             Changed?.Invoke();
             if (camera != null) camera.targetTexture = null;
@@ -341,7 +409,8 @@ namespace Core.Runtime.Rendering.Streamline
         {
             if (!StreamlineDlssValidation.TryGetReport(out string json, out string reason)) throw new InvalidOperationException(reason);
             var report = JsonUtility.FromJson<NativeReport>(json);
-            if (report.state != expected || report.result != 0) throw new InvalidOperationException(json);
+            if (report.state != expected || report.result != 0)
+                throw new InvalidOperationException($"Streamline 清理未完成：{report.stage}（{report.result}），请重启 Editor。");
         }
 
         /// 停止并同步排空 GPU 后释放；场景退出前调用，OnDestroy 可作兜底。
@@ -349,7 +418,10 @@ namespace Core.Runtime.Rendering.Streamline
         {
             if (disposed) return;
             disposed = true;
+            Mode = null;
+            HasEvaluatedFrame = false;
             RenderPipelineManager.endCameraRendering -= OnCameraRendered;
+            RenderPipelineManager.beginCameraRendering -= OnBeginCamera;
             StopProducing();
             bool cleanupSucceeded = false;
             try
@@ -381,10 +453,19 @@ namespace Core.Runtime.Rendering.Streamline
                     camera.targetTexture = originalTarget;
                     cameraData.antialiasing = originalAntialiasing;
                     cameraData.renderPostProcessing = originalPostProcessing;
+                    cameraData.requiresDepthOption = originalRequiresDepth;
+                    camera.allowMSAA = originalAllowMsaa;
+                    if (!sharedPresentation) camera.aspect = originalAspect;
+                    cameraData.volumeLayerMask = originalVolumeMask;
+                    camera.allowDynamicResolution = originalDynamicResolution;
                     camera.enabled = originalEnabled;
+                    if (sharedPresentation && overlayCamera != null && !cameraData.cameraStack.Contains(overlayCamera)) cameraData.cameraStack.Add(overlayCamera);
                 }
+                if (presentationCamera != null) { presentationCamera.enabled = false; Object.Destroy(presentationCamera.gameObject); }
+                if (sharedPresentation) { PresentationCamera = null; }
                 GraphicsSettings.defaultRenderPipeline = originalGraphicsPipeline;
                 QualitySettings.renderPipeline = originalQualityPipeline;
+                Object.Destroy(runtimePipeline);
                 // A failed session remains rooted so Unity textures cannot be collected while native references may exist.
                 if (cleanupSucceeded && ReferenceEquals(StreamlineRuntime.ActiveSession, this)) StreamlineRuntime.ActiveSession = null;
             }

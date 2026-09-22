@@ -4,9 +4,15 @@
 
 Windows x64、Unity 6000.3.15f1、URP 17.3.0、VS 2022 C++ 工具链和 Windows SDK。先阅读[当前支持状态](../modules/streamline.md)，不要把接入规划当作已支持列表。
 
+## 公共 Renderer 配置
+
+使用 `Tools > Rendering > Streamline > 配置项目Renderer` 为已有 Renderer 添加 StreamlineCaptureFeature。运行时保留原 Renderer 和后处理，不需给各 Demo 复制 DLSS 管线或挂载专用控制器。主相机通过现有 `UIRootManager.BindToBaseCamera` 自动绑定；新增 Demo 继续遵守标准场景契约。
+
+面板分别显示用户选择与实际生效模式。不支持的相机保持原渲染，偏好不会被改成关闭。出现“没有收到首帧”时检查当前 Renderer Feature、运动矢量、相机类型与后端启动参数。
+
 ## SDK 与构建
 
-已配置本机依赖后，打开 `Assets/Scenes/AppEntrance.unity` 运行，在 Hub 选择「DLSS 实验室」，即可从面板切换关闭、SR 各档和 DLAA。操作与资源维护见 [Demo 说明](../modules/dlss-demo.md)。当前默认 DX12，Vulkan 启动参数见下文。
+已配置本机依赖后，打开 `Assets/Scenes/AppEntrance.unity` 运行，在 Hub 或任一 Demo 点击右上角「画质设置」，即可切换关闭、SR 各档和 DLAA；设置跨场景沿用并保存，首次默认关闭。操作与资源维护见 [Demo 说明](../modules/dlss-demo.md)。当前默认 DX12，Vulkan 启动参数见下文。
 
 SDK 固定为 Streamline v2.14.1，使用官方 Windows x64 Release。依赖准备必须校验 SHA-256，运行时检查 NVIDIA interposer 签名；发布包使用官方 production 库并保留许可证。原生工程独立于 Unity 自动生成的 sln/csproj。
 

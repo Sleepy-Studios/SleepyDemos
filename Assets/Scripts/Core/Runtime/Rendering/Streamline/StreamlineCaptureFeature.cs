@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
+using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace Core.Runtime.Rendering.Streamline
@@ -13,11 +14,13 @@ namespace Core.Runtime.Rendering.Streamline
         public static CaptureSession Session { get; set; }
 
         private CapturePass capturePass;
+        private PresentationPass presentationPass;
 
         /// 创建输入捕获 Pass。
         public override void Create()
         {
             capturePass = new CapturePass();
+            presentationPass = new PresentationPass();
         }
 
         /// <summary>仅为当前验证相机添加捕获 Pass。</summary>
@@ -25,6 +28,11 @@ namespace Core.Runtime.Rendering.Streamline
         /// <param name="renderingData">用于匹配相机的帧数据。</param>
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
+            if (renderingData.cameraData.camera == StreamlineCameraSession.PresentationCamera)
+            {
+                renderer.EnqueuePass(presentationPass);
+                return;
+            }
             if (Session == null || !Session.IsCapturing || Session.Camera != renderingData.cameraData.camera) return;
             renderer.EnqueuePass(capturePass);
         }
@@ -95,6 +103,24 @@ namespace Core.Runtime.Rendering.Streamline
                 Depth.Release();
                 Motion.Release();
                 Output.Release();
+            }
+        }
+
+        private sealed class PresentationPass : ScriptableRenderPass
+        {
+            public PresentationPass()
+            {
+                renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
+                requiresIntermediateTexture = true;
+            }
+
+            public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+            {
+                var source = StreamlineCameraSession.PresentationHandle;
+                if (source == null) return;
+                var resources = frameData.Get<UniversalResourceData>();
+                renderGraph.AddBlitPass(renderGraph.ImportTexture(source), resources.activeColorTexture,
+                    Vector2.one, Vector2.zero, passName: "Streamline presentation");
             }
         }
 

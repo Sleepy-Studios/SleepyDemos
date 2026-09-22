@@ -9,12 +9,12 @@ namespace Hotfix
     using UnityEngine.UI;
     using TMPro;
 
-    [Source("LoadResources/Demos/dlss/Prefabs/DlssSettingsView")]
+    [Source("LoadResources/UI/GraphicsSettings/DlssSettingsView")]
     public partial class DlssSettingsView
     {
-        public override string Address => "LoadResources/Demos/dlss/Prefabs/DlssSettingsView";
-        public override UILayer Level => UILayer.Base;
-        public override UIViewMode ViewMode => UIViewMode.Page;
+        public override string Address => "LoadResources/UI/GraphicsSettings/DlssSettingsView";
+        public override UILayer Level => UILayer.Decorate;
+        public override UIViewMode ViewMode => UIViewMode.Widget;
         public override MaskType Mask => MaskType.None;
         public override bool IsAsync => true;
         public override bool EnableOnInit => true;
@@ -24,7 +24,6 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private RawImage RawImage_WorldImage;
         private TextMeshProUGUI TextMeshProUGUI_DeviceText;
         private TextMeshProUGUI TextMeshProUGUI_ModeText;
         private Button Button_OffButton;
@@ -35,8 +34,8 @@ namespace Hotfix
         private Button Button_DlaaButton;
         private TextMeshProUGUI TextMeshProUGUI_ResolutionText;
         private TextMeshProUGUI TextMeshProUGUI_StatusText;
-        private Button Button_ResetCameraButton;
-        private Button Button_BackButton;
+        private Button Button_CloseButton;
+        private Button Button_OpenButton;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -48,27 +47,26 @@ namespace Hotfix
                 return;
             }
 
-            RawImage_WorldImage = componentItemIndex.Get<RawImage>(0);
-            TextMeshProUGUI_DeviceText = componentItemIndex.Get<TextMeshProUGUI>(1);
-            TextMeshProUGUI_ModeText = componentItemIndex.Get<TextMeshProUGUI>(2);
-            Button_OffButton = componentItemIndex.Get<Button>(3);
-            Button_QualityButton = componentItemIndex.Get<Button>(4);
-            Button_BalancedButton = componentItemIndex.Get<Button>(5);
-            Button_PerformanceButton = componentItemIndex.Get<Button>(6);
-            Button_UltraPerformanceButton = componentItemIndex.Get<Button>(7);
-            Button_DlaaButton = componentItemIndex.Get<Button>(8);
-            TextMeshProUGUI_ResolutionText = componentItemIndex.Get<TextMeshProUGUI>(9);
-            TextMeshProUGUI_StatusText = componentItemIndex.Get<TextMeshProUGUI>(10);
-            Button_ResetCameraButton = componentItemIndex.Get<Button>(11);
-            Button_BackButton = componentItemIndex.Get<Button>(12);
+            TextMeshProUGUI_DeviceText = componentItemIndex.Get<TextMeshProUGUI>(0);
+            TextMeshProUGUI_ModeText = componentItemIndex.Get<TextMeshProUGUI>(1);
+            Button_OffButton = componentItemIndex.Get<Button>(2);
+            Button_QualityButton = componentItemIndex.Get<Button>(3);
+            Button_BalancedButton = componentItemIndex.Get<Button>(4);
+            Button_PerformanceButton = componentItemIndex.Get<Button>(5);
+            Button_UltraPerformanceButton = componentItemIndex.Get<Button>(6);
+            Button_DlaaButton = componentItemIndex.Get<Button>(7);
+            TextMeshProUGUI_ResolutionText = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_StatusText = componentItemIndex.Get<TextMeshProUGUI>(9);
+            Button_CloseButton = componentItemIndex.Get<Button>(10);
+            Button_OpenButton = componentItemIndex.Get<Button>(11);
             this.RegisterButton(Button_OffButton, OnOffButtonClick);
             this.RegisterButton(Button_QualityButton, OnQualityButtonClick);
             this.RegisterButton(Button_BalancedButton, OnBalancedButtonClick);
             this.RegisterButton(Button_PerformanceButton, OnPerformanceButtonClick);
             this.RegisterButton(Button_UltraPerformanceButton, OnUltraPerformanceButtonClick);
             this.RegisterButton(Button_DlaaButton, OnDlaaButtonClick);
-            this.RegisterButton(Button_ResetCameraButton, OnResetCameraButtonClick);
-            this.RegisterButton(Button_BackButton, OnBackButtonClick);
+            this.RegisterButton(Button_CloseButton, OnCloseButtonClick);
+            this.RegisterButton(Button_OpenButton, OnOpenButtonClick);
         }
     }
 }

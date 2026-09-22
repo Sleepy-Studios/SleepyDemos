@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Linq;
 using Core.Runtime;
+using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
@@ -31,6 +32,8 @@ namespace Tests.Module
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            StreamlineRuntime.SetMode(null);
+            while (StreamlineRuntime.IsBusy) yield return null;
             if (originalScene.IsValid() && originalScene.isLoaded)
             {
                 SceneManager.SetActiveScene(originalScene);
@@ -96,6 +99,34 @@ namespace Tests.Module
             return camera;
         }
 
+        [UnityTest]
+        public IEnumerator FailedUnloadRestoresDlssCameraAndPreference()
+        {
+            if (!StreamlineRuntime.IsBackendSupported) Assert.Ignore("Windows Editor DX12/Vulkan required.");
+            var loader = new FakeSceneLoader();
+            var runtime = new GameSceneRuntime(loader);
+            yield return runtime.LoadAsync("TestContent", null).ToCoroutine();
+            StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
+            yield return WaitForDlss();
+            loader.FailNextUnload = true;
+            GameSceneRuntimeResult result = default;
+            yield return runtime.ReturnToHubAsync(null).ContinueWith(value => result = value).ToCoroutine();
+            Assert.IsFalse(result.Succeeded);
+            Assert.AreSame(loader.ContentCamera, StreamlineRuntime.BoundCamera);
+            Assert.AreEqual(StreamlineDlssMode.Quality, StreamlineRuntime.RequestedMode);
+            yield return WaitForDlss();
+            StreamlineRuntime.SetMode(null);
+            while (StreamlineRuntime.IsBusy) yield return null;
+            yield return runtime.ReturnToHubAsync(null).ToCoroutine();
+        }
+
+        private static IEnumerator WaitForDlss()
+        {
+            double deadline = Time.realtimeSinceStartupAsDouble + 40;
+            while (StreamlineRuntime.EffectiveMode != StreamlineDlssMode.Quality && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
+            Assert.AreEqual(StreamlineDlssMode.Quality, StreamlineRuntime.EffectiveMode, StreamlineRuntime.Status);
+        }
+
         private static int CountEnabledAudioListeners()
         {
             return UnityEngine.Object.FindObjectsByType<AudioListener>(
@@ -118,6 +149,7 @@ namespace Tests.Module
 
         private sealed class FakeSceneLoader : IResourceSceneLoader
         {
+            internal bool FailNextUnload;
             internal Scene ContentScene { get; private set; }
             internal Camera ContentCamera { get; private set; }
 
@@ -138,6 +170,7 @@ namespace Tests.Module
                 IResourceSceneHandle handle,
                 Action<float> onProgress = null)
             {
+                if (FailNextUnload) { FailNextUnload = false; return ResourceSceneUnloadResult.Failure("模拟卸载失败"); }
                 onProgress?.Invoke(0f);
                 var operation = SceneManager.UnloadSceneAsync(handle.Scene);
                 if (operation == null)

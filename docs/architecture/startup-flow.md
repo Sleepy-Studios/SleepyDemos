@@ -55,7 +55,7 @@
 - `RuntimeServiceRegisterSystem`
 - `HotfixEntrySystem`
 
-`RuntimeServiceRegisterSystem` 注册 `StreamlineRuntime`，启动和 Hub 阶段不自动启用 DLSS。进入 [DLSS Demo](../modules/dlss-demo.md) 后才创建场景持有的相机会话。
+`RuntimeServiceRegisterSystem` 注册 `StreamlineRuntime`，不再由某个 Demo 管理 DLSS 生命周期。全局设置默认关闭；用户曾保存启用档位时，公共主相机绑定后应用。Hub、Demo 和已有 Editor 直启共用同一渲染服务与公共画质设置。
 
 ## 热更入口
 

@@ -51,7 +51,7 @@ UIRootCanvas
 
 - `UIManager` 负责 View 生命周期、缓存和栈，不负责配置渲染环境。
 - `UIRootManager` 是 Canvas、UI Camera、EventSystem、固定层 Root 和遮罩的唯一装配入口。
-- Additive 内容场景切换时，`UIRootManager.BindToBaseCamera(...)` 负责把持久化 UI Camera 从旧 URP Base Camera Stack 移到新 Stack。
+- Additive 内容场景切换时，`UIRootManager.BindToBaseCamera(...)` 负责把持久化 UI Camera 从旧 URP Base Camera Stack 移到新 Stack，并在更换前结束旧 DLSS 会话。开启 DLSS 时由公共呈现相机承接 Overlay UI；`BaseCamera` 仍表示玩法主相机，关闭效果或切场景时恢复标准栈。详见 [Streamline 渲染设计](./streamline-integration.md)。
 - Core 只定义 `IUIWorldTransition` / `IUIWorldTransitionProvider` 并编排事务，不实现具体 Camera 或场景移动。Hotfix 通过 `UIManager.RegisterWorldTransitionProvider(...)` 注册业务解析器；未注册或解析结果为 null 时使用无行为实现。
 - UI 表现统一使用 `IUITransition`，Camera、场景与 Timeline 联动统一使用 `IUIWorldTransition`。旧 `IUIAnimation` / `ICameraAnimation` 契约和运行时调用链已经移除，不再存在并行的动画生命周期。
 - 每个导航事务在开始执行时快照 Provider，并对实际进入、退出的每个 View 最多解析一次。退出阶段的 UI / World Transition 并行完成后才提交栈；提交后进入阶段的 World / UI Transition 并行完成，两个阶段不得交错。

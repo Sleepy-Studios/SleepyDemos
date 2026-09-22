@@ -55,6 +55,7 @@ namespace Hotfix.SceneManagement
             Instance ??= new GameSceneNavigator(
                 new GameSceneRuntime(ResourceServices.CreateSceneLoader()),
                 new GameSceneLoadingPresenter());
+            GraphicsSettingsUI.Initialize().Forget();
         }
 
 #if UNITY_EDITOR
@@ -70,6 +71,7 @@ namespace Hotfix.SceneManagement
                 CurrentScene = GameSceneId.DroneFlight,
                 isEditorDirect = true
             };
+            GraphicsSettingsUI.Initialize().Forget();
         }
 
         internal static void ReleaseEditorDirect()

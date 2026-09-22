@@ -130,6 +130,8 @@ namespace Hotfix.DroneFlight
 
             BeginTransition();
             mode = cameraMode;
+            if (Core.Runtime.Rendering.Streamline.StreamlineRuntime.BoundCamera == outputCamera)
+                Core.Runtime.Rendering.Streamline.StreamlineRuntime.ResetHistory();
         }
 
         /// <summary>保存当前视角并切换到机腹向下瞄准。</summary>

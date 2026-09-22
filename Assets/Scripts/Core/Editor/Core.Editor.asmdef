@@ -8,7 +8,9 @@
         "Unity.TextMeshPro",
         "YooAsset",
         "YooAsset.Editor",
-        "HybridCLR.Editor"
+        "HybridCLR.Editor",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
     ],
     "includePlatforms": [
         "Editor"
