@@ -16,7 +16,7 @@ MonoBehaviour:
   PackageName: DefaultPackage
   BaseServerURL: 
   RemoteBaseServerURL: 
-  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-08-02-850
+  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/Simulate
   AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/StandaloneWindows64
   AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/StandaloneWindows64
   AotTargetPath: Assets/LoadResources/Codes/Aot
@@ -24,6 +24,7 @@ MonoBehaviour:
   - Core.Runtime.dll
   - System.Core.dll
   - UniTask.dll
+  - Unity.InputSystem.dll
   - UnityEngine.CoreModule.dll
   - mscorlib.dll
   HotfixSourcePath: HybridCLRData/HotUpdateDlls/StandaloneWindows64

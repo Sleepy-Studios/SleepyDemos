@@ -102,12 +102,15 @@ namespace Core.Runtime
             ApplyLayout(1);
         }
 
+#if UNITY_EDITOR
+        // uGUI 的 OnValidate 仅在 Editor 编译，Player 中没有可覆写的基类方法。
         protected override void OnValidate()
         {
             spacing.x = Mathf.Max(0f, spacing.x);
             spacing.y = Mathf.Max(0f, spacing.y);
             base.OnValidate();
         }
+#endif
 
         private void ApplyLayout(int axis)
         {

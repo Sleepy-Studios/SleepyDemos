@@ -56,6 +56,16 @@
 
 ## 验证重点
 
+### 2026-09-22 本地生成基线
+
+- 当前 HybridCLR 包和项目本地 `libil2cpp-version.txt` 均为 8.14.1；旧本地运行库与源码缓存备份在 `Library/Streamline/hybridclr-backup`，未修改 Unity 安装目录。
+- 已执行既有 Generate/All，更新 `Assets/HybridCLRGenerate/link.xml` 与 `AOTGenericReferences.cs`。AOT 列表补入 `Unity.InputSystem.dll`，并同步保存 AOT/Hotfix 程序集快照。
+- `Codes/Aot` 中 6 个文件的 SHA-256 均与配置的 `AssembliesPostIl2CppStrip/StandaloneWindows64` 来源一致；`Codes/Hotfix/Hotfix.dll.bytes` 与 `HotUpdateDlls/StandaloneWindows64/Hotfix.dll` 一致。
+- 本地 Bundle 路径当前使用 `DefaultPackage/Simulate`。这些生成物是当前开发快照；后续源码变更后发布前仍须重新生成并验证 IL2CPP Player，不能将快照提交当成发布验收。
+- `FlowLayoutGroup.OnValidate` 增加 Editor 条件编译，避免 Player 覆写不存在的 uGUI 方法；对应横向、纵向两个精确 EditMode 测试均通过。
+
+### 接入检查
+
 - Editor 中能打开 `Tools/UI Framework/Hotfix Build`。
 - 启动时 `HybridMetadataSystem` 和 `HotfixAssemblySystem` 不报错。
 - 热更程序集加载后，Hotfix View 能被 `UITypeReflection` 扫描到。
