@@ -17,6 +17,9 @@ namespace Tests.Module
             Assert.That(hub.Address, Is.Null);
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.DroneFlight, out var demo), Is.True);
             Assert.That(demo.Address, Is.EqualTo(GameSceneCatalog.DroneFlightAddress));
+            Assert.That(GameSceneCatalog.TryGet(GameSceneId.BlockPorters, out var porters), Is.True);
+            Assert.That(porters.Address, Is.EqualTo(GameSceneCatalog.BlockPortersAddress));
+            Assert.That(porters.IsHub, Is.False);
         }
 
         [Test]

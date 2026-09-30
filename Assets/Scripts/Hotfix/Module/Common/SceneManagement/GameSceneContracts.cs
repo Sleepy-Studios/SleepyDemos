@@ -5,7 +5,8 @@ namespace Hotfix.SceneManagement
     {
         Hub = 0,
         DroneFlight = 1,
-        Dlss = 2
+        Dlss = 2,
+        BlockPorters = 3
     }
 
     /// 场景切换结果状态。
@@ -69,6 +70,7 @@ namespace Hotfix.SceneManagement
         internal const string DroneFlightAddress =
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
         internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
+        internal const string BlockPortersAddress = "Assets/LoadResources/Demos/block_porters/Scenes/Main.unity";
 
         internal static bool TryGet(GameSceneId sceneId, out GameSceneDefinition definition)
         {
@@ -85,6 +87,9 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.Dlss:
                     definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", DlssAddress);
+                    return true;
+                case GameSceneId.BlockPorters:
+                    definition = new GameSceneDefinition(GameSceneId.BlockPorters, "小人搬砖", BlockPortersAddress);
                     return true;
                 default:
                     definition = default;

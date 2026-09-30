@@ -91,6 +91,19 @@ namespace Hotfix
             OpenDlssAsync().Forget();
         }
 
+        private void OnBlockPortersButtonClick()
+        {
+            OpenBlockPortersAsync().Forget();
+        }
+
+        private async UniTaskVoid OpenBlockPortersAsync()
+        {
+            var navigator = GameSceneNavigator.Instance;
+            if (navigator == null) { Debug.LogError("[MainMenuView] 场景导航尚未初始化。"); return; }
+            var result = await navigator.SwitchAsync(GameSceneId.BlockPorters);
+            if (result.Status == GameSceneSwitchStatus.Failed) Debug.LogError("[MainMenuView] 小人搬砖加载失败：" + result.Error);
+        }
+
         private async UniTaskVoid OpenDlssAsync()
         {
             var navigator = GameSceneNavigator.Instance;

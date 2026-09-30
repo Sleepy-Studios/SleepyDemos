@@ -25,6 +25,7 @@ namespace Hotfix
         private Button Button_UIFrameworkValidationButton;
         private Button Button_DroneFlightButton;
         private Button Button_DlssButton;
+        private Button Button_BlockPortersButton;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -41,9 +42,11 @@ namespace Hotfix
             Button_UIFrameworkValidationButton = componentItemIndex.Get<Button>(2);
             Button_DroneFlightButton = componentItemIndex.Get<Button>(3);
             Button_DlssButton = componentItemIndex.Get<Button>(4);
+            Button_BlockPortersButton = componentItemIndex.Get<Button>(5);
             this.RegisterButton(Button_UIFrameworkValidationButton, OnUIFrameworkValidationButtonClick);
             this.RegisterButton(Button_DroneFlightButton, OnDroneFlightButtonClick);
             this.RegisterButton(Button_DlssButton, OnDlssButtonClick);
+            this.RegisterButton(Button_BlockPortersButton, OnBlockPortersButtonClick);
         }
     }
 }

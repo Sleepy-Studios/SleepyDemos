@@ -144,6 +144,8 @@ namespace Core.Editor.AssetNaming
                 { Labels = new[] { "demo", "art" }, Description = "Demo 私有美术" },
             new FolderRule("Demos/{demo_id}/Data", new[] { ".json", ".bytes", ".txt", ".asset" })
                 { Labels = new[] { "demo", "data" }, Description = "Demo 数据表 / 配置" },
+            new FolderRule("Demos/{demo_id}/Audio/SFX", AudioExtensions)
+                { Labels = new[] { "demo", "audio", "sfx" }, Description = "Demo 私有音效" },
             new FolderRule("Demos/{demo_id}/VFX",
                 Concat(new[] { ".prefab", ".vfx", ".mat" }, Concat(ImageExtensions, ShaderExtensions)))
                 { TextureKind = TextureKind.Default, Labels = new[] { "demo", "vfx" }, Description = "Demo 私有特效" },

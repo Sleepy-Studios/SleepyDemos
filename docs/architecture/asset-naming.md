@@ -61,6 +61,7 @@
 | `Demos/<demo_id>/Prefabs/` | `.prefab` | 玩法预制体 | `demo` `prefab` |
 | `Demos/<demo_id>/Art/` | 图片/`.mat`/模型/动画/Shader | Demo 私有美术 | `demo` `art` |
 | `Demos/<demo_id>/Data/` | `.json` `.bytes` `.txt` `.asset` | 数据表 / 配置 | `demo` `data` |
+| `Demos/<demo_id>/Audio/SFX/` | `.wav` `.ogg` 等 | Demo 私有音效 | `demo` `audio` `sfx` |
 | `Demos/<demo_id>/VFX/` | `.prefab` `.vfx` + 私有 `.mat`/图片/Shader | | `demo` `vfx` |
 | `Codes/` | — | 热更 DLL，跳过校验 | — |
 

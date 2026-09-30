@@ -1,0 +1,66 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb1eea485675d554c9c9ef30da6f174f, type: 3}
+  m_Name: Level1
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersLevel
+  displayName: "\u8584\u8377\u7231\u5FC3"
+  width: 16
+  height: 16
+  cells: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000200000002000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000002000000020000000200000002000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffff000000000000000000000000020000000200000002000000020000000200000002000000000000000000000000000000ffffffffffffffffffffffff0000000000000000000000000200000002000000020000000200000002000000020000000200000002000000000000000000000000000000ffffffffffffffff0000000000000000000000000200000002000000020000000200000002000000020000000200000002000000000000000000000000000000ffffffffffffffff0100000000000000000000000000000002000000020000000200000002000000020000000200000000000000000000000000000001000000ffffffff01000000010000000100000000000000000000000000000002000000020000000200000002000000000000000000000000000000010000000100000001000000ffffffff0100000001000000010000000000000000000000000000000200000002000000000000000000000000000000010000000100000001000000ffffffffffffffff0100000001000000010000000100000000000000000000000000000000000000000000000000000001000000010000000100000001000000ffffffffffffffffffffffff0100000001000000010000000100000000000000ffffffffffffffff0000000001000000010000000100000001000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+  palette:
+  - {r: 1, g: 0.32, b: 0.36, a: 1}
+  - {r: 0.14, g: 0.8, b: 0.58, a: 1}
+  - {r: 1, g: 0.73, b: 0.18, a: 1}
+  - {r: 0.16, g: 0.65, b: 1, a: 1}
+  - {r: 0.67, g: 0.4, b: 0.96, a: 1}
+  - {r: 1, g: 0.92, b: 0.75, a: 1}
+  columns:
+  - teams:
+    - Color: 0
+      Count: 8
+    - Color: 2
+      Count: 8
+    - Color: 2
+      Count: 8
+    - Color: 0
+      Count: 8
+    - Color: 1
+      Count: 6
+  - teams:
+    - Color: 0
+      Count: 8
+    - Color: 0
+      Count: 8
+    - Color: 1
+      Count: 8
+    - Color: 1
+      Count: 8
+  - teams:
+    - Color: 2
+      Count: 8
+    - Color: 2
+      Count: 8
+    - Color: 0
+      Count: 8
+    - Color: 1
+      Count: 8
+  - teams:
+    - Color: 0
+      Count: 8
+    - Color: 0
+      Count: 8
+    - Color: 2
+      Count: 8
+    - Color: 0
+      Count: 8
+  capacity: 5
+  solution: 0000000001000000020000000300000000000000010000000200000003000000000000000100000002000000030000000000000001000000020000000300000000000000
