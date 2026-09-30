@@ -25,14 +25,61 @@ namespace Tests.Demo
     {
         private BlockPortersLevel stressAsset;
         private BlockPortersLevel completionAsset;
+        private BlockPortersLevel carrierAsset;
         private GameViewResolution resolution;
+        private readonly List<BlockPortersLevelCatalog> testCatalogs = new();
+
+        [UnityTest]
+        public IEnumerator GeneratedCatalogReferencePlaybackUsesRuntimeActors()
+        {
+            yield return EnterHub();
+            Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "正式关卡集启动");
+            var controller = Object.FindFirstObjectByType<BlockPortersController>();
+            var catalog = (BlockPortersLevelCatalog)typeof(BlockPortersController).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            Assert.That(catalog.Levels.Length, Is.GreaterThanOrEqualTo(8));
+            var authored = catalog.Levels;
+            var schedulerField = typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic);
+            var materialsField = typeof(BlockPortersController).GetField("levelMaterials", BindingFlags.Instance | BindingFlags.NonPublic);
+            for (int index = 5; index < authored.Length; index++)
+            {
+                var previousMaterials = (Material[])materialsField.GetValue(controller);
+                controller.LoadLevel(index);
+                yield return Capture(authored[index].name);
+                Assert.That(previousMaterials.All(material => material == null), Is.True, "切关销毁旧共享材质");
+                var scheduler = (BlockPortersScheduler)schedulerField.GetValue(controller);
+                bool carried = false;
+                foreach (int column in authored[index].Solution)
+                {
+                    controller.Dispatch(column);
+                    Assert.That(controller.Session.Status, Is.Not.EqualTo(BlockPortersStatus.Failed));
+                    while (!scheduler.IsStable)
+                    {
+                        // 只加速虚拟钟，角色仍由正式控制器处理事件和逐帧姿态，不改规则或 Time.timeScale。
+                        scheduler.AdvanceTo(scheduler.Time + .25);
+                        carried |= Object.FindObjectsByType<PorterAvatar>(FindObjectsSortMode.None).Any(a => a.CarryAnchor.childCount > 0);
+                        Assert.That(controller.ActorCount, Is.EqualTo(controller.Session.InFlight));
+                        Assert.That(controller.ActorCount, Is.LessThanOrEqualTo(56));
+                        yield return null;
+                    }
+                }
+                Assert.That(carried, Is.True);
+                Assert.That(controller.Session.Status, Is.EqualTo(BlockPortersStatus.Won), authored[index].name);
+                Assert.That(controller.ActorCount, Is.Zero);
+                controller.NextLevel();
+                Assert.That(controller.Session.Delivered, Is.Zero);
+            }
+            var exitingMaterials = (Material[])materialsField.GetValue(controller);
+            controller.ReturnToHub();
+            yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub, "关卡集返回清理");
+            yield return null;
+            Assert.That(exitingMaterials.All(material => material == null), Is.True, "退出销毁当前关卡材质");
+        }
 
         [UnityTest]
         public IEnumerator HubDispatchPauseRestartRewardAndReturn()
         {
-            var startup = SceneManager.LoadSceneAsync("AppEntrance", LoadSceneMode.Single);
-            while (!startup.isDone) yield return null;
-            yield return WaitUntil(() => UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "Hub 启动");
+            yield return EnterHub();
             Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
             yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "小人搬砖 HUD");
             var controller = Object.FindFirstObjectByType<BlockPortersController>();
@@ -68,18 +115,18 @@ namespace Tests.Demo
             yield return WaitUntil(() => Screen.height == 1200, "长竖屏分辨率");
             yield return Capture("TallPortrait");
 
-            var originalLevels = (BlockPortersLevel[])typeof(BlockPortersController).GetField("levels", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            var originalLevels = ((BlockPortersLevelCatalog)typeof(BlockPortersController).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller)).Levels;
             var partial = ScriptableObject.CreateInstance<BlockPortersLevel>();
             partial.Configure("部分成员等待", new BlockPortersLevelData(3, 3, new[] { 0, 0, 0, 1, 0, 1, 1, 1, 1 },
                 new[] { new[] { new PorterTeamDefinition(0, 4) }, new[] { new PorterTeamDefinition(1, 5) },
                     Array.Empty<PorterTeamDefinition>(), Array.Empty<PorterTeamDefinition>() }, 5, 2),
                 controller.CurrentLevel.Palette.Take(2).ToArray(), new[] { 0, 1 });
-            typeof(BlockPortersController).GetField("levels", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, new[] { partial });
+            SetLevels(controller, new[] { partial });
             controller.LoadLevel(0); controller.Dispatch(0);
             Assert.That(controller.ActorCount, Is.EqualTo(3), "只能生成已预约到方块的三人");
             controller.Dispatch(1);
             yield return WaitUntil(() => controller.Session.Status == BlockPortersStatus.Won, "开路后剩余成员自动搬运", 30);
-            typeof(BlockPortersController).GetField("levels", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, originalLevels);
+            SetLevels(controller, originalLevels);
             controller.LoadLevel(0);
             Object.Destroy(partial);
 
@@ -88,9 +135,8 @@ namespace Tests.Demo
                 new[] { new[] { new PorterTeamDefinition(0, 1) }, Array.Empty<PorterTeamDefinition>(),
                     Array.Empty<PorterTeamDefinition>(), Array.Empty<PorterTeamDefinition>() }, 5, 1),
                 controller.CurrentLevel.Palette.Take(1).ToArray(), new[] { 0 });
-            var levelsField = typeof(BlockPortersController).GetField("levels", BindingFlags.Instance | BindingFlags.NonPublic);
-            var authoredLevels = (BlockPortersLevel[])levelsField.GetValue(controller);
-            levelsField.SetValue(controller, new[] { completionAsset, authoredLevels[1] });
+            var authoredLevels = originalLevels;
+            SetLevels(controller, new[] { completionAsset, authoredLevels[1] });
             controller.LoadLevel(0); controller.Dispatch(0);
             yield return WaitUntil(() => controller.Session.Status == BlockPortersStatus.Won, "最后一块入坑后通关", 30);
             Assert.That(controller.ActorCount, Is.Zero);
@@ -101,8 +147,7 @@ namespace Tests.Demo
             Assert.That(controller.Session.Delivered, Is.Zero);
 
             stressAsset = CreateStressLevel(controller.CurrentLevel.Palette);
-            typeof(BlockPortersController).GetField("levels", BindingFlags.Instance | BindingFlags.NonPublic)
-                .SetValue(controller, new[] { stressAsset });
+            SetLevels(controller, new[] { stressAsset });
             controller.LoadLevel(0);
             Assert.That(controller.Session.Total, Is.EqualTo(1024));
             foreach (int column in new[] { 0, 1, 2, 3, 0 }) controller.Dispatch(column);
@@ -128,6 +173,18 @@ namespace Tests.Demo
             controller.Dispatch(0); controller.Dispatch(1);
             Assert.That(controller.ActorCount, Is.EqualTo(8), "复活后只激活能搬外围砖的队伍");
             yield return Capture("BlockedWaiting");
+            carrierAsset = CreateCarrierStressLevel(controller.CurrentLevel.Palette);
+            SetLevels(controller, new[] { carrierAsset }); controller.LoadLevel(0);
+            foreach (int column in new[] { 0, 1, 2, 3, 0 }) controller.Dispatch(column);
+            yield return WaitUntil(() => controller.Session.Status == BlockPortersStatus.Failed, "封闭图案五队等待");
+            Assert.That(controller.ActorCount, Is.Zero);
+            reward.Reset(); controller.RequestRevive(); reward.Complete(PorterRewardResult.Completed);
+            yield return null; yield return null;
+            controller.Dispatch(0); controller.Dispatch(1);
+            Assert.That(controller.ActorCount, Is.EqualTo(16));
+            yield return WaitUntil(() => controller.ActorCount == 56, "开路后56人真实在途");
+            Assert.That(controller.Session.InFlight, Is.EqualTo(56));
+            yield return Capture("Stress56Transport");
             float elapsed = 0, longest = 0;
             int frames = 0;
             double memoryBefore = GC.GetAllocatedBytesForCurrentThread();
@@ -136,7 +193,7 @@ namespace Tests.Demo
                 yield return null;
                 elapsed += Time.unscaledDeltaTime; longest = Mathf.Max(longest, Time.unscaledDeltaTime); frames++;
             }
-            Debug.Log($"[BlockPorters 验收] 1024 方块/逻辑等待队伍：{frames / elapsed:F1} FPS，最长帧 {longest * 1000:F1} ms，主线程累计分配 {GC.GetAllocatedBytesForCurrentThread() - memoryBefore:F0} bytes（含 Editor/TestRunner/UI）。");
+            Debug.Log($"[BlockPorters 验收] 32×32 棋盘/峰值56人在途：{frames / elapsed:F1} FPS，最长帧 {longest * 1000:F1} ms，主线程累计分配 {GC.GetAllocatedBytesForCurrentThread() - memoryBefore:F0} bytes（含 Editor/TestRunner/UI）。");
             Assert.That(controller.ActorCount, Is.LessThanOrEqualTo(56));
             controller.Restart();
             Assert.That(controller.ActorCount, Is.Zero);
@@ -169,8 +226,46 @@ namespace Tests.Demo
                 controller.ReturnToHub();
                 yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "清理 Demo");
             }
+            foreach (var catalog in testCatalogs) Object.Destroy(catalog);
+            testCatalogs.Clear();
             if (stressAsset != null) Object.Destroy(stressAsset);
             if (completionAsset != null) Object.Destroy(completionAsset);
+            if (carrierAsset != null) Object.Destroy(carrierAsset);
+        }
+
+        private static IEnumerator EnterHub()
+        {
+            // 同一个 PlayMode 运行内启动壳保持存活，不能绕过导航重载其场景。
+            if (GameSceneNavigator.Instance == null)
+            {
+                var startup = SceneManager.LoadSceneAsync("AppEntrance", LoadSceneMode.Single);
+                while (!startup.isDone) yield return null;
+            }
+            yield return WaitUntil(() => GameSceneNavigator.Instance?.CurrentScene == GameSceneId.Hub &&
+                UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "Hub 启动 / 复用");
+        }
+
+        private void SetLevels(BlockPortersController controller, BlockPortersLevel[] definitions)
+        {
+            var catalog = ScriptableObject.CreateInstance<BlockPortersLevelCatalog>(); catalog.Configure(definitions); testCatalogs.Add(catalog);
+            typeof(BlockPortersController).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(controller, catalog);
+        }
+
+        private static BlockPortersLevel CreateCarrierStressLevel(Color[] palette)
+        {
+            var cells = Enumerable.Repeat(-1, 1024).ToArray();
+            for (int y = 0; y < 32; y++) for (int x = 0; x < 32; x++)
+                if (x == 0 || x == 31 || y == 0 || y == 31) cells[y * 32 + x] = 0;
+            for (int y = 15; y <= 16; y++) for (int x = 6; x < 26; x++) cells[y * 32 + x] = 1;
+            var queues = Enumerable.Range(0, 4).Select(_ => new List<PorterTeamDefinition>()).ToArray();
+            queues[0].AddRange(Enumerable.Repeat(new PorterTeamDefinition(1, 8), 2));
+            for (int col = 1; col < 4; col++) queues[col].Add(new PorterTeamDefinition(1, 8));
+            queues[0].Add(new PorterTeamDefinition(0, 8));
+            int remaining = 116;
+            while (remaining > 0) { int n = Math.Min(8, remaining); queues[1].Add(new PorterTeamDefinition(0, n)); remaining -= n; }
+            var level = ScriptableObject.CreateInstance<BlockPortersLevel>();
+            level.Configure("56人运输压力", new BlockPortersLevelData(32, 32, cells, queues.Select(c => c.ToArray()).ToArray(), 5, 2), palette.Take(2).ToArray(), Array.Empty<int>());
+            return level;
         }
 
         private static BlockPortersLevel CreateStressLevel(Color[] palette)

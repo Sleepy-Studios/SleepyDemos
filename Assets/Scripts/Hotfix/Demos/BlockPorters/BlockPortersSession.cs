@@ -36,8 +36,8 @@ namespace Hotfix.BlockPorters
                 throw new ArgumentException("棋盘尺寸必须为 1–32。");
             if (cells == null || cells.Length != width * height || columns == null || columns.Length != 4)
                 throw new ArgumentException("棋盘或四列队伍配置不完整。");
-            if (capacity < 1 || capacity > 5 || colorCount < 1 || colorCount > 6)
-                throw new ArgumentException("初始任务位必须为 1–5，颜色数量必须为 1–6。");
+            if (capacity < 1 || capacity > 5 || colorCount < 1 || colorCount > 12)
+                throw new ArgumentException("初始任务位必须为 1–5，颜色数量必须为 1–12。");
             Width = width; Height = height; Capacity = capacity; ColorCount = colorCount;
             Cells = (int[])cells.Clone();
             Columns = new PorterTeamDefinition[4][];
@@ -225,6 +225,23 @@ namespace Hotfix.BlockPorters
             HasRevived = true; Capacity += 2; Status = BlockPortersStatus.Playing;
             return true;
         }
+
+        /// 复制无在途任务的会话，用于稳定点搜索，不共享可变棋盘或队伍。
+        public BlockPortersSession CloneStable()
+        {
+            if (InFlight != 0) throw new InvalidOperationException("只能复制稳定会话。");
+            var copy = new BlockPortersSession(level);
+            Array.Copy(cells, copy.cells, cells.Length);
+            Array.Copy(columnHeads, copy.columnHeads, 4);
+            copy.Capacity = Capacity; copy.Delivered = Delivered; copy.Status = Status; copy.HasRevived = HasRevived;
+            copy.nextTeamId = nextTeamId; copy.nextJobId = nextJobId;
+            foreach (var team in teams) copy.teams.Add(new PorterTeam { Id = team.Id, Slot = team.Slot, Color = team.Color, Count = team.Count, Delivered = team.Delivered });
+            return copy;
+        }
+
+        /// 稳定状态的精确搜索键；不依赖哈希碰撞判断等价状态。
+        public string StableKey() => string.Join(",", columnHeads) + ":" + string.Join(",", cells)
+            + ":" + string.Join(";", teams.ConvertAll(t => $"{t.Color},{t.Count},{t.Delivered},{t.Slot}"));
 
         private PorterTeam FindTeam(int id) => teams.Find(team => team.Id == id);
 

@@ -16,6 +16,20 @@ namespace Tests.Demo
         private const string Root = "Assets/LoadResources/Demos/block_porters";
 
         [Test]
+        public void CatalogPreservesTeachingLevelsAndAllWitnessesWin()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<BlockPortersLevelCatalog>(Root + "/Data/LevelCatalog.asset");
+            Assert.That(catalog, Is.Not.Null); Assert.That(catalog.Levels.Length, Is.GreaterThanOrEqualTo(8));
+            for (int i = 0; i < 5; i++) Assert.That(catalog.Levels[i], Is.SameAs(AssetDatabase.LoadAssetAtPath<BlockPortersLevel>($"{Root}/Data/Level{i + 1}.asset")));
+            foreach (var level in catalog.Levels)
+            {
+                var scheduler = new BlockPortersScheduler(new BlockPortersSession(level.CreateData()));
+                foreach (int column in level.Solution) { Assert.That(scheduler.Dispatch(column), Is.True); scheduler.Settle(); }
+                Assert.That(scheduler.Session.Status, Is.EqualTo(BlockPortersStatus.Won), level.name);
+            }
+        }
+
+        [Test]
         public void DemoResourcesFollowNamingAndLabels()
         {
             foreach (string file in Directory.GetFiles(Root, "*", SearchOption.AllDirectories))

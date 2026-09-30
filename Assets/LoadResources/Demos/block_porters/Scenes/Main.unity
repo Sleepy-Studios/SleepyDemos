@@ -149,24 +149,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6562287d8b33d2f439ce641b1886ba6e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersController
-  levels:
-  - {fileID: 11400000, guid: 5ccc576e606282245b2f95a8e5f2a830, type: 2}
-  - {fileID: 11400000, guid: 4ae3687a12ac8944d886aff65fdbc498, type: 2}
-  - {fileID: 11400000, guid: 043832cbb56d6ba47b895666baec7392, type: 2}
-  - {fileID: 11400000, guid: c600efa40323cf0479789be8b6bce59f, type: 2}
-  - {fileID: 11400000, guid: 7f04fa98273e81941ad7198e3f7601da, type: 2}
+  catalog: {fileID: 11400000, guid: 13a7c968cd5cebc4eabfbf005b328523, type: 2}
   worldCamera: {fileID: 2133727270}
   boardRoot: {fileID: 1988604817}
   actorsRoot: {fileID: 1080950568}
   brickPrefab: {fileID: 4189378007823506486, guid: 7ce6c94772204954f859178f015298f5, type: 3}
   porterPrefab: {fileID: 5505590225628305833, guid: c5e01d88c188339458d834948f6c6aeb, type: 3}
-  colorMaterials:
-  - {fileID: 2100000, guid: 627eab8bf99be8542900a4af16b019c9, type: 2}
-  - {fileID: 2100000, guid: f9a39e0a5e6eae940bc16cfe4929b1cf, type: 2}
-  - {fileID: 2100000, guid: 117a19b94ae0280479a69dee096ec63f, type: 2}
-  - {fileID: 2100000, guid: a4392c3012872c64682172a09900e67f, type: 2}
-  - {fileID: 2100000, guid: 986a385b1f148fa47968e45c692821f4, type: 2}
-  - {fileID: 2100000, guid: 1ec59d25a336c464094c51351aed49e7, type: 2}
+  colorMaterialTemplate: {fileID: 2100000, guid: 627eab8bf99be8542900a4af16b019c9, type: 2}
   pit: {fileID: 1341063690}
   pitParticles: {fileID: 2115569827}
   audioSource: {fileID: 367364753}

@@ -12,27 +12,22 @@ namespace Hotfix.BlockPorters.Adapters
     public sealed class BlockPortersController : MonoBehaviour
     {
         private float cellSize = 0.2f;
-        private enum Motion { Waiting, Outbound, Lifting, Returning, ToPit, Jumping }
         private sealed class Actor
         {
             public PorterAvatar Avatar;
-            public PorterTeam Team;
-            public PorterJob Job;
+            public BlockPortersScheduler.Transport Transport;
             public Transform Brick;
-            public Motion Motion;
-            public int PathIndex;
-            public int Member;
-            public float Timer;
-            public Vector3 JumpOrigin;
         }
 
-        [SerializeField] private BlockPortersLevel[] levels;
+        [SerializeField] private BlockPortersLevelCatalog catalog;
+        private BlockPortersScheduler scheduler;
+        private Material[] levelMaterials;
         [SerializeField] private Camera worldCamera;
         [SerializeField] private Transform boardRoot;
         [SerializeField] private Transform actorsRoot;
         [SerializeField] private Transform brickPrefab;
         [SerializeField] private PorterAvatar porterPrefab;
-        [SerializeField] private Material[] colorMaterials;
+        [SerializeField] private Material colorMaterialTemplate;
         [SerializeField] private Transform pit;
         [SerializeField] private ParticleSystem pitParticles;
         [SerializeField] private AudioSource audioSource;
@@ -56,37 +51,17 @@ namespace Hotfix.BlockPorters.Adapters
         private float animationClock;
 
         public BlockPortersSession Session { get; private set; }
-        public BlockPortersLevel CurrentLevel => levels[LevelIndex];
+        private BlockPortersLevel[] Definitions => catalog.Levels;
+        public BlockPortersLevel CurrentLevel => Definitions[LevelIndex];
         public int LevelIndex { get; private set; }
-        public int LevelCount => levels.Length;
+        public int LevelCount => Definitions.Length;
+        public bool IsStable => scheduler != null && scheduler.IsStable;
         public int ActorCount => actors.Count;
         public bool IsPaused { get; private set; }
         public bool IsMuted { get; private set; }
         public bool IsRewardPending => isRewardPending;
         public bool IsExiting => isExiting;
         public event Action Changed;
-
-        /// <summary>由编辑器保存场景引用；仅在非运行期装配。</summary>
-        /// <param name="definitions">五个关卡资产。</param>
-        /// <param name="camera">唯一玩法主相机。</param>
-        /// <param name="board">棋盘实例挂点。</param>
-        /// <param name="people">角色实例挂点。</param>
-        /// <param name="brick">共享方块预制体。</param>
-        /// <param name="porter">共享小人预制体。</param>
-        /// <param name="materials">与关卡色表一致的共享材质。</param>
-        /// <param name="hole">深坑中心。</param>
-        /// <param name="particles">入坑特效。</param>
-        /// <param name="source">场景音效播放器。</param>
-        /// <param name="pickup">自制抬砖音效。</param>
-        /// <param name="drop">自制入坑音效。</param>
-        public void Configure(BlockPortersLevel[] definitions, Camera camera, Transform board, Transform people,
-            Transform brick, PorterAvatar porter, Material[] materials, Transform hole, ParticleSystem particles,
-            AudioSource source, AudioClip pickup, AudioClip drop)
-        {
-            levels = definitions; worldCamera = camera; boardRoot = board; actorsRoot = people;
-            brickPrefab = brick; porterPrefab = porter; colorMaterials = materials;
-            pit = hole; pitParticles = particles; audioSource = source; pickupSound = pickup; dropSound = drop;
-        }
 
         private void Start() => InitializeAsync().Forget();
 
@@ -117,84 +92,80 @@ namespace Hotfix.BlockPorters.Adapters
             if (IsPaused || isApplicationPaused || isRewardPending || Session.Status != BlockPortersStatus.Playing) return;
             float delta = Time.deltaTime;
             animationClock += delta;
-            bool changed = false;
-            for (int i = actors.Count - 1; i >= 0; i--)
-            {
-                var actor = actors[i];
-                changed |= AdvanceActor(actor, delta);
-                if (actor.Avatar == null) actors.RemoveAt(i);
-            }
-            changed |= AssignAvailable();
             var previous = Session.Status;
-            Session.EvaluateOutcome();
-            if (changed || Session.Status != previous) Changed?.Invoke();
+            scheduler.AdvanceTo(scheduler.Time + delta);
+            foreach (var actor in actors) PoseActor(actor);
+            if (Session.Status != previous) Changed?.Invoke();
         }
 
-        private bool AdvanceActor(Actor actor, float delta)
+        private void PoseActor(Actor actor)
         {
+            var task = actor.Transport;
+            double time = scheduler.Time;
             var avatar = actor.Avatar;
-            bool carrying = actor.Motion >= Motion.Returning;
-            avatar.Animate(animationClock * 12 + actor.Member, actor.Motion is Motion.Outbound or Motion.Returning or Motion.ToPit, carrying);
-            switch (actor.Motion)
+            bool carrying = task.Job.IsPickedUp;
+            bool walking = time < task.Arrived || (time >= task.Pickup && time < task.Jump);
+            avatar.Animate(animationClock * 12 + task.Job.Id, walking, carrying || time > task.Arrived + .12);
+            Vector3 position;
+            Vector3 facing;
+            if (time < task.Arrived)
+                position = PathPose(task.Job.Path, time - task.Started, false, out facing);
+            else if (time < task.Pickup)
             {
-                case Motion.Outbound:
-                    actor.Timer += delta;
-                    if (actor.Timer < 0) break;
-                    if (MoveTo(avatar.transform, CellPosition(actor.Job.Path[actor.PathIndex]), delta))
-                    {
-                        actor.PathIndex++;
-                        if (actor.PathIndex >= actor.Job.Path.Length) { actor.Motion = Motion.Lifting; actor.Timer = 0; }
-                    }
-                    break;
-                case Motion.Lifting:
-                    actor.Timer += delta;
-                    Vector3 target = CellPosition(new PorterCell(actor.Job.CellIndex % Session.Width, actor.Job.CellIndex / Session.Width));
-                    Face(avatar.transform, target);
-                    avatar.Animate(0, false, actor.Timer > 0.12f);
-                    if (actor.Timer >= 0.28f)
-                    {
-                        Session.PickUp(actor.Job.Id);
-                        actor.Brick = boardBricks[actor.Job.CellIndex]; boardBricks[actor.Job.CellIndex] = null;
-                        actor.Brick.SetParent(avatar.CarryAnchor, false);
-                        actor.Brick.localPosition = Vector3.zero;
-                        actor.Brick.localRotation = Quaternion.identity;
-                        actor.PathIndex = actor.Job.Path.Length - 1;
-                        actor.Motion = Motion.Returning;
-                        PlaySound(pickupSound, 0.15f);
-                        return true;
-                    }
-                    break;
-                case Motion.Returning:
-                    if (MoveTo(avatar.transform, CellPosition(actor.Job.Path[actor.PathIndex]), delta))
-                    {
-                        actor.PathIndex--;
-                        if (actor.PathIndex < 0) actor.Motion = Motion.ToPit;
-                    }
-                    break;
-                case Motion.ToPit:
-                    Vector3 lip = pit.position + new Vector3((actor.Member % 4 - 1.5f) * 0.15f, 0, 0.7f);
-                    if (MoveTo(avatar.transform, lip, delta))
-                    {
-                        actor.JumpOrigin = avatar.transform.position; actor.Timer = 0; actor.Motion = Motion.Jumping;
-                    }
-                    break;
-                case Motion.Jumping:
-                    actor.Timer += delta;
-                    float t = Mathf.Clamp01(actor.Timer / 0.5f);
-                    avatar.transform.position = Vector3.Lerp(actor.JumpOrigin, pit.position + Vector3.down * 0.9f, t)
-                        + Vector3.up * (Mathf.Sin(t * Mathf.PI) * 0.55f);
-                    avatar.transform.localScale = Vector3.one * Mathf.Lerp(1, 0.05f, t * t);
-                    if (t >= 1)
-                    {
-                        Session.Deliver(actor.Job.Id);
-                        ReturnBrick(actor.Brick); actor.Brick = null;
-                        avatar.gameObject.SetActive(false); porterPool.Push(avatar); actor.Avatar = null;
-                        pitParticles.Emit(6); PlaySound(dropSound, 0.3f);
-                        return true;
-                    }
-                    break;
+                position = CellPosition(task.Job.Path[^1]);
+                facing = CellPosition(new PorterCell(task.Job.CellIndex % Session.Width, task.Job.CellIndex / Session.Width));
             }
-            return false;
+            else if (time < task.Returned)
+                position = PathPose(task.Job.Path, time - task.Pickup, true, out facing);
+            else if (time < task.Jump)
+            {
+                facing = new Vector3(0, 0, -.8f);
+                position = Vector3.Lerp(CellPosition(task.Job.Path[0]), facing, (float)((time - task.Returned) / (task.Jump - task.Returned)));
+            }
+            else
+            {
+                float t = Mathf.Clamp01((float)((time - task.Jump) / .5));
+                facing = pit.position;
+                position = Vector3.Lerp(new Vector3(0, 0, -.8f), pit.position + Vector3.down * .9f, t) + Vector3.up * (Mathf.Sin(t * Mathf.PI) * .55f);
+                avatar.transform.localScale = Vector3.one * Mathf.Lerp(1, .05f, t * t);
+            }
+            avatar.transform.position = position; Face(avatar.transform, facing);
+        }
+
+        private Vector3 PathPose(PorterCell[] path, double elapsed, bool reverse, out Vector3 facing)
+        {
+            float segment = (float)(elapsed * 3.4 / cellSize);
+            int step = Mathf.Min(path.Length - 1, Mathf.FloorToInt(segment));
+            int a = reverse ? path.Length - 1 - step : step;
+            int b = reverse ? Mathf.Max(0, a - 1) : Mathf.Min(path.Length - 1, a + 1);
+            facing = CellPosition(path[b]);
+            return Vector3.Lerp(CellPosition(path[a]), facing, segment - step);
+        }
+
+        private void OnAssigned(BlockPortersScheduler.Transport task)
+        {
+            var avatar = porterPool.Count > 0 ? porterPool.Pop() : Instantiate(porterPrefab, actorsRoot);
+            avatar.gameObject.SetActive(true); avatar.ResetPose(levelMaterials[task.Job.Color]);
+            avatar.transform.position = CellPosition(task.Job.Path[0]);
+            actors.Add(new Actor { Avatar = avatar, Transport = task });
+            Changed?.Invoke();
+        }
+
+        private void OnPickedUp(BlockPortersScheduler.Transport task)
+        {
+            var actor = actors.Find(item => item.Transport == task);
+            actor.Brick = boardBricks[task.Job.CellIndex]; boardBricks[task.Job.CellIndex] = null;
+            actor.Brick.SetParent(actor.Avatar.CarryAnchor, false);
+            actor.Brick.localPosition = Vector3.zero; actor.Brick.localRotation = Quaternion.identity;
+            PlaySound(pickupSound, .15f); Changed?.Invoke();
+        }
+
+        private void OnDelivered(BlockPortersScheduler.Transport task)
+        {
+            var actor = actors.Find(item => item.Transport == task);
+            ReturnBrick(actor.Brick);
+            actor.Avatar.gameObject.SetActive(false); porterPool.Push(actor.Avatar); actors.Remove(actor);
+            pitParticles.Emit(6); PlaySound(dropSound, .3f); Changed?.Invoke();
         }
 
         /// <summary>派出列头队伍；输入关闭时忽略，不支持派出后排队伍。</summary>
@@ -202,30 +173,7 @@ namespace Hotfix.BlockPorters.Adapters
         public void Dispatch(int column)
         {
             if (!isReady || IsPaused || isExiting || isRewardPending) return;
-            var team = Session.Dispatch(column);
-            if (team == null) return;
-            AssignAvailable();
-            Changed?.Invoke();
-        }
-
-        private bool AssignAvailable()
-        {
-            bool changed = false;
-            foreach (var team in Session.Teams)
-            {
-                while (Session.TryAssign(team.Id, out var job))
-                {
-                    int member = team.Delivered + team.InFlight - 1;
-                    var avatar = porterPool.Count > 0 ? porterPool.Pop() : Instantiate(porterPrefab, actorsRoot);
-                    avatar.gameObject.SetActive(true);
-                    avatar.ResetPose(colorMaterials[team.Color]);
-                    avatar.transform.position = CellPosition(job.Path[0]);
-                    avatar.transform.rotation = Quaternion.identity;
-                    actors.Add(new Actor { Avatar = avatar, Team = team, Job = job, Member = member, Motion = Motion.Outbound });
-                    changed = true;
-                }
-            }
-            return changed;
+            if (scheduler.Dispatch(column)) Changed?.Invoke();
         }
 
         /// 切换暂停，不修改全局 Time.timeScale。
@@ -235,7 +183,7 @@ namespace Hotfix.BlockPorters.Adapters
         /// 重置当前关卡与演出，取消旧会话奖励结果。
         public void Restart() { if (!isExiting) LoadLevel(LevelIndex); }
         /// 通关后进入下一关；最后一关回到第一关。
-        public void NextLevel() { if (!isExiting && Session.Status == BlockPortersStatus.Won) LoadLevel((LevelIndex + 1) % levels.Length); }
+        public void NextLevel() { if (!isExiting && Session.Status == BlockPortersStatus.Won) LoadLevel((LevelIndex + 1) % LevelCount); }
         /// 请求本地模拟复活，结果完成后只生效一次。
         public void RequestRevive() => ReviveAsync().Forget();
 
@@ -306,7 +254,16 @@ namespace Hotfix.BlockPorters.Adapters
             }
             actors.Clear();
             if (boardBricks != null) foreach (var brick in boardBricks) if (brick != null) ReturnBrick(brick);
+            if (levelMaterials != null) foreach (var material in levelMaterials) Destroy(material);
+            levelMaterials = new Material[CurrentLevel.Palette.Length];
+            for (int color = 0; color < levelMaterials.Length; color++)
+            {
+                levelMaterials[color] = new Material(colorMaterialTemplate);
+                levelMaterials[color].color = CurrentLevel.Palette[color];
+            }
             Session = new BlockPortersSession(CurrentLevel.CreateData());
+            scheduler = new BlockPortersScheduler(Session);
+            scheduler.Assigned += OnAssigned; scheduler.PickedUp += OnPickedUp; scheduler.Delivered += OnDelivered;
             cellSize = Mathf.Min(0.4f, 6.4f / Mathf.Max(Session.Width, Session.Height));
             boardBricks = new Transform[Session.Width * Session.Height];
             for (int i = 0; i < boardBricks.Length; i++)
@@ -318,7 +275,7 @@ namespace Hotfix.BlockPorters.Adapters
                 brick.localScale = new Vector3(cellSize * 0.91f, cellSize * 0.8f, cellSize * 0.91f);
                 brick.position = CellPosition(new PorterCell(i % Session.Width, i / Session.Width)) + Vector3.up * cellSize * 0.4f;
                 brick.localRotation = Quaternion.identity;
-                brick.GetComponent<Renderer>().sharedMaterial = colorMaterials[color];
+                brick.GetComponent<Renderer>().sharedMaterial = levelMaterials[color];
                 boardBricks[i] = brick;
             }
             if (pitParticles != null) pitParticles.Clear();
@@ -329,12 +286,6 @@ namespace Hotfix.BlockPorters.Adapters
             (cell.X - (Session.Width - 1) * 0.5f) * cellSize, 0,
             cell.Y * cellSize + (6.4f - Session.Height * cellSize) * 0.5f);
         private void ReturnBrick(Transform brick) { brick.SetParent(boardRoot, false); brick.gameObject.SetActive(false); brickPool.Push(brick); }
-        private static bool MoveTo(Transform actor, Vector3 target, float delta)
-        {
-            Face(actor, target);
-            actor.position = Vector3.MoveTowards(actor.position, target, delta * 3.4f);
-            return (actor.position - target).sqrMagnitude < 0.0001f;
-        }
         private static void Face(Transform actor, Vector3 target)
         {
             Vector3 direction = target - actor.position; direction.y = 0;
@@ -359,6 +310,7 @@ namespace Hotfix.BlockPorters.Adapters
         private void OnDisable() { isReady = false; }
         private void OnDestroy()
         {
+            if (levelMaterials != null) foreach (var material in levelMaterials) Destroy(material);
             rewardLifetime?.Cancel(); rewardLifetime?.Dispose();
             lifetime?.Cancel(); lifetime?.Dispose(); Changed = null;
         }

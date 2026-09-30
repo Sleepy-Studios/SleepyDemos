@@ -23,10 +23,19 @@ namespace Hotfix.BlockPorters
         [SerializeField] private PorterQueueDefinition[] columns;
         [SerializeField, Range(1, 5)] private int capacity = 5;
         [SerializeField] private int[] solution;
+        [SerializeField] private string[] colorLabels;
 
         public string DisplayName => displayName;
         public Color[] Palette => palette;
         public int[] Solution => solution;
+
+        /// <summary>返回色号标签；兼容旧资产，未填标签时使用编号。</summary>
+        /// <param name="color">当前关卡的明确色号 ID。</param>
+        public string ColorLabel(int color) => colorLabels != null && color < colorLabels.Length && !string.IsNullOrWhiteSpace(colorLabels[color]) ? colorLabels[color] : $"{color + 1}号";
+
+        /// <summary>保存可选标签，不参与同色匹配。</summary>
+        /// <param name="labels">与色表等长，允许单项为空。</param>
+        public void SetColorLabels(string[] labels) { if (labels != null && labels.Length != palette.Length) throw new ArgumentException("标签数与色表不同"); colorLabels = labels == null ? null : (string[])labels.Clone(); }
 
         /// 返回独立且经过数量、颜色和尺寸检查的规则数据。
         public BlockPortersLevelData CreateData()

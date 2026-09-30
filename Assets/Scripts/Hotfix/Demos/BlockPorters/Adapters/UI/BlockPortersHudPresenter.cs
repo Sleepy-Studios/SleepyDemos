@@ -110,7 +110,7 @@ namespace Hotfix.BlockPorters.Adapters
                 var team = session.Peek(column);
                 columns[column].interactable = canPlay && session.Teams.Count < session.Capacity && team.HasValue;
                 columns[column].image.color = team.HasValue ? owner.CurrentLevel.Palette[team.Value.Color] : new Color(0.16f, 0.21f, 0.3f);
-                columnLabels[column].text = team.HasValue ? $"{ColorName(team.Value.Color)}队\n{team.Value.Count} 人" : "完成";
+                columnLabels[column].text = team.HasValue ? $"{owner.CurrentLevel.ColorLabel(team.Value.Color)}队\n{team.Value.Count} 人" : "完成";
                 for (int row = 0; row < 1; row++)
                 {
                     int index = column + row;
@@ -119,7 +119,7 @@ namespace Hotfix.BlockPorters.Adapters
                     if (upcoming.HasValue)
                     {
                         previews[index].color = owner.CurrentLevel.Palette[upcoming.Value.Color];
-                        previewLabels[index].text = $"{ColorName(upcoming.Value.Color)} · {upcoming.Value.Count}";
+                        previewLabels[index].text = $"{owner.CurrentLevel.ColorLabel(upcoming.Value.Color)} · {upcoming.Value.Count}";
                     }
                 }
             }
@@ -148,6 +148,5 @@ namespace Hotfix.BlockPorters.Adapters
             resultRestart.interactable = resultExit.interactable = next.interactable = !owner.IsExiting;
         }
 
-        private static string ColorName(int color) => color switch { 0 => "珊瑚", 1 => "薄荷", 2 => "金黄", 3 => "湖蓝", 4 => "紫罗", _ => "奶白" };
     }
 }

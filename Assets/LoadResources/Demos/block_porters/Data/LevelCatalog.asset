@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88f18b53affee894f88d468a39af7a89, type: 3}
+  m_Name: LevelCatalog
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersLevelCatalog
+  levels:
+  - {fileID: 11400000, guid: 5ccc576e606282245b2f95a8e5f2a830, type: 2}
+  - {fileID: 11400000, guid: 4ae3687a12ac8944d886aff65fdbc498, type: 2}
+  - {fileID: 11400000, guid: 043832cbb56d6ba47b895666baec7392, type: 2}
+  - {fileID: 11400000, guid: c600efa40323cf0479789be8b6bce59f, type: 2}
+  - {fileID: 11400000, guid: 7f04fa98273e81941ad7198e3f7601da, type: 2}
+  - {fileID: 11400000, guid: 91aecbb08be69c44a96ecfd4f011019d, type: 2}
+  - {fileID: 11400000, guid: 225b24d86b223874e9e3f06c0a3395bb, type: 2}
+  - {fileID: 11400000, guid: 5c7083c333762d647b953f9ffe0cc5fd, type: 2}
