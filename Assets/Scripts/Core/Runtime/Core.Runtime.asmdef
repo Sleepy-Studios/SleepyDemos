@@ -2,6 +2,7 @@
     "name": "Core.Runtime",
     "rootNamespace": "Core.Runtime",
     "references": [
+        "SleepyStudios.LoopScroll",
         "UniTask",
         "YooAsset",
         "HybridCLR.Runtime",

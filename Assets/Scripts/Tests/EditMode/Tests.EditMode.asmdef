@@ -2,6 +2,7 @@
     "name": "Tests.EditMode",
     "rootNamespace": "Tests",
     "references": [
+        "SleepyStudios.LoopScroll",
         "Core.Runtime",
         "Core.Editor",
         "Unity.Collections",

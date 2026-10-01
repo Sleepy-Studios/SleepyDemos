@@ -42,6 +42,7 @@
   - [热更新模块](./modules/hotfix.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
+  - [Loop Scroll 宿主桥接](./modules/loop-scroll.md)
   - [运行期场景导航](./modules/scene-runtime.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
@@ -59,6 +60,7 @@
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
+  - [接入 Sleepy Loop Scroll](./runbooks/use-loop-scroll.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
   - [接入运行期场景导航](./runbooks/use-scene-navigation.md)
   - [在 Unity Editor 直接运行 Demo 岛](./runbooks/run-demo-island-directly.md)
@@ -74,6 +76,7 @@
 | 小小搬豆工 | [block_porters](demos/block_porters/README.md) |
 | 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
 | DLSS 实验室 | [dlss](demos/dlss/README.md) |
+| Loop Scroll 示例 | [loop_scroll](demos/loop_scroll/README.md) |
 
 每个入口包含模块维护、设计及操作手册导航；公共框架文档继续在上面的三层目录维护。
 

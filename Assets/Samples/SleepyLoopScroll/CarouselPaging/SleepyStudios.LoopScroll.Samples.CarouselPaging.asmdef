@@ -1,0 +1,7 @@
+{
+  "name": "SleepyStudios.LoopScroll.Samples.CarouselPaging",
+  "references": [
+    "SleepyStudios.LoopScroll",
+    "UnityEngine.UI"
+  ]
+}

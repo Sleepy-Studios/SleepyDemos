@@ -2,6 +2,8 @@
     "name": "Core.Editor",
     "rootNamespace": "Core.Editor",
     "references": [
+        "SleepyStudios.LoopScroll",
+        "SleepyStudios.LoopScroll.Editor",
         "Core.Runtime",
         "UnityEngine.UI",
         "UnityEditor.UI",

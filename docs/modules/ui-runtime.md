@@ -190,3 +190,5 @@ Loading --加载失败或取消--> Faulted
 - `Tests.Module.UITransitionPlayModeTests` 在真实 Play Mode 中检查默认 FadeScale 终态、取消、销毁、InteractionGate 引用计数以及 Gate / Mask 独立性。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。
+
+独立 UPM 虚拟列表与 ItemView/MvcBind 的接入由 [Loop Scroll 宿主桥接](loop-scroll.md) 维护；包内算法不归入 Core，宿主的薄桥接归入 Core.Runtime。

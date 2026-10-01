@@ -2,6 +2,7 @@
     "name": "Hotfix",
     "rootNamespace": "Hotfix",
     "references": [
+        "SleepyStudios.LoopScroll",
         "Core.Runtime",
         "Luban.Runtime",
         "UniTask",

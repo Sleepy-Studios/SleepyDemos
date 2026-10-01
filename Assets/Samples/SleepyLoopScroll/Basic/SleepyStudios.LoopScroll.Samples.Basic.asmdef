@@ -1,0 +1,7 @@
+{
+  "name": "SleepyStudios.LoopScroll.Samples.Basic",
+  "references": [
+    "SleepyStudios.LoopScroll",
+    "UnityEngine.UI"
+  ]
+}

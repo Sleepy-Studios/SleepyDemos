@@ -2,6 +2,7 @@
     "name": "Tests.PlayMode",
     "rootNamespace": "Tests",
     "references": [
+        "SleepyStudios.LoopScroll",
         "Core.Runtime",
         "Hotfix",
         "UniTask",

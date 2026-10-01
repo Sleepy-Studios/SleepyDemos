@@ -50,6 +50,14 @@
       },
       "hash": "4fed345deaaa9f54a3f780ffe5132ff5a7159b5f"
     },
+    "com.sleepystudios.loop-scroll": {
+      "version": "file:D:/Unity/Unity_Project/SleepyLoopScroll",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0"
+      }
+    },
     "com.tuyoogame.yooasset": {
       "version": "3.0.5",
       "depth": 0,
