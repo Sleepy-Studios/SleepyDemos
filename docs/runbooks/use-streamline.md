@@ -12,7 +12,7 @@ Windows x64、Unity 6000.3.15f1、URP 17.3.0、VS 2022 C++ 工具链和 Windows 
 
 ## SDK 与构建
 
-已配置本机依赖后，打开 `Assets/Scenes/AppEntrance.unity` 运行，在 Hub 或任一 Demo 点击右上角「画质设置」，即可切换关闭、SR 各档和 DLAA；设置跨场景沿用并保存，首次默认关闭。操作与资源维护见 [Demo 说明](../modules/dlss-demo.md)。当前默认 DX12，Vulkan 启动参数见下文。
+已配置本机依赖后，打开 `Assets/Scenes/AppEntrance.unity` 运行，在 Hub 或任一 Demo 点击右上角「画质设置」，即可切换关闭、SR 各档和 DLAA；设置跨场景沿用并保存，首次默认关闭。操作与资源维护见 [Demo 说明](../demos/dlss/module.md)。当前默认 DX12，Vulkan 启动参数见下文。
 
 SDK 固定为 Streamline v2.14.1，使用官方 Windows x64 Release。依赖准备必须校验 SHA-256，运行时检查 NVIDIA interposer 签名；发布包使用官方 production 库并保留许可证。原生工程独立于 Unity 自动生成的 sln/csproj。
 

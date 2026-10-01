@@ -40,10 +40,10 @@ namespace Hotfix.Editor.BlockPorters
         private bool isCanceling;
         private string message = "导入图片或打开已有配方开始编辑。";
 
-        [MenuItem("Tools/SleepyDemos/小人搬砖/关卡编辑器")]
+        [MenuItem("Tools/SleepyDemos/小小搬豆工/关卡编辑器")]
         private static void Open()
         {
-            var window = GetWindow<BlockPortersLevelEditorWindow>("搬砖关卡工作台");
+            var window = GetWindow<BlockPortersLevelEditorWindow>("小小搬豆工关卡工作台");
             if (Selection.activeObject is BlockPortersRecipe selected)
             { window.recipe = selected; window.editEpoch++; window.analysis = null; }
         }
@@ -212,7 +212,7 @@ namespace Hotfix.Editor.BlockPorters
         }
         private void DrawQueues()
         {
-            EditorGUILayout.LabelField("四列队伍（Color 从 0 开始，Count 为 1–8；可直接拖动数组项排序）", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("五列队伍（兼容旧四列）（Color 从 0 开始，Count 为 1–8；可直接拖动数组项排序）", EditorStyles.boldLabel);
             var serialized = new SerializedObject(recipe); serialized.Update();
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(serialized.FindProperty("columns"), new GUIContent("列与配额"), true);

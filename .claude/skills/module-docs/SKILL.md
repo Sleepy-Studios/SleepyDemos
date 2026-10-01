@@ -13,6 +13,8 @@ description: "按 SleepyDemos 的 architecture / modules / runbooks 三层文档
 - `docs/modules/*.md`：给维护模块的人看。写模块职责、代码入口、主链路、生命周期、边界、修改注意事项、验证重点。
 - `docs/runbooks/*.md`：给使用者或接入者看。写具体任务步骤、操作命令、接入示例、常见错误和排障路径。
 
+单个 Demo 的长期文档按项目约定集中在 `docs/demos/<DemoId>/`，以 README 导航，内部使用 module.md / architecture / runbooks 对应上述职责；公共框架仍使用顶层三类目录。
+
 不要把 API 参数解释堆进 md；业务侧实际调用的底层 public / protected 方法，尤其带 bool、command、Type、回调、异步返回值的入口，用 C# XML 注释说明参数语义。
 
 ## 工作流程

@@ -1,0 +1,85 @@
+{
+    "Status": "Completed",
+    "Levels": [
+        {
+            "Name": "Level1",
+            "Guid": "5ccc576e606282245b2f95a8e5f2a830",
+            "Difficulty": "Teaching",
+            "MeetsDifficulty": true,
+            "Diagnostic": "旧派队轨迹已重新分配为五列，参考解通过",
+            "RandomWins": 0,
+            "GreedyWins": 0,
+            "WaitingPressure": 0
+        },
+        {
+            "Name": "Level2",
+            "Guid": "4ae3687a12ac8944d886aff65fdbc498",
+            "Difficulty": "Teaching",
+            "MeetsDifficulty": true,
+            "Diagnostic": "旧派队轨迹已重新分配为五列，参考解通过",
+            "RandomWins": 0,
+            "GreedyWins": 0,
+            "WaitingPressure": 0
+        },
+        {
+            "Name": "Level3",
+            "Guid": "043832cbb56d6ba47b895666baec7392",
+            "Difficulty": "Teaching",
+            "MeetsDifficulty": true,
+            "Diagnostic": "旧派队轨迹已重新分配为五列，参考解通过",
+            "RandomWins": 0,
+            "GreedyWins": 0,
+            "WaitingPressure": 0
+        },
+        {
+            "Name": "Level4",
+            "Guid": "c600efa40323cf0479789be8b6bce59f",
+            "Difficulty": "Teaching",
+            "MeetsDifficulty": true,
+            "Diagnostic": "旧派队轨迹已重新分配为五列，参考解通过",
+            "RandomWins": 0,
+            "GreedyWins": 0,
+            "WaitingPressure": 0
+        },
+        {
+            "Name": "Level5",
+            "Guid": "7f04fa98273e81941ad7198e3f7601da",
+            "Difficulty": "Teaching",
+            "MeetsDifficulty": true,
+            "Diagnostic": "旧派队轨迹已重新分配为五列，参考解通过",
+            "RandomWins": 0,
+            "GreedyWins": 0,
+            "WaitingPressure": 0
+        },
+        {
+            "Name": "StrategyEasy",
+            "Guid": "91aecbb08be69c44a96ecfd4f011019d",
+            "Difficulty": "Easy",
+            "MeetsDifficulty": true,
+            "Diagnostic": "符合目标策略难度",
+            "RandomWins": 100,
+            "GreedyWins": 100,
+            "WaitingPressure": 4
+        },
+        {
+            "Name": "StrategyNormal",
+            "Guid": "225b24d86b223874e9e3f06c0a3395bb",
+            "Difficulty": "Normal",
+            "MeetsDifficulty": true,
+            "Diagnostic": "符合目标策略难度",
+            "RandomWins": 97,
+            "GreedyWins": 100,
+            "WaitingPressure": 5
+        },
+        {
+            "Name": "StrategyHard",
+            "Guid": "5c7083c333762d647b953f9ffe0cc5fd",
+            "Difficulty": "Hard",
+            "MeetsDifficulty": true,
+            "Diagnostic": "符合目标策略难度",
+            "RandomWins": 68,
+            "GreedyWins": 100,
+            "WaitingPressure": 5
+        }
+    ]
+}

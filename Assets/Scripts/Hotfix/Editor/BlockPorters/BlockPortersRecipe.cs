@@ -31,7 +31,7 @@ namespace Hotfix.Editor.BlockPorters
         [InspectorName("每候选搜索秒数")] public double SearchSeconds = 5;
     }
 
-    [CreateAssetMenu(fileName = "Recipe", menuName = "SleepyDemos/BlockPorters/编辑配方")]
+    [CreateAssetMenu(fileName = "Recipe", menuName = "SleepyDemos/小小搬豆工/编辑配方")]
     public sealed class BlockPortersRecipe : ScriptableObject
     {
         [SerializeField] private string displayName;
@@ -78,12 +78,12 @@ namespace Hotfix.Editor.BlockPorters
             labels = new string[palette.Length]; locked = new bool[cells.Length]; columns = Array.Empty<PorterQueueDefinition>(); Invalidate();
         }
 
-        /// <summary>写入四列队伍，不改动手工修正过的图案。</summary>
-        /// <param name="queues">四个完整列，人数由规则构造器校验。</param>
+        /// <summary>写入四／五列队伍，不改动手工修正过的图案。</summary>
+        /// <param name="queues">四或五个完整列，人数由规则构造器校验。</param>
         public void SetQueues(PorterTeamDefinition[][] queues)
         {
-            columns = new PorterQueueDefinition[4];
-            for (int i = 0; i < 4; i++) columns[i] = new PorterQueueDefinition(queues[i]);
+            columns = new PorterQueueDefinition[queues.Length];
+            for (int i = 0; i < queues.Length; i++) columns[i] = new PorterQueueDefinition(queues[i]);
             Invalidate();
         }
 
@@ -141,9 +141,9 @@ namespace Hotfix.Editor.BlockPorters
         public BlockPortersLevelData CreateData()
         {
             if (convertedWidth != settings.Width || convertedHeight != settings.Height) throw new InvalidOperationException("尺寸已改变，请重新转换图片。");
-            if (columns.Length != 4) throw new InvalidOperationException("请先安排四列队伍。");
-            var queues = new PorterTeamDefinition[4][];
-            for (int i = 0; i < 4; i++) queues[i] = columns[i].Teams;
+            if ((columns.Length != 4 && columns.Length != 5)) throw new InvalidOperationException("请先安排四／五列队伍。");
+            var queues = new PorterTeamDefinition[columns.Length][];
+            for (int i = 0; i < queues.Length; i++) queues[i] = columns[i].Teams;
             return new BlockPortersLevelData(settings.Width, settings.Height, cells, queues, 5, palette.Length);
         }
 

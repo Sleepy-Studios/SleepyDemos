@@ -1,6 +1,6 @@
 # DroneFlight 原始 Goal
 
-> 本文保存 DroneFlight 的初始需求提示词，仅用于追溯需求来源，不代表当前代码、目录或完成状态。当前实现以 [DroneFlight 模块入口](../../../../modules/drone-flight.md)、[实现原理](../../../../architecture/drone-flight-design.md)、[正式模型契约](../../../../modules/drone-flight-model-contract.md)和相关 runbook 为准。下方原始内容保留了任务创建时的路径与阶段约束，请勿把其中的旧计划引用当作现行入口。
+> 本文保存 DroneFlight 的初始需求提示词，仅用于追溯需求来源，不代表当前代码、目录或完成状态。当前实现以 [DroneFlight 模块入口](../../../../demos/drone_flight/module.md)、[实现原理](../../../../demos/drone_flight/architecture/design.md)、[正式模型契约](../../../../demos/drone_flight/model-contract.md)和相关 runbook 为准。下方原始内容保留了任务创建时的路径与阶段约束，请勿把其中的旧计划引用当作现行入口。
 
 # 无人机飞行仿真 Codex Goal
 

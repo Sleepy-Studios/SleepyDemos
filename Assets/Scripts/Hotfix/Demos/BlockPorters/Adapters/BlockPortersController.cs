@@ -23,6 +23,16 @@ namespace Hotfix.BlockPorters.Adapters
         private BlockPortersScheduler scheduler;
         private Material[] levelMaterials;
         [SerializeField] private Camera worldCamera;
+        [SerializeField] private Renderer backgroundRenderer;
+        [SerializeField] private BlockPortersUiStyle uiStyle;
+        [SerializeField] private BlockPortersThemeCatalog themeCatalog;
+        [SerializeField] private Transform pitOpening;
+        private BlockPortersThemeLoader themeLoader;
+        private readonly System.Random themeRandom = new();
+        private static string lastAppliedTheme;
+        public string CurrentThemeId => themeLoader?.AppliedId;
+        [SerializeField] private Renderer[] pitInteriors;
+        [SerializeField] private float pitApertureRadius = .43f;
         [SerializeField] private Transform boardRoot;
         [SerializeField] private Transform actorsRoot;
         [SerializeField] private Transform brickPrefab;
@@ -30,12 +40,15 @@ namespace Hotfix.BlockPorters.Adapters
         [SerializeField] private Material colorMaterialTemplate;
         [SerializeField] private Transform pit;
         [SerializeField] private ParticleSystem pitParticles;
+        [SerializeField] private Transform pitRipple;
+        [SerializeField] private Renderer rippleRenderer;
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private AudioClip pickupSound;
         [SerializeField] private AudioClip dropSound;
         private readonly Stack<Transform> brickPool = new();
         private readonly Stack<PorterAvatar> porterPool = new();
         private readonly List<Actor> actors = new();
+        private readonly List<Light> suspendedLights = new();
         private Transform[] boardBricks;
         private BlockPortersHudView hud;
         private CancellationTokenSource lifetime;
@@ -48,7 +61,12 @@ namespace Hotfix.BlockPorters.Adapters
         private int sessionVersion;
         private int screenWidth;
         private int screenHeight;
+        private Rect lastSafeArea;
+        private MaterialPropertyBlock backgroundProperties;
+        private MaterialPropertyBlock pitInteriorProperties;
         private float animationClock;
+        private float rippleAge = 1;
+        private MaterialPropertyBlock rippleProperties;
 
         public BlockPortersSession Session { get; private set; }
         private BlockPortersLevel[] Definitions => catalog.Levels;
@@ -71,8 +89,12 @@ namespace Hotfix.BlockPorters.Adapters
             try
             {
                 var navigator = GameSceneNavigator.Instance;
-                if (navigator == null) throw new InvalidOperationException("请从 AppEntrance 的 Hub 进入小人搬砖 Demo。");
+                if (navigator == null) throw new InvalidOperationException("请从 AppEntrance 的 Hub 进入小小搬豆工 Demo。");
                 await navigator.WaitUntilStableAsync(GameSceneId.BlockPorters, lifetime.Token);
+                // Hub 的相机虽已停用，灯光仍在 Additive 场景中；仅在本 Demo 存活期间隔离。
+                foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+                    if (light.enabled && light.gameObject.scene != gameObject.scene)
+                    { suspendedLights.Add(light); light.enabled = false; }
                 LoadLevel(0);
                 var result = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(
                     this, new UIShowOptions(animated: false), lifetime.Token);
@@ -89,6 +111,7 @@ namespace Hotfix.BlockPorters.Adapters
         {
             if (Session == null || !isReady || isExiting) return;
             FitCamera();
+            if (!IsPaused && !isApplicationPaused) UpdateRipple(Time.deltaTime);
             if (IsPaused || isApplicationPaused || isRewardPending || Session.Status != BlockPortersStatus.Playing) return;
             float delta = Time.deltaTime;
             animationClock += delta;
@@ -104,6 +127,7 @@ namespace Hotfix.BlockPorters.Adapters
             double time = scheduler.Time;
             var avatar = actor.Avatar;
             bool carrying = task.Job.IsPickedUp;
+            avatar.SetGrounded(time < task.Jump);
             bool walking = time < task.Arrived || (time >= task.Pickup && time < task.Jump);
             avatar.Animate(animationClock * 12 + task.Job.Id, walking, carrying || time > task.Arrived + .12);
             Vector3 position;
@@ -166,10 +190,25 @@ namespace Hotfix.BlockPorters.Adapters
             ReturnBrick(actor.Brick);
             actor.Avatar.gameObject.SetActive(false); porterPool.Push(actor.Avatar); actors.Remove(actor);
             pitParticles.Emit(6); PlaySound(dropSound, .3f); Changed?.Invoke();
+            rippleAge = 0;
+        }
+
+        private void UpdateRipple(float delta)
+        {
+            if (pitRipple == null) return;
+            rippleAge += delta;
+            bool visible = rippleAge < .32f;
+            pitRipple.gameObject.SetActive(visible);
+            if (!visible) return;
+            float t = rippleAge / .32f;
+            pitRipple.localScale = Vector3.one * Mathf.Lerp(.88f, 1.16f, t);
+            rippleProperties ??= new MaterialPropertyBlock();
+            rippleProperties.SetColor("_BaseColor", new Color(.55f, .8f, .7f, (1 - t) * .45f));
+            rippleRenderer.SetPropertyBlock(rippleProperties);
         }
 
         /// <summary>派出列头队伍；输入关闭时忽略，不支持派出后排队伍。</summary>
-        /// <param name="column">0–3 的队列编号。</param>
+        /// <param name="column">当前关卡的队列编号，最多五列。</param>
         public void Dispatch(int column)
         {
             if (!isReady || IsPaused || isExiting || isRewardPending) return;
@@ -181,25 +220,27 @@ namespace Hotfix.BlockPorters.Adapters
         /// 切换当前场景音效开关。
         public void ToggleSound() { IsMuted = !IsMuted; audioSource.mute = IsMuted; Changed?.Invoke(); }
         /// 重置当前关卡与演出，取消旧会话奖励结果。
-        public void Restart() { if (!isExiting) LoadLevel(LevelIndex); }
+        public void Restart() { if (!isExiting) LoadLevel(LevelIndex, false); }
         /// 通关后进入下一关；最后一关回到第一关。
         public void NextLevel() { if (!isExiting && Session.Status == BlockPortersStatus.Won) LoadLevel((LevelIndex + 1) % LevelCount); }
-        /// 请求本地模拟复活，结果完成后只生效一次。
-        public void RequestRevive() => ReviveAsync().Forget();
+        /// <summary>请求单侧模拟广告，当前会话每侧只解锁一次。</summary>
+        /// <param name="side">0 为左侧，1 为右侧。</param>
+        public void RequestUnlockSlot(int side) => UnlockSlotAsync(side).Forget();
 
         /// <summary>替换当前会话奖励适配器，不更改核心玩法规则。</summary>
         /// <param name="provider">不可为 null；正式平台适配器必须返回真实完成结果。</param>
         public void SetRewardProvider(IBlockPortersReward provider) => reward = provider ?? throw new ArgumentNullException(nameof(provider));
 
-        private async UniTaskVoid ReviveAsync()
+        private async UniTaskVoid UnlockSlotAsync(int side)
         {
-            if (!isReady || isExiting || isRewardPending || Session.Status != BlockPortersStatus.Failed || Session.HasRevived) return;
+            if (!isReady || isExiting || isRewardPending || side < 0 || side > 1 ||
+                Session.Status == BlockPortersStatus.Won || Session.IsSlotAvailable(side + 5)) return;
             int version = sessionVersion;
             isRewardPending = true; Changed?.Invoke();
             try
             {
-                var result = await reward.RequestReviveAsync(rewardLifetime.Token);
-                if (version == sessionVersion && !isExiting && result == PorterRewardResult.Completed) Session.Revive();
+                var result = await reward.RequestExtraSlotAsync(side, rewardLifetime.Token);
+                if (version == sessionVersion && !isExiting && result == PorterRewardResult.Completed) Session.TryUnlockExtraSlot(side);
             }
             catch (OperationCanceledException) { }
             catch (Exception exception) { Debug.LogException(exception, this); }
@@ -212,7 +253,7 @@ namespace Hotfix.BlockPorters.Adapters
         private async UniTaskVoid ExitAsync()
         {
             if (isExiting) return;
-            isExiting = true; sessionVersion++; rewardLifetime?.Cancel(); Changed?.Invoke();
+            isExiting = true; sessionVersion++; themeLoader?.Invalidate(); rewardLifetime?.Cancel(); Changed?.Invoke();
             try
             {
                 if (hud != null)
@@ -243,9 +284,11 @@ namespace Hotfix.BlockPorters.Adapters
             }
         }
 
-        internal void LoadLevel(int index)
+        internal void LoadLevel(int index, bool chooseTheme = true)
         {
             sessionVersion++; isRewardPending = false; IsPaused = false; LevelIndex = index;
+            themeLoader?.Invalidate();
+            if (chooseTheme && themeCatalog != null) ApplyThemeAsync(themeCatalog.Choose(lastAppliedTheme, themeRandom)).Forget();
             ResetRewardLifetime();
             foreach (var actor in actors)
             {
@@ -279,6 +322,8 @@ namespace Hotfix.BlockPorters.Adapters
                 boardBricks[i] = brick;
             }
             if (pitParticles != null) pitParticles.Clear();
+            rippleAge = 1;
+            if (pitRipple != null) pitRipple.gameObject.SetActive(false);
             FitCamera(); Changed?.Invoke();
         }
 
@@ -294,12 +339,55 @@ namespace Hotfix.BlockPorters.Adapters
         private void PlaySound(AudioClip clip, float volume) { if (!IsMuted && clip != null) audioSource.PlayOneShot(clip, volume); }
         private void FitCamera()
         {
-            if (screenWidth == Screen.width && screenHeight == Screen.height) return;
+            if (screenWidth == Screen.width && screenHeight == Screen.height && lastSafeArea == Screen.safeArea) return;
             screenWidth = Screen.width; screenHeight = Screen.height;
-            float screenAspect = (float)Screen.width / Mathf.Max(1, Screen.height);
-            float width = Mathf.Min(1, (9f / 16) / screenAspect);
-            worldCamera.rect = new Rect((1 - width) * 0.5f, 0, width, 1);
-            worldCamera.orthographicSize = Mathf.Max(7.6f, 4.3f / Mathf.Min(screenAspect, 9f / 16));
+            lastSafeArea = Screen.safeArea;
+            var layout = BlockPortersScreenLayout.Calculate(screenWidth, screenHeight, lastSafeArea);
+            float pixelsPerUnit = uiStyle.WorldPixelsPerUnit * layout.Scale;
+            worldCamera.rect = new Rect(0, 0, 1, 1);
+            worldCamera.orthographicSize = screenHeight / (2 * pixelsPerUnit);
+            var desired = layout.ToScreen(uiStyle.BoardCenter);
+            var offset = (desired - new Vector2(screenWidth, screenHeight) * .5f) / pixelsPerUnit;
+            var cameraTransform = worldCamera.transform;
+            cameraTransform.position = new Vector3(0, 0, 3.2f) - cameraTransform.forward * 20
+                - cameraTransform.right * offset.x - cameraTransform.up * offset.y;
+            if (backgroundRenderer == null) return;
+            var background = backgroundRenderer.transform;
+            background.position = cameraTransform.position + cameraTransform.forward * 40;
+            background.rotation = cameraTransform.rotation;
+            background.localScale = new Vector3(screenWidth / pixelsPerUnit, screenHeight / pixelsPerUnit, 1);
+            backgroundProperties ??= new MaterialPropertyBlock();
+            backgroundProperties.SetVector("_BaseMap_ST", new Vector4(screenWidth / layout.ContentPixels.width,
+                screenHeight / layout.ContentPixels.height, -layout.ContentPixels.x / layout.ContentPixels.width,
+                -layout.ContentPixels.y / layout.ContentPixels.height));
+            backgroundRenderer.SetPropertyBlock(backgroundProperties);
+            pitInteriorProperties ??= new MaterialPropertyBlock();
+            var opening = pitOpening != null ? pitOpening.position : pit.position;
+            float radius = Mathf.Max(0, pitApertureRadius - .5f / uiStyle.WorldPixelsPerUnit);
+            pitInteriorProperties.SetVector("_PitCenter", new Vector4(opening.x, opening.y, opening.z, radius));
+            pitInteriorProperties.SetVector("_ViewRay", cameraTransform.forward);
+            if (pitInteriors != null) foreach (var interior in pitInteriors) interior.SetPropertyBlock(pitInteriorProperties);
+        }
+        /// <summary>仅演出切换主题；由当前加载器隔离旧请求并跟踪资源。</summary>
+        internal async UniTask<bool> ApplyThemeAsync(BlockPortersThemeCatalog.Theme theme)
+        {
+            themeLoader ??= new BlockPortersThemeLoader(ResourceServices.CreateLoader);
+            try
+            {
+                bool applied = await themeLoader.ApplyAsync(theme, texture =>
+                {
+                    backgroundProperties ??= new MaterialPropertyBlock();
+                    backgroundProperties.SetTexture("_BaseMap", texture);
+                    backgroundRenderer.SetPropertyBlock(backgroundProperties);
+                });
+                if (applied) lastAppliedTheme = theme.Id;
+                return applied;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"背景加载未成功，保留当前背景：{exception.Message}", this);
+                return false;
+            }
         }
         private void OnApplicationPause(bool paused) => isApplicationPaused = paused;
         private void ResetRewardLifetime()
@@ -307,9 +395,16 @@ namespace Hotfix.BlockPorters.Adapters
             rewardLifetime?.Cancel(); rewardLifetime?.Dispose();
             rewardLifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
         }
-        private void OnDisable() { isReady = false; }
+        private void RestoreLighting()
+        {
+            foreach (var light in suspendedLights) if (light != null) light.enabled = true;
+            suspendedLights.Clear();
+        }
+        private void OnDisable() { isReady = false; themeLoader?.Invalidate(); RestoreLighting(); }
         private void OnDestroy()
         {
+            RestoreLighting();
+            themeLoader?.Dispose();
             if (levelMaterials != null) foreach (var material in levelMaterials) Destroy(material);
             rewardLifetime?.Cancel(); rewardLifetime?.Dispose();
             lifetime?.Cancel(); lifetime?.Dispose(); Changed = null;

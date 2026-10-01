@@ -81,6 +81,6 @@ G2 的双后端图像测试各 13 项通过，相机历史 EditMode 测试 7 项
 
 ## 相关文档
 
-- [DLSS Demo 体验与维护](./dlss-demo.md)
+- [DLSS Demo 体验与维护](../demos/dlss/module.md)
 - [接入设计与路线](../architecture/streamline-integration.md)
 - [构建与验证手册](../runbooks/use-streamline.md)

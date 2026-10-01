@@ -126,6 +126,7 @@ namespace Tests.Demo
             var settings = SmallSettings(3, 3); settings.Candidates = 1; settings.PolicyRuns = 0;
             var a = BlockPortersLevelGenerator.Generate(3, 3, cells, 2, settings);
             var b = BlockPortersLevelGenerator.Generate(3, 3, cells, 2, settings);
+            Assert.That(a.Columns.Length, Is.EqualTo(5));
             Assert.That(a.Analysis.State, Is.EqualTo(PorterSolvability.Solvable));
             Assert.That(a.Columns.SelectMany(c => c), Is.EqualTo(b.Columns.SelectMany(c => c))); Assert.That(cells, Is.EqualTo(before));
             Assert.DoesNotThrow(() => new BlockPortersLevelData(3, 3, cells, a.Columns, 5, 2));

@@ -12,7 +12,7 @@ namespace Hotfix.BlockPorters
     }
 
     /// 可编辑的关卡资产；运行时会话不改写资产中的队列和网格。
-    [CreateAssetMenu(fileName = "Level", menuName = "SleepyDemos/BlockPorters/关卡")]
+    [CreateAssetMenu(fileName = "Level", menuName = "SleepyDemos/小小搬豆工/关卡")]
     public sealed class BlockPortersLevel : ScriptableObject
     {
         [SerializeField] private string displayName;
@@ -40,10 +40,10 @@ namespace Hotfix.BlockPorters
         /// 返回独立且经过数量、颜色和尺寸检查的规则数据。
         public BlockPortersLevelData CreateData()
         {
-            if (palette == null || columns == null || columns.Length != 4)
-                throw new InvalidOperationException("关卡缺少颜色表或四列队伍。");
-            var queues = new PorterTeamDefinition[4][];
-            for (int i = 0; i < 4; i++) queues[i] = columns[i]?.Teams;
+            if (palette == null || columns == null || (columns.Length != 4 && columns.Length != 5))
+                throw new InvalidOperationException("关卡缺少颜色表或四／五列队伍。");
+            var queues = new PorterTeamDefinition[columns.Length][];
+            for (int i = 0; i < columns.Length; i++) queues[i] = columns[i]?.Teams;
             return new BlockPortersLevelData(width, height, cells, queues, capacity, palette.Length);
         }
 
@@ -56,8 +56,8 @@ namespace Hotfix.BlockPorters
         {
             displayName = title; width = data.Width; height = data.Height;
             cells = (int[])data.Cells.Clone(); palette = (Color[])colors.Clone(); capacity = data.Capacity;
-            columns = new PorterQueueDefinition[4];
-            for (int i = 0; i < 4; i++) columns[i] = new PorterQueueDefinition((PorterTeamDefinition[])data.Columns[i].Clone());
+            columns = new PorterQueueDefinition[data.Columns.Length];
+            for (int i = 0; i < columns.Length; i++) columns[i] = new PorterQueueDefinition((PorterTeamDefinition[])data.Columns[i].Clone());
             solution = (int[])referenceSolution.Clone();
             CreateData();
         }

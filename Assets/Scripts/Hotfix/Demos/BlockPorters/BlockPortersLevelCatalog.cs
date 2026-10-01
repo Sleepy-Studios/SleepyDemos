@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Hotfix.BlockPorters
 {
-    [CreateAssetMenu(fileName = "LevelCatalog", menuName = "SleepyDemos/BlockPorters/关卡集")]
+    [CreateAssetMenu(fileName = "LevelCatalog", menuName = "SleepyDemos/小小搬豆工/关卡集")]
     public sealed class BlockPortersLevelCatalog : ScriptableObject
     {
         [SerializeField] private BlockPortersLevel[] levels = Array.Empty<BlockPortersLevel>();

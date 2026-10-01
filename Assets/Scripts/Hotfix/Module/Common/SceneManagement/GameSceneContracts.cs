@@ -89,7 +89,7 @@ namespace Hotfix.SceneManagement
                     definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", DlssAddress);
                     return true;
                 case GameSceneId.BlockPorters:
-                    definition = new GameSceneDefinition(GameSceneId.BlockPorters, "小人搬砖", BlockPortersAddress);
+                    definition = new GameSceneDefinition(GameSceneId.BlockPorters, "小小搬豆工", BlockPortersAddress);
                     return true;
                 default:
                     definition = default;

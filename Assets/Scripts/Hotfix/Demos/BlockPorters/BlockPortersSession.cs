@@ -34,13 +34,13 @@ namespace Hotfix.BlockPorters
         {
             if (width < 1 || height < 1 || width > 32 || height > 32)
                 throw new ArgumentException("棋盘尺寸必须为 1–32。");
-            if (cells == null || cells.Length != width * height || columns == null || columns.Length != 4)
-                throw new ArgumentException("棋盘或四列队伍配置不完整。");
+            if (cells == null || cells.Length != width * height || columns == null || (columns.Length != 4 && columns.Length != 5))
+                throw new ArgumentException("棋盘或四／五列队伍配置不完整。");
             if (capacity < 1 || capacity > 5 || colorCount < 1 || colorCount > 12)
                 throw new ArgumentException("初始任务位必须为 1–5，颜色数量必须为 1–12。");
             Width = width; Height = height; Capacity = capacity; ColorCount = colorCount;
             Cells = (int[])cells.Clone();
-            Columns = new PorterTeamDefinition[4][];
+            Columns = new PorterTeamDefinition[columns.Length][];
             var bricks = new int[colorCount];
             var people = new int[colorCount];
             foreach (int color in Cells)
@@ -48,7 +48,7 @@ namespace Hotfix.BlockPorters
                 if (color < -1 || color >= colorCount) throw new ArgumentException("非法方块颜色。");
                 if (color >= 0) bricks[color]++;
             }
-            for (int column = 0; column < 4; column++)
+            for (int column = 0; column < columns.Length; column++)
             {
                 if (columns[column] == null) throw new ArgumentException("队列不能为 null。");
                 Columns[column] = (PorterTeamDefinition[])columns[column].Clone();
@@ -95,7 +95,7 @@ namespace Hotfix.BlockPorters
     {
         private readonly BlockPortersLevelData level;
         private readonly int[] cells;
-        private readonly int[] columnHeads = new int[4];
+        private readonly int[] columnHeads;
         private readonly List<PorterTeam> teams = new();
         private readonly Dictionary<int, PorterJob> jobs = new();
         private readonly HashSet<int> reservedCells = new();
@@ -113,7 +113,8 @@ namespace Hotfix.BlockPorters
         public int Delivered { get; private set; }
         public int Total { get; }
         public int InFlight => jobs.Count;
-        public bool HasRevived { get; private set; }
+        public int ColumnCount => level.Columns.Length;
+        public int UnlockedExtraSlots { get; private set; }
         public BlockPortersStatus Status { get; private set; }
         public IReadOnlyList<PorterTeam> Teams => teams;
 
@@ -123,6 +124,7 @@ namespace Hotfix.BlockPorters
         {
             level = definition ?? throw new ArgumentNullException(nameof(definition));
             cells = (int[])level.Cells.Clone();
+            columnHeads = new int[level.Columns.Length];
             foreach (int cell in cells) if (cell >= 0) Total++;
             Capacity = level.Capacity;
             parents = new int[(Width + 2) * (Height + 2)];
@@ -136,24 +138,24 @@ namespace Hotfix.BlockPorters
         public int GetCell(int index) => cells[index];
 
         /// <summary>查看队列前部，超过剩余队伍时返回 null。</summary>
-        /// <param name="column">0–3 的队列编号。</param>
+        /// <param name="column">小于 ColumnCount 的队列编号。</param>
         /// <param name="offset">相对于最前队伍的非负偏移。</param>
         public PorterTeamDefinition? Peek(int column, int offset = 0)
         {
-            if (column < 0 || column >= 4 || offset < 0) return null;
+            if (column < 0 || column >= columnHeads.Length || offset < 0) return null;
             int index = columnHeads[column] + offset;
             return index < level.Columns[column].Length ? level.Columns[column][index] : null;
         }
 
         /// <summary>只派出指定列最前一队；满位、结束或空列返回 null。</summary>
-        /// <param name="column">0–3 的队列编号。</param>
+        /// <param name="column">小于 ColumnCount 的队列编号。</param>
         public PorterTeam Dispatch(int column)
         {
             var definition = Peek(column);
             if (Status != BlockPortersStatus.Playing || teams.Count >= Capacity || !definition.HasValue) return null;
             columnHeads[column]++;
             int slot = 0;
-            while (teams.Exists(item => item.Slot == slot)) slot++;
+            while (!IsSlotAvailable(slot) || teams.Exists(item => item.Slot == slot)) slot++;
             var team = new PorterTeam { Id = ++nextTeamId, Slot = slot, Color = definition.Value.Color, Count = definition.Value.Count };
             teams.Add(team);
             return team;
@@ -218,11 +220,17 @@ namespace Hotfix.BlockPorters
             Status = BlockPortersStatus.Failed;
         }
 
-        /// 失败后仅允许复活一次，增加两个任务位，保留全部进度。
-        public bool Revive()
+        /// <summary>免费槽沿用关卡容量；左右额外槽使用固定编号 5／6。</summary>
+        /// <param name="slot">物理槽编号，不等同于已开放槽的数量。</param>
+        public bool IsSlotAvailable(int slot) => slot >= 0 && slot < level.Capacity ||
+            slot >= 5 && slot <= 6 && (UnlockedExtraSlots & (1 << (slot - 5))) != 0;
+
+        /// <summary>每侧每关解锁一次，失败时恢复继续，不改动棋盘与已派队伍。</summary>
+        /// <param name="side">0 为左侧，1 为右侧。</param>
+        public bool TryUnlockExtraSlot(int side)
         {
-            if (Status != BlockPortersStatus.Failed || HasRevived) return false;
-            HasRevived = true; Capacity += 2; Status = BlockPortersStatus.Playing;
+            if (side < 0 || side > 1 || Status == BlockPortersStatus.Won || (UnlockedExtraSlots & (1 << side)) != 0) return false;
+            UnlockedExtraSlots |= 1 << side; Capacity++; Status = BlockPortersStatus.Playing;
             return true;
         }
 
@@ -232,15 +240,15 @@ namespace Hotfix.BlockPorters
             if (InFlight != 0) throw new InvalidOperationException("只能复制稳定会话。");
             var copy = new BlockPortersSession(level);
             Array.Copy(cells, copy.cells, cells.Length);
-            Array.Copy(columnHeads, copy.columnHeads, 4);
-            copy.Capacity = Capacity; copy.Delivered = Delivered; copy.Status = Status; copy.HasRevived = HasRevived;
+            Array.Copy(columnHeads, copy.columnHeads, columnHeads.Length);
+            copy.Capacity = Capacity; copy.Delivered = Delivered; copy.Status = Status; copy.UnlockedExtraSlots = UnlockedExtraSlots;
             copy.nextTeamId = nextTeamId; copy.nextJobId = nextJobId;
             foreach (var team in teams) copy.teams.Add(new PorterTeam { Id = team.Id, Slot = team.Slot, Color = team.Color, Count = team.Count, Delivered = team.Delivered });
             return copy;
         }
 
         /// 稳定状态的精确搜索键；不依赖哈希碰撞判断等价状态。
-        public string StableKey() => string.Join(",", columnHeads) + ":" + string.Join(",", cells)
+        public string StableKey() => Capacity + ":" + UnlockedExtraSlots + ":" + string.Join(",", columnHeads) + ":" + string.Join(",", cells)
             + ":" + string.Join(";", teams.ConvertAll(t => $"{t.Color},{t.Count},{t.Delivered},{t.Slot}"));
 
         private PorterTeam FindTeam(int id) => teams.Find(team => team.Id == id);

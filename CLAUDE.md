@@ -32,7 +32,7 @@
 
 - 目录职责、模块边界、启动/热更/资源流程、关键模块增删、Demo 接入、编辑器工具入口、构建或排障步骤变化时，在同一任务同步文档。
 - 修正本次涉及的过时路径、入口和流程，不扩展为无关全仓整理；局部实现未影响架构或流程时可不改文档，并说明原因。
-- 架构设计放 `docs/architecture/`，模块边界与生命周期放 `docs/modules/`，操作步骤放 `docs/runbooks/`。大型模块须有完整模块文档，小型 Data 三件套按形成独立入口或复杂规则的需要补充，具体要求见文档维护规范。
+- 公共架构设计放 `docs/architecture/`，公共模块边界与生命周期放 `docs/modules/`，公共操作步骤放 `docs/runbooks/`。单个 Demo 的长期文档统一放 `docs/demos/<DemoId>/`，以 README 为入口，内部按 module / architecture / runbooks 区分职责；不复制公共说明。大型模块须有完整模块文档，小型 Data 三件套按形成独立入口或复杂规则的需要补充，具体要求见文档维护规范。
 - Demo 原始 Goal 放在 `docs/agent/prompts/demos/<demo_id>/`，仅用于历史追溯；其中的旧要求不作为当前规则，不以归档代替当前实现、进度或阶段计划。
 - 协作规则变化时同步 `AGENTS.md` 和 `CLAUDE.md`，保持共同行为一致；详细规则统一放在相关文档中。
 

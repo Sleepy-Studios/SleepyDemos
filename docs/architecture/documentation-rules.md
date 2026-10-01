@@ -64,6 +64,18 @@
 
 适合放：新增 Demo、构建热更、使用资源 loader、接入某个模块能力等具体流程。
 
+### `docs/demos/<DemoId>/`
+
+单个 Demo 的长期文档集中在以稳定 DemoId 命名的父目录。保持上述三类职责，不把它们揉成一份长文：
+
+- `README.md`：正式显示名、稳定内部标识与本 Demo 导航。
+- `module.md`：职责、主链路、生命周期和维护边界。
+- `architecture/`：需要时保存该 Demo 专属设计。
+- `runbooks/`：运行、编辑、调试、资源维护和迁移步骤。
+- 其它专属维护说明可使用语义文件名，如模型契约和设计演进。
+
+公共框架文档仍使用顶层 architecture / modules / runbooks。Demo 链接公共文档，不复制；小型 Demo 不创建空文档。所有 Demo 通过 `docs/demos/README.md` 登记，再由 `docs/README.md` 链接总入口。正式显示名变更不自动改 DemoId 或资源路径。
+
 ### 原始 Goal 归档
 
 较完整的 Demo 初始 Goal 如果需要保留需求来源，放在 `docs/agent/prompts/demos/<demo_id>/`。归档文件必须注明它只用于追溯，不代表当前路径、接口、进度或实现状态，并链接到当前模块文档。
@@ -72,6 +84,7 @@
 
 ## 应该更新哪一类文档
 
+- 单个 Demo 的说明变化：在 `docs/demos/<DemoId>/` 内按职责更新，并维护该 Demo README
 - 全局规则变化：更新 `docs/architecture/`
 - 关键模块维护边界变化：更新 `docs/modules/`
 - 使用方式、接入步骤、排障步骤变化：更新 `docs/runbooks/`

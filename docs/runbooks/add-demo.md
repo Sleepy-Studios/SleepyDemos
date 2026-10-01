@@ -12,8 +12,9 @@
 
 ## 1. 确定名称
 
-同时确定两个名称：
+同时确定正式显示名和两个稳定内部名称：
 
+- 正式显示名：用于 Hub、编辑器入口和文档；例如“小小搬豆工”，可独立于内部标识调整。
 - `DemoId`：资源目录和地址使用英文小写加下划线，例如 `gravity_well`。
 - `DemoName`：C# 目录和类型前缀使用 PascalCase，例如 `GravityWell`。
 
@@ -145,3 +146,7 @@ docs/agent/prompts/demos/<demo_id>/original-goal.md
 - 为单个 Demo 新建测试 asmdef。
 - 只验证进入，不验证返回 Hub 后的生命周期清理。
 - 接入方式变化后没有同步长期文档。
+
+## Demo 文档归档
+
+建立 `docs/demos/<DemoId>/README.md`，登记正式显示名、稳定内部标识和代码／资源入口。模块说明写 `module.md`，专属设计按需写 `architecture/`，操作步骤写 `runbooks/`；不再把单个 Demo 的文档平铺在公共 modules / runbooks 根目录。参考[Demo 总目录](../demos/README.md)，登记新 Demo 并更新[文档导航](../README.md)。原始 Goal 仍按原归档路径保存。

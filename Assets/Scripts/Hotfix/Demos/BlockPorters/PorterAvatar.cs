@@ -11,6 +11,7 @@ namespace Hotfix.BlockPorters
         [SerializeField] private Transform rightLeg;
         [SerializeField] private Transform carryAnchor;
         [SerializeField] private Renderer[] coloredParts;
+        [SerializeField] private Renderer contactShadow;
         public Transform CarryAnchor => carryAnchor;
 
         /// <summary>编辑器装配角色，运行时不搜索子节点。</summary>
@@ -30,8 +31,13 @@ namespace Hotfix.BlockPorters
         {
             foreach (var part in coloredParts) part.sharedMaterial = material;
             transform.localScale = Vector3.one;
+            SetGrounded(true);
             Animate(0, false, false);
         }
+
+        /// <summary>起跳时隐藏接触投影，避免投影跟随角色悬浮。</summary>
+        /// <param name="grounded">角色是否仍在地面搬运。</param>
+        public void SetGrounded(bool grounded) { if (contactShadow != null) contactShadow.enabled = grounded; }
 
         /// <summary>集中驱动行走摆臂和举砖姿态。</summary>
         /// <param name="phase">步伐相位。</param>

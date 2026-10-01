@@ -32,18 +32,18 @@ namespace Hotfix.Editor.BlockPorters
             for (int attempt = 0; attempt < candidates; attempt++)
             {
                 token.ThrowIfCancellationRequested();
-                var columns = Enumerable.Range(0, 4).Select(_ => new List<PorterTeamDefinition>()).ToArray();
+                var columns = Enumerable.Range(0, 5).Select(_ => new List<PorterTeamDefinition>()).ToArray();
                 for (int t = 0; t < trace.Length; t++)
                 {
-                    int col = settings.Difficulty == PorterDifficulty.Easy && attempt == 0 ? t % 4
-                        : settings.Difficulty == PorterDifficulty.Hard && attempt == 0 ? trace[t].Color % 4 : random.Next(4);
+                    int col = settings.Difficulty == PorterDifficulty.Easy && attempt == 0 ? t % 5
+                        : settings.Difficulty == PorterDifficulty.Hard && attempt == 0 ? trace[t].Color % 5 : random.Next(columns.Length);
                     columns[col].Add(trace[t]);
                 }
                 // 只扰动少量隐藏位置，每个候选重新解算，绝不沿用扰动前的答案。
                 int swaps = settings.Difficulty == PorterDifficulty.Easy ? 0 : (settings.Difficulty == PorterDifficulty.Normal ? 2 : 6);
                 for (int i = 0; i < swaps * (attempt > 0 ? 1 : 0); i++)
                 {
-                    var column = columns[random.Next(4)];
+                    var column = columns[random.Next(columns.Length)];
                     if (column.Count < 2) continue;
                     int a = random.Next(column.Count), b = random.Next(column.Count);
                     (column[a], column[b]) = (column[b], column[a]);
@@ -84,12 +84,12 @@ namespace Hotfix.Editor.BlockPorters
             int changes = difficulty == PorterDifficulty.Hard ? 8 : 4;
             for (int i = 0; i < changes; i++)
             {
-                int firstColumn = random.Next(4);
+                int firstColumn = random.Next(columns.Length);
                 if (columns[firstColumn].Count == 0) continue;
                 int firstIndex = random.Next(columns[firstColumn].Count);
                 var first = columns[firstColumn][firstIndex];
                 var partners = new List<(int column, int index)>();
-                for (int c = 0; c < 4; c++) for (int t = 0; t < columns[c].Count; t++)
+                for (int c = 0; c < columns.Length; c++) for (int t = 0; t < columns[c].Count; t++)
                     if ((c != firstColumn || t != firstIndex) && columns[c][t].Color == first.Color) partners.Add((c, t));
                 if (partners.Count == 0) continue;
                 var other = partners[random.Next(partners.Count)];

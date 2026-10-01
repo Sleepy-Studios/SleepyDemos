@@ -17,6 +17,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using Object = UnityEngine.Object;
 
 namespace Tests.Demo
@@ -26,10 +27,267 @@ namespace Tests.Demo
         private BlockPortersLevel stressAsset;
         private BlockPortersLevel completionAsset;
         private BlockPortersLevel carrierAsset;
+        private BlockPortersLevel paletteAsset;
         private GameViewResolution resolution;
         private readonly List<BlockPortersLevelCatalog> testCatalogs = new();
 
         [UnityTest]
+        public IEnumerator ThemesAlignTilesAndRestartPreservesAppliedBackground()
+        {
+            yield return EnterHub(); Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "主题 HUD");
+            var controller = Object.FindFirstObjectByType<BlockPortersController>();
+            resolution = new GameViewResolution(540, 960);
+            yield return WaitUntil(() => Screen.width == 540 && Screen.height == 960, "主题竖屏");
+            var catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<BlockPortersThemeCatalog>("Assets/LoadResources/Demos/block_porters/Data/ThemeCatalog.asset");
+            controller.LoadLevel(1); yield return null;
+            foreach (var theme in catalog.Themes)
+            {
+                var loading = controller.ApplyThemeAsync(theme).AsTask();
+                yield return WaitUntil(() => loading.IsCompleted, "加载 " + theme.DisplayName);
+                Assert.That(loading.Result, Is.True); Assert.That(controller.CurrentThemeId, Is.EqualTo(theme.Id));
+                yield return Capture("Theme_" + theme.Id);
+                controller.Restart(); yield return null; yield return null;
+                Assert.That(controller.CurrentThemeId, Is.EqualTo(theme.Id), "重开必须保持主题");
+                var renderer = (Renderer)typeof(BlockPortersController).GetField("backgroundRenderer", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+                var properties = new MaterialPropertyBlock(); renderer.GetPropertyBlock(properties);
+                Assert.That(properties.GetTexture("_BaseMap").name, Is.EqualTo(theme.BackgroundAddress.Split('/').Last()));
+                Assert.That(properties.GetVector("_BaseMap_ST").x, Is.GreaterThan(0), "主题不能覆盖安全区 UV 参数");
+            }
+            string previous = controller.CurrentThemeId;
+            controller.LoadLevel(2);
+            yield return WaitUntil(() => controller.CurrentThemeId != previous, "新关排除上一主题");
+            previous = controller.CurrentThemeId;
+            resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
+            yield return WaitUntil(() => Screen.height == 1200, "主题长屏");
+            yield return Capture("Theme_Tall");
+            controller.ReturnToHub();
+            yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "主题退出");
+            yield return EnterHub();
+            Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "再次进入");
+            var reentered = Object.FindFirstObjectByType<BlockPortersController>();
+            yield return WaitUntil(() => reentered.CurrentThemeId != null, "再次进入主题加载");
+            Assert.That(reentered.CurrentThemeId, Is.Not.EqualTo(previous));
+            // 新关成功应用主题后才成为跨 Hub 的上一主题。
+        }
+
+        [UnityTest]
+        public IEnumerator FiveColumnsAndIndependentExtraSlotsRespectRewardsAndRestart()
+        {
+            yield return EnterHub();
+            Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "五列 HUD");
+            var controller = Object.FindFirstObjectByType<BlockPortersController>();
+            var hud = UIManager.Instance.Get<BlockPortersHudView>();
+            resolution = new GameViewResolution(540, 960);
+            yield return WaitUntil(() => Screen.width == 540 && Screen.height == 960, "五列竖屏");
+            controller.LoadLevel(1); yield return null; yield return null;
+            Assert.That(controller.Session.ColumnCount, Is.EqualTo(5));
+            var images = hud.gameObject.GetComponentsInChildren<Image>(true);
+            Assert.That(images.Count(i => i.name.StartsWith("Preview")), Is.EqualTo(15));
+            foreach (var image in images.Where(i => i.name.StartsWith("Preview")))
+            { Assert.That(image.raycastTarget, Is.False); Assert.That(image.GetComponent<Button>(), Is.Null); }
+            yield return Capture("FiveColumnsInitial");
+            var queue = hud.gameObject.GetComponentsInChildren<Button>(true).Single(b => b.name == "Queue4");
+            Click(hud, "Queue4"); queue.onClick.Invoke();
+            Assert.That(controller.Session.Teams.Count, Is.EqualTo(1));
+            Assert.That(queue.interactable, Is.False);
+            yield return new WaitForSecondsRealtime(.3f);
+            yield return Capture("FiveColumnsCarrying");
+            var reward = new PendingReward(); controller.SetRewardProvider(reward);
+            Click(hud, "TaskSlot6"); controller.RequestUnlockSlot(1);
+            Assert.That(reward.Calls, Is.EqualTo(1)); Assert.That(reward.LastSide, Is.EqualTo(1));
+            reward.Complete(PorterRewardResult.Canceled); yield return null; yield return null;
+            Assert.That(controller.Session.Capacity, Is.EqualTo(5));
+            reward.Reset(); Click(hud, "TaskSlot6"); reward.Complete(PorterRewardResult.Unavailable);
+            yield return null; yield return null; Assert.That(controller.Session.UnlockedExtraSlots, Is.Zero);
+            reward.Reset(); Click(hud, "TaskSlot6"); reward.Complete(PorterRewardResult.Completed);
+            yield return null; yield return null;
+            Assert.That(controller.Session.UnlockedExtraSlots, Is.EqualTo(2)); Assert.That(controller.Session.Capacity, Is.EqualTo(6));
+            Assert.That(images.Single(i => i.name == "ExtraSlotIcon1").gameObject.activeSelf, Is.False);
+            Assert.That(images.Single(i => i.name == "ExtraSlotIcon0").gameObject.activeSelf, Is.True);
+            yield return Capture("FiveColumnsRightUnlocked");
+            int index = 0;
+            while (controller.Session.Teams.Count < 6)
+            { Assert.That(index, Is.LessThan(20)); controller.Dispatch(index++ % 5); }
+            Assert.That(controller.Session.Teams.Any(t => t.Slot == 6), Is.True);
+            Assert.That(controller.Session.Teams.Any(t => t.Slot == 5), Is.False);
+            reward.Reset(); controller.RequestUnlockSlot(0); reward.Complete(PorterRewardResult.Completed);
+            yield return null; yield return null;
+            Assert.That(controller.Session.Capacity, Is.EqualTo(7));
+            controller.Dispatch(0); yield return null; yield return null;
+            Assert.That(controller.Session.Teams.Any(t => t.Slot == 5), Is.True);
+            yield return Capture("FiveColumnsBothUnlocked");
+            controller.RequestUnlockSlot(1); Assert.That(reward.Calls, Is.EqualTo(4));
+            controller.Restart(); yield return null; yield return null;
+            Assert.That(controller.Session.Capacity, Is.EqualTo(5)); Assert.That(controller.ActorCount, Is.Zero);
+            reward.Reset(); controller.RequestUnlockSlot(1); controller.Restart(); reward.Complete(PorterRewardResult.Completed);
+            yield return null; yield return null; Assert.That(controller.Session.UnlockedExtraSlots, Is.Zero);
+            resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
+            yield return WaitUntil(() => Screen.height == 1200, "五列长屏");
+            yield return Capture("FiveColumnsTall");
+            controller.ReturnToHub();
+            yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "五列返回清理");
+        }
+
+        [UnityTest]
+        public IEnumerator ProgressAndQueueAdvanceStayAlignedAcrossPauseAndRestart()
+        {
+            yield return EnterHub();
+            Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "进度 HUD 启动");
+            var controller = Object.FindFirstObjectByType<BlockPortersController>();
+            var hud = UIManager.Instance.Get<BlockPortersHudView>();
+            var queue = hud.gameObject.GetComponentsInChildren<Button>(true).Single(b => b.name == "Queue0");
+            var queueRect = (RectTransform)queue.transform;
+            Vector2 rest = queueRect.anchoredPosition;
+            Click(hud, "Queue0");
+            queue.onClick.Invoke();
+            Assert.That(controller.Session.Teams.Count, Is.EqualTo(1), "同帧重复事件只派出一队");
+            Assert.That(queue.interactable, Is.False, "递补时锁住同列");
+            Assert.That(queueRect.anchoredPosition.y, Is.LessThan(rest.y));
+            Click(hud, "Pause"); yield return null; yield return null;
+            Assert.That(Vector2.Distance(queueRect.anchoredPosition, rest), Is.LessThan(.001f), "暂停清理递补动画");
+            Click(hud, "SettingsContinue"); yield return null;
+            Click(hud, "Queue0"); controller.Restart(); yield return null; yield return null;
+            Assert.That(Vector2.Distance(queueRect.anchoredPosition, rest), Is.LessThan(.001f), "重开清理移动卡片");
+            Assert.That(queue.interactable, Is.True);
+
+            resolution = new GameViewResolution(540, 960);
+            yield return WaitUntil(() => Screen.width == 540 && Screen.height == 960, "9:16 进度验收");
+            controller.LoadLevel(1); yield return null; yield return null;
+            var fill = hud.gameObject.GetComponentsInChildren<Image>(true).Single(i => i.name == "ProgressFill");
+            Assert.That(fill.fillAmount, Is.Zero);
+            Assert.That(controller.Session.Total, Is.EqualTo(256));
+            yield return Capture("Progress0");
+            var scheduler = (BlockPortersScheduler)typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            bool quarter = false, half = false;
+            foreach (int column in controller.CurrentLevel.Solution)
+            {
+                controller.Dispatch(column);
+                while (!scheduler.IsStable)
+                {
+                    // 尾队人数不同，队末未必恰好落在 25%/50%；按真实交付事件取样。
+                    double at = scheduler.Transports.Min(t => t.Job.IsPickedUp ? t.Delivered : t.Pickup);
+                    scheduler.AdvanceTo(at);
+                    int delivered = controller.Session.Delivered;
+                    if ((delivered == 64 && !quarter) || (delivered == 128 && !half))
+                    {
+                        controller.TogglePause();
+                        yield return new WaitForSecondsRealtime(.3f);
+                        Assert.That(fill.fillAmount, Is.EqualTo(delivered / 256f).Within(.001));
+                        Assert.That(fill.rectTransform.rect.width, Is.LessThan(fill.transform.parent.parent.GetComponent<RectTransform>().rect.width));
+                        yield return Capture(delivered == 64 ? "Progress25" : "Progress50");
+                        if (delivered == 64)
+                        {
+                            quarter = true;
+                            resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
+                            yield return WaitUntil(() => Screen.height == 1200, "长屏进度验收");
+                            yield return Capture("Progress25Tall");
+                            resolution.Dispose(); resolution = new GameViewResolution(540, 960);
+                            yield return WaitUntil(() => Screen.height == 960, "恢复进度竖屏");
+                        }
+                        else half = true;
+                        controller.TogglePause();
+                    }
+                    yield return null;
+                }
+            }
+            Assert.That(quarter && half, Is.True, "回放必须实际经过 64 和 128 个已交付方块");
+            Assert.That(controller.Session.Status, Is.EqualTo(BlockPortersStatus.Won));
+            yield return null; yield return null;
+            Assert.That(fill.fillAmount, Is.EqualTo(1), "通关立即满格");
+            yield return Capture("Progress100");
+            controller.Restart(); yield return null; yield return null;
+            Assert.That(fill.fillAmount, Is.Zero, "重开立即归零");
+            Click(hud, "Queue0");
+            yield return new WaitForSecondsRealtime(.3f);
+            // Canvas 缩放后的 RectTransform 读回值可能有亚像素浮点误差。
+            Assert.That(Vector2.Distance(queueRect.anchoredPosition, rest), Is.LessThan(.001f));
+            Assert.That(queue.interactable, Is.True, "递补后解除同列锁");
+            Assert.That(hud.gameObject.GetComponentsInChildren<Image>(true).Single(i => i.name == "Preview0").gameObject.activeSelf, Is.True);
+            controller.LoadLevel(0); yield return null; yield return null;
+            Assert.That(fill.fillAmount, Is.Zero, "切关立即归零");
+            Assert.That(Vector2.Distance(queueRect.anchoredPosition, rest), Is.LessThan(.001f));
+            controller.ReturnToHub();
+            yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "进度验收返回");
+        }
+
+        [UnityTest]
+        public IEnumerator SettingsRestorePauseBlockInputAndTwelveColorsRender()
+        {
+            yield return EnterHub();
+            var hubLights = Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.enabled).ToArray();
+            Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "HUD 启动");
+            var controller = Object.FindFirstObjectByType<BlockPortersController>();
+            Assert.That(hubLights.All(light => !light.enabled), Is.True, "Demo 内暂停其他场景灯光");
+            var hud = UIManager.Instance.Get<BlockPortersHudView>();
+            resolution = new GameViewResolution(540, 960);
+            yield return WaitUntil(() => Screen.width == 540 && Screen.height == 960, "竖屏");
+            Click(hud, "Pause"); yield return null;
+            Assert.That(controller.IsPaused, Is.True);
+            var settings = hud.gameObject.GetComponentsInChildren<Transform>(true).Single(t => t.name == "SettingsPanel");
+            Assert.That(settings.gameObject.activeInHierarchy, Is.True);
+            var queue = hud.gameObject.GetComponentsInChildren<Button>(true).Single(b => b.name == "Queue0");
+            Assert.That(queue.interactable, Is.False);
+            var canvas = queue.GetComponentInParent<Canvas>().rootCanvas;
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
+            { position = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, queue.transform.position) }, hits);
+            Assert.That(hits.First().gameObject.name, Is.EqualTo("SettingsPanel"), "设置遮罩拦截前排点击");
+            yield return Capture("Settings");
+            resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
+            yield return WaitUntil(() => Screen.height == 1200, "长屏设置"); yield return null; yield return null;
+            hits.Clear();
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
+            { position = new Vector2(Screen.width - 40, Screen.height - 24) }, hits);
+            Assert.That(hits.First().gameObject.name, Is.EqualTo("SettingsPanel"), "遮罩覆盖长屏留白和公共画质入口");
+            yield return Capture("SettingsTall");
+            Click(hud, "Sound"); Assert.That(controller.IsMuted, Is.True);
+            Click(hud, "Sound"); Assert.That(controller.IsMuted, Is.False);
+            Click(hud, "SettingsContinue"); yield return null;
+            Assert.That(controller.IsPaused, Is.False); Assert.That(settings.gameObject.activeSelf, Is.False);
+            controller.TogglePause();
+
+            resolution.Dispose(); resolution = new GameViewResolution(540, 960);
+            yield return WaitUntil(() => Screen.height == 960, "恢复竖屏");
+            Click(hud, "Pause"); yield return null;
+            Click(hud, "SettingsClose"); yield return null;
+            Assert.That(controller.IsPaused, Is.True, "关闭设置不能撤销之前已有的暂停");
+            controller.TogglePause();
+
+            var palette = Enumerable.Range(0, 12).Select(i => Color.HSVToRGB(i / 12f, .68f, .88f)).ToArray();
+            palette[11] = new Color(.08f, .12f, .22f);
+            var cells = Enumerable.Range(0, 144).Select(i => i % 12).ToArray();
+            var queues = Enumerable.Range(0, 4).Select(c => Enumerable.Range(0, 6)
+                .Select(i => new PorterTeamDefinition(c + i % 3 * 4, 6)).ToArray()).ToArray();
+            var solution = Enumerable.Range(0, 24).Select(i => i % 4).ToArray();
+            paletteAsset = ScriptableObject.CreateInstance<BlockPortersLevel>();
+            paletteAsset.Configure("十二色搬运", new BlockPortersLevelData(12, 12, cells, queues, 5, 12), palette, solution);
+            SetLevels(controller, new[] { paletteAsset }); controller.LoadLevel(0); yield return null;
+            var materials = (Material[])typeof(BlockPortersController).GetField("levelMaterials", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            Assert.That(materials.Length, Is.EqualTo(12));
+            for (int i = 0; i < 12; i++) Assert.That(Vector4.Distance(materials[i].color, palette[i]), Is.LessThan(.00001f), "共享材质保持关卡色表");
+            yield return Capture("TwelveColors");
+            var scheduler = (BlockPortersScheduler)typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            foreach (int column in solution)
+            {
+                controller.Dispatch(column);
+                while (!scheduler.IsStable) { double nextEvent = scheduler.Transports.Min(item => item.Job.IsPickedUp ? item.Delivered : item.Pickup);
+                        scheduler.AdvanceTo(nextEvent); yield return null; }
+                Assert.That(controller.Session.Status, Is.Not.EqualTo(BlockPortersStatus.Failed));
+            }
+            Assert.That(controller.Session.Status, Is.EqualTo(BlockPortersStatus.Won));
+            controller.Restart(); yield return null;
+            Assert.That(controller.Session.Delivered, Is.Zero);
+            controller.ReturnToHub();
+            yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "返回清理");
+            Assert.That(hubLights.All(light => light != null && light.enabled), Is.True, "返回 Hub 恢复原灯光");
+        }
+
+        [UnityTest, Timeout(600000)]
         public IEnumerator GeneratedCatalogReferencePlaybackUsesRuntimeActors()
         {
             yield return EnterHub();
@@ -41,7 +299,7 @@ namespace Tests.Demo
             var authored = catalog.Levels;
             var schedulerField = typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic);
             var materialsField = typeof(BlockPortersController).GetField("levelMaterials", BindingFlags.Instance | BindingFlags.NonPublic);
-            for (int index = 5; index < authored.Length; index++)
+            for (int index = 0; index < authored.Length; index++)
             {
                 var previousMaterials = (Material[])materialsField.GetValue(controller);
                 controller.LoadLevel(index);
@@ -55,8 +313,9 @@ namespace Tests.Demo
                     Assert.That(controller.Session.Status, Is.Not.EqualTo(BlockPortersStatus.Failed));
                     while (!scheduler.IsStable)
                     {
-                        // 只加速虚拟钟，角色仍由正式控制器处理事件和逐帧姿态，不改规则或 Time.timeScale。
-                        scheduler.AdvanceTo(scheduler.Time + .25);
+                        // 推进到下一搬运事件；角色仍由正式控制器处理事件和逐帧姿态，不改规则或 Time.timeScale。
+                        double nextEvent = scheduler.Transports.Min(item => item.Job.IsPickedUp ? item.Delivered : item.Pickup);
+                        scheduler.AdvanceTo(nextEvent);
                         carried |= Object.FindObjectsByType<PorterAvatar>(FindObjectsSortMode.None).Any(a => a.CarryAnchor.childCount > 0);
                         Assert.That(controller.ActorCount, Is.EqualTo(controller.Session.InFlight));
                         Assert.That(controller.ActorCount, Is.LessThanOrEqualTo(56));
@@ -81,7 +340,7 @@ namespace Tests.Demo
         {
             yield return EnterHub();
             Click(UIManager.Instance.Get<MainMenuView>(), "BlockPortersButton");
-            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "小人搬砖 HUD");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersHudView>()?.State == ViewState.Visible, "小小搬豆工 HUD");
             var controller = Object.FindFirstObjectByType<BlockPortersController>();
             Assert.That(controller, Is.Not.Null);
             Assert.That(GameSceneNavigator.Instance.CurrentScene, Is.EqualTo(GameSceneId.BlockPorters));
@@ -155,21 +414,24 @@ namespace Tests.Demo
             Assert.That(controller.ActorCount, Is.Zero);
             var reward = new PendingReward();
             controller.SetRewardProvider(reward);
-            controller.RequestRevive(); controller.RequestRevive();
+            controller.RequestUnlockSlot(0); controller.RequestUnlockSlot(0);
             Assert.That(reward.Calls, Is.EqualTo(1), "快速连点不能重复请求奖励。");
             reward.Complete(PorterRewardResult.Canceled);
             yield return null; yield return null;
             Assert.That(controller.Session.Capacity, Is.EqualTo(5));
             reward.Reset();
-            controller.RequestRevive(); reward.Complete(PorterRewardResult.Unavailable);
+            controller.RequestUnlockSlot(0); reward.Complete(PorterRewardResult.Unavailable);
             yield return null; yield return null;
             Assert.That(controller.Session.Status, Is.EqualTo(BlockPortersStatus.Failed));
             reward.Reset();
-            controller.RequestRevive(); reward.Complete(PorterRewardResult.Completed);
+            controller.RequestUnlockSlot(0); reward.Complete(PorterRewardResult.Completed);
+            yield return null; yield return null;
+            Assert.That(controller.Session.Capacity, Is.EqualTo(6));
+            reward.Reset(); controller.RequestUnlockSlot(1); reward.Complete(PorterRewardResult.Completed);
             yield return null; yield return null;
             Assert.That(controller.Session.Capacity, Is.EqualTo(7));
-            controller.RequestRevive();
-            Assert.That(reward.Calls, Is.EqualTo(3));
+            controller.RequestUnlockSlot(0);
+            Assert.That(reward.Calls, Is.EqualTo(4));
             controller.Dispatch(0); controller.Dispatch(1);
             Assert.That(controller.ActorCount, Is.EqualTo(8), "复活后只激活能搬外围砖的队伍");
             yield return Capture("BlockedWaiting");
@@ -178,7 +440,9 @@ namespace Tests.Demo
             foreach (int column in new[] { 0, 1, 2, 3, 0 }) controller.Dispatch(column);
             yield return WaitUntil(() => controller.Session.Status == BlockPortersStatus.Failed, "封闭图案五队等待");
             Assert.That(controller.ActorCount, Is.Zero);
-            reward.Reset(); controller.RequestRevive(); reward.Complete(PorterRewardResult.Completed);
+            reward.Reset(); controller.RequestUnlockSlot(0); reward.Complete(PorterRewardResult.Completed);
+            yield return null; yield return null;
+            reward.Reset(); controller.RequestUnlockSlot(1); reward.Complete(PorterRewardResult.Completed);
             yield return null; yield return null;
             controller.Dispatch(0); controller.Dispatch(1);
             Assert.That(controller.ActorCount, Is.EqualTo(16));
@@ -197,13 +461,13 @@ namespace Tests.Demo
             Assert.That(controller.ActorCount, Is.LessThanOrEqualTo(56));
             controller.Restart();
             Assert.That(controller.ActorCount, Is.Zero);
-            Assert.That(controller.Session.HasRevived, Is.False);
+            Assert.That(controller.Session.UnlockedExtraSlots, Is.Zero);
             foreach (int column in new[] { 0, 1, 2, 3, 0 }) controller.Dispatch(column);
             yield return WaitUntil(() => controller.Session.Status == BlockPortersStatus.Failed, "第二次堵满");
-            reward.Reset(); controller.RequestRevive(); controller.Restart();
+            reward.Reset(); controller.RequestUnlockSlot(0); controller.Restart();
             reward.Complete(PorterRewardResult.Completed);
             yield return null; yield return null;
-            Assert.That(controller.Session.HasRevived, Is.False, "旧关卡奖励不能复活新会话。");
+            Assert.That(controller.Session.UnlockedExtraSlots, Is.Zero, "旧关卡奖励不能复活新会话。");
             Assert.That(controller.Session.Capacity, Is.EqualTo(5));
             resolution.Dispose(); resolution = null;
             controller.ReturnToHub();
@@ -231,6 +495,7 @@ namespace Tests.Demo
             if (stressAsset != null) Object.Destroy(stressAsset);
             if (completionAsset != null) Object.Destroy(completionAsset);
             if (carrierAsset != null) Object.Destroy(carrierAsset);
+            if (paletteAsset != null) Object.Destroy(paletteAsset);
         }
 
         private static IEnumerator EnterHub()
@@ -309,7 +574,8 @@ namespace Tests.Demo
         {
             private UniTaskCompletionSource<PorterRewardResult> completion = new();
             public int Calls { get; private set; }
-            public UniTask<PorterRewardResult> RequestReviveAsync(CancellationToken token) { Calls++; return completion.Task.AttachExternalCancellation(token); }
+            public int LastSide { get; private set; }
+            public UniTask<PorterRewardResult> RequestExtraSlotAsync(int side, CancellationToken token) { Calls++; LastSide = side; return completion.Task.AttachExternalCancellation(token); }
             public void Complete(PorterRewardResult result) => completion.TrySetResult(result);
             public void Reset() => completion = new UniTaskCompletionSource<PorterRewardResult>();
         }

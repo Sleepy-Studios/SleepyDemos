@@ -47,7 +47,7 @@ namespace Hotfix.BlockPorters
                 { result.State = PorterSolvability.Solvable; result.Solution = node.trace; result.Message = "已找到无需复活的参考解"; return result; }
                 if (node.session.Status == BlockPortersStatus.Failed || node.session.Teams.Count >= node.session.Capacity) continue;
                 var children = new List<(BlockPortersSession session, int[] trace)>();
-                for (int col = 0; col < 4; col++)
+                for (int col = 0; col < node.session.ColumnCount; col++)
                 {
                     if (!node.session.Peek(col).HasValue) continue;
                     var child = node.session.CloneStable();
@@ -74,7 +74,7 @@ namespace Hotfix.BlockPorters
             foreach (int choice in analysis.Solution)
             {
                 int losses = 0, risky = 0, options = 0;
-                for (int col = 0; col < 4; col++)
+                for (int col = 0; col < scheduler.Session.ColumnCount; col++)
                 {
                     if (!scheduler.Session.Peek(col).HasValue) continue;
                     options++;
@@ -111,7 +111,7 @@ namespace Hotfix.BlockPorters
             while (limit-- > 0 && scheduler.Session.Status == BlockPortersStatus.Playing)
             {
                 if (scheduler.Session.Teams.Count >= scheduler.Session.Capacity) break;
-                var choices = Enumerable.Range(0, 4).Where(c => scheduler.Session.Peek(c).HasValue).ToArray();
+                var choices = Enumerable.Range(0, scheduler.Session.ColumnCount).Where(c => scheduler.Session.Peek(c).HasValue).ToArray();
                 if (choices.Length == 0) break;
                 int chosen = choices[random.Next(choices.Length)];
                 if (greedy)

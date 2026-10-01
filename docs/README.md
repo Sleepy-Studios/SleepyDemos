@@ -26,7 +26,7 @@
 
 ## 文档结构
 
-公共 DLSS：[体验 Demo](./modules/dlss-demo.md)、[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
+公共 DLSS：[体验 Demo](demos/dlss/module.md)、[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
 
 - `architecture/`
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
@@ -35,7 +35,6 @@
   - [配置系统设计](./architecture/config-system.md)
   - [Core UI 渲染设计原则](./architecture/ui-rendering.md)
   - [Unity 自动化测试架构](./architecture/testing.md)
-  - [DroneFlight 实现原理与架构设计](./architecture/drone-flight-design.md)
   - [文档维护与 C# 规范](./architecture/documentation-rules.md)
 - `modules/`
   - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
@@ -44,15 +43,13 @@
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
   - [运行期场景导航](./modules/scene-runtime.md)
-  - [小人搬砖解压 Demo](./modules/block-porters.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
   - [Luban 配置模块](./modules/luban-config.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)
-  - [DroneFlight 无人机飞行仿真](./modules/drone-flight.md)
-  - [DroneFlight 正式模型契约](./modules/drone-flight-model-contract.md)
-  - [DroneFlight 设计演进与决策记录](./modules/drone-flight-history.md)
+- `demos/`
+  - 单个 Demo 的长期文档按 `<DemoId>/` 归档，详见 [Demo 总目录](demos/README.md)
 - `agent/`
   - Agent 协作入口与项目级技能说明
   - [项目 Skill 入口](./agent/skills.md)
@@ -65,29 +62,23 @@
   - [使用资源 Loader](./runbooks/use-resource-loader.md)
   - [接入运行期场景导航](./runbooks/use-scene-navigation.md)
   - [在 Unity Editor 直接运行 Demo 岛](./runbooks/run-demo-island-directly.md)
-  - [运行与维护小人搬砖](./runbooks/run-block-porters.md)
-  - [小人搬砖图片关卡工作台](./runbooks/block-porters-workbench.md)
   - [使用 Luban 配置](./runbooks/use-luban-config.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
-  - [调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)
-  - [迁移 DroneFlight 到正式项目](./runbooks/migrate-drone-flight.md)
-  - [在独立场景使用 DroneFlight](./runbooks/use-drone-flight-standalone.md)
 
-## 按关键 Demo 查文档
+## 按 Demo 查文档
 
-### DroneFlight
+长期文档按 Demo 归入一个父目录，从 [Demo 文档总目录](demos/README.md) 进入：
 
-从 [DroneFlight 模块入口](./modules/drone-flight.md) 可以发现全部长期文档。常用入口如下：
+| Demo | 统一入口 |
+|---|---|
+| 小小搬豆工 | [block_porters](demos/block_porters/README.md) |
+| 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
+| DLSS 实验室 | [dlss](demos/dlss/README.md) |
 
-- 原理和架构：[DroneFlight 实现原理与架构设计](./architecture/drone-flight-design.md)
-- 模块维护：[DroneFlight 无人机飞行仿真](./modules/drone-flight.md)
-- 模型换皮：[DroneFlight 正式模型契约](./modules/drone-flight-model-contract.md)
-- 调试与测试：[调试和整定 DroneFlight](./runbooks/tune-drone-flight.md)
-- 独立接入：[在独立场景使用 DroneFlight](./runbooks/use-drone-flight-standalone.md)
-- 迁移：[迁移 DroneFlight 到正式项目](./runbooks/migrate-drone-flight.md)
-- 初始需求追溯：[DroneFlight 原始 Goal](./agent/prompts/demos/drone_flight/original-goal.md)
+每个入口包含模块维护、设计及操作手册导航；公共框架文档继续在上面的三层目录维护。
 
 ## 如何判断文档该写到哪里
+- 这是单个 Demo 的长期说明：先进入 `demos/<DemoId>/`，再按设计、模块、操作职责放到该目录内部
 - 这是全局规则、设计原则或架构边界：写到 `architecture/`
 - 这是关键模块维护说明：写到 `modules/`
 - 这是 Agent 技能入口、技能发现或技能同步约定：写到 `agent/`
@@ -97,7 +88,7 @@
 
 ## 文档维护规则
 - 关键入口、边界、流程变化时，必须同步改文档。
-- 新增重要模块时，补对应 `modules/*.md`。
+- 新增重要公共模块时，补对应 `modules/*.md`；新增 Demo 时，建立 `demos/<DemoId>/README.md` 与必要维护文档。
 - 删除或合并重要模块时，清理对应模块文档和导航链接。
 - 如果规则变化影响入口判断或协作方式，要同步更新 `AGENTS.md` 和 `CLAUDE.md`。
 - 文档应保持“短、能定位、可执行”，不要写成长篇空话。

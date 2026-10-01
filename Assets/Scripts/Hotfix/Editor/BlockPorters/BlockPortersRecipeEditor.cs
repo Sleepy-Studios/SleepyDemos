@@ -18,7 +18,7 @@ namespace Hotfix.Editor.BlockPorters
             EditorGUILayout.PropertyField(serializedObject.FindProperty("displayName"), new GUIContent("关卡显示名"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("source"), new GUIContent("原图"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("settings"), new GUIContent("处理与难度参数"), true);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("columns"), new GUIContent("四列队伍"), true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("columns"), new GUIContent("五列队伍（兼容旧四列）"), true);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(recipe, "修改搬砖配方");
@@ -34,7 +34,7 @@ namespace Hotfix.Editor.BlockPorters
             }
             if (!string.IsNullOrEmpty(error)) EditorGUILayout.HelpBox(error, MessageType.Error);
             EditorGUILayout.LabelField($"有效格数组 {recipe.Cells.Length}，色号 {recipe.Palette.Length}，内容版本 {recipe.Revision}");
-            if (GUILayout.Button("打开关卡工作台")) EditorApplication.ExecuteMenuItem("Tools/SleepyDemos/小人搬砖/关卡编辑器");
+            if (GUILayout.Button("打开关卡工作台")) EditorApplication.ExecuteMenuItem("Tools/SleepyDemos/小小搬豆工/关卡编辑器");
         }
     }
 }

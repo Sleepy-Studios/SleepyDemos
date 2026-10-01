@@ -65,83 +65,86 @@ MonoBehaviour:
     - Color: 0
       Count: 8
     - Color: 0
-      Count: 7
+      Count: 6
     - Color: 3
       Count: 6
     - Color: 0
       Count: 7
     - Color: 1
-      Count: 6
-    - Color: 3
-      Count: 7
-    - Color: 4
       Count: 8
     - Color: 4
       Count: 6
-    - Color: 1
-      Count: 8
-    - Color: 2
-      Count: 6
-  - teams:
-    - Color: 0
-      Count: 8
-    - Color: 3
-      Count: 8
-    - Color: 3
-      Count: 8
-    - Color: 0
-      Count: 8
-    - Color: 1
-      Count: 7
     - Color: 4
-      Count: 6
-    - Color: 1
-      Count: 6
-    - Color: 4
-      Count: 6
-    - Color: 4
-      Count: 6
-    - Color: 1
-      Count: 1
-  - teams:
-    - Color: 0
-      Count: 7
-    - Color: 3
-      Count: 7
-    - Color: 1
-      Count: 7
-    - Color: 1
-      Count: 7
-    - Color: 2
       Count: 8
-    - Color: 1
-      Count: 8
-    - Color: 2
-      Count: 6
-    - Color: 4
-      Count: 7
     - Color: 1
       Count: 6
   - teams:
     - Color: 0
+      Count: 6
+    - Color: 0
+      Count: 6
+    - Color: 2
+      Count: 7
+    - Color: 1
       Count: 8
+    - Color: 2
+      Count: 6
+    - Color: 1
+      Count: 6
+    - Color: 1
+      Count: 7
+    - Color: 2
+      Count: 6
+  - teams:
+    - Color: 3
+      Count: 7
     - Color: 0
       Count: 7
     - Color: 3
       Count: 8
     - Color: 3
       Count: 8
+    - Color: 3
+      Count: 7
+    - Color: 3
+      Count: 2
+    - Color: 4
+      Count: 6
+    - Color: 1
+      Count: 2
+  - teams:
+    - Color: 0
+      Count: 7
+    - Color: 3
+      Count: 6
+    - Color: 1
+      Count: 6
+    - Color: 1
+      Count: 7
     - Color: 2
+      Count: 6
+    - Color: 4
+      Count: 8
+    - Color: 2
+      Count: 8
+    - Color: 0
+      Count: 5
+  - teams:
+    - Color: 1
+      Count: 6
+    - Color: 0
+      Count: 8
+    - Color: 3
+      Count: 8
+    - Color: 4
       Count: 6
     - Color: 2
       Count: 7
-    - Color: 2
+    - Color: 4
       Count: 7
     - Color: 4
-      Count: 6
-    - Color: 4
-      Count: 3
+      Count: 7
   exportedLevel: {fileID: 11400000, guid: 91aecbb08be69c44a96ecfd4f011019d, type: 2}
-  revision: 5
+  revision: 6
   convertedWidth: 16
   convertedHeight: 16

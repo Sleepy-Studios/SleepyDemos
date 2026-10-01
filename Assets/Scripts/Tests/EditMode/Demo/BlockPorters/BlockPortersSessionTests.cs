@@ -87,7 +87,7 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void BlockedFullSlotsFailAndReviveOnlyOnceWithoutLosingProgress()
+        public void BlockedFullSlotsUnlockEachSideOnceWithoutLosingProgress()
         {
             var cells = Enumerable.Repeat(0, 25).ToArray();
             for (int y = 1; y < 4; y++) for (int x = 1; x < 4; x++) cells[y * 5 + x] = 1;
@@ -96,14 +96,41 @@ namespace Tests.Demo
             session.Dispatch(1); session.EvaluateOutcome();
             Assert.That(session.Status, Is.EqualTo(BlockPortersStatus.Failed));
             Assert.That(session.Dispatch(0), Is.Null);
-            Assert.That(session.Revive(), Is.True);
-            Assert.That(session.Capacity, Is.EqualTo(3));
+            Assert.That(session.TryUnlockExtraSlot(0), Is.True);
+            Assert.That(session.Capacity, Is.EqualTo(2));
             Assert.That(session.Teams.Count, Is.EqualTo(1));
-            Assert.That(session.Revive(), Is.False);
+            Assert.That(session.TryUnlockExtraSlot(0), Is.False);
+            Assert.That(session.TryUnlockExtraSlot(1), Is.True);
+            Assert.That(session.Capacity, Is.EqualTo(3));
+            Assert.That(session.TryUnlockExtraSlot(1), Is.False);
             session.Dispatch(2); session.Dispatch(0); Drain(session);
             while (session.Peek(0).HasValue) { session.Dispatch(0); Drain(session); }
             Assert.That(session.Delivered, Is.EqualTo(25));
             Assert.That(session.Status, Is.EqualTo(BlockPortersStatus.Won));
+        }
+
+        [Test]
+        public void FiveColumnsAndRightFirstUnlockUseFixedSlotsAndCloneIndependently()
+        {
+            var cells = Enumerable.Repeat(0, 7).ToArray();
+            var queues = Enumerable.Range(0, 5).Select(i => new[] { new PorterTeamDefinition(0, 1) }).ToArray();
+            queues[4] = Enumerable.Repeat(new PorterTeamDefinition(0, 1), 3).ToArray();
+            var session = new BlockPortersSession(new BlockPortersLevelData(7, 1, cells, queues, 5, 1));
+            Assert.That(session.ColumnCount, Is.EqualTo(5));
+            Assert.That(session.Peek(4, 2).HasValue, Is.True);
+            Assert.That(session.Peek(5), Is.Null);
+            for (int i = 0; i < 5; i++) Assert.That(session.Dispatch(i).Slot, Is.EqualTo(i));
+            Assert.That(session.TryUnlockExtraSlot(1), Is.True);
+            Assert.That(session.IsSlotAvailable(5), Is.False);
+            Assert.That(session.Dispatch(4).Slot, Is.EqualTo(6));
+            var clone = session.CloneStable();
+            Assert.That(clone.StableKey(), Is.EqualTo(session.StableKey()));
+            Assert.That(clone.TryUnlockExtraSlot(0), Is.True);
+            Assert.That(clone.Dispatch(4).Slot, Is.EqualTo(5));
+            Assert.That(session.UnlockedExtraSlots, Is.EqualTo(2));
+            Assert.That(clone.Capacity, Is.EqualTo(7));
+            Assert.That(clone.TryUnlockExtraSlot(-1), Is.False);
+            Assert.That(clone.TryUnlockExtraSlot(2), Is.False);
         }
 
         [Test]
@@ -145,8 +172,8 @@ namespace Tests.Demo
             }
             Assert.That(session.Status, Is.EqualTo(BlockPortersStatus.Won));
             Assert.That(session.Delivered, Is.EqualTo(session.Total));
-            Assert.That(session.HasRevived, Is.False);
-            for (int i = 0; i < 4; i++) Assert.That(session.Peek(i), Is.Null);
+            Assert.That(session.UnlockedExtraSlots, Is.Zero);
+            for (int i = 0; i < session.ColumnCount; i++) Assert.That(session.Peek(i), Is.Null);
         }
 
         private static BlockPortersLevelData Level(int width, int height, int[] cells, int capacity = 5, PorterTeamDefinition[][] columns = null)

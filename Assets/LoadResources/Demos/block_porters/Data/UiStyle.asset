@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7fb27e34a43bdc478af2975b64d990f, type: 3}
+  m_Name: UiStyle
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersUiStyle
+  TileSize: 80
+  CornerRadius: 12
+  Padding: 8
+  ColumnGap: 16
+  RowGap: 8
+  CountFontSize: 32
+  DetailFontSize: 11
+  Thickness: 6
+  ShadowOffset: 4
+  AdvanceDuration: 0.2
+  WorldPixelsPerUnit: 65
+  BoardCenter: {x: 300, y: 304}
+  TaskRowY: 652
+  QueueRowY: 752
+  LeftExtraCenter: {x: 80, y: 554}
+  RightExtraCenter: {x: 520, y: 554}
+  PreviewBaseTint: {r: 0.91, g: 0.88, b: 0.84, a: 1}
+  DarkInk: {r: 0.24, g: 0.2, b: 0.18, a: 1}
+  LightInk: {r: 1, g: 0.98, b: 0.93, a: 1}

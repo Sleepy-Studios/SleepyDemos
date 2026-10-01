@@ -30,132 +30,121 @@ MonoBehaviour:
   columns:
   - teams:
     - Color: 0
-      Count: 5
-    - Color: 8
-      Count: 3
-    - Color: 8
-      Count: 3
-    - Color: 0
-      Count: 4
-    - Color: 8
       Count: 4
     - Color: 0
       Count: 5
     - Color: 0
-      Count: 7
-    - Color: 0
-      Count: 2
+      Count: 3
     - Color: 0
       Count: 4
     - Color: 0
-      Count: 7
-    - Color: 0
-      Count: 3
-    - Color: 4
-      Count: 2
-    - Color: 8
-      Count: 2
-    - Color: 0
-      Count: 6
+      Count: 8
     - Color: 0
       Count: 5
-    - Color: 4
-      Count: 6
-    - Color: 4
+    - Color: 0
       Count: 3
-    - Color: 4
+    - Color: 0
       Count: 2
-    - Color: 4
-      Count: 6
-    - Color: 4
-      Count: 5
-    - Color: 4
+    - Color: 0
       Count: 4
-  - teams:
-    - Color: 9
-      Count: 7
-    - Color: 1
-      Count: 4
-    - Color: 1
-      Count: 3
-    - Color: 1
-      Count: 3
-    - Color: 1
-      Count: 6
-    - Color: 9
-      Count: 3
-    - Color: 1
-      Count: 4
-    - Color: 1
-      Count: 7
-    - Color: 1
-      Count: 2
-    - Color: 1
-      Count: 3
+    - Color: 0
+      Count: 8
     - Color: 5
-      Count: 5
-    - Color: 1
-      Count: 5
-    - Color: 1
-      Count: 3
-    - Color: 9
-      Count: 3
+      Count: 2
+    - Color: 0
+      Count: 2
     - Color: 5
       Count: 5
     - Color: 5
+      Count: 3
+    - Color: 5
       Count: 2
+  - teams:
     - Color: 1
       Count: 3
     - Color: 1
-      Count: 1
-  - teams:
-    - Color: 2
-      Count: 3
-    - Color: 2
-      Count: 4
-    - Color: 2
-      Count: 3
-    - Color: 2
-      Count: 3
-    - Color: 2
-      Count: 6
-    - Color: 6
-      Count: 6
-    - Color: 2
-      Count: 3
-    - Color: 2
-      Count: 7
-    - Color: 2
-      Count: 3
-    - Color: 6
       Count: 8
-    - Color: 2
+    - Color: 1
       Count: 4
-    - Color: 6
-      Count: 3
-    - Color: 6
-      Count: 3
-  - teams:
-    - Color: 3
+    - Color: 1
+      Count: 4
+    - Color: 1
       Count: 8
-    - Color: 3
-      Count: 4
-    - Color: 3
+    - Color: 6
+      Count: 3
+    - Color: 1
+      Count: 8
+    - Color: 6
       Count: 5
-    - Color: 3
+    - Color: 1
       Count: 7
-    - Color: 3
-      Count: 8
-    - Color: 3
+    - Color: 1
+      Count: 2
+    - Color: 6
+      Count: 5
+    - Color: 6
+      Count: 7
+  - teams:
+    - Color: 2
+      Count: 5
+    - Color: 2
       Count: 4
-    - Color: 3
+    - Color: 2
+      Count: 5
+    - Color: 2
+      Count: 2
+    - Color: 2
       Count: 3
+    - Color: 2
+      Count: 6
+    - Color: 2
+      Count: 3
+    - Color: 2
+      Count: 4
     - Color: 7
+      Count: 4
+    - Color: 2
+      Count: 4
+  - teams:
+    - Color: 3
+      Count: 6
+    - Color: 8
+      Count: 6
+    - Color: 8
+      Count: 6
+    - Color: 3
+      Count: 4
+    - Color: 3
+      Count: 8
+    - Color: 3
       Count: 2
-    - Color: 7
+    - Color: 3
+      Count: 8
+    - Color: 3
+      Count: 5
+    - Color: 3
+      Count: 3
+    - Color: 3
+      Count: 3
+  - teams:
+    - Color: 9
+      Count: 5
+    - Color: 9
+      Count: 8
+    - Color: 4
+      Count: 6
+    - Color: 4
+      Count: 4
+    - Color: 4
+      Count: 3
+    - Color: 4
+      Count: 7
+    - Color: 4
+      Count: 6
+    - Color: 4
       Count: 2
   capacity: 5
-  solution: 00000000030000000000000001000000030000000300000001000000020000000200000002000000020000000200000001000000010000000100000001000000030000000300000001000000010000000100000003000000030000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000100000001000000020000000200000002000000020000000200000002000000020000000100000001000000010000000300000003000000010000000100000000000000000000000000000000000000000000000000000000000000000000000000000001000000
+  solution: 00000000030000000300000003000000040000000000000003000000030000000400000001000000010000000200000004000000040000000200000002000000010000000100000001000000040000000400000004000000010000000100000001000000010000000000000000000000000000000000000000000000040000000300000003000000030000000300000003000000020000000200000002000000020000000200000001000000010000000100000000000000000000000000000000000000020000000200000000000000000000000000000000000000
   colorLabels:
   - 
   - 
