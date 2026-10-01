@@ -25,6 +25,10 @@ MvcBind 只发现 RectData/Click/ItemHide 三种回调。绑定与点击为 (Ite
 
 新增业务行为放 Hotfix。包公共 API 与算法在独立仓库维护；不得把宿主类型加入包。Core.Runtime/Core.Editor 单向引用包程序集，Core.Editor 不引用 Hotfix，示例构建按类型名称定位 Hotfix 示例入口。Hotfix 的本地 LoopScroll Demo 引用已导入的示例共享程序集，复用导航、字体和翻译；Core 和包运行时不依赖示例程序集。
 
+## 定位结果
+
+完成/取消与像素偏移由独立包的 ScrollToCell/ScrollToOffset 统一维护，桥接无需包装请求。Hotfix 的 MvcBind 页面直接用 ScrollResult 更新状态，提供 ±60 偏移和 CancelAnimation；操作按钮保持可用。刷新翻译不改变业务身份，也不取消当前定位。禁用和销毁可能先以 Disabled 终止，回调只报告首次原因。
+
 ## 验证
 
 包测试独立留在包 Tests；宿主测试进入现有 Tests.EditMode/Tests.PlayMode。直接目标为 LoopScrollMvcGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests，另检查 TestAssemblyBoundaryTests。不运行无关全量测试。

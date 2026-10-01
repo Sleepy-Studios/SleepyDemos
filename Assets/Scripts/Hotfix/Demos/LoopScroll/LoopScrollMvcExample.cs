@@ -14,19 +14,45 @@ namespace Hotfix.Demos.LoopScroll
         private readonly List<LoopSampleItem> items = new List<LoopSampleItem>();
         private LoopScrollView list;
         private LoopScrollExampleView view;
+        private ScrollResult? lastScrollResult;
+        private bool scrollPending;
         protected override string TitleKey => "mvc";
         protected override void BuildPage()
         {
             for (var i = 0; i < 1000; i++) items.Add(new LoopSampleItem(i, "mvcItem"));
-            list = MakeList("MvcBind", new Vector2(840, 480), new Vector2(0, -10), LoopLayout.Vertical);
+            list = MakeList("MvcBind", new Vector2(840, 460), new Vector2(0, -10), LoopLayout.Vertical);
             view = new LoopScrollExampleView(items, index => SetStatus("clicked", index, list.GetItemKey(index)));
             view.InitWithGameObject(list.gameObject);
             ActionButton("refresh", new Vector2(-205, 250), list.RefreshCells);
             ActionButton("reset", new Vector2(0, 250), () => list.RefillCells());
-            ActionButton("goto500", new Vector2(205, 250), () => list.ScrollToCell(500, ScrollAlignment.Center, new ScrollAnimation(.25f)));
+            ActionButton("goto500", new Vector2(205, 250), () => Locate(0));
+            ActionButton("offsetPositive", new Vector2(-205, -265), () => Locate(60));
+            ActionButton("cancelScroll", new Vector2(0, -265), list.CancelAnimation);
+            ActionButton("offsetNegative", new Vector2(205, -265), () => Locate(-60));
             SetStatus("mvcDesc");
         }
-        protected override void UpdateDataLanguage() { list?.RefreshCells(); }
+        private void Locate(float offsetPixels)
+        {
+            scrollPending = true; lastScrollResult = null; SetStatus("scrollPending");
+            list.ScrollToCell(500, ScrollAlignment.Center, new ScrollAnimation(.8f), offsetPixels, OnScrollFinished);
+            // 替代旧请求会同步报告旧取消；页面随后显示当前新请求的进度。
+            if (list.IsAnimating) { scrollPending = true; lastScrollResult = null; SetStatus("scrollPending"); }
+        }
+        private void OnScrollFinished(ScrollResult result)
+        {
+            scrollPending = false; lastScrollResult = result; ShowScrollStatus();
+        }
+        private void ShowScrollStatus()
+        {
+            if (scrollPending) SetStatus("scrollPending");
+            else if (lastScrollResult.HasValue)
+            {
+                var result = lastScrollResult.Value;
+                if (result.Status == ScrollStatus.Completed) SetStatus("scrollCompleted");
+                else SetStatus("scrollCanceled", LoopSampleLanguage.Get("scrollReason" + result.CancelReason));
+            }
+        }
+        protected override void UpdateDataLanguage() { list?.RefreshCells(); ShowScrollStatus(); }
         protected override void OnDestroy()
         { if (view != null) view.DestroyAsync().Forget(); base.OnDestroy(); }
     }

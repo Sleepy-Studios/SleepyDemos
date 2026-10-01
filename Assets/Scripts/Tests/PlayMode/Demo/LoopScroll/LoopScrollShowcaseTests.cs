@@ -181,6 +181,41 @@ namespace Tests.Demo
             ExecuteEvents.Execute(list.gameObject, pointer, ExecuteEvents.endDragHandler);
             Assert.That(list.Offset, Is.GreaterThan(before + 10)); yield return Back();
         }
+        [UnityTest]
+        public IEnumerator MvcOffsetCompletionManualCancelDragAndLanguageKeepControlsAvailable()
+        {
+            yield return Enter("mvc");
+            var list = UnityEngine.Object.FindObjectOfType<LoopScrollView>();
+            Button("offsetPositive").onClick.Invoke();
+            Assert.That(list.IsAnimating, Is.True);
+            Button("cancelScroll").onClick.Invoke();
+            Assert.That(list.IsAnimating, Is.False);
+            Assert.That(UnityEngine.Object.FindObjectsOfType<Text>().Any(text => text.text == "定位已取消 · 手动取消"), Is.True);
+            Button("offsetPositive").onClick.Invoke();
+            yield return new WaitForSecondsRealtime(1f);
+            Assert.That(UnityEngine.Object.FindObjectsOfType<Text>().Any(text => text.text == "定位完成"), Is.True);
+            var target = list.GetVisibleCell(500).RectTransform;
+            var line = (list.ViewportLength - target.rect.height) * .5f;
+            Assert.That(-target.anchoredPosition.y - list.Offset, Is.EqualTo(line + 60).Within(1));
+            yield return Capture("zh-mvc-offset-completed");
+            Button("offsetNegative").onClick.Invoke();
+            var pointer = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left,
+                position = RectTransformUtility.WorldToScreenPoint(null, list.ScrollRect.viewport.position) };
+            ExecuteEvents.Execute(list.gameObject, pointer, ExecuteEvents.beginDragHandler);
+            pointer.position += Vector2.up * 40;
+            ExecuteEvents.Execute(list.gameObject, pointer, ExecuteEvents.dragHandler);
+            ExecuteEvents.Execute(list.gameObject, pointer, ExecuteEvents.endDragHandler);
+            Assert.That(UnityEngine.Object.FindObjectsOfType<Text>().Any(text => text.text == "定位已取消 · 开始拖动"), Is.True);
+            yield return Capture("zh-mvc-drag-canceled");
+            LoopSampleLanguage.SetEnglish(true);
+            Assert.That(UnityEngine.Object.FindObjectsOfType<Text>().Any(text => text.text == "Scroll canceled · Drag started"), Is.True);
+            foreach (var key in new[] { "goto500", "offsetPositive", "offsetNegative", "cancelScroll", "reset", "refresh" })
+                Assert.That(Button(key).interactable, Is.True);
+            Button("offsetNegative").onClick.Invoke(); yield return new WaitForSecondsRealtime(1f);
+            target = list.GetVisibleCell(500).RectTransform;
+            Assert.That(-target.anchoredPosition.y - list.Offset, Is.EqualTo(line - 60).Within(1));
+            yield return Capture("en-mvc-negative-completed"); yield return Back();
+        }
         private static IEnumerator Capture(string name)
         {
             var projectRoot = Directory.GetParent(Application.dataPath).FullName;

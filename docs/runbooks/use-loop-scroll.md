@@ -31,6 +31,23 @@ SetTotalCount(null) 清空。每次提交完整重填，默认起点；贴底使
 
 多类型高级源使用 SetDataSource，在 BindCell 中 GetOrCreate<TItemView>(cell,context)，UnbindCell 中 TryGetItemView。每个物理 Cell 固定一种 ItemView 类型；事件仍走同一桥接。
 
+## 带偏移的定位与取消
+
+```csharp
+list.ScrollToCell(20, ScrollAlignment.Center, new ScrollAnimation(.25f), 60, result =>
+{
+    if (result.Status == ScrollStatus.Completed) ShowCompleted();
+    else ShowCanceled(result.CancelReason);
+});
+list.CancelAnimation();
+```
+
+最终位置 = 对齐位置 - offsetPixels，随后钳制。+60 让目标相对中心线向下/右移动 60 Canvas UI 像素，-60 反向。ScrollToOffset(offset, animation, onFinished) 同样报告唯一终止结果。
+
+完成通知表示当前布局已稳定且误差 ≤1 UI 像素，不等未来异步内容；IsAnimating 仅表示插值。新有效请求、拖动、手动取消、成功数据更新/重填、禁用、销毁或执行中零尺寸会取消。无效请求同步报错并保留旧请求；RefreshCells/动态测量不取消。inactive 或任一轴零尺寸时提交暂存，恢复后用原动画时长执行。
+
+回调内可再次定位/刷新/重填，异常记录日志。无需锁住按钮等动画结束；示例 MvcBind 页面提供普通中心定位、±60 偏移、取消按钮和中英完成/取消状态，拖动打断也更新状态。
+
 ## 示例与验证
 
 打开 Assets/Samples/SleepyLoopScroll/Showcase/Main.unity 或 Tools/Sleepy Loop Scroll/Open Showcase，进入四个包子场景及宿主 MvcBind 页面。首次中文，主菜单切换语言并持久化，子场景可返回。
