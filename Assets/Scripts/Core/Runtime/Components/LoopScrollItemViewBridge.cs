@@ -17,6 +17,7 @@ namespace Core.Runtime
         private readonly Dictionary<LoopCell, Entry> entries = new Dictionary<LoopCell, Entry>();
         private LoopScrollView list;
         private bool initialized;
+        private Type configuredViewType;
         public event Action<ItemView, int, CellBindContext> CellBound;
         public event Action<ItemView, CellBindContext> CellUnbound;
         public event Action<ItemView, int, CellBindContext> CellClicked;
@@ -28,27 +29,15 @@ namespace Core.Runtime
             list.CellBound += OnBound; list.CellUnbound += OnUnbound; list.CellClicked += OnClick;
             initialized = true;
         }
-        /// <summary>用现有 ItemView 绑定列表；每个物理 Cell 仅创建一次对应 View。</summary>
-        /// <typeparam name="TItem">宿主业务数据。</typeparam>
-        /// <typeparam name="TView">普通 C# ItemView 子类；必须有无参构造。</typeparam>
-        /// <param name="items">调用方拥有的集合。</param>
-        /// <param name="bind">绑定数据，异步完成时检查 context.IsCurrent。</param>
-        /// <param name="unbind">解绑时释放业务资源；包已取消 context Token。</param>
-        /// <param name="keySelector">稳定业务 Key，跨 Reload 锚点必须提供。</param>
-        /// <param name="options">重载位置策略，默认起点。</param>
-        public void SetItems<TItem, TView>(IReadOnlyList<TItem> items, Action<TView, TItem, CellBindContext> bind,
-            Action<TView, CellBindContext> unbind = null, Func<TItem, string> keySelector = null, ReloadOptions options = default)
-            where TView : ItemView, new()
+        /// <summary>为先注册后 SetTotalCount 的调用配置 ItemView 工厂；同一物理类型使用固定 View 类型。</summary>
+        /// <typeparam name="TView">具有无参构造的 ItemView。</typeparam>
+        public void Configure<TView>() where TView : ItemView, new()
         {
-            // View.InitWithGameObject 在 inactive 根节点上调用；不能依赖 Awake 已发生。
             Initialize();
-            list.SetData<TItem, LoopCell>(items, (cell, item, context) =>
-            {
-                var view = GetOrCreate<TView>(cell, context); bind?.Invoke(view, item, context);
-            }, (cell, context) =>
-            {
-                if (entries.TryGetValue(cell, out var entry) && entry.View is TView view) unbind?.Invoke(view, context);
-            }, keySelector, options);
+            if (configuredViewType == typeof(TView)) return;
+            if (configuredViewType != null) throw new InvalidOperationException("已配置的 ItemView 类型不能切换，请使用独立 Prefab 类型池。");
+            list.RegisterCellBinding<LoopCell>((cell, index, context) => GetOrCreate<TView>(cell, context));
+            configuredViewType = typeof(TView);
         }
         /// <summary>高级多类型数据源在 BindCell 中获取对应 ItemView；每个物理 Cell 复用实例。</summary>
         /// <typeparam name="TView">此 Cell 类型对应的 ItemView 类型。</typeparam>
@@ -65,7 +54,7 @@ namespace Core.Runtime
                 if (entry.View != null) throw new InvalidOperationException("同一 Cell 类型必须对应固定 ItemView 类型；不同 ItemView 请使用独立 Prefab 类型池。");
                 var view = new TView(); view.Init(cell.gameObject, context.Index); entry.View = view;
                 // 捕获物理 Cell 的 Entry，点击时读取当前 context，避免保存旧索引。
-                view.onClick = index => { if (entry.Context.IsCurrent) CellClicked?.Invoke(entry.View, entry.Context.Index, entry.Context); };
+                view.onClick = index => OnClick(cell, entry.Context);
             }
             entry.Context = context; entry.View.SetIndex(context.Index); return (TView)entry.View;
         }
@@ -76,11 +65,20 @@ namespace Core.Runtime
         public bool TryGetItemView(LoopCell cell, out ItemView view)
         { if (cell != null && entries.TryGetValue(cell, out var entry)) { view = entry.View; return true; } view = null; return false; }
         private void OnBound(LoopCell cell, CellBindContext context)
-        { if (entries.TryGetValue(cell, out var entry)) CellBound?.Invoke(entry.View, context.Index, context); }
+        {
+            if (!entries.TryGetValue(cell, out var entry)) return;
+            if (context.IsCurrent) CellBound?.Invoke(entry.View, context.Index, context);
+        }
         private void OnUnbound(LoopCell cell, CellBindContext context)
-        { if (entries.TryGetValue(cell, out var entry)) CellUnbound?.Invoke(entry.View, context); }
+        {
+            if (!entries.TryGetValue(cell, out var entry)) return;
+            CellUnbound?.Invoke(entry.View, context);
+        }
         private void OnClick(LoopCell cell, CellBindContext context)
-        { if (context.IsCurrent && entries.TryGetValue(cell, out var entry)) CellClicked?.Invoke(entry.View, context.Index, context); }
+        {
+            if (!context.IsCurrent || !entries.TryGetValue(cell, out var entry)) return;
+            CellClicked?.Invoke(entry.View, context.Index, context);
+        }
         private void OnDestroy()
         {
             if (list != null) { list.CellBound -= OnBound; list.CellUnbound -= OnUnbound; list.CellClicked -= OnClick; }

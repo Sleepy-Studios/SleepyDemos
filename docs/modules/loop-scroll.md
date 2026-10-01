@@ -11,7 +11,9 @@ SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、�
 - `Core/Editor/MvcBind/LoopScrollExampleBuilder.cs`：创建宿主本地示例场景。
 - `Hotfix/Demos/LoopScroll/LoopScrollMvcExample.cs`：本地 View/ItemView 接入示例。
 
-调用方提交集合 → ItemViews().SetItems → 包 SetData → 缓存/更新 ItemView.Index → 业务绑定 → MvcBind CellBind。回收先由包失效上下文并取消 Token，再调用业务解绑和 CellUnbind。点击读取当前 context 的 Index/Key。
+先 RegisterLoopScrollRect<TView> 配置工厂与绑定，再注册 Click/ItemHide，最后 SetTotalCount 提交真实集合。ListDataSource 进入包的统一 Commit/Reconcile，桥接更新 ItemView.Index 和 context，触发唯一一组 CellBound/CellUnbound/CellClicked 事件。解绑前旧 context 已失效并取消 Token，点击读取当前身份。
+
+MvcBind 只发现 RectData/Click/ItemHide 三种回调。绑定与点击为 (ItemView,index,CellBindContext)，解绑为 (ItemView,CellBindContext)。生成的基础 ItemView 回调不推断工厂，提交前显式 Configure<TView>。泛型绑定注册只指定工厂，不转换回调委托。
 
 ## 生命周期与维护
 
@@ -19,12 +21,12 @@ SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、�
 
 注册通过 View.AddBinding 持有；重复注册同一委托不会重复触发，View 销毁解除。桥接销毁解除包事件并清理缓存。普通 ItemView 内部事件在 InitComponent 中只注册一次，回收时业务解绑负责释放其业务资源。
 
-嵌套 ItemView 同样支持三个注册入口，其订阅随子列表组件销毁解除，并返回可显式 Dispose 的句柄；不改造 ItemView 基类的生命周期。一个物理 Cell 必须对应固定 ItemView 类型，不同类型使用不同 Prefab 类型池。
+嵌套 ItemView 同样支持三个注册入口，返回 IDisposable，宿主在嵌套 ItemView 回收时释放，列表组件销毁也会清除事件；不改造 ItemView 基类的生命周期。一个物理 Cell 必须对应固定 ItemView 类型，不同类型使用不同 Prefab 类型池。
 
-新增业务行为放 Hotfix。包公共 API 与算法在独立仓库维护；不得把宿主类型加入包。Core.Runtime/Core.Editor 单向引用包程序集，Core.Editor 不引用 Hotfix，示例构建按类型名称定位 Hotfix 示例入口。
+新增业务行为放 Hotfix。包公共 API 与算法在独立仓库维护；不得把宿主类型加入包。Core.Runtime/Core.Editor 单向引用包程序集，Core.Editor 不引用 Hotfix，示例构建按类型名称定位 Hotfix 示例入口。Hotfix 的本地 LoopScroll Demo 引用已导入的示例共享程序集，复用导航、字体和翻译；Core 和包运行时不依赖示例程序集。
 
 ## 验证
 
-包测试独立留在包 Tests；宿主测试进入现有 Tests.EditMode/Tests.PlayMode。直接目标为 LoopScrollMvcGenerationTests、LoopScrollItemViewBridgeTests，另检查 TestAssemblyBoundaryTests。不运行无关全量测试。
+包测试独立留在包 Tests；宿主测试进入现有 Tests.EditMode/Tests.PlayMode。直接目标为 LoopScrollMvcGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests，另检查 TestAssemblyBoundaryTests。不运行无关全量测试。
 
 详见 [接入步骤](../runbooks/use-loop-scroll.md)、[示例](../demos/loop_scroll/README.md) 与包 Documentation~/Validation.md。

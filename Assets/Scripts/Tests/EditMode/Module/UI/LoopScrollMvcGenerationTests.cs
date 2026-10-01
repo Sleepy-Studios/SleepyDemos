@@ -8,15 +8,12 @@ namespace Tests.Module
     public sealed class LoopScrollMvcGenerationTests
     {
         [Test]
-        public void RegisterDiscovery_ExposesBindUnbindAndClickWithContext()
+        public void RegisterDiscovery_ExposesOnlyThreeCanonicalCallbacksWithContext()
         {
             var methods = MvcCodeGenerator.GetRegisterMethods(typeof(LoopScrollView), "Messages");
             var names = methods.Select(method => method.registerMethodName).ToArray();
-            CollectionAssert.Contains(names, "OnMessagesCellBind");
-            CollectionAssert.Contains(names, "OnMessagesCellUnbind");
-            CollectionAssert.Contains(names, "OnMessagesCellClick");
-            Assert.That(methods.Single(method => method.registerMethodName == "OnMessagesCellBind").parameterText,
-                Does.Contain("CellBindContext"));
+            CollectionAssert.AreEquivalent(new[] { "OnMessagesRectData", "OnMessagesClick", "OnMessagesItemHide" }, names);
+            Assert.That(methods.All(method => method.parameterText.Contains("CellBindContext")), Is.True);
         }
         [Test]
         public void Generator_EmitsNamespaceAndAllThreeRegistrations()
@@ -26,9 +23,10 @@ namespace Tests.Module
             var settings = new MvcBindSettings { viewName = "LoopExampleView", namespaceName = "Hotfix.Demos.LoopScroll" };
             var generated = MvcCodeGenerator.CreateComponentScriptText(settings, new[] { component });
             Assert.That(generated, Does.Contain("using SleepyStudios.LoopScroll;"));
-            Assert.That(generated, Does.Contain("this.RegisterLoopCellBind(messages, OnMessagesCellBind)"));
-            Assert.That(generated, Does.Contain("this.RegisterLoopCellUnbind(messages, OnMessagesCellUnbind)"));
-            Assert.That(generated, Does.Contain("this.RegisterLoopCellClick(messages, OnMessagesCellClick)"));
+            Assert.That(generated, Does.Not.Contain("RegisterLoopCell"));
+            Assert.That(generated, Does.Contain("this.RegisterLoopScrollRect(messages, OnMessagesRectData)"));
+            Assert.That(generated, Does.Contain("this.RegisterLoopScrollClick(messages, OnMessagesClick)"));
+            Assert.That(generated, Does.Contain("this.RegisterLoopScrollItemHide(messages, OnMessagesItemHide)"));
         }
     }
 }

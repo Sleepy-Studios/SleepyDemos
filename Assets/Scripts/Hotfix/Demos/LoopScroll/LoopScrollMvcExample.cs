@@ -2,58 +2,67 @@ using System.Collections.Generic;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using SleepyStudios.LoopScroll;
+using SleepyStudios.LoopScroll.Samples;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Hotfix.Demos.LoopScroll
 {
-    /// 独立本地示例入口，直接打开 loop_scroll 示例场景即可，不依赖 Hub 导航。
-    public sealed class LoopScrollMvcExample : MonoBehaviour
+    /// <summary>宿主独有的接入示例，通过 Showcase 主菜单进入和返回。</summary>
+    public sealed class LoopScrollMvcExample : LoopSamplePage
     {
+        private readonly List<LoopSampleItem> items = new List<LoopSampleItem>();
+        private LoopScrollView list;
         private LoopScrollExampleView view;
-        private void Start()
+        protected override string TitleKey => "mvc";
+        protected override void BuildPage()
         {
-            view = new LoopScrollExampleView();
-            view.InitWithGameObject(gameObject);
+            for (var i = 0; i < 1000; i++) items.Add(new LoopSampleItem(i, "mvcItem"));
+            list = MakeList("MvcBind", new Vector2(840, 480), new Vector2(0, -10), LoopLayout.Vertical);
+            view = new LoopScrollExampleView(items, index => SetStatus("clicked", index, list.GetItemKey(index)));
+            view.InitWithGameObject(list.gameObject);
+            ActionButton("refresh", new Vector2(-205, 250), list.RefreshCells);
+            ActionButton("reset", new Vector2(0, 250), () => list.RefillCells());
+            ActionButton("goto500", new Vector2(205, 250), () => list.ScrollToCell(500, ScrollAlignment.Center, new ScrollAnimation(.25f)));
+            SetStatus("mvcDesc");
         }
-        private void OnDestroy() { if (view != null) view.DestroyAsync().Forget(); }
+        protected override void UpdateDataLanguage() { list?.RefreshCells(); }
+        protected override void OnDestroy()
+        { if (view != null) view.DestroyAsync().Forget(); base.OnDestroy(); }
     }
-
-    public sealed class LoopScrollExampleItem : ItemView<string>
+    public sealed class LoopScrollExampleItem : ItemView<LoopSampleItem>
     {
         private Text label;
         protected override void InitComponent() { label = gameObject.GetComponentInChildren<Text>(true); }
-        /// <summary>显示当前数据，ItemView 在物理 Cell 复用时继续使用。</summary>
-        /// <param name="data">当前业务项文本。</param>
-        /// <returns>当前 ItemView。</returns>
-        public override ItemView<string> SetData(string data) { base.SetData(data); if (label != null) label.text = data; return this; }
+        public override ItemView<LoopSampleItem> SetData(LoopSampleItem data)
+        { base.SetData(data); if (label != null) label.text = data.Display; return this; }
     }
-
     public sealed class LoopScrollExampleView : View
     {
+        private readonly List<LoopSampleItem> items;
+        private readonly System.Action<int> clicked;
         private LoopScrollView messages;
-        private readonly List<string> items = new List<string>();
+        public LoopScrollExampleView(List<LoopSampleItem> items, System.Action<int> clicked)
+        { this.items = items; this.clicked = clicked; }
         protected override IUITransition CreateUITransition() => new EmptyUITransition();
         protected override void InitComponent()
         {
             messages = gameObject.GetComponent<LoopScrollView>();
-            // 与 MvcBind 生成的三种注册方法完全一致；订阅交由 View.AddBinding 清理。
-            this.RegisterLoopCellBind(messages, OnMessagesCellBind);
-            this.RegisterLoopCellUnbind(messages, OnMessagesCellUnbind);
-            this.RegisterLoopCellClick(messages, OnMessagesCellClick);
+            // 与钓鱼项目一样：先注册一次，再提交集合。异步业务写入前检查 context.IsCurrent。
+            this.RegisterLoopScrollRect<LoopScrollExampleItem>(messages, OnMessagesRectData);
+            this.RegisterLoopScrollItemHide(messages, OnMessagesItemHide);
+            this.RegisterLoopScrollClick(messages, OnMessagesClick);
         }
         protected override void OnGameObjectInitialize()
         {
-            for (var i = 0; i < 1000; i++) items.Add("MvcBind ItemView  /  " + i);
-            messages.ItemViews().SetItems<string, LoopScrollExampleItem>(items, (cell, item, context) => cell.SetData(item), null, item => item);
+            messages.SetTotalCount(items, getItemKey: item => ((LoopSampleItem)item).Key);
             gameObject.SetActive(true);
         }
-        private void OnMessagesCellBind(ItemView cell, int index, CellBindContext context) { cell.SetIndex(index); }
-        private void OnMessagesCellUnbind(ItemView cell, CellBindContext context)
+        private void OnMessagesRectData(ItemView cell, int index, CellBindContext context) { ((LoopScrollExampleItem)cell).SetData(items[index]); }
+        private void OnMessagesItemHide(ItemView cell, CellBindContext context)
         {
-            // 异步资源加载应绑定 context.CancellationToken，并在写入前检查 IsCurrent。
+            // 此处清理 ItemView 的业务资源；异步任务写入前仍需检查 CellBindContext.IsCurrent。
         }
-        private void OnMessagesCellClick(ItemView cell, int index, CellBindContext context)
-        { if (context.IsCurrent) Debug.Log($"LoopScroll MvcBind click: key={context.Key}, index={index}"); }
+        private void OnMessagesClick(ItemView cell, int index, CellBindContext context) { if (context.IsCurrent) clicked(index); }
     }
 }

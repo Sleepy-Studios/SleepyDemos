@@ -1,7 +1,0 @@
-{
-  "name": "SleepyStudios.LoopScroll.Samples.Chat",
-  "references": [
-    "SleepyStudios.LoopScroll",
-    "UnityEngine.UI"
-  ]
-}

@@ -22,10 +22,12 @@ namespace Tests.Module
             TestItem.Created = 0; var unbound = 0; CellBindContext old = default; TestItem first = null;
             try
             {
-                list.ItemViews().SetItems<string, TestItem>(items, (view, item, context) => { if (context.Index == 0) { first = view; old = context; } Assert.That(view.Index, Is.EqualTo(context.Index)); },
-                    (view, context) => { Assert.That(context.IsCurrent, Is.False); unbound++; }, item => item);
+                list.ItemViews().Configure<TestItem>();
+                list.ItemViews().CellBound += (view, index, context) => { if (index == 0) { first = (TestItem)view; old = context; } Assert.That(view.Index, Is.EqualTo(index)); };
+                list.ItemViews().CellUnbound += (view, context) => { Assert.That(context.IsCurrent, Is.False); unbound++; };
+                list.SetTotalCount(items, getItemKey: item => (string)item);
                 yield return null; var created = TestItem.Created; var token = old.CancellationToken;
-                list.ScrollTo(80); yield return null; list.ScrollTo(20); yield return null;
+                list.ScrollToCell(80); yield return null; list.ScrollToCell(20); yield return null;
                 Assert.That(TestItem.Created, Is.LessThanOrEqualTo(created + 3));
                 Assert.That(old.IsCurrent, Is.False); Assert.That(token.IsCancellationRequested, Is.True); Assert.That(unbound, Is.GreaterThan(0));
                 var clicked = -1; list.ItemViews().CellClicked += (view, index, context) => clicked = index;
@@ -41,12 +43,13 @@ namespace Tests.Module
             Action<ItemView, int, CellBindContext> callback = (cell, index, context) => calls++;
             try
             {
-                owner.RegisterLoopCellBind(list, callback); owner.RegisterLoopCellBind(list, callback);
+                owner.RegisterLoopScrollRect(list, callback); owner.RegisterLoopScrollRect(list, callback);
                 var items = new List<string> { "a", "b", "c" };
-                list.ItemViews().SetItems<string, TestItem>(items, (cell, item, context) => { }, null, item => item);
+                list.ItemViews().Configure<TestItem>();
+                list.SetTotalCount(items, getItemKey: item => (string)item);
                 Assert.That(calls, Is.EqualTo(list.ActiveCellCount));
                 yield return owner.DestroyAsync().ToCoroutine(); var before = calls;
-                list.RefreshVisible(); Assert.That(calls, Is.EqualTo(before));
+                list.RefreshCells(); Assert.That(calls, Is.EqualTo(before));
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
@@ -61,16 +64,47 @@ namespace Tests.Module
             return root;
         }
         [UnityTest]
+        public IEnumerator RegisteredFactoryRefreshesAndClicksCurrentIdentity()
+        {
+            var root = CreateList(out var list); var owner = new View();
+            var bound = 0; var hidden = 0; var clicked = -1; var clickCalls = 0; TestItem first = null;
+            Action<ItemView, int, CellBindContext> bind = (cell, index, context) => { bound++; first = (TestItem)cell; Assert.That(cell.Index, Is.EqualTo(index)); };
+            Action<ItemView, int, CellBindContext> click = (cell, index, context) =>
+            { Assert.That(context.IsCurrent, Is.True); Assert.That(context.Index, Is.EqualTo(index)); clicked = index; clickCalls++; };
+            Action<ItemView, CellBindContext> hide = (cell, context) =>
+            { Assert.That(context.IsCurrent, Is.False); hidden++; };
+            try
+            {
+                owner.RegisterLoopScrollRect<TestItem>(list, bind); owner.RegisterLoopScrollRect<TestItem>(list, bind);
+                owner.RegisterLoopScrollClick(list, click); owner.RegisterLoopScrollClick(list, click);
+                owner.RegisterLoopScrollItemHide(list, hide); owner.RegisterLoopScrollItemHide(list, hide);
+                var items = new List<string>(); for (var i = 0; i < 100; i++) items.Add(i.ToString());
+                list.SetTotalCount(items, getItemKey: item => (string)item); yield return null;
+                Assert.That(bound, Is.EqualTo(list.ActiveCellCount));
+                list.ScrollToCell(80); yield return null; first.TriggerClick();
+                Assert.That(clicked, Is.EqualTo(first.Index)); Assert.That(clicked, Is.GreaterThan(70));
+                Assert.That(hidden, Is.GreaterThan(0)); Assert.That(clickCalls, Is.EqualTo(1));
+                var beforeClear = hidden; var active = list.ActiveCellCount; list.SetTotalCount(null);
+                Assert.That(hidden - beforeClear, Is.EqualTo(active)); first.TriggerClick();
+                Assert.That(clickCalls, Is.EqualTo(1), "回收后点击不得使用过期身份");
+                list.SetTotalCount(items, getItemKey: item => (string)item);
+                yield return owner.DestroyAsync().ToCoroutine(); var before = bound;
+                list.RefreshCells(); Assert.That(bound, Is.EqualTo(before));
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
+        }
+        [UnityTest]
         public IEnumerator NestedItemViewCanRegisterAndExplicitlyUnsubscribe()
         {
             var root = CreateList(out var list); var owner = new ItemView(); var calls = 0;
-            var subscription = owner.RegisterLoopCellBind(list, (cell, index, context) => calls++);
+            var subscription = owner.RegisterLoopScrollRect<TestItem>(list, (cell, index, context) => calls++);
             try
             {
                 var items = new List<string> { "a", "b" };
-                list.ItemViews().SetItems<string, TestItem>(items, (cell, item, context) => { }, null, item => item);
+                list.ItemViews().Configure<TestItem>();
+                list.SetTotalCount(items, getItemKey: item => (string)item);
                 Assert.That(calls, Is.EqualTo(2)); subscription.Dispose(); subscription.Dispose();
-                list.RefreshVisible(); Assert.That(calls, Is.EqualTo(2)); yield return null;
+                list.RefreshCells(); Assert.That(calls, Is.EqualTo(2)); yield return null;
             }
             finally { subscription.Dispose(); UnityEngine.Object.DestroyImmediate(root); }
         }
@@ -80,7 +114,8 @@ namespace Tests.Module
             var root = CreateList(out var list); root.SetActive(false);
             try
             {
-                list.ItemViews().SetItems<string, TestItem>(new List<string> { "a", "b" }, (cell, item, context) => { }, null, item => item);
+                list.ItemViews().Configure<TestItem>();
+                list.SetTotalCount(new List<string> { "a", "b" }, getItemKey: item => (string)item);
                 Assert.That(list.Count, Is.EqualTo(2)); Assert.That(list.ActiveCellCount, Is.Zero);
                 root.SetActive(true); yield return null; yield return null;
                 Assert.That(list.ActiveCellCount, Is.EqualTo(2));
