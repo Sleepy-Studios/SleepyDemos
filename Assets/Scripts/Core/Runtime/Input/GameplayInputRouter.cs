@@ -15,6 +15,7 @@ namespace Core.Runtime.Inputs
         private readonly InputActionMap interactionMap;
         private readonly InputActionMap menu;
         private readonly IDisposable buttonSubscription;
+        private readonly InputAction touchPress;
         private readonly HashSet<InputAction> awaitingRelease = new HashSet<InputAction>();
         private readonly Dictionary<InputControl, Vector2> previousPadValues = new Dictionary<InputControl, Vector2>();
         private InputActionMap activeMap;
@@ -55,6 +56,8 @@ namespace Core.Runtime.Inputs
             if (source == null) throw new ArgumentNullException(nameof(source));
             settings = (inputSettings ?? new GameplayInputSettings()).Copy();
             if (!settings.IsValid) throw new ArgumentException("输入配置无效。", nameof(inputSettings));
+            // 移动端初次进入先提供触控入口；之后只由实际设备活动切换，不因平台强制盖回触屏。
+            deviceKind = Application.isMobilePlatform ? InputDeviceKind.Touch : InputDeviceKind.KeyboardMouse;
             ValidateAsset(source, gameplayMapName, interactionMapName, menuMapName);
             asset = UnityEngine.Object.Instantiate(source);
             // devices是运行时属性，Instantiate不依赖它被序列化。测试与限定控制器可在源资产设置白名单。
@@ -68,6 +71,10 @@ namespace Core.Runtime.Inputs
             PauseState.Changed += OnPauseChanged;
             InputSystem.onDeviceChange += OnDeviceChange;
             buttonSubscription = InputSystem.onAnyButtonPress.Call(OnAnyButtonPress);
+            // 单指TouchState并非整个Touchscreen状态，onAnyButtonPress可能漏报；交给Action解析后只识别设备。
+            touchPress = new InputAction("IdentifyTouchDevice", InputActionType.PassThrough, "<Touchscreen>/touch*/press");
+            touchPress.performed += OnTouchPress;
+            touchPress.Enable();
             ActivateContext(GameplayInputContext.Gameplay);
         }
 
@@ -205,6 +212,7 @@ namespace Core.Runtime.Inputs
         {
             if (disposed) return;
             disposed = true; StopRumble(); buttonSubscription.Dispose();
+            touchPress.performed -= OnTouchPress; touchPress.Dispose();
             InputSystem.onDeviceChange -= OnDeviceChange; PauseState.Changed -= OnPauseChanged;
             foreach (var map in new[] { gameplayMap, interactionMap, menu })
                 foreach (var action in map.actions) { action.performed -= OnPerformed; action.canceled -= OnCanceled; }
@@ -247,6 +255,8 @@ namespace Core.Runtime.Inputs
 
         private void OnCanceled(InputAction.CallbackContext callback) => awaitingRelease.Remove(callback.action);
         private void OnAnyButtonPress(InputControl control) { if (!disposed && IsAllowedDevice(control.device)) RecordDevice(control.device); }
+        private void OnTouchPress(InputAction.CallbackContext callback)
+        { if (!disposed && callback.ReadValue<float>() > 0 && IsAllowedDevice(callback.control.device)) RecordDevice(callback.control.device); }
 
         private void RecordDevice(InputDevice device)
         {

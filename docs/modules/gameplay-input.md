@@ -20,6 +20,10 @@ JinxCasino已直接消费公共实现：原Exploration/Table/Menu资产及动作
 
 宿主进入时创建Router及MenuInputScope；每帧先送触控采样、调用ReadFrame，再消费一次ConsumeActions，并更新菜单作用域。Gameplay是移动/视角，Interaction是物件选择，Menu把Confirm/Back/导航交还Core UI；切换后按住键须释放，避免一次A键执行两个动作。
 
+Router在移动端首次创建时默认Touch，其它平台默认KeyboardMouse；之后DeviceKind由最近实际使用设备决定。触控区域与提示应跟随DeviceKind，不用`Application.isMobilePlatform || Touch`强制显示，否则Android接手柄后无法收起摇杆。轻触屏幕会通过实际Touchscreen活动切回触控，手柄小幅漂移不抢占设备提示。
+
+触摸识别使用会话私有的touch*/press Action，独立于三种玩法上下文，仅更新设备、遵守设备白名单并随Dispose释放。不能只依赖onAnyButtonPress：当前Input System通用按钮枚举会漏过由phase派生的TouchPress。该识别不提交点击或玩法命令，真实桌面指针与菜单操作仍走原路径。
+
 宿主转发OnApplicationFocus/OnApplicationPause，并用PauseState冻结自己的规则和演出时钟，清理触控持有指针。暂停状态不会修改全局timeScale。退出先Dispose菜单作用域、再Dispose路由器，恢复原导航/焦点、退订设备事件并停止本会话震动。该作用域服务单个当前玩法宿主，不支持两个宿主同时争用同一EventSystem。
 
 ## 维护和验证

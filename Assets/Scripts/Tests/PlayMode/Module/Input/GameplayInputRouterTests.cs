@@ -267,6 +267,17 @@ namespace Tests.Module
         [UnityTest]
         public IEnumerator TouchscreenUsesSamePointerFrameAndPauseDiscardsPendingPress()
         {
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.RightShoulder));
+            yield return null; router.ReadFrame(.016f);
+            Assert.That(router.DeviceKind, Is.EqualTo(InputDeviceKind.Gamepad));
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 9, position = new Vector2(300, 200),
+                phase = UnityEngine.InputSystem.TouchPhase.Began });
+            yield return null;
+            Assert.That(router.ReadFrame(.016f).DeviceKind, Is.EqualTo(InputDeviceKind.Touch), "未绑定触屏玩法动作的探索态也能找回触控入口。");
+            Assert.That(router.ConsumeActions(), Is.EqualTo(GameplayInputActions.None), "识别触摸不能额外提交玩法操作。");
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 9, position = new Vector2(300, 200),
+                phase = UnityEngine.InputSystem.TouchPhase.Ended });
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             router.SetContext(GameplayInputContext.Interaction);
             yield return null; router.ReadFrame(0.016f);
             var position = new Vector2(400, 250);

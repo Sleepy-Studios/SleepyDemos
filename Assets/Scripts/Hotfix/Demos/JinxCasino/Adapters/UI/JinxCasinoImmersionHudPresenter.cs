@@ -19,6 +19,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         [SerializeField] private Button quitGameButton;
         private Vector2 mainMenuSize;
         private bool mainMenuSizeCaptured;
+        private TMP_Text pauseLabel;
+        private TMP_Text exitTableLabel;
         [SerializeField] private Button start;
         [SerializeField] private Button practice;
         [SerializeField] private Button resume;
@@ -36,6 +38,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         public void Bind(JinxCasinoController controller)
         {
             Unbind(); owner = controller; menuState = -1;
+            pauseLabel = pause.GetComponentInChildren<TMP_Text>(true);
+            exitTableLabel = exitTable.GetComponentInChildren<TMP_Text>(true);
             if (!mainMenuSizeCaptured) { mainMenuSize = ((RectTransform)mainMenu.transform).sizeDelta; mainMenuSizeCaptured = true; }
             if (quitGameButton != null) quitGameButton.onClick.AddListener(QuitGame);
             owner.Changed += Refresh; owner.ImmersionInputChanged += Refresh;
@@ -110,11 +114,14 @@ namespace Hotfix.JinxCasino.Adapters.UI
             objective.text = AdventureObjective(adventure);
             var table = owner.TableView;
             bool atDesk = table != null || owner.HasShopFocus;
-            bool touching = Application.isMobilePlatform || owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch;
+            bool touching = owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch;
+            bool usingGamepad = owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad;
             movePad.gameObject.SetActive(state == 2 && !atDesk && touching);
             lookPad.gameObject.SetActive(state == 2 && !atDesk && touching);
             interact.gameObject.SetActive(state == 2 && !atDesk && touching);
             exitTable.gameObject.SetActive(state == 2 && atDesk);
+            if (pauseLabel != null) pauseLabel.text = usingGamepad ? "Menu 暂停" : touching || atDesk ? "暂停" : "Esc 暂停";
+            if (exitTableLabel != null) exitTableLabel.text = usingGamepad ? "B 离开桌面" : touching ? "离开桌面" : "Esc 离开桌面";
             string action = owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
             var nearby = owner.GetNearbyLocalSocialStation();
             prompt.text = atDesk ? owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad
