@@ -96,6 +96,20 @@ namespace Hotfix
             OpenBlockPortersAsync().Forget();
         }
 
+        private void OnJinxCasinoButtonClick()
+        {
+            OpenJinxCasinoAsync().Forget();
+        }
+
+        private async UniTaskVoid OpenJinxCasinoAsync()
+        {
+            var navigator = GameSceneNavigator.Instance;
+            if (navigator == null) { Debug.LogError("[MainMenuView] 场景导航尚未初始化。"); return; }
+            var result = await navigator.SwitchAsync(GameSceneId.JinxCasino);
+            if (result.Status == GameSceneSwitchStatus.Failed)
+                Debug.LogError("[MainMenuView] 倒霉蛋俱乐部加载失败：" + result.Error);
+        }
+
         private async UniTaskVoid OpenBlockPortersAsync()
         {
             var navigator = GameSceneNavigator.Instance;

@@ -6,7 +6,8 @@ namespace Hotfix.SceneManagement
         Hub = 0,
         DroneFlight = 1,
         Dlss = 2,
-        BlockPorters = 3
+        BlockPorters = 3,
+        JinxCasino = 4
     }
 
     /// 场景切换结果状态。
@@ -71,6 +72,7 @@ namespace Hotfix.SceneManagement
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
         internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
         internal const string BlockPortersAddress = "Assets/LoadResources/Demos/block_porters/Scenes/Main.unity";
+        internal const string JinxCasinoAddress = "Assets/LoadResources/Demos/jinx_casino/Scenes/Main.unity";
 
         internal static bool TryGet(GameSceneId sceneId, out GameSceneDefinition definition)
         {
@@ -90,6 +92,9 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.BlockPorters:
                     definition = new GameSceneDefinition(GameSceneId.BlockPorters, "小小搬豆工", BlockPortersAddress);
+                    return true;
+                case GameSceneId.JinxCasino:
+                    definition = new GameSceneDefinition(GameSceneId.JinxCasino, "倒霉蛋俱乐部", JinxCasinoAddress);
                     return true;
                 default:
                     definition = default;

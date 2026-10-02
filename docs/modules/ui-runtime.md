@@ -181,6 +181,7 @@ Loading --加载失败或取消--> Faulted
 - `Tests.Module.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
 - `Tests.Module.CoreUIComponentMigrationTests` 检查全局扩展、顶点翻转、金字塔布局、TMP 自动滚动裁剪装配和圆角 Shader/材质链路。
 - 默认字体选型与 TMP Settings 资源绑定在字体调整时按字体流程人工检查，不由公共 UI 测试固定为某个字体资产；圆角与 TMP 网格效果的行为回归继续保留。
+- 通用Loading沿用`HarmonyOS_CN`，新增字形由共享`HarmonyOS_CNSupplement`回退字体补充。补充字体使用同一中文源、512动态图集和多图集扩容，预填“霉”；保留原字体图集及材质GUID，不让公共UI依赖某个Demo专属字库。赌场资源装配会幂等检查该回退的持久化材质/图集及字形解析。
 - `Tests.Module.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
 - `Tests.Module.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Tests.Module.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
