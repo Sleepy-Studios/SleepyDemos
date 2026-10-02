@@ -72,6 +72,21 @@ namespace Tests.Demo
         }
 
         [UnityTest]
+        public IEnumerator CursorRelockDiscardsOnlyOneLookDeltaAndKeepsDiscreteInteraction()
+        {
+            router.DiscardNextLookDelta();
+            InputSystem.QueueStateEvent(mouse, new MouseState { delta = new Vector2(100, 60) });
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
+            yield return null;
+            Assert.That(router.ReadFrame(.016f, pointerLocked: true).LookDegrees, Is.EqualTo(Vector2.zero));
+            Assert.That(router.ConsumeActions(), Is.EqualTo(JinxCasinoInputActions.Interact));
+            InputSystem.QueueStateEvent(mouse, new MouseState { delta = new Vector2(20, 10) });
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return null;
+            Assert.That(router.ReadFrame(.016f, pointerLocked: true).LookDegrees.sqrMagnitude, Is.GreaterThan(0));
+        }
+
+        [UnityTest]
         public IEnumerator ExplorationInteractCannotBecomeHeldTableConfirmOrNextGroup()
         {
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
@@ -236,7 +251,12 @@ namespace Tests.Demo
             var frame = router.ReadFrame(0.016f);
             Assert.That(frame.PointerPosition, Is.EqualTo(position));
             Assert.That(frame.PointerPressed, Is.True);
+            Assert.That(frame.PointerMoved, Is.True);
             Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.RightArrow)); yield return null;
+            var keyboardNavigation = router.ReadFrame(0.016f);
+            Assert.That(keyboardNavigation.TableNavigation.x, Is.GreaterThan(0));
+            Assert.That(keyboardNavigation.PointerMoved, Is.False, "静止指针不得覆盖键盘导航。");
             Assert.That(router.ConsumeActions(), Is.EqualTo(JinxCasinoInputActions.None), "实体点击不得重复变成菜单/手柄确认。");
             router.SetContext(JinxCasinoInputContext.Menu);
             Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False);

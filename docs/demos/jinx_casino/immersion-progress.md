@@ -68,3 +68,17 @@ JinxCasinoTableSessionTests作业ab91c93f，EditMode7/7通过：Slots明确拉�
 ## S1独立模型导入
 
 三款桌面规则适配已推送c75190e。新S1Slots/S1Blackjack/S1Levers/S1Hall进入Art/Immersion独立目录，Source与FBX的SHA256一致，独立12共享URP材质未改旧原型palette。JinxCasinoImmersionModelTests作业b2ddc5da，EditMode5/5：四模型无轴向/缩放补偿、无导入相机/Collider、材质引用、单模型面数预算，以及22个操作物件真实Unity坐标。总源面数101871含全牌库，非单帧绘制量。尚未以Unity场景画面验收，DCC预览不能替代。
+
+## 宿主整合工作区检查点
+
+已推送c75190e（三款桌面规则）和61cbbfc（独立模型/材质/源）。工作区新增ImmersionHost与Controller薄适配，接入输入、相机聚焦、具体目标命令、离桌、偏好应用；新局/读档/跨区传送前清理旧桌面，旧表现组件也按实例ID过滤。PointerMoved避免静止鼠标覆盖方向键，输入回归48238536为10/10。最新代码正式编译无错误，但新场景尚未装配，Host及这些接缝暂不作为实玩通过，也尚未提交。
+
+接下来：合并Library中的暂停演出小patch及三款专属表现候选，复用LayoutBuilder生成独立样板场景/精简HUD，接入明确菜单焦点与互动教学，然后实际指针/手柄焦点、相机恢复和完整一局验证。旧SceneEffects/MovingTable的wall-clock暂停仍待接通，不能仅以领域冻结宣称完整暂停。
+
+## 输入焦点与暂停接缝复核
+
+独立Immersion场景与薄HUD已保存，三款专属表现组件已接入工作区；正式Hub仍指向可恢复旧原型。样板缺少教学、购物、设置/存档界面和实际运行验收，当前不作为完整S1提交成果。
+
+输入修复：静止指针不再覆盖键盘目标导航；重新锁定光标时只丢弃一次视角增量，保留离散交互。InputRouter整组ec37f25f为10/11，新用例漏传真实锁定状态导致失败；补齐pointerLocked后精确重测0c98fc15为1/1，其余10项未变，无全量测试。
+
+暂停整合：PresentationClockTests 651e38e8为3/3；PresentationPauseTests 1b8cd396为2/3。移动桌测试原fixture将根节点悬空，触发防悬空保护；改为地面根+抬高Collider中心后，精确重测a7234176为1/1，未改生产安全判断。以上暂停组件仍随宿主整合留在工作区，不能视作完整场景暂停验收。

@@ -29,6 +29,8 @@ namespace Hotfix.JinxCasino.Adapters.Input
         public Vector2 PointerPosition;
         /// 本次读取是否收到一次真实鼠标/触屏按下；读取后消费，不模拟菜单Submit。
         public bool PointerPressed;
+        /// 此帧真实指针移动；静止鼠标不能覆盖键盘/手柄选中的物件。
+        public bool PointerMoved;
         public JinxCasinoInputDeviceKind DeviceKind;
         public bool IsPaused;
     }
