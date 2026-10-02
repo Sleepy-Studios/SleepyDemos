@@ -58,7 +58,7 @@
 
 ### `Assets/Scripts/Hotfix/Editor`
 
-放只服务某个 Hotfix 业务模块的 Editor 扩展，例如业务配置自定义 Inspector、Demo 私有装配工具。该目录使用独立 `Hotfix.Editor` 编辑器程序集，可以引用 `Hotfix`、`Core.Editor` 和 `Core.Runtime`；生产 `Hotfix` 不引用它。
+放只服务某个 Hotfix 业务模块的 Editor 扩展，例如业务配置自定义 Inspector、需要持续维护的 Demo 私有 Inspector 或导入工具。该目录使用独立 `Hotfix.Editor` 编辑器程序集，可以引用 `Hotfix`、`Core.Editor` 和 `Core.Runtime`；生产 `Hotfix` 不引用它。
 
 通用 MvcBind、构建、导入和跨业务检查工具仍放 `Core.Editor`。禁止为了实现业务 Inspector 让 `Core.Editor` 反向引用 `Hotfix`。
 
@@ -107,3 +107,7 @@ Demo 里只有该项目需要的 UI、资源、Hub 导航和演出编排应收�
 - 这是“独立 Demo 玩法”吗：去 `Hotfix/Demos/<DemoName>`
 - 这是“某个 Demo 独有资源”吗：去 `Assets/LoadResources/Demos/<DemoId>/`
 - 这是“多个 Demo 共享资源”吗：去公共资源目录
+
+## 一次性工具的生命周期
+
+场景、UI、Prefab 批量生成和一次性迁移可在开发期间临时执行；保存生成资产并验证后删除脚本、菜单和对应 meta，不将临时 Builder 固化为维护入口。人工打磨后的资产是当前真源，不能靠重跑旧生成器覆盖。正式平台构建、资源导入、业务 Inspector 等有持续调用方的工具继续保留；删除临时工具时同时清除其独占 helper、无效测试和当前文档入口，历史 Git 记录不必重写。

@@ -1,3 +1,4 @@
+using Core.Runtime.Inputs;
 #if UNITY_EDITOR
 using System;
 using System.Collections;
@@ -42,7 +43,7 @@ namespace Tests.Demo
             yield return Enter(); Click(Field<Button>(adventure, "practiceButton")); yield return null;
             Click(Field<Button>(adventure, "settingsButton")); yield return null;
             Assert.That(Field<GameObject>(local, "settingsPanel").activeInHierarchy, Is.True);
-            var move = Field<JinxCasinoTouchPad>(local, "movePad"); var look = Field<JinxCasinoTouchPad>(local, "lookPad");
+            var move = Field<TouchInputPad>(local, "movePad"); var look = Field<TouchInputPad>(local, "lookPad");
             Assert.That(ScreenCenter(move).x, Is.LessThan(ScreenCenter(look).x));
             var safeRoot = (RectTransform)hud.gameObject.GetComponentInChildren<JinxCasinoHudPresenter>(true).transform;
             Vector2 safeMinimum = safeRoot.anchorMin, safeMaximum = safeRoot.anchorMax;
@@ -63,7 +64,7 @@ namespace Tests.Demo
             AssertSaved(); yield return Screenshot("P4SavedSettings720p");
             yield return ExitBySavedBack(); yield return Enter();
             AssertSaved(); Assert.That(controller.LocalPreferences.PcLookMultiplier, Is.EqualTo(2)); AssertAudio(0.2f, true);
-            move = Field<JinxCasinoTouchPad>(local, "movePad"); look = Field<JinxCasinoTouchPad>(local, "lookPad");
+            move = Field<TouchInputPad>(local, "movePad"); look = Field<TouchInputPad>(local, "lookPad");
             Assert.That(ScreenCenter(move).x, Is.GreaterThan(ScreenCenter(look).x));
             Click(Field<Button>(adventure, "standardButton")); yield return null;
             Click(Field<Button>(adventure, "settingsButton")); yield return null;

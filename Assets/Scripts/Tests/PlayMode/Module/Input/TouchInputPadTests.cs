@@ -1,30 +1,31 @@
+using Core.Runtime.Inputs;
 #if UNITY_EDITOR
+using GameViewResolution = Tests.Demo.GameViewResolution;
 using System.Collections;
-using Hotfix.JinxCasino.Adapters.UI;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-namespace Tests.Demo
+namespace Tests.Module
 {
     /// 双指与跨分辨率输入契约；合成指针验证处理逻辑，不替代 Android 真机手感验收。
-    public sealed class JinxCasinoTouchInputTests
+    public sealed class TouchInputPadTests
     {
         private GameObject moveObject;
         private GameObject lookObject;
-        private JinxCasinoTouchPad movePad;
-        private JinxCasinoTouchPad lookPad;
+        private TouchInputPad movePad;
+        private TouchInputPad lookPad;
         private GameViewResolution resolution;
 
         [SetUp]
         public void SetUp()
         {
-            moveObject = new GameObject("JinxCasino move input test");
-            lookObject = new GameObject("JinxCasino look input test");
-            movePad = moveObject.AddComponent<JinxCasinoTouchPad>();
-            lookPad = lookObject.AddComponent<JinxCasinoTouchPad>();
+            moveObject = new GameObject("move input test");
+            lookObject = new GameObject("look input test");
+            movePad = moveObject.AddComponent<TouchInputPad>();
+            lookPad = lookObject.AddComponent<TouchInputPad>();
             movePad.Configure(false);
             lookPad.Configure(true);
         }

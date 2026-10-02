@@ -1,5 +1,5 @@
 using System;
-using Hotfix.JinxCasino.Adapters.Input;
+using Core.Runtime.Inputs;
 using UnityEngine;
 
 namespace Hotfix.JinxCasino.Adapters.Persistence
@@ -30,7 +30,7 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
         public bool IsValid => SchemaVersion == CurrentSchemaVersion && FiniteInRange(Volume, 0, 1) && ToInputSettings().IsValid;
 
         /// 给Router的独立参数副本；输入DTO版本与偏好存储版本分别管理，不共享可变对象。
-        public JinxCasinoInputSettings ToInputSettings() => new JinxCasinoInputSettings
+        public GameplayInputSettings ToInputSettings() => new GameplayInputSettings
         {
             MouseLookMultiplier = PcLookMultiplier, TouchLookMultiplier = TouchLookMultiplier,
             GamepadDeadzone = GamepadDeadzone, GamepadMaximum = GamepadMaximum,

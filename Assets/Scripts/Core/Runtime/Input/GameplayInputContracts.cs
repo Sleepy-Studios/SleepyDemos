@@ -1,43 +1,43 @@
 using System;
 using UnityEngine;
 
-namespace Hotfix.JinxCasino.Adapters.Input
+namespace Core.Runtime.Inputs
 {
-    public enum JinxCasinoInputContext { Exploration = 0, Table = 1, Menu = 2 }
-    public enum JinxCasinoInputDeviceKind { KeyboardMouse = 0, Gamepad = 1, Touch = 2 }
+    public enum GameplayInputContext { Gameplay = 0, Interaction = 1, Menu = 2 }
+    public enum InputDeviceKind { KeyboardMouse = 0, Gamepad = 1, Touch = 2 }
 
     [Flags]
-    public enum JinxCasinoInputActions
+    public enum GameplayInputActions
     {
         None = 0, Interact = 1, Confirm = 2, Back = 4, Secondary = 8,
         Help = 16, PreviousGroup = 32, NextGroup = 64, Pause = 128
     }
 
     [Flags]
-    public enum JinxCasinoPauseReason
+    public enum LocalPauseReason
     {
         None = 0, User = 1, FocusLost = 2, Background = 4, GamepadDisconnected = 8
     }
 
     /// 本帧连续量。LookDegrees已经换算为角度，宿主不可再次乘deltaTime或旧视角系数。
-    public struct JinxCasinoInputFrame
+    public struct GameplayInputFrame
     {
         public Vector2 Move;
         public Vector2 LookDegrees;
-        public Vector2 TableNavigation;
+        public Vector2 InteractionNavigation;
         /// 桌面指针的屏幕像素位置，供本地相机生成真实物理射线。
         public Vector2 PointerPosition;
         /// 本次读取是否收到一次真实鼠标/触屏按下；读取后消费，不模拟菜单Submit。
         public bool PointerPressed;
         /// 此帧真实指针移动；静止鼠标不能覆盖键盘/手柄选中的物件。
         public bool PointerMoved;
-        public JinxCasinoInputDeviceKind DeviceKind;
+        public InputDeviceKind DeviceKind;
         public bool IsPaused;
     }
 
     /// 输入适配参数。持久化时并入既有本机偏好迁移，不建立第二套存档或PlayerPrefs键。
     [Serializable]
-    public sealed class JinxCasinoInputSettings
+    public sealed class GameplayInputSettings
     {
         public int SchemaVersion = 1;
         public float GamepadDeadzone = 0.2f;
@@ -51,7 +51,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
         public float TouchLookMultiplier = 1;
 
         /// 独立候选副本，设置预览不能修改已生效对象。
-        public JinxCasinoInputSettings Copy() => (JinxCasinoInputSettings)MemberwiseClone();
+        public GameplayInputSettings Copy() => (GameplayInputSettings)MemberwiseClone();
 
         /// 有限值和版本校验。无效配置拒绝应用，宿主加载损坏记录时使用完整默认值。
         public bool IsValid => SchemaVersion == 1 && Range(GamepadDeadzone, 0, 0.45f)
@@ -64,7 +64,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
     }
 
     /// 连续输入换算。鼠标/触控是位移增量，手柄是每秒角速度，绝不共用deltaTime语义。
-    public static class JinxCasinoInputMath
+    public static class GameplayInputMath
     {
         /// <summary>对未经处理的二维摇杆应用一次径向死区，不改变InputSystem全局处理器。</summary>
         /// <param name="raw">从绑定的StickControl读取的未处理值。</param>
@@ -87,7 +87,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
         /// <param name="mouseDegreesPerPixel">既有GameSettings基础系数，默认0.12。</param>
         /// <param name="settings">已通过IsValid的独立参数。</param>
         public static Vector2 LookDegrees(Vector2 mouseDelta, Vector2 touchDelta, Vector2 gamepadAxis,
-            float deltaSeconds, float mouseDegreesPerPixel, JinxCasinoInputSettings settings)
+            float deltaSeconds, float mouseDegreesPerPixel, GameplayInputSettings settings)
         {
             if (settings == null || !settings.IsValid || !Finite(deltaSeconds) || deltaSeconds < 0
                 || !Finite(mouseDegreesPerPixel) || mouseDegreesPerPixel < 0

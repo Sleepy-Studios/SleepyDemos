@@ -1,3 +1,4 @@
+using Core.Runtime.Inputs;
 using Hotfix.JinxCasino.Rules;
 using TMPro;
 using UnityEngine;
@@ -22,8 +23,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         [SerializeField] private Button leave;
         [SerializeField] private Button interact;
         [SerializeField] private Button exitTable;
-        [SerializeField] private JinxCasinoTouchPad movePad;
-        [SerializeField] private JinxCasinoTouchPad lookPad;
+        [SerializeField] private TouchInputPad movePad;
+        [SerializeField] private TouchInputPad lookPad;
         private JinxCasinoController owner;
         private int menuState = -1;
 
@@ -87,14 +88,14 @@ namespace Hotfix.JinxCasino.Adapters.UI
             objective.text = AdventureObjective(adventure);
             var table = owner.TableView;
             bool atDesk = table != null || owner.HasShopFocus;
-            bool touching = Application.isMobilePlatform || owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Touch;
+            bool touching = Application.isMobilePlatform || owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch;
             movePad.gameObject.SetActive(state == 2 && !atDesk && touching);
             lookPad.gameObject.SetActive(state == 2 && !atDesk && touching);
             interact.gameObject.SetActive(state == 2 && !atDesk && touching);
             exitTable.gameObject.SetActive(state == 2 && atDesk);
-            string action = owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
+            string action = owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
             var nearby = owner.GetNearbyLocalSocialStation();
-            prompt.text = atDesk ? owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad
+            prompt.text = atDesk ? owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad
                 ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
                 : owner.IsExitTerminalNearby ? action + " " + owner.ExitInteractionPrompt : owner.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
             feedback.text = InteractionFeedback(table);

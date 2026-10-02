@@ -194,3 +194,18 @@ b9281ceb恢复Closing二十一点精确1/1：夹具用原领域规则构造已�
 修正反馈后f60138cc成功路线仍1/1，但截图显示文字XY仍沿用旧值；定位到TextMeshPro的RectTransform保存锚定位置未随普通Transform修改落盘。装配工具改为明确写anchoredPosition3D并标脏，已核查两块文字各自保存为1.68/1.56高度；等待最终真实截图验证，不以文件值单独验收。
 
 最终aae3473d成功路线1/1；已查看S1QuotaVerifier-20261002103320-*，完整金额/动作文字位于实体牌内，底部提示独立可读，无旧错误残留。Editor编译Console0错误，未执行全量测试；Windows Player、Android/Xbox实物和最终体验均待验。本次结果仍是S1小闭环，不是S1整体完成。
+
+
+## 临时工具清理与输入框架归位
+
+现场离场闭环已推送b39a292。按本次用户修正，删除20份一次性UI/场景/机台/配置装配Builder及meta，保留PlayerBuildPipeline、PlayerBuildWindow、BuildSceneProcessor三个正式构建工具；已保存场景、Prefab、模型、inputactions和GUID不变。运行时未使用的InputAsset生成工厂也清理。历史进度中的生成菜单只是当时证据，当前维护入口以runbooks为准。
+
+删除PrototypeContracts、FormalContent、ModelContracts三类一次性生成/固定布局/初期AxisGate探针测试及其唯一夹具；ImmersionScene去掉3项固定布局快照，保留库存展示不扣款、唯一相机及机台接线、金额实际可见性3项行为契约。规则、存档、生命周期、正式模型契约和真实输入回归未删；不增加新的测试文件来锁定本次重构写法。
+
+设备识别、死区/增量换算、输入上下文、菜单作用域、震动、触控采样和暂停门闩移入Core.Runtime.Inputs，Demo只消费公共类型并保留Exploration/Table/Menu动作资产及玩法命令。通用上下文为Gameplay/Interaction/Menu，Map名构造时指定。TouchInputPad保留原脚本GUID、isLookPad及MovedFrom；本机偏好键/schema未改。原三份输入测试随实现迁至Tests.Module，沿用两个现有测试程序集，不复制第二套。
+
+首次编译发现迁移测试命名空间后GameViewResolution夹具不可见，改为明确复用原共享测试辅助类，无需复制。随后Editor编译0错误；9eb7b7d5输入数学/暂停5/5，a1196997实际InputSystem路由11/11，d36d560e触控归属/分辨率3/3。e6924a01保存场景接缝3/3，b446b88a真实入口1/1（柜台买用、水果机物理操作/结算、暂停及返回Hub）；共23项直接相关回归通过，未运行全量。实际Demo资产引用公共TouchInputPad正常，原inputactions无改动。
+
+AGENTS/CLAUDE同步一次性Builder清理、有效测试保留和输入框架归属三条约定；公共模块及接入手册新增，当前Demo文档取消过时装配菜单。此项调整不改变S1体验门槛，不能代替Windows/Android Player及Xbox硬件验证。
+
+本次只读复核：正式三构建文件未修改，删除类型无源码残余引用，Demo资源无差异，TouchInputPad新旧meta GUID完全相同。代码/文档差异检查通过；Unity新建目录meta的空字段尾随空格按序列化格式保留。未作Player构建，公共输入的AOT迁移在下一次双端构建时继续验证。

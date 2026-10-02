@@ -26,11 +26,11 @@
 
 运行资源统一在`Assets/LoadResources/Demos/jinx_casino/Art/`，模型在Models、共享材质在Materials，Prefab在Demo的Prefabs。独立DCC源文件与可复现生成脚本放`ArtSource/jinx_casino/`，不进入YooAsset运行资源包；它们属于本Demo源资源，不建立新的运行框架。轴向候选及一次性验证输出先保留在Library/JinxCasino/ArtGate；候选进入Unity测试资源路径后不参与Player资源收集。
 
-阶段Builder先保存/重载模型和材质，再装配Visual；保留已有脚本GUID、Prefab根和交互绑定。正式资源验收分别记录模型层级、Importer设置、朝向、材质、实际游戏截图、双端Player构建；建模脚本执行成功不等于Unity显示正确或P4完成。
+维护已保存模型、共享材质及Prefab中的Visual引用，保留已有脚本GUID、Prefab根和交互绑定；模型更新后核对实际导入结果，不用临时阶段Builder重新生成场景。正式资源验收分别记录模型层级、Importer设置、朝向、材质、实际游戏截图、双端Player构建；建模脚本执行成功不等于Unity显示正确或P4完成。
 
 四区场地的顶棚、墙裙、地面导向与四件区域装饰在Editor烘焙为每区四个持久Mesh/共享材质段，位于各自权限内容根`FormalArchitecture`；源65个FBX共170327三角面（资源全集，非单帧绘制量）。建筑视觉内衬不带Collider，完整保留侧门Z[-9,-6]空档、原机台与出生点。顶棚关闭投影，沿用现有唯一方向光，不在运行时生成场地或材质。
 
 ## S1独立模型
 
-S1源在ArtSource/jinx_casino/immersion，运行候选在Art/Immersion。S1Layout.json规定22操作热区/相机/身体代理；FBX根与子节点无轴向补偿，四模型已通过Unity实际导入门禁b2ddc5da（5/5）。12个独立URP材质由JinxCasinoImmersionArtBuilder首次创建，再运行保留已有材质调整；不得改旧P4 palette。正式场景中隐藏CardFaceLibrary/初始牌池/DrawCard和初始奖筹码，Hall.Ceiling关闭投影，具体绑定由分步装配承担。对应原生预览不是实际规则或最终照明证据。
-`RulesPlacard`由Editor装配为独立夹板及支架，正文引用保存在专属表现组件，不放入FBX或运行时动态生成。规则完整显示，不能截去当前投入修正。S1Layout源与运行副本的聚焦位置同步维护，更新规则铭牌菜单显式重置该夹板及其聚焦挂点；首次装配遇到已有夹板时保留人工布局。16:9门禁检查规则牌四角与22个操作目标中心入镜，仍需逐设备实际可读性和遮挡验证。
+S1源在ArtSource/jinx_casino/immersion，运行资源在Art/Immersion。S1Layout.json规定22操作热区/相机/身体代理；FBX根与子节点无轴向补偿，四模型已通过Unity实际导入门禁b2ddc5da（5/5）。12个独立URP材质维护已保存的Material资产，不重新生成，不修改旧P4 palette。正式场景中隐藏CardFaceLibrary/初始牌池/DrawCard和初始奖筹码，Hall.Ceiling关闭投影；具体挂点、表现引用与初始显隐维护于保存场景和Prefab。对应原生预览不是实际规则或最终照明证据。
+`RulesPlacard`保存为独立夹板及支架，正文引用保存在专属表现组件，不放入FBX或运行时动态生成。规则完整显示，不能截去当前投入修正。直接维护保存夹板布局及聚焦挂点，同步S1Layout源与运行副本。16:9门禁检查规则牌四角与22个操作目标中心入镜，仍需逐设备实际可读性和遮挡验证。

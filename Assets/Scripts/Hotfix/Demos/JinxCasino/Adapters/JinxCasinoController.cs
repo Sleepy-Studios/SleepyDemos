@@ -1,3 +1,4 @@
+using Core.Runtime.Inputs;
 using System;
 using System.Threading;
 using Core.Runtime;
@@ -24,8 +25,8 @@ namespace Hotfix.JinxCasino.Adapters
         private View hud;
         private CancellationTokenSource lifetime;
         private CharacterController body;
-        private JinxCasinoTouchPad movePad;
-        private JinxCasinoTouchPad lookPad;
+        private TouchInputPad movePad;
+        private TouchInputPad lookPad;
         private float yaw;
         private float pitch;
         private float poseClock;
@@ -97,7 +98,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// <summary>为当前 View 注册两块独立触控区域。</summary>
         /// <param name="move">移动区域，界面释放时传 null。</param>
         /// <param name="look">视角区域，界面释放时传 null。</param>
-        public void BindTouchPads(JinxCasinoTouchPad move, JinxCasinoTouchPad look)
+        public void BindTouchPads(TouchInputPad move, TouchInputPad look)
         {
             movePad?.ResetInput(); lookPad?.ResetInput(); movePad = move; lookPad = look;
         }

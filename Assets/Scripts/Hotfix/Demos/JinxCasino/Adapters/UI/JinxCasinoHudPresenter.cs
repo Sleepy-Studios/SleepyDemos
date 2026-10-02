@@ -1,3 +1,4 @@
+using Core.Runtime.Inputs;
 using Core.Runtime.Networking;
 using Hotfix.JinxCasino.Rules;
 using TMPro;
@@ -25,8 +26,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         [SerializeField] private Button rouletteButton;
         [SerializeField] private Button coinButton;
         [SerializeField] private Button backButton;
-        [SerializeField] private JinxCasinoTouchPad movePad;
-        [SerializeField] private JinxCasinoTouchPad lookPad;
+        [SerializeField] private TouchInputPad movePad;
+        [SerializeField] private TouchInputPad lookPad;
         [SerializeField] private JinxCasinoAdventurePresenter adventurePresenter;
         [SerializeField] private GameObject[] legacyPanels;
         private JinxCasinoController controller;

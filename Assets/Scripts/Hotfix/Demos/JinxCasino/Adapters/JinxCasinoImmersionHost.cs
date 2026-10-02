@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Hotfix.JinxCasino.Adapters.Input;
+using Core.Runtime.Inputs;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -10,14 +10,14 @@ namespace Hotfix.JinxCasino.Adapters
     public sealed partial class JinxCasinoController
     {
         [SerializeField] private InputActionAsset immersionInputAsset;
-        private JinxCasinoInputRouter immersionInput;
-        private JinxCasinoMenuInputScope immersionMenu;
+        private GameplayInputRouter immersionInput;
+        private MenuInputScope immersionMenu;
         private JinxCasinoTableFocus tableFocus;
         private JinxCasinoTableSelection tableSelection;
         private JinxCasinoTableSession tableSession;
         private JinxCasinoStation focusedStation;
         private JinxCasinoS1Presentation focusedPresentation;
-        private JinxCasinoInputContext? appliedInputContext;
+        private GameplayInputContext? appliedInputContext;
         private CursorLockMode previousCursorLock;
         private bool previousCursorVisible;
         private bool cursorCaptured;
@@ -44,7 +44,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// 当前物件是否仍在演出，不能提前宣称结果已经展示。
         public bool IsTableAnimating => focusedPresentation != null && focusedPresentation.IsAnimating;
         /// 当前设备用于切换按键图标，不读取全局Gamepad.current。
-        public JinxCasinoInputDeviceKind InputDeviceKind => immersionInput?.DeviceKind ?? JinxCasinoInputDeviceKind.KeyboardMouse;
+        public InputDeviceKind InputDeviceKind => immersionInput?.DeviceKind ?? InputDeviceKind.KeyboardMouse;
         /// 暂停面板及设备提示订阅，离场随宿主释放。
         public event Action ImmersionInputChanged;
 
@@ -68,7 +68,7 @@ namespace Hotfix.JinxCasino.Adapters
             immersionMenuCancel = open ? cancel : null;
             immersionScreenOpen = open; immersionModalPaused = open && pauseClock; immersionFirstSelection = firstSelection;
             appliedInputContext = null;
-            if (immersionInput != null) ApplyImmersionContext(open ? JinxCasinoInputContext.Menu : tableFocus.IsActive ? JinxCasinoInputContext.Table : JinxCasinoInputContext.Exploration);
+            if (immersionInput != null) ApplyImmersionContext(open ? GameplayInputContext.Menu : tableFocus.IsActive ? GameplayInputContext.Interaction : GameplayInputContext.Gameplay);
         }
 
         private void EnsureImmersionInput()
@@ -76,7 +76,7 @@ namespace Hotfix.JinxCasino.Adapters
             if (immersionInput != null) return;
             sceneEffects?.BindPresentationClock(PresentationClock);
             previousCursorLock = Cursor.lockState; previousCursorVisible = Cursor.visible; cursorCaptured = true;
-            immersionInput = new JinxCasinoInputRouter(immersionInputAsset, localPreferences.ToInputSettings());
+            immersionInput = new GameplayInputRouter(immersionInputAsset, localPreferences.ToInputSettings(), "Exploration", "Table");
             immersionInput.DeviceChanged += OnImmersionDeviceChanged;
             immersionInput.PauseState.Changed += OnImmersionPauseChanged;
             immersionInput.PauseState.SetApplicationFocus(hasFocus);
@@ -85,7 +85,7 @@ namespace Hotfix.JinxCasino.Adapters
             tableSelection = new JinxCasinoTableSelection();
             if (EventSystem.current != null)
             {
-                immersionMenu = new JinxCasinoMenuInputScope(EventSystem.current, immersionInput);
+                immersionMenu = new MenuInputScope(EventSystem.current, immersionInput);
                 tablePointer = new PointerEventData(EventSystem.current);
             }
         }
@@ -94,18 +94,18 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (isExiting || worldCamera == null || body == null) return;
             EnsureImmersionInput();
-            var context = IsImmersionPaused || IsAdventureInputBlocked ? JinxCasinoInputContext.Menu :
-                tableFocus.IsActive ? JinxCasinoInputContext.Table : JinxCasinoInputContext.Exploration;
+            var context = IsImmersionPaused || IsAdventureInputBlocked ? GameplayInputContext.Menu :
+                tableFocus.IsActive ? GameplayInputContext.Interaction : GameplayInputContext.Gameplay;
             ApplyImmersionContext(context);
             Vector2 movement = movePad != null ? movePad.Move : Vector2.zero;
             Vector2 look = lookPad != null ? lookPad.ConsumeLook() : Vector2.zero;
             immersionInput.SetTouchFrame(movement, look, (movement - previousTouchMove).sqrMagnitude + look.sqrMagnitude > 0.0001f);
             previousTouchMove = movement;
             var frame = immersionInput.ReadFrame(Time.unscaledDeltaTime, gameSettings != null ? gameSettings.LookSensitivity : 0.12f,
-                context == JinxCasinoInputContext.Exploration && Cursor.lockState == CursorLockMode.Locked);
+                context == GameplayInputContext.Gameplay && Cursor.lockState == CursorLockMode.Locked);
             var actions = immersionInput.ConsumeActions();
             immersionMenu?.Update();
-            if ((actions & JinxCasinoInputActions.Pause) != 0)
+            if ((actions & GameplayInputActions.Pause) != 0)
             {
                 if (immersionMenuCancel != null) immersionMenuCancel();
                 else if (IsImmersionPaused) ResumeImmersion(); else PauseImmersion();
@@ -123,13 +123,13 @@ namespace Hotfix.JinxCasino.Adapters
             if (IsAdventureInputBlocked) return;
             if (tableFocus.IsActive)
             {
-                if ((actions & JinxCasinoInputActions.Back) != 0) { CloseImmersionTable(true); return; }
+                if ((actions & GameplayInputActions.Back) != 0) { CloseImmersionTable(true); return; }
                 if (!tableFocus.IsReady || tableSession == null && !HasShopFocus) return;
                 if (HasShopFocus) RefreshImmersionShop(); else RefreshImmersionTable();
                 UpdateTableInput(frame, actions);
                 return;
             }
-            if ((actions & JinxCasinoInputActions.Interact) != 0) { InteractWithNearbyStation(); if (tableFocus.IsActive || IsAdventureInputBlocked) return; }
+            if ((actions & GameplayInputActions.Interact) != 0) { InteractWithNearbyStation(); if (tableFocus.IsActive || IsAdventureInputBlocked) return; }
             float beforeTutorialYaw = yaw, beforeTutorialPitch = pitch;
             Vector3 beforeTutorialPosition = body.transform.position;
             if (presentationDelta > 0)
@@ -143,7 +143,7 @@ namespace Hotfix.JinxCasino.Adapters
                 Vector3.ProjectOnPlane(body.transform.position - beforeTutorialPosition, Vector3.up).magnitude, frame.Move.sqrMagnitude > .0001f);
         }
 
-        private void ApplyImmersionContext(JinxCasinoInputContext context)
+        private void ApplyImmersionContext(GameplayInputContext context)
         {
             if (appliedInputContext == context) return;
             movePad?.ResetInput(); lookPad?.ResetInput();
@@ -153,10 +153,10 @@ namespace Hotfix.JinxCasino.Adapters
             UpdateImmersionCursor();
         }
 
-        private void UpdateTableInput(JinxCasinoInputFrame frame, JinxCasinoInputActions actions)
+        private void UpdateTableInput(GameplayInputFrame frame, GameplayInputActions actions)
         {
-            int direction = Mathf.Abs(frame.TableNavigation.x) > Mathf.Abs(frame.TableNavigation.y)
-                ? Math.Sign(frame.TableNavigation.x) : -Math.Sign(frame.TableNavigation.y);
+            int direction = Mathf.Abs(frame.InteractionNavigation.x) > Mathf.Abs(frame.InteractionNavigation.y)
+                ? Math.Sign(frame.InteractionNavigation.x) : -Math.Sign(frame.InteractionNavigation.y);
             navigationDelay -= Time.unscaledDeltaTime;
             if (direction != 0 && (direction != previousNavigation || navigationDelay <= 0))
             {
@@ -165,14 +165,14 @@ namespace Hotfix.JinxCasino.Adapters
             previousNavigation = direction;
             if (frame.PointerMoved || frame.PointerPressed)
                 tableSelection.Point(worldCamera.ScreenPointToRay(frame.PointerPosition));
-            else if (frame.DeviceKind == JinxCasinoInputDeviceKind.Gamepad && tableSelection.Selected == null) tableSelection.Navigate(1);
-            if (frame.PointerPressed && !PointerHitsMenu(frame.PointerPosition) || (actions & JinxCasinoInputActions.Confirm) != 0)
+            else if (frame.DeviceKind == InputDeviceKind.Gamepad && tableSelection.Selected == null) tableSelection.Navigate(1);
+            if (frame.PointerPressed && !PointerHitsMenu(frame.PointerPosition) || (actions & GameplayInputActions.Confirm) != 0)
                 tableSelection.TryInvoke();
-            else if ((actions & JinxCasinoInputActions.Secondary) != 0) ApplyFocusedCommand(JinxCasinoTableAction.Secondary);
-            else if ((actions & JinxCasinoInputActions.Help) != 0) ApplyFocusedCommand(JinxCasinoTableAction.Help);
-            else if ((actions & (JinxCasinoInputActions.PreviousGroup | JinxCasinoInputActions.NextGroup)) != 0)
+            else if ((actions & GameplayInputActions.Secondary) != 0) ApplyFocusedCommand(JinxCasinoTableAction.Secondary);
+            else if ((actions & GameplayInputActions.Help) != 0) ApplyFocusedCommand(JinxCasinoTableAction.Help);
+            else if ((actions & (GameplayInputActions.PreviousGroup | GameplayInputActions.NextGroup)) != 0)
             {
-                int chipDirection = (actions & JinxCasinoInputActions.NextGroup) != 0 ? 1 : -1;
+                int chipDirection = (actions & GameplayInputActions.NextGroup) != 0 ? 1 : -1;
                 var targets = HasShopFocus ? focusedShop.Targets : focusedStation?.Targets;
                 for (int i = 0; targets != null && i < targets.Count; i++)
                 {
@@ -203,7 +203,7 @@ namespace Hotfix.JinxCasino.Adapters
             foreach (var target in station.Targets) if (target != null)
             { target.BindPresentationClock(PresentationClock); target.Invoked += OnTableTargetInvoked; }
             tableSelection.Bind(station); TableFeedback = null; HasTableFeedbackError = false;
-            RefreshImmersionTable(); ApplyImmersionContext(JinxCasinoInputContext.Table);
+            RefreshImmersionTable(); ApplyImmersionContext(GameplayInputContext.Interaction);
             return true;
         }
 
@@ -254,7 +254,7 @@ namespace Hotfix.JinxCasino.Adapters
         }
 
         /// 明确打开单机暂停；不写全局timeScale。
-        public void PauseImmersion() => immersionInput?.PauseState.RequestPause(JinxCasinoPauseReason.User);
+        public void PauseImmersion() => immersionInput?.PauseState.RequestPause(LocalPauseReason.User);
         /// 玩家明确继续，仍在后台或手柄未恢复时不解除暂停。
         public bool ResumeImmersion() => immersionInput?.PauseState.TryResume() ?? false;
 
@@ -264,13 +264,13 @@ namespace Hotfix.JinxCasino.Adapters
             movePad?.ResetInput(); lookPad?.ResetInput();
             UpdateImmersionCursor(); ImmersionInputChanged?.Invoke();
         }
-        private void OnImmersionDeviceChanged(JinxCasinoInputDeviceKind device) { UpdateImmersionCursor(); ImmersionInputChanged?.Invoke(); }
+        private void OnImmersionDeviceChanged(InputDeviceKind device) { UpdateImmersionCursor(); ImmersionInputChanged?.Invoke(); }
         private void UpdateImmersionCursor()
         {
-            bool locked = !IsImmersionPaused && appliedInputContext == JinxCasinoInputContext.Exploration && InputDeviceKind == JinxCasinoInputDeviceKind.KeyboardMouse;
+            bool locked = !IsImmersionPaused && appliedInputContext == GameplayInputContext.Gameplay && InputDeviceKind == InputDeviceKind.KeyboardMouse;
             if (locked && Cursor.lockState != CursorLockMode.Locked) immersionInput?.DiscardNextLookDelta();
             Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
-            Cursor.visible = !locked && InputDeviceKind == JinxCasinoInputDeviceKind.KeyboardMouse;
+            Cursor.visible = !locked && InputDeviceKind == InputDeviceKind.KeyboardMouse;
         }
         private void DisposeImmersionInput()
         {

@@ -1,3 +1,4 @@
+using Core.Runtime.Inputs;
 using System;
 using System.Collections.Generic;
 using Hotfix.JinxCasino.Adapters.Persistence;
@@ -30,8 +31,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         [SerializeField] private Button settingsCloseButton;
         [SerializeField] private Button emoteCloseButton;
         [SerializeField] private Button playEmoteButton;
-        [SerializeField] private JinxCasinoTouchPad movePad;
-        [SerializeField] private JinxCasinoTouchPad lookPad;
+        [SerializeField] private TouchInputPad movePad;
+        [SerializeField] private TouchInputPad lookPad;
         private readonly List<Action> removeListeners = new List<Action>();
         private readonly List<string> emoteIds = new List<string>();
         private JinxCasinoController owner;

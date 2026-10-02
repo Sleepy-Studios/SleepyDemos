@@ -18,4 +18,4 @@ Windows / Android 原创单机赌场冒险。内部标识 JinxCasino / jinx_casi
 
 旧P4包仍可恢复：Windows位于 Builds/JinxCasino/P4/StandaloneWindows64/20261002031541-0ee336b5/，只验证解压启动至Hub；Android位于 Builds/JinxCasino/P4/Android/20261002032344-2a4f64cd/Player/，构建检查通过但未真机运行。它们不是新的S1样板包。
 
-代码在 Assets/Scripts/Hotfix/Demos/JinxCasino/，装配在 Hotfix/Editor/JinxCasino/，资源在 Assets/LoadResources/Demos/jinx_casino/。当前模块文档描述原型实际结构；沉浸能力随实现更新，不把设计当已实现。
+代码在 Assets/Scripts/Hotfix/Demos/JinxCasino/，正式平台构建在 Hotfix/Editor/JinxCasino/（一次性装配工具已清理），资源在 Assets/LoadResources/Demos/jinx_casino/。当前模块文档描述原型实际结构；沉浸能力随实现更新，不把设计当已实现。

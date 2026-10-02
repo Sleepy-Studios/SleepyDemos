@@ -9,21 +9,23 @@
 
 联网不属于当前单机验收，选型待定；旧 Photon 配置不作为开发前置条件。
 
-## S1独立样板装配（开发中）
+## S1保存资源维护（开发中）
 
-`Tools/SleepyDemos/整蛊赌场/沉浸样板/创建独立场景与薄HUD`首次保存`Scenes/Immersion.unity`和`JinxCasinoImmersionHudView.prefab`；已有文件不会整包重建，保护人工修改。当前工作分支的Hub赌场入口已切换到Immersion；旧Main场景保留用于恢复原型。新入口与完整流程仍需分别记录实际验证。
+当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、MVC绑定及人工调整，不重新运行临时生成/装配Builder。旧Main场景保留用于恢复原型；新入口与完整流程仍需分别记录实际验证。
 
-`沉浸样板/更新样板玩法范围`只更新独立`Data/ImmersionSettings.asset`的一区、三机台和暂时关闭事件配置，不重建场景或修改旧AdventureSettings。后续接入事件设施后应同步调整本入口与保存资源测试。`沉浸样板/更新交互绑定`分步更新本地胶囊射线层和动态铭牌行高，不重建布局。菜单回显不证明保存成功，核查保存资源和`JinxCasinoImmersionSceneTests`结果。
+玩法范围维护独立`Data/ImmersionSettings.asset`，当前为一区、三机台且暂时关闭事件；不修改旧AdventureSettings。后续接入事件设施时同步本资产与保存资源测试。本地胶囊射线层、操作目标和铭牌行高直接维护保存场景组件，核查序列化引用及`JinxCasinoImmersionSceneTests`结果。
 
 样板初始开放Slots、Blackjack、CooperativeLevers；`InitiallyAvailableGames`仍受`AllowedGames`限制，旧存档缺失该字段时保持原区域解锁。现有自动化覆盖保存引用，不代替三输入实玩、画面或S1用户验收。
 
-`沉浸样板/装配实体补给柜台`在现有大厅售票台上增加三件实体商品、报价牌、购买与库存按钮；已有柜台不会重建。该入口只把新局ImmersionSettings商品范围设置为双人扳手、重抽牌、止损券，旧存档继续使用自身配置。`沉浸样板/调整柜台可读布局`仅更新柜台商品缩放、报价牌位置与聚焦挂点，执行前保存人工修改。两者都复用唯一游戏相机，柜台本身不创建资金或库存服务。
+实体补给柜台已保存在Immersion场景中，维护三件商品、报价牌、购买与库存目标、商品缩放及聚焦挂点。新局商品范围由ImmersionSettings限制为双人扳手、重抽牌、止损券，旧存档继续使用自身配置。柜台复用唯一游戏相机，不创建资金或库存服务。
 
-`沉浸样板/装配互动教学HUD`分步更新既有JinxCasinoImmersionHudView，增加主菜单教学入口、非模态提示、暂停中的跳过/重来/结果入口和共用确认卡。保留原MVC绑定、Prefab GUID及已有场景；Prefab编辑阶段有未保存修改时拒绝执行。保存后核查引用及真实输入回归，不能以菜单回显代替验证。
+互动教学入口、非模态提示、暂停中的跳过/重来/结果入口及共用确认卡均维护于JinxCasinoImmersionHudView。保留原MVC绑定和Prefab GUID，编辑后核查引用与真实输入回归。
 
 开发样板从主菜单选择“互动教学”，按实际动作依次体验水果机、二十一点、柜台扳手和协作拉杆；普通练习入口保持自由游玩。教学最后离开桌面再选择完成，稍后也可从暂停菜单回到教学结果。此练习不推进标准冒险区域，标准局阶段推进和结局仍需单独实玩验证。
 
-`沉浸样板/装配三槽存档HUD`在教学HUD之后执行，保存主菜单“继续存档”、暂停“保存旅程/读取存档”及三槽确认界面，不改存储实现或现有存档。后续重复装配教学HUD会识别已有存档入口，保留四按钮布局和导航。游戏内保存后按选定槽自动保存；未主动选择槽的新局仍不写入任意旧槽。
+主菜单“继续存档”、暂停“保存旅程/读取存档”及三槽确认界面也维护于保存HUD；保留四按钮布局、有效控件导航及独立确认引用。游戏内保存后按选定槽自动保存；未主动选择槽的新局仍不写入任意旧槽。
+
+键鼠、触屏、Xbox通用路由使用`Core.Runtime.Inputs`的GameplayInputRouter/Contracts、MenuInputScope、LocalPauseState、TouchInputPad，维护原则见[玩法输入模块](../../../modules/gameplay-input.md)。Demo仍保存`Data/JinxCasinoImmersion.inputactions`及玩法命令映射；编辑输入资产时保留Map/动作ID和人工键位，不另建EventSystem或菜单提交链。
 
 ## 构建约束
 
@@ -31,13 +33,13 @@ Windows / Android 分别生成对应 HybridCLR 元数据、Hotfix DLL 和 YooAss
 
 Build Settings 继续只保留 AppEntrance。项目已打开时不另起 BatchMode，不用 dotnet build / msbuild 构建 Unity 工程。
 
-## P0 原型装配与离线构建
+## 保存原型资源与离线构建
 
-历史原型恢复使用`生成P2四区冒险`；正式资源通过模型门禁后使用`生成P4正式离线冒险`。两者先将本Demo现有资源和Hub入口备份到`Library/JinxCasino/ContentBaseline`，在独立Additive临时场景装配，成功或失败都恢复用户原活动场景。工具会重新生成本Demo保存模板，不用于覆盖尚需保留的人工美术编辑。
+历史原型恢复使用保留的Main场景、HUD与对应源码/资源基线；维护已保存的四区、机台和正式模型引用，不使用临时P0/P2/P4生成器覆盖现有内容。
 
-正式装配必须核对Console/Editor日志和场景中实际`FormalAvatar`、各机台`FormalVisual`与音源；菜单执行回显不能证明装配成功。P4构建入口为`构建Windows P4离线试玩包`和`构建Android P4离线试玩包`，拒绝尚未装配正式角色的源场景。P4输出在`Builds/JinxCasino/P4/{target}/{version}`，版本0.4.0、标识`com.sleepystudio.jinxcasino`，保留原P0目录及应用标识。构建事务及平台恢复沿用下述经过验证的流程；是否构建成功以最新实际验证记录为准。
+正式资源变更必须核对Console/Editor日志和场景中实际`FormalAvatar`、各机台`FormalVisual`与音源。P4构建入口为`构建Windows P4离线试玩包`和`构建Android P4离线试玩包`，拒绝尚未装配正式角色的源场景。P4输出在`Builds/JinxCasino/P4/{target}/{version}`，版本0.4.0、标识`com.sleepystudio.jinxcasino`，保留原P0目录及应用标识。构建事务及平台恢复沿用下述经过验证的流程；是否构建成功以最新实际验证记录为准。
 
-从 `Tools/SleepyDemos/整蛊赌场/生成P0原型与Hub入口` 生成保存的原型场景、HUD 与 Hub 按钮。已有手工场景/UI修改时不要重新生成；该工具会覆盖本 Demo 原型资源，保留网络设置资产。
+P0场景、HUD与Hub按钮使用已保存资源，网络设置资产单独保留。正式Player构建工具继续维护，资源布局变更不通过临时原型Builder重新生成。
 
 `Tools/SleepyDemos/整蛊赌场/P0离线Player构建` 提供 Windows / Android 构建入口。构建在当前 Editor 串行执行，利用 SessionState 跨目标平台 Domain Reload 继续。必须先完成脚本编译，所有打开场景必须已保存；工具不代为保存或丢弃。
 
@@ -64,9 +66,9 @@ URP 构建预处理会保存目标平台的着色器预过滤配置，并可能�
 Windows构建会校验本机System32的chcp.com签名和哈希，再临时提供给Bee的受限PATH编译进程，事务结束只清理自己创建且哈希一致的副本。校验使用系统Windows PowerShell及其安全模块，PSModulePath仅在校验子进程内限定为系统模块目录；从PowerShell7启动Editor也不依赖其模块自动加载。不修改用户cmd AutoRun、全局PATH或模块路径。
 
 Windows P0已有实际构建与正式入口启动记录；Android、Photon与真机进度以[进度与验证](../progress.md)中实际证据为准。分享Windows版本使用Playable ZIP，开发机保留的DoNotShip目录和初始ZIP不需要分发。
-`沉浸样板/更新桌面规则铭牌`为三台装配独立规则夹板，并按S1Layout更新聚焦挂点；该菜单会重新应用夹板自身布局，不重建机台或大厅。调整后运行JinxCasinoImmersionSceneTests.AllRulesBoardsFitInsideTheirSavedTableView并检查真实聚焦截图。
+三台独立规则夹板、正文引用与聚焦挂点维护于保存场景及对应机台组件，按S1Layout同步源与运行合同。调整后运行JinxCasinoImmersionSceneTests.AllRulesBoardsFitInsideTheirSavedTableView并检查真实聚焦截图。
 
 
-`沉浸样板/装配标准检票与离场入口`保存入口两侧的验票口与离场口，不重建大厅或机台。`沉浸样板/更新入口铭牌可读性`仅重设入口文字/操作件高度及前后关系，执行前处理场景人工修改。`沉浸样板/装配标准结局HUD`在三槽HUD后保存结局与保存/返回控件。
+入口两侧验票口、离场口的文字/操作件高度及前后关系维护于保存场景。标准结局卡及保存/返回控件维护于保存HUD，保持与三槽确认卡独立的引用和取消路径。
 
 标准样板目标达成后按提示前往验票口，再到离场口领取票券；未达标可在离场口两次交互确认撤离。若超时仍有已投入牌局，先回原桌完成；暂停不会耗尽撤离确认窗口。结局可保存在三槽中，再明确返回Hub。此流程的Editor真实输入证据记录于immersion-progress，不替代Player或真机实玩。

@@ -39,6 +39,7 @@
 - `modules/`
   - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
   - [Core.Runtime](./modules/core-runtime.md)
+  - [公共玩法输入](./modules/gameplay-input.md)
   - [热更新模块](./modules/hotfix.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
@@ -59,6 +60,7 @@
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
+  - [接入公共玩法输入](./runbooks/use-gameplay-input.md)
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
   - [接入 Sleepy Loop Scroll](./runbooks/use-loop-scroll.md)

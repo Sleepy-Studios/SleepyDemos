@@ -5,21 +5,21 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.Utilities;
 
-namespace Hotfix.JinxCasino.Adapters.Input
+namespace Core.Runtime.Inputs
 {
-    /// Demo唯一物理输入边界。独占ActionAsset副本，不修改全局资产或Core UI ActionMap。
-    public sealed class JinxCasinoInputRouter : IDisposable
+    /// 宿主独立的物理输入边界。独占ActionAsset副本，不修改全局资产或Core UI ActionMap。
+    public sealed class GameplayInputRouter : IDisposable
     {
         private readonly InputActionAsset asset;
-        private readonly InputActionMap exploration;
-        private readonly InputActionMap table;
+        private readonly InputActionMap gameplayMap;
+        private readonly InputActionMap interactionMap;
         private readonly InputActionMap menu;
         private readonly IDisposable buttonSubscription;
         private readonly HashSet<InputAction> awaitingRelease = new HashSet<InputAction>();
         private readonly Dictionary<InputControl, Vector2> previousPadValues = new Dictionary<InputControl, Vector2>();
         private InputActionMap activeMap;
-        private JinxCasinoInputSettings settings;
-        private JinxCasinoInputActions pending;
+        private GameplayInputSettings settings;
+        private GameplayInputActions pending;
         private bool pendingPointerPress;
         private bool pendingPointerMove;
         private bool hasPointerPosition;
@@ -32,54 +32,58 @@ namespace Hotfix.JinxCasino.Adapters.Input
         private Gamepad activeGamepad;
         private Gamepad rumbleGamepad;
         private float rumbleRemaining;
-        private JinxCasinoInputContext context;
-        private JinxCasinoInputDeviceKind deviceKind;
+        private GameplayInputContext context;
+        private InputDeviceKind deviceKind;
 
         /// 暂停门闩，宿主必须据此冻结领域与场景演出，而不是仅挡移动。
-        public JinxCasinoPauseState PauseState { get; } = new JinxCasinoPauseState();
-        public JinxCasinoInputContext Context => context;
-        public JinxCasinoInputDeviceKind DeviceKind => deviceKind;
-        public JinxCasinoInputSettings Settings => settings.Copy();
+        public LocalPauseState PauseState { get; } = new LocalPauseState();
+        public GameplayInputContext Context => context;
+        public InputDeviceKind DeviceKind => deviceKind;
+        public GameplayInputSettings Settings => settings.Copy();
         /// 更换提示图标或按钮说明；Gamepad遵循标准Xbox A/B/X/Y映射，不排斥兼容手柄。
-        public event Action<JinxCasinoInputDeviceKind> DeviceChanged;
+        public event Action<InputDeviceKind> DeviceChanged;
 
-        /// <summary>克隆已保存的Demo资产并启用Exploration；源资产保持原状态，Dispose释放副本和订阅。</summary>
-        /// <param name="source">包含JinxCasinoInputAsset.Create定义的三张Map，不能传全局Player/UI资产。</param>
+        /// <summary>克隆已保存的宿主资产并启用Gameplay；源资产保持原状态，Dispose释放副本和订阅。</summary>
+        /// <param name="source">宿主保存的动作资产；克隆并只启用指定上下文，不改原资产。</param>
         /// <param name="inputSettings">为空使用默认参数，非法有限值或版本抛出异常。</param>
-        public JinxCasinoInputRouter(InputActionAsset source, JinxCasinoInputSettings inputSettings = null)
+        /// <param name="gameplayMapName">移动、视角和交互入口所在Map，默认Gameplay。</param>
+        /// <param name="interactionMapName">物件选择和确认动作所在Map，默认Interaction。</param>
+        /// <param name="menuMapName">菜单Pause动作所在Map，公共UI独立处理导航。</param>
+        public GameplayInputRouter(InputActionAsset source, GameplayInputSettings inputSettings = null,
+            string gameplayMapName = "Gameplay", string interactionMapName = "Interaction", string menuMapName = "Menu")
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
-            settings = (inputSettings ?? new JinxCasinoInputSettings()).Copy();
+            settings = (inputSettings ?? new GameplayInputSettings()).Copy();
             if (!settings.IsValid) throw new ArgumentException("输入配置无效。", nameof(inputSettings));
-            ValidateAsset(source);
+            ValidateAsset(source, gameplayMapName, interactionMapName, menuMapName);
             asset = UnityEngine.Object.Instantiate(source);
             // devices是运行时属性，Instantiate不依赖它被序列化。测试与限定控制器可在源资产设置白名单。
             asset.devices = source.devices;
-            exploration = asset.FindActionMap("Exploration", true);
-            table = asset.FindActionMap("Table", true);
-            menu = asset.FindActionMap("Menu", true);
-            foreach (var map in asset.actionMaps)
+            gameplayMap = asset.FindActionMap(gameplayMapName, true);
+            interactionMap = asset.FindActionMap(interactionMapName, true);
+            menu = asset.FindActionMap(menuMapName, true);
+            foreach (var map in new[] { gameplayMap, interactionMap, menu })
                 foreach (var action in map.actions) { action.performed += OnPerformed; action.canceled += OnCanceled; }
             asset.Disable();
             PauseState.Changed += OnPauseChanged;
             InputSystem.onDeviceChange += OnDeviceChange;
             buttonSubscription = InputSystem.onAnyButtonPress.Call(OnAnyButtonPress);
-            ActivateContext(JinxCasinoInputContext.Exploration);
+            ActivateContext(GameplayInputContext.Gameplay);
         }
 
         /// <summary>更换输入上下文并清除旧边沿；仍按住的按钮必须释放再按，避免Interact转成Confirm。</summary>
-        /// <param name="value">Exploration用于场地，Table用于物理桌面，Menu仅交给现有UI模块导航。</param>
-        public void SetContext(JinxCasinoInputContext value)
+        /// <param name="value">Gameplay用于移动与视角，Interaction用于物件操作，Menu仅交给现有UI模块导航。</param>
+        public void SetContext(GameplayInputContext value)
         {
             ThrowIfDisposed();
-            if (!Enum.IsDefined(typeof(JinxCasinoInputContext), value)) throw new ArgumentOutOfRangeException(nameof(value));
+            if (!Enum.IsDefined(typeof(GameplayInputContext), value)) throw new ArgumentOutOfRangeException(nameof(value));
             if (context == value && activeMap != null) return;
             ActivateContext(value);
         }
 
-        /// <summary>明确应用经校验的预览或已保存参数；关闭震动立即停止本Demo所发震动。</summary>
+        /// <summary>明确应用经校验的预览或已保存参数；关闭震动立即停止本输入会话所发震动。</summary>
         /// <param name="value">独立有限值副本，坏值拒绝且保留当前参数。</param>
-        public void ApplySettings(JinxCasinoInputSettings value)
+        public void ApplySettings(GameplayInputSettings value)
         {
             ThrowIfDisposed();
             if (value == null || !value.IsValid) throw new ArgumentException("输入配置无效。", nameof(value));
@@ -92,46 +96,46 @@ namespace Hotfix.JinxCasino.Adapters.Input
         public void NotifyMenuDevice(InputDevice device)
         {
             if (disposed) return;
-            if (context == JinxCasinoInputContext.Menu && device != null && IsAllowedDevice(device)) RecordDevice(device);
+            if (context == GameplayInputContext.Menu && device != null && IsAllowedDevice(device)) RecordDevice(device);
         }
 
         /// <summary>每个宿主Update调用一次；暂停时始终返回零连续量，鼠标与触控不乘帧时长。</summary>
         /// <param name="unscaledDeltaSeconds">非负有限的未缩放帧时长，长帧不隐式改变领域时钟。</param>
         /// <param name="mouseDegreesPerPixel">既有GameSettings.LookSensitivity默认0.12。</param>
         /// <param name="pointerLocked">宿主已在探索中锁定光标时为true，允许无需右键转向；默认保留旧右键语义。</param>
-        public JinxCasinoInputFrame ReadFrame(float unscaledDeltaSeconds, float mouseDegreesPerPixel = 0.12f, bool pointerLocked = false)
+        public GameplayInputFrame ReadFrame(float unscaledDeltaSeconds, float mouseDegreesPerPixel = 0.12f, bool pointerLocked = false)
         {
             ThrowIfDisposed();
             if (!Finite(unscaledDeltaSeconds) || unscaledDeltaSeconds < 0 || !Finite(mouseDegreesPerPixel) || mouseDegreesPerPixel < 0)
                 throw new ArgumentOutOfRangeException(nameof(unscaledDeltaSeconds));
             TickRumble(unscaledDeltaSeconds);
             RefreshReleasedButtons();
-            Vector2 keyboardMove = context == JinxCasinoInputContext.Exploration ? exploration["Move"].ReadValue<Vector2>() : Vector2.zero;
-            Vector2 padMove = context == JinxCasinoInputContext.Exploration ? ReadPadVector(exploration["PadMove"]) : Vector2.zero;
-            Vector2 padLook = context == JinxCasinoInputContext.Exploration ? ReadPadVector(exploration["PadLook"]) : Vector2.zero;
-            Vector2 navigation = context == JinxCasinoInputContext.Table ? table["Navigate"].ReadValue<Vector2>() + ReadPadVector(table["PadNavigate"]) : Vector2.zero;
-            Vector2 mouse = context == JinxCasinoInputContext.Exploration && (pointerLocked || !awaitingRelease.Contains(exploration["LookHold"])
-                && exploration["LookHold"].IsPressed()) ? exploration["MouseLook"].ReadValue<Vector2>() : Vector2.zero;
+            Vector2 keyboardMove = context == GameplayInputContext.Gameplay ? gameplayMap["Move"].ReadValue<Vector2>() : Vector2.zero;
+            Vector2 padMove = context == GameplayInputContext.Gameplay ? ReadPadVector(gameplayMap["PadMove"]) : Vector2.zero;
+            Vector2 padLook = context == GameplayInputContext.Gameplay ? ReadPadVector(gameplayMap["PadLook"]) : Vector2.zero;
+            Vector2 navigation = context == GameplayInputContext.Interaction ? interactionMap["Navigate"].ReadValue<Vector2>() + ReadPadVector(interactionMap["PadNavigate"]) : Vector2.zero;
+            Vector2 mouse = context == GameplayInputContext.Gameplay && (pointerLocked || !awaitingRelease.Contains(gameplayMap["LookHold"])
+                && gameplayMap["LookHold"].IsPressed()) ? gameplayMap["MouseLook"].ReadValue<Vector2>() : Vector2.zero;
             Vector2 touchDelta = touchLook; touchLook = Vector2.zero;
             if (mouse.sqrMagnitude > 0.01f)
-                SetDevice(JinxCasinoInputDeviceKind.KeyboardMouse);
+                SetDevice(InputDeviceKind.KeyboardMouse);
             if (continuousSuppressed && keyboardMove.sqrMagnitude + padMove.sqrMagnitude + padLook.sqrMagnitude + navigation.sqrMagnitude + touchMove.sqrMagnitude < 0.0001f)
                 continuousSuppressed = false;
-            var frame = new JinxCasinoInputFrame { DeviceKind = deviceKind, IsPaused = PauseState.IsPaused };
+            var frame = new GameplayInputFrame { DeviceKind = deviceKind, IsPaused = PauseState.IsPaused };
             bool pointerPressed = pendingPointerPress; pendingPointerPress = false;
             bool pointerMoved = pendingPointerMove; pendingPointerMove = false;
             if (PauseState.IsPaused || continuousSuppressed) return frame;
             // 模态关闭/光标重新锁定可能产生warp增量，第一次恢复采样只丢弃增量，不吞真实离散按键。
             if (skipLookDelta) { mouse = touchDelta = Vector2.zero; skipLookDelta = false; }
-            if (context == JinxCasinoInputContext.Exploration)
+            if (context == GameplayInputContext.Gameplay)
             {
                 frame.Move = Vector2.ClampMagnitude(keyboardMove + padMove + touchMove, 1);
-                frame.LookDegrees = JinxCasinoInputMath.LookDegrees(mouse, touchDelta, padLook, unscaledDeltaSeconds, mouseDegreesPerPixel, settings);
+                frame.LookDegrees = GameplayInputMath.LookDegrees(mouse, touchDelta, padLook, unscaledDeltaSeconds, mouseDegreesPerPixel, settings);
             }
-            else if (context == JinxCasinoInputContext.Table)
+            else if (context == GameplayInputContext.Interaction)
             {
-                frame.TableNavigation = Vector2.ClampMagnitude(navigation, 1);
-                frame.PointerPosition = table["Point"].ReadValue<Vector2>();
+                frame.InteractionNavigation = Vector2.ClampMagnitude(navigation, 1);
+                frame.PointerPosition = interactionMap["Point"].ReadValue<Vector2>();
                 frame.PointerPressed = pointerPressed;
                 frame.PointerMoved = pointerMoved;
             }
@@ -139,11 +143,11 @@ namespace Hotfix.JinxCasino.Adapters.Input
         }
 
         /// 读取并清空离散动作。每次物理按下最多交付一次；Menu从不交付Confirm/Back/导航。
-        public JinxCasinoInputActions ConsumeActions()
+        public GameplayInputActions ConsumeActions()
         {
             ThrowIfDisposed();
-            var value = pending; pending = JinxCasinoInputActions.None;
-            return PauseState.IsPaused ? value & JinxCasinoInputActions.Pause : value;
+            var value = pending; pending = GameplayInputActions.None;
+            return PauseState.IsPaused ? value & GameplayInputActions.Pause : value;
         }
 
         /// 光标重新锁定时丢弃下一次鼠标/触屏增量，避免系统居中造成视角跳跃。
@@ -157,20 +161,20 @@ namespace Hotfix.JinxCasino.Adapters.Input
         {
             ThrowIfDisposed();
             if (!Finite(move.x) || !Finite(move.y) || !Finite(lookDelta.x) || !Finite(lookDelta.y)) throw new ArgumentException("触屏输入必须为有限值。");
-            if (hadActivity) SetDevice(JinxCasinoInputDeviceKind.Touch);
-            if (context != JinxCasinoInputContext.Exploration || PauseState.IsPaused) { touchMove = touchLook = Vector2.zero; return; }
+            if (hadActivity) SetDevice(InputDeviceKind.Touch);
+            if (context != GameplayInputContext.Gameplay || PauseState.IsPaused) { touchMove = touchLook = Vector2.zero; return; }
             touchMove = Vector2.ClampMagnitude(move, 1); touchLook += lookDelta;
         }
 
         /// <summary>触屏虚拟按钮或物理桌面指针统一注入一个离散动作，不代为执行按钮或领域资金操作。</summary>
         /// <param name="action">本上下文允许的单一动作，组合或未定义位拒绝。</param>
         /// <returns>本次输入入队成功；UI菜单Submit/Cancel必须继续由Core模块处理。</returns>
-        public bool QueueTouchAction(JinxCasinoInputActions action)
+        public bool QueueTouchAction(GameplayInputActions action)
         {
             ThrowIfDisposed();
             int numeric = (int)action;
-            if (numeric <= 0 || (numeric & (numeric - 1)) != 0 || !Allowed(action) || PauseState.IsPaused && action != JinxCasinoInputActions.Pause) return false;
-            SetDevice(JinxCasinoInputDeviceKind.Touch); pending |= action; return true;
+            if (numeric <= 0 || (numeric & (numeric - 1)) != 0 || !Allowed(action) || PauseState.IsPaused && action != GameplayInputActions.Pause) return false;
+            SetDevice(InputDeviceKind.Touch); pending |= action; return true;
         }
 
         /// <summary>播放可选短震动；仅作用于最近实际使用的手柄，暂停/断连/设备切换/Dispose停止。</summary>
@@ -182,7 +186,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
             ThrowIfDisposed();
             if (!Finite(lowFrequency) || !Finite(highFrequency) || lowFrequency < 0 || lowFrequency > 1 || highFrequency < 0 || highFrequency > 1
                 || !Finite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 2) throw new ArgumentOutOfRangeException(nameof(durationSeconds));
-            if (!settings.RumbleEnabled || settings.RumbleStrength == 0 || PauseState.IsPaused || deviceKind != JinxCasinoInputDeviceKind.Gamepad
+            if (!settings.RumbleEnabled || settings.RumbleStrength == 0 || PauseState.IsPaused || deviceKind != InputDeviceKind.Gamepad
                 || activeGamepad == null || !activeGamepad.added || !activeGamepad.enabled) return false;
             StopRumble(); rumbleGamepad = activeGamepad; rumbleRemaining = durationSeconds;
             rumbleGamepad.SetMotorSpeeds(lowFrequency * settings.RumbleStrength, highFrequency * settings.RumbleStrength); return true;
@@ -202,18 +206,18 @@ namespace Hotfix.JinxCasino.Adapters.Input
             if (disposed) return;
             disposed = true; StopRumble(); buttonSubscription.Dispose();
             InputSystem.onDeviceChange -= OnDeviceChange; PauseState.Changed -= OnPauseChanged;
-            foreach (var map in asset.actionMaps)
+            foreach (var map in new[] { gameplayMap, interactionMap, menu })
                 foreach (var action in map.actions) { action.performed -= OnPerformed; action.canceled -= OnCanceled; }
-            asset.Disable(); awaitingRelease.Clear(); previousPadValues.Clear(); pending = JinxCasinoInputActions.None;
+            asset.Disable(); awaitingRelease.Clear(); previousPadValues.Clear(); pending = GameplayInputActions.None;
             if (Application.isPlaying) UnityEngine.Object.Destroy(asset); else UnityEngine.Object.DestroyImmediate(asset);
         }
 
-        private void ActivateContext(JinxCasinoInputContext value)
+        private void ActivateContext(GameplayInputContext value)
         {
-            asset.Disable(); context = value; pending = JinxCasinoInputActions.None; pendingPointerPress = false; pendingPointerMove = false;
+            asset.Disable(); context = value; pending = GameplayInputActions.None; pendingPointerPress = false; pendingPointerMove = false;
             hasPointerPosition = false;
             touchMove = touchLook = Vector2.zero; awaitingRelease.Clear(); continuousSuppressed = true; skipLookDelta = true;
-            activeMap = value == JinxCasinoInputContext.Exploration ? exploration : value == JinxCasinoInputContext.Table ? table : menu;
+            activeMap = value == GameplayInputContext.Gameplay ? gameplayMap : value == GameplayInputContext.Interaction ? interactionMap : menu;
             CaptureHeldButtons(); activeMap.Enable();
         }
 
@@ -238,7 +242,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
                 if (!PauseState.IsPaused) pendingPointerPress = true;
                 return;
             }
-            if (TryAction(callback.action.name, out var action) && Allowed(action) && (!PauseState.IsPaused || action == JinxCasinoInputActions.Pause)) pending |= action;
+            if (TryAction(callback.action.name, out var action) && Allowed(action) && (!PauseState.IsPaused || action == GameplayInputActions.Pause)) pending |= action;
         }
 
         private void OnCanceled(InputAction.CallbackContext callback) => awaitingRelease.Remove(callback.action);
@@ -246,16 +250,16 @@ namespace Hotfix.JinxCasino.Adapters.Input
 
         private void RecordDevice(InputDevice device)
         {
-            if (device is Gamepad gamepad) { activeGamepad = gamepad; SetDevice(JinxCasinoInputDeviceKind.Gamepad); }
-            else if (device is Touchscreen) SetDevice(JinxCasinoInputDeviceKind.Touch);
-            else if (device is Keyboard || device is Mouse) SetDevice(JinxCasinoInputDeviceKind.KeyboardMouse);
+            if (device is Gamepad gamepad) { activeGamepad = gamepad; SetDevice(InputDeviceKind.Gamepad); }
+            else if (device is Touchscreen) SetDevice(InputDeviceKind.Touch);
+            else if (device is Keyboard || device is Mouse) SetDevice(InputDeviceKind.KeyboardMouse);
         }
 
-        private void SetDevice(JinxCasinoInputDeviceKind value)
+        private void SetDevice(InputDeviceKind value)
         {
-            if (value != JinxCasinoInputDeviceKind.Gamepad) PauseState.SetGamepadAvailable(true);
+            if (value != InputDeviceKind.Gamepad) PauseState.SetGamepadAvailable(true);
             if (deviceKind == value) return;
-            if (value != JinxCasinoInputDeviceKind.Gamepad) StopRumble();
+            if (value != InputDeviceKind.Gamepad) StopRumble();
             deviceKind = value; DeviceChanged?.Invoke(value);
         }
 
@@ -266,8 +270,8 @@ namespace Hotfix.JinxCasino.Adapters.Input
             {
                 if (!(control.device is Gamepad gamepad) || !gamepad.added || !gamepad.enabled) continue;
                 Vector2 value;
-                // 绕过设备布局自带stickDeadzone，再应用本Demo参数一次；不能把死区处理重复叠加。
-                if (control is StickControl stick) value = JinxCasinoInputMath.ApplyDeadzone(stick.ReadUnprocessedValue(), settings.GamepadDeadzone, settings.GamepadMaximum);
+                // 绕过设备布局自带stickDeadzone，再应用本输入会话参数一次；不能把死区处理重复叠加。
+                if (control is StickControl stick) value = GameplayInputMath.ApplyDeadzone(stick.ReadUnprocessedValue(), settings.GamepadDeadzone, settings.GamepadMaximum);
                 else if (control is Vector2Control vector) value = vector.ReadValue();
                 else continue;
                 previousPadValues.TryGetValue(control, out Vector2 previous);
@@ -277,7 +281,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
                 strongest = value;
             }
             // 持续按住的摇杆不抢回刚切换的键鼠提示；只有实际变化且越过死区才更换设备。
-            if (changedSource != null) { activeGamepad = changedSource; SetDevice(JinxCasinoInputDeviceKind.Gamepad); }
+            if (changedSource != null) { activeGamepad = changedSource; SetDevice(InputDeviceKind.Gamepad); }
             return strongest;
         }
 
@@ -293,7 +297,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
         {
             if (!(device is Gamepad gamepad)) return;
             bool unavailable = change == InputDeviceChange.Removed || change == InputDeviceChange.Disconnected || change == InputDeviceChange.Disabled;
-            if (unavailable && device == activeGamepad && deviceKind == JinxCasinoInputDeviceKind.Gamepad)
+            if (unavailable && device == activeGamepad && deviceKind == InputDeviceKind.Gamepad)
                 PauseState.SetGamepadAvailable(false);
             else if (IsAllowedDevice(device) && (change == InputDeviceChange.Added || change == InputDeviceChange.Reconnected || change == InputDeviceChange.Enabled))
             {
@@ -304,7 +308,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
 
         private void OnPauseChanged()
         {
-            pending = JinxCasinoInputActions.None; pendingPointerPress = false; pendingPointerMove = false; touchMove = touchLook = Vector2.zero;
+            pending = GameplayInputActions.None; pendingPointerPress = false; pendingPointerMove = false; touchMove = touchLook = Vector2.zero;
             continuousSuppressed = true; skipLookDelta = true; CaptureHeldButtons(); StopRumble();
         }
 
@@ -325,26 +329,30 @@ namespace Hotfix.JinxCasino.Adapters.Input
             return false;
         }
 
-        private bool Allowed(JinxCasinoInputActions action) => action == JinxCasinoInputActions.Pause ||
-            context == JinxCasinoInputContext.Exploration && action == JinxCasinoInputActions.Interact ||
-            context == JinxCasinoInputContext.Table && (action == JinxCasinoInputActions.Confirm || action == JinxCasinoInputActions.Back
-                || action == JinxCasinoInputActions.Secondary || action == JinxCasinoInputActions.Help
-                || action == JinxCasinoInputActions.PreviousGroup || action == JinxCasinoInputActions.NextGroup);
+        private bool Allowed(GameplayInputActions action) => action == GameplayInputActions.Pause ||
+            context == GameplayInputContext.Gameplay && action == GameplayInputActions.Interact ||
+            context == GameplayInputContext.Interaction && (action == GameplayInputActions.Confirm || action == GameplayInputActions.Back
+                || action == GameplayInputActions.Secondary || action == GameplayInputActions.Help
+                || action == GameplayInputActions.PreviousGroup || action == GameplayInputActions.NextGroup);
 
-        private static bool TryAction(string name, out JinxCasinoInputActions action)
-            => Enum.TryParse(name, out action) && action != JinxCasinoInputActions.None;
+        private static bool TryAction(string name, out GameplayInputActions action)
+            => Enum.TryParse(name, out action) && action != GameplayInputActions.None;
         private void TickRumble(float delta) { if (rumbleGamepad != null && (rumbleRemaining -= delta) <= 0) StopRumble(); }
         private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
-        private void ThrowIfDisposed() { if (disposed) throw new ObjectDisposedException(nameof(JinxCasinoInputRouter)); }
+        private void ThrowIfDisposed() { if (disposed) throw new ObjectDisposedException(nameof(GameplayInputRouter)); }
 
-        private static void ValidateAsset(InputActionAsset value)
+        private static void ValidateAsset(InputActionAsset value, string gameplay, string interaction, string menu)
         {
-            var required = new[] {
-                "Exploration/Move", "Exploration/PadMove", "Exploration/MouseLook", "Exploration/LookHold", "Exploration/PadLook", "Exploration/Interact", "Exploration/Pause",
-                "Table/Point", "Table/Click", "Table/Navigate", "Table/PadNavigate", "Table/Confirm", "Table/Back", "Table/Secondary", "Table/Help", "Table/PreviousGroup", "Table/NextGroup", "Table/Pause", "Menu/Pause" };
-            foreach (string path in required) value.FindAction(path, true);
-            if (value.actionMaps.Count != 3 || value.FindActionMap("Menu", true).actions.Count != 1)
-                throw new ArgumentException("必须传Demo三张Map，Menu禁止重复Submit/Cancel/Navigate。", nameof(value));
+            if (string.IsNullOrWhiteSpace(gameplay) || string.IsNullOrWhiteSpace(interaction) || string.IsNullOrWhiteSpace(menu)
+                || gameplay == interaction || gameplay == menu || interaction == menu)
+                throw new ArgumentException("输入上下文必须使用三个不同的有效Map名称。");
+            foreach (string name in new[] { "Move", "PadMove", "MouseLook", "LookHold", "PadLook", "Interact", "Pause" })
+                value.FindActionMap(gameplay, true).FindAction(name, true);
+            foreach (string name in new[] { "Point", "Click", "Navigate", "PadNavigate", "Confirm", "Back", "Secondary", "Help", "PreviousGroup", "NextGroup", "Pause" })
+                value.FindActionMap(interaction, true).FindAction(name, true);
+            var menuMap = value.FindActionMap(menu, true); menuMap.FindAction("Pause", true);
+            if (menuMap.actions.Count != 1)
+                throw new ArgumentException("菜单Map只提供Pause；Submit/Cancel/Navigate由公共UI模块处理。", nameof(value));
         }
     }
 }

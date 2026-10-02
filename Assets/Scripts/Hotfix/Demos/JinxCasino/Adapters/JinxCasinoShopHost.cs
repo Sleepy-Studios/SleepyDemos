@@ -1,7 +1,7 @@
 using System;
 using Hotfix.JinxCasino.Rules;
 using System.Collections.Generic;
-using Hotfix.JinxCasino.Adapters.Input;
+using Core.Runtime.Inputs;
 using UnityEngine;
 
 namespace Hotfix.JinxCasino.Adapters
@@ -36,7 +36,7 @@ namespace Hotfix.JinxCasino.Adapters
             focusedShopTargets = focusedShop.Targets;
             foreach (var target in focusedShopTargets) { target.BindPresentationClock(PresentationClock); target.Invoked += OnShopTargetInvoked; }
             tableSelection.Bind(focusedShop.transform, focusedShop.Targets);
-            RefreshImmersionShop(); ApplyImmersionContext(JinxCasinoInputContext.Table); ImmersionInputChanged?.Invoke();
+            RefreshImmersionShop(); ApplyImmersionContext(GameplayInputContext.Interaction); ImmersionInputChanged?.Invoke();
             return true;
         }
 

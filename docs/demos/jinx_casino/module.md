@@ -2,7 +2,7 @@
 
 ## 职责和边界
 
-`Hotfix.JinxCasino` 负责赌场规则、筹码、机台、道具、事件、阶段目标、结局和宿主适配。Core提供通用启动、资源、UI和历史会话边界，不引用赌场业务类型。当前目标为单机沉浸重做，联网方案待定。
+`Hotfix.JinxCasino` 负责赌场规则、筹码、机台、道具、事件、阶段目标、结局和宿主适配。Core提供通用启动、资源、UI、玩法输入和历史会话边界，不引用赌场业务类型。公共输入职责见[玩法输入模块](../../modules/gameplay-input.md)。当前目标为单机沉浸重做，联网方案待定。
 
 旧Fusion/AOT桥接设想保留于历史需求，不作为当前实现承诺或单机依赖。
 
@@ -66,11 +66,11 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 ## 三设备输入基础（已接入宿主，硬件待验）
 
-Adapters/Input使用独立JinxCasinoImmersion.inputactions；InputRouter克隆资产，Exploration/Table/Menu切换清边沿，ReadFrame必须每帧调用以释放长按门闩，再ConsumeActions一次。鼠标/触屏是增量，手柄是角速度，LookDegrees已完成换算。MenuInputScope借用Core EventSystem，等Submit/Cancel/导航释放后开放菜单导航；桌面独立焦点，不双提交。
+通用输入位于`Core.Runtime.Inputs`，由`GameplayInputRouter`及Contracts、`MenuInputScope`、`LocalPauseState`、`TouchInputPad`承担，生命周期和设备语义见[玩法输入模块](../../modules/gameplay-input.md)。Demo继续保存独立`JinxCasinoImmersion.inputactions`及玩法命令映射，将Exploration/Table/Menu分别映射到公共Gameplay/Interaction/Menu上下文。Router克隆资产，切换清边沿，ReadFrame必须每帧调用以释放长按门闩，再ConsumeActions一次。鼠标/触屏是增量，手柄是角速度，LookDegrees已完成换算。菜单借用Core EventSystem，等Submit/Cancel/导航释放后开放导航；桌面独立焦点，不双提交。
 
-PauseState记录后台/失焦/手柄断连并要求显式继续；它只提供状态，宿主仍须冻结领域、移动和各演出时钟。不能仅挡移动或disable SceneEffects后宣称暂停完成。Dispose先MenuScope后Router，恢复公共导航并停止本Demo震动。
+LocalPauseState记录后台/失焦/手柄断连并要求显式继续；它只提供状态，宿主仍须冻结领域、移动和各演出时钟。不能仅挡移动或disable SceneEffects后宣称暂停完成。Dispose先MenuScope后Router，恢复公共导航并停止本Demo震动。
 
-Hotfix.Editor新增菜单“Tools/SleepyDemos/整蛊赌场/沉浸样板/创建或检查输入配置”，仅首次创建，已存在时校验而不覆盖自定义键位。输入配置和Editor所需Unity.InputSystem引用已保存；未改全局InputSystem_Actions。
+输入配置维护保存资产`Assets/LoadResources/Demos/jinx_casino/Data/JinxCasinoImmersion.inputactions`，保留已有Map、动作ID及人工键位，不重写全局InputSystem_Actions。场景、HUD、交互挂点和材质维护各自保存资源；临时生成/装配Builder不作为维护入口，具体路径见[运行与维护](runbooks/run.md)。
 
 ## 手柄本机偏好
 
@@ -78,9 +78,9 @@ CasinoLocalPreferences版本2保留全部旧字段，增加手柄死区、最大
 
 数据存储已接入，手柄设置控件与实际输入宿主仍在S1整合中，不能据此声明硬件设置体验完成。
 
-桌面指针统一由InputRouter.ReadFrame返回PointerPosition/PointerPressed，后者单次消费；鼠标/触屏共用Pointer绑定，菜单不将其二次转成Confirm。上下文切换、暂停清空待处理点击，已有按住输入须释放。实体宿主使用本地相机ScreenPointToRay交给TableSelection；输入基础本身不直接修改筹码。
+桌面指针统一由GameplayInputRouter.ReadFrame返回PointerPosition/PointerPressed，后者单次消费；鼠标/触屏共用Pointer绑定，菜单不将其二次转成Confirm。上下文切换、暂停清空待处理点击，已有按住输入须释放。实体宿主使用本地相机ScreenPointToRay交给TableSelection；输入基础本身不直接修改筹码。
 
-输入装配菜单仅补缺失的Point/Click，保留已有动作ID与人工键位。PlayMode路由测试读取实际保存的.inputactions；合成设备使用临时InputSettings让输入送入Game View，结束恢复原设置，避免测试操作者的Editor焦点影响事件路由。正式后台/断连暂停规则不改变，仍待宿主与真机验收。
+调整保存的.inputactions时保留Point/Click等宿主所需动作及已有ID。PlayMode路由测试读取实际保存资产；合成设备使用临时InputSettings让输入送入Game View，结束恢复原设置，避免测试操作者的Editor焦点影响事件路由。正式后台/断连暂停规则不改变，仍待宿主与真机验收。
 
 ## 三款桌面规则适配
 
@@ -109,7 +109,7 @@ SetImmersionMenuState可选取消回调仅在菜单打开时保存。Core Cancel
 
 ## 沉浸HUD的三槽存档
 
-JinxCasinoImmersionHudSave复用GetSaveSlotInfo、SaveAdventure和LoadAdventure；不另建文件格式或存储目录。主菜单读取、暂停保存/读取共用三槽列表；空槽禁用读取，覆盖已有槽及替换当前局先进入确认卡。取消只退当前层级并保留暂停，读取成功后显式继续，后台/手柄断连仍由PauseState阻止恢复。
+JinxCasinoImmersionHudSave复用GetSaveSlotInfo、SaveAdventure和LoadAdventure；不另建文件格式或存储目录。主菜单读取、暂停保存/读取共用三槽列表；空槽禁用读取，覆盖已有槽及替换当前局先进入确认卡。取消只退当前层级并保留暂停，读取成功后显式继续，后台/手柄断连仍由LocalPauseState阻止恢复。
 
 槽摘要仅在打开和操作后重读，包含模式、区域、筹码、时间及备份恢复提示。确认前重新读取可用性，并核对打开列表时的RunId，避免界面旧选择写入另一个新局。保存后继续使用选定槽的原自动保存契约。Core Cancel和手柄Menu统一经过CancelSaveWindow，未打开存档时交回教学/暂停逻辑；自身按帧去重，菜单销毁清理监听。
 
