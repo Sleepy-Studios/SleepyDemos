@@ -64,3 +64,7 @@ Unity Test Runner：CasinoStationIdentityTests 5eaebcd1，4/4；CasinoAdventureT
 ## 三款桌面玩法适配
 
 JinxCasinoTableSessionTests作业ab91c93f，EditMode7/7通过：Slots明确拉柄/幂等、筹码面额与同帧去重、准备规则变化失效、Blackjack要停牌与离返、Levers真实窗口/NPC边界、旧局认领及公开投影隔离、较早存档拒绝重试旧成功请求。源使用真实CasinoAdventureSession，没有第二套开奖。宿主输入/聚焦连接已写入工作区，正在独立审查和装配，尚未正式实玩验收。
+
+## S1独立模型导入
+
+三款桌面规则适配已推送c75190e。新S1Slots/S1Blackjack/S1Levers/S1Hall进入Art/Immersion独立目录，Source与FBX的SHA256一致，独立12共享URP材质未改旧原型palette。JinxCasinoImmersionModelTests作业b2ddc5da，EditMode5/5：四模型无轴向/缩放补偿、无导入相机/Collider、材质引用、单模型面数预算，以及22个操作物件真实Unity坐标。总源面数101871含全牌库，非单帧绘制量。尚未以Unity场景画面验收，DCC预览不能替代。

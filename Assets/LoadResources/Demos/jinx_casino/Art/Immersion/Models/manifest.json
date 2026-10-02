@@ -1,0 +1,2320 @@
+{
+  "stage": "S1 immersion candidate",
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "sourceFront": "-Y",
+  "sourceUp": "+Z",
+  "sourceRight": "-X",
+  "unityFront": "+Z",
+  "unityUp": "+Y",
+  "unityRight": "+X",
+  "hierarchyBake": "G*sourceLocal*inverse(G)",
+  "export": {
+    "axisForward": "-Z",
+    "axisUp": "Y",
+    "applyUnitScale": true,
+    "bakeSpaceTransform": true,
+    "cameras": false,
+    "lights": false,
+    "animations": false
+  },
+  "palette": {
+    "InkBlue": "14213B",
+    "PlumRed": "AD315D",
+    "CreamYellow": "F4DC9A",
+    "Mint": "54C4AD",
+    "CopperGold": "BE8C50",
+    "FaceInk": "101623",
+    "PaperLight": "FFF1CB",
+    "color_blue": "36A8FF",
+    "color_pink": "FF6BA9",
+    "color_mint": "56DFB0",
+    "color_gold": "F5CA57",
+    "color_violet": "A57AFF"
+  },
+  "blueprint": {
+    "version": 1,
+    "sourceStatus": "DCC_candidate_exported_Unity_gate_pending",
+    "roomWidth": 13.2,
+    "roomDepth": 12.6,
+    "roomHeight": 4.6,
+    "roomCenter": [
+      0,
+      0,
+      0.5
+    ],
+    "spawn": [
+      0,
+      0,
+      -4.6
+    ],
+    "stations": [
+      {
+        "id": "s1.fruit",
+        "game": 0,
+        "model": "S1Slots",
+        "position": [
+          -3.45,
+          0,
+          1.55
+        ],
+        "yaw": 160,
+        "approach": [
+          0,
+          0,
+          1.75
+        ],
+        "focus": [
+          0,
+          1.6,
+          2.25
+        ],
+        "lookAt": [
+          0,
+          1.48,
+          0.1
+        ],
+        "fieldOfView": 50,
+        "bodyCenter": [
+          0,
+          1.1,
+          -0.15
+        ],
+        "bodySize": [
+          1.9,
+          2.2,
+          1.2
+        ],
+        "targets": [
+          {
+            "id": "chip10",
+            "action": "ChipAdd",
+            "value": 10,
+            "order": 10,
+            "node": "Slots.Chip10",
+            "position": [
+              0.58,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.22,
+              0.14,
+              0.22
+            ]
+          },
+          {
+            "id": "chip50",
+            "action": "ChipAdd",
+            "value": 50,
+            "order": 20,
+            "node": "Slots.Chip50",
+            "position": [
+              0.29,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.22,
+              0.14,
+              0.22
+            ]
+          },
+          {
+            "id": "chip100",
+            "action": "ChipAdd",
+            "value": 100,
+            "order": 30,
+            "node": "Slots.Chip100",
+            "position": [
+              0,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.22,
+              0.14,
+              0.22
+            ]
+          },
+          {
+            "id": "clear",
+            "action": "ChipClear",
+            "value": 0,
+            "order": 40,
+            "node": "Slots.ClearPlate",
+            "position": [
+              -0.36,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.28,
+              0.1,
+              0.22
+            ]
+          },
+          {
+            "id": "commit",
+            "action": "Commit",
+            "value": 0,
+            "order": 50,
+            "node": "Slots.CoinInsert",
+            "position": [
+              0.64,
+              1.32,
+              0.59
+            ],
+            "size": [
+              0.24,
+              0.22,
+              0.12
+            ]
+          },
+          {
+            "id": "primary",
+            "action": "Primary",
+            "value": 0,
+            "order": 60,
+            "node": "Slots.HandleGrip",
+            "position": [
+              -1.08,
+              1.74,
+              0.61
+            ],
+            "size": [
+              0.3,
+              0.28,
+              0.24
+            ]
+          },
+          {
+            "id": "help",
+            "action": "Help",
+            "value": 0,
+            "order": 90,
+            "node": "Slots.RulePlate",
+            "position": [
+              -0.67,
+              1.33,
+              0.59
+            ],
+            "size": [
+              0.38,
+              0.2,
+              0.1
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s1.cards",
+        "game": 3,
+        "model": "S1Blackjack",
+        "position": [
+          0,
+          0,
+          3.2
+        ],
+        "yaw": 180,
+        "approach": [
+          0,
+          0,
+          1.65
+        ],
+        "focus": [
+          0,
+          1.72,
+          1.55
+        ],
+        "lookAt": [
+          0,
+          1.19,
+          -0.1
+        ],
+        "fieldOfView": 52,
+        "bodyCenter": [
+          0,
+          0.565,
+          0
+        ],
+        "bodySize": [
+          2.68,
+          1.13,
+          1.6
+        ],
+        "targets": [
+          {
+            "id": "chip10",
+            "action": "ChipAdd",
+            "value": 10,
+            "order": 10,
+            "node": "Blackjack.Chip10",
+            "position": [
+              -1.1,
+              1.23,
+              0.02
+            ],
+            "size": [
+              0.22,
+              0.18,
+              0.22
+            ]
+          },
+          {
+            "id": "chip50",
+            "action": "ChipAdd",
+            "value": 50,
+            "order": 20,
+            "node": "Blackjack.Chip50",
+            "position": [
+              -0.83,
+              1.23,
+              0.02
+            ],
+            "size": [
+              0.22,
+              0.18,
+              0.22
+            ]
+          },
+          {
+            "id": "chip100",
+            "action": "ChipAdd",
+            "value": 100,
+            "order": 30,
+            "node": "Blackjack.Chip100",
+            "position": [
+              -0.56,
+              1.23,
+              0.02
+            ],
+            "size": [
+              0.22,
+              0.18,
+              0.22
+            ]
+          },
+          {
+            "id": "clear",
+            "action": "ChipClear",
+            "value": 0,
+            "order": 40,
+            "node": "Blackjack.ClearPlate",
+            "position": [
+              -0.83,
+              1.17,
+              0.35
+            ],
+            "size": [
+              0.36,
+              0.1,
+              0.24
+            ]
+          },
+          {
+            "id": "commit",
+            "action": "Commit",
+            "value": 0,
+            "order": 50,
+            "node": "Blackjack.BetCircle",
+            "position": [
+              -0.52,
+              1.17,
+              0.64
+            ],
+            "size": [
+              0.38,
+              0.1,
+              0.26
+            ]
+          },
+          {
+            "id": "primary",
+            "action": "Primary",
+            "value": 0,
+            "order": 60,
+            "node": "Blackjack.HitTile",
+            "position": [
+              0.5,
+              1.17,
+              0.64
+            ],
+            "size": [
+              0.43,
+              0.1,
+              0.26
+            ]
+          },
+          {
+            "id": "secondary",
+            "action": "Secondary",
+            "value": 0,
+            "order": 70,
+            "node": "Blackjack.StandTile",
+            "position": [
+              0.02,
+              1.17,
+              0.64
+            ],
+            "size": [
+              0.43,
+              0.1,
+              0.26
+            ]
+          },
+          {
+            "id": "help",
+            "action": "Help",
+            "value": 0,
+            "order": 90,
+            "node": "Blackjack.RulePlate",
+            "position": [
+              1.05,
+              1.32,
+              -0.25
+            ],
+            "size": [
+              0.34,
+              0.2,
+              0.16
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s1.sync",
+        "game": 10,
+        "model": "S1Levers",
+        "position": [
+          3.45,
+          0,
+          1.55
+        ],
+        "yaw": 200,
+        "approach": [
+          0.1,
+          0,
+          1.75
+        ],
+        "focus": [
+          0.1,
+          1.6,
+          2.08
+        ],
+        "lookAt": [
+          0,
+          1.48,
+          0.13
+        ],
+        "fieldOfView": 48,
+        "bodyCenter": [
+          0,
+          1.0,
+          -0.18
+        ],
+        "bodySize": [
+          2.35,
+          2.0,
+          1.06
+        ],
+        "targets": [
+          {
+            "id": "chip10",
+            "action": "ChipAdd",
+            "value": 10,
+            "order": 10,
+            "node": "CooperativeLevers.Chip10",
+            "position": [
+              0.65,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.24,
+              0.14,
+              0.22
+            ]
+          },
+          {
+            "id": "chip50",
+            "action": "ChipAdd",
+            "value": 50,
+            "order": 20,
+            "node": "CooperativeLevers.Chip50",
+            "position": [
+              0.32,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.24,
+              0.14,
+              0.22
+            ]
+          },
+          {
+            "id": "chip100",
+            "action": "ChipAdd",
+            "value": 100,
+            "order": 30,
+            "node": "CooperativeLevers.Chip100",
+            "position": [
+              0,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.24,
+              0.14,
+              0.22
+            ]
+          },
+          {
+            "id": "clear",
+            "action": "ChipClear",
+            "value": 0,
+            "order": 40,
+            "node": "CooperativeLevers.ClearPlate",
+            "position": [
+              -0.36,
+              1.17,
+              0.85
+            ],
+            "size": [
+              0.28,
+              0.1,
+              0.22
+            ]
+          },
+          {
+            "id": "commit",
+            "action": "Commit",
+            "value": 0,
+            "order": 50,
+            "node": "CooperativeLevers.StartPlate",
+            "position": [
+              0,
+              1.28,
+              0.65
+            ],
+            "size": [
+              0.36,
+              0.12,
+              0.16
+            ]
+          },
+          {
+            "id": "primary",
+            "action": "Primary",
+            "value": 0,
+            "order": 60,
+            "node": "CooperativeLevers.PlayerHandle",
+            "position": [
+              0.55,
+              1.6,
+              0.58
+            ],
+            "size": [
+              0.3,
+              0.28,
+              0.24
+            ]
+          },
+          {
+            "id": "help",
+            "action": "Help",
+            "value": 0,
+            "order": 90,
+            "node": "CooperativeLevers.RulePlate",
+            "position": [
+              -0.81,
+              1.31,
+              0.53
+            ],
+            "size": [
+              0.38,
+              0.2,
+              0.1
+            ]
+          }
+        ]
+      }
+    ],
+    "decorColliders": [
+      {
+        "name": "TicketBoothCollision",
+        "position": [
+          -4.85,
+          0.6,
+          -3.6
+        ],
+        "size": [
+          1.85,
+          1.2,
+          0.75
+        ]
+      },
+      {
+        "name": "VendorCollision",
+        "position": [
+          -5.7,
+          1.0,
+          -0.65
+        ],
+        "size": [
+          0.95,
+          2.0,
+          1.05
+        ]
+      },
+      {
+        "name": "LeftBinCollision",
+        "position": [
+          -5.55,
+          0.44,
+          -2.1
+        ],
+        "size": [
+          0.6,
+          0.88,
+          0.6
+        ]
+      },
+      {
+        "name": "RightBinCollision",
+        "position": [
+          5.55,
+          0.44,
+          -0.4
+        ],
+        "size": [
+          0.6,
+          0.88,
+          0.6
+        ]
+      }
+    ]
+  },
+  "models": [
+    {
+      "name": "S1Slots",
+      "category": "Station",
+      "ruleId": "Slots",
+      "file": "S1Slots.fbx",
+      "triangles": 26094,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed",
+        "color_gold"
+      ],
+      "meshCount": 22,
+      "boundsSource": {
+        "min": [
+          -1.0149999856948853,
+          -0.9700000286102295,
+          0.0
+        ],
+        "max": [
+          1.2100000381469727,
+          0.5950000286102295,
+          2.5999999046325684
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.2100000381469727,
+          0.0,
+          -0.5950000286102295
+        ],
+        "max": [
+          1.0149999856948853,
+          2.5999999046325684,
+          0.9700000286102295
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Slots.Reel0",
+          "sourcePosition": [
+            -0.47999998927116394,
+            -0.05000000074505806,
+            1.7000000476837158
+          ],
+          "localPosition": [
+            -0.47999998927116394,
+            -0.05000000074505806,
+            1.7000000476837158
+          ]
+        },
+        {
+          "name": "Slots.Reel1",
+          "sourcePosition": [
+            0.0,
+            -0.05000000074505806,
+            1.7000000476837158
+          ],
+          "localPosition": [
+            0.0,
+            -0.05000000074505806,
+            1.7000000476837158
+          ]
+        },
+        {
+          "name": "Slots.Reel2",
+          "sourcePosition": [
+            0.47999998927116394,
+            -0.05000000074505806,
+            1.7000000476837158
+          ],
+          "localPosition": [
+            0.47999998927116394,
+            -0.05000000074505806,
+            1.7000000476837158
+          ]
+        },
+        {
+          "name": "Slots.LeverPivot",
+          "sourcePosition": [
+            1.0299999713897705,
+            -0.11999999731779099,
+            1.149999976158142
+          ],
+          "localPosition": [
+            1.0299999713897705,
+            -0.11999999731779099,
+            1.149999976158142
+          ]
+        },
+        {
+          "name": "Slots.Chip10",
+          "sourcePosition": [
+            -0.5799999833106995,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            -0.5799999833106995,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Slots.Chip50",
+          "sourcePosition": [
+            -0.28999999165534973,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            -0.28999999165534973,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Slots.Chip100",
+          "sourcePosition": [
+            0.0,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            0.0,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Slots.ClearPlate",
+          "sourcePosition": [
+            0.36000001430511475,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            0.36000001430511475,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Slots.CoinInsert",
+          "sourcePosition": [
+            -0.6399999856948853,
+            -0.5899999737739563,
+            1.3200000524520874
+          ],
+          "localPosition": [
+            -0.6399999856948853,
+            -0.5899999737739563,
+            1.3200000524520874
+          ]
+        },
+        {
+          "name": "Slots.HandleGrip",
+          "sourcePosition": [
+            1.0800000429153442,
+            -0.6100000143051147,
+            1.7400000095367432
+          ],
+          "localPosition": [
+            0.05000007152557373,
+            -0.49000000953674316,
+            0.5900000333786011
+          ]
+        },
+        {
+          "name": "Slots.RulePlate",
+          "sourcePosition": [
+            0.6700000166893005,
+            -0.5899999737739563,
+            1.3300000429153442
+          ],
+          "localPosition": [
+            0.6700000166893005,
+            -0.5899999737739563,
+            1.3300000429153442
+          ]
+        },
+        {
+          "name": "StatePlaque",
+          "sourcePosition": [
+            0.0,
+            -0.5400000214576721,
+            1.350000023841858
+          ],
+          "localPosition": [
+            0.0,
+            -0.5400000214576721,
+            1.350000023841858
+          ]
+        },
+        {
+          "name": "Slots.PrizeTray",
+          "sourcePosition": [
+            0.0,
+            -0.6299999952316284,
+            0.9200000166893005
+          ],
+          "localPosition": [
+            0.0,
+            -0.6299999952316284,
+            0.9200000166893005
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip0",
+          "sourcePosition": [
+            0.3100000023841858,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            0.3100000023841858,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip1",
+          "sourcePosition": [
+            0.22200000286102295,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            0.22200000286102295,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip2",
+          "sourcePosition": [
+            0.1340000033378601,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            0.1340000033378601,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip3",
+          "sourcePosition": [
+            0.04600000008940697,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            0.04600000008940697,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip4",
+          "sourcePosition": [
+            -0.041999999433755875,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            -0.041999999433755875,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip5",
+          "sourcePosition": [
+            -0.12999999523162842,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            -0.12999999523162842,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip6",
+          "sourcePosition": [
+            -0.21799999475479126,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            -0.21799999475479126,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        },
+        {
+          "name": "Slots.PayoutChip7",
+          "sourcePosition": [
+            -0.3059999942779541,
+            -0.6399999856948853,
+            1.0099999904632568
+          ],
+          "localPosition": [
+            -0.3059999942779541,
+            -0.009999990463256836,
+            0.0899999737739563
+          ]
+        }
+      ],
+      "nodeNames": [
+        "S1Slots",
+        "S1Slots.Mesh",
+        "Slots.Reel0",
+        "Slots.Reel0.Mesh",
+        "Slots.Reel1",
+        "Slots.Reel1.Mesh",
+        "Slots.Reel2",
+        "Slots.Reel2.Mesh",
+        "Slots.LeverPivot",
+        "S1Slots.LeverStem",
+        "Slots.Chip10",
+        "Slots.Chip10.Mesh",
+        "Slots.Chip50",
+        "Slots.Chip50.Mesh",
+        "Slots.Chip100",
+        "Slots.Chip100.Mesh",
+        "Slots.ClearPlate",
+        "Slots.ClearPlate.Mesh",
+        "Slots.CoinInsert",
+        "Slots.CoinInsert.Mesh",
+        "Slots.HandleGrip",
+        "S1Slots.Gripprimary",
+        "Slots.RulePlate",
+        "Slots.RulePlate.Mesh",
+        "StatePlaque",
+        "StatePlaque.Mesh",
+        "Slots.PrizeTray",
+        "S1Slots.PrizeTray",
+        "Slots.PayoutChip0",
+        "S1Slots.PrizeChip0",
+        "Slots.PayoutChip1",
+        "S1Slots.PrizeChip1",
+        "Slots.PayoutChip2",
+        "S1Slots.PrizeChip2",
+        "Slots.PayoutChip3",
+        "S1Slots.PrizeChip3",
+        "Slots.PayoutChip4",
+        "S1Slots.PrizeChip4",
+        "Slots.PayoutChip5",
+        "S1Slots.PrizeChip5",
+        "Slots.PayoutChip6",
+        "S1Slots.PrizeChip6",
+        "Slots.PayoutChip7",
+        "S1Slots.PrizeChip7"
+      ],
+      "sha256": "2c884652337dac0ee60d22223004f858fd5db640603f440dff9bad9dac2d9adc",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "S1Blackjack",
+      "category": "Station",
+      "ruleId": "Blackjack",
+      "file": "S1Blackjack.fbx",
+      "triangles": 27845,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 52,
+      "boundsSource": {
+        "min": [
+          -1.350000023841858,
+          -0.8999999761581421,
+          0.0
+        ],
+        "max": [
+          1.350000023841858,
+          0.7900000810623169,
+          1.8650000095367432
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.350000023841858,
+          0.0,
+          -0.7900000810623169
+        ],
+        "max": [
+          1.350000023841858,
+          1.8650000095367432,
+          0.8999999761581421
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Blackjack.CardShoe",
+          "sourcePosition": [
+            1.059999942779541,
+            0.41999998688697815,
+            1.3200000524520874
+          ],
+          "localPosition": [
+            1.059999942779541,
+            0.41999998688697815,
+            1.3200000524520874
+          ]
+        },
+        {
+          "name": "Blackjack.DealOrigin",
+          "sourcePosition": [
+            1.059999942779541,
+            0.3199999928474426,
+            1.5199999809265137
+          ],
+          "localPosition": [
+            1.059999942779541,
+            0.3199999928474426,
+            1.5199999809265137
+          ]
+        },
+        {
+          "name": "Blackjack.DrawCard",
+          "sourcePosition": [
+            1.059999942779541,
+            0.3199999928474426,
+            1.5199999809265137
+          ],
+          "localPosition": [
+            1.059999942779541,
+            0.3199999928474426,
+            1.5199999809265137
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerTotal",
+          "sourcePosition": [
+            0.3199999928474426,
+            -0.10000000149011612,
+            1.2400000095367432
+          ],
+          "localPosition": [
+            0.3199999928474426,
+            -0.10000000149011612,
+            1.2400000095367432
+          ]
+        },
+        {
+          "name": "Blackjack.DealerTotal",
+          "sourcePosition": [
+            0.0,
+            0.6600000262260437,
+            1.2400000095367432
+          ],
+          "localPosition": [
+            0.0,
+            0.6600000262260437,
+            1.2400000095367432
+          ]
+        },
+        {
+          "name": "Blackjack.DealerArmPivot",
+          "sourcePosition": [
+            -0.9300000071525574,
+            0.4300000071525574,
+            1.2200000286102295
+          ],
+          "localPosition": [
+            -0.9300000071525574,
+            0.4300000071525574,
+            1.2200000286102295
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard0",
+          "sourcePosition": [
+            0.9350000023841858,
+            -0.20000000298023224,
+            1.1740000247955322
+          ],
+          "localPosition": [
+            0.9350000023841858,
+            -0.20000000298023224,
+            1.1740000247955322
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard1",
+          "sourcePosition": [
+            0.7649999856948853,
+            -0.20000000298023224,
+            1.174399971961975
+          ],
+          "localPosition": [
+            0.7649999856948853,
+            -0.20000000298023224,
+            1.174399971961975
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard2",
+          "sourcePosition": [
+            0.5950000286102295,
+            -0.20000000298023224,
+            1.1748000383377075
+          ],
+          "localPosition": [
+            0.5950000286102295,
+            -0.20000000298023224,
+            1.1748000383377075
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard3",
+          "sourcePosition": [
+            0.42500001192092896,
+            -0.20000000298023224,
+            1.1751999855041504
+          ],
+          "localPosition": [
+            0.42500001192092896,
+            -0.20000000298023224,
+            1.1751999855041504
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard4",
+          "sourcePosition": [
+            0.2549999952316284,
+            -0.20000000298023224,
+            1.1756000518798828
+          ],
+          "localPosition": [
+            0.2549999952316284,
+            -0.20000000298023224,
+            1.1756000518798828
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard5",
+          "sourcePosition": [
+            0.08500000089406967,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.08500000089406967,
+            -0.20000000298023224,
+            1.1759999990463257
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard6",
+          "sourcePosition": [
+            -0.08500000089406967,
+            -0.20000000298023224,
+            1.1763999462127686
+          ],
+          "localPosition": [
+            -0.08500000089406967,
+            -0.20000000298023224,
+            1.1763999462127686
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard7",
+          "sourcePosition": [
+            -0.2549999952316284,
+            -0.20000000298023224,
+            1.176800012588501
+          ],
+          "localPosition": [
+            -0.2549999952316284,
+            -0.20000000298023224,
+            1.176800012588501
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard8",
+          "sourcePosition": [
+            -0.42500001192092896,
+            -0.20000000298023224,
+            1.1771999597549438
+          ],
+          "localPosition": [
+            -0.42500001192092896,
+            -0.20000000298023224,
+            1.1771999597549438
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard9",
+          "sourcePosition": [
+            -0.5950000286102295,
+            -0.20000000298023224,
+            1.1776000261306763
+          ],
+          "localPosition": [
+            -0.5950000286102295,
+            -0.20000000298023224,
+            1.1776000261306763
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard10",
+          "sourcePosition": [
+            -0.7649999856948853,
+            -0.20000000298023224,
+            1.1779999732971191
+          ],
+          "localPosition": [
+            -0.7649999856948853,
+            -0.20000000298023224,
+            1.1779999732971191
+          ]
+        },
+        {
+          "name": "Blackjack.PlayerCard11",
+          "sourcePosition": [
+            -0.9350000023841858,
+            -0.20000000298023224,
+            1.1784000396728516
+          ],
+          "localPosition": [
+            -0.9350000023841858,
+            -0.20000000298023224,
+            1.1784000396728516
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard0",
+          "sourcePosition": [
+            0.9350000023841858,
+            0.3799999952316284,
+            1.1740000247955322
+          ],
+          "localPosition": [
+            0.9350000023841858,
+            0.3799999952316284,
+            1.1740000247955322
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard1",
+          "sourcePosition": [
+            0.7649999856948853,
+            0.3799999952316284,
+            1.174399971961975
+          ],
+          "localPosition": [
+            0.7649999856948853,
+            0.3799999952316284,
+            1.174399971961975
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard2",
+          "sourcePosition": [
+            0.5950000286102295,
+            0.3799999952316284,
+            1.1748000383377075
+          ],
+          "localPosition": [
+            0.5950000286102295,
+            0.3799999952316284,
+            1.1748000383377075
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard3",
+          "sourcePosition": [
+            0.42500001192092896,
+            0.3799999952316284,
+            1.1751999855041504
+          ],
+          "localPosition": [
+            0.42500001192092896,
+            0.3799999952316284,
+            1.1751999855041504
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard4",
+          "sourcePosition": [
+            0.2549999952316284,
+            0.3799999952316284,
+            1.1756000518798828
+          ],
+          "localPosition": [
+            0.2549999952316284,
+            0.3799999952316284,
+            1.1756000518798828
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard5",
+          "sourcePosition": [
+            0.08500000089406967,
+            0.3799999952316284,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.08500000089406967,
+            0.3799999952316284,
+            1.1759999990463257
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard6",
+          "sourcePosition": [
+            -0.08500000089406967,
+            0.3799999952316284,
+            1.1763999462127686
+          ],
+          "localPosition": [
+            -0.08500000089406967,
+            0.3799999952316284,
+            1.1763999462127686
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard7",
+          "sourcePosition": [
+            -0.2549999952316284,
+            0.3799999952316284,
+            1.176800012588501
+          ],
+          "localPosition": [
+            -0.2549999952316284,
+            0.3799999952316284,
+            1.176800012588501
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard8",
+          "sourcePosition": [
+            -0.42500001192092896,
+            0.3799999952316284,
+            1.1771999597549438
+          ],
+          "localPosition": [
+            -0.42500001192092896,
+            0.3799999952316284,
+            1.1771999597549438
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard9",
+          "sourcePosition": [
+            -0.5950000286102295,
+            0.3799999952316284,
+            1.1776000261306763
+          ],
+          "localPosition": [
+            -0.5950000286102295,
+            0.3799999952316284,
+            1.1776000261306763
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard10",
+          "sourcePosition": [
+            -0.7649999856948853,
+            0.3799999952316284,
+            1.1779999732971191
+          ],
+          "localPosition": [
+            -0.7649999856948853,
+            0.3799999952316284,
+            1.1779999732971191
+          ]
+        },
+        {
+          "name": "Blackjack.DealerCard11",
+          "sourcePosition": [
+            -0.9350000023841858,
+            0.3799999952316284,
+            1.1784000396728516
+          ],
+          "localPosition": [
+            -0.9350000023841858,
+            0.3799999952316284,
+            1.1784000396728516
+          ]
+        },
+        {
+          "name": "Blackjack.CardFaceLibrary",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ]
+        },
+        {
+          "name": "Blackjack.Rank1",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank2",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank3",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank4",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank5",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank6",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank7",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank8",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank9",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank10",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank11",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank12",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Rank13",
+          "sourcePosition": [
+            0.0,
+            -0.20000000298023224,
+            1.1759999990463257
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Blackjack.Chip10",
+          "sourcePosition": [
+            1.100000023841858,
+            -0.019999999552965164,
+            1.2300000190734863
+          ],
+          "localPosition": [
+            1.100000023841858,
+            -0.019999999552965164,
+            1.2300000190734863
+          ]
+        },
+        {
+          "name": "Blackjack.Chip50",
+          "sourcePosition": [
+            0.8299999833106995,
+            -0.019999999552965164,
+            1.2300000190734863
+          ],
+          "localPosition": [
+            0.8299999833106995,
+            -0.019999999552965164,
+            1.2300000190734863
+          ]
+        },
+        {
+          "name": "Blackjack.Chip100",
+          "sourcePosition": [
+            0.5600000023841858,
+            -0.019999999552965164,
+            1.2300000190734863
+          ],
+          "localPosition": [
+            0.5600000023841858,
+            -0.019999999552965164,
+            1.2300000190734863
+          ]
+        },
+        {
+          "name": "Blackjack.ClearPlate",
+          "sourcePosition": [
+            0.8299999833106995,
+            -0.3499999940395355,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            0.8299999833106995,
+            -0.3499999940395355,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Blackjack.BetCircle",
+          "sourcePosition": [
+            0.5199999809265137,
+            -0.6399999856948853,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            0.5199999809265137,
+            -0.6399999856948853,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Blackjack.HitTile",
+          "sourcePosition": [
+            -0.5,
+            -0.6399999856948853,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            -0.5,
+            -0.6399999856948853,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Blackjack.StandTile",
+          "sourcePosition": [
+            -0.019999999552965164,
+            -0.6399999856948853,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            -0.019999999552965164,
+            -0.6399999856948853,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "Blackjack.RulePlate",
+          "sourcePosition": [
+            -1.0499999523162842,
+            0.25,
+            1.3200000524520874
+          ],
+          "localPosition": [
+            -1.0499999523162842,
+            0.25,
+            1.3200000524520874
+          ]
+        },
+        {
+          "name": "StatePlaque.001",
+          "sourcePosition": [
+            0.0,
+            0.6600000262260437,
+            1.2400000095367432
+          ],
+          "localPosition": [
+            0.0,
+            0.6600000262260437,
+            1.2400000095367432
+          ]
+        }
+      ],
+      "nodeNames": [
+        "S1Blackjack",
+        "Blackjack.CardShoe",
+        "Blackjack.CardShoe.Mesh",
+        "Blackjack.DealOrigin",
+        "Blackjack.DrawCard",
+        "Blackjack.DrawCard.Mesh",
+        "Blackjack.PlayerTotal",
+        "Blackjack.PlayerTotal.Mesh",
+        "Blackjack.DealerTotal",
+        "Blackjack.DealerTotal.Mesh",
+        "Blackjack.DealerArmPivot",
+        "Blackjack.DealerArmPivot.Mesh",
+        "Blackjack.PlayerCard0",
+        "Blackjack.PlayerCard0.Mesh",
+        "Blackjack.PlayerCard1",
+        "Blackjack.PlayerCard1.Mesh",
+        "Blackjack.PlayerCard2",
+        "Blackjack.PlayerCard2.Mesh",
+        "Blackjack.PlayerCard3",
+        "Blackjack.PlayerCard3.Mesh",
+        "Blackjack.PlayerCard4",
+        "Blackjack.PlayerCard4.Mesh",
+        "Blackjack.PlayerCard5",
+        "Blackjack.PlayerCard5.Mesh",
+        "Blackjack.PlayerCard6",
+        "Blackjack.PlayerCard6.Mesh",
+        "Blackjack.PlayerCard7",
+        "Blackjack.PlayerCard7.Mesh",
+        "Blackjack.PlayerCard8",
+        "Blackjack.PlayerCard8.Mesh",
+        "Blackjack.PlayerCard9",
+        "Blackjack.PlayerCard9.Mesh",
+        "Blackjack.PlayerCard10",
+        "Blackjack.PlayerCard10.Mesh",
+        "Blackjack.PlayerCard11",
+        "Blackjack.PlayerCard11.Mesh",
+        "Blackjack.DealerCard0",
+        "Blackjack.DealerCard0.Mesh",
+        "Blackjack.DealerCard1",
+        "Blackjack.DealerCard1.Mesh",
+        "Blackjack.DealerCard2",
+        "Blackjack.DealerCard2.Mesh",
+        "Blackjack.DealerCard3",
+        "Blackjack.DealerCard3.Mesh",
+        "Blackjack.DealerCard4",
+        "Blackjack.DealerCard4.Mesh",
+        "Blackjack.DealerCard5",
+        "Blackjack.DealerCard5.Mesh",
+        "Blackjack.DealerCard6",
+        "Blackjack.DealerCard6.Mesh",
+        "Blackjack.DealerCard7",
+        "Blackjack.DealerCard7.Mesh",
+        "Blackjack.DealerCard8",
+        "Blackjack.DealerCard8.Mesh",
+        "Blackjack.DealerCard9",
+        "Blackjack.DealerCard9.Mesh",
+        "Blackjack.DealerCard10",
+        "Blackjack.DealerCard10.Mesh",
+        "Blackjack.DealerCard11",
+        "Blackjack.DealerCard11.Mesh",
+        "Blackjack.CardFaceLibrary",
+        "Blackjack.Rank1",
+        "Blackjack.Rank1.Mesh",
+        "Blackjack.Rank2",
+        "Blackjack.Rank2.Mesh",
+        "Blackjack.Rank3",
+        "Blackjack.Rank3.Mesh",
+        "Blackjack.Rank4",
+        "Blackjack.Rank4.Mesh",
+        "Blackjack.Rank5",
+        "Blackjack.Rank5.Mesh",
+        "Blackjack.Rank6",
+        "Blackjack.Rank6.Mesh",
+        "Blackjack.Rank7",
+        "Blackjack.Rank7.Mesh",
+        "Blackjack.Rank8",
+        "Blackjack.Rank8.Mesh",
+        "Blackjack.Rank9",
+        "Blackjack.Rank9.Mesh",
+        "Blackjack.Rank10",
+        "Blackjack.Rank10.Mesh",
+        "Blackjack.Rank11",
+        "Blackjack.Rank11.Mesh",
+        "Blackjack.Rank12",
+        "Blackjack.Rank12.Mesh",
+        "Blackjack.Rank13",
+        "Blackjack.Rank13.Mesh",
+        "Blackjack.Chip10",
+        "Blackjack.Chip10.Mesh",
+        "Blackjack.Chip50",
+        "Blackjack.Chip50.Mesh",
+        "Blackjack.Chip100",
+        "Blackjack.Chip100.Mesh",
+        "Blackjack.ClearPlate",
+        "Blackjack.ClearPlate.Mesh",
+        "Blackjack.BetCircle",
+        "Blackjack.BetCircle.Mesh",
+        "Blackjack.HitTile",
+        "Blackjack.HitTile.Mesh",
+        "Blackjack.StandTile",
+        "Blackjack.StandTile.Mesh",
+        "Blackjack.RulePlate",
+        "Blackjack.RulePlate.Mesh",
+        "StatePlaque.001",
+        "StatePlaque.001.Mesh",
+        "S1Blackjack.Mesh"
+      ],
+      "sha256": "5adddb3f908fd5f5a35ecb82f085aa0fbe7a354304b6d04aff87c4a5cc0a0884",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "S1Levers",
+      "category": "Station",
+      "ruleId": "CooperativeLevers",
+      "file": "S1Levers.fbx",
+      "triangles": 15661,
+      "materialNames": [
+        "CopperGold",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed",
+        "color_blue"
+      ],
+      "meshCount": 22,
+      "boundsSource": {
+        "min": [
+          -1.1699999570846558,
+          -0.9450000524520874,
+          0.0
+        ],
+        "max": [
+          1.1699999570846558,
+          0.6349999904632568,
+          2.3299999237060547
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.1699999570846558,
+          0.0,
+          -0.6349999904632568
+        ],
+        "max": [
+          1.1699999570846558,
+          2.3299999237060547,
+          0.9450000524520874
+        ]
+      },
+      "pivots": [
+        {
+          "name": "CooperativeLevers.TimingFace0",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.10000000149011612,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            -0.550000011920929,
+            -0.10000000149011612,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingNeedle0",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.20999999344348907,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            -0.550000011920929,
+            -0.20999999344348907,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Window0",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.20499999821186066,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            -0.550000011920929,
+            -0.20499999821186066,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.HelpWindow0",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.2070000022649765,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            -0.550000011920929,
+            -0.2070000022649765,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever0",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.2800000011920929,
+            1.159999966621399
+          ],
+          "localPosition": [
+            -0.550000011920929,
+            -0.2800000011920929,
+            1.159999966621399
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingFace1",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.10000000149011612,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            0.550000011920929,
+            -0.10000000149011612,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingNeedle1",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.20999999344348907,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            0.550000011920929,
+            -0.20999999344348907,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Window1",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.20499999821186066,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            0.550000011920929,
+            -0.20499999821186066,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.HelpWindow1",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.2070000022649765,
+            1.8700000047683716
+          ],
+          "localPosition": [
+            0.550000011920929,
+            -0.2070000022649765,
+            1.8700000047683716
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever1",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.2800000011920929,
+            1.159999966621399
+          ],
+          "localPosition": [
+            0.550000011920929,
+            -0.2800000011920929,
+            1.159999966621399
+          ]
+        },
+        {
+          "name": "CooperativeLevers.NpcHandle",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.5799999833106995,
+            1.600000023841858
+          ],
+          "localPosition": [
+            0.0,
+            -0.29999998211860657,
+            0.440000057220459
+          ]
+        },
+        {
+          "name": "CooperativeLevers.SyncLamp",
+          "sourcePosition": [
+            0.0,
+            -0.05999999865889549,
+            2.2200000286102295
+          ],
+          "localPosition": [
+            0.0,
+            -0.05999999865889549,
+            2.2200000286102295
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Chip10",
+          "sourcePosition": [
+            -0.6499999761581421,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            -0.6499999761581421,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Chip50",
+          "sourcePosition": [
+            -0.3199999928474426,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            -0.3199999928474426,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Chip100",
+          "sourcePosition": [
+            0.0,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            0.0,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "CooperativeLevers.ClearPlate",
+          "sourcePosition": [
+            0.36000001430511475,
+            -0.8500000238418579,
+            1.1699999570846558
+          ],
+          "localPosition": [
+            0.36000001430511475,
+            -0.8500000238418579,
+            1.1699999570846558
+          ]
+        },
+        {
+          "name": "CooperativeLevers.StartPlate",
+          "sourcePosition": [
+            0.0,
+            -0.6499999761581421,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            0.0,
+            -0.6499999761581421,
+            1.2799999713897705
+          ]
+        },
+        {
+          "name": "CooperativeLevers.PlayerHandle",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.5799999833106995,
+            1.600000023841858
+          ],
+          "localPosition": [
+            0.0,
+            -0.29999998211860657,
+            0.440000057220459
+          ]
+        },
+        {
+          "name": "CooperativeLevers.RulePlate",
+          "sourcePosition": [
+            0.8100000023841858,
+            -0.5299999713897705,
+            1.309999942779541
+          ],
+          "localPosition": [
+            0.8100000023841858,
+            -0.5299999713897705,
+            1.309999942779541
+          ]
+        },
+        {
+          "name": "StatePlaque.002",
+          "sourcePosition": [
+            0.0,
+            -0.4699999988079071,
+            1.4199999570846558
+          ],
+          "localPosition": [
+            0.0,
+            -0.4699999988079071,
+            1.4199999570846558
+          ]
+        },
+        {
+          "name": "CooperativeLevers.HelpWrench",
+          "sourcePosition": [
+            -1.0199999809265137,
+            -0.2199999988079071,
+            1.340000033378601
+          ],
+          "localPosition": [
+            -1.0199999809265137,
+            -0.2199999988079071,
+            1.340000033378601
+          ]
+        }
+      ],
+      "nodeNames": [
+        "S1Levers",
+        "S1Levers.Mesh",
+        "CooperativeLevers.TimingFace0",
+        "CooperativeLevers.TimingFace0.Mesh",
+        "CooperativeLevers.TimingNeedle0",
+        "CooperativeLevers.TimingNeedle0.Mesh",
+        "CooperativeLevers.Window0",
+        "S1Levers.ActiveArc0",
+        "CooperativeLevers.HelpWindow0",
+        "S1Levers.HelpArc0",
+        "CooperativeLevers.Lever0",
+        "S1Levers.Lever0",
+        "CooperativeLevers.TimingFace1",
+        "CooperativeLevers.TimingFace1.Mesh",
+        "CooperativeLevers.TimingNeedle1",
+        "CooperativeLevers.TimingNeedle1.Mesh",
+        "CooperativeLevers.Window1",
+        "S1Levers.ActiveArc1",
+        "CooperativeLevers.HelpWindow1",
+        "S1Levers.HelpArc1",
+        "CooperativeLevers.Lever1",
+        "S1Levers.Lever1",
+        "CooperativeLevers.NpcHandle",
+        "CooperativeLevers.NpcHandle.Mesh",
+        "CooperativeLevers.SyncLamp",
+        "S1Levers.SyncBulb",
+        "CooperativeLevers.Chip10",
+        "CooperativeLevers.Chip10.Mesh",
+        "CooperativeLevers.Chip50",
+        "CooperativeLevers.Chip50.Mesh",
+        "CooperativeLevers.Chip100",
+        "CooperativeLevers.Chip100.Mesh",
+        "CooperativeLevers.ClearPlate",
+        "CooperativeLevers.ClearPlate.Mesh",
+        "CooperativeLevers.StartPlate",
+        "CooperativeLevers.StartPlate.Mesh",
+        "CooperativeLevers.PlayerHandle",
+        "CooperativeLevers.PlayerHandle.Mesh",
+        "CooperativeLevers.RulePlate",
+        "CooperativeLevers.RulePlate.Mesh",
+        "StatePlaque.002",
+        "StatePlaque.002.Mesh",
+        "CooperativeLevers.HelpWrench",
+        "CooperativeLevers.HelpWrench.Mesh"
+      ],
+      "sha256": "540a2d6f81c2b5dc8741ce031b592169cabf6358d6c0a389e39f69f52be0a407",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "S1Hall",
+      "category": "Architecture",
+      "ruleId": "ImmersionS1",
+      "file": "S1Hall.fbx",
+      "triangles": 32271,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 4,
+      "boundsSource": {
+        "min": [
+          -6.71999979019165,
+          -6.920000076293945,
+          -0.15999984741210938
+        ],
+        "max": [
+          6.71999979019165,
+          5.920000076293945,
+          4.774999618530273
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -6.71999979019165,
+          -0.15999984741210938,
+          -5.920000076293945
+        ],
+        "max": [
+          6.71999979019165,
+          4.774999618530273,
+          6.920000076293945
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Hall.Ceiling",
+          "sourcePosition": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "name": "Hall.PrizeWheel",
+          "sourcePosition": [
+            0.0,
+            -6.21999979019165,
+            3.0199999809265137
+          ],
+          "localPosition": [
+            0.0,
+            -6.21999979019165,
+            3.0199999809265137
+          ]
+        },
+        {
+          "name": "Hall.PrizeClaw",
+          "sourcePosition": [
+            0.0,
+            -5.840000152587891,
+            3.9800000190734863
+          ],
+          "localPosition": [
+            0.0,
+            -5.840000152587891,
+            3.9800000190734863
+          ]
+        }
+      ],
+      "nodeNames": [
+        "S1Hall",
+        "S1Hall.Mesh",
+        "Hall.Ceiling",
+        "Hall.Ceiling.Mesh",
+        "Hall.PrizeWheel",
+        "Hall.PrizeWheel.Mesh",
+        "Hall.PrizeClaw",
+        "Hall.PrizeClaw.Mesh"
+      ],
+      "sha256": "7e63c6f5049a814391fd3f6dbea0478673f0c1297d252f2b9ee321a48c2552a9",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    }
+  ],
+  "legacyPipelineSha256": "5f50791aca163342c22001fd499acf3f1e44c90813d2f7348ad5599477cbe0c7",
+  "materialPhysical": {
+    "InkBlue": {
+      "metallic": 0.03999999910593033,
+      "roughness": 0.7300000190734863
+    },
+    "PlumRed": {
+      "metallic": 0.07999999821186066,
+      "roughness": 0.46000000834465027
+    },
+    "CreamYellow": {
+      "metallic": 0.03999999910593033,
+      "roughness": 0.6200000047683716
+    },
+    "Mint": {
+      "metallic": 0.07999999821186066,
+      "roughness": 0.46000000834465027
+    },
+    "CopperGold": {
+      "metallic": 0.8799999952316284,
+      "roughness": 0.27000001072883606
+    },
+    "FaceInk": {
+      "metallic": 0.05000000074505806,
+      "roughness": 0.46000000834465027
+    },
+    "PaperLight": {
+      "metallic": 0.03999999910593033,
+      "roughness": 0.6200000047683716
+    },
+    "color_blue": {
+      "metallic": 0.11999999731779099,
+      "roughness": 0.46000000834465027
+    },
+    "color_pink": {
+      "metallic": 0.11999999731779099,
+      "roughness": 0.46000000834465027
+    },
+    "color_mint": {
+      "metallic": 0.11999999731779099,
+      "roughness": 0.46000000834465027
+    },
+    "color_gold": {
+      "metallic": 0.11999999731779099,
+      "roughness": 0.46000000834465027
+    },
+    "color_violet": {
+      "metallic": 0.11999999731779099,
+      "roughness": 0.46000000834465027
+    }
+  }
+}

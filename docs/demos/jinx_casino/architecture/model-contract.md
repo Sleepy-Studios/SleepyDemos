@@ -29,3 +29,7 @@
 阶段Builder先保存/重载模型和材质，再装配Visual；保留已有脚本GUID、Prefab根和交互绑定。正式资源验收分别记录模型层级、Importer设置、朝向、材质、实际游戏截图、双端Player构建；建模脚本执行成功不等于Unity显示正确或P4完成。
 
 四区场地的顶棚、墙裙、地面导向与四件区域装饰在Editor烘焙为每区四个持久Mesh/共享材质段，位于各自权限内容根`FormalArchitecture`；源65个FBX共170327三角面（资源全集，非单帧绘制量）。建筑视觉内衬不带Collider，完整保留侧门Z[-9,-6]空档、原机台与出生点。顶棚关闭投影，沿用现有唯一方向光，不在运行时生成场地或材质。
+
+## S1独立模型
+
+S1源在ArtSource/jinx_casino/immersion，运行候选在Art/Immersion。S1Layout.json规定22操作热区/相机/身体代理；FBX根与子节点无轴向补偿，四模型已通过Unity实际导入门禁b2ddc5da（5/5）。12个独立URP材质由JinxCasinoImmersionArtBuilder首次创建，再运行保留已有材质调整；不得改旧P4 palette。正式场景中隐藏CardFaceLibrary/初始牌池/DrawCard和初始奖筹码，Hall.Ceiling关闭投影，具体绑定由分步装配承担。对应原生预览不是实际规则或最终照明证据。
