@@ -52,7 +52,7 @@ namespace Tests.Demo
                 Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { TouchLookMultiplier = invalid }));
                 Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(before));
             }
-            Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { SchemaVersion = 2 }));
+            Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { SchemaVersion = 99 }));
             Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { Volume = float.NaN }));
             Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(before));
         }

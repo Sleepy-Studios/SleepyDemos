@@ -59,3 +59,9 @@ Adapters/Input使用独立JinxCasinoImmersion.inputactions；InputRouter克隆�
 PauseState记录后台/失焦/手柄断连并要求显式继续；它只提供状态，宿主仍须冻结领域、移动和各演出时钟。不能仅挡移动或disable SceneEffects后宣称暂停完成。Dispose先MenuScope后Router，恢复公共导航并停止本Demo震动。
 
 Hotfix.Editor新增菜单“Tools/SleepyDemos/整蛊赌场/沉浸样板/创建或检查输入配置”，仅首次创建，已存在时校验而不覆盖自定义键位。输入配置和Editor所需Unity.InputSystem引用已保存；未改全局InputSystem_Actions。
+
+## 手柄本机偏好
+
+CasinoLocalPreferences版本2保留全部旧字段，增加手柄死区、最大半径、视角速度/倍率、反转Y、震动开关/强度。PlayerPrefs地址仍为JinxCasino.LocalPreferences.v1，合法旧记录只在内存补默认值，明确保存才写新版；坏记录只读回退，取消预览不写盘。ToInputSettings输出独立输入参数，不能在每帧构建；后续宿主在加载/预览/取消时ApplySettings。
+
+数据存储已接入，手柄设置控件与实际输入宿主仍在S1整合中，不能据此声明硬件设置体验完成。

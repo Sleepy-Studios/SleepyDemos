@@ -52,3 +52,7 @@
 Unity Test Runner：CasinoStationIdentityTests 5eaebcd1，4/4；CasinoAdventureTests 78b0253b，24/24；CasinoLocalSaveStoreTests 8334babd，4/4。未执行全量测试。三机台和大厅首轮DCC预览已实际查看，要求继续改善大厅空间/材质及庄家牌位；还未进入Unity模型门禁和视觉验收。
 
 审查追加：Restore拒绝ActiveGame与活动局实际玩法不一致的快照；Save同时保护主档和普通.bak中的合法v1原件。扩展后CasinoStationIdentityTests作业37a3c3f4，5/5通过。与本轮冒险24项、三槽4项合计33项直接相关断言用例通过；没有执行全量测试，也不作为新桌面Player验收。
+
+## 手柄偏好迁移
+
+机台定位已推送25636e3。本机偏好v1→v2增加手柄参数并保留旧设置、原存储键和明确保存语义。CasinoLocalPreferencesMigrationTests作业11b0eca1，5/5；CasinoLocalPreferencesTests作业d245acad，8/8。正式Editor编译通过，未执行全量测试。控件及Host实际应用待接入，未冒充Xbox硬件验收。
