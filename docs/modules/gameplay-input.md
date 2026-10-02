@@ -7,8 +7,13 @@
 - `GameplayInputRouter`：独占宿主动作资产副本，输出移动、视角、指针、目标导航和离散操作；识别最近实际使用设备，忽略死区漂移，管理自身震动。
 - `GameplayInputContracts`：设备无关动作/帧、参数校验、角度与死区换算。鼠标与触屏是增量，手柄视角是角速度。
 - `MenuInputScope`：借用既有EventSystem及InputSystemUIInputModule，切换时等待按键释放，菜单导航和提交只由公共UI处理。
+
 - `TouchInputPad`：两个触控区域分别占有指针，移动归一化，视角换算为720p参考像素；隐藏时清空输入。
 - `LocalPauseState`：失焦、后台、当前手柄断连的暂停门闩，恢复设备后仍须明确继续。
+
+公共Hub页面也直接复用MenuInputScope：显示时传入保存的首个可用Demo按钮并驱动Update，隐藏/销毁时Dispose；不需要GameplayInputRouter或另一套键位、指针模拟及输入模块。循环按具体作用域身份结束，旧页面不得驱动恢复后页面的作用域。Hub当前使用保存Button的原有选中态；卡片及更明显的焦点视觉待参考稿确认后制作。
+
+鼠标/触屏点击空白清除焦点后，MenuInputScope在后续Move、Submit或Cancel到达时恢复仍可用的初始控件；已有指针选中项保持。恢复等待旧按键释放，不选择禁用/隐藏控件，不手动执行导航或提交。Move/Point/Submit/Cancel向可选Router通知实际设备，隐藏时完整退订。
 
 ## 边界
 

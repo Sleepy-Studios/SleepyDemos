@@ -47,7 +47,7 @@ namespace Tests.Demo
         [UnityTest, Timeout(180000)]
         public IEnumerator SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause()
         {
-            yield return EnterSample();
+            yield return EnterSample(enterWithHeldGamepad: true);
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             var body = owner.Player.Body; var camera = owner.Player.Camera;
@@ -60,7 +60,7 @@ namespace Tests.Demo
             Assert.That(owner.Game.State.StageIndex, Is.Zero); Assert.That(owner.Game.State.Coins, Is.EqualTo(1000));
             Assert.That(owner.Player.IsPaused, Is.False); Assert.That(EventSystem.current.sendNavigationEvents, Is.False);
             Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.Locked));
-            touchscreen = InputSystem.AddDevice<Touchscreen>(); gamepad = InputSystem.AddDevice<Gamepad>();
+            touchscreen = InputSystem.AddDevice<Touchscreen>();
             var touchPosition = new Vector2(Screen.width * .5f, Screen.height * .75f);
             InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = touchPosition, phase = UnityEngine.InputSystem.TouchPhase.Began });
             yield return Wait(() => owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch, "触屏实际按下切换提示", 3);
@@ -673,7 +673,7 @@ namespace Tests.Demo
         private IEnumerator WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep step)
         { yield return Wait(() => owner.Game.State.Teaching.Step == step, "真实教学步骤：" + step, 10); }
 
-        private IEnumerator EnterSample()
+        private IEnumerator EnterSample(bool enterWithHeldGamepad = false)
         {
             if (GameSceneNavigator.Instance == null)
             {
@@ -690,7 +690,29 @@ namespace Tests.Demo
             InputSystem.settings = testInputSettings;
             keyboard = InputSystem.AddDevice<Keyboard>(); mouse = InputSystem.AddDevice<Mouse>();
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
-            yield return MouseClick(Field<Button>(UIManager.Instance.Get<MainMenuView>(), "Button_JinxCasinoButton"));
+            var hubMenu = UIManager.Instance.Get<MainMenuView>();
+            var casinoButton = Field<Button>(hubMenu, "Button_JinxCasinoButton");
+            if (enterWithHeldGamepad)
+            {
+                gamepad = InputSystem.AddDevice<Gamepad>();
+                InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
+                yield return Wait(() => EventSystem.current.sendNavigationEvents && EventSystem.current.currentSelectedGameObject != null,
+                    "Hub 默认手柄焦点", 3);
+                // 方向按实际控件位置选择，不固定旧按钮顺序，也不直接设置焦点或调用监听器。
+                for (int attempt = 0; attempt < 10 && EventSystem.current.currentSelectedGameObject != casinoButton.gameObject; attempt++)
+                {
+                    var selected = EventSystem.current.currentSelectedGameObject;
+                    Assert.That(selected, Is.Not.Null);
+                    Vector3 delta = casinoButton.transform.position - selected.transform.position;
+                    var direction = Mathf.Abs(delta.x) > Mathf.Abs(delta.y)
+                        ? (delta.x > 0 ? GamepadButton.DpadRight : GamepadButton.DpadLeft)
+                        : (delta.y > 0 ? GamepadButton.DpadUp : GamepadButton.DpadDown);
+                    yield return PadPress(direction);
+                }
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(casinoButton.gameObject), "实际方向导航可到达赌场入口。");
+                InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
+            }
+            else yield return MouseClick(casinoButton);
             yield return Wait(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.JinxCasino && !GameSceneNavigator.Instance.IsTransitioning,
                 "实际 Hub 按钮进入赌场", 45);
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning, "保存的沉浸HUD", 30);
@@ -707,6 +729,16 @@ namespace Tests.Demo
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             Assert.That(presenter, Is.Not.Null);
+            if (enterWithHeldGamepad)
+            {
+                yield return null; yield return null;
+                Assert.That(owner.Game.HasAdventure, Is.False, "Hub 的 A 不能同时确认赌场开始。");
+                Assert.That(EventSystem.current.sendNavigationEvents, Is.False, "进入赌场时仍按住 A，应等待明确释放。");
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.Null);
+                InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
+                yield return Wait(() => EventSystem.current.sendNavigationEvents &&
+                    EventSystem.current.currentSelectedGameObject == Field<Button>(presenter, "start").gameObject, "松开 A 后赌场菜单恢复焦点", 3);
+            }
             var body = owner.Player.Body; var camera = owner.Player.Camera;
             Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(camera)); AssertSingleListener();
             Assert.That(EventSystem.current.GetComponent<InputSystemUIInputModule>(), Is.Not.Null);

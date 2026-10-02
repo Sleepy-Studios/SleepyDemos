@@ -1,10 +1,12 @@
 namespace Hotfix
 {
     using Core.Runtime;
+    using Core.Runtime.Inputs;
     using Cysharp.Threading.Tasks;
     using Hotfix.SceneManagement;
     using System;
     using UnityEngine;
+    using UnityEngine.EventSystems;
     using UnityEngine.UI;
 
     [Module("Main")]
@@ -13,6 +15,7 @@ namespace Hotfix
     {
         private bool isEnteringDemo;
         private string defaultTitle;
+        private MenuInputScope menuInput;
 
         protected override void OnGameObjectInitialize()
         {
@@ -26,6 +29,10 @@ namespace Hotfix
         {
             base.OnShow();
             RefreshEntryControls();
+            ReleaseMenuInput();
+            menuInput = new MenuInputScope(EventSystem.current);
+            menuInput.SetContext(GameplayInputContext.Menu, Button_DroneFlightButton.gameObject);
+            UpdateMenuInputAsync(menuInput).Forget();
             GlobalData.Subscribe<UserData>(OnUserData, true);
             EventDispatcher.TriggerEvent(EventConst.MainOpenView);
         }
@@ -33,18 +40,36 @@ namespace Hotfix
         protected override void OnHide()
         {
             base.OnHide();
+            ReleaseMenuInput();
             GlobalData.UnSubscribe<UserData>(OnUserData);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            ReleaseMenuInput();
             EventDispatcher.RemoveEventListener(EventConst.MainOpenView, OnMainOpenView);
         }
 
         private void OnMainOpenView()
         {
             Debug.Log("[MainMenuView] 主页面打开。");
+        }
+
+        private async UniTask UpdateMenuInputAsync(MenuInputScope scope)
+        {
+            // 页面只负责驱动公共作用域，不读取键位或模拟指针；旧页面的循环不能驱动新作用域。
+            while (IsEnable && ReferenceEquals(menuInput, scope))
+            {
+                scope.Update();
+                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
+            }
+        }
+
+        private void ReleaseMenuInput()
+        {
+            menuInput?.Dispose();
+            menuInput = null;
         }
 
         private void OnUserData(UserData data)

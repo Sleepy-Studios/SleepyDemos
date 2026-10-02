@@ -399,3 +399,15 @@ Android在产物生成后恢复配置失败：Mobile_RPAsset.asset内存映射�
 首次正式编译发现测试程序集缺TMP引用，补齐后通过。6753ebb3首次失败因刚显示Hub时启动遮罩尚未销毁；d10fb47e首次回滚及反馈/按钮断言通过，但立即重试时新Canvas尚未完成帧末注册，射线为空。测试等待启动遮罩销毁、交互锁释放以及新页面帧末更新，保留真实射线断言，没有调用监听器或修改生产导航规避问题。504d5e8a失败恢复用例1/1通过；18f0b03c实际Hub进入、探索、实体机台、暂停、退出及相机恢复用例1/1通过。最后按现存标题控件缩短失败文案并加入实际尺寸校验，正式编译2026-10-02T19:47:38Z成功、0错误，31b53996重跑失败恢复1/1通过。仅运行两个不同的直接相关PlayMode用例，未执行全量测试。
 
 最终Editor不在Play/编译中；Console只保留测试主动注入、由LogAssert验证的加载失败日志（重复消息合并显示），无额外Error。当前赌场/Hub代码未检出临时Builder或旧Adapters；StringBuilder仅用于文本。同步公共场景模块与接入runbook、当前计划及公共输入文档中过时的MovedFrom说明。字体动态补字缓存由测试产生，留在本地未暂存；Mobile_RPAsset、UnitySkills/vTabs、.blend1等原工作仍保留。本轮不修改正式美术、不重建Windows/Android包；此前包仍为5178fab运行源码基线，真机、实物Xbox、四稿确认和S1体验验收仍待完成。提交名「fix(hub): 统一入口并恢复加载失败后的操作」，实际SHA由Git和交付回复记录；Goal保持进行中。
+
+## 2026-10-03：Hub 公共输入与触控后焦点恢复
+
+基线6f044f03a8c936f461a95ef3d0b17bcbd58f50bc。MainMenuView原来没有初始选中项，增加Core.Runtime.Inputs.MenuInputScope的直接消费：显示时建立Menu上下文及保存的无人机入口焦点，每帧驱动，隐藏/销毁时幂等释放；按生命周期和具体作用域身份结束旧循环。不读取具体键位，不新增适配器、输入模块、接口工厂、生产程序集或UI Builder。继续使用原按钮样式，正式可见焦点及卡片视觉仍待四稿确认。
+
+Core.Runtime的MenuInputScope补齐Submit/Cancel实际设备通知，与Move/Point一起完整退订；触屏/鼠标点空白清焦点后，后续导航或按钮操作恢复仍活动、可交互的初始控件。已有指针选中项保持，等待旧按键释放时不恢复焦点，不手动派发动作。这是公共输入能力，Hub与赌场共用，Core不认识Demo或业务枚举。
+
+只在现有MainMenuNavigationPlayModeTests新增一个键盘/手柄用例，提取共同准备/清理，覆盖方向键/Enter、真实触屏点空白、手柄方向键/A、恢复时按住A不重复提交、松开后明确操作。保留原指针恢复用例。现有赌场入口用例改为实际方向导航选择Hub赌场按钮，按住A穿过真实场景加载，断言未自动开始旅程、松开后恢复开始按钮焦点；继续既有触控/手柄设备切换、移动、实体机台、暂停、返回和相机验证。方向按保存控件位置选择，不锁定旧布局序列，不调用按钮监听器。
+
+初次Hub集成ca3d02ed的UnitySkills包装器在域重载后报原生任务9513069a未恢复，但原生XML显示2026-10-02T20:03:52Z至20:04:07Z两个目标用例2/2通过，Editor已退出测试。随后补公共触控焦点恢复、Submit/Cancel通知及真实赌场手柄入口，正式编译2026-10-02T20:15:21Z成功、0错误。最终dde32b08的原生XML（20:21:09Z–20:21:24Z）Hub2/2通过；c5bbdfab（20:25:02Z–20:25:05Z）CoreMenuOwnsExactlyOneSubmitAndTableUsesIndependentFocus 1/1通过；e3d24b22（20:27:31Z–20:27:58Z）SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause 1/1通过。后三个包装器也报原生任务未恢复，逐次核对当次XML名称/时间和Editor退出状态后才继续，没有因观察失效重启同一测试。结果分别保存于Library/JinxCasino/Verification的HubMenuInput-dde32b08.xml、CoreMenuInput-c5bbdfab.xml、HeldGamepadEntry-e3d24b22.xml。
+
+最终四个直接相关PlayMode用例通过，Console0错误，Editor不在Play/编译中；未运行全量。公共输入模块/runbook、场景模块/runbook、当前计划同次更新。源Prefab/正式美术未改，未重建双端产物，未验证真实Xbox或Android。Mobile_RPAsset原字节SHA256仍为DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9；字体缓存及原有UnitySkills/vTabs/.blend1等保持未暂存。提交名「fix(input): 补齐 Hub 导航与跨设备焦点恢复」，实际SHA由Git与交付回复记录；Goal保持进行中。

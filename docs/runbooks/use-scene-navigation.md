@@ -43,4 +43,5 @@ if (result.Status == GameSceneSwitchStatus.Failed)
 - 检查 Active Scene、相机输出、UI、输入和 AudioListener。
 - 运行场景导航 EditMode 测试与 `GameSceneRuntimePlayModeTests`。
 - 修改 Hub 进入流程时运行 `MainMenuNavigationPlayModeTests.FailedEntryRestoresNewMenuAndAllowsRetry`：真实指针进入、重复点击、失败恢复到新页面及再次点击。成功往返使用目标 Demo 的入口回归验证，不调用按钮监听器代替操作。
+- 修改Hub焦点与菜单输入时，运行同类的`KeyboardAndGamepadNavigateEnterAndRecoverWithoutRepeatingHeldSubmit`，覆盖方向键、Enter、手柄方向键/A、失败恢复和按住确认键时不误提交；实际硬件与选中态可读性仍须另验。
 
