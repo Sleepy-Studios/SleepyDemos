@@ -60,3 +60,7 @@ Unity Test Runner：CasinoStationIdentityTests 5eaebcd1，4/4；CasinoAdventureT
 ## 桌面鼠标与触屏指针
 
 手柄偏好迁移已推送ebe03f6。Table新增Point/Click动作，统一返回屏幕坐标和单次按下，供实体射线选择；Editor更新实际资产并保留原动作ID。工厂配置测试27910950为10/10；改读保存资产后d163e366为4/10（键鼠/触屏未收到输入），精确诊断25e2d760为1/1并记录设备启用、应用聚焦、原始坐标及绑定正常。为排除Editor焦点分流对合成设备的影响，测试用临时InputSettings且结束恢复；实际资产整组重测1637ab29，10/10。一次性诊断日志已移除，生产后台策略未改。正式编译通过，无全量测试；未将合成事件当作手机/Xbox真机验收。
+
+## 三款桌面玩法适配
+
+JinxCasinoTableSessionTests作业ab91c93f，EditMode7/7通过：Slots明确拉柄/幂等、筹码面额与同帧去重、准备规则变化失效、Blackjack要停牌与离返、Levers真实窗口/NPC边界、旧局认领及公开投影隔离、较早存档拒绝重试旧成功请求。源使用真实CasinoAdventureSession，没有第二套开奖。宿主输入/聚焦连接已写入工作区，正在独立审查和装配，尚未正式实玩验收。

@@ -69,3 +69,11 @@ CasinoLocalPreferences版本2保留全部旧字段，增加手柄死区、最大
 桌面指针统一由InputRouter.ReadFrame返回PointerPosition/PointerPressed，后者单次消费；鼠标/触屏共用Pointer绑定，菜单不将其二次转成Confirm。上下文切换、暂停清空待处理点击，已有按住输入须释放。实体宿主使用本地相机ScreenPointToRay交给TableSelection；输入基础本身不直接修改筹码。
 
 输入装配菜单仅补缺失的Point/Click，保留已有动作ID与人工键位。PlayMode路由测试读取实际保存的.inputactions；合成设备使用临时InputSettings让输入送入Game View，结束恢复原设置，避免测试操作者的Editor焦点影响事件路由。正式后台/断连暂停规则不改变，仍待宿主与真机验收。
+
+## 三款桌面规则适配
+
+JinxCasinoTableSession管理具体机台的本地筹码草稿，通过IJinxCasinoTableOperations薄边界调用原冒险规则。Slots确认草稿后由实体拉柄执行投入；Blackjack确认后直接发牌，Primary/Secondary分别要牌/停牌；Levers确认后由玩家0号杆提交时机动作。筹码面额10/50/100，清空和离桌只清未投入草稿。
+
+GetView按ActiveStationId/LastStationId过滤公开投影，同一视图给各物件查询可用性和原因。金额、阶段、事件修正变化使已准备的水果机草稿失效，须重新确认。相同帧/相同动作不重复提交，领域重试保留requestId，较早存档不能重放已成功的旧操作。
+
+此层已使用真实领域规则验证；相机、InputRouter、场景实体及UI接入需另做PlayMode和实玩验证，不能用纯适配测试代替。
