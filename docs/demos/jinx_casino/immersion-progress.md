@@ -255,3 +255,17 @@ S1仍采集DefaultPackage既有范围，包内有历史资源；Android与旧P4�
 实际Windows Player冷启动直接显示赌场主菜单，没有Hub；真实鼠标操作打开设置、切换手柄页、返回并进入自由练习。自动化Escape尚未观察到暂停菜单，锁定鼠标时点击屏幕暂停位置反而改变视角；没有对应Player异常。该问题保留待排查，不能以Editor用例通过替代Player键盘验收，也未将本次启动记为完整游玩。
 
 本次构建后工作区仅保留原有无关改动及设置目录meta，没有残留临时Builder。Android S1构建、Xbox实物、完整标准局、演示录像及S1用户体验验收仍未完成。
+
+## Windows前后台恢复与输入排查
+
+同一Windows Player后续验证：切到编辑器再切回，会显示暂停菜单；真实鼠标点击返回主菜单成功重载赌场入口，未显示Hub；主菜单退出按钮正常结束进程。工具注入的Escape与Down在暂停菜单中也未观察到响应，不能只归因为探索Pause分支。只读复核动作映射、上下文取消回调、暂停状态和HUD接线，未发现足以确证根因的缺陷；保留实体键盘比较验证，不进行猜测性修补。此前Editor用例使用InputSystem虚拟KeyboardState，其证据不覆盖Windows原生键盘交付。
+
+S1协作拉杆另有明确体验缺口：保存场景只有伙伴仪表与自动杆，没有可见助手。现有原创Avatar模型具备左右臂和头部关节，可用于后续保存场景装配；助手应由机台表现独占关节并消费真实NPC拉杆状态。旧AvatarPresentation使用独立非缩放时钟且重置关节，不能直接挂载为本机台动作控制器。目前仅完成审查，尚未装配或验收助手。
+
+## Android S1首次独立构建
+
+基于f95ec8b源码，通过现有Editor事务构建20261002122156-4e63d7ed。APK位于Builds/JinxCasino/S1/Android/20261002122156-4e63d7ed/Player/JinxCasinoS1-Offline.apk，120173881字节，SHA256为175F9855D1970D8602E3EEDFE5369B740323E0C7ED4CA3CBB238A301BABF479B。aapt确认应用com.sleepystudio.jinxcasino、版本0.5.0、minSdk26、targetSdk36、仅arm64-v8a；apksigner验证v2签名通过。包内有72项assets/yoo资源，未包含检查范围内的Streamline/DLSS/UnityPlayer Windows插件。
+
+此项证明本次公共输入迁移及S1入口通过Android IL2CPP与资源构建，不证明实际安装、启动、离线加载或手柄可用。ADB设备列表为空，Android真机30分钟、后台恢复、安全区与触控/Xbox均待验。Windows启动验证所在机器为i7-12700KF、RTX3050、约64GB内存，未采集性能数据，也不替代指定GTX1650级性能目标。
+
+事务最终报告Android S1构建成功且编辑器已恢复；git状态未留下新的平台配置/生成代码变更，Windows ZIP哈希与构建前相同。此次未修改C#、未新增或运行测试；修正运行手册中一处已删除布局测试的旧入口，改为实际机台可读性检查。S1仍待可见助手、完整实玩、录像与用户验收，未进入S2。
