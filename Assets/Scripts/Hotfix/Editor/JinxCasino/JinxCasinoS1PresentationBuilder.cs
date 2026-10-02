@@ -27,6 +27,7 @@ namespace Hotfix.Editor.JinxCasino
             // 此字库3D单行高度约.041米；低于行高时Truncate会裁掉整行。
             var amount = Label(plaque, "Amount", font, new Vector3(0, .023f, .047f), .52f, .046f, .35f);
             var result = Label(plaque, "Result", font, new Vector3(0, -.023f, .047f), .52f, .046f, .35f);
+            if (savedRulesLabel == null) savedRulesLabel = EnsureRulesPlacard(station, font, palette);
             switch (station.Game)
             {
                 case CasinoGameKind.Slots:
@@ -61,6 +62,54 @@ namespace Hotfix.Editor.JinxCasino
                 default: throw new ArgumentOutOfRangeException(nameof(station), "S1只绑定三台专属模型。");
             }
         }
+        /// <summary>创建独立的机台赔率夹板；已有夹板保留位置及人工外观，只返回正文引用。</summary>
+        /// <param name="station">具体机台及保存的聚焦挂点。</param>
+        /// <param name="font">Demo专属字库。</param>
+        /// <param name="palette">夹板使用的独立样板材质。</param>
+        /// <param name="applyLayout">显式更新夹板位置和字号；false保留已有夹板的人工布局。</param>
+        /// <returns>用于完整规则与当前加成的正文。</returns>
+        public static TMP_Text EnsureRulesPlacard(JinxCasinoStation station, TMP_FontAsset font, Dictionary<string, Material> palette, bool applyLayout = false)
+        {
+            var existing = station.transform.Find("RulesPlacard");
+            if (existing != null)
+            {
+                var savedRules = existing.Find("Rules").GetComponent<TMP_Text>();
+                if (existing.Find("Support") == null)
+                    BoardPart(existing, "Support", new Vector3(0, -.52f, -.035f), new Vector3(.07f, .34f, .055f), palette["CopperGold"], true);
+                if (applyLayout) PositionRulesPlacard(station, existing, savedRules);
+                return savedRules;
+            }
+            var board = new GameObject("RulesPlacard").transform;
+            board.SetParent(station.transform, false);
+            BoardPart(board, "Frame", Vector3.zero, new Vector3(.78f, .78f, .045f), palette["CopperGold"], true);
+            BoardPart(board, "Face", new Vector3(0, 0, .029f), new Vector3(.73f, .73f, .016f), palette["InkBlue"], false);
+            BoardPart(board, "Clip", new Vector3(0, .376f, .051f), new Vector3(.19f, .07f, .038f), palette["Mint"], false);
+            BoardPart(board, "Support", new Vector3(0, -.52f, -.035f), new Vector3(.07f, .34f, .055f), palette["CopperGold"], true);
+            var title = Label(board, "Title", font, new Vector3(0, .282f, .043f), .66f, .07f, .42f);
+            title.text = station.Game == CasinoGameKind.Slots ? "水果返还表" : station.Game == CasinoGameKind.Blackjack ? "牌桌小抄" : "合拍须知";
+            var rules = Label(board, "Rules", font, new Vector3(0, -.041f, .043f), .65f, .53f, .36f);
+            rules.alignment = TextAlignmentOptions.TopLeft; rules.textWrappingMode = TextWrappingModes.Normal;
+            rules.text = "投入前请看返还规则";
+            PositionRulesPlacard(station, board, rules);
+            return rules;
+        }
+
+        private static void PositionRulesPlacard(JinxCasinoStation station, Transform board, TMP_Text rules)
+        {
+            board.localPosition = station.Game == CasinoGameKind.Blackjack ? new Vector3(1.2f, 1.55f, -.25f) :
+                station.Game == CasinoGameKind.Slots ? new Vector3(1.25f, 1.7f, .7f) : new Vector3(1.25f, 1.68f, 0);
+            board.rotation = Quaternion.LookRotation(station.FocusPose.position - board.position, Vector3.up);
+            rules.enableAutoSizing = true; rules.fontSizeMin = .36f; rules.fontSizeMax = .5f; rules.fontSize = .5f;
+        }
+
+        private static void BoardPart(Transform parent, string name, Vector3 position, Vector3 size, Material material, bool collision)
+        {
+            var part = GameObject.CreatePrimitive(PrimitiveType.Cube); part.name = name;
+            part.transform.SetParent(parent, false); part.transform.localPosition = position; part.transform.localScale = size;
+            part.GetComponent<Renderer>().sharedMaterial = material;
+            if (!collision) UnityEngine.Object.DestroyImmediate(part.GetComponent<Collider>());
+        }
+
         private static CasinoS1CardSlot Card(Transform pose) => new CasinoS1CardSlot
         { Pose = pose, Filter = pose.GetComponentsInChildren<MeshFilter>(true).Single(), Renderer = SingleRenderer(pose) };
         private static CasinoS1CardFace Face(Transform pose) => new CasinoS1CardFace

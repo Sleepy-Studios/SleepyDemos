@@ -97,6 +97,12 @@ namespace Tests.Demo
             Assert.That(Vector3.Distance(camera.transform.position, station.FocusPose.position), Is.LessThan(.02f));
             Assert.That(owner.TableView.DraftStake, Is.Zero, "探索E不能跨上下文变成加筹码或确认。");
             yield return Screenshot("S1SlotsFocus");
+            var rulesLabel = typeof(JinxCasinoS1Presentation).GetField("rulesText", BindingFlags.Instance | BindingFlags.NonPublic)
+                .GetValue(station.GetComponent<JinxCasinoS1Presentation>());
+            Assert.That(rulesLabel, Is.Not.Null, "投入前必须有本机台完整规则铭牌。");
+            Assert.That(rulesLabel.GetType().GetProperty("text").GetValue(rulesLabel), Is.EqualTo(owner.TableView.RulesText));
+            Assert.That((bool)rulesLabel.GetType().GetProperty("isTextTruncated").GetValue(rulesLabel), Is.False,
+                "收益规则和当前加成不得在机台铭牌中被裁掉。");
             long initialCoins = owner.AdventureState.Coins;
             yield return ClickTarget(camera, station, "chip10");
             yield return Wait(() => owner.TableView.DraftStake == 10, "真实筹码物件增加10筹码", 2);

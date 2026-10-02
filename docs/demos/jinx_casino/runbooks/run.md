@@ -56,3 +56,4 @@ URP 构建预处理会保存目标平台的着色器预过滤配置，并可能�
 Windows构建会校验本机System32的chcp.com签名和哈希，再临时提供给Bee的受限PATH编译进程，事务结束只清理自己创建且哈希一致的副本。校验使用系统Windows PowerShell及其安全模块，PSModulePath仅在校验子进程内限定为系统模块目录；从PowerShell7启动Editor也不依赖其模块自动加载。不修改用户cmd AutoRun、全局PATH或模块路径。
 
 Windows P0已有实际构建与正式入口启动记录；Android、Photon与真机进度以[进度与验证](../progress.md)中实际证据为准。分享Windows版本使用Playable ZIP，开发机保留的DoNotShip目录和初始ZIP不需要分发。
+`沉浸样板/更新桌面规则铭牌`为三台装配独立规则夹板，并按S1Layout更新聚焦挂点；该菜单会重新应用夹板自身布局，不重建机台或大厅。调整后运行JinxCasinoImmersionSceneTests.AllRulesBoardsFitInsideTheirSavedTableView并检查真实聚焦截图。

@@ -33,3 +33,4 @@
 ## S1独立模型
 
 S1源在ArtSource/jinx_casino/immersion，运行候选在Art/Immersion。S1Layout.json规定22操作热区/相机/身体代理；FBX根与子节点无轴向补偿，四模型已通过Unity实际导入门禁b2ddc5da（5/5）。12个独立URP材质由JinxCasinoImmersionArtBuilder首次创建，再运行保留已有材质调整；不得改旧P4 palette。正式场景中隐藏CardFaceLibrary/初始牌池/DrawCard和初始奖筹码，Hall.Ceiling关闭投影，具体绑定由分步装配承担。对应原生预览不是实际规则或最终照明证据。
+`RulesPlacard`由Editor装配为独立夹板及支架，正文引用保存在专属表现组件，不放入FBX或运行时动态生成。规则完整显示，不能截去当前投入修正。S1Layout源与运行副本的聚焦位置同步维护，更新规则铭牌菜单显式重置该夹板及其聚焦挂点；首次装配遇到已有夹板时保留人工布局。16:9门禁检查规则牌四角与22个操作目标中心入镜，仍需逐设备实际可读性和遮挡验证。

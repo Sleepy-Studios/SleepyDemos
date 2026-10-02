@@ -85,10 +85,8 @@ namespace Hotfix.JinxCasino.Adapters
             var round = view.Presentation;
             SetText(amountText, round?.IsComplete == true ? "投入 " + round.Cost : view.HasOwnActiveRound ? "已投入" :
                 "筹码 " + view.DraftStake + (view.IsSlotsPrepared ? " · 已确认" : string.Empty));
-            // 铭牌只是短状态；完整赔率/加成由Host帮助入口保留，不把旧大面板搬上桌。
-            string rules = view.RulesText ?? string.Empty;
-            int lineEnd = rules.IndexOf('\n'); if (lineEnd >= 0) rules = rules.Substring(0, lineEnd);
-            SetText(rulesText, rules.Length > 42 ? rules.Substring(0, 41) + "…" : rules);
+            // 专属赔率牌保留完整收益与当前修正，不能截掉投入前必须看见的第二行。
+            SetText(rulesText, view.RulesText ?? string.Empty);
         }
         protected void SetResult(string text) => SetText(resultText, text);
         protected static void SetText(TMP_Text label, string text) { if (label != null && label.text != text) label.text = text; }

@@ -95,6 +95,40 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void AllRulesBoardsFitInsideTheirSavedTableView()
+        {
+            var scene = EditorSceneManager.OpenPreviewScene(Root + "/Scenes/Immersion.unity");
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var camera = roots.SelectMany(root => root.GetComponentsInChildren<Camera>(true)).Single();
+                camera.aspect = 16f / 9;
+                foreach (var station in roots.SelectMany(root => root.GetComponentsInChildren<JinxCasinoStation>(true)))
+                {
+                    camera.transform.SetPositionAndRotation(station.FocusPose.position, station.FocusPose.rotation);
+                    camera.fieldOfView = station.FocusFieldOfView;
+                    foreach (var target in station.Targets)
+                    {
+                        Vector3 point = camera.WorldToViewportPoint(target.transform.position);
+                        Assert.That(point.z, Is.GreaterThan(0), target.TargetId);
+                        Assert.That(point.x, Is.InRange(.02f, .98f), target.TargetId + "操作目标横向越界");
+                        Assert.That(point.y, Is.InRange(.08f, .92f), target.TargetId + "操作目标被边缘HUD遮挡");
+                    }
+                    var frame = station.transform.Find("RulesPlacard/Frame");
+                    Assert.That(frame, Is.Not.Null, station.name);
+                    foreach (float x in new[] { -.5f, .5f }) foreach (float y in new[] { -.5f, .5f })
+                    {
+                        Vector3 point = camera.WorldToViewportPoint(frame.TransformPoint(new Vector3(x, y, .5f)));
+                        Assert.That(point.z, Is.GreaterThan(0), station.name);
+                        Assert.That(point.x, Is.InRange(.02f, .98f), station.name + "规则牌横向越界");
+                        Assert.That(point.y, Is.InRange(.08f, .9f), station.name + "规则牌被边缘HUD遮挡");
+                    }
+                }
+            }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        [Test]
         public void SavedHudHasAllRequiredMenuAndTouchReferences()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/UI/JinxCasinoImmersionHudView.prefab");

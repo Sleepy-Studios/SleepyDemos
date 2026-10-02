@@ -24,6 +24,46 @@ namespace Hotfix.Editor.JinxCasino
         private const string ImmersionScenePath = Root + "/Scenes/Immersion.unity";
         private const string ImmersionHudPath = Root + "/Prefabs/UI/JinxCasinoImmersionHudView.prefab";
 
+        /// 分步装配桌面赔率夹板，保留已保存场景与机台的人工调整。
+        [MenuItem("Tools/SleepyDemos/整蛊赌场/沉浸样板/更新桌面规则铭牌")]
+        public static void UpdateImmersionRulesPlacards()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("请在编辑模式更新样板。");
+            Scene previous = SceneManager.GetActiveScene();
+            Scene scene = SceneManager.GetSceneByPath(ImmersionScenePath);
+            bool opened = !scene.isLoaded;
+            if (!opened && scene.isDirty) throw new InvalidOperationException("请先保存样板的人工修改。");
+            if (opened) scene = EditorSceneManager.OpenScene(ImmersionScenePath, OpenSceneMode.Additive);
+            try
+            {
+                var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
+                var palette = Directory.GetFiles(JinxCasinoImmersionArtBuilder.Root + "/Materials", "*.mat")
+                    .ToDictionary(Path.GetFileNameWithoutExtension, path => AssetDatabase.LoadAssetAtPath<Material>(path));
+                var blueprint = JsonUtility.FromJson<RulesFocusBlueprint>(File.ReadAllText(JinxCasinoImmersionArtBuilder.Root + "/S1Layout.json"));
+                foreach (var station in scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<JinxCasinoStation>(true)))
+                {
+                    var pose = blueprint.stations.Single(item => item.id == station.StationId);
+                    station.FocusPose.localPosition = new Vector3(pose.focus[0], pose.focus[1], pose.focus[2]);
+                    Vector3 lookAt = station.transform.TransformPoint(new Vector3(pose.lookAt[0], pose.lookAt[1], pose.lookAt[2]));
+                    station.FocusPose.rotation = Quaternion.LookRotation(lookAt - station.FocusPose.position, Vector3.up);
+                    var label = JinxCasinoS1PresentationBuilder.EnsureRulesPlacard(station, font, palette, true);
+                    var saved = new SerializedObject(station.GetComponent<JinxCasinoS1Presentation>());
+                    saved.FindProperty("rulesText").objectReferenceValue = label;
+                    saved.ApplyModifiedPropertiesWithoutUndo();
+                }
+                EditorSceneManager.MarkSceneDirty(scene);
+                if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("保存规则铭牌失败。");
+            }
+            finally
+            {
+                if (previous.IsValid() && previous.isLoaded) SceneManager.SetActiveScene(previous);
+                if (opened && scene.IsValid() && scene.isLoaded) EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        [Serializable] private sealed class RulesFocusBlueprint { public RulesFocusPose[] stations; }
+        [Serializable] private sealed class RulesFocusPose { public string id; public float[] focus; public float[] lookAt; }
+
         /// 分步修正本地角色射线层与动态铭牌行高，不改变场景布局和人工美术。
         [MenuItem("Tools/SleepyDemos/整蛊赌场/沉浸样板/更新交互绑定")]
         public static void UpdateImmersionInteractionBindings()

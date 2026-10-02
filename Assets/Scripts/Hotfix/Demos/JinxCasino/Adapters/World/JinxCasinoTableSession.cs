@@ -159,13 +159,13 @@ namespace Hotfix.JinxCasino.Adapters
 
         private string LocalRules(CasinoAdventureState state, long maximum, bool helped)
         {
-            string rules = game == CasinoGameKind.Slots ? "两同返2倍，普通三同返10倍，三个最高奖返30倍。" :
-                game == CasinoGameKind.Blackjack ? "A算1或11，庄家17停牌；胜返2倍，和局退投入，天然21返2.5倍。" :
-                "15秒内合拍返4倍，错时3次失败。你在每2秒周期的" + (helped ? "100至500" : "200至400") + "毫秒拉下，助手拉另一根。";
+            string rules = game == CasinoGameKind.Slots ? "两同：返2倍\n普通三同：返10倍\n三根香蕉：返30倍" :
+                game == CasinoGameKind.Blackjack ? "A算1或11，庄家17停牌。\n胜返2倍，和局退投入；\n天然21返2.5倍。" :
+                "绿灯亮时拉自己的杆，助手会配合。15秒内完成返4倍；错时3次失败。" + (helped ? "扳手已扩大绿灯时机。" : string.Empty);
             if (state == null) return rules;
             int bonus = state.EventPayoutBonusPercent + state.NextPayoutBonusPercent;
             var names = state.PreparedItems.Select(id => CasinoContentCatalog.FindItem(id)?.Name ?? id).ToArray();
-            return rules + "\n最高投入 " + maximum + " · 返还加成 " + bonus + "%" + (names.Length > 0 ? " · 预备 " + string.Join("、", names) : string.Empty);
+            return rules + "\n最高投入 " + maximum + "\n返还加成 " + bonus + "%" + (names.Length > 0 ? "\n预备 " + string.Join("、", names) : string.Empty);
         }
 
         private string ActiveDescription(CasinoMiniGamePresentation view)
