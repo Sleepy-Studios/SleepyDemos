@@ -16,6 +16,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
         [SerializeField] private TMP_Text objective;
         [SerializeField] private TMP_Text prompt;
         [SerializeField] private TMP_Text feedback;
+        [SerializeField] private Button quitGameButton;
+        private Vector2 mainMenuSize;
+        private bool mainMenuSizeCaptured;
         [SerializeField] private Button start;
         [SerializeField] private Button practice;
         [SerializeField] private Button resume;
@@ -33,6 +36,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         public void Bind(JinxCasinoController controller)
         {
             Unbind(); owner = controller; menuState = -1;
+            if (!mainMenuSizeCaptured) { mainMenuSize = ((RectTransform)mainMenu.transform).sizeDelta; mainMenuSizeCaptured = true; }
+            if (quitGameButton != null) quitGameButton.onClick.AddListener(QuitGame);
             owner.Changed += Refresh; owner.ImmersionInputChanged += Refresh;
             owner.BindTouchPads(movePad, lookPad);
             start.onClick.AddListener(StartAdventure); practice.onClick.AddListener(StartPractice);
@@ -42,6 +47,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
             BindSaveControls();
             BindStandardEndingControls();
             BindSettingsControls();
+            var mainButtons = new System.Collections.Generic.List<Button> { start, practice, tutorialStartButton, saveMainLoadButton, settingsMainButton };
+            if (owner.IsStandalonePlayer) mainButtons.Add(quitGameButton);
+            mainButtons.RemoveAll(button => button == null); SaveNavigation(mainButtons);
             Refresh();
         }
 
@@ -58,8 +66,11 @@ namespace Hotfix.JinxCasino.Adapters.UI
             start.onClick.RemoveListener(StartAdventure); practice.onClick.RemoveListener(StartPractice);
             resume.onClick.RemoveListener(Resume); pause.onClick.RemoveListener(Pause);
             leave.onClick.RemoveListener(Leave); interact.onClick.RemoveListener(Interact); exitTable.onClick.RemoveListener(ExitTable);
+            if (quitGameButton != null) quitGameButton.onClick.RemoveListener(QuitGame);
+            ((RectTransform)mainMenu.transform).sizeDelta = mainMenuSize;
             owner = null;
         }
+        private void QuitGame() => owner.QuitStandaloneApplication();
         private void StartAdventure() { owner.StartAdventure(CasinoAdventureMode.Standard); Refresh(); }
         private void StartPractice() { owner.StartAdventure(CasinoAdventureMode.Practice); Refresh(); }
         private void Pause() { owner.PauseImmersion(); Refresh(); }
@@ -83,6 +94,13 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 RefreshStandardEndingControls(state);
                 owner.SetImmersionMenuState(state != 2, state == 9, SettingsFirstSelection(state), HasSettingsUi || HasStandardEndingUi || HasSaveUi || HasTutorialUi ? CancelImmersionHudWindow : null);
             }
+            if (quitGameButton != null)
+            {
+                quitGameButton.gameObject.SetActive(state == 0 && owner.IsStandalonePlayer);
+                ((RectTransform)mainMenu.transform).sizeDelta = new Vector2(mainMenuSize.x, owner.IsStandalonePlayer ? mainMenuSize.y + 84 : mainMenuSize.y);
+            }
+            var leaveLabel = leave.GetComponentInChildren<TMP_Text>(true);
+            if (leaveLabel != null) leaveLabel.text = owner.IsStandalonePlayer ? "返回主菜单" : "返回大厅";
             RefreshSettingsControls(state);
             RefreshTutorialControls(state);
             RefreshSaveControls(state);

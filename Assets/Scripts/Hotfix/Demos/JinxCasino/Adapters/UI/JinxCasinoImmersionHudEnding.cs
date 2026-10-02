@@ -49,6 +49,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
             standardEndingProfileText.text = owner.ProfileStatus ?? string.Empty;
             if (standardEndingSaveButton != null) standardEndingSaveButton.interactable = HasSaveUi && !owner.IsBusy;
             standardEndingReturnButton.interactable = !owner.IsBusy;
+            var returnLabel = standardEndingReturnButton.GetComponentInChildren<TMP_Text>(true);
+            if (returnLabel != null) returnLabel.text = owner.IsStandalonePlayer ? "返回主菜单" : "返回大厅";
         }
         private void SaveStandardEnding()
         {

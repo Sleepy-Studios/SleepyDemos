@@ -31,6 +31,9 @@ namespace Hotfix.SceneManagement
         /// 当前是否正在切换场景。
         public bool IsTransitioning => isTransitioning;
 
+        /// 独立包的业务入口；null保持Hub入口，具体Demo据此提供返回主菜单。
+        public GameSceneId? StandaloneScene { get; private set; }
+
         /// 当前是否由 Editor Demo 直启宿主管理。
         public bool IsEditorDirect => isEditorDirect;
 
@@ -49,12 +52,15 @@ namespace Hotfix.SceneManagement
             await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, cancellationToken);
         }
 
-        /// 使用当前资源服务和 UI 框架初始化全局场景导航。
-        public static void Initialize()
+        /// <summary>使用当前资源服务和UI框架初始化导航；已存在实例保持其启动方式。</summary>
+        /// <param name="standaloneScene">独立包的已登记Demo入口；null默认进入Hub，不修改Editor配置。</param>
+        public static void Initialize(GameSceneId? standaloneScene = null)
         {
+            if (standaloneScene.HasValue && (standaloneScene == GameSceneId.Hub || !GameSceneCatalog.TryGet(standaloneScene.Value, out _)))
+                throw new System.ArgumentException("独立入口必须是已登记的Demo。", nameof(standaloneScene));
             Instance ??= new GameSceneNavigator(
                 new GameSceneRuntime(ResourceServices.CreateSceneLoader()),
-                new GameSceneLoadingPresenter());
+                new GameSceneLoadingPresenter()) { StandaloneScene = standaloneScene };
             GraphicsSettingsUI.Initialize().Forget();
         }
 

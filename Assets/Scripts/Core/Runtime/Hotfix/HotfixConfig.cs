@@ -5,6 +5,10 @@ namespace Core.Runtime
     [CreateAssetMenu(fileName = "HotfixConfig", menuName = "Sleepy/Hotfix Config")]
     public sealed class HotfixConfig : ScriptableObject
     {
+        [Header("Startup")]
+        [Tooltip("为空时进入Hub；非空名称由Hotfix场景目录解析，Core不依赖业务场景类型。")]
+        public string StartupScene = string.Empty;
+
         [Header("Resources")]
         public ResourcePlayMode PlayMode = ResourcePlayMode.EditorSimulateMode;
         public string PackageName = ResourceInitializeOptions.DefaultPackageName;

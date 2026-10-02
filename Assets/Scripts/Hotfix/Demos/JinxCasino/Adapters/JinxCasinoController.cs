@@ -255,6 +255,10 @@ namespace Hotfix.JinxCasino.Adapters
 
         /// 先收口会话和具体 View，再返回 Hub。
         public void RequestExit() { if (!IsBusy) ExitAsync().Forget(); }
+        /// 独立包返回本游戏主菜单，Editor的Hub接入保持原行为。
+        public bool IsStandalonePlayer => GameSceneNavigator.Instance?.StandaloneScene == GameSceneId.JinxCasino;
+        /// 仅独立包主菜单接受退出应用，不用此方法丢弃正在进行的旅程。
+        public void QuitStandaloneApplication() { if (IsStandalonePlayer && !HasAdventure && !IsBusy) Application.Quit(); }
         private async UniTaskVoid ExitAsync()
         {
             isExiting = true;
@@ -263,7 +267,9 @@ namespace Hotfix.JinxCasino.Adapters
             {
                 await DisconnectAsync();
                 if (hud != null) { await UIManager.Instance.CloseAsync(hud); hud = null; }
-                var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
+                var result = IsStandalonePlayer
+                    ? await GameSceneNavigator.Instance.ReloadCurrentAsync()
+                    : await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status != GameSceneSwitchStatus.Succeeded && result.Status != GameSceneSwitchStatus.Ignored)
                 {
                     if (this != null) Status = result.Error ?? "导航繁忙，请稍后再试。";

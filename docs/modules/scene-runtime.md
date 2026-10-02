@@ -83,3 +83,7 @@ Editor 直启重载：
 - [新增 Demo](../runbooks/add-demo.md)
 - [接入运行期场景导航](../runbooks/use-scene-navigation.md)
 - [在 Unity Editor 直接运行 Demo 岛](../runbooks/run-demo-island-directly.md)
+
+## 独立包启动模式
+
+GameSceneNavigator.Initialize可在首次初始化时接收已登记的独立Demo目标，StandaloneScene记录此包入口；后续Initialize不修改已有实例。HotfixEntry从构建专属HotfixConfig.StartupScene解析它，空值保持Hub。Demo可据此把“返回主菜单”接到原ReloadCurrentAsync，完整卸载旧实例后显示新的游戏菜单；默认Editor/Hub路径继续SwitchAsync(Hub)。独立模式不等于Editor直启，不绕过资源初始化、场景句柄或公共UI清理。

@@ -38,6 +38,7 @@ namespace Tests.Demo
         private JinxCasinoController owner;
         private string saveDirectory;
         private string settingsTestKey;
+        private bool standaloneOverride;
 
         [UnityTest, Timeout(180000)]
         public IEnumerator SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause()
@@ -336,6 +337,37 @@ namespace Tests.Demo
             Assert.That(owner.AdventureState.Coins, Is.EqualTo(paidCoins)); Assert.That(owner.AdventureState.RandomState, Is.EqualTo(paidRandom));
             Assert.That(owner.AdventureState.SettledRoundSequence, Is.EqualTo(1)); Assert.That(owner.AdventureState.LastStationId, Is.EqualTo("s1.fruit"));
             Assert.That(owner.SelectedSaveSlot, Is.EqualTo(2)); Assert.That(owner.HasActiveAdventureRound, Is.False);
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator StandaloneReturnReloadsGameMenuWithoutShowingHub()
+        {
+            yield return EnterSample();
+            // Editor夹具只覆盖包启动方式；真正StartupScene解析仍由Player冷启动另行验收。
+            typeof(GameSceneNavigator).GetProperty("StandaloneScene").SetValue(GameSceneNavigator.Instance, GameSceneId.JinxCasino);
+            standaloneOverride = true;
+            var initial = owner; owner.RequestExit();
+            yield return Wait(() => initial == null && UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning,
+                "模拟独立包主菜单", 45);
+            owner = Object.FindFirstObjectByType<JinxCasinoController>();
+            owner.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); owner.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            Assert.That(owner.IsStandalonePlayer, Is.True);
+            Assert.That(Field<Button>(presenter, "quitGameButton").gameObject.activeInHierarchy, Is.True);
+            Assert.That(owner.HasAdventure, Is.False);
+            yield return Screenshot("S1StandaloneMainMenu");
+            yield return MouseClick(Field<Button>(presenter, "start"));
+            yield return KeyPress(Key.Escape);
+            var old = owner;
+            yield return MouseClick(Field<Button>(presenter, "leave"));
+            yield return Wait(() => old == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.JinxCasino &&
+                !GameSceneNavigator.Instance.IsTransitioning && UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible,
+                "独立包返回新的游戏主菜单", 45);
+            owner = Object.FindFirstObjectByType<JinxCasinoController>(); Assert.That(owner.HasAdventure, Is.False);
+            Assert.That(UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, Is.False);
+            AssertSingleListener();
+            typeof(GameSceneNavigator).GetProperty("StandaloneScene").SetValue(GameSceneNavigator.Instance, null); standaloneOverride = false;
+            owner.RequestExit(); yield return Wait(IsStableHub, "恢复Editor Hub夹具", 45);
         }
 
         [UnityTest, Timeout(180000)]
@@ -689,6 +721,8 @@ namespace Tests.Demo
             {
                 if (keyboard != null && keyboard.added) InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                 if (mouse != null && mouse.added) InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
+                if (standaloneOverride && GameSceneNavigator.Instance != null)
+                { typeof(GameSceneNavigator).GetProperty("StandaloneScene").SetValue(GameSceneNavigator.Instance, null); standaloneOverride = false; }
                 var live = Object.FindFirstObjectByType<JinxCasinoController>();
                 if (live != null) { live.RequestExit(); yield return Wait(() => live == null && IsStableHub(), "失败路径清理样板", 45); }
             }

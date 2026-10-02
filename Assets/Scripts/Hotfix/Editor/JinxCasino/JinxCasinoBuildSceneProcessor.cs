@@ -11,7 +11,7 @@ namespace Hotfix.Editor.JinxCasino
     {
         public int callbackOrder => 1000;
 
-        /// <summary>为本次 P0 Player 的内存启动场景替换平台专属配置。</summary>
+        /// <summary>为本次离线Player的内存启动场景替换平台专属配置，包括S1独立启动目标。</summary>
         /// <param name="scene">Unity 构建中的场景副本；不对场景资源执行保存。</param>
         /// <param name="report">非空的 Player 构建报告；普通编辑器打开场景时忽略。</param>
         public void OnProcessScene(Scene scene, BuildReport report)
@@ -29,7 +29,7 @@ namespace Hotfix.Editor.JinxCasino
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 count++;
             }
-            if (count != 1) throw new BuildFailedException("P0 构建要求 AppEntrance 恰好包含一个 CoreEntrance。");
+            if (count != 1) throw new BuildFailedException("离线构建要求AppEntrance恰好包含一个CoreEntrance。");
         }
     }
 }

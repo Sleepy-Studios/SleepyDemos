@@ -100,3 +100,7 @@ Editor 可在 Demo 场景通过独立 `DemoIslandEditorBootstrap` 补齐最小�
 - 热更程序集加载问题先看 `BeforeHotfixStartupState`
 - 主界面不显示先看 `HotfixEntry` 与 `MainMenuView` 注册链路
 - 配置加载失败先看 `LubanConfigSystem` 日志中的表名和资源地址，再按 [Luban 配置 runbook](../runbooks/use-luban-config.md) 检查生成物与采集设置
+
+## 独立试玩包入口
+
+HotfixConfig.StartupScene为空时仍显示Hub。独立包可在构建专用配置中指定Hotfix场景目录名称；Core只携带字符串，不引用业务枚举。HotfixEntry完成原资源/Boot初始化后解析目标，经同一GameSceneNavigator加载业务场景，成功后关闭启动Loading，不先闪现MainMenuView。未知目标使启动明确失败，不静默回Hub。原AppEntrance和默认配置不因独立包构建而修改。
