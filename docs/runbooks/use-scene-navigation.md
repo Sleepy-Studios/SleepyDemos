@@ -18,6 +18,8 @@
 4. 按 `GameSceneSwitchStatus` 处理结果：`Succeeded` 已完成，`Ignored` 已在目标，`Busy` 稍后重试，`Failed` 展示或记录 `Error`。
 5. Demo 返回入口统一切换到 `GameSceneId.Hub`。
 
+Hub 的新增按钮应复用 `MainMenuView.EnterDemoAsync(target)`，并加入该页的入口禁用/恢复列表，不再复制单独的 `OpenXxxAsync`。失败时页面标题显示可重试提示，详细错误写入 Console；未接通入口保持不可用。加载过程会销毁旧 Hub，因此异步结束后只能更新当前恢复出来的页面。
+
 ## 示例
 
 ```csharp
@@ -40,4 +42,5 @@ if (result.Status == GameSceneSwitchStatus.Failed)
 - 从 `AppEntrance` 冷启动进入主菜单，再往返目标 Demo。
 - 检查 Active Scene、相机输出、UI、输入和 AudioListener。
 - 运行场景导航 EditMode 测试与 `GameSceneRuntimePlayModeTests`。
+- 修改 Hub 进入流程时运行 `MainMenuNavigationPlayModeTests.FailedEntryRestoresNewMenuAndAllowsRetry`：真实指针进入、重复点击、失败恢复到新页面及再次点击。成功往返使用目标 Demo 的入口回归验证，不调用按钮监听器代替操作。
 

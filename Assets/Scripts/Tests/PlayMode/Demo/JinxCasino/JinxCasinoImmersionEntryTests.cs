@@ -690,9 +690,9 @@ namespace Tests.Demo
             InputSystem.settings = testInputSettings;
             keyboard = InputSystem.AddDevice<Keyboard>(); mouse = InputSystem.AddDevice<Mouse>();
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
-            var travel = GameSceneNavigator.Instance.SwitchAsync(GameSceneId.JinxCasino).AsTask();
-            yield return Wait(() => travel.IsCompleted, "正式赌场导航", 45);
-            Assert.That(travel.GetAwaiter().GetResult().Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            yield return MouseClick(Field<Button>(UIManager.Instance.Get<MainMenuView>(), "Button_JinxCasinoButton"));
+            yield return Wait(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.JinxCasino && !GameSceneNavigator.Instance.IsTransitioning,
+                "实际 Hub 按钮进入赌场", 45);
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning, "保存的沉浸HUD", 30);
             owner = Object.FindFirstObjectByType<JinxCasinoController>();
             Assert.That(owner, Is.Not.Null); Assert.That(owner.HasInputConfiguration, Is.True);

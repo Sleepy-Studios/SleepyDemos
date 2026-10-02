@@ -14,7 +14,7 @@
 
 Core不处理下注、机台、牌局、角色运动约束或游戏时钟，也不创建界面、相机和第二套EventSystem。宿主保留自己的inputactions、动作到玩法命令的映射、提示文案、触控布局和设置存储。参数对象可由任意设置系统提供，模块不另建PlayerPrefs键或存档格式。
 
-JinxCasino已直接消费公共实现：原Exploration/Table/Menu资产及动作ID不变，构造时传入Map名称；不会重跑生成器。旧TouchPad的脚本GUID、isLookPad和引用字段保持，MovedFrom记录原Hotfix类型。其它Demo可按需接入，不强制改动其控制方案。
+JinxCasino已直接消费公共实现：原Exploration/Table/Menu资产及动作ID不变，构造时传入Map名称；不会重跑生成器。触控区域的脚本GUID、isLookPad和引用字段保持，保存资源已使用Core类型，不再保留原Hotfix类型的MovedFrom映射。其它Demo可按需接入，不强制改动其控制方案。
 
 ## 调用和生命周期
 

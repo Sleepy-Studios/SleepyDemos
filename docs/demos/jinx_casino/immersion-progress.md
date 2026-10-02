@@ -389,3 +389,13 @@ Android在产物生成后恢复配置失败：Mobile_RPAsset.asset内存映射�
 实际调用新增恢复菜单后，两份文件原字节匹配构建前备份：Mobile_RPAsset SHA256 DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9；ProjectSettings SHA256 BA62B48D12C8EE54754881A53D56A53CD6D09B40B97272C149967AF997658DC8。Console最终0错误，最终日志确认Android构建成功并恢复原Editor平台；ProjectSettings产品名已回SleepyDemos。APK/ZIP没有重建或覆盖原证据。无关Mobile_RPAsset、UnitySkills/vTabs、.blend1等仍保留；TMP动态补字缓存被Unity构建自动清理为干净状态，未手动回退字体配置。
 
 本次只修改Hotfix.Editor恢复保护及运行/工具文档，采用实际失败事务恢复和原字节校验验证，没有新增永久测试或运行全量Test Runner。正式资源与S1体验尚未验收；四张稿已再次展示并发出确认问题，等待期间只推进代码/构建验证。提交名「fix(jinx): 修复构建配置占用后的恢复」，实际SHA由Git和交付回复记录。
+
+## 2026-10-03：Hub 统一进入及加载失败恢复
+
+等待四稿确认期间完成不依赖新视觉的Hub进入闭环。MainMenuView四个已接通Demo统一调用EnterDemoAsync，进入前锁定全部入口并拒绝重复点击；未接通的UI验证入口不可用且标注“未开放”。导航失败或异常记录诊断，显示“进入失败／请重试”。Loading会销毁原Hub，因此结束后只在同一导航实例稳定停留Hub时更新当前可见MainMenuView，避免写已销毁控件或干扰已进入的Demo。保留现有Prefab、MvcBind绑定与导航实现，没有新增适配器、UI Builder、框架或生产程序集。
+
+新增一条有长期回归价值的MainMenuNavigationPlayModeTests用例：复用实际AppEntrance、保存页面、Core Loading与InputSystem指针，仅注入场景加载失败；验证旧页面销毁、加载期间重复点击、新页面反馈及全入口恢复、未开放状态与实际再次点击。反馈的preferred size与现有控件比较，避免溢出遮挡入口，不固定布局尺寸或资源数量。Tests.PlayMode补必要的Unity.TextMeshPro引用，仍只有原有两种测试程序集。现有赌场入口辅助方法改为实际点击Hub按钮，继续验证成功进入和返回。
+
+首次正式编译发现测试程序集缺TMP引用，补齐后通过。6753ebb3首次失败因刚显示Hub时启动遮罩尚未销毁；d10fb47e首次回滚及反馈/按钮断言通过，但立即重试时新Canvas尚未完成帧末注册，射线为空。测试等待启动遮罩销毁、交互锁释放以及新页面帧末更新，保留真实射线断言，没有调用监听器或修改生产导航规避问题。504d5e8a失败恢复用例1/1通过；18f0b03c实际Hub进入、探索、实体机台、暂停、退出及相机恢复用例1/1通过。最后按现存标题控件缩短失败文案并加入实际尺寸校验，正式编译2026-10-02T19:47:38Z成功、0错误，31b53996重跑失败恢复1/1通过。仅运行两个不同的直接相关PlayMode用例，未执行全量测试。
+
+最终Editor不在Play/编译中；Console只保留测试主动注入、由LogAssert验证的加载失败日志（重复消息合并显示），无额外Error。当前赌场/Hub代码未检出临时Builder或旧Adapters；StringBuilder仅用于文本。同步公共场景模块与接入runbook、当前计划及公共输入文档中过时的MovedFrom说明。字体动态补字缓存由测试产生，留在本地未暂存；Mobile_RPAsset、UnitySkills/vTabs、.blend1等原工作仍保留。本轮不修改正式美术、不重建Windows/Android包；此前包仍为5178fab运行源码基线，真机、实物Xbox、四稿确认和S1体验验收仍待完成。提交名「fix(hub): 统一入口并恢复加载失败后的操作」，实际SHA由Git和交付回复记录；Goal保持进行中。

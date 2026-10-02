@@ -3,20 +3,29 @@ namespace Hotfix
     using Core.Runtime;
     using Cysharp.Threading.Tasks;
     using Hotfix.SceneManagement;
+    using System;
     using UnityEngine;
+    using UnityEngine.UI;
 
     [Module("Main")]
     [Mvc("MainMenuView")]
     public partial class MainMenuView : View
     {
+        private bool isEnteringDemo;
+        private string defaultTitle;
+
         protected override void OnGameObjectInitialize()
         {
+            defaultTitle = TextMeshProUGUI_Title.text;
+            Button_UIFrameworkValidationButton.interactable = false;
+            Button_UIFrameworkValidationButton.GetComponentInChildren<Text>().text = "UI 验证（未开放）";
             EventDispatcher.AddEventListener(EventConst.MainOpenView, OnMainOpenView);
         }
 
         protected override void OnShow()
         {
             base.OnShow();
+            RefreshEntryControls();
             GlobalData.Subscribe<UserData>(OnUserData, true);
             EventDispatcher.TriggerEvent(EventConst.MainOpenView);
         }
@@ -51,88 +60,79 @@ namespace Hotfix
 
         private void OnUIFrameworkValidationButtonClick()
         {
-            //UIManager.Instance.Show<UIFrameworkValidationLauncherView>();
+            // 入口尚未接入场景导航，保持不可用，也不响应误触回调。
         }
 
         private void OnDroneFlightButtonClick()
         {
-            OpenDroneFlightAsync().Forget();
-        }
-
-        private async UniTaskVoid OpenDroneFlightAsync()
-        {
-            var navigator = GameSceneNavigator.Instance;
-            if (navigator == null)
-            {
-                Debug.LogError("[MainMenuView] 全局场景导航尚未初始化。");
-                return;
-            }
-
-            if (Button_DroneFlightButton != null)
-            {
-                Button_DroneFlightButton.interactable = false;
-            }
-            var result = await navigator.SwitchAsync(GameSceneId.DroneFlight);
-            if (result.Status is GameSceneSwitchStatus.Failed or GameSceneSwitchStatus.Busy)
-            {
-                if (Button_DroneFlightButton != null)
-                {
-                    Button_DroneFlightButton.interactable = true;
-                }
-                if (result.Status == GameSceneSwitchStatus.Failed)
-                {
-                    Debug.LogError($"[MainMenuView] 无法进入 DroneFlight：{result.Error}");
-                }
-            }
+            EnterDemoAsync(GameSceneId.DroneFlight).Forget();
         }
 
         private void OnDlssButtonClick()
         {
-            OpenDlssAsync().Forget();
+            EnterDemoAsync(GameSceneId.Dlss).Forget();
         }
 
         private void OnBlockPortersButtonClick()
         {
-            OpenBlockPortersAsync().Forget();
+            EnterDemoAsync(GameSceneId.BlockPorters).Forget();
         }
 
         private void OnJinxCasinoButtonClick()
         {
-            OpenJinxCasinoAsync().Forget();
+            EnterDemoAsync(GameSceneId.JinxCasino).Forget();
         }
 
-        private async UniTaskVoid OpenJinxCasinoAsync()
+        private async UniTask EnterDemoAsync(GameSceneId target)
         {
-            var navigator = GameSceneNavigator.Instance;
-            if (navigator == null) { Debug.LogError("[MainMenuView] 场景导航尚未初始化。"); return; }
-            var result = await navigator.SwitchAsync(GameSceneId.JinxCasino);
-            if (result.Status == GameSceneSwitchStatus.Failed)
-                Debug.LogError("[MainMenuView] 倒霉蛋俱乐部加载失败：" + result.Error);
-        }
-
-        private async UniTaskVoid OpenBlockPortersAsync()
-        {
-            var navigator = GameSceneNavigator.Instance;
-            if (navigator == null) { Debug.LogError("[MainMenuView] 场景导航尚未初始化。"); return; }
-            var result = await navigator.SwitchAsync(GameSceneId.BlockPorters);
-            if (result.Status == GameSceneSwitchStatus.Failed) Debug.LogError("[MainMenuView] 小小搬豆工加载失败：" + result.Error);
-        }
-
-        private async UniTaskVoid OpenDlssAsync()
-        {
+            if (isEnteringDemo || !IsEnable) return;
             var navigator = GameSceneNavigator.Instance;
             if (navigator == null)
             {
-                Debug.LogError("[MainMenuView] 场景导航尚未初始化。");
+                RefreshEntryControls("入口未就绪\n请稍后重试");
+                Debug.LogError("[MainMenuView] 全局场景导航尚未初始化。");
                 return;
             }
-            if (Button_DlssButton != null) Button_DlssButton.interactable = false;
-            var result = await navigator.SwitchAsync(GameSceneId.Dlss);
-            if (result.Status == GameSceneSwitchStatus.Failed || result.Status == GameSceneSwitchStatus.Busy)
+            if (navigator.IsTransitioning) return;
+
+            isEnteringDemo = true;
+            RefreshEntryControls();
+            string message = null;
+            try
             {
-                if (Button_DlssButton != null) Button_DlssButton.interactable = true;
-                if (result.Status == GameSceneSwitchStatus.Failed) Debug.LogError("[MainMenuView] 无法进入 DLSS Demo：" + result.Error);
+                var result = await navigator.SwitchAsync(target);
+                if (result.Status == GameSceneSwitchStatus.Failed)
+                {
+                    message = "进入失败\n请重试";
+                    Debug.LogError($"[MainMenuView] 无法进入 {target}：{result.Error}");
+                }
             }
+            catch (Exception exception)
+            {
+                message = "进入失败\n请重试";
+                Debug.LogError($"[MainMenuView] 无法进入 {target}：{exception}");
+            }
+            finally
+            {
+                isEnteringDemo = false;
+                // Loading 会销毁原 Hub；回滚后应更新新实例，不能再操作本实例的已释放控件。
+                if (ReferenceEquals(GameSceneNavigator.Instance, navigator) &&
+                    navigator.CurrentScene == GameSceneId.Hub && !navigator.IsTransitioning)
+                {
+                    var currentMenu = UIManager.Instance.Get<MainMenuView>();
+                    if (currentMenu?.IsEnable == true) currentMenu.RefreshEntryControls(message);
+                }
+            }
+        }
+
+        private void RefreshEntryControls(string message = null)
+        {
+            bool canEnter = !isEnteringDemo && GameSceneNavigator.Instance?.IsTransitioning != true;
+            Button_DroneFlightButton.interactable = canEnter;
+            Button_DlssButton.interactable = canEnter;
+            Button_BlockPortersButton.interactable = canEnter;
+            Button_JinxCasinoButton.interactable = canEnter;
+            TextMeshProUGUI_Title.text = message ?? defaultTitle;
         }
     }
 }
