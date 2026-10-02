@@ -309,3 +309,13 @@ S1协作拉杆另有明确体验缺口：保存场景只有伙伴仪表与自动
 Unity正式重新编译完成，最终Console 0错误。Unity Test Runner直接范围：391a6e7e教学/版本16/16；6ae6ef29三槽4/4；b3ce1cb8教学存档1/1；f755b71e定位3/3；b5794ff5默认区域解锁精确1/1；92dbc98a成长保存/RunId去重精确1/1。PlayMode实际InputSystem菜单保存/读取1163260b精确1/1，收尾二十一点原桌恢复/结算4d6fbf2c精确1/1；总28/28。进入/退出PlayMode时REST暂时不可用，恢复后查询原job，没有重复启动或重启Editor。未执行全量测试。
 
 同步module、rules-baseline、runbook和实施状态。提交名「refactor(jinx): 切换当前存档并移除旧版本迁移」，SHA以git log为准。本轮不改美术和Hub、不新增Builder，未构建Player、未真机验证；已有包不含版本4。下一步可独立清理本机偏好旧迁移和机台认领，正式UI仍等四稿确认。
+
+## PrototypeV2 本机偏好与测试合并
+
+存档闭环已推送d23eb26。本机设置改用JinxCasino.PrototypeV2.LocalPreferences，当前完整偏好记录保持自身版本2，不读取原键、不迁移v1手柄参数。Load直接Overwrite偏好对象并校验，删除重复PreferencesRecord；缺版本/数值用0/NaN哨兵拒绝，坏记录返回完整默认值但不写盘。保留明确保存、保存失败恢复本键内存内容和独立副本预览。Core输入参数只修正文档注释，说明持久化由使用方负责，未修改设备换算、导航或公共输入行为。
+
+删除CasinoLocalPreferencesMigrationTests及meta，迁移专属用例不再保留；手柄全部参数往返、输入DTO副本独立、合法0死区/0强度、坏参数拒绝和预览取消断言合并到CasinoLocalPreferencesTests已有方法。没有新测试文件、数量/布局/源码字符串快照或新程序集。此项整合后偏好测试为10项，低于合并前两类13项；数量变化仅记录事实，不是验收标准。
+
+正式编译后Console 0错误。76bd9c82 EditMode偏好10/10，09193fb5 PlayMode设置真实InputSystem流程精确1/1，覆盖鼠标选设置/保存、模拟手柄调节/B取消/Menu返回、当前记录重新读取、静音预览取消、暂停时钟和返回Hub。没有调用按钮监听器代替输入，没有全量测试；模拟设备仍不证明Xbox实物/Android触屏及后台验证。总计本轮存档与偏好相关36项EditMode、3项PlayMode通过。
+
+同步module、rules-baseline与runbook，提交名「refactor(jinx): 精简本机偏好并删除迁移测试」，SHA见git log。未改正式UI/机台、美术、平台配置或构建流程；TMP动态补字资产、UnitySkills/vTabs等既有工作区改动继续保留、不纳入提交。下一步整理具体Game/玩家交互和删除旧局认领、旧房间/面板；四稿确认与S1用户体验门槛仍未通过，Goal保持未完成。

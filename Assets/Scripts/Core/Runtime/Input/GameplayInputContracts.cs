@@ -35,7 +35,7 @@ namespace Core.Runtime.Inputs
         public bool IsPaused;
     }
 
-    /// 输入适配参数。持久化时并入既有本机偏好迁移，不建立第二套存档或PlayerPrefs键。
+    /// 通用输入参数。持久化由使用方的本机偏好负责，输入框架不建立独立存档或PlayerPrefs键。
     [Serializable]
     public sealed class GameplayInputSettings
     {

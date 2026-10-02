@@ -74,7 +74,7 @@ LocalPauseState记录后台/失焦/手柄断连并要求显式继续；它只提
 
 ## 手柄本机偏好
 
-CasinoLocalPreferences版本2保留全部旧字段，增加手柄死区、最大半径、视角速度/倍率、反转Y、震动开关/强度。PlayerPrefs地址仍为JinxCasino.LocalPreferences.v1，合法旧记录只在内存补默认值，明确保存才写新版；坏记录只读回退，取消预览不写盘。ToInputSettings输出独立输入参数，不能在每帧构建；宿主在加载/预览/取消时ApplySettings。
+CasinoLocalPreferences当前记录版本2包含手柄死区、最大半径、视角速度/倍率、反转Y、震动开关/强度。PlayerPrefs使用JinxCasino.PrototypeV2.LocalPreferences，只读完整当前记录，不查询旧键或迁移旧参数；坏记录只读回退，取消预览不写盘。ToInputSettings输出独立公共输入参数，不能在每帧构建；宿主在加载/预览/取消时ApplySettings。偏好版本独立于冒险版本4和公共输入DTO版本1。
 
 数据存储、三页设置控件与公共输入宿主已接入；Editor真实控件操作仍不代表Xbox实物或Android设置体验已验收。
 

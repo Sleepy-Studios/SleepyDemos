@@ -77,6 +77,8 @@ Windows P0已有实际构建与正式入口启动记录；Android、Photon与真
 
 沉浸入口的设置可从主菜单或暂停菜单打开，分为键鼠/触控、手柄和声音。修改立即预览，保存才持久化；B/Esc/Menu或返回撤销未保存改动并回原菜单。恢复默认也是预览，仍须保存。手柄上下选控件、左右调滑条；真实设备的震动与Android后台恢复仍需单独验证。
 
+新原型偏好键为JinxCasino.PrototypeV2.LocalPreferences，不读取旧原型的JinxCasino.LocalPreferences.v1；首次进入使用完整默认值。当前记录缺失版本或数值时显示回退提示，明确保存才替换新键的内容，不修改旧键。公共输入设置仍由Core负责读取参数和设备操作，赌场只保存本机偏好。
+
 ## S1独立试玩包
 
 使用`Tools/SleepyDemos/整蛊赌场/构建Windows S1独立样板`或`构建Android S1独立样板`，产物独立保存于`Builds/JinxCasino/S1/<平台>/<构建版本>/`。平台配置StartupScene为JinxCasino，版本0.5.0；不再经过Hub菜单。游戏中返回会回到赌场主菜单，主菜单提供退出游戏。Editor默认入口保持Hub。Windows已有成品可用`重打包最近Windows S1分享包`，ZIP包含S1说明。
