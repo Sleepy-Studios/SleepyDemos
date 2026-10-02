@@ -10,6 +10,8 @@ Windows x64 ZIP、Android ARM64 APK；第一人称自由探索、靠近聚焦机
 
 四张稿已形成[可审阅视觉基线](architecture/prototype-v2-visual-review.md)，尚待用户确认；未按新图稿制作正式美术。存档已改为版本4和PrototypeV2；Persistence与桌面Interaction已移出Adapters，具体Game持有冒险/存档/成长，机台会话直接使用Game/Station，旧认领和TableOperations接口/包装已删除。旧P0/P4链、Main、通用面板及旧构建入口已删除；场景Controller已合为单文件，玩家交互、教学、离场、本机设置各有具体类；Adapters目录及命名空间已移除。Hub 已统一进入逻辑，处理重复点击、失败后的当前页面恢复及未开放状态，并接入公共菜单输入，支持默认焦点、键盘/手柄导航和触控后切回手柄。卡片布局与加载界面正式视觉仍待确认后制作。进度与提交事实见[实施记录](immersion-progress.md)。
 
+2026-10-03当前推进状态为**阻塞，等待用户确认四张视觉稿**。该门槛已连续多轮未改变，独立代码清理、输入回归、双平台构建和可操作的原生验证已记录；不以重复构建/测试替代确认，不扩大到其余14款。视觉方向确认即可继续Hub/两种Loading及三机台正式制作，不要求先集齐全部真机。Windows真实键盘Esc结果、Android与实物Xbox验收仍待外部条件；完整目标及S1/最终体验门槛不变，Goal尚未完成。
+
 赌场使用酒红、深绿、木质、少量黄铜与暖灯；不制作繁密雕花、复杂窗景或大量镜面。Hub独立采用清爽卡片展示，保留现有有效Demo入口。StartupLoading与CommonLoading视觉统一但生命周期独立，保持SetTitle/SetProgress API及真实进度；不新建UI框架或平台专属Prefab。
 
 代码清理只覆盖赌场与Hub：移除赌场Adapters目录/命名空间，将十个Controller partial按Controller/Game/玩家交互/表现的实际职责拆分；删除ControllerTableOperations与IJinxCasinoTableOperations转发，TableSession直接使用具体游戏对象和机台身份。旧P0/P4专属场景/面板/配置/构建入口/测试已按引用清理，可复用规则与资源保留；Controller玩家交互拆分和Adapters归位已完成，后续继续实际体验和内容重做。资源同步使用Editor一次性操作，完成后删除临时脚本及meta；MvcBind索引与生成引用同次更新。

@@ -460,3 +460,11 @@ Windows从新ZIP独立解压到Library/JinxCasino/PlayerValidation/2026100221530
 观察结束后退订事件和Editor更新，恢复先前Profiler目标并关闭本次诊断窗口；临时JinxCasinoNativeInputProbe.cs及meta已删除，正式Editor目录仍只保留三份构建源码，没有新Builder、测试文件或程序集。诊断记录仅保留在Library/JinxCasino/Verification/native-input-keyboard-first.log及native-input-events.log，不作为测试通过证据。删除后Editor完成重编译与域重载，最终无Play/编译、Console0错误；Mobile_RPAsset与ProjectSettings哈希仍匹配上节原字节。本轮无生产C#变化，不重复Test Runner或运行全量。
 
 原生完整日志另含`ERROR: Shader Hidden/Universal Render Pipeline/DBufferClear shader is not supported on this GPU`，此前仅按Exception/Error大小写检索不足以覆盖该消息；不能将此前“未检出异常”扩大为所有原生日志无错误。当前画面可显示，尚未确认该shader是否被实际场景使用及影响，列入正式视觉/渲染检查，不据此修改无关URP资产。四稿和S1体验仍未确认，Goal未完成。
+
+## 2026-10-03：视觉确认阻塞审计
+
+上一轮36bc11c产生原生设置实操和诊断边界证据，归类为进展。当前重新核对工作区、批准计划、四张现存图片、双端产物和ADB：视觉确认仍缺失，Android设备列表为空，没有活动Player或构建/测试可等待。赌场运行源码未检出Adapters命名空间、旧TableOperations接口/包装或partial Controller；Editor仍只有正式构建工具，临时诊断源码/meta已清除。此次仅读状态和维护文档，没有重复Unity测试、构建或新建诊断工具。
+
+同一“用户确认四稿后制作正式资源”条件已在c622d85、1975c00、36bc11c及当前连续记录中保持未满足；前几轮继续了独立输入/构建验证，现在正式Hub/Loading、三台与大厅制作必须等待该确认。窗口自动化和远端诊断没有提供有效的原生键盘/暂停结论，真实键盘结果仍待回复；Android/Xbox/最终体验也不能用现有Editor证据替代。故按长期Goal阻塞规则标记blocked，不标记完成或擅自缩小目标。确认视觉方向即可恢复资源制作，设备验收随后推进；不把所有外部条件捆成开始制作的前提。已有两个询问保持待回复，不重复询问或将自动续跑视为确认。
+
+当前计划及参考稿制作顺序同步实际已做工作，四稿审阅文档已请求在Codex面板打开（工具返回queued，未宣称当前可见）。本次只提交文档和门槛状态，保留所有无关修改；后续从同分支与最新可分享包继续。
