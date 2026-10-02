@@ -157,15 +157,15 @@
 
 赌场一次性场景/UI/机台装配Builder已清理。当前维护已保存的场景、Prefab和模型资产；不再提供重生成菜单。正式平台构建入口保留，参见 [Demo运行手册](../demos/jinx_casino/runbooks/run.md)。
 
-`Tools/SleepyDemos/整蛊赌场/P0离线Player构建` 在当前 Editor 生成 Windows ZIP / Android APK，只用于单人离线验证。平台事务、恢复与产物状态详见上述运行手册。
+`Tools/SleepyDemos/整蛊赌场/S1离线Player构建`在当前Editor生成Windows ZIP / Android APK，独立启动到赌场主菜单；旧P0/P4入口已删除。平台事务、恢复与产物状态详见上述运行手册。
 
 | 直达菜单 | 说明 |
 |----------|------|
-| `Tools/SleepyDemos/整蛊赌场/构建Windows P0离线验证包` | 启动 Windows x64 IL2CPP 离线验证构建，生成 Player 与 ZIP |
-| `Tools/SleepyDemos/整蛊赌场/构建Android P0离线验证包` | 启动 Android 8.0+、ARM64 离线验证 APK 构建 |
-| `Tools/SleepyDemos/整蛊赌场/重打包最近Windows P0分享包` | 为已成功生成的Player重打包Playable ZIP，排除调试辅助目录，不重新编译 |
+| `Tools/SleepyDemos/整蛊赌场/构建Windows S1独立样板` | 启动 Windows x64 IL2CPP 离线验证构建，生成 Player 与 ZIP |
+| `Tools/SleepyDemos/整蛊赌场/构建Android S1独立样板` | 启动 Android 8.0+、ARM64 离线验证 APK 构建 |
+| `Tools/SleepyDemos/整蛊赌场/重打包最近Windows S1分享包` | 为已成功生成的Player重打包Playable ZIP，排除调试辅助目录，不重新编译 |
 
-直达菜单与构建窗口共用同一事务，不并行执行；这两个 P0 构建入口不要求 Fusion SDK 或 App ID，也不代表互联网联机已验收。源码位于 `Assets/Scripts/Hotfix/Editor/JinxCasino/JinxCasinoPlayerBuildWindow.cs` 与 `JinxCasinoPlayerBuildPipeline.cs`。
+直达菜单与构建窗口共用同一事务，不并行执行；两个S1单机构建入口不要求联网SDK或App ID；构建不代表样板体验或真机验收完成。源码位于 `Assets/Scripts/Hotfix/Editor/JinxCasino/JinxCasinoPlayerBuildWindow.cs` 与 `JinxCasinoPlayerBuildPipeline.cs`。
 
 ## 五、Agent Skill（仓库内）
 

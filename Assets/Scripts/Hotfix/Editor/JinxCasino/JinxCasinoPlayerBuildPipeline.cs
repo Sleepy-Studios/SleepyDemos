@@ -18,7 +18,7 @@ using YooAsset.Editor;
 
 namespace Hotfix.Editor.JinxCasino
 {
-    /// 当前Editor内的离线构建事务；内容阶段与平台进度保存在SessionState，重编译后继续。
+    /// 当前Editor内的S1单机构建事务；平台进度保存在SessionState，重编译后继续。
     [InitializeOnLoad]
     public static class JinxCasinoPlayerBuildPipeline
     {
@@ -29,12 +29,14 @@ namespace Hotfix.Editor.JinxCasino
         private const string ConfigRoot = "Assets/Settings/JinxCasino";
         private const string ProjectSettingsPath = "ProjectSettings/ProjectSettings.asset";
         private const string StreamingRoot = "Assets/StreamingAssets/yoo";
+        private const string PlayerFileStem = "JinxCasinoS1-Offline";
+        private const string ReadmeFileName = "S1-Offline-README.txt";
         private static bool isExecuting;
 
         /// 是否存在尚未恢复结束的构建事务。
         public static bool IsBusy => !string.IsNullOrEmpty(SessionState.GetString(JobKey, string.Empty));
         /// 最近构建进度或恢复结果。
-        public static string Status => SessionState.GetString(StatusKey, "等待构建；P0、P4历史内容与S1沉浸样板产物分别保存。");
+        public static string Status => SessionState.GetString(StatusKey, "等待构建S1单机沉浸样板。");
 
         static JinxCasinoPlayerBuildPipeline()
         {
@@ -43,20 +45,13 @@ namespace Hotfix.Editor.JinxCasino
 
         /// <summary>在当前 Editor 建立构建事务并异步切换目标平台，不另起 Unity 实例。</summary>
         /// <param name="target">只支持 StandaloneWindows64 或 Android；已有任务和未保存场景时拒绝。</param>
-        /// <param name="contentStage">P0技术原型、P4历史离线内容或S1一区三游戏沉浸样板；输出目录隔离，S1独立启动。</param>
-        public static void Start(BuildTarget target, string contentStage = "P0")
+        public static void Start(BuildTarget target)
         {
-            ValidateStage(contentStage);
-            if (contentStage == "P4" && !File.ReadAllText("Assets/LoadResources/Demos/jinx_casino/Scenes/Main.unity").Contains("FormalAvatar"))
-                throw new InvalidOperationException("P4历史离线场景尚未保存正式角色装配。");
-            if (contentStage == "S1")
-            {
-                const string scene = "Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity";
-                const string hud = "Assets/LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView.prefab";
-                if (!File.Exists(scene) || AssetDatabase.LoadAssetAtPath<SceneAsset>(scene) == null ||
-                    !File.Exists(hud) || AssetDatabase.LoadAssetAtPath<GameObject>(hud) == null)
-                    throw new InvalidOperationException("S1构建需要已保存并导入的Immersion场景和沉浸HUD。");
-            }
+            const string scenePath = "Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity";
+            const string hudPath = "Assets/LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView.prefab";
+            if (!File.Exists(scenePath) || AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null ||
+                !File.Exists(hudPath) || AssetDatabase.LoadAssetAtPath<GameObject>(hudPath) == null)
+                throw new InvalidOperationException("S1构建需要已保存并导入的Immersion场景和沉浸HUD。");
             if (target != BuildTarget.StandaloneWindows64 && target != BuildTarget.Android)
                 throw new ArgumentOutOfRangeException(nameof(target));
             if (IsBusy) throw new InvalidOperationException("已有离线构建任务，请先等待或恢复。");
@@ -75,12 +70,12 @@ namespace Hotfix.Editor.JinxCasino
             var job = new BuildJob
             {
                 Target = (int)target, OriginalTarget = (int)EditorUserBuildSettings.activeBuildTarget,
-                Version = version, ContentStage = contentStage, Phase = "WaitingTarget",
+                Version = version, Phase = "WaitingTarget",
                 BackupRoot = "Library/JinxCasinoBuild/" + version + "/Backup",
-                OutputRoot = "Builds/JinxCasino/" + contentStage + "/" + target + "/" + version,
+                OutputRoot = "Builds/JinxCasino/S1/" + target + "/" + version,
                 WorkRoot = "Library/JX/" + Guid.NewGuid().ToString("N").Substring(0, 8),
                 PackageName = target == BuildTarget.StandaloneWindows64 ? "JinxW" : "JinxA",
-                ConfigPath = ConfigRoot + "/PlayerBuild/" + (contentStage == "S1" ? "S1/" : string.Empty) + target + "/OfflineHotfix.asset"
+                ConfigPath = ConfigRoot + "/PlayerBuild/S1/" + target + "/OfflineHotfix.asset"
             };
             CaptureSettings(job);
             CaptureRenderingAssets(job);
@@ -119,25 +114,23 @@ namespace Hotfix.Editor.JinxCasino
         }
 
         /// <summary>仅重打包已有Windows离线Player，不重新编译，也不删除原包或本机排障目录。</summary>
-        /// <param name="playerRoot">当前项目对应阶段Builds/JinxCasino目录下的Windows Player目录，支持绝对或项目相对路径。</param>
-        /// <param name="contentStage">P0、P4或S1；默认P0兼容原入口，必须与目录及Player文件名一致。</param>
+        /// <param name="playerRoot">当前项目Builds/JinxCasino/S1目录下的Windows Player目录，支持绝对或项目相对路径。</param>
         /// <returns>新生成的 Playable ZIP 绝对路径；已有同名 ZIP 时使用唯一后缀保留旧证据。</returns>
-        public static string RepackageWindowsPlayer(string playerRoot, string contentStage = "P0")
+        public static string RepackageWindowsPlayer(string playerRoot)
         {
-            ValidateStage(contentStage);
             if (IsBusy || UnityEditor.BuildPipeline.isBuildingPlayer)
                 throw new InvalidOperationException("构建事务仍在执行，不能重打包。");
             string root = WorkspacePath(playerRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            string outputRoot = WorkspacePath("Builds/JinxCasino/" + contentStage + "/StandaloneWindows64").TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            string outputRoot = WorkspacePath("Builds/JinxCasino/S1/StandaloneWindows64").TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (!root.StartsWith(outputRoot, StringComparison.OrdinalIgnoreCase) || Path.GetFileName(root) != "Player")
-                throw new ArgumentException("必须选择当前项目已保存的Windows " + contentStage + " Player目录。", nameof(playerRoot));
-            string stem = "JinxCasino" + contentStage + "-Offline";
+                throw new ArgumentException("必须选择当前项目已保存的Windows S1 Player目录。", nameof(playerRoot));
+            string stem = PlayerFileStem;
             string archive = Path.Combine(Path.GetDirectoryName(root), stem + "-Windows-Playable.zip");
             if (File.Exists(archive))
                 archive = Path.Combine(Path.GetDirectoryName(root), stem + "-Windows-Playable-" +
                     DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".zip");
-            ZipWindowsPayload(root, archive, stem, contentStage);
-            Debug.Log("[JinxCasinoBuild] 已仅重打包Windows " + contentStage + "运行文件，原ZIP与排障目录保留：" + archive);
+            ZipWindowsPayload(root, archive, stem);
+            Debug.Log("[JinxCasinoBuild] 已仅重打包Windows S1运行文件，原ZIP与排障目录保留：" + archive);
             return archive;
         }
 
@@ -150,7 +143,7 @@ namespace Hotfix.Editor.JinxCasino
             config = null;
             if (job == null || (job.Phase != "Generating" && job.Phase != "Building")) return false;
             config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(job.ConfigPath);
-            if (config == null) throw new BuildFailedException(Stage(job) + "平台配置丢失：" + job.ConfigPath);
+            if (config == null) throw new BuildFailedException("S1平台配置丢失：" + job.ConfigPath);
             return true;
         }
 
@@ -198,7 +191,7 @@ namespace Hotfix.Editor.JinxCasino
                         break;
                     case "ReadyBuild":
                         job.Phase = "Building";
-                        Save(job, "构建 " + Stage(job) + "离线资源与Player：" + target);
+                        Save(job, "构建S1离线资源与Player：" + target);
                         BuildResourcesAndPlayer(job);
                         job.Succeeded = true;
                         job.Phase = "Restoring";
@@ -291,7 +284,7 @@ namespace Hotfix.Editor.JinxCasino
             }
             config.PlayMode = ResourcePlayMode.OfflinePlayMode;
             config.PackageName = job.PackageName;
-            config.StartupScene = Stage(job) == "S1" ? "JinxCasino" : string.Empty;
+            config.StartupScene = "JinxCasino";
             config.AotAssemblies = aot;
             config.HotfixAssemblies = SettingsUtil.HotUpdateAssemblyFilesExcludePreserved.ToArray();
             config.AotSourcePath = SettingsUtil.GetAssembliesPostIl2CppStripDir((BuildTarget)job.Target);
@@ -347,7 +340,7 @@ namespace Hotfix.Editor.JinxCasino
                 AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
                 string playerRoot = job.OutputRoot + "/Player";
                 Directory.CreateDirectory(playerRoot);
-                string stem = PlayerStem(job);
+                string stem = PlayerFileStem;
                 string location = playerRoot + "/" + stem + ((BuildTarget)job.Target == BuildTarget.Android ? ".apk" : ".exe");
                 var report = UnityEditor.BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
@@ -356,10 +349,10 @@ namespace Hotfix.Editor.JinxCasino
                     locationPathName = location, options = BuildOptions.Development
                 });
                 if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
-                    throw new BuildFailedException(Stage(job) + " Player构建失败：" + report.summary.result);
-                File.WriteAllText(playerRoot + "/" + ReadmeName(Stage(job)), ReadmeText(Stage(job)));
+                    throw new BuildFailedException("S1 Player构建失败：" + report.summary.result);
+                File.WriteAllText(playerRoot + "/" + ReadmeFileName, ReadmeText());
                 if ((BuildTarget)job.Target == BuildTarget.StandaloneWindows64)
-                    ZipWindowsPayload(playerRoot, job.OutputRoot + "/" + stem + "-Windows-Playable.zip", stem, Stage(job));
+                    ZipWindowsPayload(playerRoot, job.OutputRoot + "/" + stem + "-Windows-Playable.zip", stem);
             }
             finally { RestoreCollector(job); }
         }
@@ -367,10 +360,10 @@ namespace Hotfix.Editor.JinxCasino
         private static void ConfigureOfflineBuild(BuildJob job)
         {
             PlayerSettings.companyName = "SleepyStudio";
-            PlayerSettings.productName = "JinxCasino " + Stage(job) + " Offline";
-            PlayerSettings.bundleVersion = Stage(job) == "S1" ? "0.5.0" : Stage(job) == "P4" ? "0.4.0" : "0.0.1";
+            PlayerSettings.productName = "JinxCasino S1 Offline";
+            PlayerSettings.bundleVersion = "0.5.0";
             var named = NamedBuildTarget.FromBuildTargetGroup(UnityEditor.BuildPipeline.GetBuildTargetGroup((BuildTarget)job.Target));
-            PlayerSettings.SetApplicationIdentifier(named, Stage(job) == "P0" ? "com.sleepystudio.jinxcasino.p0" : "com.sleepystudio.jinxcasino");
+            PlayerSettings.SetApplicationIdentifier(named, "com.sleepystudio.jinxcasino");
             PlayerSettings.SetScriptingBackend(named, ScriptingImplementation.IL2CPP);
             EditorUserBuildSettings.development = true;
             EditorUserBuildSettings.allowDebugging = false;
@@ -395,53 +388,43 @@ namespace Hotfix.Editor.JinxCasino
             UnityEditor.WindowsStandalone.UserBuildSettings.createSolution = false;
         }
 
-        private static string Stage(BuildJob job) => string.IsNullOrEmpty(job.ContentStage) ? "P0" : job.ContentStage;
-        private static string PlayerStem(BuildJob job) => "JinxCasino" + Stage(job) + "-Offline";
-
-        private static void ValidateStage(string stage)
+        private static string ReadmeText()
         {
-            if (stage != "P0" && stage != "P4" && stage != "S1") throw new ArgumentOutOfRangeException(nameof(stage));
-        }
-        private static string ReadmeName(string stage) => stage + "-Offline-README.txt";
-        private static string ReadmeText(string stage)
-        {
-            if (stage == "S1") return "倒霉蛋俱乐部 · S1独立单人沉浸样板 0.5.0\n" +
+            return "倒霉蛋俱乐部 · S1独立单人沉浸样板 0.5.0\n" +
                 "启动后直接进入赌场主菜单，可选择互动教学、自由练习或正式冒险。暂停及结局可返回游戏主菜单。\n" +
                 "当前仅一间大厅、一区及水果机、Blackjack、协作拉杆三款游戏；不是四区/17游戏完整版本，不包含互联网联机。\n" +
                 "Windows：WASD移动、鼠标转向、E进入，点击桌面物件操作；Esc离桌，暂停菜单使用屏幕按钮。\n" +
                 "手柄：左摇杆移动、右摇杆转向、A进入/操作、方向选择、X次要动作、Y规则、B返回、Start暂停。\n" +
                 "Android：左侧移动、右侧转向、点击交互和桌面物件；可在设置中调整输入、音量与左右手布局。\n" +
                 "本包用于S1阶段验证，S1整体尚未验收；Android真机性能、实际安装与设备适配需分别验证。\n";
-            if (stage == "P4") return "倒霉蛋俱乐部 · 历史完整内容离线试玩\n从园区入口进入倒霉蛋俱乐部，选择标准冒险、单人练习或无尽挑战。\nWindows：WASD移动、鼠标右键转向、E交互。Android：左侧移动、右侧转向、点击交互。\n包含四区、17机台、24道具、20事件、三种结局及本地成长和存档。\n本包为单人试玩，朋友联网及真机性能仍在后续验收范围。\n";
-            return "倒霉蛋俱乐部 · P0单人离线验证包\n三款小游戏、移动/视角与UI原型。此包不构成互联网联机验证，也不是最终完整版本。\n从Hub点击“倒霉蛋俱乐部 · P0”，选择“单人离线验证”。\n";
         }
 
-        private static void ZipWindowsPayload(string playerRoot, string archivePath, string stem, string contentStage)
+        private static void ZipWindowsPayload(string playerRoot, string archivePath, string stem)
         {
             string root = WorkspacePath(playerRoot);
             string archive = WorkspacePath(archivePath);
-            foreach (string required in new[] { stem + ".exe", "UnityPlayer.dll", "GameAssembly.dll", ReadmeName(contentStage) })
-                if (!File.Exists(Path.Combine(root, required))) throw new InvalidOperationException("缺少Windows " + contentStage + "运行文件：" + required);
+            foreach (string required in new[] { stem + ".exe", "UnityPlayer.dll", "GameAssembly.dll", ReadmeFileName })
+                if (!File.Exists(Path.Combine(root, required))) throw new InvalidOperationException("缺少Windows S1运行文件：" + required);
             if (!Directory.Exists(Path.Combine(root, stem + "_Data")))
-                throw new InvalidOperationException("缺少Windows " + contentStage + " _Data目录。");
+                throw new InvalidOperationException("缺少Windows S1 _Data目录。");
             Directory.CreateDirectory(Path.GetDirectoryName(archive));
             using (var stream = new FileStream(archive, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             using (var zip = new ZipArchive(stream, ZipArchiveMode.Create))
             {
                 // 在遍历前就排除辅助目录，避免扫描巨大的 C++ 备份树和其中的长路径。
                 var files = Directory.GetFiles(root).Concat(Directory.GetDirectories(root)
-                    .Where(directory => IsWindowsRuntimePayload(Path.GetFileName(directory) + "/", stem, contentStage))
+                    .Where(directory => IsWindowsRuntimePayload(Path.GetFileName(directory) + "/", stem))
                     .SelectMany(directory => Directory.GetFiles(directory, "*", SearchOption.AllDirectories)));
                 foreach (string file in files.OrderBy(path => path, StringComparer.Ordinal))
                 {
                     string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-                    if (!IsWindowsRuntimePayload(relative, stem, contentStage)) continue;
+                    if (!IsWindowsRuntimePayload(relative, stem)) continue;
                     zip.CreateEntryFromFile(file, relative, System.IO.Compression.CompressionLevel.Optimal);
                 }
             }
         }
 
-        private static bool IsWindowsRuntimePayload(string relativePath, string stem, string contentStage)
+        private static bool IsWindowsRuntimePayload(string relativePath, string stem)
         {
             string top = relativePath.Split('/')[0];
             // Unity 的这些顶层辅助目录供开发机排障；从分享包排除，原目录仍留在 Player 下。
@@ -453,7 +436,7 @@ namespace Hotfix.Editor.JinxCasino
                 return top == stem + "_Data" || top == "D3D12" || top == "MonoBleedingEdge" || top == "Plugins";
             if (extension.Equals(".pdb", StringComparison.OrdinalIgnoreCase) || extension.Equals(".mdb", StringComparison.OrdinalIgnoreCase) ||
                 extension.Equals(".ilk", StringComparison.OrdinalIgnoreCase) || extension.Equals(".map", StringComparison.OrdinalIgnoreCase)) return false;
-            return top == stem + ".exe" || top == "UnityCrashHandler64.exe" || top == ReadmeName(contentStage) ||
+            return top == stem + ".exe" || top == "UnityCrashHandler64.exe" || top == ReadmeFileName ||
                 extension.Equals(".dll", StringComparison.OrdinalIgnoreCase) || extension.Equals(".config", StringComparison.OrdinalIgnoreCase) ||
                 extension.Equals(".ini", StringComparison.OrdinalIgnoreCase);
         }
@@ -729,7 +712,7 @@ namespace Hotfix.Editor.JinxCasino
                 if (entry.AnyPlatform ? entry.ExcludedFromAny : !entry.Compatible) continue;
                 var importer = AssetImporter.GetAtPath(entry.AssetPath) as PluginImporter;
                 if (importer == null) throw new BuildFailedException("原生插件导入器丢失：" + entry.AssetPath);
-                // DLSS 体验后端只支持 Windows Editor；P0 Player 不复制或预加载其 Windows DLL。
+                // DLSS 体验后端只支持 Windows Editor；S1 Player 不复制或预加载其 Windows DLL。
                 if (entry.AnyPlatform) importer.SetExcludeFromAnyPlatform(target, true);
                 else importer.SetCompatibleWithPlatform(target, false);
                 importer.SaveAndReimport();
@@ -756,8 +739,8 @@ namespace Hotfix.Editor.JinxCasino
             RestorePlayerSettingsFile(job);
             RestoreRenderingAssets(job);
             string message = job.Succeeded && string.IsNullOrEmpty(job.Error)
-                ? Stage(job) + "离线构建成功，编辑器已恢复。输出：" + job.OutputRoot
-                : Stage(job) + "构建未完成，编辑器已恢复。" + job.Error;
+                ? "S1离线构建成功，编辑器已恢复。输出：" + job.OutputRoot
+                : "S1构建未完成，编辑器已恢复。" + job.Error;
             SessionState.EraseString(JobKey);
             SessionState.SetString(StatusKey, message);
             Debug.Log("[JinxCasinoBuild] " + message);
@@ -890,7 +873,7 @@ namespace Hotfix.Editor.JinxCasino
         private sealed class BuildJob
         {
             public int Target, OriginalTarget, AndroidBackend, StandaloneBackend, AndroidMinimumSdk, AndroidArchitectures;
-            public string Version, ContentStage, Phase, BackupRoot, OutputRoot, WorkRoot, PackageName, ConfigPath, AotReferencePath;
+            public string Version, Phase, BackupRoot, OutputRoot, WorkRoot, PackageName, ConfigPath, AotReferencePath;
             public string CollectorJson, Company, Product, BundleVersion, AndroidIdentifier, StandaloneIdentifier, Error;
             public string AndroidBuildLocation, WindowsBuildLocation, Il2CppEnvironment;
             public string PlayerSettingsJson;
