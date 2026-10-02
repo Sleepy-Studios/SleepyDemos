@@ -7,6 +7,8 @@ namespace Hotfix.JinxCasino.Rules
     /// 单局小游戏规则与可恢复状态；宿主只按 Cost / Payout 结算，不在这里修改团队钱包。
     public sealed partial class CasinoMiniGameRound
     {
+        /// 所有玩法统一投入上限，配置只能收紧此界限。
+        public const long MaximumStake = 1000000;
         private const int StopLoss = 1;
         private const int JackpotCoupon = 2;
         private const int Xray = 4;
@@ -78,7 +80,7 @@ namespace Hotfix.JinxCasino.Rules
             int playerCount = 1, string[] preparedItems = null, int diceBias = 0)
         {
             if (game < CasinoGameKind.Slots || game > CasinoGameKind.ChickenElevator) throw new ArgumentOutOfRangeException(nameof(game));
-            if (stake < 1 || stake > CasinoSession.MaximumStake) throw new ArgumentOutOfRangeException(nameof(stake));
+            if (stake < 1 || stake > MaximumStake) throw new ArgumentOutOfRangeException(nameof(stake));
             if (playerCount < 1 || playerCount > 6) throw new ArgumentOutOfRangeException(nameof(playerCount));
             if (!IsChoiceValid(game, choice)) throw new ArgumentOutOfRangeException(nameof(choice));
             if (diceBias < 0 || diceBias > 6) throw new ArgumentOutOfRangeException(nameof(diceBias));
@@ -143,7 +145,7 @@ namespace Hotfix.JinxCasino.Rules
             try { restored = JsonUtility.FromJson<RoundState>(json); }
             catch (ArgumentException exception) { throw new ArgumentException("小游戏快照不是合法 JSON。", nameof(json), exception); }
             if (restored == null || restored.SchemaVersion != 1 || restored.Game < CasinoGameKind.Slots || restored.Game > CasinoGameKind.ChickenElevator ||
-                restored.Stake < 1 || restored.Stake > CasinoSession.MaximumStake || restored.Cost < 0 || restored.Cost > restored.Stake ||
+                restored.Stake < 1 || restored.Stake > MaximumStake || restored.Cost < 0 || restored.Cost > restored.Stake ||
                 restored.Payout < 0 || (!restored.Complete && (restored.Payout != 0 || restored.ObjectiveSuccess)) || restored.RandomState == 0 ||
                 restored.PlayerCount < 1 || restored.PlayerCount > 6 || restored.Phase < 0 || restored.OperationCount < 0 ||
                 !IsChoiceValid(restored.Game, restored.Choice) || restored.DiceBias < 0 || restored.DiceBias > 6 ||

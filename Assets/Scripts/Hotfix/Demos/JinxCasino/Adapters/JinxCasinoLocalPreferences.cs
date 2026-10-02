@@ -42,20 +42,5 @@ namespace Hotfix.JinxCasino.Adapters
             ApplyLocalPreferences(preferences);
         }
 
-        /// <summary>鼠标和触控分别乘独立倍率，返回值继续使用原GameSettings基础视角系数。</summary>
-        /// <param name="touchDelta">TouchPad已经换算为720p参考像素的增量。</param>
-        /// <param name="mouseDelta">右键按下时鼠标的原始像素增量。</param>
-        /// <returns>供原yaw/pitch计算使用的合并增量，默认偏好与旧输入完全一致。</returns>
-        public Vector2 ScaleLocalLookInput(Vector2 touchDelta, Vector2 mouseDelta)
-            => touchDelta * localPreferences.TouchLookMultiplier + mouseDelta * localPreferences.PcLookMultiplier;
-
-        /// <summary>对本地保存Avatar播放已解锁表情，不替助手播放或更改装备。</summary>
-        /// <param name="id">Profile解锁的emote稳定ID。</param>
-        /// <returns>本地模型已绑定且该表情允许播放时为true。</returns>
-        public bool TryPlayLocalEmote(string id)
-        {
-            var avatar = body != null ? body.GetComponentInChildren<JinxCasinoAvatarPresentation>(true) : null;
-            return avatar != null && avatar.ActorRoot == body.transform && avatar.PlayEmote(id);
-        }
     }
 }

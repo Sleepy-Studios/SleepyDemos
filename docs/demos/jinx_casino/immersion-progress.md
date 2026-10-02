@@ -347,3 +347,19 @@ TableSession/Contracts移至Interaction，保留原meta；直接持有Game和真
 Controller脚本及两份移动桌面meta逐项与HEAD核对一致；保存Scene/Prefab无改动，MvcBind组件类型与字段本次未迁移，不重生成原人工UI。Game/Interaction新meta由Editor产生；无关字体动态补字、UnitySkills/vTabs/平台设置等保留。同步README、实施状态、module和rules-baseline；代码属于Hotfix Demo，无Core或新程序集变化。正式资源仍等待四稿确认，当前包不包含本次重构。
 
 提交名「refactor(jinx): 拆出具体游戏对象并删除桌面转发层」，SHA见git log。Game、直接桌面及调用方构成同一可编译依赖闭环，未等待整个重做阶段结束；下一闭环移出玩家交互并清理旧P0/P4流程。S1画面、Android触屏/Xbox、Windows原生键盘及新Player构建仍待验证，Goal不标记完成。
+
+## 2026-10-03：删除旧入口、面板及场景资源
+
+上一个Game闭环已推送5292add。本轮先独立提交并推送c9731ee「build(jinx): 收敛双平台样板构建入口」：三份正式Editor构建文件仅保留S1 Windows/Android及重打包，Start(BuildTarget)/RepackageWindowsPlayer(string)不再接受阶段参数。删除P0/P4菜单、旧场景/HUD选择及阶段兜底，StartupScene固定JinxCasino。保留平台切换、HybridCLR/YooAsset、签名检查、原生插件和配置/生成物备份恢复；没有另起构建或产生新Player包。
+
+Controller删除P0网络服务/协调器、创建加入离房/下注API及旧键鼠移动分支，只连接当前Immersion输入和HUD。删除CasinoNetworkCoordinator、CasinoSession、P0请求/回执/快照；保留CasinoGameKind，把统一投入上限移至当前MiniGameRound，冒险配置和小游戏创建/恢复同步使用。移除旧Presenter模态绑定、表情/社交分支和旧Avatar/Station/任务/轮换表现；附近机台查找迁至当前输入宿主，HUD、教学与提交共用同一范围。当前8份Controller partial及完整Adapters归位仍待下一闭环，不把旧入口删除说成全部职责重构完成。
+
+旧通用HUD及其Adventure/Profile/Social/选项/卡片/缩放源码删除；当前设置保留输入/音量预览保存和取消，不保留未装配旧表情字段。一次性Editor工具先验证保存场景/HUD无MissingScript，再重存移除旧settings/stationAnchors和五个空表情字段；删除前检查仓库保留资产依赖闭包。删除旧Main、通用HUD Prefab、SessionSettings/AdventureSettings、社交标记、七个旧任务目标、四区合并网格及旧图标/结局画。当前Scene/HUD各仅删除5行旧字段，meta/GUID没有变化。临时工具及meta随后删除，不提交Builder或菜单。现用助手/商品/效果候选模型、共享材质、14段绑定音频、CarriedGold与物理效果组件保留。
+
+删除8个旧PlayMode入口/界面测试类、旧CasinoSession/NetworkCoordinator测试及旧65件模型数量合同。PresentationPause仅删除旧通用老虎机组件用例，保留实际物理效果/移动桌/按压暂停；音频去重先前已迁当前入口类。本次偏好测试改为公共输入参数/预览与明确保存断言，不保留旧输入数学包装；没有新建测试文件、程序集、布局快照或并行验证入口。
+
+Unity正式编译与最终Console均0错误；直接相关Test Runner结果：43e384a8偏好EditMode10/10，c03212bc保存场景3/3，5261c8f2具体桌面7/7，5cb01e50当前入口PlayMode10/10，91f09f5d物理暂停2/2，共32/32。入口覆盖真实InputSystem指针、教学/购物/三台、三槽、重返/Closing恢复、结局/成长/音效去重及Hub往返；不通过调用按钮监听器代替操作。未执行全量测试，未新增Windows/Android构建或实物Xbox/手机验证；历史包不包含本轮修改。
+
+同步README、实施状态、module、rules-baseline、运行手册以及公共场景/工具导航；总体AGENTS/CLAUDE已包含临时Builder清理、有效测试和新原型单轨规范，本轮无新增协作规则，不重复改写。代码在Hotfix Demo与Hotfix.Editor，未扩大Core、其他Demo或生产程序集。字体动态补字、UnitySkills/vTabs、平台设置和.blend1等无关修改保留。
+
+本闭环提交名「refactor(jinx): 删除旧房间面板与原型资源」，实际SHA由Git提交记录和交付回复记录。四张简化稿仍待用户确认，正式Hub/Loading美术与三机台画面重做尚未开始；S1和Goal不标记完成。下一步拆出玩家交互并按真实职责移走其余Adapters，视觉确认后再制作正式资源。

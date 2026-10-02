@@ -2,7 +2,6 @@ using Core.Runtime.Inputs;
 using System;
 using System.Collections.Generic;
 using Hotfix.JinxCasino.Persistence;
-using Hotfix.JinxCasino.Rules;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -11,11 +10,10 @@ using UnityEngine.UI;
 
 namespace Hotfix.JinxCasino.Adapters.UI
 {
-    /// 本地设置与已解锁表情，控件/触控区域均由保存HUD引用，不创建运行时UI。
+    /// 本机输入与音量设置，控件和触控区域均由保存HUD引用。
     public sealed class JinxCasinoLocalSettingsPresenter : MonoBehaviour
     {
         [SerializeField] private GameObject settingsPanel;
-        [SerializeField] private GameObject emotePanel;
         [SerializeField] private Slider pcSensitivity;
         [SerializeField] private Slider touchSensitivity;
         [SerializeField] private Slider volume;
@@ -46,17 +44,12 @@ namespace Hotfix.JinxCasino.Adapters.UI
         [SerializeField] private TMP_Text touchLabel;
         [SerializeField] private TMP_Text volumeLabel;
         [SerializeField] private TMP_Text settingsFeedback;
-        [SerializeField] private TMP_Text emoteFeedback;
-        [SerializeField] private TMP_Dropdown emoteDropdown;
         [SerializeField] private Button saveButton;
         [SerializeField] private Button defaultsButton;
         [SerializeField] private Button settingsCloseButton;
-        [SerializeField] private Button emoteCloseButton;
-        [SerializeField] private Button playEmoteButton;
         [SerializeField] private TouchInputPad movePad;
         [SerializeField] private TouchInputPad lookPad;
         private readonly List<Action> removeListeners = new List<Action>();
-        private readonly List<string> emoteIds = new List<string>();
         private JinxCasinoController owner;
         private CasinoLocalPreferences saved;
         private CasinoLocalPreferences draft;
@@ -64,7 +57,6 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private bool positionsCaptured;
         private PadLayout originalMove;
         private PadLayout originalLook;
-        private string emoteKey;
         private Action closeSettings;
         private int settingsPage;
         private bool HasPages => pointerPage != null && gamepadPage != null && audioPage != null;
@@ -91,7 +83,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         }
 
         /// <summary>绑定本机场景；测试可注入独立偏好键。</summary>
-        /// <param name="controller">音频、输入与本地Avatar的宿主。</param>
+        /// <param name="controller">音频和输入的宿主。</param>
         /// <param name="close">关闭后恢复原场地/菜单的模态导航。</param>
         /// <param name="store">为空使用本机正式偏好键。</param>
         public void Bind(JinxCasinoController controller, Action close, CasinoLocalPreferencesStore store = null)
@@ -104,14 +96,14 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 positionsCaptured = true;
             }
             owner.LoadLocalPreferences(store); saved = owner.LocalPreferences;
-            owner.LocalPreferencesChanged += ApplyPadLayout; owner.Changed += RefreshEmotes; ApplyPadLayout();
+            owner.LocalPreferencesChanged += ApplyPadLayout; ApplyPadLayout();
             Listen(pcSensitivity, _ => Preview()); Listen(touchSensitivity, _ => Preview()); Listen(volume, _ => Preview());
             Listen(muted, _ => Preview()); Listen(leftHanded, _ => Preview());
             Listen(gamepadLookMultiplier, _ => Preview()); Listen(gamepadDeadzone, _ => Preview());
             Listen(gamepadLookRate, _ => Preview()); Listen(gamepadMaximum, _ => Preview());
             Listen(gamepadInvertY, _ => Preview()); Listen(rumbleEnabled, _ => Preview()); Listen(rumbleStrength, _ => Preview());
-            Listen(saveButton, Save); Listen(defaultsButton, Defaults); Listen(playEmoteButton, PlayEmote);
-            Listen(settingsCloseButton, CloseSettings); Listen(emoteCloseButton, () => closeSettings?.Invoke());
+            Listen(saveButton, Save); Listen(defaultsButton, Defaults);
+            Listen(settingsCloseButton, CloseSettings);
             Listen(pointerTabButton, () => SetPage(0, true)); Listen(gamepadTabButton, () => SetPage(1, true)); Listen(audioTabButton, () => SetPage(2, true));
         }
 
@@ -119,9 +111,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
         public void Unbind()
         {
             CancelPreview();
-            if (owner != null) { owner.LocalPreferencesChanged -= ApplyPadLayout; owner.Changed -= RefreshEmotes; }
+            if (owner != null) { owner.LocalPreferencesChanged -= ApplyPadLayout; }
             foreach (var remove in removeListeners) remove(); removeListeners.Clear();
-            owner = null; draft = saved = null; closeSettings = null; emoteKey = null; emoteIds.Clear();
+            owner = null; draft = saved = null; closeSettings = null;
             if (positionsCaptured && movePad != null && lookPad != null)
             { originalMove.Apply((RectTransform)movePad.transform); originalLook.Apply((RectTransform)lookPad.transform); }
         }
@@ -131,7 +123,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             if (owner == null) return;
             CancelPreview(); saved = owner.LocalPreferences; draft = saved.Copy(); previewing = false;
-            gameObject.SetActive(true); if (settingsPanel != null) settingsPanel.SetActive(true); if (emotePanel != null) emotePanel.SetActive(false);
+            gameObject.SetActive(true); if (settingsPanel != null) settingsPanel.SetActive(true);
             SetFeedback(owner.LocalPreferencesWarning ?? "调整会立即预览；保存后保留，返回会撤销未保存的调整。");
             SetPage(0, false);
             RenderDraft();
@@ -142,7 +134,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             CancelPreview();
             if (settingsPanel != null) settingsPanel.SetActive(false);
-            if (emotePanel != null) emotePanel.SetActive(false);
+
             gameObject.SetActive(false);
             closeSettings?.Invoke();
         }
@@ -168,13 +160,6 @@ namespace Hotfix.JinxCasino.Adapters.UI
             }
             if (select && settingsPanel != null && settingsPanel.activeInHierarchy && EventSystem.current != null)
                 EventSystem.current.SetSelectedGameObject(FirstSelection);
-        }
-
-        /// 展示Profile已解锁表情，当前模型实际播放成功后才提示成功。
-        public void ShowEmotes()
-        {
-            if (owner == null || emotePanel == null) return;
-            CancelPreview(); gameObject.SetActive(true); if (settingsPanel != null) settingsPanel.SetActive(false); emotePanel.SetActive(true); emoteKey = null; RefreshEmotes();
         }
 
         private void RenderDraft()
@@ -243,31 +228,6 @@ namespace Hotfix.JinxCasino.Adapters.UI
             bool left = owner.LocalPreferences.LeftHanded;
             (left ? originalLook : originalMove).Apply((RectTransform)movePad.transform);
             (left ? originalMove : originalLook).Apply((RectTransform)lookPad.transform);
-        }
-        private void RefreshEmotes()
-        {
-            if (owner == null || emotePanel == null || emoteDropdown == null || !emotePanel.activeInHierarchy) return;
-            var data = owner.Game.ProfileData;
-            string key = data == null ? string.Empty : string.Join("|", data.UnlockedIds);
-            if (key == emoteKey) return;
-            string previous = emoteDropdown.value >= 0 && emoteDropdown.value < emoteIds.Count ? emoteIds[emoteDropdown.value] : data?.EquippedEmote;
-            emoteKey = key; emoteIds.Clear(); var labels = new List<string>();
-            foreach (var definition in CasinoProfileCatalog.Definitions)
-            {
-                if (definition.Kind != CasinoCosmeticKind.Emote || data == null || !data.UnlockedIds.Contains(definition.Id)) continue;
-                emoteIds.Add(definition.Id); labels.Add(definition.Name);
-            }
-            if (labels.Count == 0) labels.Add("当前没有可播放的已解锁表情");
-            emoteDropdown.ClearOptions(); emoteDropdown.AddOptions(labels);
-            emoteDropdown.SetValueWithoutNotify(Math.Max(0, emoteIds.IndexOf(previous))); if (playEmoteButton != null) playEmoteButton.interactable = emoteIds.Count > 0;
-            SetLabel(emoteFeedback, "只对自己的纸片角色播放动作，持续约两秒；不会更改装备或小游戏。");
-        }
-        private void PlayEmote()
-        {
-            if (emoteDropdown == null) return;
-            int index = emoteDropdown.value; if (owner == null || index < 0 || index >= emoteIds.Count) return;
-            bool played = owner.TryPlayLocalEmote(emoteIds[index]);
-            SetLabel(emoteFeedback, played ? "正在播放：" + emoteDropdown.options[index].text : "当前本地角色尚未装配，表情未播放。");
         }
         private void Listen(Slider slider, UnityAction<float> callback)
         { if (slider == null) return; slider.onValueChanged.AddListener(callback); removeListeners.Add(() => { if (slider != null) slider.onValueChanged.RemoveListener(callback); }); }

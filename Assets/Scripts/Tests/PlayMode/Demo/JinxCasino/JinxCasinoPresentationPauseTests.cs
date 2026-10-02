@@ -4,7 +4,6 @@ using Hotfix.JinxCasino.Adapters;
 using Hotfix.JinxCasino.Rules;
 using NUnit.Framework;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
@@ -14,7 +13,6 @@ namespace Tests.Demo
     public sealed class JinxCasinoPresentationPauseTests
     {
         private GameObject root;
-        private InputActionAsset asset;
         private JinxCasinoPresentationClock clock;
         private JinxCasinoPresentationClockTestDriver driver;
 
@@ -29,7 +27,7 @@ namespace Tests.Demo
         [UnityTearDown]
         public IEnumerator Cleanup()
         {
-            Object.Destroy(root); if (asset != null) Object.Destroy(asset);
+            Object.Destroy(root);
             yield return null;
         }
 
@@ -104,40 +102,6 @@ namespace Tests.Demo
             clock.SetPaused(false); driver.Speed = 30; driver.Limit = float.PositiveInfinity;
             yield return Until(() => !table.IsMoving && visual.localPosition == Vector3.zero, "桌体安全归位且按压反馈正常释放");
             Assert.That(Vector3.Distance(board.transform.position, origin), Is.LessThan(.011f));
-        }
-
-        [UnityTest]
-        public IEnumerator RealSlotResultAnimationUsesOwnersClockAndDoesNotReplayPayment()
-        {
-            var owner = Child("Owner").AddComponent<JinxCasinoController>(); owner.enabled = false;
-            Assert.That(owner.PresentationClock, Is.Null, "旧原型不接入新表现时钟。");
-            asset = ScriptableObject.CreateInstance<InputActionAsset>(); owner.ConfigureImmersion(asset);
-            clock = owner.PresentationClock; driver.Clock = clock;
-            var machine = Child("Slots"); machine.SetActive(false);
-            var station = machine.AddComponent<JinxCasinoStation>(); station.Configure(CasinoGameKind.Slots, 0, machine.transform);
-            var model = new GameObject("Model").transform; model.SetParent(machine.transform, false);
-            var reel = new GameObject("Slots.Reel0").transform; reel.SetParent(model, false);
-            var presentation = machine.AddComponent<JinxCasinoStationPresentation>();
-            // 测试程序集不直接引用TMP；通过公开装配方法传可空结果牌，仍驱动真实组件。
-            typeof(JinxCasinoStationPresentation).GetMethod("Setup").Invoke(presentation, new object[] { owner, station, model, null, null });
-            machine.SetActive(true); owner.StartAdventure(CasinoAdventureMode.Practice, 5);
-            yield return null; yield return null;
-            Assert.That(owner.Game.BeginGame("one-confirm", CasinoGameKind.Slots, 10, 0, null, Time.frameCount).Success, Is.True);
-            yield return null; yield return null;
-            Quaternion before = reel.localRotation; long wallet = owner.Game.State.Coins;
-            owner.BindAdventurePresenter(null, true, true);
-            yield return new WaitForSecondsRealtime(.18f);
-            Assert.That(owner.IsImmersionPaused, Is.True);
-            Assert.That(reel.localRotation, Is.EqualTo(before));
-            Assert.That(owner.Game.State.Coins, Is.EqualTo(wallet));
-            owner.BindAdventurePresenter(null, false); driver.Speed = 5;
-            yield return Until(() => Quaternion.Angle(reel.localRotation, before) > 1, "明确继续后拉轮继续演出");
-            driver.Speed = 30;
-            yield return Until(() => clock.TimeSeconds > 1.5f, "结果演出完成"); yield return null;
-            Quaternion settled = reel.localRotation;
-            yield return new WaitForSecondsRealtime(.05f);
-            Assert.That(reel.localRotation, Is.EqualTo(settled), "结束后保持实际结果，不重启动画。");
-            Assert.That(owner.Game.State.Coins, Is.EqualTo(wallet), "只恢复演出，不重复付款开奖。");
         }
 
         private GameObject Child(string name)

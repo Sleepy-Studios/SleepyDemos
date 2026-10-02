@@ -101,16 +101,19 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void InputMultipliersScaleEachDeviceSeparatelyAndPreviewNeverWritesPreferences()
+        public void PreviewPreservesInputSettingsWithoutWritingUntilExplicitSave()
         {
             owner = new GameObject("CasinoPreferencesTest"); var controller = owner.AddComponent<JinxCasinoController>();
             controller.LoadLocalPreferences(store);
-            var touch = new Vector2(4, -3); var mouse = new Vector2(-1, 6);
-            Assert.That(controller.ScaleLocalLookInput(touch, mouse), Is.EqualTo(touch + mouse));
+            Assert.That(controller.LocalPreferences.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
             var draft = controller.LocalPreferences; draft.PcLookMultiplier = 2; draft.TouchLookMultiplier = 0.5f;
             draft.GamepadLookDegreesPerSecond = 200; draft.GamepadInvertY = true; draft.RumbleEnabled = false;
             controller.ApplyLocalPreferences(draft);
-            Assert.That(controller.ScaleLocalLookInput(touch, mouse), Is.EqualTo(touch * 0.5f + mouse * 2));
+            var input = controller.LocalPreferences.ToInputSettings();
+            Assert.That(input.MouseLookMultiplier, Is.EqualTo(2));
+            Assert.That(input.TouchLookMultiplier, Is.EqualTo(0.5f));
+            Assert.That(input.GamepadLookDegreesPerSecond, Is.EqualTo(200));
+            Assert.That(input.GamepadInvertY, Is.True);
             Assert.That(PlayerPrefs.HasKey(key), Is.False);
             controller.ApplyLocalPreferences(new CasinoLocalPreferences());
             Assert.That(controller.LocalPreferences.GamepadLookDegreesPerSecond, Is.EqualTo(90));
@@ -119,7 +122,7 @@ namespace Tests.Demo
             Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(2));
             Assert.That(store.Load().GamepadLookDegreesPerSecond, Is.EqualTo(200));
             controller.ApplyLocalPreferences(new CasinoLocalPreferences());
-            Assert.That(controller.ScaleLocalLookInput(touch, mouse), Is.EqualTo(touch + mouse));
+            Assert.That(controller.LocalPreferences.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
             Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(2), "撤销预览不能覆盖明确保存值");
             Assert.That(controller.LocalPreferences.GamepadInvertY, Is.False);
         }

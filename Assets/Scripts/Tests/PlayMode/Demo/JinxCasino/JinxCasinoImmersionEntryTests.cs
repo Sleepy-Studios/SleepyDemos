@@ -107,7 +107,7 @@ namespace Tests.Demo
             Key horizontal = station.InteractionPosition.x < body.transform.position.x ? Key.A : Key.D;
             yield return MoveUntil(horizontal, () => Mathf.Abs(body.transform.position.x - station.InteractionPosition.x) <= .2f);
             Assert.That(Vector3.Distance(position, body.transform.position), Is.GreaterThan(1));
-            Assert.That(owner.GetNearbyLocalSocialStation(), Is.SameAs(station));
+            Assert.That(owner.FindNearbyStation(), Is.SameAs(station));
             Vector3 explorationPosition = camera.transform.position; Quaternion explorationRotation = camera.transform.rotation; float fieldOfView = camera.fieldOfView;
             yield return KeyPress(Key.E);
             yield return Wait(() => owner.TableView?.StationId == station.StationId && Mathf.Abs(camera.fieldOfView - station.FocusFieldOfView) < .01f, "E进入具体水果机桌面", 3);
@@ -705,7 +705,7 @@ namespace Tests.Demo
             Assert.That(owner.gameObject.scene.path, Is.EqualTo("Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity"));
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
-            Assert.That(presenter, Is.Not.Null); Assert.That(UIManager.Instance.Get<JinxCasinoHudView>(), Is.Null);
+            Assert.That(presenter, Is.Not.Null);
             var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
             Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(camera)); AssertSingleListener();
             Assert.That(EventSystem.current.GetComponent<InputSystemUIInputModule>(), Is.Not.Null);

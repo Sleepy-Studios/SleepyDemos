@@ -11,13 +11,13 @@
 
 ## S1保存资源维护（开发中）
 
-当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、MVC绑定及人工调整，不重新运行临时生成/装配Builder。旧Main场景保留用于恢复原型；新入口与完整流程仍需分别记录实际验证。
+当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、MVC绑定及人工调整，不重新运行临时生成/装配Builder。旧Main和通用HUD已经删除；新入口与完整流程仍需分别记录实际验证。
 
-玩法范围维护独立`Data/ImmersionSettings.asset`，当前为一区、三机台且暂时关闭事件；不修改旧AdventureSettings。后续接入事件设施时同步本资产与保存资源测试。本地胶囊射线层、操作目标和铭牌行高直接维护保存场景组件，核查序列化引用及`JinxCasinoImmersionSceneTests`结果。
+玩法范围维护独立`Data/ImmersionSettings.asset`，当前为一区、三机台且暂时关闭事件；旧AdventureSettings和SessionSettings已删除。后续接入事件设施时同步本资产与保存资源测试。本地胶囊射线层、操作目标和铭牌行高直接维护保存场景组件，核查序列化引用及`JinxCasinoImmersionSceneTests`结果。
 
-样板初始开放Slots、Blackjack、CooperativeLevers；`InitiallyAvailableGames`仍受`AllowedGames`限制，旧存档缺失该字段时保持原区域解锁。现有自动化覆盖保存引用，不代替三输入实玩、画面或S1用户验收。
+样板初始开放Slots、Blackjack、CooperativeLevers；`InitiallyAvailableGames`仍受`AllowedGames`限制，只读取当前版本配置。现有自动化覆盖保存引用，不代替三输入实玩、画面或S1用户验收。
 
-实体补给柜台已保存在Immersion场景中，维护三件商品、报价牌、购买与库存目标、商品缩放及聚焦挂点。新局商品范围由ImmersionSettings限制为双人扳手、重抽牌、止损券，旧存档继续使用自身配置。柜台复用唯一游戏相机，不创建资金或库存服务。
+实体补给柜台已保存在Immersion场景中，维护三件商品、报价牌、购买与库存目标、商品缩放及聚焦挂点。新局商品范围由ImmersionSettings限制为双人扳手、重抽牌、止损券，当前版本存档保留自身配置。柜台复用唯一游戏相机，不创建资金或库存服务。
 
 互动教学入口、非模态提示、暂停中的跳过/重来/结果入口及共用确认卡均维护于JinxCasinoImmersionHudView。保留原MVC绑定和Prefab GUID，编辑后核查引用与真实输入回归。
 
@@ -33,31 +33,23 @@ Windows / Android 分别生成对应 HybridCLR 元数据、Hotfix DLL 和 YooAss
 
 Build Settings 继续只保留 AppEntrance。项目已打开时不另起 BatchMode，不用 dotnet build / msbuild 构建 Unity 工程。
 
-## 保存原型资源与离线构建
+## 当前S1单机构建
 
-历史原型恢复使用保留的Main场景、HUD与对应源码/资源基线；维护已保存的四区、机台和正式模型引用，不使用临时P0/P2/P4生成器覆盖现有内容。
+使用当前Editor内的`Tools/SleepyDemos/整蛊赌场/S1离线Player构建`窗口，或直接选择：
 
-正式资源变更必须核对Console/Editor日志和场景中实际`FormalAvatar`、各机台`FormalVisual`与音源。P4构建入口为`构建Windows P4离线试玩包`和`构建Android P4离线试玩包`，拒绝尚未装配正式角色的源场景。P4输出在`Builds/JinxCasino/P4/{target}/{version}`，版本0.4.0、标识`com.sleepystudio.jinxcasino`，保留原P0目录及应用标识。构建事务及平台恢复沿用下述经过验证的流程；是否构建成功以最新实际验证记录为准。
+|菜单（同一路径下）|用途|
+|---|---|
+|构建Windows S1独立样板|Windows x64 IL2CPP Player及ZIP|
+|构建Android S1独立样板|Android 8.0 / API 26起、ARM64 APK|
+|重打包最近Windows S1分享包|为已完成S1 Player重新生成过滤调试目录的ZIP|
 
-P0场景、HUD与Hub按钮使用已保存资源，网络设置资产单独保留。正式Player构建工具继续维护，资源布局变更不通过临时原型Builder重新生成。
+P0/P4入口、阶段参数及旧场景/HUD选择已删除。Start(BuildTarget)与RepackageWindowsPlayer(string)只服务当前S1。输出独立保存于Builds/JinxCasino/S1/<平台>/<构建版本>/，版本0.5.0、StartupScene=JinxCasino。独立包直达赌场主菜单，游戏内返回回到此菜单，提供退出；Editor开发入口仍从Hub进入。
 
-`Tools/SleepyDemos/整蛊赌场/P0离线Player构建` 提供 Windows / Android 构建入口。构建在当前 Editor 串行执行，利用 SessionState 跨目标平台 Domain Reload 继续。必须先完成脚本编译，所有打开场景必须已保存；工具不代为保存或丢弃。
+必须先完成脚本编译，所有打开场景已保存；工具不代为保存或丢弃修改。当前Editor内串行执行，SessionState跨平台Domain Reload继续；两端不能同时构建。联网SDK/App ID不作为单机构建条件。
 
-也可直接选择以下菜单启动相应平台事务，无需先打开窗口：
+Windows分享使用Playable ZIP，DoNotShip开发排障目录不分发。Android只构建ARM64、横屏左右旋转，沿用com.sleepystudio.jinxcasino；安装可能替换历史包。Windows Player排除Streamline原生插件。平台设置、签名和原生插件配置由事务恢复。
 
-| 菜单 | 产物 |
-|------|------|
-| `Tools/SleepyDemos/整蛊赌场/构建Windows P0离线验证包` | Windows x64 IL2CPP Player 与 ZIP |
-| `Tools/SleepyDemos/整蛊赌场/构建Android P0离线验证包` | Android 8.0 / API 26 及以上的 ARM64 APK |
-| `Tools/SleepyDemos/整蛊赌场/重打包最近Windows P0分享包` | 不重新编译，过滤Unity调试目录并生成新的Playable ZIP |
-
-两种入口共用同一任务与恢复流程，不能同时启动。离线构建不要求 Fusion SDK 或 App ID；后续互联网版本另行选型。Windows P0 不包含 Streamline 原生 DLL，Android 不生成 ARMv7 / x86 包。
-
-Android P0仅允许横屏左右旋转；原项目方向设置由构建事务的PlayerSettings快照恢复。
-
-构建为单人离线验证包，验收范围是已实现的 P0 场景/规则/UI能力，不构成互联网联机或完整游戏证据。Windows ZIP / Android APK 输出到 `Builds/JinxCasino/P0/{target}/{version}`；从 Hub 点击“倒霉蛋俱乐部 · P0”，再选择“单人离线验证”。
-
-P0资源采集暂复用现有DefaultPackage的公共资源与Demo资产，并替换为本平台专用代码组；因此产物仍带有Hub和其他既有Demo资源。最终赌场交付需收敛采集范围并重新验证体积，不以P0包体积作为最终结果。
+当前仍复用DefaultPackage的资源范围，可能携带其他Demo资源；包体裁剪和双端实玩仍待验。构建成功不代表S1视觉/体验通过，实际记录见immersion-progress。历史P0/P4包只用于追溯，旧流程恢复须使用对应Git基线。
 
 平台 DLL、首包、构建场景配置隔离；不修改默认 HotfixConfig 或 Build Settings。构建中处理器只改 Player 的 AppEntrance 内存场景配置。任务结束恢复被覆盖的生成文件、资源首包、Collector 内存与 Editor/Player 设置，备份保留于 `Library/JinxCasinoBuild`。若恢复失败，停止后续步骤并保留恢复信息；不要继续另起构建或删除备份。
 
@@ -65,7 +57,6 @@ URP 构建预处理会保存目标平台的着色器预过滤配置，并可能�
 
 Windows构建会校验本机System32的chcp.com签名和哈希，再临时提供给Bee的受限PATH编译进程，事务结束只清理自己创建且哈希一致的副本。校验使用系统Windows PowerShell及其安全模块，PSModulePath仅在校验子进程内限定为系统模块目录；从PowerShell7启动Editor也不依赖其模块自动加载。不修改用户cmd AutoRun、全局PATH或模块路径。
 
-Windows P0已有实际构建与正式入口启动记录；Android、Photon与真机进度以[进度与验证](../progress.md)中实际证据为准。分享Windows版本使用Playable ZIP，开发机保留的DoNotShip目录和初始ZIP不需要分发。
 三台独立规则夹板、正文引用与聚焦挂点维护于保存场景及对应机台组件，按S1Layout同步源与运行合同。调整后实际进入三台机台，检查不同屏幕比例下规则文字、操作物件和结果是否完整可读、有无遮挡；不重新添加已清理的固定布局快照测试。
 
 
@@ -78,9 +69,3 @@ Windows P0已有实际构建与正式入口启动记录；Android、Photon与真
 沉浸入口的设置可从主菜单或暂停菜单打开，分为键鼠/触控、手柄和声音。修改立即预览，保存才持久化；B/Esc/Menu或返回撤销未保存改动并回原菜单。恢复默认也是预览，仍须保存。手柄上下选控件、左右调滑条；真实设备的震动与Android后台恢复仍需单独验证。
 
 新原型偏好键为JinxCasino.PrototypeV2.LocalPreferences，不读取旧原型的JinxCasino.LocalPreferences.v1；首次进入使用完整默认值。当前记录缺失版本或数值时显示回退提示，明确保存才替换新键的内容，不修改旧键。公共输入设置仍由Core负责读取参数和设备操作，赌场只保存本机偏好。
-
-## S1独立试玩包
-
-使用`Tools/SleepyDemos/整蛊赌场/构建Windows S1独立样板`或`构建Android S1独立样板`，产物独立保存于`Builds/JinxCasino/S1/<平台>/<构建版本>/`。平台配置StartupScene为JinxCasino，版本0.5.0；不再经过Hub菜单。游戏中返回会回到赌场主菜单，主菜单提供退出游戏。Editor默认入口保持Hub。Windows已有成品可用`重打包最近Windows S1分享包`，ZIP包含S1说明。
-
-S1仅是当前一区三机台样板，构建成功不等于体验验收。仍复用DefaultPackage采集范围，包内可能包含历史Demo资源，尚未做最终体积裁剪。Android沿用com.sleepystudio.jinxcasino，安装可能替换既有P4包；新源码使用独立PrototypeV2数据目录，不承诺旧档继续可玩。构建采用原备份恢复事务，不修改默认配置、AppEntrance或Build Settings。实际构建及启动证据以immersion-progress为准，已有包不含本轮存档变更。

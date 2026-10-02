@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Hotfix.JinxCasino.Adapters.UI;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
 
@@ -11,9 +10,7 @@ namespace Hotfix.JinxCasino.Adapters
         [SerializeField] private JinxCasinoGameSettings gameSettings;
         [SerializeField] private JinxCasinoWorldArea[] areas;
         [SerializeField] private JinxCasinoSceneEffects sceneEffects;
-        private JinxCasinoAdventurePresenter adventurePresenter;
         private int displayedArea = -1;
-        private bool adventureInputBlocked;
 
         /// 游戏在组件构造时已存在，供较早启用的机台表现绑定；构造不读档或加载场景。
         public JinxCasinoGame Game { get; } = new JinxCasinoGame();
@@ -23,10 +20,8 @@ namespace Hotfix.JinxCasino.Adapters
         public string AdventureRadarHint => sceneEffects?.RadarHint ?? string.Empty;
         /// 墨迹边缘强度，中心机台操作区保持可用。
         public float AdventureInkIntensity => sceneEffects?.LocalInkIntensity ?? 0;
-        /// 旧房间入口尚待删除，不与当前单机流程共享状态。
-        public bool IsLegacySession => network != null || coordinator != null;
         /// 模态菜单锁移动及视角；普通桌面操作继续冒险时钟。
-        public bool IsAdventureInputBlocked => (adventureInputBlocked || immersionScreenOpen) && !IsLegacySession;
+        public bool IsAdventureInputBlocked => immersionScreenOpen;
         /// 当前区域已经装配的安全出生位置。
         public Vector3 CurrentAdventureSafePosition => areas?.FirstOrDefault(area => area != null && area.Index == displayedArea)?.SafePosition ?? Vector3.zero;
 
@@ -70,19 +65,7 @@ namespace Hotfix.JinxCasino.Adapters
         public void ConfigureAdventure(JinxCasinoGameSettings configuration, JinxCasinoWorldArea[] worldAreas, JinxCasinoSceneEffects effects)
         {
             gameSettings = configuration; areas = worldAreas; sceneEffects = effects;
-            if (UsesImmersion) sceneEffects?.BindPresentationClock(PresentationClock);
-        }
-
-        /// <summary>绑定模态界面的输入状态。</summary>
-        /// <param name="presenter">尚待清理的原型页面实例，解绑传null。</param>
-        /// <param name="blocked">是否锁住探索操作。</param>
-        /// <param name="pausesClock">设置等菜单是否暂停本机逻辑时钟。</param>
-        public void BindAdventurePresenter(JinxCasinoAdventurePresenter presenter, bool blocked, bool pausesClock = false)
-        {
-            adventurePresenter = presenter; adventureInputBlocked = blocked;
-            immersionModalPaused = blocked && pausesClock;
-            PresentationClock?.SetPaused(IsImmersionPaused);
-            if (blocked) { movePad?.ResetInput(); lookPad?.ResetInput(); }
+            sceneEffects?.BindPresentationClock(PresentationClock);
         }
 
         /// <summary>从当前场景配置创建单机冒险，物理清理由Game替换事件统一处理。</summary>
@@ -90,13 +73,13 @@ namespace Hotfix.JinxCasino.Adapters
         /// <param name="seed">可选固定种子，不设置必中结果。</param>
         public void StartAdventure(CasinoAdventureMode mode, uint? seed = null)
         {
-            if (IsBusy || IsLegacySession) { Game.SetStatus("请先结束当前操作。"); return; }
+            if (IsBusy) { Game.SetStatus("请先结束当前操作。"); return; }
             Game.StartAdventure(mode, gameSettings != null ? gameSettings.CreateConfig() : new CasinoAdventureConfig(), seed);
         }
 
         /// <summary>先检查场景是否可继续候选旅程，再安装；失败不清焦点或替换当前局。</summary>
         /// <param name="slot">玩家明确选择的1到3槽。</param>
-        public bool LoadAdventure(int slot) => !IsBusy && !IsLegacySession && Game.LoadAdventure(slot);
+        public bool LoadAdventure(int slot) => !IsBusy && Game.LoadAdventure(slot);
 
         /// <summary>使用道具前核对真实场景目标，资金和库存仍由Game规则提交。</summary>
         /// <param name="itemId">目录稳定ID。</param>
@@ -114,7 +97,6 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void ValidateImmersionRestore(CasinoAdventureState candidate)
         {
-            if (!UsesImmersion) return;
             const string unavailable = "此存档需要当前场景尚未开放的内容，无法在此继续；原存档和当前旅程均已保留。";
             if (candidate.PlayerCount != 1 || areas == null || gameSettings == null) throw new InvalidOperationException(unavailable);
             int configuredStages = gameSettings.CreateConfig().StageCount;
@@ -135,17 +117,16 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (!Game.HasAdventure || IsAdventureInputBlocked || IsBusy || body == null) return;
             var nearest = FindNearbyStation();
-            if (UsesImmersion && PreferNearbyExit(nearest)) { InteractWithExitTerminal(); return; }
-            if (UsesImmersion && PreferNearbyShop(nearest))
+            if (PreferNearbyExit(nearest)) { InteractWithExitTerminal(); return; }
+            if (PreferNearbyShop(nearest))
             {
                 if (!TryOpenImmersionShop()) Game.SetStatus("柜台暂不可操作。");
                 return;
             }
-            if (nearest != null && UsesImmersion)
+            if (nearest != null)
             {
                 if (!TryOpenImmersionTable(nearest)) Game.SetStatus("此机台暂不可操作。");
             }
-            else if (nearest != null) adventurePresenter?.ShowStation(nearest.Game);
             else Game.SetStatus("靠近机台后按E或触碰交互按钮。");
         }
 
@@ -175,19 +156,13 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void UpdateAdventure(float deltaSeconds)
         {
-            if (!IsLegacySession) Game.Tick(deltaSeconds);
+            Game.Tick(deltaSeconds);
         }
 
         private void SaveAdventureBeforeExit()
         {
             if (Game.HasAdventure && Game.SelectedSaveSlot > 0) Game.SaveAdventure(Game.SelectedSaveSlot);
             sceneEffects?.ClearEffects();
-        }
-
-        private void ClearAdventureForLegacy()
-        {
-            ResetImmersionTableForRestore(); SaveAdventureBeforeExit();
-            displayedArea = -1; Game.ClearAdventure();
         }
 
         private void ReleaseGameSubscriptions()

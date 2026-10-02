@@ -9,12 +9,11 @@ namespace Hotfix.JinxCasino.Adapters
         private readonly JinxCasinoPresentationClock presentationClock = new JinxCasinoPresentationClock();
         private bool presentationClockBound;
 
-        /// 沉浸样板共享本机表现时间；旧原型返回null，保持原Time语义。
+        /// 单机场景共享本机表现时间，菜单暂停同时冻结物件反馈。
         public JinxCasinoPresentationClock PresentationClock
         {
             get
             {
-                if (!UsesImmersion) return null;
                 if (!presentationClockBound)
                 {
                     presentationClock.BindPauseSource(() => IsImmersionPaused);

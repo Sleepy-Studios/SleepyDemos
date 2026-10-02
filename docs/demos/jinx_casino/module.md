@@ -8,7 +8,7 @@
 
 ## 当前样板主链路（S1进行中）
 
-正式导航的JinxCasino地址在当前工作分支使用`Scenes/Immersion.unity`。`JinxCasinoController`根据保存的独立InputActionAsset选择`JinxCasinoImmersionHudView`，旧Main无该引用时继续使用原型HUD。菜单使用Core已有Canvas、EventSystem和View生命周期；不新建启动框架。
+正式导航的JinxCasino地址使用`Scenes/Immersion.unity`。`JinxCasinoController`只接通保存的独立InputActionAsset与`JinxCasinoImmersionHudView`；缺少主相机、输入资产或本地CharacterController时明确报错。菜单使用Core已有Canvas、EventSystem和View生命周期；不新建启动框架。
 
 `JinxCasinoGame`在Controller组件构造时建立，构造不读档；它唯一持有冒险聚合、缓存状态、规则命令、计时、三槽和成长。`JinxCasinoImmersionHost`连接探索/机台/菜单输入、具体聚焦与物理射线；`Interaction/JinxCasinoTableSession`直接持有Game与真实Station，不再使用TableOperations接口或包装。离桌只清草稿，已投入局及随机状态保留；新局、读档和区域传送前恢复借用相机，退出释放菜单输入作用域、Game订阅和光标状态。
 
@@ -22,19 +22,19 @@ Game的State getter返回既有缓存，不重新Capture；只有规则变更或
 
 桌面允许专门设计的世界空间UI和铭牌，不能把旧通用操作弹窗贴到机台上。保存样板当前包含三台、互动教学、实体购物、三槽存档与单区标准离场闭环；输入/声音设置已接入，画质设置、音画打磨和双端实玩仍待完成，当前不是S1最终交付。
 
-## 保留的原型主链路
+## 单机规则、资源和存储
 
-旧通用面板、P0会话和Main场景仍待删除，不是新原型的兼容承诺。为保持本次依赖完整，其调用已同步到Game；当前正式导航仍使用Immersion。小游戏`CasinoMiniGameRound`只运行规则与整数时钟；冒险统一提交钱包、库存、事件、任务和阶段。UI不得直接改资金或重新开奖，关闭表现保留已提交局，恢复后继续合法动作。
+旧通用面板、P0钱包/会话、Main场景与P0/P4构建入口已删除；恢复历史原型应使用对应Git基线与历史包，当前源码只运行新单机流程。小游戏`CasinoMiniGameRound`只运行规则与整数时钟；冒险统一提交钱包、库存、事件、任务和阶段。UI不得直接改资金或重新开奖，关闭表现保留已提交局，恢复后继续合法动作。
 
-`JinxCasinoGameSettings`保存每局配置，创建局时复制。P1限制三机台/三商品/三事件，奖励池也限制为可用内容；四区版本解除这些限制。`JinxCasinoWorldArea`只控制已保存的内容与锁门；任务Director实例化保存的触发目标，验证本地身份与接近距离，再由领域唯一发奖。
+`JinxCasinoGameSettings`保存每局配置，创建局时复制。当前Immersion配置限制三款样板与三件商品、暂时关闭事件，完整领域内容仍保留等待实体重构。`JinxCasinoWorldArea`只控制已保存的内容与锁门。旧任务Director/Target和目标Prefab已删，后续任务实体按新场景接入；领域唯一发奖规则保留。
 
 UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字、列表模板保存于HUD Prefab，运行时仅实例化模板，不新建控件或Canvas。父RectTransform适配保持等比，存档摘要只在打开槽面板及槽操作后读取，不在每次HUD刷新访问磁盘。
 
-机台选择使用`CasinoMachineUiOptions`把可读选项映射到冻结的整数协议，`TMP_Dropdown`模板保存于Prefab。轮盘区域、骰宝下注、签筒风险、落点、杠杆、跑者与电梯都显示语义；密码/出价用数字输入。查看金库线索的选择器与密码输入各自保存状态。旧隐藏wire只保留现有测试与调用兼容，不能作为玩家主操作界面。
+具体机台通过真实目标提交设备无关命令，没有通用下拉框/数字输入玩法入口。已删旧档案/表情/快捷交流页面，相关成长规则继续保留；完整可见成长入口待后续单机流程接入。
 
 `CasinoMiniGameRound.GetPresentation()`只返回公开牌、骰、线索与位置的数组副本，不含牌堆、随机状态或未授权密码。盲拍动作下限和公开分数只根据本人最高报价；未结束不泄露对手出价，结束仅公开奖值。冒险缓存最近完成的规则局，持久化`LastRoundJson`及`SettledRoundSequence`，表现读取实际经过事件修正的成本/返还。`IsObjectiveSuccess`独立于收益，用于金库门和额外合作资格，止损/彩金不能把失败演成开锁成功。
 
-`JinxCasinoSceneEffects`只呈现已经提交的效果。角色视觉使用独立保存挂点，恢复精确原位置、姿态及材质；同目标保护先校验，失败不消耗道具。传送检查安全点和角色占位，移动赌桌使用完整包围盒及CharacterController skinWidth保留间距；任务Director发奖依赖真实唯一目标，不依赖视觉动画。
+`JinxCasinoSceneEffects`只呈现已经提交的效果。角色视觉使用独立保存挂点，恢复精确原位置、姿态及材质；同目标保护先校验，失败不消耗道具。传送检查安全点和角色占位，移动赌桌使用完整包围盒及CharacterController skinWidth保留间距。当前Immersion未装配这些环境设施，保留的物理效果组件及资源候选不代表事件体验已完成。
 
 `Persistence/CasinoLocalSaveStore`默认使用`Application.persistentDataPath/JinxCasino/PrototypeV2`的三个独立槽。冒险快照仅接受版本4，缺失版本或旧版本均拒绝，不搜索旧目录和迁移数据。完整规则快照先校验再原子替换，保留上一不同快照；损坏主文件不能滚入有效备份，相同快照不滚动备份。主动选槽后阶段边界和退出保存，未选槽不会隐式覆盖其他槽。
 
@@ -44,21 +44,21 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 双人扳手通过`TryApplyCooperationHelp()`落实为每局一次真实帮助：拉杆窗口前后各扩大100毫秒，金库揭示首个尚未查看的线索。帮助标志进入单局快照，读档不重复放宽；已用或全部已知时拒绝并保留库存。操作者仍须拉杆/输入正确密码，不能靠帮助伪造接管资格。
 
-正式表现由`JinxCasinoAvatarPresentation`、`JinxCasinoStationPresentation`、`JinxCasinoAudioDirector`承担：角色只调整明确衣服槽，临时墨迹/换装结束后再应用永久配色；机台只读公开结果驱动已有语义Pivot；音频按流水/结算序号去重，恢复建立基线不重播旧奖励。音量仅作用于本场景音源，整蛊实例播放前登记，不更改全局AudioListener。
+样板机台使用三款S1专属表现；旧Avatar/Station通用表现已删。`JinxCasinoAudioDirector`按流水/结算序号去重，恢复建立基线不重播旧奖励；音量仅作用于本场景音源，不更改全局AudioListener。
 
 正式入口为 AppEntrance → Hub → JinxCasino；场景与资源走既有 `GameSceneNavigator` 和 `ResourceServices`。Demo 不进入 Build Settings，不自行重载 AppEntrance。
 
-场景只提供一个本地主 Camera / AudioListener。Avatar Prefab 不带相机，本地相机跟随自己的视角锚点；四个区域作为同一场景中的区域装配。
+场景只提供一个本地主Camera/AudioListener，实体桌面借用该相机。当前装配一区，四区仍是后续目标。
 
 ## 退出与恢复
 
-离开 Demo 前停止输入、取消会话工作、按具体实例关闭所属 UI、断开网络并移除回调，再卸载场景及 Loader。上一局的延迟任务不得修改下一局状态。
+离开Demo前停止输入、保存已选槽、取消本场景工作、按具体实例关闭所属UI并释放输入/Game订阅，再由既有导航卸载场景及Loader。上一局的延迟任务不得修改下一局状态。
 
-共享经济由协调者处理，重复请求只得到同一结果。开奖状态、随机序列与已处理请求纳入快照，权威切换不得重新开奖或重复支付。
+单机经济统一由Game提交领域规则，重复请求核对原指纹并返回同一结果。开奖、随机序列与已处理请求进入当前版本快照，离桌和恢复不能重抽或重复支付。
 
 ## 验证
 
-规则、随机序列、幂等和快照采用 EditMode；输入、UI、相机及场景清理采用 PlayMode。所有测试进入现有两套测试程序集。真实互联网和双端 Player 单独验收，离线测试不代表 Photon 联机成功。
+规则、随机序列、幂等和快照采用 EditMode；输入、UI、相机及场景清理采用 PlayMode。所有测试进入现有两套测试程序集。Windows/Android Player、Xbox实物和手机触控单独验收；联网不在本轮范围。
 
 触控移动与视角以屏幕高度换算为720p参考像素，使相同屏幕比例的滑动在不同分辨率下产生相同输入。移动、视角各自持有独立指针，额外手指不能抢占，释放、隐藏、失焦或暂停时清空待处理输入。鼠标仍使用原始像素增量；真机手感、屏幕比例及灵敏度设置需要后续单独验收。
 
@@ -66,7 +66,7 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 机台当前位于Adapters/World，命名空间为Hotfix.JinxCasino.Adapters，这是现有历史布局，不是后续必须遵守的架构约束。交互、表现、UI和冒险流程应按真实职责组织；后续重做结合职责、调用链及序列化兼容调整，不只批量改名。JinxCasinoStation保存StationId/FocusPose/FocusFieldOfView/Targets；ConfigureTable拒绝外部目标或重复目标ID。JinxCasinoTableFocus借用相机，在0.35秒过渡后开放输入，退出/失效/Dispose恢复原姿态和FOV；不改变角色、钱包或时钟。JinxCasinoTableSelection用实际Collider射线和稳定NavigationOrder选择同一组目标，遮挡不穿透、跳过禁用目标。JinxCasinoTableTarget只发设备无关命令，反馈使用属性块、不实例化材质。
 
-这些组件已接入Immersion场景的Controller、三款实体机台与柜台；旧Main保留原型面板用于历史恢复。入口类使用实际指针与保存物件验证，但样板整体仍待正式体验验收。
+这些组件已接入Immersion场景的Controller、三款实体机台与柜台；旧Main和通用面板已删除，历史恢复使用对应Git基线。入口类使用实际指针与保存物件验证，但样板整体仍待正式体验验收。
 
 ## 三设备输入基础（已接入宿主，硬件待验）
 
@@ -99,7 +99,7 @@ GetView按ActiveStationId/LastStationId过滤公开投影，同一视图给各�
 
 JinxCasinoShopCounter保存s1.supply、三件商品、六个物理目标与报价/回执铭牌；JinxCasinoShopHost把选择、购买、库存使用接入已有PurchaseItem、UseAdventureItem及CancelPreparedItem。选中商品不扣款，支付仍由领域请求处理。ShopHost与机台共用输入上下文、TableSelection和TableFocus，后者支持有自身聚焦挂点的Behaviour；关闭、失效及回Hub恢复借用相机并清理目标订阅。
 
-柜台与机台按玩家到交互锚点距离决定接近入口；探索移动不因柜台另建逻辑。LB/RB切换商品目标，确认提交当前目标，次要动作使用选中商品库存。商品报价读取本局配置、余额与库存；旧存档没有新商品时显示未开放。此链仍需Android/Xbox真机体验验收。
+柜台与机台按玩家到交互锚点距离决定接近入口；探索移动不因柜台另建逻辑。LB/RB切换商品目标，确认提交当前目标，次要动作使用选中商品库存。商品报价读取本局配置、余额与库存；当前旅程配置未开放商品时显示未开放。此链仍需Android/Xbox真机体验验收。
 
 
 ## S1互动教学宿主与界面
@@ -108,7 +108,7 @@ JinxCasinoTutorialHost在新的Practice中同步启动教学，并把实际应�
 
 教学入口与选择控件保存在原JinxCasinoImmersionHudView中，JinxCasinoImmersionHudTutorial作为同一Presenter的partial维护绑定和退订。教学条不接管桌面焦点；Ready/完成选择等待离桌过渡结束，或由玩家暂停时打开。暂停菜单可再次打开此前暂缓的教学结果，避免“稍后”后无入口。重玩/新标准冒险共用明确确认卡，取消不替换聚合；跳过保留已投入局。
 
-SetImmersionMenuState可选取消回调仅在菜单打开时保存。Core Cancel及Demo手柄Menu由同一菜单返回函数处理，同帧至多退一层，确认窗口取消后保留原暂停。旧未配置教学HUD保持原入口；View退订和Controller销毁都清理回调。教学仅限制单次投入10，不保证获胜、不补发筹码，不把练习资金带入新正式局。
+SetImmersionMenuState可选取消回调仅在菜单打开时保存。Core Cancel及Demo手柄Menu由同一菜单返回函数处理，同帧至多退一层，确认窗口取消后保留原暂停。当前保存HUD包含教学入口；View退订和Controller销毁都清理回调。教学仅限制单次投入10，不保证获胜、不补发筹码，不把练习资金带入新正式局。
 
 
 ## 沉浸HUD的三槽存档
@@ -126,7 +126,7 @@ JinxCasinoExitHost绑定s1.verify和s1.leave两件保存物件。交互同时检
 
 ## 存档的场景兼容性
 
-LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对场景能力，全部通过后才清焦点、替换当前局和所选槽。单人样板拒绝多人、尚未开放的无尽/后续区域，以及找不到具体实例的已投入机台；当前区域与机台从宿主保存引用查询，不按旧版本号直接拒绝，也不向其它已加载场景借机台。普通原型宿主保留既有恢复行为。
+LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对场景能力，全部通过后才清焦点、替换当前局和所选槽。单人样板拒绝多人、尚未开放的无尽/后续区域，以及找不到具体实例的已投入机台；当前区域与机台从宿主保存引用查询，Store只读取当前版本，宿主不向其它已加载场景借机台。
 
 拒绝时文件、当前Run、随机、余额、所选槽与相机均保持。活动局必须匹配当前区域已装配的具体机台ID；缺ID同样拒绝，不再提供显式认领或按游戏种类改绑。已结算结果不要求原桌仍存在，但不会显示在另一张桌。此检查不缩减最终四区/无尽目标，随实际区域与模式入口落地更新能力范围。
 
@@ -134,4 +134,4 @@ LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对�
 
 沉浸HUD复用JinxCasinoLocalSettingsPresenter及原CasinoLocalPreferencesStore。主菜单与暂停菜单均有设置入口，设置状态优先于其它菜单；关闭时回原菜单，不隐式恢复暂停。首次绑定加载原本机键，预览通过宿主立即应用到Core公共输入与场景音源，明确保存才写盘；取消、关闭和View释放撤销未保存预览。
 
-保存Prefab将键鼠/触控、手柄、声音分为三页。手柄页暴露倍率、角速度、死区、最大半径、反转Y、震动开关与强度；缺少新增字段的旧HUD继续保留原偏好。菜单焦点复用Core EventSystem，每页使用保存控件，不创建运行时UI。场景音乐与SFX接入既有AudioDirector，不新增AudioListener。此处不代表画质/分辨率与真机体验已经完成。
+保存Prefab将键鼠/触控、手柄、声音分为三页。手柄页暴露倍率、角速度、死区、最大半径、反转Y、震动开关与强度；设置页面通过保存的控件预览本机偏好。菜单焦点复用Core EventSystem，每页使用保存控件，不创建运行时UI。场景音乐与SFX接入既有AudioDirector，不新增AudioListener。此处不代表画质/分辨率与真机体验已经完成。

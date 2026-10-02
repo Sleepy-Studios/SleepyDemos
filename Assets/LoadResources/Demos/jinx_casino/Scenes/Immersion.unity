@@ -3090,11 +3090,6 @@ MonoBehaviour:
   - {fileID: 528979939}
   sceneEffects: {fileID: 0}
   worldCamera: {fileID: 61769556}
-  settings: {fileID: 11400000, guid: b081bc32f7a2dda429e368cfe45e5572, type: 2}
-  stationAnchors:
-  - {fileID: 377641146}
-  - {fileID: 172747412}
-  - {fileID: 1871636352}
   exitTerminals:
   - {fileID: 1911667849}
   - {fileID: 1162925685}

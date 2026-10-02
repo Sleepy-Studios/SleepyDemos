@@ -2,11 +2,11 @@
 
 此文记录沉浸重做前可复用的规则与持久化边界，不能作为体验完成证明。
 
-PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案默认使用PrototypeV2目录；不迁移v1/v2/v3，也不保存旧迁移原件。本机偏好使用独立PrototypeV2键，只读当前完整记录。旧局认领已删除，旧房间、旧面板及Controller职责拆分仍待后续清理，不能将存档闭环扩大为全部旧链已删除。
+PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案默认使用PrototypeV2目录；不迁移v1/v2/v3，也不保存旧迁移原件。本机偏好使用独立PrototypeV2键，只读当前完整记录。旧局认领、旧房间、旧面板及旧Main入口已删除，Controller玩家交互拆分和Adapters归位仍待完成。
 
 ## 入口与职责
 
-- `Rules/CasinoSession.cs`：早期三机台资金原型；保留历史适配依赖。
+- `Rules/CasinoMiniGameRound.MaximumStake`：当前所有玩法共用的投入上限，冒险配置只能收紧；早期CasinoSession/P0请求回执类型已删除。
 - `Rules/MiniGames/CasinoMiniGameRound.cs`：17款独立规则、操作路由、随机状态和公开表现数据。
 - `Rules/Adventure/CasinoAdventureSession.cs`：阶段、钱包、库存、事件、活动局、请求去重与结算。
 - `Rules/Progression/`：永久成长和解锁目录；练习不计正式战绩。

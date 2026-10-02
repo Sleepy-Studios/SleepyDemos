@@ -1,6 +1,7 @@
 using Hotfix.JinxCasino.Interaction;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Core.Runtime.Inputs;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -70,6 +71,15 @@ namespace Hotfix.JinxCasino.Adapters
             immersionScreenOpen = open; immersionModalPaused = open && pauseClock; immersionFirstSelection = firstSelection;
             appliedInputContext = null;
             if (immersionInput != null) ApplyImmersionContext(open ? GameplayInputContext.Menu : tableFocus.IsActive ? GameplayInputContext.Interaction : GameplayInputContext.Gameplay);
+        }
+
+        /// 查找实际三米范围内的可用机台，HUD提示与交互提交使用同一目标。
+        internal JinxCasinoStation FindNearbyStation()
+        {
+            if (body == null) return null;
+            return GetComponentsInChildren<JinxCasinoStation>()
+                .Where(station => station.isActiveAndEnabled && (station.InteractionPosition - body.transform.position).sqrMagnitude <= 9)
+                .OrderBy(station => (station.InteractionPosition - body.transform.position).sqrMagnitude).FirstOrDefault();
         }
 
         private void EnsureImmersionInput()

@@ -124,7 +124,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (pauseLabel != null) pauseLabel.text = usingGamepad ? "Menu 暂停" : touching || atDesk ? "暂停" : "Esc 暂停";
             if (exitTableLabel != null) exitTableLabel.text = usingGamepad ? "B 离开桌面" : touching ? "离开桌面" : "Esc 离开桌面";
             string action = owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
-            var nearby = owner.GetNearbyLocalSocialStation();
+            var nearby = owner.FindNearbyStation();
             prompt.text = atDesk ? owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad
                 ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
                 : owner.IsExitTerminalNearby ? action + " " + owner.ExitInteractionPrompt : owner.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";

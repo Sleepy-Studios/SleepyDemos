@@ -390,7 +390,7 @@ namespace Hotfix.JinxCasino.Rules
 
         private static void ValidateConfig(CasinoAdventureConfig config)
         {
-            if (config == null || config.StartingCoins < 1 || config.MaximumStake < 1 || config.MaximumStake > CasinoSession.MaximumStake ||
+            if (config == null || config.StartingCoins < 1 || config.MaximumStake < 1 || config.MaximumStake > CasinoMiniGameRound.MaximumStake ||
                 config.StageCount < 1 || config.StageCount > 4 || config.Targets == null || config.Targets.Length < config.StageCount ||
                 config.StageDurationMilliseconds < 1 || config.StageDurationMilliseconds > 3600000 || config.EventIntervalMilliseconds < 0 ||
                 config.AdditionalPlayerTargetPercent < 0 || config.AdditionalPlayerTargetPercent > 1000 || config.EndlessCycleTargetPercent < 0 || config.EndlessCycleTargetPercent > 1000 ||

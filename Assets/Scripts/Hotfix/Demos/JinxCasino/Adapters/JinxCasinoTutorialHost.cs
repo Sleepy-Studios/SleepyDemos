@@ -82,7 +82,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// <returns>真实创建/启动回执，失败时保留原局。</returns>
         public CasinoAdventureResult StartTutorialAdventure(bool replaceCurrentRun = false, uint? seed = null)
         {
-            if (!UsesImmersion || IsBusy || IsLegacySession) return TutorialFailure("TutorialUnavailable", "请先结束当前操作，并从沉浸样板进入教学。");
+            if (!UsesImmersion || IsBusy) return TutorialFailure("TutorialUnavailable", "请先结束当前操作，并从沉浸样板进入教学。");
             if (Game.HasAdventure && !replaceCurrentRun) return TutorialFailure("TutorialReplacementRequired", "先选择保存或放弃当前局，再明确重玩教学。");
             try
             {

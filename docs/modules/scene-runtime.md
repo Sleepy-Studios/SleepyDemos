@@ -64,7 +64,7 @@ Editor 直启重载：
 - `GameSceneId.Dlss` 加载 `Assets/LoadResources/Demos/dlss/Scenes/Main.unity`，通过正式 Hub 入口进入。场景提供标准玩法主相机；公共主相机绑定入口负责结束旧 DLSS 会话、恢复 UI 栈并为目标相机应用全局设置，失败回滚也走同一入口，详见 [DLSS Demo](../demos/dlss/module.md)。
 - Hotfix 不直接持有 YooAsset `SceneHandle`，也不直接调用 `SceneManager.LoadSceneAsync` 绕过全局导航。
 - `GameSceneId.BlockPorters` 加载 `Assets/LoadResources/Demos/block_porters/Scenes/Main.unity`，从 Hub 的“小小搬豆工”入口进入；当前不启用 Editor 直启，详见[小小搬豆工模块](../demos/block_porters/module.md)。
-- `GameSceneId.JinxCasino` 加载 `Assets/LoadResources/Demos/jinx_casino/Scenes/Main.unity`，从 Hub 的“倒霉蛋俱乐部”入口进入；当前为 P0 三机台会话原型，详见[赌场模块](../demos/jinx_casino/module.md)。
+- `GameSceneId.JinxCasino` 加载 `Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`，从Hub的“倒霉蛋俱乐部”入口进入；当前为一区三机台单机样板，P0房间及旧Main入口已删除，详见[赌场模块](../demos/jinx_casino/module.md)。
 - Demo 场景必须且只能提供一个带 `MainCamera` Tag 的 Camera 和一个 AudioListener。
 - `StartupLoading` 与 `CommonLoadingView` 生命周期不同，不共享脚本或 Presenter。
 - Editor 直启不运行 HybridCLR、Hotfix 程序集装配或完整 `HotfixEntry`；`HotfixBootService` 必须幂等。

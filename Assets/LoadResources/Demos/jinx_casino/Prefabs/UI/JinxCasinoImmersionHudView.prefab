@@ -18392,7 +18392,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoLocalSettingsPresenter
   settingsPanel: {fileID: 7277600045187636126}
-  emotePanel: {fileID: 0}
   pcSensitivity: {fileID: 252894736884306322}
   touchSensitivity: {fileID: 6363455853822414580}
   volume: {fileID: 9087354547507158591}
@@ -18423,13 +18422,9 @@ MonoBehaviour:
   touchLabel: {fileID: 4497825014284087330}
   volumeLabel: {fileID: 7478365785208487960}
   settingsFeedback: {fileID: 4517211400277367803}
-  emoteFeedback: {fileID: 0}
-  emoteDropdown: {fileID: 0}
   saveButton: {fileID: 5764817990075957086}
   defaultsButton: {fileID: 582341208824650702}
   settingsCloseButton: {fileID: 5518532913947069435}
-  emoteCloseButton: {fileID: 0}
-  playEmoteButton: {fileID: 0}
   movePad: {fileID: 1510858978884752243}
   lookPad: {fileID: 8332820058125411167}
 --- !u!1 &7289153650153330791
