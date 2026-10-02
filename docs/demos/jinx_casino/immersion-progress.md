@@ -247,3 +247,11 @@ Unity编译0错误。97fd18e0真实菜单兼容用例1/1，循环覆盖旧四阶
 94c38b55独立返回真实按钮流程1/1，确认重载后没有活动旅程、Hub未显示且只有一个Listener；该夹具在Editor设置导航启动方式，不能证明Player的StartupScene冷启动。已查看S1StandaloneMainMenu-20261002115127-*，新增退出控件可读且未遮挡其它入口。d19ad317默认Hub→购物/机台/暂停/返回流程1/1，原接入未回归。没有全量测试；退出按钮一次性装配脚本已删除。Windows/Android实际构建与启动仍待验证。
 
 S1仍采集DefaultPackage既有范围，包内有历史资源；Android与旧P4同应用ID，安装可能替换旧应用。先完成独立启动验证，不把资源裁剪或完整S1验收当成已完成。
+
+## Windows S1首次独立构建与实机启动
+
+启动闭环已推送581ef2b。Windows IL2CPP构建20261002115613-84b9f866成功，流水线报告已恢复编辑器配置。产物位于Builds/JinxCasino/S1/StandaloneWindows64同名目录；分享ZIP为192817488字节、115项，含独立exe和S1说明。SHA256为2FAE40C7AC33A9E5F53CA42BF680CF973FA7F8A843EA96625CFB9B73B1F74FD6。当前仍为Development Build，包中包含Burst插件PDB及历史资源，尚非最终精简发布包。
+
+实际Windows Player冷启动直接显示赌场主菜单，没有Hub；真实鼠标操作打开设置、切换手柄页、返回并进入自由练习。自动化Escape尚未观察到暂停菜单，锁定鼠标时点击屏幕暂停位置反而改变视角；没有对应Player异常。该问题保留待排查，不能以Editor用例通过替代Player键盘验收，也未将本次启动记为完整游玩。
+
+本次构建后工作区仅保留原有无关改动及设置目录meta，没有残留临时Builder。Android S1构建、Xbox实物、完整标准局、演示录像及S1用户体验验收仍未完成。
