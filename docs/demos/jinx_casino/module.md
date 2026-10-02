@@ -51,3 +51,11 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 机台仍位于Adapters/World，命名空间保持Hotfix.JinxCasino.Adapters。JinxCasinoStation新增保存的StationId/FocusPose/FocusFieldOfView/Targets；ConfigureTable拒绝外部目标或重复目标ID。JinxCasinoTableFocus借用相机，在0.35秒过渡后开放输入，退出/失效/Dispose恢复原姿态和FOV；不改变角色、钱包或时钟。JinxCasinoTableSelection用实际Collider射线和稳定NavigationOrder选择同一组目标，遮挡不穿透、跳过禁用目标。JinxCasinoTableTarget只发设备无关命令，反馈使用属性块、不实例化材质。
 
 这些组件目前是已验证基础，尚未接入原型Controller和三款新资源，旧入口仍然是面板。不能据此声称沉浸样板完成。
+
+## 三设备输入基础（尚待宿主接入）
+
+Adapters/Input使用独立JinxCasinoImmersion.inputactions；InputRouter克隆资产，Exploration/Table/Menu切换清边沿，ReadFrame必须每帧调用以释放长按门闩，再ConsumeActions一次。鼠标/触屏是增量，手柄是角速度，LookDegrees已完成换算。MenuInputScope借用Core EventSystem，等Submit/Cancel/导航释放后开放菜单导航；桌面独立焦点，不双提交。
+
+PauseState记录后台/失焦/手柄断连并要求显式继续；它只提供状态，宿主仍须冻结领域、移动和各演出时钟。不能仅挡移动或disable SceneEffects后宣称暂停完成。Dispose先MenuScope后Router，恢复公共导航并停止本Demo震动。
+
+Hotfix.Editor新增菜单“Tools/SleepyDemos/整蛊赌场/沉浸样板/创建或检查输入配置”，仅首次创建，已存在时校验而不覆盖自定义键位。输入配置和Editor所需Unity.InputSystem引用已保存；未改全局InputSystem_Actions。

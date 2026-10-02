@@ -32,3 +32,9 @@
 2026-10-02：JinxCasinoTableInteractionTests，PlayMode作业e0348f14，5/5通过；真实Collider射线遮挡/跨台拒绝、目标禁用/导航、嵌套聚焦拒绝、移动挂点跟随、退出与失效精确恢复相机。正式Editor编译完成、Console0错误。未执行全量测试；尚未接入Controller和机台资源，不代表视觉或三输入实玩。
 
 计划切换文档已推送399e676。S0可恢复原型与规范落盘，S1基础代码开始实现。
+
+## S1三设备输入基础验证
+
+实体基础已推送8d9edee。独立输入资产通过Editor菜单保存并校验；Editor正式编译、Console0错误。JinxCasinoInputStateTests：dd1d77e2，EditMode 5/5。输入PlayMode初测2565032b为6/7；失败因测试释放帧未执行宿主要求的ReadFrame，补齐采样且保留断言。审查修复手柄Disabled后未发送震动归零，增加实际InputSystem.DisableDevice用例；重测825483dc为8/8。未执行全量测试。
+
+以上为InputAction/模拟设备与Core同类UI模块的回归，不等于Xbox硬件、Android或完整宿主输入验收。输入设置持久化迁移、Controller/菜单/桌面接入、场景演出暂停仍待完成。新场地及三机台源制作中，尚无样板包。
