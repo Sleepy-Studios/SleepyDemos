@@ -151,6 +151,22 @@
 
 ---
 
+## Demo 专属编辑器工具
+
+### 倒霉蛋俱乐部
+
+`Tools/SleepyDemos/整蛊赌场/生成P0原型与Hub入口` 保存三机台原型场景、HUD 和 Hub 入口；源码在 `Assets/Scripts/Hotfix/Editor/JinxCasino/JinxCasinoPrototypeBuilder.cs`。当前网络依赖和交付状态见 [Demo 运行手册](../demos/jinx_casino/runbooks/run.md)。重新生成会覆盖原型场景和 HUD，已编辑这些资源后不要把它当作无副作用刷新按钮。
+
+`Tools/SleepyDemos/整蛊赌场/P0离线Player构建` 在当前 Editor 生成 Windows ZIP / Android APK，只用于单人离线验证。平台事务、恢复与产物状态详见上述运行手册。
+
+| 直达菜单 | 说明 |
+|----------|------|
+| `Tools/SleepyDemos/整蛊赌场/构建Windows P0离线验证包` | 启动 Windows x64 IL2CPP 离线验证构建，生成 Player 与 ZIP |
+| `Tools/SleepyDemos/整蛊赌场/构建Android P0离线验证包` | 启动 Android 8.0+、ARM64 离线验证 APK 构建 |
+| `Tools/SleepyDemos/整蛊赌场/重打包最近Windows P0分享包` | 为已成功生成的Player重打包Playable ZIP，排除调试辅助目录，不重新编译 |
+
+直达菜单与构建窗口共用同一事务，不并行执行；这两个 P0 构建入口不要求 Fusion SDK 或 App ID，也不代表互联网联机已验收。源码位于 `Assets/Scripts/Hotfix/Editor/JinxCasino/JinxCasinoPlayerBuildWindow.cs` 与 `JinxCasinoPlayerBuildPipeline.cs`。
+
 ## 五、Agent Skill（仓库内）
 
 项目级技能的入口和自动扫描方式见 [项目 Skill 入口](../agent/skills.md)。完整清单不在本文手写维护，以脚本输出为准：

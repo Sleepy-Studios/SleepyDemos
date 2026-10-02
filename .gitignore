@@ -8,6 +8,8 @@
 [Uu]ser[Ss]ettings/
 [Mm]emoryCaptures/
 [Rr]ecords/
+# Android GameActivity native build cache / Android 原生构建缓存
+/.utmp/
 
 # Asset import cache / 资源导入缓存
 Assets/AssetStoreTools*
