@@ -48,6 +48,8 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
                 catch (Exception exception) when (IsRecoverableReadError(exception)) { }
             }
             Directory.CreateDirectory(rootDirectory);
+            PreserveLegacySnapshot(path, path);
+            PreserveLegacySnapshot(path + ".bak", path);
             string temporary = path + ".new-" + Guid.NewGuid().ToString("N");
             File.WriteAllText(temporary, JsonUtility.ToJson(envelope), new UTF8Encoding(false));
             // 先验证刚写入的数据，再替换现有槽；中途断电只会留下本次临时文件，原槽仍可读。
@@ -96,6 +98,18 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
         {
             if (slot < 1 || slot > 3) throw new ArgumentOutOfRangeException(nameof(slot), "存档槽必须为1到3。");
             return Path.Combine(rootDirectory, "save-" + slot + ".json");
+        }
+
+        private static void PreserveLegacySnapshot(string sourcePath, string slotPath)
+        {
+            if (!File.Exists(sourcePath)) return;
+            CasinoSaveEnvelope legacy;
+            try { legacy = ReadEnvelope(sourcePath); }
+            catch (Exception exception) when (IsRecoverableReadError(exception)) { return; }
+            if (JsonUtility.FromJson<CasinoAdventureState>(legacy.Payload).SchemaVersion != 1) return;
+            // 普通.bak随检查点滚动；迁移原件单独按内容保留，后续保存不会覆盖。
+            string archive = slotPath + ".v1-" + legacy.Checksum + ".bak";
+            if (!File.Exists(archive)) File.Copy(sourcePath, archive);
         }
 
         private static CasinoSaveEnvelope ReadEnvelope(string path)

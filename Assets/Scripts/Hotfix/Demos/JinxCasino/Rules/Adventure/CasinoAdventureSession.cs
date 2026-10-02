@@ -72,9 +72,11 @@ namespace Hotfix.JinxCasino.Rules
         /// <param name="game">已开放的机台；最终接管挑战仅允许协作金库。</param>
         /// <param name="stake">1..MaximumStake 的最高投入，须不超过可用钱包。</param>
         /// <param name="choice">小游戏 Create 的机台参数。</param>
-        public CasinoAdventureResult BeginGame(string requestId, CasinoGameKind game, long stake, int choice)
-            => Execute(requestId, "bet:" + (int)game + ":" + stake + ":" + choice, () =>
+        /// <param name="stationId">具体机台的稳定ID；null保留旧原型入口兼容，新桌面必须提供。</param>
+        public CasinoAdventureResult BeginGame(string requestId, CasinoGameKind game, long stake, int choice, string stationId = null)
+            => Execute(requestId, "bet:" + (int)game + ":" + stake + ":" + choice + StationFingerprint(stationId), () =>
             {
+                if (!IsValidStationId(stationId)) return Fail("InvalidStation", "机台标识非法。");
                 bool challenge = state.Phase == CasinoAdventurePhase.Finale;
                 if (round != null) return Fail("RoundActive", "已提交的局须完成后才能再次下注。");
                 if (state.Phase != CasinoAdventurePhase.Playing && !challenge) return Fail("WrongPhase", "请先完成购物并确认进入下一阶段。");
@@ -94,6 +96,7 @@ namespace Hotfix.JinxCasino.Rules
                 foreach (string prepared in state.PreparedItems) RemoveInventory(prepared);
                 state.PreparedItems.Clear();
                 state.ActiveGame = game;
+                state.ActiveStationId = stationId;
                 state.ActiveRoundIsChallenge = challenge;
                 state.LockedCoins = stake;
                 state.ActiveRoundPayoutBonusPercent = checked(state.NextPayoutBonusPercent + state.EventPayoutBonusPercent);
@@ -111,10 +114,13 @@ namespace Hotfix.JinxCasino.Rules
         /// <param name="requestId">唯一请求 ID；相同 ID 不可用于另一操作。</param>
         /// <param name="action">当前 GetAvailableActions 返回的合法动作。</param>
         /// <param name="value">对应小游戏的整数参数，默认零。</param>
-        public CasinoAdventureResult Act(string requestId, CasinoMiniGameAction action, int value = 0)
-            => Execute(requestId, "act:" + (int)action + ":" + value, () =>
+        /// <param name="stationId">绑定局的机台ID；旧原型未绑定的局使用null。</param>
+        public CasinoAdventureResult Act(string requestId, CasinoMiniGameAction action, int value = 0, string stationId = null)
+            => Execute(requestId, "act:" + (int)action + ":" + value + StationFingerprint(stationId), () =>
             {
                 if (round == null) return Fail("NoRound", "没有进行中的小游戏。");
+                if (!IsValidStationId(stationId) || !string.Equals(state.ActiveStationId ?? string.Empty, stationId ?? string.Empty, StringComparison.Ordinal))
+                    return Fail("WrongStation", "请返回已投入的机台继续本局。");
                 if (!round.TryAct(action, value)) return Fail("InvalidAction", "当前局不接受该操作或参数。");
                 string description = round.Description;
                 if (round.IsComplete) { SettleRound(); description = state.LastRoundDescription; }
@@ -236,14 +242,20 @@ namespace Hotfix.JinxCasino.Rules
         public string ToSnapshotJson() { SyncRound(); return JsonUtility.ToJson(state); }
 
         /// <summary>恢复阶段或进行中的局，绝不重新下注、消费库存或支付结算。</summary>
-        /// <param name="json">本类导出的完整 SchemaVersion=1 快照；非法结构抛出异常。</param>
+        /// <param name="json">本类导出的版本1或2快照；旧版只在内存迁移，不覆盖源文件，非法结构抛出异常。</param>
         public static CasinoAdventureSession Restore(string json)
         {
             if (string.IsNullOrWhiteSpace(json) || json.Length > 16777216) throw new ArgumentException("冒险快照为空或过大。", nameof(json));
             var restored = JsonUtility.FromJson<CasinoAdventureState>(json);
+            if (restored != null && restored.SchemaVersion == 1)
+            {
+                restored.SchemaVersion = 2;
+                restored.ActiveStationId = null;
+                restored.LastStationId = null;
+            }
             ValidateState(restored);
             var session = new CasinoAdventureSession(restored);
-            if (session.round != null && (session.round.IsComplete || restored.LockedCoins == 0 || session.round.Cost > restored.LockedCoins ||
+            if (session.round != null && (session.round.GetPresentation().Game != restored.ActiveGame || session.round.IsComplete || restored.LockedCoins == 0 || session.round.Cost > restored.LockedCoins ||
                 (restored.Phase != CasinoAdventurePhase.Playing && restored.Phase != CasinoAdventurePhase.Closing && restored.Phase != CasinoAdventurePhase.Finale))) throw new ArgumentException("活动局与锁定筹码或阶段不匹配。", nameof(json));
             return session;
         }
@@ -300,6 +312,7 @@ namespace Hotfix.JinxCasino.Rules
             state.LastRoundPayout = payout;
             state.LastRoundDescription = round.Description + "；实际投入 " + cost + "，毛返还 " + payout + "，团队筹码 " + balance;
             state.LastRoundJson = round.ToSnapshotJson();
+            state.LastStationId = state.ActiveStationId;
             lastCompletedRound = round;
             state.SettledRoundSequence = checked(state.SettledRoundSequence + 1);
             // 保险、彩金券与事件加成可能让失败局获得赔偿，不能代替正确输入金库密码。
@@ -308,6 +321,7 @@ namespace Hotfix.JinxCasino.Rules
             state.ActiveRoundPayoutBonusPercent = 0;
             state.LockedCoins = 0;
             state.ActiveRoundJson = null;
+            state.ActiveStationId = null;
             round = null;
             if (state.Phase == CasinoAdventurePhase.Closing) CloseStage();
         }
@@ -397,7 +411,10 @@ namespace Hotfix.JinxCasino.Rules
             if (value == null) throw new ArgumentException("冒险快照无状态。");
             NormalizeAbsentMission(value);
             ValidateConfig(value.Config);
-            if (value.SchemaVersion != 1 || !Guid.TryParseExact(value.RunId, "N", out _) || value.RandomState == 0 || value.Coins < 0 || value.LockedCoins < 0 || value.LockedCoins > value.Coins ||
+            if (value.SchemaVersion != 2 || !IsValidStationId(value.ActiveStationId) || !IsValidStationId(value.LastStationId) ||
+                (string.IsNullOrEmpty(value.ActiveRoundJson) && !string.IsNullOrEmpty(value.ActiveStationId)) ||
+                (string.IsNullOrEmpty(value.LastRoundJson) && !string.IsNullOrEmpty(value.LastStationId)) ||
+                !Guid.TryParseExact(value.RunId, "N", out _) || value.RandomState == 0 || value.Coins < 0 || value.LockedCoins < 0 || value.LockedCoins > value.Coins ||
                 value.PlayerCount < 1 || value.PlayerCount > 6 || value.StageIndex < 0 || value.CompletedStages < 0 || value.StageTarget < 0 || value.RemainingMilliseconds < 0 ||
                 value.ElapsedMilliseconds < 0 || value.Revision < 0 || value.SettledRoundSequence < 0 || value.EffectSequence < 0 || value.EventShieldCharges < 0 || value.NextPayoutBonusPercent < 0 || value.NextPayoutBonusPercent > 100 ||
                 value.ActiveRoundPayoutBonusPercent < 0 || value.ActiveRoundPayoutBonusPercent > 200 || value.NextDiceBias < 0 || value.NextDiceBias > 6 || value.EventPayoutBonusPercent < 0 || value.EventPayoutBonusPercent > 100 ||

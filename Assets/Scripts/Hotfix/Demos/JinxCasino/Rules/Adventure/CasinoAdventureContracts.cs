@@ -100,7 +100,7 @@ namespace Hotfix.JinxCasino.Rules
     [Serializable]
     public sealed class CasinoAdventureState
     {
-        public int SchemaVersion = 1;
+        public int SchemaVersion = 2;
         public string RunId;
         public uint Seed;
         public uint RandomState;
@@ -135,6 +135,10 @@ namespace Hotfix.JinxCasino.Rules
         public bool TakeOverUnlocked;
         public bool ActiveRoundIsChallenge;
         public CasinoGameKind ActiveGame;
+        /// 已投入局绑定的具体机台；旧版未定位的局为空，须显式认领后才能使用新桌面。
+        public string ActiveStationId;
+        /// 最近结算发生的机台，防止同类机台播放其它桌面的结果。
+        public string LastStationId;
         public long LastRoundCost;
         public long LastRoundPayout;
         public string LastRoundDescription;

@@ -44,3 +44,11 @@
 三设备输入基础已推送ac22eca。审查发现同目标重新可用时高亮不恢复、目标销毁后导航访问失效对象；已做窄范围修复。JinxCasinoTableInteractionTests扩展后94ac799d，PlayMode7/7通过。当前直接相关范围为桌面7、输入状态5、输入路由8，共20项通过，未执行全量测试。S1尚缺Controller/机台规则接入、真实模型、教学、菜单/HUD、双端包与录像；用户样板验收未触发，Goal仍active。
 
 下一闭环：整合独立S1模型与蓝图、稳定机台实例存档、宿主输入和桌面命令、暂停演出、精简HUD与教学。仅完成基础设施不计S1体验完成。
+
+## S1机台定位与存档迁移
+
+规则增加活动机台/最近结算机台定位；错误机台操作拒绝且不改变筹码、活动局或随机状态。版本1只读迁移，旧局显式同玩法认领，首次写新版保留不滚动的原件备份。新桌面宿主尚待接入这些接口。
+
+Unity Test Runner：CasinoStationIdentityTests 5eaebcd1，4/4；CasinoAdventureTests 78b0253b，24/24；CasinoLocalSaveStoreTests 8334babd，4/4。未执行全量测试。三机台和大厅首轮DCC预览已实际查看，要求继续改善大厅空间/材质及庄家牌位；还未进入Unity模型门禁和视觉验收。
+
+审查追加：Restore拒绝ActiveGame与活动局实际玩法不一致的快照；Save同时保护主档和普通.bak中的合法v1原件。扩展后CasinoStationIdentityTests作业37a3c3f4，5/5通过。与本轮冒险24项、三槽4项合计33项直接相关断言用例通过；没有执行全量测试，也不作为新桌面Player验收。
