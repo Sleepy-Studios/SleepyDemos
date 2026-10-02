@@ -51,6 +51,8 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 公共面板位于 `Hotfix/Module/GraphicsSettings`，使用既有 UIManager Widget，打开和关闭面板不改变效果。资源位于 `LoadResources/UI/GraphicsSettings`；实验室只包含场景与观察交互。Renderer 配置工具属于 Core.Editor，公共面板生成工具属于 Hotfix.Editor。
 
+沉浸页面可在Unity主线程通过`GraphicsSettingsUI.SuppressEntry()`借用控件显隐作用域，并在View隐藏/销毁时释放。作用域计数只在首个进入和最后一个退出时通知`DlssSettingsView`；该View自行隐藏拥有的OpenButton与SettingsPanel子树，保留根View状态、缓存和UI栈，释放后恢复原开闭状态。初始化晚于作用域时同样隐藏，重复Dispose无副作用。当前Widget根无Graphic、MaskNone且不轮询键盘，隐藏两子树后不占用输入区域；若以后改变此结构须同步相关回归。此机制不改变已选画质或渲染服务。
+
 ## 验证矩阵
 
 | 功能 | D3D12 | Vulkan |

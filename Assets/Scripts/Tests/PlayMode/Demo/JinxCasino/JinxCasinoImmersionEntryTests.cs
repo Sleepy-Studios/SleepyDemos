@@ -60,6 +60,9 @@ namespace Tests.Demo
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning, "保存的沉浸HUD", 30);
             owner = Object.FindFirstObjectByType<JinxCasinoController>();
             Assert.That(owner, Is.Not.Null); Assert.That(owner.UsesImmersion, Is.True);
+            yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "公共画质Widget已初始化", 5);
+            Assert.That(GraphicsSettingsUI.IsEntrySuppressed, Is.True);
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>().transform.Find("OpenButton").gameObject.activeInHierarchy, Is.False);
             saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "S1Entry-" + Guid.NewGuid().ToString("N")));
             ValidateSavePath();
             owner.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory));
@@ -118,6 +121,11 @@ namespace Tests.Demo
             Assert.That(owner.AdventureState.LastStationId, Is.EqualTo(station.StationId));
             Assert.That(owner.AdventureState.LastRoundCost, Is.EqualTo(10));
             Assert.That(owner.AdventureState.Coins, Is.EqualTo(initialCoins - 10 + owner.AdventureState.LastRoundPayout));
+            // 桌面光标可见时，暂停按钮中心必须可由真实指针点击，不能被公共入口覆盖。
+            yield return MouseClick(Field<Button>(presenter, "pause"));
+            yield return Wait(() => owner.IsImmersionPaused, "真实桌面暂停按钮", 3);
+            yield return MouseClick(resume);
+            yield return Wait(() => !owner.IsImmersionPaused, "桌面显式继续", 3);
             yield return KeyPress(Key.Escape);
             yield return Wait(() => owner.TableView == null && Mathf.Abs(camera.fieldOfView - fieldOfView) < .01f && Cursor.lockState == CursorLockMode.Locked,
                 "Esc离桌完成过渡并恢复探索输入", 3);
@@ -142,6 +150,8 @@ namespace Tests.Demo
             yield return MouseClick(Field<Button>(presenter, "leave"));
             yield return Wait(() => owner == null && IsStableHub(), "实际返回按钮卸载样板并回Hub", 45);
             Assert.That(UIManager.Instance.Get<JinxCasinoImmersionHudView>(), Is.Null); Assert.That(hud.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(GraphicsSettingsUI.IsEntrySuppressed, Is.False);
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>().transform.Find("OpenButton").gameObject.activeInHierarchy, Is.True);
             AssertSingleListener();
         }
 
