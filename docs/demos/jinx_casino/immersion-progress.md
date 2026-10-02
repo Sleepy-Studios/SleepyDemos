@@ -26,3 +26,9 @@
 ## 保留与阻塞
 
 保留无关UnitySkills配置、vTabs与Mobile_RPAsset工作区状态。旧Blender自动备份未纳入源码。未获得Android真机运行及Xbox实物验证证据；可先实现和模拟输入回归，但不能宣称实物验收。S1用户验收是明确门槛，不能用自动化代替。
+
+## S1实体交互基础验证
+
+2026-10-02：JinxCasinoTableInteractionTests，PlayMode作业e0348f14，5/5通过；真实Collider射线遮挡/跨台拒绝、目标禁用/导航、嵌套聚焦拒绝、移动挂点跟随、退出与失效精确恢复相机。正式Editor编译完成、Console0错误。未执行全量测试；尚未接入Controller和机台资源，不代表视觉或三输入实玩。
+
+计划切换文档已推送399e676。S0可恢复原型与规范落盘，S1基础代码开始实现。

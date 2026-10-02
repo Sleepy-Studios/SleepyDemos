@@ -45,3 +45,9 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 规则、随机序列、幂等和快照采用 EditMode；输入、UI、相机及场景清理采用 PlayMode。所有测试进入现有两套测试程序集。真实互联网和双端 Player 单独验收，离线测试不代表 Photon 联机成功。
 
 触控移动与视角以屏幕高度换算为720p参考像素，使相同屏幕比例的滑动在不同分辨率下产生相同输入。移动、视角各自持有独立指针，额外手指不能抢占，释放、隐藏、失焦或暂停时清空待处理输入。鼠标仍使用原始像素增量；真机手感、屏幕比例及灵敏度设置需要后续单独验收。
+
+## 沉浸交互基础（S1进行中）
+
+机台仍位于Adapters/World，命名空间保持Hotfix.JinxCasino.Adapters。JinxCasinoStation新增保存的StationId/FocusPose/FocusFieldOfView/Targets；ConfigureTable拒绝外部目标或重复目标ID。JinxCasinoTableFocus借用相机，在0.35秒过渡后开放输入，退出/失效/Dispose恢复原姿态和FOV；不改变角色、钱包或时钟。JinxCasinoTableSelection用实际Collider射线和稳定NavigationOrder选择同一组目标，遮挡不穿透、跳过禁用目标。JinxCasinoTableTarget只发设备无关命令，反馈使用属性块、不实例化材质。
+
+这些组件目前是已验证基础，尚未接入原型Controller和三款新资源，旧入口仍然是面板。不能据此声称沉浸样板完成。
