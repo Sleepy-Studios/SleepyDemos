@@ -433,3 +433,20 @@ Core.Runtime的MenuInputScope补齐Submit/Cancel实际设备通知，与Move/Poi
 正式编译2026-10-02T21:33:19Z成功、0错误。e080aac0原生XML（21:37:18Z–21:37:20Z）相机用例1/1通过；b07d421f原生XML（21:39:45Z–21:40:24Z）960×600触屏教学1/1通过，三台规则/金额区均在视口内。UnitySkills包装器继续报域重载后原生任务未恢复；逐次核对当次原生XML名称/时间、Editor退出状态后继续，没有重启仍在执行的任务。最终结果保存在Library/JinxCasino/Verification/FocusAspect-e080aac0.xml及FocusAspectTouch-b07d421f.xml。仅运行两个直接相关用例，未运行全量。
 
 已实际查看本次960×600截图S1TutorialFruitResult-20261002214009-0cd87fb6b27444ada904b5009ffe2916.png及S1TutorialReady-20261002214022-ccb26e9587ca42dc8926684b5049b639.png，水果机规则牌左侧完整、合拍台规则与操作区域可见。当前资源仍是原样板，按钮/文字在低分辨率的大小和手指容错尚未验收；图稿确认后仍需从共享机台设计解决可读性，不能将投影校验等同视觉质量达标。最终Console0错误，Editor不在Play/编译；未重建双端包、未真机实测。字体缓存、Mobile_RPAsset、UnitySkills/vTabs/.blend1等仍保持未暂存。提交名「fix(jinx): 保持窄横屏机台的水平构图」，实际SHA由Git与交付回复记录；Goal保持进行中。
+
+## 2026-10-03：最新输入基线的双平台样板
+
+运行源码基线c622d8552c1b3f0cc5c880de26476362e9fdf839，包含Hub公共菜单输入、离桌触区恢复及窄横屏聚焦修复。通过当前Editor正式菜单串行完成HybridCLR、平台DLL、YooAsset内置包及IL2CPP构建；Windows事务20261002215303-6094bc1d、Android事务20261002220516-a33ce586均在Editor.log明确报告成功及配置恢复。没有另起Unity、使用临时Builder、改源代码或新增测试。
+
+|产物|本机位置（项目根下）|字节数|SHA256|
+|---|---|---:|---|
+|Windows ZIP|Builds/JinxCasino/S1/StandaloneWindows64/20261002215303-6094bc1d/JinxCasinoS1-Offline-Windows-Playable.zip|189535476|906BE8564AF54BB112384F957AEA70427927A9E57022934DADDDCE99ACCA8FE6|
+|Android APK|Builds/JinxCasino/S1/Android/20261002220516-a33ce586/Player/JinxCasinoS1-Offline.apk|114576541|48E213A0760974FFFB01E739AA5C0D073B598E3944901B2E6B4A46E8997FF821|
+
+Windows ZIP包含111项及68项内置资源，根目录具备exe/UnityPlayer/GameAssembly/试玩说明，不分发DoNotShip目录；Data/Plugins的Burst pdb仍保留。APK包含68项内置资源和6个ARM64原生库。aapt确认com.sleepystudio.jinxcasino、0.5.0、versionCode1、minSdk26、targetSdk36、arm64-v8a及UnityPlayerGameActivity；apksigner verify成功，v2签名有效。ADB设备列表为空，未安装Android真机；实际触屏、Xbox、后台、安全区、30分钟及目标硬件性能仍待验。
+
+Windows从新ZIP独立解压到Library/JinxCasino/PlayerValidation/20261002215303-6094bc1d。隐藏日志进程143352加载8份AOT元数据及Hotfix/Luban/GlobalData，未检出异常；按自身exe路径核对后结束。computer-use的sky.launch_app仍报accessibility window-opened handler did not become ready，随后通过现存资源管理器进入解压目录并双击exe，取得实际Player窗口。真实点击进入互动教学，鼠标视角使教学从探索视角进入走近水果机步骤，W短按后画面有轻微位移；没有调用按钮监听器或修改玩家位置。自动化Esc/Esc别名与屏幕暂停按钮没有观察到暂停菜单打开，未能完成机台/暂停/完整局验收；锁定光标使坐标操作与探索视角相互影响，原生输入问题与自动化限制尚未区分，不能记为通过或据此改动生产逻辑。最后通过Alt+F4正常退出，日志包含Input System Shutdown和PlayerConnection Cleanup；日志副本保存在同目录native-ui-player.log，另保留current-player.log。工具返回的窗口截图是主菜单/教学实况，不是新美术或完整实玩录像。
+
+两次构建后Mobile_RPAsset SHA256仍为DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9，ProjectSettings SHA256仍为BA62B48D12C8EE54754881A53D56A53CD6D09B40B97272C149967AF997658DC8，与构建前原字节一致。最终UnitySkills按项目路径确认原SleepyDemos实例，Editor为Windows、无Play/编译，Console0错误。当前没有代码新改动，不重复Test Runner或运行全量；直接相关自动化范围沿用上节证据，原生构建/签名/窗口输入分开报告。字体动态补字缓存被Unity构建自动清理，未手动回退；其余无关工作保留。
+
+本闭环只提交当前产物与验证边界文档，构建包/缓存不进入源码。四稿仍待用户确认，Hub/Loading正式视觉及三机台新美术未制作；不得把现在的样板包当成体验门槛完成。下一步先定位Windows真实键盘/暂停操作，取得真机与实物手柄证据；正式视觉按用户确认稿实施。S1与Goal保持未完成。
