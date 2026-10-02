@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Hotfix.JinxCasino.Adapters.Persistence;
+using Hotfix.JinxCasino.Persistence;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

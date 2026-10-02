@@ -181,16 +181,12 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void DefaultAndLegacyMissingInitialGamesKeepOriginalFirstAreaUnlocks()
+        public void DefaultInitialGamesKeepFirstAreaUnlocksAfterRestore()
         {
             var session = CasinoAdventureSession.Start(2, CasinoAdventureMode.Standard, 1, CasinoAdventureTests.QuietConfig());
             Assert.That(session.State.Config.InitiallyAvailableGames, Is.Empty);
             string snapshot = session.ToSnapshotJson();
-            Assert.That(snapshot, Does.Contain("\"InitiallyAvailableGames\":[],"));
-            // 模拟发布过的v1快照：没有新字段，不能因此默认提前开放二区拉杆。
-            string legacy = snapshot.Replace("\"InitiallyAvailableGames\":[],", string.Empty)
-                .Replace("\"SchemaVersion\":" + session.State.SchemaVersion, "\"SchemaVersion\":1");
-            var restored = CasinoAdventureSession.Restore(legacy);
+            var restored = CasinoAdventureSession.Restore(snapshot);
             var firstArea = new[] { CasinoGameKind.Slots, CasinoGameKind.Roulette, CasinoGameKind.CoinFlip,
                 CasinoGameKind.Blackjack, CasinoGameKind.HighLow, CasinoGameKind.LuckyDraw };
             foreach (var candidate in new[] { session, restored })

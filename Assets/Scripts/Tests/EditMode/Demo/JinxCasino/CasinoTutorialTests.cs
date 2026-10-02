@@ -131,18 +131,26 @@ namespace Tests.Demo
             Assert.Fail("实际固定种子样本中应有需要主动停牌的活动BJ局。");
         }
 
+        [TestCase(0)]
         [TestCase(1)]
         [TestCase(2)]
-        public void OldSchemasMigrateToNoneWithoutChangingMoneyRandomOrActivity(int version)
+        [TestCase(3)]
+        [TestCase(5)]
+        public void RestoreRejectsUnsupportedSchemaWithoutChangingCurrentRun(int version)
         {
             var session = NewPractice(3); session.BeginGame("active", CasinoGameKind.CooperativeLevers, 10, 0, CasinoAdventureSession.TutorialLeversStation);
-            var old = session.State; old.SchemaVersion = version; old.Teaching = null;
-            var restored = CasinoAdventureSession.Restore(JsonUtility.ToJson(old));
-            Assert.That(restored.State.SchemaVersion, Is.EqualTo(3)); Assert.That(restored.State.Teaching.Status, Is.EqualTo(CasinoTutorialStatus.None));
-            Assert.That(restored.State.Coins, Is.EqualTo(old.Coins)); Assert.That(restored.State.RandomState, Is.EqualTo(old.RandomState));
-            Assert.That(restored.State.ActiveRoundJson, Is.EqualTo(old.ActiveRoundJson)); Assert.That(restored.State.LockedCoins, Is.EqualTo(old.LockedCoins));
-            if (version == 1) Assert.That(restored.State.ActiveStationId, Is.Null.Or.Empty);
-            else Assert.That(restored.State.ActiveStationId, Is.EqualTo(old.ActiveStationId));
+            string current = session.ToSnapshotJson();
+            var incompatible = session.State; incompatible.SchemaVersion = version;
+            Assert.Throws<ArgumentException>(() => CasinoAdventureSession.Restore(JsonUtility.ToJson(incompatible)));
+            Assert.That(session.ToSnapshotJson(), Is.EqualTo(current));
+        }
+
+        [Test]
+        public void RestoreRequiresExplicitSchemaVersion()
+        {
+            var session = NewPractice(3);
+            string missingVersion = session.ToSnapshotJson().Replace("\"SchemaVersion\":4,", string.Empty);
+            Assert.Throws<ArgumentException>(() => CasinoAdventureSession.Restore(missingVersion));
         }
 
         [Test]

@@ -297,3 +297,15 @@ S1协作拉杆另有明确体验缺口：保存场景只有伙伴仪表与自动
 本次交付仅为文档、设计参考和只读审查；无 C# / Scene / Prefab / 平台配置修改，无临时 Builder、无新增永久测试。检查限定差异与文档链接，逐图检查可读性和模型复杂度；不需要 Unity 编译/测试，未执行全量测试、Player 构建或真机。已有 ZIP / APK 不含新设计，不能作为本轮样板交付。
 
 下一步按本轮明确门槛等待四稿视觉确认，再制作 Hub / 两种 Loading 正式 UI，后续清理赌场与制作三样板。S0 尚未完成，S1 体验未通过，未扩展 S2。参考稿提交记录以 git log 的「asset(jinx): 保存四张简化参考稿与还原约束」为准，不将提交本身作为用户确认。
+
+## PrototypeV2 当前格式存档闭环
+
+四稿已推送d19ee84，视觉确认尚未收到；正式资源不越过该门槛。本轮独立推进已授权的存档清理：CasinoAdventureState改为CurrentSchemaVersion=4，Restore只接受明确当前版本，删除v1→v2→v3转换。缺失版本先置0再Overwrite，避免字段默认值冒充合法版本。删除PreserveLegacySnapshot及旧迁移原件归档；保留checksum、完整规则校验、三槽原子替换、不同检查点备份、损坏主文件不覆盖有效备份。
+
+冒险默认路径改为persistentDataPath/JinxCasino/PrototypeV2，成长使用其Profile子目录；不搜索、不搬移、不删除旧目录。三个存储类及folder meta移至Demo/Persistence，命名空间改为Hotfix.JinxCasino.Persistence，全部调用方同步，四份meta/GUID与提交前一致。这里均为普通C#存储类，没有修改场景/Prefab或MvCBind中的组件类型；其余Adapters、旧房间、旧面板、机台认领、偏好迁移仍待清理，不能声称全部旧链已删除。
+
+删除StationIdentity、TutorialSaveStore中的旧档迁移/原件归档用例及专用夹具；Tutorial原迁移用例改为当前格式的拒绝与状态不变断言，Content改为当前存档还原后的区域解锁，不新增测试文件或程序集。保留教学、定位、余额/随机/回执、三槽和成长真实行为回归。JsonUtility对无任务内联null的归一化仍用于当前数据，不是旧档兼容，不随迁移一起误删。
+
+Unity正式重新编译完成，最终Console 0错误。Unity Test Runner直接范围：391a6e7e教学/版本16/16；6ae6ef29三槽4/4；b3ce1cb8教学存档1/1；f755b71e定位3/3；b5794ff5默认区域解锁精确1/1；92dbc98a成长保存/RunId去重精确1/1。PlayMode实际InputSystem菜单保存/读取1163260b精确1/1，收尾二十一点原桌恢复/结算4d6fbf2c精确1/1；总28/28。进入/退出PlayMode时REST暂时不可用，恢复后查询原job，没有重复启动或重启Editor。未执行全量测试。
+
+同步module、rules-baseline、runbook和实施状态。提交名「refactor(jinx): 切换当前存档并移除旧版本迁移」，SHA以git log为准。本轮不改美术和Hub、不新增Builder，未构建Player、未真机验证；已有包不含版本4。下一步可独立清理本机偏好旧迁移和机台认领，正式UI仍等四稿确认。

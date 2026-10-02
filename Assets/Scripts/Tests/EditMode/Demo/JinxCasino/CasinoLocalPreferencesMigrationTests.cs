@@ -1,6 +1,6 @@
 using System;
 using Hotfix.JinxCasino.Adapters;
-using Hotfix.JinxCasino.Adapters.Persistence;
+using Hotfix.JinxCasino.Persistence;
 using NUnit.Framework;
 using UnityEngine;
 

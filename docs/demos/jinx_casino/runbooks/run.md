@@ -73,7 +73,7 @@ Windows P0已有实际构建与正式入口启动记录；Android、Photon与真
 
 标准样板目标达成后按提示前往验票口，再到离场口领取票券；未达标可在离场口两次交互确认撤离。若超时仍有已投入牌局，先回原桌完成；暂停不会耗尽撤离确认窗口。结局可保存在三槽中，再明确返回Hub。此流程的Editor真实输入证据记录于immersion-progress，不替代Player或真机实玩。
 
-读取旧原型存档时，格式有效不代表当前样板能继续所有内容。若提示需要尚未开放内容，取消确认返回即可，原档及当前旅程不变；不要手改机台ID、删掉已投入牌局或覆盖原档。四区/无尽等恢复需等待对应场景内容接入，旧Main仍保留原型恢复入口。
+当前旅程在Application.persistentDataPath/JinxCasino/PrototypeV2/save-1.json至save-3.json，成长在PrototypeV2/Profile/profile.json。只接受冒险版本4，旧目录不读取、旧快照不迁移；不要搬旧档进新目录或手改版本号/机台ID。当前有效数据也须匹配样板实际开放内容，拒绝恢复时保留当前旅程和文件；四区/无尽等恢复等待对应场景接入。普通.bak用于当前版本损坏恢复，不是旧档迁移。
 
 沉浸入口的设置可从主菜单或暂停菜单打开，分为键鼠/触控、手柄和声音。修改立即预览，保存才持久化；B/Esc/Menu或返回撤销未保存改动并回原菜单。恢复默认也是预览，仍须保存。手柄上下选控件、左右调滑条；真实设备的震动与Android后台恢复仍需单独验证。
 
@@ -81,4 +81,4 @@ Windows P0已有实际构建与正式入口启动记录；Android、Photon与真
 
 使用`Tools/SleepyDemos/整蛊赌场/构建Windows S1独立样板`或`构建Android S1独立样板`，产物独立保存于`Builds/JinxCasino/S1/<平台>/<构建版本>/`。平台配置StartupScene为JinxCasino，版本0.5.0；不再经过Hub菜单。游戏中返回会回到赌场主菜单，主菜单提供退出游戏。Editor默认入口保持Hub。Windows已有成品可用`重打包最近Windows S1分享包`，ZIP包含S1说明。
 
-S1仅是当前一区三机台样板，构建成功不等于体验验收。仍复用DefaultPackage采集范围，包内可能包含历史Demo资源，尚未做最终体积裁剪。Android沿用com.sleepystudio.jinxcasino，安装可能替换既有P4包；应用数据仍由存档兼容检查保护。构建采用原备份恢复事务，不修改默认配置、AppEntrance或Build Settings。实际构建及启动证据以immersion-progress为准。
+S1仅是当前一区三机台样板，构建成功不等于体验验收。仍复用DefaultPackage采集范围，包内可能包含历史Demo资源，尚未做最终体积裁剪。Android沿用com.sleepystudio.jinxcasino，安装可能替换既有P4包；新源码使用独立PrototypeV2数据目录，不承诺旧档继续可玩。构建采用原备份恢复事务，不修改默认配置、AppEntrance或Build Settings。实际构建及启动证据以immersion-progress为准，已有包不含本轮存档变更。

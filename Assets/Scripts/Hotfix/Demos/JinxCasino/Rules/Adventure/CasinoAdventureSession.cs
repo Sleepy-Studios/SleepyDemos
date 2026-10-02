@@ -242,22 +242,13 @@ namespace Hotfix.JinxCasino.Rules
         public string ToSnapshotJson() { SyncRound(); return JsonUtility.ToJson(state); }
 
         /// <summary>恢复阶段或进行中的局，绝不重新下注、消费库存或支付结算。</summary>
-        /// <param name="json">本类导出的版本1、2或3快照；旧版只在内存迁移，不覆盖源文件，非法结构抛出异常。</param>
+        /// <param name="json">本类导出的版本4快照；不迁移旧版本，缺失版本或非法结构抛出异常。</param>
         public static CasinoAdventureSession Restore(string json)
         {
             if (string.IsNullOrWhiteSpace(json) || json.Length > 16777216) throw new ArgumentException("冒险快照为空或过大。", nameof(json));
-            var restored = JsonUtility.FromJson<CasinoAdventureState>(json);
-            if (restored != null && restored.SchemaVersion == 1)
-            {
-                restored.SchemaVersion = 2;
-                restored.ActiveStationId = null;
-                restored.LastStationId = null;
-            }
-            if (restored != null && restored.SchemaVersion == 2)
-            {
-                restored.SchemaVersion = 3;
-                restored.Teaching = new CasinoTutorialState();
-            }
+            // 不允许字段初始化值把缺失的版本伪装成当前格式。
+            var restored = new CasinoAdventureState { SchemaVersion = 0 };
+            JsonUtility.FromJsonOverwrite(json, restored);
             ValidateState(restored);
             var session = new CasinoAdventureSession(restored);
             if (session.round != null && (session.round.GetPresentation().Game != restored.ActiveGame || session.round.IsComplete || restored.LockedCoins == 0 || session.round.Cost > restored.LockedCoins ||
@@ -421,7 +412,7 @@ namespace Hotfix.JinxCasino.Rules
             if (value == null) throw new ArgumentException("冒险快照无状态。");
             NormalizeAbsentMission(value);
             ValidateConfig(value.Config);
-            if (value.SchemaVersion != 3 || !IsValidStationId(value.ActiveStationId) || !IsValidStationId(value.LastStationId) ||
+            if (value.SchemaVersion != CasinoAdventureState.CurrentSchemaVersion || !IsValidStationId(value.ActiveStationId) || !IsValidStationId(value.LastStationId) ||
                 (string.IsNullOrEmpty(value.ActiveRoundJson) && !string.IsNullOrEmpty(value.ActiveStationId)) ||
                 (string.IsNullOrEmpty(value.LastRoundJson) && !string.IsNullOrEmpty(value.LastStationId)) ||
                 !Guid.TryParseExact(value.RunId, "N", out _) || value.RandomState == 0 || value.Coins < 0 || value.LockedCoins < 0 || value.LockedCoins > value.Coins ||

@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Hotfix.JinxCasino.Adapters.Persistence;
+using Hotfix.JinxCasino.Persistence;
 using Hotfix.JinxCasino.Rules;
 using NUnit.Framework;
 

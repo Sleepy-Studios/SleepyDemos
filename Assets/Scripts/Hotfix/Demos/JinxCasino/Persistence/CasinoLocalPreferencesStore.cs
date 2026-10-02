@@ -2,7 +2,7 @@ using System;
 using Core.Runtime.Inputs;
 using UnityEngine;
 
-namespace Hotfix.JinxCasino.Adapters.Persistence
+namespace Hotfix.JinxCasino.Persistence
 {
     /// 本机输入/音量偏好；版本2增加手柄参数，不属于旅程快照或正式成长档案。
     [Serializable]

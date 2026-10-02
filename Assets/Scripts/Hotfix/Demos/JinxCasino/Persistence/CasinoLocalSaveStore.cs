@@ -5,7 +5,7 @@ using System.Text;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
 
-namespace Hotfix.JinxCasino.Adapters.Persistence
+namespace Hotfix.JinxCasino.Persistence
 {
     /// 三个独立本地存档槽；领域快照和Unity持久化路径的边界，不保存网络账号或App ID。
     public sealed class CasinoLocalSaveStore
@@ -14,11 +14,11 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
         private readonly string rootDirectory;
 
         /// <summary>创建存档访问器，测试可指定独立临时目录。</summary>
-        /// <param name="directory">空值使用Application.persistentDataPath下JinxCasino目录，不读写项目资源。</param>
+        /// <param name="directory">空值使用persistentDataPath/JinxCasino/PrototypeV2，不搜索旧数据目录；测试可指定独立目录。</param>
         public CasinoLocalSaveStore(string directory = null)
         {
             rootDirectory = Path.GetFullPath(string.IsNullOrWhiteSpace(directory)
-                ? Path.Combine(Application.persistentDataPath, "JinxCasino") : directory);
+                ? Path.Combine(Application.persistentDataPath, "JinxCasino", "PrototypeV2") : directory);
         }
 
         /// <summary>将完整规则快照原子写入指定槽，并保留上一次版本作为备份。</summary>
@@ -48,8 +48,6 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
                 catch (Exception exception) when (IsRecoverableReadError(exception)) { }
             }
             Directory.CreateDirectory(rootDirectory);
-            PreserveLegacySnapshot(path, path);
-            PreserveLegacySnapshot(path + ".bak", path);
             string temporary = path + ".new-" + Guid.NewGuid().ToString("N");
             File.WriteAllText(temporary, JsonUtility.ToJson(envelope), new UTF8Encoding(false));
             // 先验证刚写入的数据，再替换现有槽；中途断电只会留下本次临时文件，原槽仍可读。
@@ -98,19 +96,6 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
         {
             if (slot < 1 || slot > 3) throw new ArgumentOutOfRangeException(nameof(slot), "存档槽必须为1到3。");
             return Path.Combine(rootDirectory, "save-" + slot + ".json");
-        }
-
-        private static void PreserveLegacySnapshot(string sourcePath, string slotPath)
-        {
-            if (!File.Exists(sourcePath)) return;
-            CasinoSaveEnvelope legacy;
-            try { legacy = ReadEnvelope(sourcePath); }
-            catch (Exception exception) when (IsRecoverableReadError(exception)) { return; }
-            int sourceVersion = JsonUtility.FromJson<CasinoAdventureState>(legacy.Payload).SchemaVersion;
-            if (sourceVersion != 1 && sourceVersion != 2) return;
-            // 普通.bak随检查点滚动；迁移原件单独按内容保留，后续保存不会覆盖。
-            string archive = slotPath + ".v" + sourceVersion + "-" + legacy.Checksum + ".bak";
-            if (!File.Exists(archive)) File.Copy(sourcePath, archive);
         }
 
         private static CasinoSaveEnvelope ReadEnvelope(string path)

@@ -5,7 +5,7 @@ using System.Text;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
 
-namespace Hotfix.JinxCasino.Adapters.Persistence
+namespace Hotfix.JinxCasino.Persistence
 {
     /// 永久档案的独立本地存储；profile.json与三个旅程存档隔离，不会用损坏文件覆盖有效备份。
     public sealed class CasinoProfileStore
@@ -16,10 +16,10 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
         public bool UsesBackup { get; private set; }
 
         /// <summary>创建永久档案存储，不在构造时读写文件。</summary>
-        /// <param name="directory">专有档案目录；null使用persistentDataPath/JinxCasino/Profile，测试可注入Library目录。</param>
+        /// <param name="directory">专有档案目录；null使用persistentDataPath/JinxCasino/PrototypeV2/Profile，不读取旧原型档案。</param>
         public CasinoProfileStore(string directory = null)
         {
-            rootDirectory = Path.GetFullPath(string.IsNullOrWhiteSpace(directory) ? Path.Combine(Application.persistentDataPath, "JinxCasino", "Profile") : directory);
+            rootDirectory = Path.GetFullPath(string.IsNullOrWhiteSpace(directory) ? Path.Combine(Application.persistentDataPath, "JinxCasino", "PrototypeV2", "Profile") : directory);
         }
 
         /// 读取完整校验档案；只有主/备均不存在才创建新档案，两份损坏时明确报错而不重置成长。

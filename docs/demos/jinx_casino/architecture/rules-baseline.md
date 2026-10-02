@@ -2,7 +2,7 @@
 
 此文记录沉浸重做前可复用的规则与持久化边界，不能作为体验完成证明。
 
-PrototypeV2已批准只保证新版本：本文下述v1/v2/v3迁移、旧局认领与迁移备份描述的是尚待清理的现有基线，不是新实现要求。新目标为SchemaVersion=4、PrototypeV2目录及当前版本三槽原子保存/损坏恢复，实际完成状态以实施记录为准。
+PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案默认使用PrototypeV2目录；不迁移v1/v2/v3，也不保存旧迁移原件。旧局认领、旧面板与偏好迁移仍待后续清理，不能将本次存档闭环扩大为全部旧链已删除。
 
 ## 入口与职责
 
@@ -10,13 +10,13 @@ PrototypeV2已批准只保证新版本：本文下述v1/v2/v3迁移、旧局认�
 - `Rules/MiniGames/CasinoMiniGameRound.cs`：17款独立规则、操作路由、随机状态和公开表现数据。
 - `Rules/Adventure/CasinoAdventureSession.cs`：阶段、钱包、库存、事件、活动局、请求去重与结算。
 - `Rules/Progression/`：永久成长和解锁目录；练习不计正式战绩。
-- `Adapters/Persistence/`：三槽冒险、永久档案的原子写入与损坏恢复，本机偏好单独保存。
+- `Persistence/`：三槽冒险、永久档案的原子写入与损坏恢复，本机偏好单独保存。
 
 表现读取公开数据，不读取隐藏牌、密码或秘密报价。动画和物理不能决定收益。所有扣款、实际成交价、奖励、消耗通过规则入口执行；已提交操作不能因关闭界面或重返机台重复执行。
 
 ## 重构约束
 
-冒险快照版本3在版本2稳定机台定位上增加教学检查点；规则已接入，场景教学入口与实际事实报告仍需宿主/UI完成。后续新增字段继续要求显式迁移、保留旧档备份，重复恢复不改变资金和随机状态。新桌面不能继续只按玩法类型定位同类固定桌和轮换桌。
+当前冒险快照版本4保存机台定位与教学检查点，只接受明确声明的当前版本。重复恢复不改变资金和随机状态；不搜索旧数据目录、不把旧版本补成新版本。新桌面按具体机台定位同类固定桌和轮换桌。
 
 规则文件不依赖输入设备、场景对象或网络SDK。输入与桌面表现适配留在Demo，公共框架不依赖赌场类型。
 
@@ -26,15 +26,17 @@ PrototypeV2已批准只保证新版本：本文下述v1/v2/v3迁移、旧局认�
 
 这些检查证明规则分支与存档断言，不证明实体桌面、真实设备输入、美术或完整Player体验。沉浸重构按受影响范围补验，禁止以测试数量替代用户试玩。
 
-## 版本2机台定位
+## 当前机台定位与保存
 
 CasinoAdventureState现在保存ActiveStationId和LastStationId。新桌面BeginGame/Act必须传稳定实例ID，同玩法的其它机台请求被拒绝；指纹包含机台ID，相同requestId不能改成另一张桌。结算把活动定位移至最近结果定位，退出桌面不调用取消或重新Begin。
 
-Restore接受版本1/2/3，版本1/2仅内存升级且不重新开奖。旧未定位活动局由BindActiveStation在玩家实际进入同玩法机台时显式认领，绑定后不能转移；新宿主还须校验真实距离及场景实例。原参数省略ID只兼容未绑定的原型局，不可用于已绑定新局。
+Restore只接受版本4，缺失版本同样拒绝；当前数据在Application.persistentDataPath/JinxCasino/PrototypeV2/save-N.json。旧未定位局的BindActiveStation/桌面认领分支仍存在于尚待重构的调用链，当前格式不因此接受旧快照；后续随具体Game对象接入删除。
 
-三槽Save在覆盖合法v1/v2前，按原载荷版本及校验值保留save-N.json.v1-<checksum>.bak或.v2-<checksum>.bak；普通.bak继续滚动。primary已为新版而.bak仍为旧版时也保留旧原件。读取不写盘，后续检查点不覆盖迁移原件。存档封装Version仍是1，内层规则SchemaVersion为3，两者含义不同。
+三槽Save保留上一个不同的当前版本快照到普通.bak；重复保存不滚动备份，损坏主文件不能覆盖有效备份。读取不写盘，不创建.v1/.v2迁移原件。存档封装Version仍是1，内层冒险SchemaVersion为4；小游戏局和成长档案有自己的版本，不能统一替换所有SchemaVersion。
 
-## 版本3互动教学检查点
+永久档案使用PrototypeV2/Profile/profile.json，保持独立原子保存、完整校验、RunId登记去重和损坏恢复。原JinxCasino目录不读取也不删除，开发测试仍可注入Library下的独立目录。
+
+## 当前互动教学检查点
 
 `CasinoAdventureTutorial`与`CasinoTutorialContracts`位于现有Rules/Adventure，Teaching嵌入冒险快照。StartTutorial仅允许新建的单人Practice且未推进时钟、下注、购物或库存操作；宿主必须在创建练习的同次调用立即启动教学。教学不改Practice模式、不补发筹码，也不计正式成长。
 

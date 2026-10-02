@@ -1,5 +1,5 @@
 using System;
-using Hotfix.JinxCasino.Adapters.Persistence;
+using Hotfix.JinxCasino.Persistence;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
 

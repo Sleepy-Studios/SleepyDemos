@@ -9,7 +9,7 @@ using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.JinxCasino.Adapters;
-using Hotfix.JinxCasino.Adapters.Persistence;
+using Hotfix.JinxCasino.Persistence;
 using Hotfix.JinxCasino.Adapters.UI;
 using Hotfix.JinxCasino.Rules;
 using Hotfix.SceneManagement;

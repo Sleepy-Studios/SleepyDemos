@@ -1,7 +1,7 @@
 using Core.Runtime.Inputs;
 using System;
 using System.Collections.Generic;
-using Hotfix.JinxCasino.Adapters.Persistence;
+using Hotfix.JinxCasino.Persistence;
 using Hotfix.JinxCasino.Rules;
 using TMPro;
 using UnityEngine;

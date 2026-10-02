@@ -32,9 +32,9 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 `JinxCasinoSceneEffects`只呈现已经提交的效果。角色视觉使用独立保存挂点，恢复精确原位置、姿态及材质；同目标保护先校验，失败不消耗道具。传送检查安全点和角色占位，移动赌桌使用完整包围盒及CharacterController skinWidth保留间距；任务Director发奖依赖真实唯一目标，不依赖视觉动画。
 
-`CasinoLocalSaveStore`默认使用`Application.persistentDataPath/JinxCasino`的三个独立槽。完整规则快照先校验再原子替换，保留上一不同快照；损坏主文件不能滚入有效备份，相同快照不滚动备份。主动选槽后阶段边界和退出保存，未选槽不会隐式覆盖用户其他旅程。
+`Persistence/CasinoLocalSaveStore`默认使用`Application.persistentDataPath/JinxCasino/PrototypeV2`的三个独立槽。冒险快照仅接受版本4，缺失版本或旧版本均拒绝，不搜索旧目录和迁移数据。完整规则快照先校验再原子替换，保留上一不同快照；损坏主文件不能滚入有效备份，相同快照不滚动备份。主动选槽后阶段边界和退出保存，未选槽不会隐式覆盖其他槽。
 
-永久成长由`CasinoProfile`统计已提交的正式局流水，按RunId去重；练习不给永久战绩。`CasinoProfileStore`使用独立Profile目录的原子JSON/校验和备份。`JinxCasinoProfileHost`先保存候选再提交缓存，失败不吞掉待登记RunId，有限频率重试；每帧不访问磁盘。配色、帽子和表情必须已经解锁，修改损坏档案不能被静默重置覆盖。
+永久成长由`CasinoProfile`统计已提交的正式局流水，按RunId去重；练习不给永久战绩。`Persistence/CasinoProfileStore`使用PrototypeV2/Profile目录的原子JSON/校验和备份。`JinxCasinoProfileHost`先保存候选再提交缓存，失败不吞掉待登记RunId，有限频率重试；每帧不访问磁盘。配色、帽子和表情必须已经解锁，修改损坏档案不能被静默重置覆盖。
 
 本机偏好由`CasinoLocalPreferencesStore`使用独立PlayerPrefs键保存，不进入旅程/网络状态。设置预览只影响本机场景，关闭、事件打断或View释放都会撤销未确认修改；明确保存后先写盘，再提交偏好。PC和触控增量先分别乘各自倍率，再沿用原基础灵敏度。左右手仅镜像保存的触控区域并清理持有指针，不修改Core安全区。
 

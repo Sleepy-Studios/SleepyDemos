@@ -29,7 +29,7 @@ namespace Hotfix.JinxCasino.Rules
         public string[] ShopItemIds = Array.Empty<string>();
         /// 为空时全机台开放；非空仅允许本场景实际装配的机台，练习和结局挑战同样遵守。
         public CasinoGameKind[] AllowedGames = Array.Empty<CasinoGameKind>();
-        /// 场景明确配置的起始可用玩法，仍受AllowedGames限制；旧档缺失时视为空。
+        /// 场景明确配置的起始可用玩法，仍受AllowedGames限制；为空时按区域开放。
         public CasinoGameKind[] InitiallyAvailableGames = Array.Empty<CasinoGameKind>();
         /// 为空使用目录默认权重，设为 0 可禁用某事件。
         public CasinoEventWeight[] EventWeights = Array.Empty<CasinoEventWeight>();
@@ -96,7 +96,7 @@ namespace Hotfix.JinxCasino.Rules
     {
         public string RequestId;
         public string Fingerprint;
-        /// 成功提交后的父状态版本；旧版本记录为0，仅用于新教学事实基线。
+        /// 成功提交后的父状态版本，用于教学事实基线。
         public int Revision;
         public CasinoAdventureResult Result;
     }
@@ -104,7 +104,8 @@ namespace Hotfix.JinxCasino.Rules
     [Serializable]
     public sealed class CasinoAdventureState
     {
-        public int SchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
+        public int SchemaVersion = CurrentSchemaVersion;
         public CasinoTutorialState Teaching = new CasinoTutorialState();
         public string RunId;
         public uint Seed;
@@ -140,7 +141,7 @@ namespace Hotfix.JinxCasino.Rules
         public bool TakeOverUnlocked;
         public bool ActiveRoundIsChallenge;
         public CasinoGameKind ActiveGame;
-        /// 已投入局绑定的具体机台；旧版未定位的局为空，须显式认领后才能使用新桌面。
+        /// 已投入局绑定的具体机台，防止离桌重返时串到同类机台。
         public string ActiveStationId;
         /// 最近结算发生的机台，防止同类机台播放其它桌面的结果。
         public string LastStationId;
