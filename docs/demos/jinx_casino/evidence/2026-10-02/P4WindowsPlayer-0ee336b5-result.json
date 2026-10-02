@@ -1,0 +1,9 @@
+{
+  "PID": 109512,
+  "AotMetadataOK": 8,
+  "HotfixLoaded": true,
+  "HubOpened": true,
+  "ExceptionFound": false,
+  "ValidatedCasinoPlayerFlow": false,
+  "Note": "分享ZIP重新解压启动到Hub；完整赌场流程由Editor PlayMode验证，未自动操控Standalone UI。"
+}

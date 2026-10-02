@@ -1,0 +1,19 @@
+{
+  "status": "success",
+  "result": {
+    "success": true,
+    "jobId": "dc3abeb0",
+    "status": "completed",
+    "totalTests": 3,
+    "passedTests": 3,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "inconclusiveTests": 0,
+    "otherTests": 0,
+    "failedTestNames": [],
+    "failedTestDetails": [],
+    "elapsedSeconds": 8,
+    "resultSummary": "Test run completed: 3/3 passed.",
+    "error": null
+  }
+}

@@ -44,6 +44,7 @@
   - [Core UI 运行时](./modules/ui-runtime.md)
   - [Loop Scroll 宿主桥接](./modules/loop-scroll.md)
   - [运行期场景导航](./modules/scene-runtime.md)
+  - [通用网络会话边界](./modules/network-session.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
@@ -77,6 +78,7 @@
 | 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
 | DLSS 实验室 | [dlss](demos/dlss/README.md) |
 | Loop Scroll 示例 | [loop_scroll](demos/loop_scroll/README.md) |
+| 倒霉蛋俱乐部 | [jinx_casino](demos/jinx_casino/README.md) |
 
 每个入口包含模块维护、设计及操作手册导航；公共框架文档继续在上面的三层目录维护。
 

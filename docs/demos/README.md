@@ -8,6 +8,7 @@
 | 无人机飞行仿真 | [入口与维护](drone_flight/README.md) | `DroneFlight` / `drone_flight` |
 | DLSS 体验 | [入口与维护](dlss/README.md) | `Dlss` / `dlss` |
 | Loop Scroll 示例 | [入口与维护](loop_scroll/README.md) | `LoopScroll` / `loop_scroll` |
+| 倒霉蛋俱乐部 | [入口与维护](jinx_casino/README.md) | `JinxCasino` / `jinx_casino` |
 
 一个 Demo 目录按需要包含：`README.md`（导航与名称）、`module.md`（职责和生命周期）、`architecture/`（专属设计）、`runbooks/`（运行、编辑、调试或迁移）。小型 Demo 不必创建空目录或空文档。
 

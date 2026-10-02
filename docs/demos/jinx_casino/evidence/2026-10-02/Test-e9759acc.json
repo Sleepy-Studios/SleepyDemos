@@ -1,0 +1,19 @@
+{
+  "status": "success",
+  "result": {
+    "success": true,
+    "jobId": "e9759acc",
+    "status": "completed",
+    "totalTests": 1,
+    "passedTests": 1,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "inconclusiveTests": 0,
+    "otherTests": 0,
+    "failedTestNames": [],
+    "failedTestDetails": [],
+    "elapsedSeconds": 21,
+    "resultSummary": "Test run completed: 1/1 passed.",
+    "error": null
+  }
+}

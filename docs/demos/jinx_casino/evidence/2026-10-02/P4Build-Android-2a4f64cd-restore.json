@@ -1,0 +1,22 @@
+[
+  {
+    "Path": "ProjectSettings/ProjectSettings.asset",
+    "Hash": "BA62B48D12C8EE54754881A53D56A53CD6D09B40B97272C149967AF997658DC8",
+    "Same": true
+  },
+  {
+    "Path": "Assets/Settings/Mobile_RPAsset.asset",
+    "Hash": "DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9",
+    "Same": true
+  },
+  {
+    "Path": "Assets/Settings/UniversalRenderPipelineGlobalSettings.asset",
+    "Hash": "95A96F846F2BDA4D0CF2DDC4C8A217B4FCB53D69CAC0C02A6221765A3EA9D30B",
+    "Same": true
+  },
+  {
+    "Path": "Assets/Plugins/Streamline/x86_64/GfxPluginSleepyStreamline.dll.meta",
+    "Hash": "B9DC0156546DC3B5F847A5FB25F8447CC2773431CBEA08B9C47717F33BFE4223",
+    "Same": true
+  }
+]

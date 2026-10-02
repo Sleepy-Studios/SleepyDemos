@@ -1,0 +1,49 @@
+{
+  "APK": "D:\\Unity\\Unity_Project\\SleepyDemos\\Builds\\JinxCasino\\P4\\Android\\20261002032344-2a4f64cd\\Player\\JinxCasinoP4-Offline.apk",
+  "Length": 117505183,
+  "SHA256": "30A14FD77316D6973A01B8C2FB29870158A4976B84ABD98C0CAF9FB218778C82",
+  "NativeLibraries": [
+    "lib/arm64-v8a/lib_burst_generated.so",
+    "lib/arm64-v8a/libc++_shared.so",
+    "lib/arm64-v8a/libgame.so",
+    "lib/arm64-v8a/libil2cpp.so",
+    "lib/arm64-v8a/libmain.so",
+    "lib/arm64-v8a/libunity.so"
+  ],
+  "NonArm64Native": 0,
+  "WindowsDlls": 0,
+  "BuiltinYooFiles": 69,
+  "ContainsJinxA": 69,
+  "ELF": [
+    {
+      "Name": "lib/arm64-v8a/lib_burst_generated.so",
+      "Class": 2,
+      "Machine": 183
+    },
+    {
+      "Name": "lib/arm64-v8a/libc++_shared.so",
+      "Class": 2,
+      "Machine": 183
+    },
+    {
+      "Name": "lib/arm64-v8a/libgame.so",
+      "Class": 2,
+      "Machine": 183
+    },
+    {
+      "Name": "lib/arm64-v8a/libil2cpp.so",
+      "Class": 2,
+      "Machine": 183
+    },
+    {
+      "Name": "lib/arm64-v8a/libmain.so",
+      "Class": 2,
+      "Machine": 183
+    },
+    {
+      "Name": "lib/arm64-v8a/libunity.so",
+      "Class": 2,
+      "Machine": 183
+    }
+  ]
+}
