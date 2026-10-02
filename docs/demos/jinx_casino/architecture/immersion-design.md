@@ -41,3 +41,10 @@ Xbox：A确认、B返回、X次要、Y规则、LB/RB切面额/组、Menu暂停�
 ## 保存资源维护
 
 布局、机台挂点、操作目标、规则夹板、菜单导航与材质以已保存的Immersion场景、HUD Prefab和模型资源为维护对象，保护GUID及人工调整。临时生成/装配Builder不作为当前维护入口；变更后以真实聚焦截图与直接相关资源/输入测试核对本合同。正式Player构建入口见[运行与维护](../runbooks/run.md)。
+
+
+## 当前大厅材质分工
+
+Hall的建筑网格与机台原来共享纸色/梅红/薄荷色。为压低背景亮度而保留牌面与操作辨识，Immersion场景仅对`S1Hall.Mesh`和`Hall.Ceiling.Mesh`保存材质槽覆盖：`HallFloor`为暖灰地砖（#8C8173、低反光），`HallCeiling`为灰蓝顶棚（#526674），`HallPlum`为背景梅红（#6E3F53），`HallTeal`为背景青绿（#326B65）。四者在Art/Immersion/Materials独立维护。
+
+机台和铭牌仍用原CreamYellow/PaperLight/PlumRed/Mint；大厅铜金框、入口拱与中央奖轮保持原材质。此为Unity场景级配色覆盖，不改FBX几何、语义节点、目标挂点或碰撞，也不改变原DCC导出材质映射；后续模型更新须保留这些覆盖。实际照明和手机性能仍以运行截图/设备数据验收，不能仅据色值宣称正式美术完成。

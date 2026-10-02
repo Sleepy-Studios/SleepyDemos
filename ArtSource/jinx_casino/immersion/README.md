@@ -1,6 +1,6 @@
 # S1 好运维修站独立源候选
 
-本目录仅新增单机沉浸样板，不覆盖旧P4源/65FBX。模型是独立搪瓷果匣、真实牌桌、双人压力表与紧凑大厅；图形/模型重新制作，未使用参考游戏素材。当前四个模型已导入Unity，Importer与22目标坐标门禁5/5通过（b2ddc5da）；仍未完成场景装配、真实射线游玩和正式美术验收。
+本目录仅新增单机沉浸样板，不覆盖旧P4源/65FBX。模型是独立搪瓷果匣、真实牌桌、双人压力表与紧凑大厅；图形/模型重新制作，未使用参考游戏素材。当前四个模型已导入Unity，Importer与22目标坐标门禁5/5通过（b2ddc5da）；已接入Immersion场景与真实射线交互，S1正式美术和双端实玩仍待验收；当前状态以docs/demos/jinx_casino/immersion-progress.md为准。
 
 在独立进程执行，禁止打开/改变用户交互Blender：
 
@@ -26,3 +26,5 @@ Actor、Controller、输入相机聚焦和新JinxCasinoTableTarget由主Agent接
 预览是构图示例，A/6与庄家7/暗牌是DCC摆拍，不是规则开奖证据。入口相机采用真实出生(0,1.6,-4.6)，没有挪出生点掩盖遮挡。VendorLayer是额外可步行位置，只用于看侧面层次，不替代入口验收。
 
 审计分离：SourceAudit检查源姿态、22坐标、牌池、面数/FBXSHA；设计ProjectionAudit只核算720p可见范围和触控包围盒。Unity实际ModelImporter、材质、目标射线、薄HUD遮挡、运行发牌/转轮/时机、恢复/生命周期、720p和Android性能由主Agent后续验证。
+
+Unity大厅配色在Immersion场景的S1Hall.Mesh/Hall.Ceiling.Mesh保存独立HallFloor/HallCeiling/HallPlum/HallTeal材质覆盖，避免暗化同用纸色的机台牌面。原FBX/source保留几何和统一palette，重新导出时保留场景覆盖，不重跑场景装配。
