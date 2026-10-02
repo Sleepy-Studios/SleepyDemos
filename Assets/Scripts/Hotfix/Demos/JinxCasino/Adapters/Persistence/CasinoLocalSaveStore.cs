@@ -106,9 +106,10 @@ namespace Hotfix.JinxCasino.Adapters.Persistence
             CasinoSaveEnvelope legacy;
             try { legacy = ReadEnvelope(sourcePath); }
             catch (Exception exception) when (IsRecoverableReadError(exception)) { return; }
-            if (JsonUtility.FromJson<CasinoAdventureState>(legacy.Payload).SchemaVersion != 1) return;
+            int sourceVersion = JsonUtility.FromJson<CasinoAdventureState>(legacy.Payload).SchemaVersion;
+            if (sourceVersion != 1 && sourceVersion != 2) return;
             // 普通.bak随检查点滚动；迁移原件单独按内容保留，后续保存不会覆盖。
-            string archive = slotPath + ".v1-" + legacy.Checksum + ".bak";
+            string archive = slotPath + ".v" + sourceVersion + "-" + legacy.Checksum + ".bak";
             if (!File.Exists(archive)) File.Copy(sourcePath, archive);
         }
 

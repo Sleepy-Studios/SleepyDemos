@@ -50,7 +50,7 @@ namespace Tests.Demo
             session.BeginGame("old", CasinoGameKind.CooperativeLevers, 50, 0);
             var legacy = session.State; legacy.SchemaVersion = 1;
             session = CasinoAdventureSession.Restore(JsonUtility.ToJson(legacy));
-            Assert.That(session.State.SchemaVersion, Is.EqualTo(2));
+            Assert.That(session.State.SchemaVersion, Is.EqualTo(3));
             Assert.That(session.BindActiveStation("bad", "slots-a", CasinoGameKind.Slots).Success, Is.False);
             Assert.That(session.BindActiveStation("claim", "levers-a", CasinoGameKind.CooperativeLevers).Success, Is.True);
             Assert.That(session.BindActiveStation("claim", "levers-a", CasinoGameKind.CooperativeLevers).Changed, Is.False);

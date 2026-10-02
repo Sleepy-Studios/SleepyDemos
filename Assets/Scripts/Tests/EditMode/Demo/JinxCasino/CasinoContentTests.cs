@@ -189,7 +189,7 @@ namespace Tests.Demo
             Assert.That(snapshot, Does.Contain("\"InitiallyAvailableGames\":[],"));
             // 模拟发布过的v1快照：没有新字段，不能因此默认提前开放二区拉杆。
             string legacy = snapshot.Replace("\"InitiallyAvailableGames\":[],", string.Empty)
-                .Replace("\"SchemaVersion\":2", "\"SchemaVersion\":1");
+                .Replace("\"SchemaVersion\":" + session.State.SchemaVersion, "\"SchemaVersion\":1");
             var restored = CasinoAdventureSession.Restore(legacy);
             var firstArea = new[] { CasinoGameKind.Slots, CasinoGameKind.Roulette, CasinoGameKind.CoinFlip,
                 CasinoGameKind.Blackjack, CasinoGameKind.HighLow, CasinoGameKind.LuckyDraw };

@@ -96,13 +96,16 @@ namespace Hotfix.JinxCasino.Rules
     {
         public string RequestId;
         public string Fingerprint;
+        /// 成功提交后的父状态版本；旧版本记录为0，仅用于新教学事实基线。
+        public int Revision;
         public CasinoAdventureResult Result;
     }
 
     [Serializable]
     public sealed class CasinoAdventureState
     {
-        public int SchemaVersion = 2;
+        public int SchemaVersion = 3;
+        public CasinoTutorialState Teaching = new CasinoTutorialState();
         public string RunId;
         public uint Seed;
         public uint RandomState;

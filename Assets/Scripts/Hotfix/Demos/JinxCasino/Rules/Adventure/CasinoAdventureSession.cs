@@ -242,7 +242,7 @@ namespace Hotfix.JinxCasino.Rules
         public string ToSnapshotJson() { SyncRound(); return JsonUtility.ToJson(state); }
 
         /// <summary>恢复阶段或进行中的局，绝不重新下注、消费库存或支付结算。</summary>
-        /// <param name="json">本类导出的版本1或2快照；旧版只在内存迁移，不覆盖源文件，非法结构抛出异常。</param>
+        /// <param name="json">本类导出的版本1、2或3快照；旧版只在内存迁移，不覆盖源文件，非法结构抛出异常。</param>
         public static CasinoAdventureSession Restore(string json)
         {
             if (string.IsNullOrWhiteSpace(json) || json.Length > 16777216) throw new ArgumentException("冒险快照为空或过大。", nameof(json));
@@ -253,10 +253,16 @@ namespace Hotfix.JinxCasino.Rules
                 restored.ActiveStationId = null;
                 restored.LastStationId = null;
             }
+            if (restored != null && restored.SchemaVersion == 2)
+            {
+                restored.SchemaVersion = 3;
+                restored.Teaching = new CasinoTutorialState();
+            }
             ValidateState(restored);
             var session = new CasinoAdventureSession(restored);
             if (session.round != null && (session.round.GetPresentation().Game != restored.ActiveGame || session.round.IsComplete || restored.LockedCoins == 0 || session.round.Cost > restored.LockedCoins ||
                 (restored.Phase != CasinoAdventurePhase.Playing && restored.Phase != CasinoAdventurePhase.Closing && restored.Phase != CasinoAdventurePhase.Finale))) throw new ArgumentException("活动局与锁定筹码或阶段不匹配。", nameof(json));
+            session.RestoreTutorialCheckpoint();
             return session;
         }
 
@@ -357,7 +363,7 @@ namespace Hotfix.JinxCasino.Rules
                 result = Fail(exception is OverflowException ? "BalanceOverflow" : "Rejected", exception.Message);
             }
             result.Balance = state.Coins;
-            state.ProcessedRequests.Add(new CasinoAdventureRequestRecord { RequestId = requestId, Fingerprint = fingerprint, Result = Clone(result) });
+            state.ProcessedRequests.Add(new CasinoAdventureRequestRecord { RequestId = requestId, Fingerprint = fingerprint, Revision = state.Revision, Result = Clone(result) });
             return Clone(result);
         }
 
@@ -415,7 +421,7 @@ namespace Hotfix.JinxCasino.Rules
             if (value == null) throw new ArgumentException("冒险快照无状态。");
             NormalizeAbsentMission(value);
             ValidateConfig(value.Config);
-            if (value.SchemaVersion != 2 || !IsValidStationId(value.ActiveStationId) || !IsValidStationId(value.LastStationId) ||
+            if (value.SchemaVersion != 3 || !IsValidStationId(value.ActiveStationId) || !IsValidStationId(value.LastStationId) ||
                 (string.IsNullOrEmpty(value.ActiveRoundJson) && !string.IsNullOrEmpty(value.ActiveStationId)) ||
                 (string.IsNullOrEmpty(value.LastRoundJson) && !string.IsNullOrEmpty(value.LastStationId)) ||
                 !Guid.TryParseExact(value.RunId, "N", out _) || value.RandomState == 0 || value.Coins < 0 || value.LockedCoins < 0 || value.LockedCoins > value.Coins ||
@@ -436,13 +442,14 @@ namespace Hotfix.JinxCasino.Rules
             var preparedIds = new HashSet<string>();
             foreach (string id in value.PreparedItems) if (CasinoContentCatalog.FindItem(id)?.Behavior != CasinoItemBehavior.Rule || !preparedIds.Add(id) || value.Inventory.Find(item => item.ItemId == id) == null) throw new ArgumentException("预备道具快照非法。");
             var requestIds = new HashSet<string>();
-            foreach (var entry in value.ProcessedRequests) if (entry == null || string.IsNullOrWhiteSpace(entry.RequestId) || entry.Result == null || entry.Fingerprint == null || !requestIds.Add(entry.RequestId)) throw new ArgumentException("请求回执快照非法。");
+            foreach (var entry in value.ProcessedRequests) if (entry == null || string.IsNullOrWhiteSpace(entry.RequestId) || entry.Result == null || entry.Fingerprint == null || entry.Revision < 0 || entry.Revision > value.Revision || !requestIds.Add(entry.RequestId)) throw new ArgumentException("请求回执快照非法。");
             var effectIds = new HashSet<string>();
             foreach (var effect in value.Effects) if (effect == null || string.IsNullOrWhiteSpace(effect.Id) || string.IsNullOrWhiteSpace(effect.EffectKind) || effect.TargetId == null || effect.DurationMilliseconds < 0 || effect.ProtectionMilliseconds < 0 || !effectIds.Add(effect.Id)) throw new ArgumentException("场景效果快照非法。");
             foreach (var protection in value.TargetProtection) if (protection == null || string.IsNullOrWhiteSpace(protection.TargetId) || protection.UntilMilliseconds < 0) throw new ArgumentException("目标保护快照非法。");
             var mission = value.ActiveMission;
             if (mission != null && (CasinoContentCatalog.FindEvent(mission.EventId) == null || mission.Id == null || mission.Visited == null || mission.Actors == null || mission.TargetCount < 1 || mission.Progress < 0 || mission.Progress > mission.TargetCount ||
                 mission.DeadlineMilliseconds < 0 || mission.RewardCoins < 0 || mission.Completed && mission.Progress != mission.TargetCount)) throw new ArgumentException("任务快照非法。");
+            ValidateTutorial(value);
         }
     }
 }
