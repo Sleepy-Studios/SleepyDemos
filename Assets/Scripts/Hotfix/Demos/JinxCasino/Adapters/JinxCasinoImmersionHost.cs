@@ -118,6 +118,7 @@ namespace Hotfix.JinxCasino.Adapters
             if (HasShopBinding && (!tableFocus.IsActive || focusedShop == null || !focusedShop.isActiveAndEnabled)) CloseImmersionTable();
             if (IsImmersionPaused) return;
             UpdateAdventure(presentationDelta);
+            UpdateExitIntent();
             UpdateTutorialSceneFacts();
             if (IsAdventureInputBlocked) return;
             if (tableFocus.IsActive)
@@ -128,7 +129,7 @@ namespace Hotfix.JinxCasino.Adapters
                 UpdateTableInput(frame, actions);
                 return;
             }
-            if ((actions & JinxCasinoInputActions.Interact) != 0) { InteractWithNearbyStation(); if (tableFocus.IsActive) return; }
+            if ((actions & JinxCasinoInputActions.Interact) != 0) { InteractWithNearbyStation(); if (tableFocus.IsActive || IsAdventureInputBlocked) return; }
             float beforeTutorialYaw = yaw, beforeTutorialPitch = pitch;
             Vector3 beforeTutorialPosition = body.transform.position;
             if (presentationDelta > 0)
@@ -246,6 +247,7 @@ namespace Hotfix.JinxCasino.Adapters
         private void ResetImmersionTableForRestore()
         {
             ResetTutorialObservations();
+            ResetExitInteraction();
             CloseImmersionTable();
             tableFocus?.RestoreImmediately();
             movePad?.ResetInput(); lookPad?.ResetInput();

@@ -16,7 +16,7 @@
 
 `JinxCasinoPresentationClock`是本Demo的暂停时钟，不修改全局timeScale。场景效果、移动桌、按钮按压读取同一时钟；恢复首帧不补算后台时间。专属机台表现收到同一暂停状态并丢弃恢复首帧的墙钟增量。运行UI和实际设备仍需单独验收。
 
-桌面允许专门设计的世界空间UI和铭牌，不能把旧通用操作弹窗贴到机台上。保存样板当前只有三台、薄HUD和基础菜单；教学、购物、完整设置/存档菜单、音画打磨和双端实玩仍待完成，当前不是S1最终交付。
+桌面允许专门设计的世界空间UI和铭牌，不能把旧通用操作弹窗贴到机台上。保存样板当前包含三台、互动教学、实体购物、三槽存档与单区标准离场闭环；完整设置、音画打磨和双端实玩仍待完成，当前不是S1最终交付。
 
 ## 保留的原型主链路
 
@@ -62,9 +62,9 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 机台仍位于Adapters/World，命名空间保持Hotfix.JinxCasino.Adapters。JinxCasinoStation新增保存的StationId/FocusPose/FocusFieldOfView/Targets；ConfigureTable拒绝外部目标或重复目标ID。JinxCasinoTableFocus借用相机，在0.35秒过渡后开放输入，退出/失效/Dispose恢复原姿态和FOV；不改变角色、钱包或时钟。JinxCasinoTableSelection用实际Collider射线和稳定NavigationOrder选择同一组目标，遮挡不穿透、跳过禁用目标。JinxCasinoTableTarget只发设备无关命令，反馈使用属性块、不实例化材质。
 
-这些组件目前是已验证基础，尚未接入原型Controller和三款新资源，旧入口仍然是面板。不能据此声称沉浸样板完成。
+这些组件已接入Immersion场景的Controller、三款实体机台与柜台；旧Main保留原型面板用于历史恢复。入口类使用实际指针与保存物件验证，但样板整体仍待正式体验验收。
 
-## 三设备输入基础（尚待宿主接入）
+## 三设备输入基础（已接入宿主，硬件待验）
 
 Adapters/Input使用独立JinxCasinoImmersion.inputactions；InputRouter克隆资产，Exploration/Table/Menu切换清边沿，ReadFrame必须每帧调用以释放长按门闩，再ConsumeActions一次。鼠标/触屏是增量，手柄是角速度，LookDegrees已完成换算。MenuInputScope借用Core EventSystem，等Submit/Cancel/导航释放后开放菜单导航；桌面独立焦点，不双提交。
 
@@ -112,3 +112,10 @@ SetImmersionMenuState可选取消回调仅在菜单打开时保存。Core Cancel
 JinxCasinoImmersionHudSave复用GetSaveSlotInfo、SaveAdventure和LoadAdventure；不另建文件格式或存储目录。主菜单读取、暂停保存/读取共用三槽列表；空槽禁用读取，覆盖已有槽及替换当前局先进入确认卡。取消只退当前层级并保留暂停，读取成功后显式继续，后台/手柄断连仍由PauseState阻止恢复。
 
 槽摘要仅在打开和操作后重读，包含模式、区域、筹码、时间及备份恢复提示。确认前重新读取可用性，并核对打开列表时的RunId，避免界面旧选择写入另一个新局。保存后继续使用选定槽的原自动保存契约。Core Cancel和手柄Menu统一经过CancelSaveWindow，未打开存档时交回教学/暂停逻辑；自身按帧去重，菜单销毁清理监听。
+
+
+## S1现场验票、撤离与结果卡
+
+JinxCasinoExitHost绑定s1.verify和s1.leave两件保存物件。交互同时检查接近距离、相机视口和无遮挡射线，背对出口不显示可交互提示。标准局达标后在验票口调用原CompleteStage，筹码仅作为达标条件，不扣除额度；Finale在离场口调用原LeaveWithDignity。提前撤离须在同一物件五秒内再次交互，暂停冻结意图时钟，离开、读档或换局清除意图。
+
+活动牌局与Closing保留原机台操作，出口拒绝结束未结算局。结局卡仅在真正Ended且无活动局、相机聚焦已退出时出现，显示原快照和成长写入结果；不自行记战绩或再次选择结局。三槽界面优先于结局卡；取消保存回到结果，只有明确返回按钮请求Hub导航。该出口暂服务StageCount为1的S1标准样板，多区推进随S3设施一起扩展。

@@ -81,6 +81,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private int ResolveSaveHudState(int normalState) => HasSaveUi && saveBrowserOpen ? savePendingSlot > 0 ? 7 : 6 : normalState;
         private GameObject SaveFirstSelection(int state)
         {
+            if (state == 8) return standardEndingReturnButton.gameObject;
             if (state == 7) return saveCancelButton.gameObject;
             if (state != 6) return TutorialFirstSelection(state);
             for (int slot = 1; slot <= 3; slot++) if (CanSelectSaveSlot(slot)) return SaveSlotButton(slot).gameObject;

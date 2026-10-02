@@ -65,3 +65,8 @@ Windows构建会校验本机System32的chcp.com签名和哈希，再临时提供
 
 Windows P0已有实际构建与正式入口启动记录；Android、Photon与真机进度以[进度与验证](../progress.md)中实际证据为准。分享Windows版本使用Playable ZIP，开发机保留的DoNotShip目录和初始ZIP不需要分发。
 `沉浸样板/更新桌面规则铭牌`为三台装配独立规则夹板，并按S1Layout更新聚焦挂点；该菜单会重新应用夹板自身布局，不重建机台或大厅。调整后运行JinxCasinoImmersionSceneTests.AllRulesBoardsFitInsideTheirSavedTableView并检查真实聚焦截图。
+
+
+`沉浸样板/装配标准检票与离场入口`保存入口两侧的验票口与离场口，不重建大厅或机台。`沉浸样板/更新入口铭牌可读性`仅重设入口文字/操作件高度及前后关系，执行前处理场景人工修改。`沉浸样板/装配标准结局HUD`在三槽HUD后保存结局与保存/返回控件。
+
+标准样板目标达成后按提示前往验票口，再到离场口领取票券；未达标可在离场口两次交互确认撤离。若超时仍有已投入牌局，先回原桌完成；暂停不会耗尽撤离确认窗口。结局可保存在三槽中，再明确返回Hub。此流程的Editor真实输入证据记录于immersion-progress，不替代Player或真机实玩。

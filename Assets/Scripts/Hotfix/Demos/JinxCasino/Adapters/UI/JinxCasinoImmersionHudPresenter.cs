@@ -39,6 +39,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             leave.onClick.AddListener(Leave); interact.onClick.AddListener(Interact); exitTable.onClick.AddListener(ExitTable);
             BindTutorialControls();
             BindSaveControls();
+            BindStandardEndingControls();
             Refresh();
         }
 
@@ -46,6 +47,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         public void Unbind()
         {
             if (owner == null) return;
+            UnbindStandardEndingControls();
             UnbindSaveControls();
             UnbindTutorialControls();
             owner.Changed -= Refresh; owner.ImmersionInputChanged -= Refresh;
@@ -67,21 +69,22 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void Refresh()
         {
             if (owner == null) return;
-            int state = ResolveSaveHudState(ResolveTutorialHudState());
+            int state = ResolveSaveHudState(ResolveEndingHudState(ResolveTutorialHudState()));
             if (menuState != state)
             {
                 menuState = state;
                 mainMenu.SetActive(state == 0); pauseMenu.SetActive(state == 1); fieldHud.SetActive(state == 2);
                 RefreshTutorialControls(state);
                 RefreshSaveControls(state);
-                owner.SetImmersionMenuState(state != 2, false, SaveFirstSelection(state), HasSaveUi ? CancelSaveWindow : HasTutorialUi ? CancelTutorialWindow : null);
+                RefreshStandardEndingControls(state);
+                owner.SetImmersionMenuState(state != 2, false, SaveFirstSelection(state), HasStandardEndingUi || HasSaveUi || HasTutorialUi ? CancelImmersionHudWindow : null);
             }
             RefreshTutorialControls(state);
             RefreshSaveControls(state);
+            RefreshStandardEndingControls(state);
             var adventure = owner.AdventureState;
             wallet.text = "筹码  " + owner.Balance;
-            objective.text = adventure == null ? string.Empty : adventure.Mode == CasinoAdventureMode.Practice ? "自由练习" :
-                "目标 " + owner.AdventureTarget + "   ·   " + Mathf.CeilToInt(adventure.RemainingMilliseconds / 1000f) + " 秒";
+            objective.text = AdventureObjective(adventure);
             var table = owner.TableView;
             bool atDesk = table != null || owner.HasShopFocus;
             bool touching = Application.isMobilePlatform || owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Touch;
@@ -93,13 +96,33 @@ namespace Hotfix.JinxCasino.Adapters.UI
             var nearby = owner.GetNearbyLocalSocialStation();
             prompt.text = atDesk ? owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad
                 ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
-                : owner.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
+                : owner.IsExitTerminalNearby ? action + " " + owner.ExitInteractionPrompt : owner.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
             feedback.text = InteractionFeedback(table);
         }
+        private string AdventureObjective(CasinoAdventureState state)
+        {
+            if (state == null) return string.Empty;
+            if (state.Mode == CasinoAdventureMode.Practice) return "自由练习";
+            if (state.Phase == CasinoAdventurePhase.Closing) return "时间结束 · 完成当前机台";
+            if (state.Phase == CasinoAdventurePhase.Finale) return "核验通过 · 前往离场口";
+            if (state.Phase == CasinoAdventurePhase.Failed) return "本次未达标 · 前往离场口";
+            return "目标 " + owner.AdventureTarget + "   ·   " + Mathf.CeilToInt(state.RemainingMilliseconds / 1000f) + " 秒";
+        }
+
         private string InteractionFeedback(JinxCasinoTableView table)
         {
             if (owner.HasShopFocus) return owner.ShopFeedback ?? "选择实物查看报价；购买按钮确认付款。";
-            if (table == null) return string.Empty;
+            if (table == null)
+            {
+                if (owner.IsExitTerminalNearby) return owner.ExitFeedback ?? string.Empty;
+                var state = owner.AdventureState;
+                if (state?.Mode != CasinoAdventureMode.Standard) return string.Empty;
+                if (state.Phase == CasinoAdventurePhase.Closing) return "时间到了，先回到原机台完成这一局。";
+                if (state.Phase == CasinoAdventurePhase.Finale) return "验票通过，前往离场口领取离场券。";
+                if (state.Phase == CasinoAdventurePhase.Failed) return "本次未达标，前往离场口结束旅程。";
+                if (state.Phase == CasinoAdventurePhase.Playing && state.Coins >= owner.AdventureTarget) return "筹码已达标，前往验票口核验。";
+                return string.Empty;
+            }
             if (owner.HasTableFeedbackError) return owner.TableFeedback;
             return owner.IsTableAnimating ? "等待机台完成动作。" : TableOperationHint(table);
         }

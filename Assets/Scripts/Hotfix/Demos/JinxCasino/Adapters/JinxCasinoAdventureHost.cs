@@ -233,6 +233,10 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (adventure == null || IsAdventureInputBlocked || IsBusy || body == null) return;
             var nearest = FindNearbyStation();
+            if (UsesImmersion && PreferNearbyExit(nearest))
+            {
+                InteractWithExitTerminal(); return;
+            }
             if (UsesImmersion && PreferNearbyShop(nearest))
             {
                 if (!TryOpenImmersionShop()) { adventureStatus = "柜台暂不可操作。"; Changed?.Invoke(); }
