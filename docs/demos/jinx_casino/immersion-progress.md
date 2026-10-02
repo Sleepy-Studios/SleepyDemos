@@ -88,3 +88,24 @@ JinxCasinoTableSessionTests作业ab91c93f，EditMode7/7通过：Slots明确拉�
 输入焦点修复已推送c731601。领域配置增加InitiallyAvailableGames，让独立样板能在首区开放协作拉杆，同时保留AllowedGames最终限制。旧存档缺少字段时仍按原区域解锁，不扩大旧原型内容。
 
 三个精确EditMode方法通过：db601de4（默认/旧档缺字段）、b43ce73f（三样板实际拉杆投入及恢复幂等）、8ed0bf3c（标准/练习恢复后不能绕过AllowedGames），共3/3。未执行全量测试。保存的样板配置曾仍是默认值，正在用独立分步装配入口修正；生产规则通过不代表资产或实玩通过。
+
+## 独立场景保存验证与首张Unity画面
+
+起始范围规则已推送f4fa4d1。用SerializedObject分步更新独立ImmersionSettings，实际资产已核查为1区、1200目标、Slots/BJ/Levers、事件暂关闭。新增JinxCasinoImmersionSceneTests作业c47edf16，EditMode3/3：保存配置实际解锁、唯一相机/Listener、三台稳定ID与22目标、专属表现及HUD引用。Editor编译Console0错误；未执行全量测试。
+
+实际Unity Camera截图已查看，证据Library/JinxCasino/ImmersionStaging/UnityHall.png。三机台轮廓可辨，但顶棚偏灰、地面过亮、铭牌小字需聚焦近景检查，视觉未验收。截图后恢复干净AppEntrance场景；此截图不含运行HUD，也不是Player实玩。宿主、场景、表现及装配仍为工作区整合，需进一步运行验证后提交。
+
+二十一点翻牌候选已在Library/JinxCasino/ImmersionStaging/BlackjackFlip冻结，尚未合并；下一步合并并验证暗牌翻面/暂停/恢复，再补正式样板入口、教学、菜单与完整游玩。完整S1包、录像、Android/Xbox实物和用户体验验收均待完成。
+
+## S1真实入口与首笔实体投入
+
+工作分支Hub的JinxCasino地址已切到Immersion；旧Main场景保留。Controller在保存输入配置存在时选择沉浸HUD，Core启动/资源/View生命周期未另建入口。窗口焦点、物理射线与相机过渡通过正式AppEntrance→Hub链验证。
+
+二十一点：合并实体暗牌翻转；偶发长帧时单帧演出最多推进80ms，避免整段翻面跳过，规则时钟不受影响。夹具先修Unity6 SceneHandle类型及延迟sceneLoaded隔离；7b02e2c2因工具回调文件共享冲突失败、无测试结果。f411551c加载夹具失败，b44a30d0未捕捉中间姿态，诊断精确2c3d48e2为1/1；加演出步长上限后e80f42f4整类2/2通过，覆盖背面/中间姿态/公开牌面、暂停、Restore不重播及新Run清队列。
+
+实体入口：2747b5c1失败于拉杆射线，07251915确认命中LocalPlayer。保存本地胶囊改Ignore Raycast层，仍保留物理碰撞；动态铭牌原.040米行高不足，按真实字库指标提高至.046米。保存资源6e413965为4/4，包含实际TMP可见字符断言。a9926bbe完成首笔投入后在暂停等待超时；夹具原FOV容差提前判定过渡结束，改等待光标重新锁定、探索输入就绪后再发下一次Esc。
+
+最终JinxCasinoImmersionEntryTests精确作业c2b2d2ec为1/1：实际InputSystem鼠标点击保存菜单、W/A移动、E聚焦、射线点筹码/确认/拉杆、一次正确结算、离桌精确恢复相机、Esc暂停/真实继续按钮、真实返回按钮回Hub及唯一Listener/UI清理。使用独立GUID存档，未触碰用户存档；没有直接调用按钮监听器或机台业务命令替代输入。未执行全量测试。
+
+运行截图在Library/JinxCasino/Verification/S1MainMenu-*、S1SlotsFocus-*、S1Paused-*；已查看焦点前后图，金额铭牌已可见。当前仍存在全局画质入口与暂停区域重叠、地面过亮、赔率未在桌面完整展示等体验缺口。新教学、完整设置/存档/购物、Xbox/触屏完整实玩、S1包/录像及用户验收仍待完成。旧原型UI测试以Main/旧HUD为对象，不将它们当作新场景验证。
+宿主、专属演出与暂停代码已按依赖先行推送de4e139；下一笔保存场景、HUD与正式入口及实际回归。

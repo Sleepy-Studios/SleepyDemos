@@ -5,10 +5,17 @@
 1. Unity 6000.3.15f1 与当前项目子模块。
 2. Windows IL2CPP 支持和构建工具。
 3. 同一 Editor 的 Android Build Support、SDK / NDK Tools 与 OpenJDK。
-4. 后置联网阶段从 Photon 官方下载 Fusion 2.1.3 SDK，创建 Fusion 2 应用并配置同一个 App ID；离线P4构建不需要此项。
-5. 后置真机验收需要至少两台 Android 设备及 Windows Player。
+4. 当前单机验收需要 Windows Player、Android 真机与 Xbox 手柄；设备证据单独记录。
 
-Photon SDK 下载入口：https://doc.photonengine.com/fusion/v2/getting-started/sdk-download 。下载需登录官方账号；不把账号、密码或管理密钥写入项目。App ID 是客户端连接配置，不能替代账号管理权限。
+联网不属于当前单机验收，选型待定；旧 Photon 配置不作为开发前置条件。
+
+## S1独立样板装配（开发中）
+
+`Tools/SleepyDemos/整蛊赌场/沉浸样板/创建独立场景与薄HUD`首次保存`Scenes/Immersion.unity`和`JinxCasinoImmersionHudView.prefab`；已有文件不会整包重建，保护人工修改。当前工作分支的Hub赌场入口已切换到Immersion；旧Main场景保留用于恢复原型。新入口与完整流程仍需分别记录实际验证。
+
+`沉浸样板/更新样板玩法范围`只更新独立`Data/ImmersionSettings.asset`的一区、三机台和暂时关闭事件配置，不重建场景或修改旧AdventureSettings。后续接入事件设施后应同步调整本入口与保存资源测试。`沉浸样板/更新交互绑定`分步更新本地胶囊射线层和动态铭牌行高，不重建布局。菜单回显不证明保存成功，核查保存资源和`JinxCasinoImmersionSceneTests`结果。
+
+样板初始开放Slots、Blackjack、CooperativeLevers；`InitiallyAvailableGames`仍受`AllowedGames`限制，旧存档缺失该字段时保持原区域解锁。现有自动化覆盖保存引用，不代替三输入实玩、画面或S1用户验收。
 
 ## 构建约束
 
@@ -18,7 +25,7 @@ Build Settings 继续只保留 AppEntrance。项目已打开时不另起 BatchMo
 
 ## P0 原型装配与离线构建
 
-当前内容开发先使用`生成P2四区冒险`；正式资源通过模型门禁后使用`生成P4正式离线冒险`。两者先将本Demo现有资源和Hub入口备份到`Library/JinxCasino/ContentBaseline`，在独立Additive临时场景装配，成功或失败都恢复用户原活动场景。工具会重新生成本Demo保存模板，不用于覆盖尚需保留的人工美术编辑。
+历史原型恢复使用`生成P2四区冒险`；正式资源通过模型门禁后使用`生成P4正式离线冒险`。两者先将本Demo现有资源和Hub入口备份到`Library/JinxCasino/ContentBaseline`，在独立Additive临时场景装配，成功或失败都恢复用户原活动场景。工具会重新生成本Demo保存模板，不用于覆盖尚需保留的人工美术编辑。
 
 正式装配必须核对Console/Editor日志和场景中实际`FormalAvatar`、各机台`FormalVisual`与音源；菜单执行回显不能证明装配成功。P4构建入口为`构建Windows P4离线试玩包`和`构建Android P4离线试玩包`，拒绝尚未装配正式角色的源场景。P4输出在`Builds/JinxCasino/P4/{target}/{version}`，版本0.4.0、标识`com.sleepystudio.jinxcasino`，保留原P0目录及应用标识。构建事务及平台恢复沿用下述经过验证的流程；是否构建成功以最新实际验证记录为准。
 
@@ -34,7 +41,7 @@ Build Settings 继续只保留 AppEntrance。项目已打开时不另起 BatchMo
 | `Tools/SleepyDemos/整蛊赌场/构建Android P0离线验证包` | Android 8.0 / API 26 及以上的 ARM64 APK |
 | `Tools/SleepyDemos/整蛊赌场/重打包最近Windows P0分享包` | 不重新编译，过滤Unity调试目录并生成新的Playable ZIP |
 
-两种入口共用同一任务与恢复流程，不能同时启动。离线构建不要求 Fusion SDK 或 App ID；这些依赖仍是后续互联网版本的前置条件。Windows P0 不包含 Streamline 原生 DLL，Android 不生成 ARMv7 / x86 包。
+两种入口共用同一任务与恢复流程，不能同时启动。离线构建不要求 Fusion SDK 或 App ID；后续互联网版本另行选型。Windows P0 不包含 Streamline 原生 DLL，Android 不生成 ARMv7 / x86 包。
 
 Android P0仅允许横屏左右旋转；原项目方向设置由构建事务的PlayerSettings快照恢复。
 

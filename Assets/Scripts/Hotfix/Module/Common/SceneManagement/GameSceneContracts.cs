@@ -72,7 +72,7 @@ namespace Hotfix.SceneManagement
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
         internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
         internal const string BlockPortersAddress = "Assets/LoadResources/Demos/block_porters/Scenes/Main.unity";
-        internal const string JinxCasinoAddress = "Assets/LoadResources/Demos/jinx_casino/Scenes/Main.unity";
+        internal const string JinxCasinoAddress = "Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity";
 
         internal static bool TryGet(GameSceneId sceneId, out GameSceneDefinition definition)
         {

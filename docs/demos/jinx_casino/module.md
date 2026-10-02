@@ -2,11 +2,23 @@
 
 ## 职责和边界
 
-`Hotfix.JinxCasino` 负责赌场规则、共享筹码、机台、道具、事件、阶段目标、结局和宿主适配。Core 只提供通用网络协议及 SDK 适配，不引用赌场类型。
+`Hotfix.JinxCasino` 负责赌场规则、筹码、机台、道具、事件、阶段目标、结局和宿主适配。Core提供通用启动、资源、UI和历史会话边界，不引用赌场业务类型。当前目标为单机沉浸重做，联网方案待定。
 
-被 Fusion IL Weaver 处理的 NetworkBehaviour、网络属性和 RPC 保留在 AOT 层；Hotfix 通过稳定命令和快照协议执行业务。该方案必须经过 Windows 与 Android IL2CPP 验证，当前尚无兼容性结论。
+旧Fusion/AOT桥接设想保留于历史需求，不作为当前实现承诺或单机依赖。
 
-## 主链路
+## 当前样板主链路（S1进行中）
+
+正式导航的JinxCasino地址在当前工作分支使用`Scenes/Immersion.unity`。`JinxCasinoController`根据保存的独立InputActionAsset选择`JinxCasinoImmersionHudView`，旧Main无该引用时继续使用原型HUD。菜单使用Core已有Canvas、EventSystem和View生命周期；不新建启动框架。
+
+`JinxCasinoImmersionHost`连接探索/机台/菜单输入上下文、具体机台聚焦与物理射线选择。`JinxCasinoTableSession`通过`JinxCasinoControllerTableOperations`向原领域提交命令。离桌只清草稿，已投入局及随机状态保留；新局、读档和区域传送前恢复借用相机，退出释放菜单输入作用域、事件订阅和光标状态。
+
+`JinxCasinoS1PresentationCoordinator`把本台公开状态发送给水果机、二十一点、协作拉杆专属组件，离桌后仍保留演出。组件只读公开牌面和结算序号，不直接支付或开奖；显式Restore静态还原，不重播旧奖励。暗牌收到公开结果后才翻面，暂停保持中间姿态，新局清除演出队列。
+
+`JinxCasinoPresentationClock`是本Demo的暂停时钟，不修改全局timeScale。场景效果、移动桌、按钮按压读取同一时钟；恢复首帧不补算后台时间。专属机台表现收到同一暂停状态并丢弃恢复首帧的墙钟增量。运行UI和实际设备仍需单独验收。
+
+桌面允许专门设计的世界空间UI和铭牌，不能把旧通用操作弹窗贴到机台上。保存样板当前只有三台、薄HUD和基础菜单；教学、购物、完整设置/存档菜单、音画打磨和双端实玩仍待完成，当前不是S1最终交付。
+
+## 保留的原型主链路
 
 内容优先的离线入口由`JinxCasinoAdventurePresenter`绑定当前`JinxCasinoController`，后者持有`CasinoAdventureSession`。小游戏`CasinoMiniGameRound`只运行规则与整数时钟；冒险统一提交钱包、库存、事件、任务和阶段。UI不得直接改资金或重新开奖，关面板保留已提交局，恢复后继续合法动作。旧P0`CasinoNetworkCoordinator`入口独立保留用于已有联网边界回归，不能与内容局共用钱包。
 
