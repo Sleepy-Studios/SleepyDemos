@@ -337,6 +337,48 @@ namespace Tests.Demo
             Assert.That(owner.SelectedSaveSlot, Is.EqualTo(2)); Assert.That(owner.HasActiveAdventureRound, Is.False);
         }
 
+        [UnityTest, Timeout(180000)]
+        public IEnumerator UnsupportedSavesLeaveCurrentRunCameraAndFilesUntouched()
+        {
+            yield return EnterSample();
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            yield return MouseClick(Field<Button>(presenter, "start"));
+            yield return KeyPress(Key.Escape);
+            string run = owner.AdventureState.RunId;
+            long coins = owner.AdventureState.Coins; uint random = owner.AdventureState.RandomState;
+            var camera = Field<Camera>(owner, "worldCamera"); Vector3 position = camera.transform.position;
+            var store = new CasinoLocalSaveStore(saveDirectory);
+            // 文件领域有效，但需要未装配的区域、模式、人数或具体机台。
+            for (int sample = 0; sample < 5; sample++)
+            {
+                var config = Field<JinxCasinoGameSettings>(owner, "gameSettings").CreateConfig();
+                if (sample == 0) { config.StageCount = 4; config.Targets = new long[] { 1200, 2000, 3500, 5000 }; }
+                if (sample == 3) { config.AllowedGames = new[] { CasinoGameKind.HighLow }; config.InitiallyAvailableGames = config.AllowedGames; }
+                var mode = sample == 0 ? CasinoAdventureMode.Standard : sample == 1 ? CasinoAdventureMode.Endless : CasinoAdventureMode.Practice;
+                var fixture = CasinoAdventureSession.Start(7, mode, sample == 2 ? 2 : 1, config);
+                if (sample >= 3)
+                {
+                    Assert.That(fixture.BeginGame("restore-fixture", sample == 3 ? CasinoGameKind.HighLow : CasinoGameKind.CooperativeLevers,
+                        10, 0, sample == 3 ? "old.cards" : "old.levers").Success, Is.True);
+                    Assert.That(fixture.HasActiveRound, Is.True);
+                }
+                store.Save(1, fixture);
+                var files = Directory.GetFiles(saveDirectory, "*", SearchOption.TopDirectoryOnly).ToDictionary(path => path, File.ReadAllBytes);
+                yield return MouseClick(Field<Button>(presenter, "savePauseLoadButton"));
+                yield return MouseClick(Field<Button>(presenter, "saveSlot1Button"));
+                yield return MouseClick(Field<Button>(presenter, "saveConfirmButton"));
+                Assert.That(owner.AdventureStatus, Does.Contain("原存档和当前旅程均已保留"), "兼容样例 " + sample);
+                Assert.That(owner.AdventureState.RunId, Is.EqualTo(run)); Assert.That(owner.AdventureState.Coins, Is.EqualTo(coins));
+                Assert.That(owner.AdventureState.RandomState, Is.EqualTo(random)); Assert.That(owner.SelectedSaveSlot, Is.Zero);
+                Assert.That(owner.IsImmersionPaused, Is.True); Assert.That(camera.transform.position, Is.EqualTo(position));
+                foreach (var file in files) CollectionAssert.AreEqual(file.Value, File.ReadAllBytes(file.Key));
+                yield return MouseClick(Field<Button>(presenter, "saveCancelButton"));
+                yield return MouseClick(Field<Button>(presenter, "saveBackButton"));
+            }
+            yield return MouseClick(Field<Button>(presenter, "leave"));
+            yield return Wait(() => owner == null && IsStableHub(), "兼容拒绝后正常退出", 45);
+        }
+
         [UnityTest, Timeout(240000)]
         public IEnumerator StandardWinUsesVisibleVerifierAndDepartureBeforeRecordingOneEnding()
         {

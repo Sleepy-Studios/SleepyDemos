@@ -218,6 +218,7 @@ namespace Hotfix.JinxCasino.Adapters
             try
             {
                 var restored = SaveStore.Load(slot);
+                ValidateImmersionRestore(restored.CaptureState());
                 ResetImmersionTableForRestore();
                 adventureRestoreInProgress = true;
                 adventure = restored; selectedSaveSlot = slot; adventureMilliseconds = 0; displayedArea = -1;
@@ -226,6 +227,28 @@ namespace Hotfix.JinxCasino.Adapters
             }
             catch (Exception exception) { adventureStatus = "读取失败：" + exception.Message; Changed?.Invoke(); return false; }
             finally { adventureRestoreInProgress = false; }
+        }
+
+        // 领域校验只保证存档自洽；场景必须能继续它，才允许替换当前局与借用相机。
+        private void ValidateImmersionRestore(CasinoAdventureState candidate)
+        {
+            if (!UsesImmersion) return;
+            const string unavailable = "此存档需要当前场景尚未开放的内容，无法在此继续；原存档和当前旅程均已保留。";
+            if (candidate.PlayerCount != 1 || areas == null || gameSettings == null)
+                throw new InvalidOperationException(unavailable);
+            int configuredStages = gameSettings.CreateConfig().StageCount;
+            if (candidate.Mode == CasinoAdventureMode.Endless && configuredStages == 1 ||
+                candidate.Mode == CasinoAdventureMode.Standard && (candidate.Config.StageCount > configuredStages ||
+                    Enumerable.Range(0, candidate.Config.StageCount).Any(index => !areas.Any(area => area != null && area.Index == index % 4))))
+                throw new InvalidOperationException(unavailable);
+            int areaIndex = candidate.StageIndex % 4;
+            if (!areas.Any(area => area != null && area.Index == areaIndex)) throw new InvalidOperationException(unavailable);
+            if (string.IsNullOrEmpty(candidate.ActiveRoundJson)) return;
+            // 不借其它场景的机台，也不把非空旧ID按相同游戏自动改绑；无ID旧局沿用显式认领流程。
+            bool playable = GetComponentsInChildren<JinxCasinoStation>(true).Any(station => station.HasTableInteraction &&
+                station.AreaIndex == areaIndex && station.Game == candidate.ActiveGame &&
+                (string.IsNullOrEmpty(candidate.ActiveStationId) || station.StationId == candidate.ActiveStationId));
+            if (!playable) throw new InvalidOperationException(unavailable);
         }
 
         /// 在可交互范围内开启机台，不允许键鼠提供超出触控的远距离交互。
