@@ -30,11 +30,6 @@ namespace Hotfix.JinxCasino.Adapters
         /// <param name="value">当前动作的参数，单人拉杆仅0。</param>
         /// <param name="stationId">具体已保存机台ID。</param>
         CasinoAdventureResult ActInAdventure(string requestId, CasinoMiniGameAction action, int value, string stationId);
-        /// <summary>认领旧版未定位的同类活动局，只绑定身份，不开奖或付款。</summary>
-        /// <param name="requestId">认领操作的唯一编号。</param>
-        /// <param name="stationId">玩家实际进入的机台ID。</param>
-        /// <param name="game">须与原活动局一致。</param>
-        CasinoAdventureResult BindAdventureStation(string requestId, string stationId, CasinoGameKind game);
     }
 
     public readonly struct JinxCasinoTableAvailability
@@ -65,7 +60,6 @@ namespace Hotfix.JinxCasino.Adapters
         public long DraftStake { get; internal set; }
         public long MaximumDraft { get; internal set; }
         public bool IsSlotsPrepared { get; internal set; }
-        public bool NeedsLegacyClaim { get; internal set; }
         public bool HasOwnActiveRound { get; internal set; }
         public bool HasOtherActiveRound { get; internal set; }
         public bool LeverWindowOpen { get; internal set; }
@@ -103,14 +97,12 @@ namespace Hotfix.JinxCasino.Adapters
             if (action == JinxCasinoTableAction.Commit)
             {
                 if (value != 0) return No("确认参数无效。");
-                if (NeedsLegacyClaim) return Yes();
                 if (!CanStart) return No("请先完成已投入局或当前阶段。");
                 if (DraftStake <= 0 || DraftStake > MaximumDraft) return No("先放入可承担的筹码。");
                 return IsSlotsPrepared ? No("已经准备，请拉柄明确投入。") : Yes();
             }
             if (action == JinxCasinoTableAction.Primary)
             {
-                if (NeedsLegacyClaim) return No("先确认恢复此台的原有局。");
                 if (Game == CasinoGameKind.Slots)
                     return value == 0 && IsSlotsPrepared && CanStart ? Yes() : No(PreparationReason ?? "先确认筹码，再拉柄投入。");
                 if (Game == CasinoGameKind.Blackjack) return value == 0 && CanHit ? Yes() : No("先确认投入发牌，再决定要牌。");

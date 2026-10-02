@@ -319,3 +319,15 @@ Unity正式重新编译完成，最终Console 0错误。Unity Test Runner直接�
 正式编译后Console 0错误。76bd9c82 EditMode偏好10/10，09193fb5 PlayMode设置真实InputSystem流程精确1/1，覆盖鼠标选设置/保存、模拟手柄调节/B取消/Menu返回、当前记录重新读取、静音预览取消、暂停时钟和返回Hub。没有调用按钮监听器代替输入，没有全量测试；模拟设备仍不证明Xbox实物/Android触屏及后台验证。总计本轮存档与偏好相关36项EditMode、3项PlayMode通过。
 
 同步module、rules-baseline与runbook，提交名「refactor(jinx): 精简本机偏好并删除迁移测试」，SHA见git log。未改正式UI/机台、美术、平台配置或构建流程；TMP动态补字资产、UnitySkills/vTabs等既有工作区改动继续保留、不纳入提交。下一步整理具体Game/玩家交互和删除旧局认领、旧房间/面板；四稿确认与S1用户体验门槛仍未通过，Goal保持未完成。
+
+## 删除旧局认领与机台身份兜底
+
+偏好清理已推送783e6d0。本轮删除规则BindActiveStation、Controller/转发接口的BindAdventureStation、TableView.NeedsLegacyClaim、Claim命令及确认恢复分支；公开状态只显示准确属于此桌的活动局或最近结算。已投入局没有准确实例ID时不能由同类机台接管。沉浸读档先验证当前区域的实际机台ID；缺失、错误或未装配的ID均在清聚焦/替换Run前拒绝，不重绑、不开奖、不扣款。
+
+原LegacyClaim用例删除认领断言，保留公开投影副本不污染真实局、离桌/当前版本恢复不改随机和资金的回归。UnsupportedSaves原真实UI用例追加当前格式无机台ID的活动局，继续检查主/备文件字节、当前Run、余额、随机、槽和相机不变；不增加测试文件、数量快照或新的测试程序集。
+
+Unity正式编译及最终Console 0错误。d2ec34f1 EditMode桌面7/7；c4ebc8ec PlayMode精确1/1，覆盖未开放区域/模式/人数/玩法、错误机台ID及缺ID拒绝；7dbdd5ae合法Closing二十一点原桌恢复/结算/撤离精确1/1。共9/9，未执行全量测试；测试仍使用Unity Test Runner和实际InputSystem指针，不直接调用按钮监听器。未修改保存场景/Prefab、未构建Player或真机，尚不证明最终画面和手机手感。
+
+原审查Agent本轮只读细化下一步Game迁移，无文件修改或Unity操作。AdventureHost的状态/命令/计时/存档及ProfileHost的成长归具体Game，Controller保留场景同步、读档前校验/聚焦清理和保存前教学观察；TableSession直接持有Game/Station并删除转发接口。S1PresentationCoordinator在-100顺序的OnEnable即创建会话，因此Game须在其绑定前存在，不能等Controller.Start或await导航后才创建；缓存状态getter不得每次Capture。此为下一步实施依据，不表示拆分已完成。
+
+同步rules-baseline和module，提交名「refactor(jinx): 删除旧局认领并要求原机台身份」，SHA见git log。旧P0/P4链和完整Adapters清理仍待完成，正式美术/Hub制作仍等四稿确认；不以本次代码回归越过S1用户验收。

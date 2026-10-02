@@ -42,11 +42,5 @@ namespace Hotfix.JinxCasino.Adapters
         public CasinoAdventureResult ActInAdventure(string requestId, CasinoMiniGameAction action, int value, string stationId)
             => owner.ActInAdventure(requestId, action, value, stationId);
 
-        /// <summary>通过Host认领旧局，只定位不开奖。</summary>
-        /// <param name="requestId">稳定认领编号。</param>
-        /// <param name="stationId">实际机台ID。</param>
-        /// <param name="game">原局对应玩法。</param>
-        public CasinoAdventureResult BindAdventureStation(string requestId, string stationId, CasinoGameKind game)
-            => owner.BindAdventureStation(requestId, stationId, game);
     }
 }

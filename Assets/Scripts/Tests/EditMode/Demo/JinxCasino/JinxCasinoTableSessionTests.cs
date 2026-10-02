@@ -119,19 +119,19 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void LegacyClaimIsSeparateFromPlayingAndPublicProjectionCannotBeCorrupted()
+        public void PublicProjectionCannotMutatePaidRoundAcrossLeavingAndRestoring()
         {
             var host = new RuleHost(CasinoGameKind.CooperativeLevers, "levers-a", 3);
-            host.Rules.BeginGame("legacy", CasinoGameKind.CooperativeLevers, 50, 0); host.Refresh();
-            var before = host.AdventureState; var table = Table(host);
-            Assert.That(table.GetView().NeedsLegacyClaim, Is.True); Assert.That(table.GetView().Presentation, Is.Null);
-            Assert.That(table.Apply(JinxCasinoTableAction.Commit, 0, 1).Success, Is.True);
-            Assert.That(host.AdventureState.ActiveRoundJson, Is.EqualTo(before.ActiveRoundJson)); Assert.That(host.AdventureState.RandomState, Is.EqualTo(before.RandomState));
-            Assert.That(host.AdventureState.Coins, Is.EqualTo(before.Coins)); Assert.That(host.AdventureState.ActiveStationId, Is.EqualTo("levers-a"));
+            var table = Table(host);
+            table.Apply(JinxCasinoTableAction.ChipAdd, 50, 1);
+            Assert.That(table.Apply(JinxCasinoTableAction.Commit, 0, 2).Success, Is.True);
+            var before = host.AdventureState;
             var view = table.GetView(); view.Presentation.SelectedValues[0] = 1;
             Assert.That(table.GetView().Presentation.SelectedValues[0], Is.Zero);
             var snapshot = host.Rules.ToSnapshotJson(); table.Close(); host.ReplaceRules(CasinoAdventureSession.Restore(snapshot));
-            Assert.That(Table(host).GetView().NeedsLegacyClaim, Is.False);
+            Assert.That(Table(host).GetView().HasOwnActiveRound, Is.True);
+            Assert.That(host.AdventureState.ActiveRoundJson, Is.EqualTo(before.ActiveRoundJson)); Assert.That(host.AdventureState.RandomState, Is.EqualTo(before.RandomState));
+            Assert.That(host.AdventureState.Coins, Is.EqualTo(before.Coins)); Assert.That(host.AdventureState.ActiveStationId, Is.EqualTo("levers-a"));
         }
 
         [Test]
@@ -168,8 +168,6 @@ namespace Tests.Demo
             { var value = Rules.BeginGame(id, game, stake, choice, station); Refresh(); return value; }
             public CasinoAdventureResult ActInAdventure(string id, CasinoMiniGameAction action, int value, string station)
             { var result = Rules.Act(id, action, value, station); Refresh(); return result; }
-            public CasinoAdventureResult BindAdventureStation(string id, string station, CasinoGameKind game)
-            { var result = Rules.BindActiveStation(id, station, game); Refresh(); return result; }
         }
     }
 }

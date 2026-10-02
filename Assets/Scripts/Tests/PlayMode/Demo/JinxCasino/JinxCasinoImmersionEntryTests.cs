@@ -455,8 +455,8 @@ namespace Tests.Demo
             long coins = owner.AdventureState.Coins; uint random = owner.AdventureState.RandomState;
             var camera = Field<Camera>(owner, "worldCamera"); Vector3 position = camera.transform.position;
             var store = new CasinoLocalSaveStore(saveDirectory);
-            // 文件领域有效，但需要未装配的区域、模式、人数或具体机台。
-            for (int sample = 0; sample < 5; sample++)
+            // 文件领域有效，但缺少已装配区域、单人模式或准确的原机台身份。
+            for (int sample = 0; sample < 6; sample++)
             {
                 var config = Field<JinxCasinoGameSettings>(owner, "gameSettings").CreateConfig();
                 if (sample == 0) { config.StageCount = 4; config.Targets = new long[] { 1200, 2000, 3500, 5000 }; }
@@ -466,7 +466,7 @@ namespace Tests.Demo
                 if (sample >= 3)
                 {
                     Assert.That(fixture.BeginGame("restore-fixture", sample == 3 ? CasinoGameKind.HighLow : CasinoGameKind.CooperativeLevers,
-                        10, 0, sample == 3 ? "old.cards" : "old.levers").Success, Is.True);
+                        10, 0, sample == 3 ? "absent.cards" : sample == 4 ? "absent.levers" : null).Success, Is.True);
                     Assert.That(fixture.HasActiveRound, Is.True);
                 }
                 store.Save(1, fixture);

@@ -30,7 +30,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// 只用于当前本地操作重试，不是存档中另一局的支付入口。
         public string LastRequestId => lastCommand?.RequestId;
 
-        /// <summary>进入一个具体机台建立本地草稿；重返可读取已投入局，构造本身不认领或开奖。</summary>
+        /// <summary>进入具体机台建立本地草稿；重返只读取原机台已投入局，构造不开奖或支付。</summary>
         /// <param name="operations">本台的薄宿主适配，使用已有AdventureState副本。</param>
         /// <param name="id">具体保存的机台ID，非空且符合规则ID格式。</param>
         /// <param name="kind">S1仅水果机、二十一点、合拍拉杆。</param>
@@ -43,26 +43,25 @@ namespace Hotfix.JinxCasino.Adapters
             stationId = id; game = kind;
         }
 
-        /// 读取当前本台可见状态；不会Capture新领域快照、认领、随机或支付。
+        /// 读取当前本台可见状态；不会Capture新领域快照、绑定其它局、随机或支付。
         public JinxCasinoTableView GetView()
         {
             var state = ReadState(); RefreshPreparation(state);
             bool hasRound = state != null && !string.IsNullOrEmpty(state.ActiveRoundJson);
             bool owns = hasRound && state.ActiveGame == game && state.ActiveStationId == stationId;
-            bool legacy = hasRound && state.ActiveGame == game && string.IsNullOrEmpty(state.ActiveStationId);
             bool canStart = state != null && !hasRound && state.Phase == CasinoAdventurePhase.Playing
                 && (state.Mode == CasinoAdventureMode.Practice || state.RemainingMilliseconds > 0) && cachedGames.Any(entry => entry.Kind == game);
             long maximum = state == null ? 0 : Math.Min(state.Coins - state.LockedCoins,
                 state.EventStakeCap > 0 ? Math.Min(state.Config.MaximumStake, state.EventStakeCap) : state.Config.MaximumStake);
             string blocked = !StationMatches ? "此机台已经关闭或玩法改变，请重新进入。" : state == null ? "请先开始一场冒险。" :
-                hasRound && !owns && !legacy ? "请返回原来投入的机台完成活动局。" : null;
+                hasRound && !owns ? "请返回原来投入的机台完成活动局。" : null;
             var view = new JinxCasinoTableView
             {
                 StationId = stationId, Game = game, IsOpen = isOpen, DraftStake = draftStake, MaximumDraft = Math.Max(0, maximum),
-                IsSlotsPrepared = slotsPrepared, NeedsLegacyClaim = legacy, HasOwnActiveRound = owns,
-                HasOtherActiveRound = hasRound && !owns && !legacy, CanStart = canStart, BlockReason = blocked,
+                IsSlotsPrepared = slotsPrepared, HasOwnActiveRound = owns,
+                HasOtherActiveRound = hasRound && !owns, CanStart = canStart, BlockReason = blocked,
                 PreparationReason = preparationReason, IsSinglePlayer = state == null || state.PlayerCount == 1,
-                CommitLabel = legacy ? "恢复此台的原有局" : game == CasinoGameKind.Slots ? "确认筹码，准备拉柄" : "确认投入并开始",
+                CommitLabel = game == CasinoGameKind.Slots ? "确认筹码，准备拉柄" : "确认投入并开始",
                 PrimaryLabel = game == CasinoGameKind.Slots ? "拉下投入 " + draftStake + " 筹码" : game == CasinoGameKind.Blackjack ? "要一张牌" : "拉下自己的杠杆",
                 SecondaryLabel = game == CasinoGameKind.Blackjack ? "停牌结算" : string.Empty,
                 CanHit = owns && HasAction(CasinoMiniGameAction.Hit), CanStand = owns && HasAction(CasinoMiniGameAction.Stand),
@@ -73,7 +72,7 @@ namespace Hotfix.JinxCasino.Adapters
             view.SettlementSequence = showLast && view.Presentation != null ? state.SettledRoundSequence : 0;
             bool helped = owns ? view.Presentation?.CooperationHelpUsed == true : state?.CooperationHelpCharges > 0;
             view.RulesText = LocalRules(state, view.MaximumDraft, helped);
-            view.Description = blocked ?? (legacy ? "此局已投入，确认恢复只定位机台，不会重新扣款。" : owns ? ActiveDescription(view.Presentation) :
+            view.Description = blocked ?? (owns ? ActiveDescription(view.Presentation) :
                 slotsPrepared ? "筹码已准备，尚未扣款；拉下将投入 " + draftStake + " 筹码。" :
                 showLast ? "上一局已结算 · 投入 " + state.LastRoundCost + " · 返还 " + state.LastRoundPayout + " 筹码" : preparationReason ?? "放入筹码并明确确认。");
             if (view.CanPull && view.Presentation != null)
@@ -108,7 +107,6 @@ namespace Hotfix.JinxCasino.Adapters
             var state = host.AdventureState;
             if (action == JinxCasinoTableAction.Commit)
             {
-                if (view.NeedsLegacyClaim) return Finish(Send(NewCommand(CommandKind.Claim, state)));
                 if (game == CasinoGameKind.Slots)
                 {
                     slotsPrepared = true; preparationKey = PreparationKey(state); preparationReason = null;
@@ -202,7 +200,7 @@ namespace Hotfix.JinxCasino.Adapters
         {
             lastCommand = command;
             CasinoAdventureResult result = command.Kind == CommandKind.Begin ? host.BeginAdventureGame(command.RequestId, game, command.Stake, 0, stationId) :
-                command.Kind == CommandKind.Claim ? host.BindAdventureStation(command.RequestId, stationId, game) : host.ActInAdventure(command.RequestId, command.Action, command.Value, stationId);
+                host.ActInAdventure(command.RequestId, command.Action, command.Value, stationId);
             if (result.Success && !command.AppliedLocally)
             {
                 if (command.Kind == CommandKind.Begin) ClearDraft();
@@ -240,7 +238,7 @@ namespace Hotfix.JinxCasino.Adapters
             ElapsedMilliseconds = value.ElapsedMilliseconds, RemainingMilliseconds = value.RemainingMilliseconds, Score = value.Score,
             Level = value.Level, Cursor = value.Cursor, Phase = value.Phase, OperationCount = value.OperationCount
         };
-        private enum CommandKind { Begin, Act, Claim }
+        private enum CommandKind { Begin, Act }
         private sealed class DomainCommand
         {
             public string RequestId;

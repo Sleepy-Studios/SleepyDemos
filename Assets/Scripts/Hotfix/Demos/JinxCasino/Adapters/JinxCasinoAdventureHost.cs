@@ -147,13 +147,6 @@ namespace Hotfix.JinxCasino.Adapters
         public CasinoAdventureResult ActInAdventure(string requestId, CasinoMiniGameAction action, int value = 0, string stationId = null)
             => ApplyAdventureCommand(() => adventure.Act(requestId, action, value, stationId));
 
-        /// <summary>为旧版未定位活动局认领实际进入的同玩法机台，不重新投入。</summary>
-        /// <param name="requestId">保留用于重试的请求ID。</param>
-        /// <param name="stationId">具体保存机台ID。</param>
-        /// <param name="game">实际机台的玩法。</param>
-        public CasinoAdventureResult BindAdventureStation(string requestId, string stationId, CasinoGameKind game)
-            => ApplyAdventureCommand(() => adventure.BindActiveStation(requestId, stationId, game));
-
         /// <summary>购买当前商店可售道具。</summary>
         /// <param name="itemId">目录稳定ID。</param>
         public CasinoAdventureResult PurchaseItem(string itemId)
@@ -244,10 +237,10 @@ namespace Hotfix.JinxCasino.Adapters
             int areaIndex = candidate.StageIndex % 4;
             if (!areas.Any(area => area != null && area.Index == areaIndex)) throw new InvalidOperationException(unavailable);
             if (string.IsNullOrEmpty(candidate.ActiveRoundJson)) return;
-            // 不借其它场景的机台，也不把非空旧ID按相同游戏自动改绑；无ID旧局沿用显式认领流程。
-            bool playable = GetComponentsInChildren<JinxCasinoStation>(true).Any(station => station.HasTableInteraction &&
+            // 已投入的局必须回到具体原机台，不允许按玩法类型补绑定或接管未定位局。
+            bool playable = !string.IsNullOrEmpty(candidate.ActiveStationId) && GetComponentsInChildren<JinxCasinoStation>(true).Any(station => station.HasTableInteraction &&
                 station.AreaIndex == areaIndex && station.Game == candidate.ActiveGame &&
-                (string.IsNullOrEmpty(candidate.ActiveStationId) || station.StationId == candidate.ActiveStationId));
+                station.StationId == candidate.ActiveStationId);
             if (!playable) throw new InvalidOperationException(unavailable);
         }
 
