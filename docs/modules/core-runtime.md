@@ -11,6 +11,7 @@
 - `Eventing/`：全局同步事件分发，用于临时事件通知
 - `Flux/`：轻量单向数据流，负责 Action 派发、Data 状态、Handler 处理和订阅通知
 - `Hotfix/`：热更相关运行时能力
+- `Networking/`：通用会话、可靠命令、共享快照与 AOT 网络 SDK 适配边界
 - `Resource/`：资源相关能力
 - `Startup/`：启动状态机与系统
 - `UI/`：UI 框架、管理器、反射注册等
@@ -51,5 +52,6 @@
 - [Core 事件系统](./eventing/README.md)
 - [Core Flux 状态流](./flux.md)
 - [热更新模块](./hotfix.md)
+- [通用网络会话边界](./network-session.md)
 - [Unity 自动化测试架构](../architecture/testing.md)
 - [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)

@@ -59,4 +59,5 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 - Demo 资源尽量岛状隔离，降低多人协作冲突
 - 只有稳定复用的能力才上提为公共模块
 - 自动化测试统一进入 `Tests.EditMode` / `Tests.PlayMode`，不按 Demo 增加测试程序集
+- 网络 SDK 与需要代码生成的网络组件归入 AOT 通用适配；具体游戏规则仍在 Hotfix，接口与当前验证边界见[通用会话模块](../modules/network-session.md)
 - 文档以导航和边界为主，不追求“每个目录一个 md”
