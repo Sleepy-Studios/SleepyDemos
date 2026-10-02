@@ -107,14 +107,15 @@ namespace Hotfix.JinxCasino.Adapters
             // 每帧都Tick，以便机台销毁后也恢复借用相机，不能先按IsActive提前跳过。
             tableFocus.Tick(presentationDelta);
             if (tableSession != null && (!tableFocus.IsActive || focusedStation == null)) CloseImmersionTable();
+            if (HasShopBinding && (!tableFocus.IsActive || focusedShop == null || !focusedShop.isActiveAndEnabled)) CloseImmersionTable();
             if (IsImmersionPaused) return;
             UpdateAdventure(presentationDelta);
             if (IsAdventureInputBlocked) return;
             if (tableFocus.IsActive)
             {
                 if ((actions & JinxCasinoInputActions.Back) != 0) { CloseImmersionTable(); return; }
-                if (!tableFocus.IsReady || tableSession == null) return;
-                RefreshImmersionTable();
+                if (!tableFocus.IsReady || tableSession == null && !HasShopFocus) return;
+                if (HasShopFocus) RefreshImmersionShop(); else RefreshImmersionTable();
                 UpdateTableInput(frame, actions);
                 return;
             }
@@ -153,18 +154,22 @@ namespace Hotfix.JinxCasino.Adapters
             else if (frame.DeviceKind == JinxCasinoInputDeviceKind.Gamepad && tableSelection.Selected == null) tableSelection.Navigate(1);
             if (frame.PointerPressed && !PointerHitsMenu(frame.PointerPosition) || (actions & JinxCasinoInputActions.Confirm) != 0)
                 tableSelection.TryInvoke();
-            else if ((actions & JinxCasinoInputActions.Secondary) != 0) ApplyTableCommand(JinxCasinoTableAction.Secondary, 0);
-            else if ((actions & JinxCasinoInputActions.Help) != 0) ApplyTableCommand(JinxCasinoTableAction.Help, 0);
+            else if ((actions & JinxCasinoInputActions.Secondary) != 0) ApplyFocusedCommand(JinxCasinoTableAction.Secondary);
+            else if ((actions & JinxCasinoInputActions.Help) != 0) ApplyFocusedCommand(JinxCasinoTableAction.Help);
             else if ((actions & (JinxCasinoInputActions.PreviousGroup | JinxCasinoInputActions.NextGroup)) != 0)
             {
                 int chipDirection = (actions & JinxCasinoInputActions.NextGroup) != 0 ? 1 : -1;
-                for (int i = 0; focusedStation != null && i < focusedStation.Targets.Count; i++)
+                var targets = HasShopFocus ? focusedShop.Targets : focusedStation?.Targets;
+                for (int i = 0; targets != null && i < targets.Count; i++)
                 {
                     var target = tableSelection.Navigate(chipDirection);
-                    if (target == null || target.Action == JinxCasinoTableAction.ChipAdd) break;
+                    if (target == null || target.Action == (HasShopFocus ? JinxCasinoTableAction.SelectProduct : JinxCasinoTableAction.ChipAdd)) break;
                 }
             }
         }
+
+        private void ApplyFocusedCommand(JinxCasinoTableAction action)
+        { if (HasShopFocus) ApplyShopCommand(action, 0); else ApplyTableCommand(action, 0); }
 
         private bool PointerHitsMenu(Vector2 position)
         {
@@ -215,6 +220,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// 离开桌面仅清草稿，已投入局继续计时并保持原机台定位。
         public void CloseImmersionTable()
         {
+            CloseImmersionShop();
             if (focusedStation != null)
                 foreach (var target in focusedStation.Targets) if (target != null) target.Invoked -= OnTableTargetInvoked;
             tableSession?.Close(); tableSession = null; focusedStation = null; focusedPresentation = null;

@@ -84,6 +84,28 @@ namespace Tests.Demo
             Assert.That(owner.AdventureState.StageIndex, Is.Zero); Assert.That(owner.AdventureState.Coins, Is.EqualTo(1000));
             Assert.That(owner.IsImmersionPaused, Is.False); Assert.That(EventSystem.current.sendNavigationEvents, Is.False);
             Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.Locked));
+            var counter = Object.FindFirstObjectByType<JinxCasinoShopCounter>();
+            Assert.That(counter, Is.Not.Null);
+            yield return MoveUntil(Key.A, () => body.transform.position.x <= counter.InteractionPosition.x + .15f);
+            Vector3 beforeShop = camera.transform.position; Quaternion beforeShopRotation = camera.transform.rotation;
+            yield return KeyPress(Key.E);
+            yield return Wait(() => owner.HasShopFocus && Vector3.Distance(camera.transform.position, counter.FocusPose.position) < .01f,
+                "真实E进入补给柜台", 3);
+            yield return Screenshot("S1SupplyCounter");
+            yield return ClickTarget(camera, counter.Targets.Single(value => value.TargetId == "s1.supply.product0"));
+            Assert.That(owner.AdventureState.Coins, Is.EqualTo(1000), "选实物不扣款。");
+            yield return ClickTarget(camera, counter.Targets.Single(value => value.TargetId == "s1.supply.action0"));
+            Assert.That(owner.AdventureState.Coins, Is.EqualTo(900));
+            Assert.That(owner.AdventureState.Inventory.Single(value => value.ItemId == "duo_wrench").Count, Is.EqualTo(1));
+            yield return ClickTarget(camera, counter.Targets.Single(value => value.TargetId == "s1.supply.action1"));
+            Assert.That(owner.AdventureState.Coins, Is.EqualTo(900));
+            Assert.That(owner.AdventureState.Inventory.Any(value => value.ItemId == "duo_wrench"), Is.False);
+            Assert.That(owner.AdventureState.CooperationHelpCharges, Is.EqualTo(1));
+            yield return KeyPress(Key.Escape);
+            yield return Wait(() => !owner.HasShopFocus && Cursor.lockState == CursorLockMode.Locked, "离开柜台恢复探索", 3);
+            Assert.That(Vector3.Distance(camera.transform.position, beforeShop), Is.LessThan(.04f));
+            Assert.That(Quaternion.Angle(camera.transform.rotation, beforeShopRotation), Is.LessThan(.1f));
+            yield return MoveUntil(Key.D, () => body.transform.position.x >= -.1f);
             var station = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None).Single(value => value.Game == Hotfix.JinxCasino.Rules.CasinoGameKind.Slots);
             Assert.That(station.HasTableInteraction, Is.True);
             // 保存样板朝向+Z；沿正交通道用实际W/A或D接近，不直接搬角色/调用Interact。
@@ -179,7 +201,11 @@ namespace Tests.Demo
         private IEnumerator ClickTarget(Camera camera, JinxCasinoStation station, string suffix)
         {
             var target = station.Targets.Single(value => value.TargetId == station.StationId + "." + suffix);
-            yield return Wait(() => target.IsAvailable, "实体目标可操作：" + suffix, 3);
+            yield return ClickTarget(camera, target);
+        }
+        private IEnumerator ClickTarget(Camera camera, JinxCasinoTableTarget target)
+        {
+            yield return Wait(() => target.IsAvailable, "实体目标可操作：" + target.TargetId, 3);
             Physics.SyncTransforms(); var collider = target.GetComponent<Collider>(); Assert.That(collider, Is.Not.Null);
             Vector3 screen = camera.WorldToScreenPoint(collider.bounds.center);
             Assert.That(screen.z, Is.GreaterThan(0)); Assert.That(screen.x, Is.InRange(0, Screen.width)); Assert.That(screen.y, Is.InRange(0, Screen.height));

@@ -75,17 +75,18 @@ namespace Hotfix.JinxCasino.Adapters.UI
             objective.text = adventure == null ? string.Empty : adventure.Mode == CasinoAdventureMode.Practice ? "自由练习" :
                 "目标 " + owner.AdventureTarget + "   ·   " + Mathf.CeilToInt(adventure.RemainingMilliseconds / 1000f) + " 秒";
             var table = owner.TableView;
+            bool atDesk = table != null || owner.HasShopFocus;
             bool touching = Application.isMobilePlatform || owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Touch;
-            movePad.gameObject.SetActive(state == 2 && table == null && touching);
-            lookPad.gameObject.SetActive(state == 2 && table == null && touching);
-            interact.gameObject.SetActive(state == 2 && table == null && touching);
-            exitTable.gameObject.SetActive(state == 2 && table != null);
+            movePad.gameObject.SetActive(state == 2 && !atDesk && touching);
+            lookPad.gameObject.SetActive(state == 2 && !atDesk && touching);
+            interact.gameObject.SetActive(state == 2 && !atDesk && touching);
+            exitTable.gameObject.SetActive(state == 2 && atDesk);
             string action = owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
             var nearby = owner.GetNearbyLocalSocialStation();
-            prompt.text = table != null ? owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad
+            prompt.text = atDesk ? owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad
                 ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
-                : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
-            feedback.text = table != null ? owner.TableFeedback ?? table.Description : string.Empty;
+                : owner.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
+            feedback.text = owner.HasShopFocus ? owner.ShopFeedback ?? "选择实物查看报价；购买按钮确认付款。" : table != null ? owner.TableFeedback ?? table.Description : string.Empty;
         }
         private void OnDestroy() => Unbind();
     }

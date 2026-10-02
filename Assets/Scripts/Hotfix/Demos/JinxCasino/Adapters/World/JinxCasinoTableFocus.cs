@@ -18,11 +18,14 @@ namespace Hotfix.JinxCasino.Adapters
         private bool isReturning;
         private bool hasCapturedPose;
         private JinxCasinoStation station;
+        private Behaviour focusOwner;
+        private Transform focusPose;
+        private float focusedFieldOfView;
 
         /// 包括进入/退出过渡，活动期间禁止探索移动。
-        public bool IsActive => station != null || isReturning;
+        public bool IsActive => focusOwner != null || isReturning;
         /// 过渡完成后才允许提交桌面操作。
-        public bool IsReady => station != null && !isReturning && elapsed >= duration;
+        public bool IsReady => focusOwner != null && !isReturning && elapsed >= duration;
         /// 当前聚焦的具体实例，退出过渡期间仍保留。
         public JinxCasinoStation Station => station;
 
@@ -39,12 +42,25 @@ namespace Hotfix.JinxCasino.Adapters
         /// <returns>是否开始进入该机台。</returns>
         public bool TryEnter(JinxCasinoStation target, float seconds = 0.35f)
         {
-            if (IsActive || target == null || !target.HasTableInteraction || camera == null) return false;
+            return target != null && target.HasTableInteraction && TryEnter(target, target.FocusPose, target.FocusFieldOfView, seconds);
+        }
+
+        /// <summary>聚焦柜台等已有场景交互点；仍借用唯一相机并保留同一退出契约。</summary>
+        /// <param name="owner">拥有挂点的启用组件。</param>
+        /// <param name="pose">属于该组件层级的保存挂点。</param>
+        /// <param name="fieldOfView">30至75度的桌面视野。</param>
+        /// <param name="seconds">过渡秒数。</param>
+        /// <returns>是否成功开始聚焦。</returns>
+        public bool TryEnter(Behaviour owner, Transform pose, float fieldOfView, float seconds = .35f)
+        {
+            if (IsActive || owner == null || !owner.isActiveAndEnabled || pose == null || !pose.IsChildOf(owner.transform) || camera == null ||
+                float.IsNaN(fieldOfView) || float.IsInfinity(fieldOfView)) return false;
             returnPosition = camera.transform.position;
             returnRotation = camera.transform.rotation;
             returnFieldOfView = camera.fieldOfView;
             hasCapturedPose = true;
-            station = target; isReturning = false;
+            station = owner as JinxCasinoStation; focusOwner = owner; focusPose = pose;
+            focusedFieldOfView = Mathf.Clamp(fieldOfView, 30, 75); isReturning = false;
             BeginTransition(seconds);
             Tick(0);
             return true;
@@ -74,7 +90,7 @@ namespace Hotfix.JinxCasino.Adapters
         public void Tick(float deltaSeconds)
         {
             if (camera == null) return;
-            if (!isReturning && (station == null || station.FocusPose == null || !station.isActiveAndEnabled))
+            if (!isReturning && (focusOwner == null || focusPose == null || !focusOwner.isActiveAndEnabled))
             {
                 if (hasCapturedPose) RestoreImmediately();
                 return;
@@ -82,12 +98,12 @@ namespace Hotfix.JinxCasino.Adapters
             if (!IsActive) return;
             elapsed += float.IsNaN(deltaSeconds) || float.IsInfinity(deltaSeconds) ? 0 : Mathf.Max(0, deltaSeconds);
             float t = duration <= 0 ? 1 : Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / duration));
-            Vector3 destination = isReturning ? returnPosition : station.FocusPose.position;
-            Quaternion rotation = isReturning ? returnRotation : station.FocusPose.rotation;
-            float fov = isReturning ? returnFieldOfView : station.FocusFieldOfView;
+            Vector3 destination = isReturning ? returnPosition : focusPose.position;
+            Quaternion rotation = isReturning ? returnRotation : focusPose.rotation;
+            float fov = isReturning ? returnFieldOfView : focusedFieldOfView;
             camera.transform.SetPositionAndRotation(Vector3.Lerp(fromPosition, destination, t), Quaternion.Slerp(fromRotation, rotation, t));
             camera.fieldOfView = Mathf.Lerp(fromFieldOfView, fov, t);
-            if (isReturning && t >= 1) { station = null; isReturning = false; hasCapturedPose = false; }
+            if (isReturning && t >= 1) { station = null; focusOwner = null; focusPose = null; isReturning = false; hasCapturedPose = false; }
         }
 
         /// 宿主销毁或机台失效时恢复相机，避免下次进入保留桌面FOV。
@@ -98,7 +114,7 @@ namespace Hotfix.JinxCasino.Adapters
                 camera.transform.SetPositionAndRotation(returnPosition, returnRotation);
                 camera.fieldOfView = returnFieldOfView;
             }
-            station = null; isReturning = false; hasCapturedPose = false;
+            station = null; focusOwner = null; focusPose = null; isReturning = false; hasCapturedPose = false;
         }
 
         /// 生命周期结束时恢复借用的相机。

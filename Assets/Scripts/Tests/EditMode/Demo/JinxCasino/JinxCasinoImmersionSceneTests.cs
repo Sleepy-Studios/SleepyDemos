@@ -16,6 +16,30 @@ namespace Tests.Demo
         private const string Root = "Assets/LoadResources/Demos/jinx_casino";
 
         [Test]
+        public void SavedCounterAllowsOldInventoryWithoutSellingTheItemAgain()
+        {
+            var scene = EditorSceneManager.OpenPreviewScene(Root + "/Scenes/Immersion.unity");
+            try
+            {
+                var counter = scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<JinxCasinoShopCounter>(true)).Single();
+                Assert.That(counter.CounterId, Is.EqualTo("s1.supply"));
+                Assert.That(counter.ProductCount, Is.EqualTo(3));
+                Assert.That(counter.Targets.Select(target => target.TargetId).Distinct().Count(), Is.EqualTo(6));
+                var state = new CasinoAdventureState { Coins = 1000, Config = new CasinoAdventureConfig() };
+                state.Config.ShopItemIds = new[] { "redraw_card" };
+                state.Inventory.Add(new CasinoInventoryEntry { ItemId = "duo_wrench", Count = 1 });
+                counter.Present(state, 0, null);
+                Assert.That(counter.Targets.Single(target => target.Action == JinxCasinoTableAction.PurchaseProduct).IsAvailable, Is.False);
+                var use = counter.Targets.Single(target => target.Action == JinxCasinoTableAction.UseProduct);
+                Assert.That(use.IsAvailable, Is.True, "已有库存不受本局售卖列表限制，实体按钮与次要动作应一致。");
+                state.Inventory.Clear(); counter.Present(state, 0, null);
+                Assert.That(use.IsAvailable, Is.False);
+                Assert.That(state.Coins, Is.EqualTo(1000), "展示报价不能修改资金。");
+            }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        [Test]
         public void SavedSampleConfigOpensExactlyThreeGamesInOneArea()
         {
             var settings = AssetDatabase.LoadAssetAtPath<JinxCasinoGameSettings>(Root + "/Data/ImmersionSettings.asset");

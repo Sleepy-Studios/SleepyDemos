@@ -21,7 +21,10 @@ MonoBehaviour:
     EventIntervalMilliseconds: 0
     AdditionalPlayerTargetPercent: 25
     EndlessCycleTargetPercent: 50
-    ShopItemIds: []
+    ShopItemIds:
+    - duo_wrench
+    - redraw_card
+    - stop_loss
     AllowedGames: 00000000030000000a000000
     InitiallyAvailableGames: 00000000030000000a000000
     EventWeights: []

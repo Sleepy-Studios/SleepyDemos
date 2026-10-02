@@ -227,6 +227,11 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (adventure == null || IsAdventureInputBlocked || IsBusy || body == null) return;
             var nearest = FindNearbyStation();
+            if (UsesImmersion && PreferNearbyShop(nearest))
+            {
+                if (!TryOpenImmersionShop()) { adventureStatus = "柜台暂不可操作。"; Changed?.Invoke(); }
+                return;
+            }
             if (nearest != null && UsesImmersion)
             {
                 if (!TryOpenImmersionTable(nearest)) { adventureStatus = "此机台暂不可操作。"; Changed?.Invoke(); }

@@ -16,13 +16,19 @@ namespace Hotfix.JinxCasino.Adapters
         /// <summary>绑定具体桌面的保存目标，顺序稳定，不搜索其它机台。</summary>
         /// <param name="station">聚焦的场景实例；null表示清理。</param>
         public void Bind(JinxCasinoStation station)
+            => Bind(station != null ? station.transform : null, station?.Targets);
+
+        /// <summary>绑定柜台等实体交互区域的目标，拒绝不属于该区域的物件。</summary>
+        /// <param name="owner">拥有目标的场景根；null清理。</param>
+        /// <param name="operationTargets">保存的目标序列。</param>
+        public void Bind(Transform owner, IEnumerable<JinxCasinoTableTarget> operationTargets)
         {
             SetSelected(null); targets.Clear();
-            if (station == null) return;
+            if (owner == null || operationTargets == null) return;
             // 稳定插入排序，保持同NavigationOrder时资源配置中的原顺序。
-            foreach (var target in station.Targets)
+            foreach (var target in operationTargets)
             {
-                if (target == null || !target.transform.IsChildOf(station.transform)) continue;
+                if (target == null || !target.transform.IsChildOf(owner)) continue;
                 int index = targets.Count;
                 while (index > 0 && targets[index - 1].NavigationOrder > target.NavigationOrder) index--;
                 targets.Insert(index, target);

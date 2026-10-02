@@ -119,7 +119,7 @@ namespace Hotfix.Editor.JinxCasino
         { var value = root.GetComponent<T>(); if (value == null) value = root.AddComponent<T>(); return value; }
         private static Transform Node(Transform root, string name) => root.GetComponentsInChildren<Transform>(true).Single(value => value.name == name ||
             name == "StatePlaque" && System.Text.RegularExpressions.Regex.IsMatch(value.name, @"^StatePlaque\.\d+$"));
-        private static TMP_Text Label(Transform parent, string name, TMP_FontAsset font, Vector3 position, float width, float height, float size)
+        internal static TMP_Text Label(Transform parent, string name, TMP_FontAsset font, Vector3 position, float width, float height, float size)
         {
             var existing = parent.Find(name); var root = existing != null ? existing.gameObject : new GameObject(name);
             root.transform.SetParent(parent, false); root.transform.localPosition = position;

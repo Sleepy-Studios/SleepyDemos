@@ -90,3 +90,9 @@ GetView按ActiveStationId/LastStationId过滤公开投影，同一视图给各�
 
 此层已使用真实领域规则验证；相机、InputRouter、场景实体及UI接入需另做PlayMode和实玩验证，不能用纯适配测试代替。
 沉浸HUD在OnShow借用GraphicsSettingsUI的控件显隐作用域，在OnHide/OnDestroy释放，避免公共画质入口遮挡暂停；具体恢复与多使用者语义见公共Streamline模块文档。新入口回归使用真实InputSystem鼠标操作桌面暂停按钮，并检查回Hub后的公共入口恢复。
+
+## S1实体补给柜台
+
+JinxCasinoShopCounter保存s1.supply、三件商品、六个物理目标与报价/回执铭牌；JinxCasinoShopHost把选择、购买、库存使用接入已有PurchaseItem、UseAdventureItem及CancelPreparedItem。选中商品不扣款，支付仍由领域请求处理。ShopHost与机台共用输入上下文、TableSelection和TableFocus，后者支持有自身聚焦挂点的Behaviour；关闭、失效及回Hub恢复借用相机并清理目标订阅。
+
+柜台与机台按玩家到交互锚点距离决定接近入口；探索移动不因柜台另建逻辑。LB/RB切换商品目标，确认提交当前目标，次要动作使用选中商品库存。商品报价读取本局配置、余额与库存；旧存档没有新商品时显示未开放。此链仍需Android/Xbox真机体验验收。

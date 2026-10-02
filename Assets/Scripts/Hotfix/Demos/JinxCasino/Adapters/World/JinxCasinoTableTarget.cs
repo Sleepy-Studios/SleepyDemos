@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Hotfix.JinxCasino.Adapters
 {
     /// 机台物件提交的语义操作；金额及结果仍由规则验证。
-    public enum JinxCasinoTableAction { ChipAdd, ChipClear, Commit, Primary, Secondary, Help }
+    public enum JinxCasinoTableAction { ChipAdd, ChipClear, Commit, Primary, Secondary, Help, SelectProduct, PurchaseProduct, UseProduct }
 
     /// 独立实体操作点；碰撞命中和手柄焦点共用相同目标。
     public sealed class JinxCasinoTableTarget : MonoBehaviour

@@ -17,6 +17,8 @@
 
 样板初始开放Slots、Blackjack、CooperativeLevers；`InitiallyAvailableGames`仍受`AllowedGames`限制，旧存档缺失该字段时保持原区域解锁。现有自动化覆盖保存引用，不代替三输入实玩、画面或S1用户验收。
 
+`沉浸样板/装配实体补给柜台`在现有大厅售票台上增加三件实体商品、报价牌、购买与库存按钮；已有柜台不会重建。该入口只把新局ImmersionSettings商品范围设置为双人扳手、重抽牌、止损券，旧存档继续使用自身配置。`沉浸样板/调整柜台可读布局`仅更新柜台商品缩放、报价牌位置与聚焦挂点，执行前保存人工修改。两者都复用唯一游戏相机，柜台本身不创建资金或库存服务。
+
 ## 构建约束
 
 Windows / Android 分别生成对应 HybridCLR 元数据、Hotfix DLL 和 YooAsset 内置包，平台输出隔离。Android 不得使用 StandaloneWindows64 的元数据快照，也不得依赖本机 Mock Server。
