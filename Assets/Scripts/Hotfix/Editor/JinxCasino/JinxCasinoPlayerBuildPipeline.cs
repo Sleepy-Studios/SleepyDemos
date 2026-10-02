@@ -113,6 +113,19 @@ namespace Hotfix.Editor.JinxCasino
             Save(job, "等待恢复编辑器配置。");
         }
 
+        /// 重试已停止的恢复事务，不重新构建、不丢弃备份或将成功产物标为取消。
+        public static void ResumeRecovery()
+        {
+            var job = ReadJob();
+            if (job == null || job.Phase != "RecoveryRequired") return;
+            // Succeeded只在原生构建返回成功后置位，此时Error来自随后的恢复故障。
+            // 构建失败的事务仍保留原错误，恢复完成后继续报告构建未完成。
+            if (job.Succeeded) job.Error = string.Empty;
+            job.SwitchRequested = false;
+            job.Phase = "Restoring";
+            Save(job, "重试恢复编辑器配置，保留既有产物与备份。");
+        }
+
         /// <summary>仅重打包已有Windows离线Player，不重新编译，也不删除原包或本机排障目录。</summary>
         /// <param name="playerRoot">当前项目Builds/JinxCasino/S1目录下的Windows Player目录，支持绝对或项目相对路径。</param>
         /// <returns>新生成的 Playable ZIP 绝对路径；已有同名 ZIP 时使用唯一后缀保留旧证据。</returns>
@@ -501,6 +514,8 @@ namespace Hotfix.Editor.JinxCasino
             Environment.SetEnvironmentVariable("UNITY_IL2CPP_PATH", job.Il2CppEnvironment);
             Environment.SetEnvironmentVariable("PATHEXT", job.ProcessPathExt);
             CleanupCompilerHelper(job);
+            // Unity可能仍映射着刚用于构建的URP/首包文件，覆盖前先释放缓存句柄。
+            AssetDatabase.ReleaseCachedFileHandles();
             foreach (var entry in job.Backups)
             {
                 if (entry.IsDirectory)
@@ -567,6 +582,7 @@ namespace Hotfix.Editor.JinxCasino
 
         private static void RestoreRenderingAssets(BuildJob job)
         {
+            AssetDatabase.ReleaseCachedFileHandles();
             foreach (var entry in job.RenderingAssets)
             {
                 string source = WorkspacePath(entry.AssetPath);
@@ -586,6 +602,8 @@ namespace Hotfix.Editor.JinxCasino
                 EditorJsonUtility.FromJsonOverwrite(entry.Json, asset);
                 // 不 SaveAssets/SaveAssetIfDirty；构建副作用不能借缓存再次覆盖原字节。
                 EditorUtility.ClearDirty(asset);
+                // ImportAsset会重新打开文件；第二次字节恢复也必须释放句柄。
+                AssetDatabase.ReleaseCachedFileHandles();
                 File.Copy(backup.Backup, source, true);
                 File.Copy(metaBackup.Backup, metaSource, true);
                 if (!File.ReadAllBytes(source).SequenceEqual(File.ReadAllBytes(backup.Backup)))

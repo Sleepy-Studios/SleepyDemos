@@ -165,6 +165,8 @@
 | `Tools/SleepyDemos/整蛊赌场/构建Android S1独立样板` | 启动 Android 8.0+、ARM64 离线验证 APK 构建 |
 | `Tools/SleepyDemos/整蛊赌场/重打包最近Windows S1分享包` | 为已成功生成的Player重打包Playable ZIP，排除调试辅助目录，不重新编译 |
 
+恢复因文件占用等原因中断时，使用`Tools/SleepyDemos/整蛊赌场/重试构建配置恢复`，保留已有ZIP/APK与备份，不把恢复重试当成取消构建。
+
 直达菜单与构建窗口共用同一事务，不并行执行；两个S1单机构建入口不要求联网SDK或App ID；构建不代表样板体验或真机验收完成。源码位于 `Assets/Scripts/Hotfix/Editor/JinxCasino/JinxCasinoPlayerBuildWindow.cs` 与 `JinxCasinoPlayerBuildPipeline.cs`。
 
 ## 五、Agent Skill（仓库内）

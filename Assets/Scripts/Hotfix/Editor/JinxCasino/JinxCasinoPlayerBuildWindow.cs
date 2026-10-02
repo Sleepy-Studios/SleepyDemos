@@ -23,6 +23,10 @@ namespace Hotfix.Editor.JinxCasino
         [MenuItem("Tools/SleepyDemos/整蛊赌场/构建Android S1独立样板")]
         public static void BuildImmersionAndroid() => JinxCasinoPlayerBuildPipeline.Start(BuildTarget.Android);
 
+        /// 只恢复中断事务的原配置，已生成的ZIP/APK及备份继续保留。
+        [MenuItem("Tools/SleepyDemos/整蛊赌场/重试构建配置恢复")]
+        public static void ResumeRecovery() => JinxCasinoPlayerBuildPipeline.ResumeRecovery();
+
         /// 为最近完成的Windows S1 Player重打包ZIP，保留原包和排障目录。
         [MenuItem("Tools/SleepyDemos/整蛊赌场/重打包最近Windows S1分享包")]
         public static void RepackageLastImmersionWindowsPlayer()
@@ -50,8 +54,11 @@ namespace Hotfix.Editor.JinxCasino
                 if (GUILayout.Button("构建 Android S1 独立样板 APK", GUILayout.Height(36)))
                     BuildImmersionAndroid();
             }
-            if (JinxCasinoPlayerBuildPipeline.IsBusy && GUILayout.Button("取消后续步骤并恢复编辑器配置"))
-                JinxCasinoPlayerBuildPipeline.RequestRestore();
+            if (JinxCasinoPlayerBuildPipeline.IsBusy)
+            {
+                if (GUILayout.Button("取消后续步骤并恢复编辑器配置")) JinxCasinoPlayerBuildPipeline.RequestRestore();
+                if (GUILayout.Button("重试中断的配置恢复（保留产物）")) ResumeRecovery();
+            }
             EditorGUILayout.LabelField("输出：Builds/JinxCasino/S1/{platform}/{version}", EditorStyles.wordWrappedLabel);
         }
 

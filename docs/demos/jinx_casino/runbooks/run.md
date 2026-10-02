@@ -51,7 +51,7 @@ Windows分享使用Playable ZIP，DoNotShip开发排障目录不分发。Android
 
 当前仍复用DefaultPackage的资源范围，可能携带其他Demo资源；包体裁剪和双端实玩仍待验。构建成功不代表S1视觉/体验通过，实际记录见immersion-progress。历史P0/P4包只用于追溯，旧流程恢复须使用对应Git基线。
 
-平台 DLL、首包、构建场景配置隔离；不修改默认 HotfixConfig 或 Build Settings。构建中处理器只改 Player 的 AppEntrance 内存场景配置。任务结束恢复被覆盖的生成文件、资源首包、Collector 内存与 Editor/Player 设置，备份保留于 `Library/JinxCasinoBuild`。若恢复失败，停止后续步骤并保留恢复信息；不要继续另起构建或删除备份。
+平台 DLL、首包、构建场景配置隔离；不修改默认 HotfixConfig 或 Build Settings。构建中处理器只改 Player 的 AppEntrance 内存场景配置。任务结束恢复被覆盖的生成文件、资源首包、Collector 内存与 Editor/Player 设置，备份保留于 `Library/JinxCasinoBuild`。 Windows缓存句柄可能占用刚构建的资源；恢复覆盖前及重新导入后调用[AssetDatabase.ReleaseCachedFileHandles](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/AssetDatabase.ReleaseCachedFileHandles.html)。恢复失败时使用`Tools/SleepyDemos/整蛊赌场/重试构建配置恢复`，只重试原事务，不重新构建或丢弃产物。已成功构建的事务不再误报为用户取消；原构建失败的错误仍保留。若恢复失败，停止后续步骤并保留恢复信息；不要继续另起构建或删除备份。
 
 URP 构建预处理会保存目标平台的着色器预过滤配置，并可能裁剪 GlobalSettings 的运行时设置列表。事务只备份目标平台启用质量级别所使用的 URP 资产与注册的 URP GlobalSettings，保留其内存 JSON、dirty 状态和原始 `.asset` / `.meta` 字节；恢复时重载对象，并在原平台恢复后再次校验原字节。备份仅在本机 `Library` 中，不进入 APK 或分享 ZIP。
 
