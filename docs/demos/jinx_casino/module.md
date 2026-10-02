@@ -96,3 +96,12 @@ GetView按ActiveStationId/LastStationId过滤公开投影，同一视图给各�
 JinxCasinoShopCounter保存s1.supply、三件商品、六个物理目标与报价/回执铭牌；JinxCasinoShopHost把选择、购买、库存使用接入已有PurchaseItem、UseAdventureItem及CancelPreparedItem。选中商品不扣款，支付仍由领域请求处理。ShopHost与机台共用输入上下文、TableSelection和TableFocus，后者支持有自身聚焦挂点的Behaviour；关闭、失效及回Hub恢复借用相机并清理目标订阅。
 
 柜台与机台按玩家到交互锚点距离决定接近入口；探索移动不因柜台另建逻辑。LB/RB切换商品目标，确认提交当前目标，次要动作使用选中商品库存。商品报价读取本局配置、余额与库存；旧存档没有新商品时显示未开放。此链仍需Android/Xbox真机体验验收。
+
+
+## S1互动教学宿主与界面
+
+JinxCasinoTutorialHost在新的Practice中同步启动教学，并把实际应用的视角、CharacterController位移、成功物件操作、柜台回执与已展示结果报告给原冒险聚合。视角/位移累计每0.15秒提交，保存前补齐累计但不递归刷新View。教学观察不占用经济操作同帧互斥。结果必须由具体机台PresentedSettlementSequence确认已完成演出；Restore的静态结果也可观察，无需再次付款。
+
+教学入口与选择控件保存在原JinxCasinoImmersionHudView中，JinxCasinoImmersionHudTutorial作为同一Presenter的partial维护绑定和退订。教学条不接管桌面焦点；Ready/完成选择等待离桌过渡结束，或由玩家暂停时打开。暂停菜单可再次打开此前暂缓的教学结果，避免“稍后”后无入口。重玩/新标准冒险共用明确确认卡，取消不替换聚合；跳过保留已投入局。
+
+SetImmersionMenuState可选取消回调仅在菜单打开时保存。Core Cancel及Demo手柄Menu由同一菜单返回函数处理，同帧至多退一层，确认窗口取消后保留原暂停。旧未配置教学HUD保持原入口；View退订和Controller销毁都清理回调。教学仅限制单次投入10，不保证获胜、不补发筹码，不把练习资金带入新正式局。

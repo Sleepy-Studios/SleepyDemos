@@ -23,6 +23,8 @@ namespace Hotfix.JinxCasino.Adapters
         /// 主机用于短暂输入互斥；暂停不会把正在进行的演出变成结束。
         public abstract bool IsAnimating { get; }
         public string StationId => stationId;
+        /// 当前已静态呈现或完成演出的结算序号；无结果或仍演出返回0，Restore无需再次付款即可被观察。
+        public int PresentedSettlementSequence => !IsAnimating && Latest?.Presentation?.IsComplete == true ? Latest.SettlementSequence : 0;
 
         protected void ConfigureLabels(string id, TMP_Text amount, TMP_Text rules, TMP_Text result)
         { stationId = id; amountText = amount; rulesText = rules; resultText = result; CacheBindings(); }

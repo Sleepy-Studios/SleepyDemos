@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Hotfix.JinxCasino.Adapters.UI
 {
     /// 样板薄HUD与菜单；桌面主操作仍在实体物件，所有控件由Prefab保存。
-    public sealed class JinxCasinoImmersionHudPresenter : MonoBehaviour
+    public sealed partial class JinxCasinoImmersionHudPresenter : MonoBehaviour
     {
         [SerializeField] private GameObject mainMenu;
         [SerializeField] private GameObject pauseMenu;
@@ -37,6 +37,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             start.onClick.AddListener(StartAdventure); practice.onClick.AddListener(StartPractice);
             resume.onClick.AddListener(Resume); pause.onClick.AddListener(Pause);
             leave.onClick.AddListener(Leave); interact.onClick.AddListener(Interact); exitTable.onClick.AddListener(ExitTable);
+            BindTutorialControls();
             Refresh();
         }
 
@@ -44,6 +45,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         public void Unbind()
         {
             if (owner == null) return;
+            UnbindTutorialControls();
             owner.Changed -= Refresh; owner.ImmersionInputChanged -= Refresh;
             owner.BindTouchPads(null, null); owner.SetImmersionMenuState(false, false, null);
             start.onClick.RemoveListener(StartAdventure); practice.onClick.RemoveListener(StartPractice);
@@ -57,19 +59,21 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void Resume() { owner.ResumeImmersion(); Refresh(); }
         private void Leave() => owner.RequestExit();
         private void Interact() { owner.InteractWithNearbyStation(); Refresh(); }
-        private void ExitTable() { owner.CloseImmersionTable(); Refresh(); }
+        private void ExitTable() { owner.CloseImmersionTable(true); Refresh(); }
         private void Update() { if (owner != null) Refresh(); }
 
         private void Refresh()
         {
             if (owner == null) return;
-            int state = !owner.HasAdventure ? 0 : owner.IsImmersionPaused ? 1 : 2;
+            int state = ResolveTutorialHudState();
             if (menuState != state)
             {
                 menuState = state;
                 mainMenu.SetActive(state == 0); pauseMenu.SetActive(state == 1); fieldHud.SetActive(state == 2);
-                owner.SetImmersionMenuState(state != 2, false, state == 0 ? start.gameObject : state == 1 ? resume.gameObject : null);
+                RefreshTutorialControls(state);
+                owner.SetImmersionMenuState(state != 2, false, TutorialFirstSelection(state), HasTutorialUi ? CancelTutorialWindow : null);
             }
+            RefreshTutorialControls(state);
             var adventure = owner.AdventureState;
             wallet.text = "筹码  " + owner.Balance;
             objective.text = adventure == null ? string.Empty : adventure.Mode == CasinoAdventureMode.Practice ? "自由练习" :
@@ -86,7 +90,22 @@ namespace Hotfix.JinxCasino.Adapters.UI
             prompt.text = atDesk ? owner.InputDeviceKind == Input.JinxCasinoInputDeviceKind.Gamepad
                 ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
                 : owner.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
-            feedback.text = owner.HasShopFocus ? owner.ShopFeedback ?? "选择实物查看报价；购买按钮确认付款。" : table != null ? owner.TableFeedback ?? table.Description : string.Empty;
+            feedback.text = InteractionFeedback(table);
+        }
+        private string InteractionFeedback(JinxCasinoTableView table)
+        {
+            if (owner.HasShopFocus) return owner.ShopFeedback ?? "选择实物查看报价；购买按钮确认付款。";
+            if (table == null) return string.Empty;
+            if (owner.HasTableFeedbackError) return owner.TableFeedback;
+            return owner.IsTableAnimating ? "等待机台完成动作。" : TableOperationHint(table);
+        }
+
+        private static string TableOperationHint(JinxCasinoTableView table)
+        {
+            if (table.IsSlotsPrepared) return "拉动右侧拉杆，开始这次投入。";
+            if (table.HasOwnActiveRound) return table.Game == CasinoGameKind.Blackjack ? "桌边按钮：要牌或停牌。" : "绿灯亮起时拉动你的拉杆。";
+            if (table.DraftStake > 0) return "检查桌面筹码与规则，再确认投入。";
+            return table.Presentation?.IsComplete == true ? "结果已显示在机台上，可继续投入或离开。" : "选择筹码，确认后开始游玩。";
         }
         private void OnDestroy() => Unbind();
     }

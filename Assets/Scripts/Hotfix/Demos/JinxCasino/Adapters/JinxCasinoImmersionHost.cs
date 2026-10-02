@@ -24,6 +24,7 @@ namespace Hotfix.JinxCasino.Adapters
         private bool immersionModalPaused;
         private bool immersionScreenOpen;
         private GameObject immersionFirstSelection;
+        private Action immersionMenuCancel;
         private float navigationDelay;
         private int previousNavigation;
         private Vector2 previousTouchMove;
@@ -38,6 +39,10 @@ namespace Hotfix.JinxCasino.Adapters
         public JinxCasinoTableView TableView { get; private set; }
         /// 最近一次桌面操作的直接反馈。
         public string TableFeedback { get; private set; }
+        /// HUD仅展示操作失败原因，成功状态由专属桌面物件呈现。
+        public bool HasTableFeedbackError { get; private set; }
+        /// 当前物件是否仍在演出，不能提前宣称结果已经展示。
+        public bool IsTableAnimating => focusedPresentation != null && focusedPresentation.IsAnimating;
         /// 当前设备用于切换按键图标，不读取全局Gamepad.current。
         public JinxCasinoInputDeviceKind InputDeviceKind => immersionInput?.DeviceKind ?? JinxCasinoInputDeviceKind.KeyboardMouse;
         /// 暂停面板及设备提示订阅，离场随宿主释放。
@@ -57,8 +62,10 @@ namespace Hotfix.JinxCasino.Adapters
         /// <param name="open">菜单是否打开。</param>
         /// <param name="pauseClock">是否冻结单机时钟。</param>
         /// <param name="firstSelection">菜单保存的首个可用控件。</param>
-        public void SetImmersionMenuState(bool open, bool pauseClock, GameObject firstSelection)
+        /// <param name="cancel">由菜单统一处理取消；null保留旧暂停切换。</param>
+        public void SetImmersionMenuState(bool open, bool pauseClock, GameObject firstSelection, Action cancel = null)
         {
+            immersionMenuCancel = open ? cancel : null;
             immersionScreenOpen = open; immersionModalPaused = open && pauseClock; immersionFirstSelection = firstSelection;
             appliedInputContext = null;
             if (immersionInput != null) ApplyImmersionContext(open ? JinxCasinoInputContext.Menu : tableFocus.IsActive ? JinxCasinoInputContext.Table : JinxCasinoInputContext.Exploration);
@@ -100,7 +107,8 @@ namespace Hotfix.JinxCasino.Adapters
             immersionMenu?.Update();
             if ((actions & JinxCasinoInputActions.Pause) != 0)
             {
-                if (IsImmersionPaused) ResumeImmersion(); else PauseImmersion();
+                if (immersionMenuCancel != null) immersionMenuCancel();
+                else if (IsImmersionPaused) ResumeImmersion(); else PauseImmersion();
             }
             AdvanceImmersionPresentation();
             float presentationDelta = PresentationClock.GetDeltaSeconds(Time.frameCount);
@@ -110,16 +118,19 @@ namespace Hotfix.JinxCasino.Adapters
             if (HasShopBinding && (!tableFocus.IsActive || focusedShop == null || !focusedShop.isActiveAndEnabled)) CloseImmersionTable();
             if (IsImmersionPaused) return;
             UpdateAdventure(presentationDelta);
+            UpdateTutorialSceneFacts();
             if (IsAdventureInputBlocked) return;
             if (tableFocus.IsActive)
             {
-                if ((actions & JinxCasinoInputActions.Back) != 0) { CloseImmersionTable(); return; }
+                if ((actions & JinxCasinoInputActions.Back) != 0) { CloseImmersionTable(true); return; }
                 if (!tableFocus.IsReady || tableSession == null && !HasShopFocus) return;
                 if (HasShopFocus) RefreshImmersionShop(); else RefreshImmersionTable();
                 UpdateTableInput(frame, actions);
                 return;
             }
             if ((actions & JinxCasinoInputActions.Interact) != 0) { InteractWithNearbyStation(); if (tableFocus.IsActive) return; }
+            float beforeTutorialYaw = yaw, beforeTutorialPitch = pitch;
+            Vector3 beforeTutorialPosition = body.transform.position;
             if (presentationDelta > 0)
             { yaw += frame.LookDegrees.x; pitch = Mathf.Clamp(pitch - frame.LookDegrees.y, -70, 70); }
             body.transform.rotation = Quaternion.Euler(0, yaw, 0);
@@ -127,6 +138,8 @@ namespace Hotfix.JinxCasino.Adapters
             float speed = (gameSettings != null ? gameSettings.MovementSpeed : 3.5f) * (sceneEffects != null ? sceneEffects.LocalMovementMultiplier : 1);
             body.Move((body.transform.right * frame.Move.x + body.transform.forward * frame.Move.y) * (speed * presentationDelta)
                 + Vector3.down * (3 * presentationDelta));
+            ObserveTutorialAppliedExploration(Mathf.DeltaAngle(beforeTutorialYaw, yaw), pitch - beforeTutorialPitch,
+                Vector3.ProjectOnPlane(body.transform.position - beforeTutorialPosition, Vector3.up).magnitude, frame.Move.sqrMagnitude > .0001f);
         }
 
         private void ApplyImmersionContext(JinxCasinoInputContext context)
@@ -188,7 +201,7 @@ namespace Hotfix.JinxCasino.Adapters
             tableSession = new JinxCasinoTableSession(new JinxCasinoControllerTableOperations(this, station), station.StationId, station.Game);
             foreach (var target in station.Targets) if (target != null)
             { target.BindPresentationClock(PresentationClock); target.Invoked += OnTableTargetInvoked; }
-            tableSelection.Bind(station); TableFeedback = null;
+            tableSelection.Bind(station); TableFeedback = null; HasTableFeedbackError = false;
             RefreshImmersionTable(); ApplyImmersionContext(JinxCasinoInputContext.Table);
             return true;
         }
@@ -198,9 +211,10 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (tableSession == null || !tableFocus.IsReady || IsImmersionPaused) return;
             if (focusedPresentation != null && focusedPresentation.IsAnimating && action != JinxCasinoTableAction.Help)
-            { TableFeedback = "请等机台完成当前动作。"; return; }
+            { TableFeedback = "请等机台完成当前动作。"; HasTableFeedbackError = false; return; }
             var result = tableSession.Apply(action, value, Time.frameCount);
-            TableFeedback = result.Description;
+            TableFeedback = result.Description; HasTableFeedbackError = !result.Success;
+            ObserveTutorialTableCommand(action, result);
             RefreshImmersionTable(); ImmersionInputChanged?.Invoke();
         }
 
@@ -217,18 +231,21 @@ namespace Hotfix.JinxCasino.Adapters
             }
         }
 
-        /// 离开桌面仅清草稿，已投入局继续计时并保持原机台定位。
-        public void CloseImmersionTable()
+        /// <summary>离开桌面仅清草稿；已投入局保持原定位，真实玩家离桌要等返回过渡结束再报告教学。</summary>
+        /// <param name="playerInitiated">玩家Back/离桌按钮传true；加载、传送、机台失效或销毁清理保持false。</param>
+        public void CloseImmersionTable(bool playerInitiated = false)
         {
+            if (playerInitiated) RegisterTutorialPlayerExit();
             CloseImmersionShop();
             if (focusedStation != null)
                 foreach (var target in focusedStation.Targets) if (target != null) target.Invoked -= OnTableTargetInvoked;
             tableSession?.Close(); tableSession = null; focusedStation = null; focusedPresentation = null;
-            tableSelection?.Bind(null); tableFocus?.Exit(); TableView = null; TableFeedback = null;
+            tableSelection?.Bind(null); tableFocus?.Exit(); TableView = null; TableFeedback = null; HasTableFeedbackError = false;
         }
 
         private void ResetImmersionTableForRestore()
         {
+            ResetTutorialObservations();
             CloseImmersionTable();
             tableFocus?.RestoreImmediately();
             movePad?.ResetInput(); lookPad?.ResetInput();
@@ -255,6 +272,7 @@ namespace Hotfix.JinxCasino.Adapters
         }
         private void DisposeImmersionInput()
         {
+            immersionMenuCancel = null;
             CloseImmersionTable(); tableFocus?.Dispose(); tableSelection?.Dispose(); immersionMenu?.Dispose();
             if (immersionInput != null)
             {

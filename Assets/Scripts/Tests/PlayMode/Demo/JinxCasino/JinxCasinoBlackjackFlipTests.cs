@@ -98,6 +98,7 @@ namespace Tests.Demo
             ResolveRealRound();
             presentation.Present(settled, false);
             Assert.That(presentation.IsAnimating, Is.True, "结算不能瞬切已有暗牌。");
+            Assert.That(presentation.PresentedSettlementSequence, Is.Zero, "未展示完整结果时不能推进教学。");
             yield return Until(() => Tilt() > 8 && Tilt() < 80, "看到翻牌前半程真实倾斜", 3);
             Assert.That(hole.Filter.sharedMesh, Is.SameAs(back.Mesh), "侧面之前保持真实保存的牌背。");
             Assert.That(CounterText(), Does.Contain("+?"), "半程前铭牌不能提前显出暗牌点数。");
@@ -137,6 +138,7 @@ namespace Tests.Demo
                 "真实网格正面法线需要经历侧向姿态，不能只瞬切mesh。");
             presentation.Present(settled, false); presentation.Present(settled, false);
             yield return Until(() => !presentation.IsAnimating, "翻牌与庄家补牌全部完成", 6);
+            Assert.That(presentation.PresentedSettlementSequence, Is.EqualTo(settled.SettlementSequence));
             AssertSettledFace();
         }
 
@@ -148,6 +150,7 @@ namespace Tests.Demo
             yield return Until(() => Tilt() > 8 && Tilt() < 80, "恢复发生于真实翻牌中间", 3);
             presentation.Restore(settled);
             Assert.That(presentation.IsAnimating, Is.False); AssertSettledFace();
+            Assert.That(presentation.PresentedSettlementSequence, Is.EqualTo(settled.SettlementSequence), "恢复静态结果可继续教学，无需再次付款。");
             Quaternion stable = hole.Pose.localRotation;
             presentation.Present(settled, false); presentation.Present(settled, false);
             yield return new WaitForSecondsRealtime(.65f);
@@ -156,12 +159,14 @@ namespace Tests.Demo
 
             // 恢复真正未揭示的公开局，不直接把已结算DTO改成隐藏牌。
             presentation.Restore(initial);
+            Assert.That(presentation.PresentedSettlementSequence, Is.Zero);
             Assert.That(hole.Filter.sharedMesh, Is.SameAs(back.Mesh));
             Assert.That(CounterText(), Does.Contain("+?"));
             Assert.That(presentation.IsAnimating, Is.False);
             presentation.Present(settled, false);
             yield return Until(() => Tilt() > 100 && Tilt() < 175, "早期活动快照仍能在真结算后揭示一次", 3);
             presentation.BeginRun("blackjack-flip-next-run");
+            Assert.That(presentation.PresentedSettlementSequence, Is.Zero);
             Assert.That(presentation.IsAnimating, Is.False);
             Assert.That(hole.Pose.gameObject.activeSelf, Is.False);
             AssertNeutralRotations();

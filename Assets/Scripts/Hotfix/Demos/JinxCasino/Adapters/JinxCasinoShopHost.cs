@@ -1,4 +1,5 @@
 using System;
+using Hotfix.JinxCasino.Rules;
 using System.Collections.Generic;
 using Hotfix.JinxCasino.Adapters.Input;
 using UnityEngine;
@@ -55,10 +56,16 @@ namespace Hotfix.JinxCasino.Adapters
             {
                 var item = focusedShop.Product(selectedShopProduct);
                 if (item == null) return;
-                if (action == JinxCasinoTableAction.PurchaseProduct) ShopFeedback = PurchaseItem(item.Id).Description;
+                CasinoAdventureResult result = null;
+                if (action == JinxCasinoTableAction.PurchaseProduct) result = PurchaseItem(item.Id);
                 else if (action == JinxCasinoTableAction.UseProduct || action == JinxCasinoTableAction.Secondary)
-                    ShopFeedback = (AdventureState.PreparedItems.Contains(item.Id) ? CancelPreparedItem(item.Id) : UseAdventureItem(item.Id, "team")).Description;
+                    result = AdventureState.PreparedItems.Contains(item.Id) ? CancelPreparedItem(item.Id) : UseAdventureItem(item.Id, "team");
                 else if (action == JinxCasinoTableAction.Help) ShopFeedback = item.Description;
+                if (result != null)
+                {
+                    ShopFeedback = result.Description ?? result.Error;
+                    ObserveTutorialShopCommand(action, item.Id, result);
+                }
             }
             RefreshImmersionShop(); ImmersionInputChanged?.Invoke();
         }

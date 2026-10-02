@@ -117,10 +117,16 @@ namespace Hotfix.JinxCasino.Adapters
             if (IsBusy || IsLegacySession) { adventureStatus = "请先结束当前操作。"; Changed?.Invoke(); return; }
             var config = gameSettings != null ? gameSettings.CreateConfig() : new CasinoAdventureConfig();
             var started = CasinoAdventureSession.Start(seed ?? unchecked((uint)Guid.NewGuid().GetHashCode()), mode, 1, config);
+            AdoptAdventureSession(started, mode == CasinoAdventureMode.Practice ? "练习局已开始：无倒计时，不计入正式成长。" : "第一站已开放，机台结果与事件由本局种子决定。");
+        }
+
+        // 普通模式和教学共用新局安装，避免镜头、选定槽及区域清理出现两套生命周期。
+        private void AdoptAdventureSession(CasinoAdventureSession started, string message)
+        {
             ResetImmersionTableForRestore();
             adventure = started;
             adventureMilliseconds = 0; selectedSaveSlot = 0; displayedArea = -1;
-            adventureStatus = mode == CasinoAdventureMode.Practice ? "练习局已开始：无倒计时，不计入正式成长。" : "第一站已开放，机台结果与事件由本局种子决定。";
+            adventureStatus = message;
             RefreshAdventureState();
         }
 
@@ -200,7 +206,7 @@ namespace Hotfix.JinxCasino.Adapters
         public bool SaveAdventure(int slot)
         {
             if (adventure == null) return false;
-            try { SaveStore.Save(slot, adventure); selectedSaveSlot = slot; adventureStatus = "已保存到存档" + slot + "。"; Changed?.Invoke(); return true; }
+            try { FlushTutorialMovement(true, false); SaveStore.Save(slot, adventure); selectedSaveSlot = slot; adventureStatus = "已保存到存档" + slot + "。"; Changed?.Invoke(); return true; }
             catch (Exception exception) { adventureStatus = "保存失败：" + exception.Message; Changed?.Invoke(); return false; }
         }
 
@@ -310,7 +316,7 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (adventure != null && selectedSaveSlot > 0)
             {
-                try { SaveStore.Save(selectedSaveSlot, adventure); }
+                try { FlushTutorialMovement(true, false); SaveStore.Save(selectedSaveSlot, adventure); }
                 catch (Exception exception) { Debug.LogWarning("赌场离场存档失败：" + exception.Message, this); }
             }
             sceneEffects?.ClearEffects();
