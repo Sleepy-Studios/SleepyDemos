@@ -450,3 +450,13 @@ Windows从新ZIP独立解压到Library/JinxCasino/PlayerValidation/2026100221530
 两次构建后Mobile_RPAsset SHA256仍为DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9，ProjectSettings SHA256仍为BA62B48D12C8EE54754881A53D56A53CD6D09B40B97272C149967AF997658DC8，与构建前原字节一致。最终UnitySkills按项目路径确认原SleepyDemos实例，Editor为Windows、无Play/编译，Console0错误。当前没有代码新改动，不重复Test Runner或运行全量；直接相关自动化范围沿用上节证据，原生构建/签名/窗口输入分开报告。字体动态补字缓存被Unity构建自动清理，未手动回退；其余无关工作保留。
 
 本闭环只提交当前产物与验证边界文档，构建包/缓存不进入源码。四稿仍待用户确认，Hub/Loading正式视觉及三机台新美术未制作；不得把现在的样板包当成体验门槛完成。下一步先定位Windows真实键盘/暂停操作，取得真机与实物手柄证据；正式视觉按用户确认稿实施。S1与Goal保持未完成。
+
+## 2026-10-03：原生设置实操与输入诊断边界
+
+继续使用c622d85的同一Windows解压包，未改运行源码或重建产物。通过现存资源管理器实际双击启动，Player进程27708；指针打开设置、选择滑条，鼠标灵敏度从100%变为213%并显示预览提示，点击返回再打开设置恢复100%。最后通过主菜单退出按钮正常结束，进程不存在，日志包含Input System Shutdown及PlayerConnection Cleanup；最终日志副本为Library/JinxCasino/PlayerValidation/20261002215303-6094bc1d/native-settings-player.log。这证明原生指针设置预览/撤销/退出流程，不证明键盘、手柄、机台、完整局或视觉质量。
+
+未锁定光标的设置页中，窗口工具发送Return、Escape、Right及Control+Right仍未观察到对应菜单操作。Input Debugger/Profiler最初只列Editor；浮动子窗口的关闭操作被工具拒绝为非目标窗口，按重新选择/激活规则停止该路径。临时Editor诊断使用本机127.0.0.1:55000的Profiler连接及Input System自带远端设备通道，只观察事件，不向Player注入规则、按钮或玩家位置。连接确认1个Player，首次收到一份远端键盘全零状态；重编译后停止/重启远端观察仍未恢复设备和有效事件。原生鼠标滑条正常响应，但缺少持续事件对照，不能由“没有记录到按键”推断键盘后端正常、生产代码错误或工具故障。已请求用户以真实键盘在自由练习中按Esc报告暂停结果；结果未到，暂停验收保持待查。
+
+观察结束后退订事件和Editor更新，恢复先前Profiler目标并关闭本次诊断窗口；临时JinxCasinoNativeInputProbe.cs及meta已删除，正式Editor目录仍只保留三份构建源码，没有新Builder、测试文件或程序集。诊断记录仅保留在Library/JinxCasino/Verification/native-input-keyboard-first.log及native-input-events.log，不作为测试通过证据。删除后Editor完成重编译与域重载，最终无Play/编译、Console0错误；Mobile_RPAsset与ProjectSettings哈希仍匹配上节原字节。本轮无生产C#变化，不重复Test Runner或运行全量。
+
+原生完整日志另含`ERROR: Shader Hidden/Universal Render Pipeline/DBufferClear shader is not supported on this GPU`，此前仅按Exception/Error大小写检索不足以覆盖该消息；不能将此前“未检出异常”扩大为所有原生日志无错误。当前画面可显示，尚未确认该shader是否被实际场景使用及影响，列入正式视觉/渲染检查，不据此修改无关URP资产。四稿和S1体验仍未确认，Goal未完成。
