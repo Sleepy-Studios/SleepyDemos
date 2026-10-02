@@ -69,7 +69,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
         }
         private void CancelImmersionHudWindow()
         {
-            if (menuState == 8) CancelStandardEndingWindow();
+            if (lastSettingsCancelFrame == Time.frameCount) return;
+            if (settingsOpen) CloseSettingsWindow();
+            else if (menuState == 8) CancelStandardEndingWindow();
             else if (HasSaveUi) CancelSaveWindow();
             else if (HasTutorialUi) CancelTutorialWindow();
         }

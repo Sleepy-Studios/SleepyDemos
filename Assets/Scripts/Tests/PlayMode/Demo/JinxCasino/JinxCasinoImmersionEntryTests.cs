@@ -37,6 +37,7 @@ namespace Tests.Demo
         private GameViewResolution resolution;
         private JinxCasinoController owner;
         private string saveDirectory;
+        private string settingsTestKey;
 
         [UnityTest, Timeout(180000)]
         public IEnumerator SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause()
@@ -338,6 +339,61 @@ namespace Tests.Demo
         }
 
         [UnityTest, Timeout(180000)]
+        public IEnumerator SettingsPreviewSaveAndCancelUseRealControlsAndKeepPause()
+        {
+            yield return EnterSample();
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var local = Field<JinxCasinoLocalSettingsPresenter>(presenter, "localSettings"); Assert.That(local, Is.Not.Null);
+            settingsTestKey = "JinxCasino.SettingsEntry." + Guid.NewGuid().ToString("N");
+            var store = new CasinoLocalPreferencesStore(settingsTestKey);
+            store.Save(new CasinoLocalPreferences { PcLookMultiplier = 1.2f, Volume = .4f });
+            owner.LoadLocalPreferences(store);
+            var router = Field<Core.Runtime.Inputs.GameplayInputRouter>(owner, "immersionInput");
+            Assert.That(router.Settings.MouseLookMultiplier, Is.EqualTo(1.2f));
+            var audio = owner.GetComponent<JinxCasinoAudioDirector>(); Assert.That(audio, Is.Not.Null);
+            Assert.That(audio.Volume, Is.EqualTo(.4f));
+            Assert.That(Field<AudioSource>(audio, "music").clip, Is.Not.Null);
+            gamepad = InputSystem.AddDevice<Gamepad>(); InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
+            yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
+            var pc = Field<Slider>(local, "pcSensitivity");
+            yield return Wait(() => EventSystem.current.currentSelectedGameObject == pc.gameObject, "设置默认焦点", 3);
+            yield return PadPress(GamepadButton.DpadRight);
+            Assert.That(owner.LocalPreferences.PcLookMultiplier, Is.GreaterThan(1.2f));
+            Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(1.2f), "预览不写盘");
+            yield return PadPress(GamepadButton.East);
+            Assert.That(Field<GameObject>(local, "settingsPanel").activeInHierarchy, Is.False);
+            Assert.That(owner.LocalPreferences.PcLookMultiplier, Is.EqualTo(1.2f));
+            yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
+            yield return MouseClick(Field<Button>(local, "gamepadTabButton"));
+            var padLook = Field<Slider>(local, "gamepadLookMultiplier");
+            yield return Wait(() => EventSystem.current.currentSelectedGameObject == padLook.gameObject, "手柄页可操作焦点", 3);
+            yield return PadPress(GamepadButton.DpadRight);
+            float chosen = owner.LocalPreferences.GamepadLookMultiplier;
+            Assert.That(chosen, Is.GreaterThan(1)); Assert.That(router.Settings.GamepadLookMultiplier, Is.EqualTo(chosen));
+            yield return MouseClick(Field<Toggle>(local, "gamepadInvertY"));
+            yield return MouseClick(Field<Button>(local, "saveButton"));
+            Assert.That(store.Load().GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(store.Load().GamepadInvertY, Is.True);
+            yield return Screenshot("S1GamepadSettings");
+            yield return PadPress(GamepadButton.East);
+            yield return MouseClick(Field<Button>(presenter, "start")); yield return KeyPress(Key.Escape);
+            long time = owner.AdventureState.RemainingMilliseconds;
+            yield return MouseClick(Field<Button>(presenter, "settingsPauseButton"));
+            yield return MouseClick(Field<Button>(local, "audioTabButton"));
+            yield return MouseClick(Field<Toggle>(local, "muted")); Assert.That(owner.LocalPreferences.Muted, Is.True);
+            Assert.That(Field<AudioSource>(audio, "music").mute && Field<AudioSource>(audio, "sfx").mute, Is.True);
+            yield return Screenshot("S1AudioSettings");
+            yield return PadPress(GamepadButton.Start);
+            Assert.That(owner.IsImmersionPaused, Is.True); Assert.That(owner.LocalPreferences.Muted, Is.False);
+            Assert.That(Field<AudioSource>(audio, "music").mute || Field<AudioSource>(audio, "sfx").mute, Is.False);
+            Assert.That(owner.AdventureState.RemainingMilliseconds, Is.EqualTo(time));
+            Assert.That(Field<GameObject>(local, "settingsPanel").activeInHierarchy, Is.False);
+            owner.LoadLocalPreferences(store);
+            Assert.That(router.Settings.GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(router.Settings.GamepadInvertY, Is.True);
+            yield return MouseClick(Field<Button>(presenter, "leave"));
+            yield return Wait(() => owner == null && IsStableHub(), "设置退出后正常返回Hub", 45);
+        }
+
+        [UnityTest, Timeout(180000)]
         public IEnumerator UnsupportedSavesLeaveCurrentRunCameraAndFilesUntouched()
         {
             yield return EnterSample();
@@ -593,7 +649,7 @@ namespace Tests.Demo
             yield return Wait(arrived, "实际" + key + "通道移动", 8);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
         }
-        private IEnumerator MouseClick(Button button)
+        private IEnumerator MouseClick(Selectable button)
         {
             Assert.That(button != null && button.isActiveAndEnabled && button.interactable, Is.True);
             yield return null; yield return null; Canvas.ForceUpdateCanvases();
@@ -601,7 +657,7 @@ namespace Tests.Demo
             Vector2 point = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, rect.TransformPoint(rect.rect.center)); point = new Vector2(Mathf.Round(point.x), Mathf.Round(point.y));
             var pointer = new PointerEventData(EventSystem.current) { position = point };
             var hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(pointer, hits);
-            Assert.That(hits, Is.Not.Empty); Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(button), "真实保存按钮中心射线不得被覆盖。");
+            Assert.That(hits, Is.Not.Empty); Assert.That(hits[0].gameObject.GetComponentInParent<Selectable>(), Is.SameAs(button), "真实保存按钮中心射线不得被覆盖。");
             InputSystem.QueueStateEvent(mouse, new MouseState { position = point }); yield return null;
             InputSystem.QueueStateEvent(mouse, new MouseState { position = point }.WithButton(MouseButton.Left)); yield return null;
             InputSystem.QueueStateEvent(mouse, new MouseState { position = point }); yield return null; yield return null;
@@ -644,6 +700,7 @@ namespace Tests.Demo
                 if (originalInputSettings != null) InputSystem.settings = originalInputSettings;
                 if (testInputSettings != null) Object.Destroy(testInputSettings);
                 resolution?.Dispose(); resolution = null;
+                if (settingsTestKey != null) { PlayerPrefs.DeleteKey(settingsTestKey); PlayerPrefs.Save(); settingsTestKey = null; }
                 if (Object.FindFirstObjectByType<JinxCasinoController>() == null && !string.IsNullOrEmpty(saveDirectory))
                 { ValidateSavePath(); if (Directory.Exists(saveDirectory)) Directory.Delete(saveDirectory, true); }
             }

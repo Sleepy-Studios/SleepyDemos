@@ -123,10 +123,12 @@ namespace Hotfix.JinxCasino.Adapters.UI
         { tutorialReadyDeferredRun = tutorialDismissedRun = null; tutorialUiFeedback = null; Refresh(); }
         private void RefreshTeachingPauseNavigation()
         {
-            int mask = (tutorialSkipButton.gameObject.activeSelf ? 1 : 0) | (tutorialReviewButton.gameObject.activeSelf ? 2 : 0) | (tutorialRetryButton.gameObject.activeSelf ? 4 : 0);
+            int mask = (tutorialSkipButton.gameObject.activeSelf ? 1 : 0) | (tutorialReviewButton.gameObject.activeSelf ? 2 : 0) | (tutorialRetryButton.gameObject.activeSelf ? 4 : 0) |
+                (settingsPauseButton != null && settingsPauseButton.gameObject.activeSelf ? 8 : 0);
             if (mask == tutorialPauseNavigationMask) return;
             tutorialPauseNavigationMask = mask;
             var buttons = new System.Collections.Generic.List<Button> { resume, leave };
+            if ((mask & 8) != 0) buttons.Add(settingsPauseButton);
             if ((mask & 1) != 0) buttons.Add(tutorialSkipButton);
             if ((mask & 2) != 0) buttons.Add(tutorialReviewButton);
             if ((mask & 4) != 0) buttons.Add(tutorialRetryButton);

@@ -41,12 +41,14 @@ namespace Hotfix.JinxCasino.Adapters.UI
             BindTutorialControls();
             BindSaveControls();
             BindStandardEndingControls();
+            BindSettingsControls();
             Refresh();
         }
 
         /// 释放所有本实例事件，不清空其它控件的监听器。
         public void Unbind()
         {
+            UnbindSettingsControls();
             if (owner == null) return;
             UnbindStandardEndingControls();
             UnbindSaveControls();
@@ -70,16 +72,18 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void Refresh()
         {
             if (owner == null) return;
-            int state = ResolveSaveHudState(ResolveEndingHudState(ResolveTutorialHudState()));
+            int state = ResolveSettingsHudState(ResolveSaveHudState(ResolveEndingHudState(ResolveTutorialHudState())));
             if (menuState != state)
             {
                 menuState = state;
                 mainMenu.SetActive(state == 0); pauseMenu.SetActive(state == 1); fieldHud.SetActive(state == 2);
+                RefreshSettingsControls(state);
                 RefreshTutorialControls(state);
                 RefreshSaveControls(state);
                 RefreshStandardEndingControls(state);
-                owner.SetImmersionMenuState(state != 2, false, SaveFirstSelection(state), HasStandardEndingUi || HasSaveUi || HasTutorialUi ? CancelImmersionHudWindow : null);
+                owner.SetImmersionMenuState(state != 2, state == 9, SettingsFirstSelection(state), HasSettingsUi || HasStandardEndingUi || HasSaveUi || HasTutorialUi ? CancelImmersionHudWindow : null);
             }
+            RefreshSettingsControls(state);
             RefreshTutorialControls(state);
             RefreshSaveControls(state);
             RefreshStandardEndingControls(state);

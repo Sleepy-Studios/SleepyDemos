@@ -122,7 +122,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
             bool skip = HasTutorialUi && tutorialSkipButton.gameObject.activeSelf;
             bool review = HasTutorialUi && tutorialReviewButton.gameObject.activeSelf;
             bool retry = HasTutorialUi && tutorialRetryButton.gameObject.activeSelf;
-            int mask = (state == 1 ? 1 : 0) | (skip ? 2 : 0) | (review ? 4 : 0) | (retry ? 8 : 0);
+            bool settings = settingsPauseButton != null && settingsPauseButton.gameObject.activeSelf;
+            int mask = (state == 1 ? 1 : 0) | (skip ? 2 : 0) | (review ? 4 : 0) | (retry ? 8 : 0) | (settings ? 16 : 0);
             if (state == 1)
             {
                 var rect = (RectTransform)pauseMenu.transform;
@@ -131,6 +132,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (savePauseNavigationMask == mask) return;
             savePauseNavigationMask = mask;
             var buttons = new List<Button> { resume, savePauseSaveButton, savePauseLoadButton, leave };
+            if (settings) buttons.Add(settingsPauseButton);
             if (skip) buttons.Add(tutorialSkipButton); if (review) buttons.Add(tutorialReviewButton); if (retry) buttons.Add(tutorialRetryButton);
             SaveNavigation(buttons);
         }
