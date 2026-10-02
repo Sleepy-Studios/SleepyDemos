@@ -36,6 +36,7 @@ namespace Hotfix.Editor.JinxCasino
             if (opened) scene = EditorSceneManager.OpenScene(ImmersionScenePath, OpenSceneMode.Additive);
             try
             {
+                if (SceneManager.GetActiveScene() != scene) SceneManager.SetActiveScene(scene);
                 var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
                 var palette = Directory.GetFiles(JinxCasinoImmersionArtBuilder.Root + "/Materials", "*.mat")
                     .ToDictionary(Path.GetFileNameWithoutExtension, path => AssetDatabase.LoadAssetAtPath<Material>(path));

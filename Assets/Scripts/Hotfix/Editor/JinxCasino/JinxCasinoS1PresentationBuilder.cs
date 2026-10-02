@@ -97,7 +97,7 @@ namespace Hotfix.Editor.JinxCasino
         private static void PositionRulesPlacard(JinxCasinoStation station, Transform board, TMP_Text rules)
         {
             board.localPosition = station.Game == CasinoGameKind.Blackjack ? new Vector3(1.2f, 1.55f, -.25f) :
-                station.Game == CasinoGameKind.Slots ? new Vector3(1.25f, 1.7f, .7f) : new Vector3(1.25f, 1.68f, 0);
+                station.Game == CasinoGameKind.Slots ? new Vector3(1.25f, 1.7f, .7f) : new Vector3(1.4f, 1.68f, .55f);
             board.rotation = Quaternion.LookRotation(station.FocusPose.position - board.position, Vector3.up);
             rules.enableAutoSizing = true; rules.fontSizeMin = .36f; rules.fontSizeMax = .5f; rules.fontSize = .5f;
         }
