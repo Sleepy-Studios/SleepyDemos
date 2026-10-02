@@ -41,7 +41,7 @@ namespace Hotfix.JinxCasino.Adapters
             for (int count = 1; count <= targets.Count; count++)
             {
                 int index = (start + step * count + targets.Count * 2) % targets.Count;
-                if (!targets[index].IsAvailable) continue;
+                if (targets[index] == null || !targets[index].IsAvailable) continue;
                 SetSelected(targets[index]); return selected;
             }
             SetSelected(null); return null;
@@ -65,7 +65,12 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void SetSelected(JinxCasinoTableTarget target)
         {
-            if (selected == target) return;
+            if (selected == target)
+            {
+                // 暂时禁用会撤掉物件高亮；恢复后指针仍停在同一目标也须重新显示反馈。
+                if (selected != null) selected.SetFocused(true);
+                return;
+            }
             if (selected != null) selected.SetFocused(false);
             selected = target;
             if (selected != null) selected.SetFocused(true);

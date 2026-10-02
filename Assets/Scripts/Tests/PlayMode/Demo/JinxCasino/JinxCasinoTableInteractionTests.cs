@@ -126,6 +126,30 @@ namespace Tests.Demo
             Assert.Throws<ArgumentException>(() => station.ConfigureTable("id", station.FocusPose, 48, new[] { second }));
             Assert.That(station.StationId, Is.EqualTo("sample-slots-01"));
         }
+
+        [Test]
+        public void PointerRestoresHighlightWhenSameTargetBecomesAvailableAgain()
+        {
+            var ray = camera.ScreenPointToRay(camera.WorldToScreenPoint(first.transform.position));
+            var renderer = first.GetComponent<Renderer>();
+            var properties = new MaterialPropertyBlock();
+            selection.Point(ray); renderer.GetPropertyBlock(properties);
+            Color focusedColor = properties.GetColor("_BaseColor");
+            first.SetAvailable(false, "等待完成");
+            first.SetAvailable(true);
+            Assert.That(selection.Point(ray), Is.SameAs(first));
+            renderer.GetPropertyBlock(properties);
+            Assert.That(properties.GetColor("_BaseColor"), Is.EqualTo(focusedColor));
+        }
+
+        [UnityTest]
+        public IEnumerator DestroyedTargetDoesNotBreakRemainingNavigation()
+        {
+            selection.Navigate(1);
+            Object.Destroy(first.gameObject); yield return null;
+            Assert.That(selection.Navigate(1), Is.SameAs(second));
+            Assert.That(selection.Navigate(-1), Is.SameAs(second));
+        }
     }
 }
 #endif

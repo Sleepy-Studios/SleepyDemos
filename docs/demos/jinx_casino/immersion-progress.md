@@ -38,3 +38,9 @@
 实体基础已推送8d9edee。独立输入资产通过Editor菜单保存并校验；Editor正式编译、Console0错误。JinxCasinoInputStateTests：dd1d77e2，EditMode 5/5。输入PlayMode初测2565032b为6/7；失败因测试释放帧未执行宿主要求的ReadFrame，补齐采样且保留断言。审查修复手柄Disabled后未发送震动归零，增加实际InputSystem.DisableDevice用例；重测825483dc为8/8。未执行全量测试。
 
 以上为InputAction/模拟设备与Core同类UI模块的回归，不等于Xbox硬件、Android或完整宿主输入验收。输入设置持久化迁移、Controller/菜单/桌面接入、场景演出暂停仍待完成。新场地及三机台源制作中，尚无样板包。
+
+## 焦点生命周期修复
+
+三设备输入基础已推送ac22eca。审查发现同目标重新可用时高亮不恢复、目标销毁后导航访问失效对象；已做窄范围修复。JinxCasinoTableInteractionTests扩展后94ac799d，PlayMode7/7通过。当前直接相关范围为桌面7、输入状态5、输入路由8，共20项通过，未执行全量测试。S1尚缺Controller/机台规则接入、真实模型、教学、菜单/HUD、双端包与录像；用户样板验收未触发，Goal仍active。
+
+下一闭环：整合独立S1模型与蓝图、稳定机台实例存档、宿主输入和桌面命令、暂停演出、精简HUD与教学。仅完成基础设施不计S1体验完成。
