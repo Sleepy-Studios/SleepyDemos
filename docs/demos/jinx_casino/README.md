@@ -2,10 +2,10 @@
 
 Windows / Android 原创单机赌场冒险。内部标识 JinxCasino / jinx_casino。
 
-当前按用户要求**暂停实现，先复核手机交互、美术与代码职责**。原单机沉浸重做S0–S5目标保留，S1画面和手机操作尚未获认可；新提案待审阅，不自动继续扩展。联网移出本轮，选型待定。
+当前执行用户批准的**新原型精简与视觉优化计划（PrototypeV2）**：简化复古俱乐部、赌场代码职责整理、独立Hub及加载UI优化；PC/Android共用机台和UI，保留自由探索。四张参考稿确认后制作正式资源，Hub和三款S1体验确认后再扩展。只保证新版本，不维护旧原型/旧档兼容；联网移出本轮。
 
 - [当前计划与验收门槛](implementation.md)
-- [体验与美术重做提案（待审阅）](architecture/experience-redesign-proposal.md)
+- [上一轮体验与美术提案（已被新计划替代）](architecture/experience-redesign-proposal.md)
 - [当前进度与提交记录](immersion-progress.md)
 - [视觉与交互规范](architecture/immersion-design.md)
 - [可复用规则与存档边界](architecture/rules-baseline.md)
@@ -17,6 +17,6 @@ Windows / Android 原创单机赌场冒险。内部标识 JinxCasino / jinx_casi
 
 旧P1–P4仅为功能原型：已有规则、场景、资源和构建事实保留，用户未认可沉浸感、美术和整体体验。旧报告中的正式资源/完成措辞不适用于当前验收。
 
-旧P4包仍可恢复：Windows位于 Builds/JinxCasino/P4/StandaloneWindows64/20261002031541-0ee336b5/，只验证解压启动至Hub；Android位于 Builds/JinxCasino/P4/Android/20261002032344-2a4f64cd/Player/，构建检查通过但未真机运行。它们不是新的S1样板包。
+旧构建仅保留历史验证事实，不再要求当前版本支持旧入口、旧房间、旧面板或旧数据。当前运行代码尚待完成相应清理，新格式与引用迁移进度见实施记录。
 
 代码在 Assets/Scripts/Hotfix/Demos/JinxCasino/，正式平台构建在 Hotfix/Editor/JinxCasino/（一次性装配工具已清理），资源在 Assets/LoadResources/Demos/jinx_casino/。当前模块文档描述原型实际结构；沉浸能力随实现更新，不把设计当已实现。
