@@ -19,6 +19,6 @@ Windows / Android 原创单机赌场冒险。内部标识 JinxCasino / jinx_casi
 
 旧P1–P4仅为功能原型：可复用规则和资源保留，旧场景/构建的历史事实保留，用户未认可沉浸感、美术和整体体验。旧报告中的正式资源/完成措辞不适用于当前验收。
 
-旧构建仅保留历史验证事实，不再要求当前版本支持旧入口、旧房间、旧面板或旧数据。当前已接通具体Game与直接机台会话、版本4存档；旧入口/面板/场景及构建兼容已删除，场景Controller剩余玩家交互职责仍待拆分，实际迁移与测试记录见实施记录。
+旧构建仅保留历史验证事实，不再要求当前版本支持旧入口、旧房间、旧面板或旧数据。当前已接通具体Game与直接机台会话、版本4存档；旧入口/面板/场景及构建兼容已删除，Controller已集中场景职责，PlayerInteraction、TutorialGuide、ExitInteraction与LocalSettings负责具体行为，实际迁移与测试记录见实施记录。
 
-代码在 Assets/Scripts/Hotfix/Demos/JinxCasino/，正式平台构建在 Hotfix/Editor/JinxCasino/（一次性装配工具已清理），资源在 Assets/LoadResources/Demos/jinx_casino/。当前模块文档描述原型实际结构；沉浸能力随实现更新，不把设计当已实现。
+代码在 Assets/Scripts/Hotfix/Demos/JinxCasino/，正式平台构建在 Hotfix/Editor/JinxCasino/（一次性装配工具已清理），资源在 Assets/LoadResources/Demos/jinx_casino/。当前模块文档描述单机场景与具体交互类；沉浸能力随实现更新，不把设计当已实现。

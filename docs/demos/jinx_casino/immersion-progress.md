@@ -363,3 +363,15 @@ Unity正式编译与最终Console均0错误；直接相关Test Runner结果：43
 同步README、实施状态、module、rules-baseline、运行手册以及公共场景/工具导航；总体AGENTS/CLAUDE已包含临时Builder清理、有效测试和新原型单轨规范，本轮无新增协作规则，不重复改写。代码在Hotfix Demo与Hotfix.Editor，未扩大Core、其他Demo或生产程序集。字体动态补字、UnitySkills/vTabs、平台设置和.blend1等无关修改保留。
 
 本闭环提交名「refactor(jinx): 删除旧房间面板与原型资源」，实际SHA由Git提交记录和交付回复记录。四张简化稿仍待用户确认，正式Hub/Loading美术与三机台画面重做尚未开始；S1和Goal不标记完成。下一步拆出玩家交互并按真实职责移走其余Adapters，视觉确认后再制作正式资源。
+
+## 2026-10-03：具体玩家职责与Adapters目录迁出
+
+前一个旧流程闭环已推送80d0194。本轮把剩余8份Controller partial收成根目录单文件Controller；Game仍唯一持有冒险/存档/成长，场景入口装配Player与Settings、等待正式导航后激活输入、同步区域与恢复能力、保存和释放。PlayerInteraction是具体普通类，唯一消费Core输入并推进表现时钟/领域/相机聚焦，拥有桌面及柜台共用焦点与目标订阅。TutorialGuide独立观察真实动作和展示结果，ExitInteraction管理现场距离/视口/遮挡与撤离意图；没有新接口、工厂或Adapter，不在Controller补旧属性转发。退出改为先Flush/Save，再Dispose交互，避免先清未上报位移后保存。
+
+LocalSettings独立管理Store、Value副本、Warning与Changed；构造不读盘，加载/预览/保存显式调用，失败不写值或通知。Controller订阅一次把设置应用到公共InputRouter与场景AudioDirector，设置UI管理自己的触控布局。旧LocalPreferences partial删除；沿用原测试类并补构造不隐式读盘、警告保留、副本隔离和通知/非法输入回归，无新测试文件或程序集。
+
+33份现存源码通过Editor按职责移动并校验GUID：根Controller/GameSettings，Interaction为机台/玩家/教学/离场/柜台/区域，Presentation为三台表现/协调器/时钟/环境/音频，UI为保存HUD/View与设置。原脚本GUID全部相同，31份meta字节一致、2份仅LF/CRLF区别；旧Adapters目录及meta删除，无旧类型映射。场景/配置/HUD在Editor通过SerializedObject同步类型标识，避免普通保存仍留旧namespace；实际控件布局和物件引用保留。既有MvcBind重新生成Component并保持手写View，Presenter槽及bindingKey改为当前UI全名，输出移至UI/JinxCasinoImmersionHudView/View。两个触控区域同步为Core.Runtime.Inputs.TouchInputPad后删旧MovedFrom；Core仅移除这条旧赌场类型映射，输入功能仍是公共框架能力。一次性迁移源码/meta已删除，Editor目录仍只有正式平台构建入口。
+
+首轮编译发现入口测试仍引用旧IsAdventureInputBlocked，迁到Player.IsMenuOpen后0错误。c5c466d1本机设置EditMode12/12，c8b17ee9保存场景3/3通过。首轮PlayMode834f3f30全部10项因启动HUD钱包读取空旅程而失败；源文件已改为无旅程时显示0，但最后修改后漏触发正式编译，Library/ScriptAssemblies/Hotfix.dll比该源文件旧32秒。test_cancel确认当前TestRunnerApi不支持取消，保留同一live任务等待自然完成（441秒），未在运行中改C#、退出Play或另起测试。随后正式重新编译并等待恢复，重跑直接相关入口，不删除有效断言规避失败。
+
+最终入口06e8cae4 PlayMode10/10通过，共享触控5ddeb3a3 PlayMode3/3通过；连同前述本机设置12与保存场景3，共28项相关回归通过，最终Console 0错误、Editor已退出测试且无编译。未执行全量测试，未生成新Player或验证实物Xbox/Android。提交名「refactor(jinx): 拆分玩家职责并移除适配器目录」，实际SHA由Git提交记录和交付回复记录。四稿仍待确认，Hub/Loading及三台的新正式美术尚未制作；本轮重构与资源接线不代表S1体验、真机或Goal完成。

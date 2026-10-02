@@ -4,7 +4,6 @@ using UnityEngine.EventSystems;
 namespace Core.Runtime.Inputs
 {
     /// 单指触控区域，移动与视角使用独立指针，避免两根手指互相抢输入。
-    [UnityEngine.Scripting.APIUpdating.MovedFrom(true, "Hotfix.JinxCasino.Adapters.UI", "Hotfix", "JinxCasinoTouchPad")]
     public sealed class TouchInputPad : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IDragHandler
     {
         private const float ReferenceHeight = 720f;

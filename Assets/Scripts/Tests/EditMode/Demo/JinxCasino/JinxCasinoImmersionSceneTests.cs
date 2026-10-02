@@ -1,6 +1,8 @@
+using Hotfix.JinxCasino;
+using Hotfix.JinxCasino.Interaction;
+using Hotfix.JinxCasino.Presentation;
 #if UNITY_EDITOR
 using System.Linq;
-using Hotfix.JinxCasino.Adapters;
 using Hotfix.JinxCasino.Rules;
 using NUnit.Framework;
 using UnityEditor;
@@ -46,7 +48,7 @@ namespace Tests.Demo
                 Assert.That(roots.SelectMany(root => root.GetComponentsInChildren<Camera>(true)).Count(), Is.EqualTo(1));
                 Assert.That(roots.SelectMany(root => root.GetComponentsInChildren<AudioListener>(true)).Count(), Is.EqualTo(1));
                 var owner = roots.SelectMany(root => root.GetComponentsInChildren<JinxCasinoController>(true)).Single();
-                Assert.That(owner.UsesImmersion, Is.True);
+                Assert.That(owner.HasInputConfiguration, Is.True);
                 var player = owner.GetComponentInChildren<CharacterController>(true);
                 Assert.That(player.gameObject.layer, Is.EqualTo(LayerMask.NameToLayer("Ignore Raycast")),
                     "不可见本地胶囊不能挡住聚焦视角的实体点击。");

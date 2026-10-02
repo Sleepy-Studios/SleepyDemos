@@ -32,4 +32,6 @@ Map名称可配置；动作语义是公共契约，新增专属玩法应消费�
 
 迁移原有输入测试到Tests.Module，未复制一套新测试：EditMode验证增量/角速度、死区和暂停；PlayMode验证真实InputSystem上下文、菜单单次提交、断连/震动及触控指针归属。Demo入口回归验证真实保存资产和Prefab接线。模拟设备不等于Xbox/Android硬件验收；移入AOT后正式Player仍需重生成HybridCLR构建数据并验证。
 
+TouchInputPad保存资源已统一指向Core.Runtime.Inputs当前类型；赌场旧类型MovedFrom映射已删除，没有为旧原型维护输入别名。
+
 接入步骤见[使用玩法输入](../runbooks/use-gameplay-input.md)。

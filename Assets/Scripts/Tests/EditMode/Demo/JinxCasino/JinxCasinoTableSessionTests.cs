@@ -4,7 +4,6 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using Hotfix.JinxCasino;
-using Hotfix.JinxCasino.Adapters;
 using Hotfix.JinxCasino.Rules;
 using NUnit.Framework;
 

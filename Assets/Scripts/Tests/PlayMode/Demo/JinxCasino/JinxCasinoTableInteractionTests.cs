@@ -1,7 +1,7 @@
+using Hotfix.JinxCasino.Interaction;
 #if UNITY_EDITOR
 using System;
 using System.Collections;
-using Hotfix.JinxCasino.Adapters;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;

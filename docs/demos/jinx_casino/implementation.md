@@ -8,11 +8,11 @@ Windows x64 ZIP、Android ARM64 APK；第一人称自由探索、靠近聚焦机
 
 本轮按顺序推进：同步规范→制作赌场大厅/共享二十一点/Hub主页面/加载界面四张可还原参考稿→用户确认视觉后优化Hub和两种Loading→赌场职责整理与PrototypeV2存档→二十一点完整切片及另外两台/大厅→双端样板与演示。图稿不作为运行资源或体验通过证据。
 
-四张稿已形成[可审阅视觉基线](architecture/prototype-v2-visual-review.md)，尚待用户确认；未按新图稿制作正式美术。存档已改为版本4和PrototypeV2；Persistence与桌面Interaction已移出Adapters，具体Game持有冒险/存档/成长，机台会话直接使用Game/Station，旧认领和TableOperations接口/包装已删除。旧P0/P4链、Main、通用面板及旧构建入口已删除；场景Controller的玩家交互拆分和其余Adapters仍待整理。进度与提交事实见[实施记录](immersion-progress.md)。
+四张稿已形成[可审阅视觉基线](architecture/prototype-v2-visual-review.md)，尚待用户确认；未按新图稿制作正式美术。存档已改为版本4和PrototypeV2；Persistence与桌面Interaction已移出Adapters，具体Game持有冒险/存档/成长，机台会话直接使用Game/Station，旧认领和TableOperations接口/包装已删除。旧P0/P4链、Main、通用面板及旧构建入口已删除；场景Controller已合为单文件，玩家交互、教学、离场、本机设置各有具体类；Adapters目录及命名空间已移除。进度与提交事实见[实施记录](immersion-progress.md)。
 
 赌场使用酒红、深绿、木质、少量黄铜与暖灯；不制作繁密雕花、复杂窗景或大量镜面。Hub独立采用清爽卡片展示，保留现有有效Demo入口。StartupLoading与CommonLoading视觉统一但生命周期独立，保持SetTitle/SetProgress API及真实进度；不新建UI框架或平台专属Prefab。
 
-代码清理只覆盖赌场与Hub：移除赌场Adapters目录/命名空间，将十个Controller partial按Controller/Game/玩家交互/表现的实际职责拆分；删除ControllerTableOperations与IJinxCasinoTableOperations转发，TableSession直接使用具体游戏对象和机台身份。旧P0/P4专属场景/面板/配置/构建入口/测试已按引用清理，可复用规则与资源保留；Controller玩家交互拆分和完整Adapters目录归位仍待完成。资源同步使用Editor一次性操作，完成后删除临时脚本及meta；MvcBind索引与生成引用同次更新。
+代码清理只覆盖赌场与Hub：移除赌场Adapters目录/命名空间，将十个Controller partial按Controller/Game/玩家交互/表现的实际职责拆分；删除ControllerTableOperations与IJinxCasinoTableOperations转发，TableSession直接使用具体游戏对象和机台身份。旧P0/P4专属场景/面板/配置/构建入口/测试已按引用清理，可复用规则与资源保留；Controller玩家交互拆分和Adapters归位已完成，后续继续实际体验和内容重做。资源同步使用Editor一次性操作，完成后删除临时脚本及meta；MvcBind索引与生成引用同次更新。
 
 |阶段|退出条件|
 |---|---|

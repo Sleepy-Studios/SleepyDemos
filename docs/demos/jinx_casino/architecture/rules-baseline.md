@@ -2,7 +2,7 @@
 
 此文记录沉浸重做前可复用的规则与持久化边界，不能作为体验完成证明。
 
-PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案默认使用PrototypeV2目录；不迁移v1/v2/v3，也不保存旧迁移原件。本机偏好使用独立PrototypeV2键，只读当前完整记录。旧局认领、旧房间、旧面板及旧Main入口已删除，Controller玩家交互拆分和Adapters归位仍待完成。
+PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案默认使用PrototypeV2目录；不迁移v1/v2/v3，也不保存旧迁移原件。本机偏好使用独立PrototypeV2键，只读当前完整记录。旧局认领、旧房间、旧面板及旧Main入口已删除，Controller玩家交互已拆为具体类，Adapters目录与命名空间已移除。
 
 ## 入口与职责
 
@@ -11,7 +11,9 @@ PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案
 - `Rules/Adventure/CasinoAdventureSession.cs`：阶段、钱包、库存、事件、活动局、请求去重与结算。
 - `Rules/Progression/`：永久成长和解锁目录；练习不计正式战绩。
 - `JinxCasinoGame.cs`：持有唯一冒险及档案，协调命令、整数计时、缓存、三槽和恢复；不持有Controller或场景对象。
-- `Interaction/`：具体机台会话、公开View/Result/Availability；直接使用Game和Station，不另建转发接口。
+- `Interaction/`：PlayerInteraction负责Core输入与实体交互；TutorialGuide报告真实教学事实，ExitInteraction管理离场意图；具体TableSession和Station直接使用Game，不另建转发接口。
+- `UI/JinxCasinoLocalSettings.cs`：偏好加载、预览和明确保存，Changed由场景入口应用到公共输入与音源。
+- `Presentation/`：专属机台、环境演出、音频及共享表现时钟，只消费公开结果。
 - `Persistence/`：三槽冒险、永久档案的原子写入与损坏恢复，本机偏好单独保存。
 
 表现读取公开数据，不读取隐藏牌、密码或秘密报价。动画和物理不能决定收益。所有扣款、实际成交价、奖励、消耗通过规则入口执行；已提交操作不能因关闭界面或重返机台重复执行。

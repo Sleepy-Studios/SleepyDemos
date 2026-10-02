@@ -296,7 +296,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.supply.product2
   action: 6
   value: 2
@@ -401,7 +401,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.help
   action: 5
   value: 0
@@ -664,7 +664,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.chip10
   action: 0
   value: 10
@@ -782,7 +782,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e2150a298bc58f546935922d23b10e0f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoS1BlackjackPresentation
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Presentation.JinxCasinoS1BlackjackPresentation
   stationId: s1.cards
   amountText: {fileID: 2131437296}
   rulesText: {fileID: 1533034950}
@@ -952,7 +952,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 228de21bdcca336499324fef18d7a965, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoStation
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoStation
   game: 3
   areaIndex: 0
   interactionAnchor: {fileID: 391440700}
@@ -1507,7 +1507,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.chip100
   action: 0
   value: 100
@@ -1611,7 +1611,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.help
   action: 5
   value: 0
@@ -1893,7 +1893,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f82f1a192a2ea9046a17053a556501f0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoS1SlotsPresentation
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Presentation.JinxCasinoS1SlotsPresentation
   stationId: s1.fruit
   amountText: {fileID: 1050804427}
   rulesText: {fileID: 1831662554}
@@ -1923,7 +1923,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 228de21bdcca336499324fef18d7a965, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoStation
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoStation
   game: 0
   areaIndex: 0
   interactionAnchor: {fileID: 1923251169}
@@ -2194,7 +2194,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.chip10
   action: 0
   value: 10
@@ -3063,7 +3063,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3dec7cb181823ba4c9639c6715e3c57d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoS1PresentationCoordinator
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Presentation.JinxCasinoS1PresentationCoordinator
   owner: {fileID: 528979938}
   stations:
   - {fileID: 377641148}
@@ -3084,17 +3084,17 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 173a6f275b5e8d541a0c785b257fd36b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoController
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.JinxCasinoController
+  worldCamera: {fileID: 61769556}
   gameSettings: {fileID: 11400000, guid: 41e6bd2efb79f3248a974c64ec1680df, type: 2}
   areas:
   - {fileID: 528979939}
   sceneEffects: {fileID: 0}
-  worldCamera: {fileID: 61769556}
+  immersionInputAsset: {fileID: -944628639613478452, guid: 6e83084232beb7445bceada6c0ffe70c, type: 3}
+  shopCounter: {fileID: 1078883634}
   exitTerminals:
   - {fileID: 1911667849}
   - {fileID: 1162925685}
-  immersionInputAsset: {fileID: -944628639613478452, guid: 6e83084232beb7445bceada6c0ffe70c, type: 3}
-  shopCounter: {fileID: 1078883634}
 --- !u!114 &528979939
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3106,7 +3106,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c9c6a39d9524d0242a38de0143bed7fc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoWorldArea
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoWorldArea
   index: 0
   safeSpawn: {fileID: 1969010537}
   contents: {fileID: 1496813676}
@@ -3145,7 +3145,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d8839326209c1f44ac54e29580f4ed9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoAudioDirector
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Presentation.JinxCasinoAudioDirector
   owner: {fileID: 528979938}
   music: {fileID: 1237867724}
   sfx: {fileID: 1752647057}
@@ -3458,7 +3458,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.commit
   action: 2
   value: 0
@@ -3552,7 +3552,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.supply.action2
   action: 5
   value: 0
@@ -4151,7 +4151,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.commit
   action: 2
   value: 0
@@ -4548,7 +4548,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.clear
   action: 1
   value: 0
@@ -4754,7 +4754,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.supply.product0
   action: 6
   value: 0
@@ -4806,7 +4806,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.commit
   action: 2
   value: 0
@@ -5857,7 +5857,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.supply.product1
   action: 6
   value: 1
@@ -5909,7 +5909,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.help
   action: 5
   value: 0
@@ -6659,7 +6659,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.chip50
   action: 0
   value: 50
@@ -6716,7 +6716,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7d2bda6b4bac76147a5eef46064de007, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoShopCounter
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoShopCounter
   counterId: s1.supply
   approach: {fileID: 645196901}
   focusPose: {fileID: 1123006027}
@@ -6817,7 +6817,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.primary
   action: 3
   value: 0
@@ -6969,7 +6969,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8917ec498f944146a9203cea95acb8f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoExitTerminal
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoExitTerminal
   owner: {fileID: 528979938}
   terminalId: s1.leave
   action: 1
@@ -7223,7 +7223,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.chip10
   action: 0
   value: 10
@@ -8393,7 +8393,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.clear
   action: 1
   value: 0
@@ -8693,7 +8693,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.clear
   action: 1
   value: 0
@@ -9000,7 +9000,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.chip50
   action: 0
   value: 50
@@ -9126,7 +9126,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.chip50
   action: 0
   value: 50
@@ -9332,7 +9332,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.supply.action0
   action: 7
   value: 0
@@ -9384,7 +9384,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.secondary
   action: 4
   value: 0
@@ -9546,7 +9546,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.supply.action1
   action: 8
   value: 0
@@ -9598,7 +9598,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.sync.chip100
   action: 0
   value: 100
@@ -10274,7 +10274,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.primary
   action: 3
   value: 0
@@ -10699,7 +10699,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 50ee1e9fdf0e6da479c88ec3aa8bb53f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoS1LeversPresentation
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Presentation.JinxCasinoS1LeversPresentation
   stationId: s1.sync
   amountText: {fileID: 1274588437}
   rulesText: {fileID: 856947157}
@@ -10770,7 +10770,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 228de21bdcca336499324fef18d7a965, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoStation
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoStation
   game: 10
   areaIndex: 0
   interactionAnchor: {fileID: 1451706750}
@@ -11233,7 +11233,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8917ec498f944146a9203cea95acb8f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoExitTerminal
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoExitTerminal
   owner: {fileID: 528979938}
   terminalId: s1.verify
   action: 0
@@ -12376,7 +12376,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.fruit.chip100
   action: 0
   value: 100
@@ -12832,7 +12832,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd98536e1b48f5d4ebb2a353ab100e8b, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.JinxCasinoTableTarget
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Interaction.JinxCasinoTableTarget
   targetId: s1.cards.primary
   action: 3
   value: 0

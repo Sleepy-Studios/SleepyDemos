@@ -1,10 +1,11 @@
+using Hotfix.JinxCasino;
+using Hotfix.JinxCasino.Presentation;
 using Hotfix.JinxCasino.Interaction;
 #if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Linq;
 using System.Reflection;
-using Hotfix.JinxCasino.Adapters;
 using Hotfix.JinxCasino.Rules;
 using NUnit.Framework;
 using UnityEditor.SceneManagement;

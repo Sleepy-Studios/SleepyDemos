@@ -1,5 +1,5 @@
 using System;
-using Hotfix.JinxCasino.Adapters;
+using Hotfix.JinxCasino.UI;
 using Hotfix.JinxCasino.Persistence;
 using NUnit.Framework;
 using UnityEngine;
@@ -11,7 +11,6 @@ namespace Tests.Demo
     {
         private string key;
         private CasinoLocalPreferencesStore store;
-        private GameObject owner;
 
         [SetUp]
         public void Prepare()
@@ -19,7 +18,51 @@ namespace Tests.Demo
 
         [TearDown]
         public void Cleanup()
-        { if (owner != null) UnityEngine.Object.DestroyImmediate(owner); PlayerPrefs.DeleteKey(key); PlayerPrefs.Save(); }
+        { PlayerPrefs.DeleteKey(key); PlayerPrefs.Save(); }
+
+        [Test]
+        public void SettingsConstructionDoesNotLoadAndWarningSurvivesPreviewUntilExplicitSave()
+        {
+            const string invalid = "not-json";
+            PlayerPrefs.SetString(key, invalid);
+            var settings = new JinxCasinoLocalSettings(store);
+            Assert.That(settings.Warning, Is.Null, "构造只绑定存储；坏记录应在显式Load时才产生警告。");
+            Assert.That(settings.Value.Volume, Is.EqualTo(0.7f));
+            settings.Load();
+            Assert.That(settings.Warning, Is.Not.Empty);
+            var draft = settings.Value; draft.Volume = 0.2f;
+            settings.Apply(draft);
+            Assert.That(settings.Warning, Is.Not.Empty, "预览不能消除尚未替换的损坏记录提示。");
+            Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(invalid));
+            settings.Save(draft);
+            Assert.That(settings.Warning, Is.Null);
+            Assert.That(store.Load().Volume, Is.EqualTo(0.2f));
+        }
+
+        [Test]
+        public void SettingsOwnCopiesAndNotifyOnlyForSuccessfulChanges()
+        {
+            var settings = new JinxCasinoLocalSettings(store);
+            int changes = 0;
+            settings.Changed += () => changes++;
+            settings.Load();
+            Assert.That(changes, Is.EqualTo(1));
+            var draft = settings.Value; draft.Volume = 0.2f;
+            settings.Apply(draft); draft.Volume = 0.9f;
+            var exposed = settings.Value; exposed.LeftHanded = true;
+            Assert.That(settings.Value.Volume, Is.EqualTo(0.2f));
+            Assert.That(settings.Value.LeftHanded, Is.False);
+            Assert.That(changes, Is.EqualTo(2));
+            Assert.That(PlayerPrefs.HasKey(key), Is.False);
+            Assert.Throws<ArgumentException>(() => settings.Apply(new CasinoLocalPreferences { Volume = float.NaN }));
+            Assert.Throws<ArgumentException>(() => settings.Save(null));
+            Assert.That(changes, Is.EqualTo(2));
+            Assert.That(settings.Value.Volume, Is.EqualTo(0.2f));
+            Assert.That(PlayerPrefs.HasKey(key), Is.False);
+            settings.Save(settings.Value);
+            Assert.That(changes, Is.EqualTo(3));
+            Assert.That(store.Load().Volume, Is.EqualTo(0.2f));
+        }
 
         [Test]
         public void MissingPreferencesKeepOriginalInputAndDoNotCreateSavedKey()
@@ -103,28 +146,28 @@ namespace Tests.Demo
         [Test]
         public void PreviewPreservesInputSettingsWithoutWritingUntilExplicitSave()
         {
-            owner = new GameObject("CasinoPreferencesTest"); var controller = owner.AddComponent<JinxCasinoController>();
-            controller.LoadLocalPreferences(store);
-            Assert.That(controller.LocalPreferences.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
-            var draft = controller.LocalPreferences; draft.PcLookMultiplier = 2; draft.TouchLookMultiplier = 0.5f;
+            var settings = new JinxCasinoLocalSettings(store);
+            settings.Load();
+            Assert.That(settings.Value.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
+            var draft = settings.Value; draft.PcLookMultiplier = 2; draft.TouchLookMultiplier = 0.5f;
             draft.GamepadLookDegreesPerSecond = 200; draft.GamepadInvertY = true; draft.RumbleEnabled = false;
-            controller.ApplyLocalPreferences(draft);
-            var input = controller.LocalPreferences.ToInputSettings();
+            settings.Apply(draft);
+            var input = settings.Value.ToInputSettings();
             Assert.That(input.MouseLookMultiplier, Is.EqualTo(2));
             Assert.That(input.TouchLookMultiplier, Is.EqualTo(0.5f));
             Assert.That(input.GamepadLookDegreesPerSecond, Is.EqualTo(200));
             Assert.That(input.GamepadInvertY, Is.True);
             Assert.That(PlayerPrefs.HasKey(key), Is.False);
-            controller.ApplyLocalPreferences(new CasinoLocalPreferences());
-            Assert.That(controller.LocalPreferences.GamepadLookDegreesPerSecond, Is.EqualTo(90));
+            settings.Apply(new CasinoLocalPreferences());
+            Assert.That(settings.Value.GamepadLookDegreesPerSecond, Is.EqualTo(90));
             Assert.That(PlayerPrefs.HasKey(key), Is.False, "取消预览不能创建偏好键。");
-            controller.SaveLocalPreferences(draft);
+            settings.Save(draft);
             Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(2));
             Assert.That(store.Load().GamepadLookDegreesPerSecond, Is.EqualTo(200));
-            controller.ApplyLocalPreferences(new CasinoLocalPreferences());
-            Assert.That(controller.LocalPreferences.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
+            settings.Apply(new CasinoLocalPreferences());
+            Assert.That(settings.Value.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
             Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(2), "撤销预览不能覆盖明确保存值");
-            Assert.That(controller.LocalPreferences.GamepadInvertY, Is.False);
+            Assert.That(settings.Value.GamepadInvertY, Is.False);
         }
     }
 }

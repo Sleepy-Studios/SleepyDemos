@@ -1,3 +1,7 @@
+using Hotfix.JinxCasino;
+using Hotfix.JinxCasino.Interaction;
+using Hotfix.JinxCasino.Presentation;
+using Hotfix.JinxCasino.UI;
 #if UNITY_EDITOR
 using System;
 using System.Collections;
@@ -8,9 +12,7 @@ using System.Reflection;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using Hotfix;
-using Hotfix.JinxCasino.Adapters;
 using Hotfix.JinxCasino.Persistence;
-using Hotfix.JinxCasino.Adapters.UI;
 using Hotfix.JinxCasino.Rules;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
@@ -48,40 +50,40 @@ namespace Tests.Demo
             yield return EnterSample();
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
-            var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
+            var body = owner.Player.Body; var camera = owner.Player.Camera;
             var start = Field<Button>(presenter, "start"); var resume = Field<Button>(presenter, "resume");
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == start.gameObject && EventSystem.current.sendNavigationEvents, "首次菜单焦点及Core导航", 3);
             Assert.That(owner.Game.HasAdventure, Is.False);
             yield return Screenshot("S1MainMenu");
             yield return MouseClick(start);
-            yield return Wait(() => owner.Game.HasAdventure && !owner.IsAdventureInputBlocked, "实际开始按钮进入探索", 3);
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "实际开始按钮进入探索", 3);
             Assert.That(owner.Game.State.StageIndex, Is.Zero); Assert.That(owner.Game.State.Coins, Is.EqualTo(1000));
-            Assert.That(owner.IsImmersionPaused, Is.False); Assert.That(EventSystem.current.sendNavigationEvents, Is.False);
+            Assert.That(owner.Player.IsPaused, Is.False); Assert.That(EventSystem.current.sendNavigationEvents, Is.False);
             Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.Locked));
             touchscreen = InputSystem.AddDevice<Touchscreen>(); gamepad = InputSystem.AddDevice<Gamepad>();
             var touchPosition = new Vector2(Screen.width * .5f, Screen.height * .75f);
             InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = touchPosition, phase = UnityEngine.InputSystem.TouchPhase.Began });
-            yield return Wait(() => owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch, "触屏实际按下切换提示", 3);
+            yield return Wait(() => owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch, "触屏实际按下切换提示", 3);
             Assert.That(Field<Core.Runtime.Inputs.TouchInputPad>(presenter, "movePad").gameObject.activeInHierarchy, Is.True);
             InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = touchPosition, phase = UnityEngine.InputSystem.TouchPhase.Ended }); yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = new Vector2(.01f, 0) }); yield return null; yield return null;
-            Assert.That(owner.InputDeviceKind, Is.EqualTo(Core.Runtime.Inputs.InputDeviceKind.Touch), "手柄漂移不能抢走触控提示。");
+            Assert.That(owner.Player.DeviceKind, Is.EqualTo(Core.Runtime.Inputs.InputDeviceKind.Touch), "手柄漂移不能抢走触控提示。");
             InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = new Vector2(.4f, 0) });
-            yield return Wait(() => owner.InputDeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad, "真实摇杆切换手柄", 3);
+            yield return Wait(() => owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad, "真实摇杆切换手柄", 3);
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             Assert.That(Field<Core.Runtime.Inputs.TouchInputPad>(presenter, "movePad").gameObject.activeInHierarchy, Is.False);
             Assert.That(Field<Core.Runtime.Inputs.TouchInputPad>(presenter, "lookPad").gameObject.activeInHierarchy, Is.False);
             Assert.That(Field<Button>(presenter, "interact").gameObject.activeInHierarchy, Is.False);
             yield return Screenshot("S1GamepadExplorationHud");
             yield return KeyPress(Key.W);
-            Assert.That(owner.InputDeviceKind, Is.EqualTo(Core.Runtime.Inputs.InputDeviceKind.KeyboardMouse));
+            Assert.That(owner.Player.DeviceKind, Is.EqualTo(Core.Runtime.Inputs.InputDeviceKind.KeyboardMouse));
             Assert.That(Cursor.lockState, Is.EqualTo(CursorLockMode.Locked));
             var counter = Object.FindFirstObjectByType<JinxCasinoShopCounter>();
             Assert.That(counter, Is.Not.Null);
             yield return MoveUntil(Key.A, () => body.transform.position.x <= counter.InteractionPosition.x + .15f);
             Vector3 beforeShop = camera.transform.position; Quaternion beforeShopRotation = camera.transform.rotation;
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.HasShopFocus && Vector3.Distance(camera.transform.position, counter.FocusPose.position) < .01f,
+            yield return Wait(() => owner.Player.HasShopFocus && Vector3.Distance(camera.transform.position, counter.FocusPose.position) < .01f,
                 "真实E进入补给柜台", 3);
             yield return Screenshot("S1SupplyCounter");
             yield return ClickTarget(camera, counter.Targets.Single(value => value.TargetId == "s1.supply.product0"));
@@ -94,7 +96,7 @@ namespace Tests.Demo
             Assert.That(owner.Game.State.Inventory.Any(value => value.ItemId == "duo_wrench"), Is.False);
             Assert.That(owner.Game.State.CooperationHelpCharges, Is.EqualTo(1));
             yield return KeyPress(Key.Escape);
-            yield return Wait(() => !owner.HasShopFocus && Cursor.lockState == CursorLockMode.Locked, "离开柜台恢复探索", 3);
+            yield return Wait(() => !owner.Player.HasShopFocus && Cursor.lockState == CursorLockMode.Locked, "离开柜台恢复探索", 3);
             Assert.That(Vector3.Distance(camera.transform.position, beforeShop), Is.LessThan(.04f));
             Assert.That(Quaternion.Angle(camera.transform.rotation, beforeShopRotation), Is.LessThan(.1f));
             yield return MoveUntil(Key.D, () => body.transform.position.x >= -.1f);
@@ -107,24 +109,24 @@ namespace Tests.Demo
             Key horizontal = station.InteractionPosition.x < body.transform.position.x ? Key.A : Key.D;
             yield return MoveUntil(horizontal, () => Mathf.Abs(body.transform.position.x - station.InteractionPosition.x) <= .2f);
             Assert.That(Vector3.Distance(position, body.transform.position), Is.GreaterThan(1));
-            Assert.That(owner.FindNearbyStation(), Is.SameAs(station));
+            Assert.That(owner.Player.FindNearbyStation(), Is.SameAs(station));
             Vector3 explorationPosition = camera.transform.position; Quaternion explorationRotation = camera.transform.rotation; float fieldOfView = camera.fieldOfView;
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.TableView?.StationId == station.StationId && Mathf.Abs(camera.fieldOfView - station.FocusFieldOfView) < .01f, "E进入具体水果机桌面", 3);
+            yield return Wait(() => owner.Player.TableView?.StationId == station.StationId && Mathf.Abs(camera.fieldOfView - station.FocusFieldOfView) < .01f, "E进入具体水果机桌面", 3);
             Assert.That(Vector3.Distance(camera.transform.position, station.FocusPose.position), Is.LessThan(.02f));
-            Assert.That(owner.TableView.DraftStake, Is.Zero, "探索E不能跨上下文变成加筹码或确认。");
+            Assert.That(owner.Player.TableView.DraftStake, Is.Zero, "探索E不能跨上下文变成加筹码或确认。");
             yield return Screenshot("S1SlotsFocus");
             var rulesLabel = typeof(JinxCasinoS1Presentation).GetField("rulesText", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(station.GetComponent<JinxCasinoS1Presentation>());
             Assert.That(rulesLabel, Is.Not.Null, "投入前必须有本机台完整规则铭牌。");
-            Assert.That(rulesLabel.GetType().GetProperty("text").GetValue(rulesLabel), Is.EqualTo(owner.TableView.RulesText));
+            Assert.That(rulesLabel.GetType().GetProperty("text").GetValue(rulesLabel), Is.EqualTo(owner.Player.TableView.RulesText));
             Assert.That((bool)rulesLabel.GetType().GetProperty("isTextTruncated").GetValue(rulesLabel), Is.False,
                 "收益规则和当前加成不得在机台铭牌中被裁掉。");
             long initialCoins = owner.Game.State.Coins;
             yield return ClickTarget(camera, station, "chip10");
-            yield return Wait(() => owner.TableView.DraftStake == 10, "真实筹码物件增加10筹码", 2);
+            yield return Wait(() => owner.Player.TableView.DraftStake == 10, "真实筹码物件增加10筹码", 2);
             yield return ClickTarget(camera, station, "commit");
-            yield return Wait(() => owner.TableView.IsSlotsPrepared, "真实确认物件准备本次投入", 2);
+            yield return Wait(() => owner.Player.TableView.IsSlotsPrepared, "真实确认物件准备本次投入", 2);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(initialCoins));
             Assert.That(owner.Game.State.SettledRoundSequence, Is.Zero, "确认仅准备，拉柄前不能开奖扣款。");
             yield return ClickTarget(camera, station, "primary");
@@ -137,16 +139,16 @@ namespace Tests.Demo
             Assert.That(owner.Game.State.Coins, Is.EqualTo(initialCoins - 10 + owner.Game.State.LastRoundPayout));
             // 桌面光标可见时，暂停按钮中心必须可由真实指针点击，不能被公共入口覆盖。
             yield return MouseClick(Field<Button>(presenter, "pause"));
-            yield return Wait(() => owner.IsImmersionPaused, "真实桌面暂停按钮", 3);
+            yield return Wait(() => owner.Player.IsPaused, "真实桌面暂停按钮", 3);
             yield return MouseClick(resume);
-            yield return Wait(() => !owner.IsImmersionPaused, "桌面显式继续", 3);
+            yield return Wait(() => !owner.Player.IsPaused, "桌面显式继续", 3);
             yield return KeyPress(Key.Escape);
-            yield return Wait(() => owner.TableView == null && Mathf.Abs(camera.fieldOfView - fieldOfView) < .01f && Cursor.lockState == CursorLockMode.Locked,
+            yield return Wait(() => owner.Player.TableView == null && Mathf.Abs(camera.fieldOfView - fieldOfView) < .01f && Cursor.lockState == CursorLockMode.Locked,
                 "Esc离桌完成过渡并恢复探索输入", 3);
             Assert.That(Vector3.Distance(camera.transform.position, explorationPosition), Is.LessThan(.04f));
             Assert.That(Quaternion.Angle(camera.transform.rotation, explorationRotation), Is.LessThan(.1f));
             yield return KeyPress(Key.Escape);
-            yield return Wait(() => owner.IsImmersionPaused, "探索Esc暂停", 3);
+            yield return Wait(() => owner.Player.IsPaused, "探索Esc暂停", 3);
             yield return Wait(() => Field<GameObject>(presenter, "pauseMenu").activeInHierarchy && EventSystem.current.currentSelectedGameObject == resume.gameObject,
                 "暂停菜单及继续焦点", 3);
             Vector3 pausedPosition = camera.transform.position; Quaternion pausedRotation = camera.transform.rotation;
@@ -156,7 +158,7 @@ namespace Tests.Demo
             Assert.That(owner.Game.State.RemainingMilliseconds, Is.EqualTo(remaining));
             yield return Screenshot("S1Paused");
             yield return MouseClick(resume);
-            yield return Wait(() => !owner.IsImmersionPaused && !owner.IsAdventureInputBlocked, "真实继续按钮显式恢复", 3);
+            yield return Wait(() => !owner.Player.IsPaused && !owner.Player.IsMenuOpen, "真实继续按钮显式恢复", 3);
             Assert.That(Vector3.Distance(camera.transform.position, pausedPosition), Is.LessThan(.04f));
             Assert.That(Mathf.Abs(camera.fieldOfView - fieldOfView), Is.LessThan(.01f));
             yield return KeyPress(Key.Escape);
@@ -174,16 +176,16 @@ namespace Tests.Demo
         {
             yield return EnterSample();
             var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
-            var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
+            var body = owner.Player.Body; var camera = owner.Player.Camera;
             yield return MouseClick(Field<Button>(presenter, "tutorialStartButton"));
-            yield return Wait(() => owner.Game.HasAdventure && !owner.IsAdventureInputBlocked && Cursor.lockState == CursorLockMode.Locked,
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen && Cursor.lockState == CursorLockMode.Locked,
                 "真实教学入口进入探索", 3);
             Assert.That(owner.Game.State.Teaching.Step, Is.EqualTo(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Look));
             Assert.That(owner.Game.State.Mode, Is.EqualTo(Hotfix.JinxCasino.Rules.CasinoAdventureMode.Practice));
             Assert.That(owner.Game.State.Config.MaximumStake, Is.EqualTo(10));
             string tutorialRun = owner.Game.State.RunId;
             yield return KeyPress(Key.Escape);
-            yield return Wait(() => owner.IsImmersionPaused, "教学暂停", 3);
+            yield return Wait(() => owner.Player.IsPaused, "教学暂停", 3);
             yield return MouseClick(Field<Button>(presenter, "tutorialRetryButton"));
             yield return Wait(() => Field<Button>(presenter, "tutorialCancelButton").gameObject.activeInHierarchy, "重玩确认", 3);
             gamepad = InputSystem.AddDevice<Gamepad>();
@@ -191,10 +193,10 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.Start)); yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
             yield return Wait(() => Field<GameObject>(presenter, "pauseMenu").activeInHierarchy, "手柄Menu取消确认后返回暂停", 3);
-            Assert.That(owner.IsImmersionPaused, Is.True, "关闭确认不能悄悄恢复时钟。");
+            Assert.That(owner.Player.IsPaused, Is.True, "关闭确认不能悄悄恢复时钟。");
             Assert.That(owner.Game.State.RunId, Is.EqualTo(tutorialRun));
             yield return MouseClick(Field<Button>(presenter, "resume"));
-            yield return Wait(() => !owner.IsImmersionPaused && !owner.IsAdventureInputBlocked, "显式继续教学", 3);
+            yield return Wait(() => !owner.Player.IsPaused && !owner.Player.IsMenuOpen, "显式继续教学", 3);
             yield return null; yield return null;
             for (int i = 0; i < 15 && owner.Game.State.Teaching.Step == Hotfix.JinxCasino.Rules.CasinoTutorialStep.Look; i++)
             {
@@ -222,7 +224,7 @@ namespace Tests.Demo
             yield return MoveUntil(Key.D, () => body.transform.position.x >= -.10f);
             yield return MoveUntil(Key.W, () => body.transform.position.z >= cards.InteractionPosition.z - .12f);
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.TableView?.StationId == cards.StationId && Vector3.Distance(camera.transform.position, cards.FocusPose.position) < .001f, "教学聚焦二十一点", 3);
+            yield return Wait(() => owner.Player.TableView?.StationId == cards.StationId && Vector3.Distance(camera.transform.position, cards.FocusPose.position) < .001f, "教学聚焦二十一点", 3);
             yield return ClickTarget(camera, cards, "chip10"); yield return ClickTarget(camera, cards, "commit");
             if (owner.Game.HasActiveRound) yield return ClickTarget(camera, cards, "secondary");
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.BuyWrench);
@@ -233,7 +235,7 @@ namespace Tests.Demo
             var counter = Object.FindFirstObjectByType<JinxCasinoShopCounter>();
             yield return MoveUntil(Key.A, () => body.transform.position.x <= counter.InteractionPosition.x + .15f);
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.HasShopFocus && Vector3.Distance(camera.transform.position, counter.FocusPose.position) < .01f,
+            yield return Wait(() => owner.Player.HasShopFocus && Vector3.Distance(camera.transform.position, counter.FocusPose.position) < .01f,
                 "教学柜台聚焦完成", 3);
             yield return ClickTarget(camera, counter.Targets.Single(target => target.TargetId == "s1.supply.action0"));
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.UseWrench);
@@ -246,9 +248,9 @@ namespace Tests.Demo
             yield return MoveUntil(Key.W, () => body.transform.position.z >= levers.InteractionPosition.z - .12f);
             yield return MoveUntil(Key.D, () => body.transform.position.x >= levers.InteractionPosition.x - .15f);
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f, "教学聚焦合拍台", 3);
+            yield return Wait(() => owner.Player.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f, "教学聚焦合拍台", 3);
             yield return ClickTarget(camera, levers, "chip10"); yield return ClickTarget(camera, levers, "commit");
-            yield return Wait(() => owner.TableView.LeverWindowOpen, "实际绿灯窗口", 4);
+            yield return Wait(() => owner.Player.TableView.LeverWindowOpen, "实际绿灯窗口", 4);
             yield return ClickTarget(camera, levers, "primary");
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Ready);
             Assert.That(owner.Game.State.SettledRoundSequence, Is.EqualTo(3));
@@ -256,16 +258,16 @@ namespace Tests.Demo
             yield return KeyPress(Key.Escape);
             yield return Wait(() => Field<Button>(presenter, "tutorialCompleteButton").gameObject.activeInHierarchy, "明确完成教学按钮", 3);
             yield return MouseClick(Field<Button>(presenter, "tutorialReadyBackButton"));
-            yield return Wait(() => !owner.IsAdventureInputBlocked, "稍后完成仍可继续练习", 3);
+            yield return Wait(() => !owner.Player.IsMenuOpen, "稍后完成仍可继续练习", 3);
             yield return KeyPress(Key.Escape);
-            yield return Wait(() => owner.IsImmersionPaused && Field<Button>(presenter, "tutorialReviewButton").gameObject.activeInHierarchy,
+            yield return Wait(() => owner.Player.IsPaused && Field<Button>(presenter, "tutorialReviewButton").gameObject.activeInHierarchy,
                 "暂停提供重新打开教学结果入口", 3);
             yield return MouseClick(Field<Button>(presenter, "tutorialReviewButton"));
             yield return MouseClick(Field<Button>(presenter, "tutorialCompleteButton"));
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Completed);
             long coins = owner.Game.State.Coins; uint random = owner.Game.State.RandomState;
             yield return MouseClick(Field<Button>(presenter, "tutorialContinueButton"));
-            yield return Wait(() => !owner.IsAdventureInputBlocked, "明确继续当前练习", 3);
+            yield return Wait(() => !owner.Player.IsMenuOpen, "明确继续当前练习", 3);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(coins)); Assert.That(owner.Game.State.RandomState, Is.EqualTo(random));
         }
 
@@ -286,10 +288,10 @@ namespace Tests.Demo
             yield return PadPress(GamepadButton.South);
             Assert.That(owner.Game.HasAdventure, Is.False);
             yield return MouseClick(Field<Button>(presenter, "start"));
-            yield return Wait(() => owner.Game.HasAdventure && !owner.IsAdventureInputBlocked, "开始用于存档回归的正式冒险", 3);
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "开始用于存档回归的正式冒险", 3);
             string run = owner.Game.State.RunId;
             yield return KeyPress(Key.Escape);
-            yield return Wait(() => owner.IsImmersionPaused, "保存前暂停", 3);
+            yield return Wait(() => owner.Player.IsPaused, "保存前暂停", 3);
             yield return MouseClick(Field<Button>(presenter, "savePauseSaveButton"));
             yield return MouseClick(Field<Button>(presenter, "saveSlot1Button"));
             Assert.That(owner.Game.SelectedSaveSlot, Is.EqualTo(1));
@@ -298,19 +300,19 @@ namespace Tests.Demo
             yield return MouseClick(Field<Button>(presenter, "saveSlot1Button"));
             yield return MouseClick(Field<Button>(presenter, "saveCancelButton"));
             Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "save-1.json")), Is.EqualTo(firstBytes), "取消覆盖不写入原件。");
-            Assert.That(owner.IsImmersionPaused, Is.True);
+            Assert.That(owner.Player.IsPaused, Is.True);
             yield return MouseClick(Field<Button>(presenter, "saveBackButton"));
             yield return MouseClick(Field<Button>(presenter, "resume"));
-            yield return Wait(() => !owner.IsImmersionPaused && Cursor.lockState == CursorLockMode.Locked, "真实继续后探索", 3);
-            var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
+            yield return Wait(() => !owner.Player.IsPaused && Cursor.lockState == CursorLockMode.Locked, "真实继续后探索", 3);
+            var body = owner.Player.Body; var camera = owner.Player.Camera;
             var fruit = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None).Single(station => station.StationId == "s1.fruit");
             yield return MoveUntil(Key.W, () => body.transform.position.z >= fruit.InteractionPosition.z - .12f);
             yield return MoveUntil(Key.A, () => body.transform.position.x <= fruit.InteractionPosition.x + .15f);
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.TableView?.StationId == fruit.StationId && Vector3.Distance(camera.transform.position, fruit.FocusPose.position) < .001f,
+            yield return Wait(() => owner.Player.TableView?.StationId == fruit.StationId && Vector3.Distance(camera.transform.position, fruit.FocusPose.position) < .001f,
                 "具体水果机聚焦完成", 3);
             yield return ClickTarget(camera, fruit, "chip10"); yield return ClickTarget(camera, fruit, "commit"); yield return ClickTarget(camera, fruit, "primary");
-            yield return Wait(() => owner.Game.State.SettledRoundSequence == 1 && !owner.IsTableAnimating, "实际一次水果机结算", 6);
+            yield return Wait(() => owner.Game.State.SettledRoundSequence == 1 && !owner.Player.IsTableAnimating, "实际一次水果机结算", 6);
             long paidCoins = owner.Game.State.Coins; uint paidRandom = owner.Game.State.RandomState;
             yield return MouseClick(Field<Button>(presenter, "pause"));
             yield return MouseClick(Field<Button>(presenter, "savePauseSaveButton"));
@@ -323,10 +325,10 @@ namespace Tests.Demo
             yield return MouseClick(Field<Button>(presenter, "saveCancelButton"));
             Assert.That(owner.Game.State.Coins, Is.EqualTo(paidCoins));
             Assert.That(owner.Game.State.RandomState, Is.EqualTo(paidRandom));
-            Assert.That(owner.Game.SelectedSaveSlot, Is.EqualTo(2)); Assert.That(owner.IsImmersionPaused, Is.True);
+            Assert.That(owner.Game.SelectedSaveSlot, Is.EqualTo(2)); Assert.That(owner.Player.IsPaused, Is.True);
             yield return MouseClick(Field<Button>(presenter, "saveSlot1Button"));
             yield return MouseClick(Field<Button>(presenter, "saveConfirmButton"));
-            yield return Wait(() => !owner.IsImmersionPaused && !owner.IsAdventureInputBlocked, "确认读取后显式继续", 3);
+            yield return Wait(() => !owner.Player.IsPaused && !owner.Player.IsMenuOpen, "确认读取后显式继续", 3);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(1000)); Assert.That(owner.Game.State.SettledRoundSequence, Is.Zero);
             Assert.That(owner.Game.State.RunId, Is.EqualTo(run)); Assert.That(owner.Game.SelectedSaveSlot, Is.EqualTo(1));
             yield return KeyPress(Key.Escape);
@@ -353,7 +355,7 @@ namespace Tests.Demo
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == Field<Button>(presenter, "saveSlot2Button").gameObject,
                 "手柄方向选择第二槽", 3);
             yield return PadPress(GamepadButton.South);
-            yield return Wait(() => owner.Game.HasAdventure && !owner.IsAdventureInputBlocked, "主菜单读取已结算局", 3);
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "主菜单读取已结算局", 3);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(paidCoins)); Assert.That(owner.Game.State.RandomState, Is.EqualTo(paidRandom));
             Assert.That(owner.Game.State.SettledRoundSequence, Is.EqualTo(1)); Assert.That(owner.Game.State.LastStationId, Is.EqualTo("s1.fruit"));
             Assert.That(owner.Game.SelectedSaveSlot, Is.EqualTo(2)); Assert.That(owner.Game.HasActiveRound, Is.False);
@@ -399,9 +401,8 @@ namespace Tests.Demo
             settingsTestKey = "JinxCasino.SettingsEntry." + Guid.NewGuid().ToString("N");
             var store = new CasinoLocalPreferencesStore(settingsTestKey);
             store.Save(new CasinoLocalPreferences { PcLookMultiplier = 1.2f, Volume = .4f });
-            owner.LoadLocalPreferences(store);
-            var router = Field<Core.Runtime.Inputs.GameplayInputRouter>(owner, "immersionInput");
-            Assert.That(router.Settings.MouseLookMultiplier, Is.EqualTo(1.2f));
+            owner.Settings.Load(store);
+            Assert.That(owner.Player.InputSettings.MouseLookMultiplier, Is.EqualTo(1.2f));
             var audio = owner.GetComponent<JinxCasinoAudioDirector>(); Assert.That(audio, Is.Not.Null);
             Assert.That(audio.Volume, Is.EqualTo(.4f));
             Assert.That(Field<AudioSource>(audio, "music").clip, Is.Not.Null);
@@ -410,18 +411,18 @@ namespace Tests.Demo
             var pc = Field<Slider>(local, "pcSensitivity");
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == pc.gameObject, "设置默认焦点", 3);
             yield return PadPress(GamepadButton.DpadRight);
-            Assert.That(owner.LocalPreferences.PcLookMultiplier, Is.GreaterThan(1.2f));
+            Assert.That(owner.Settings.Value.PcLookMultiplier, Is.GreaterThan(1.2f));
             Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(1.2f), "预览不写盘");
             yield return PadPress(GamepadButton.East);
             Assert.That(Field<GameObject>(local, "settingsPanel").activeInHierarchy, Is.False);
-            Assert.That(owner.LocalPreferences.PcLookMultiplier, Is.EqualTo(1.2f));
+            Assert.That(owner.Settings.Value.PcLookMultiplier, Is.EqualTo(1.2f));
             yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
             yield return MouseClick(Field<Button>(local, "gamepadTabButton"));
             var padLook = Field<Slider>(local, "gamepadLookMultiplier");
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == padLook.gameObject, "手柄页可操作焦点", 3);
             yield return PadPress(GamepadButton.DpadRight);
-            float chosen = owner.LocalPreferences.GamepadLookMultiplier;
-            Assert.That(chosen, Is.GreaterThan(1)); Assert.That(router.Settings.GamepadLookMultiplier, Is.EqualTo(chosen));
+            float chosen = owner.Settings.Value.GamepadLookMultiplier;
+            Assert.That(chosen, Is.GreaterThan(1)); Assert.That(owner.Player.InputSettings.GamepadLookMultiplier, Is.EqualTo(chosen));
             yield return MouseClick(Field<Toggle>(local, "gamepadInvertY"));
             yield return MouseClick(Field<Button>(local, "saveButton"));
             Assert.That(store.Load().GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(store.Load().GamepadInvertY, Is.True);
@@ -431,16 +432,16 @@ namespace Tests.Demo
             long time = owner.Game.State.RemainingMilliseconds;
             yield return MouseClick(Field<Button>(presenter, "settingsPauseButton"));
             yield return MouseClick(Field<Button>(local, "audioTabButton"));
-            yield return MouseClick(Field<Toggle>(local, "muted")); Assert.That(owner.LocalPreferences.Muted, Is.True);
+            yield return MouseClick(Field<Toggle>(local, "muted")); Assert.That(owner.Settings.Value.Muted, Is.True);
             Assert.That(Field<AudioSource>(audio, "music").mute && Field<AudioSource>(audio, "sfx").mute, Is.True);
             yield return Screenshot("S1AudioSettings");
             yield return PadPress(GamepadButton.Start);
-            Assert.That(owner.IsImmersionPaused, Is.True); Assert.That(owner.LocalPreferences.Muted, Is.False);
+            Assert.That(owner.Player.IsPaused, Is.True); Assert.That(owner.Settings.Value.Muted, Is.False);
             Assert.That(Field<AudioSource>(audio, "music").mute || Field<AudioSource>(audio, "sfx").mute, Is.False);
             Assert.That(owner.Game.State.RemainingMilliseconds, Is.EqualTo(time));
             Assert.That(Field<GameObject>(local, "settingsPanel").activeInHierarchy, Is.False);
-            owner.LoadLocalPreferences(store);
-            Assert.That(router.Settings.GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(router.Settings.GamepadInvertY, Is.True);
+            owner.Settings.Load(store);
+            Assert.That(owner.Player.InputSettings.GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(owner.Player.InputSettings.GamepadInvertY, Is.True);
             yield return MouseClick(Field<Button>(presenter, "leave"));
             yield return Wait(() => owner == null && IsStableHub(), "设置退出后正常返回Hub", 45);
         }
@@ -454,7 +455,7 @@ namespace Tests.Demo
             yield return KeyPress(Key.Escape);
             string run = owner.Game.State.RunId;
             long coins = owner.Game.State.Coins; uint random = owner.Game.State.RandomState;
-            var camera = Field<Camera>(owner, "worldCamera"); Vector3 position = camera.transform.position;
+            var camera = owner.Player.Camera; Vector3 position = camera.transform.position;
             var store = new CasinoLocalSaveStore(saveDirectory);
             // 文件领域有效，但缺少已装配区域、单人模式或准确的原机台身份。
             for (int sample = 0; sample < 6; sample++)
@@ -478,7 +479,7 @@ namespace Tests.Demo
                 Assert.That(owner.Game.Status, Does.Contain("原存档和当前旅程均已保留"), "兼容样例 " + sample);
                 Assert.That(owner.Game.State.RunId, Is.EqualTo(run)); Assert.That(owner.Game.State.Coins, Is.EqualTo(coins));
                 Assert.That(owner.Game.State.RandomState, Is.EqualTo(random)); Assert.That(owner.Game.SelectedSaveSlot, Is.Zero);
-                Assert.That(owner.IsImmersionPaused, Is.True); Assert.That(camera.transform.position, Is.EqualTo(position));
+                Assert.That(owner.Player.IsPaused, Is.True); Assert.That(camera.transform.position, Is.EqualTo(position));
                 foreach (var file in files) CollectionAssert.AreEqual(file.Value, File.ReadAllBytes(file.Key));
                 yield return MouseClick(Field<Button>(presenter, "saveCancelButton"));
                 yield return MouseClick(Field<Button>(presenter, "saveBackButton"));
@@ -495,21 +496,21 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             yield return MouseClick(Field<Button>(presenter, "start"));
-            yield return Wait(() => owner.Game.HasAdventure && !owner.IsAdventureInputBlocked, "标准局进入探索", 3);
-            var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "标准局进入探索", 3);
+            var body = owner.Player.Body; var camera = owner.Player.Camera;
             yield return MoveUntil(Key.D, () => body.transform.position.x >= 2.1f);
-            Assert.That(owner.IsExitTerminalNearby, Is.False, "背对入口不能交互。");
+            Assert.That(owner.Player.Exit.IsNearby, Is.False, "背对入口不能交互。");
             yield return LookYaw(180);
-            yield return Wait(() => owner.IsExitTerminalNearby, "可见验票物件", 3);
+            yield return Wait(() => owner.Player.Exit.IsNearby, "可见验票物件", 3);
             yield return KeyPress(Key.E);
             Assert.That(owner.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
             Assert.That(owner.Game.State.Coins, Is.EqualTo(1000));
-            Assert.That(owner.ExitFeedback, Does.Contain("未达到"));
+            Assert.That(owner.Player.Exit.Feedback, Does.Contain("未达到"));
             yield return LookYaw(0);
             var levers = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None).Single(station => station.StationId == "s1.sync");
             yield return MoveUntil(Key.W, () => body.transform.position.z >= levers.InteractionPosition.z - .12f);
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f,
+            yield return Wait(() => owner.Player.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f,
                 "标准局聚焦合拍台", 3);
             var leverPresentation = levers.GetComponentInChildren<JinxCasinoS1LeversPresentation>(true);
             var assistantArm = Field<Transform>(leverPresentation, "assistantArm");
@@ -519,39 +520,39 @@ namespace Tests.Demo
             Quaternion waitingArm = assistantArm.localRotation;
             yield return ClickTarget(camera, levers, "chip100"); yield return ClickTarget(camera, levers, "commit");
             yield return Screenshot("S1LeverAssistantWaiting");
-            Assert.That(owner.TableView.HasOwnActiveRound, Is.True, "实体确认后必须建立已投入局：" + owner.TableFeedback);
-            yield return Wait(() => owner.TableView.LeverWindowOpen, "实际合拍绿灯", 4);
+            Assert.That(owner.Player.TableView.HasOwnActiveRound, Is.True, "实体确认后必须建立已投入局：" + owner.Player.TableFeedback);
+            yield return Wait(() => owner.Player.TableView.LeverWindowOpen, "实际合拍绿灯", 4);
             yield return ClickTarget(camera, levers, "primary");
             yield return Wait(() => owner.Game.State.SettledRoundSequence == 1, "真实合拍结算", 6);
             Assert.That(owner.Game.State.Coins, Is.GreaterThanOrEqualTo(owner.Game.Target));
             long earned = owner.Game.State.Coins;
             yield return Wait(() => Quaternion.Angle(waitingArm, assistantArm.localRotation) > 5, "助手跟随真实NPC拉杆", 2);
             yield return PadPress(GamepadButton.Start);
-            Assert.That(owner.IsImmersionPaused, Is.True);
+            Assert.That(owner.Player.IsPaused, Is.True);
             Quaternion pausedArm = assistantArm.localRotation;
             Vector3 pausedPalm = assistantPalm.position;
             yield return new WaitForSecondsRealtime(.15f);
             Assert.That(assistantArm.localRotation, Is.EqualTo(pausedArm));
             Assert.That(assistantPalm.position, Is.EqualTo(pausedPalm));
             yield return PadPress(GamepadButton.Start);
-            yield return Wait(() => !owner.IsImmersionPaused, "助手与机台明确继续", 2);
-            leverPresentation.Restore(owner.TableView);
+            yield return Wait(() => !owner.Player.IsPaused, "助手与机台明确继续", 2);
+            leverPresentation.Restore(owner.Player.TableView);
             Assert.That(Vector3.Distance(assistantPalm.position, assistantGrip.position), Is.LessThan(.025f), "恢复握点仍贴合已拉下的杆。");
             Assert.That(owner.Game.State.Coins, Is.EqualTo(earned), "恢复助手表现不能再次发奖。");
             yield return Screenshot("S1LeverAssistantCompleted");
             yield return KeyPress(Key.Escape);
             yield return Wait(() => Cursor.lockState == CursorLockMode.Locked, "离桌恢复探索", 3);
             yield return MoveUntil(Key.S, () => body.transform.position.z <= -4.6f);
-            yield return LookYaw(180); yield return Wait(() => owner.IsExitTerminalNearby, "再次接近验票器", 3);
+            yield return LookYaw(180); yield return Wait(() => owner.Player.Exit.IsNearby, "再次接近验票器", 3);
             yield return Screenshot("S1QuotaVerifier");
             yield return KeyPress(Key.E);
             yield return Wait(() => owner.Game.State.Phase == CasinoAdventurePhase.Finale, "实体核验达标", 3);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(earned), "额度只作阈值，不能再次扣款。");
             Assert.That(owner.Game.ProfileData.FinishedRuns, Is.Zero, "验票不等于已选择结局。");
             yield return MoveUntil(Key.D, () => body.transform.position.x <= -2.1f);
-            yield return Wait(() => owner.IsExitTerminalNearby, "离场口可见", 3);
+            yield return Wait(() => owner.Player.Exit.IsNearby, "离场口可见", 3);
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.HasStandardEnding && Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, "明确领取离场券后展示结局", 3);
+            yield return Wait(() => owner.Player.Exit.HasEnding && Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, "明确领取离场券后展示结局", 3);
             Assert.That(owner.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.LeaveWithDignity));
             Assert.That(owner.Game.State.Coins, Is.EqualTo(earned));
             Assert.That(owner.Game.ProfileData.FinishedRuns, Is.EqualTo(1)); Assert.That(owner.Game.ProfileData.DignifiedExits, Is.EqualTo(1));
@@ -569,26 +570,26 @@ namespace Tests.Demo
             yield return EnterSample();
             var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             yield return MouseClick(Field<Button>(presenter, "start"));
-            yield return Wait(() => owner.Game.HasAdventure && !owner.IsAdventureInputBlocked, "标准局进入探索", 3);
-            var body = Field<CharacterController>(owner, "body");
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "标准局进入探索", 3);
+            var body = owner.Player.Body;
             var terminal = Object.FindObjectsByType<JinxCasinoExitTerminal>(FindObjectsSortMode.None).Single(value => value.Action == JinxCasinoExitAction.Leave);
             yield return MoveUntil(Key.A, () => body.transform.position.x <= -2.1f);
-            yield return LookYaw(180); yield return Wait(() => owner.IsExitTerminalNearby, "离场口进入视野", 3);
+            yield return LookYaw(180); yield return Wait(() => owner.Player.Exit.IsNearby, "离场口进入视野", 3);
             yield return KeyPress(Key.E);
-            Assert.That(owner.IsExitWithdrawalArmed(terminal), Is.True);
+            Assert.That(owner.Player.Exit.IsWithdrawalArmed(terminal), Is.True);
             Assert.That(owner.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
-            yield return KeyPress(Key.Escape); yield return Wait(() => owner.IsImmersionPaused, "确认意图期间暂停", 3);
+            yield return KeyPress(Key.Escape); yield return Wait(() => owner.Player.IsPaused, "确认意图期间暂停", 3);
             yield return new WaitForSecondsRealtime(.2f);
-            Assert.That(owner.IsExitWithdrawalArmed(terminal), Is.True);
+            Assert.That(owner.Player.Exit.IsWithdrawalArmed(terminal), Is.True);
             yield return MouseClick(Field<Button>(presenter, "resume"));
-            yield return Wait(() => !owner.IsImmersionPaused && !owner.IsAdventureInputBlocked, "显式继续", 3);
+            yield return Wait(() => !owner.Player.IsPaused && !owner.Player.IsMenuOpen, "显式继续", 3);
             yield return MoveUntil(Key.A, () => body.transform.position.x >= -.1f);
-            yield return Wait(() => !owner.IsExitWithdrawalArmed(terminal), "走远清除撤离意图", 3);
+            yield return Wait(() => !owner.Player.Exit.IsWithdrawalArmed(terminal), "走远清除撤离意图", 3);
             yield return MoveUntil(Key.D, () => body.transform.position.x <= -2.1f);
             yield return KeyPress(Key.E);
             Assert.That(owner.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
             yield return KeyPress(Key.E);
-            yield return Wait(() => owner.HasStandardEnding && Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, "再次确认才结束", 3);
+            yield return Wait(() => owner.Player.Exit.HasEnding && Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, "再次确认才结束", 3);
             Assert.That(owner.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.Withdraw));
             Assert.That(owner.Game.State.Coins, Is.EqualTo(1000)); Assert.That(owner.Game.ProfileData.Withdrawals, Is.EqualTo(1));
             yield return MouseClick(Field<Button>(presenter, "standardEndingSaveButton"));
@@ -624,31 +625,31 @@ namespace Tests.Demo
             new CasinoLocalSaveStore(saveDirectory).Save(1, fixture);
             yield return MouseClick(Field<Button>(presenter, "saveMainLoadButton"));
             yield return MouseClick(Field<Button>(presenter, "saveSlot1Button"));
-            yield return Wait(() => owner.Game.HasActiveRound && !owner.IsAdventureInputBlocked, "真实菜单恢复Closing牌局", 3);
+            yield return Wait(() => owner.Game.HasActiveRound && !owner.Player.IsMenuOpen, "真实菜单恢复Closing牌局", 3);
             Assert.That(Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, Is.False);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(beforeCoins)); Assert.That(owner.Game.State.RandomState, Is.EqualTo(beforeRandom));
-            var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
+            var body = owner.Player.Body; var camera = owner.Player.Camera;
             yield return MoveUntil(Key.A, () => body.transform.position.x <= -2.1f); yield return LookYaw(180);
-            yield return Wait(() => owner.IsExitTerminalNearby, "带活动牌局来到离场口", 3); yield return KeyPress(Key.E);
-            Assert.That(owner.ExitFeedback, Does.Contain("完成这一局"));
+            yield return Wait(() => owner.Player.Exit.IsNearby, "带活动牌局来到离场口", 3); yield return KeyPress(Key.E);
+            Assert.That(owner.Player.Exit.Feedback, Does.Contain("完成这一局"));
             Assert.That(owner.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Closing));
             Assert.That(owner.Game.HasActiveRound, Is.True); Assert.That(owner.Game.State.LockedCoins, Is.EqualTo(10));
             Assert.That(Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, Is.False);
             yield return LookYaw(0); yield return MoveUntil(Key.D, () => body.transform.position.x >= -.1f);
             var cards = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None).Single(station => station.StationId == "s1.cards");
             yield return MoveUntil(Key.W, () => body.transform.position.z >= cards.InteractionPosition.z - .12f); yield return KeyPress(Key.E);
-            yield return Wait(() => owner.TableView?.StationId == cards.StationId && Vector3.Distance(camera.transform.position, cards.FocusPose.position) < .001f,
+            yield return Wait(() => owner.Player.TableView?.StationId == cards.StationId && Vector3.Distance(camera.transform.position, cards.FocusPose.position) < .001f,
                 "Closing仍可聚焦原牌桌", 3);
             yield return ClickTarget(camera, cards, "secondary");
-            yield return Wait(() => owner.Game.State.SettledRoundSequence == 1 && !owner.IsTableAnimating, "真实停牌并展示已付牌局结果", 6);
+            yield return Wait(() => owner.Game.State.SettledRoundSequence == 1 && !owner.Player.IsTableAnimating, "真实停牌并展示已付牌局结果", 6);
             Assert.That(owner.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Failed));
             Assert.That(owner.Game.State.Coins, Is.EqualTo(beforeCoins - 10 + owner.Game.State.LastRoundPayout));
-            Assert.That(owner.Game.ProfileData.FinishedRuns, Is.Zero); Assert.That(owner.HasStandardEnding, Is.False);
+            Assert.That(owner.Game.ProfileData.FinishedRuns, Is.Zero); Assert.That(owner.Player.Exit.HasEnding, Is.False);
             yield return Screenshot("S1ClosingRoundSettled");
             yield return KeyPress(Key.Escape); yield return Wait(() => Cursor.lockState == CursorLockMode.Locked, "离开已结算牌桌", 3);
             yield return MoveUntil(Key.S, () => body.transform.position.z <= -4.6f); yield return MoveUntil(Key.A, () => body.transform.position.x <= -2.1f);
             yield return LookYaw(180); yield return KeyPress(Key.E); yield return KeyPress(Key.E);
-            yield return Wait(() => owner.HasStandardEnding, "失败后明确撤离", 3);
+            yield return Wait(() => owner.Player.Exit.HasEnding, "失败后明确撤离", 3);
             Assert.That(owner.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.Withdraw));
             Assert.That(owner.Game.State.SettledRoundSequence, Is.EqualTo(1)); Assert.That(owner.Game.ProfileData.Withdrawals, Is.EqualTo(1));
             yield return MouseClick(Field<Button>(presenter, "standardEndingReturnButton"));
@@ -657,8 +658,8 @@ namespace Tests.Demo
 
         private IEnumerator LookYaw(float target)
         {
-            var body = Field<CharacterController>(owner, "body");
-            float gain = Field<JinxCasinoGameSettings>(owner, "gameSettings").LookSensitivity * owner.LocalPreferences.PcLookMultiplier;
+            var body = owner.Player.Body;
+            float gain = Field<JinxCasinoGameSettings>(owner, "gameSettings").LookSensitivity * owner.Settings.Value.PcLookMultiplier;
             yield return null; yield return null;
             for (int i = 0; i < 6 && Mathf.Abs(Mathf.DeltaAngle(body.transform.eulerAngles.y, target)) > .1f; i++)
             {
@@ -694,7 +695,7 @@ namespace Tests.Demo
             Assert.That(travel.GetAwaiter().GetResult().Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning, "保存的沉浸HUD", 30);
             owner = Object.FindFirstObjectByType<JinxCasinoController>();
-            Assert.That(owner, Is.Not.Null); Assert.That(owner.UsesImmersion, Is.True);
+            Assert.That(owner, Is.Not.Null); Assert.That(owner.HasInputConfiguration, Is.True);
             yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "公共画质Widget已初始化", 5);
             Assert.That(GraphicsSettingsUI.IsEntrySuppressed, Is.True);
             Assert.That(UIManager.Instance.Get<DlssSettingsView>().transform.Find("OpenButton").gameObject.activeInHierarchy, Is.False);
@@ -706,7 +707,7 @@ namespace Tests.Demo
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             Assert.That(presenter, Is.Not.Null);
-            var body = Field<CharacterController>(owner, "body"); var camera = Field<Camera>(owner, "worldCamera");
+            var body = owner.Player.Body; var camera = owner.Player.Camera;
             Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(camera)); AssertSingleListener();
             Assert.That(EventSystem.current.GetComponent<InputSystemUIInputModule>(), Is.Not.Null);
             yield return Wait(() => hud.gameObject.GetComponentsInParent<CanvasGroup>(true).All(group => group.alpha >= .99f), "Core入场淡出结束", 2);

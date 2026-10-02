@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using Hotfix.JinxCasino.Rules;
-using Hotfix.JinxCasino.Adapters;
 
 namespace Hotfix.JinxCasino.Interaction
 {

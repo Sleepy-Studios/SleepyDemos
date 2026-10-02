@@ -11,7 +11,7 @@
 
 ## S1保存资源维护（开发中）
 
-当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、MVC绑定及人工调整，不重新运行临时生成/装配Builder。旧Main和通用HUD已经删除；新入口与完整流程仍需分别记录实际验证。
+当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、MVC绑定及人工调整；交互/表现/UI源码分别在Interaction/Presentation/UI，Controller仅保留场景职责，不重新运行临时生成/装配Builder。旧Main和通用HUD已经删除；新入口与完整流程仍需分别记录实际验证。
 
 玩法范围维护独立`Data/ImmersionSettings.asset`，当前为一区、三机台且暂时关闭事件；旧AdventureSettings和SessionSettings已删除。后续接入事件设施时同步本资产与保存资源测试。本地胶囊射线层、操作目标和铭牌行高直接维护保存场景组件，核查序列化引用及`JinxCasinoImmersionSceneTests`结果。
 
@@ -19,7 +19,7 @@
 
 实体补给柜台已保存在Immersion场景中，维护三件商品、报价牌、购买与库存目标、商品缩放及聚焦挂点。新局商品范围由ImmersionSettings限制为双人扳手、重抽牌、止损券，当前版本存档保留自身配置。柜台复用唯一游戏相机，不创建资金或库存服务。
 
-互动教学入口、非模态提示、暂停中的跳过/重来/结果入口及共用确认卡均维护于JinxCasinoImmersionHudView。保留原MVC绑定和Prefab GUID，编辑后核查引用与真实输入回归。
+互动教学入口、非模态提示、暂停中的跳过/重来/结果入口及共用确认卡均维护于JinxCasinoImmersionHudView。保留原MVC绑定和Prefab GUID，编辑后通过既有MvcBind更新组件引用并核查真实输入回归。当前Presenter绑定全名为Hotfix.JinxCasino.UI.JinxCasinoImmersionHudPresenter，生成代码在UI/JinxCasinoImmersionHudView/View。
 
 开发样板从主菜单选择“互动教学”，按实际动作依次体验水果机、二十一点、柜台扳手和协作拉杆；普通练习入口保持自由游玩。教学最后离开桌面再选择完成，稍后也可从暂停菜单回到教学结果。此练习不推进标准冒险区域，标准局阶段推进和结局仍需单独实玩验证。
 

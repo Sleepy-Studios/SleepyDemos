@@ -1,4 +1,4 @@
-using Hotfix.JinxCasino.Adapters;
+using Hotfix.JinxCasino.Presentation;
 using NUnit.Framework;
 
 namespace Tests.Demo

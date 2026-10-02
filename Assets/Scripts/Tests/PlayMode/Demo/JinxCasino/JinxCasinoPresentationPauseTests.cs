@@ -1,6 +1,7 @@
+using Hotfix.JinxCasino.Interaction;
+using Hotfix.JinxCasino.Presentation;
 using System;
 using System.Collections;
-using Hotfix.JinxCasino.Adapters;
 using Hotfix.JinxCasino.Rules;
 using NUnit.Framework;
 using UnityEngine;

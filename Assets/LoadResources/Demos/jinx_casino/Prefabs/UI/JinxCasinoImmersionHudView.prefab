@@ -544,7 +544,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &307475048790860638
 GameObject:
@@ -953,7 +953,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &381528766455580933
 GameObject:
@@ -1443,7 +1443,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &642797226540177625
 GameObject:
@@ -2074,7 +2074,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &807911253935456619
 GameObject:
@@ -2245,7 +2245,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &842665854919998359
 GameObject:
@@ -2866,7 +2866,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &927823605757271472
 GameObject:
@@ -3001,7 +3001,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &955707277011766788
 GameObject:
@@ -3668,7 +3668,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &1394439403148249310
 GameObject:
@@ -3959,7 +3959,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &1574928861791827021
 GameObject:
@@ -4381,7 +4381,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &1804556234110320920
 GameObject:
@@ -4516,7 +4516,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &1825118965085948958
 GameObject:
@@ -4651,7 +4651,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &1832643260493940699
 GameObject:
@@ -5295,7 +5295,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &2010925195431716060
 GameObject:
@@ -5683,7 +5683,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 318692b65bded0342b68233d6e0b81a5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoEndingCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoEndingCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &2175152176963882238
 GameObject:
@@ -6242,7 +6242,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 318692b65bded0342b68233d6e0b81a5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoEndingCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoEndingCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &2509455003839740217
 GameObject:
@@ -6386,7 +6386,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &2610897850862715346
 GameObject:
@@ -7168,7 +7168,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &2995586307355369715
 GameObject:
@@ -8024,7 +8024,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &3401888148709415229
 GameObject:
@@ -8375,7 +8375,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &3560187546613596275
 GameObject:
@@ -8909,7 +8909,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &3781037001269056306
 GameObject:
@@ -9044,7 +9044,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &3852580456587399167
 GameObject:
@@ -9220,7 +9220,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &4024335695954370481
 GameObject:
@@ -9704,7 +9704,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &4318812251163321681
 GameObject:
@@ -10944,7 +10944,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 16aac5b567d8924449a17b7816de20ea, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTouchPad
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.TouchInputPad
   isLookPad: 1
 --- !u!1 &4914207442452933813
 GameObject:
@@ -11764,7 +11764,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &5061943156375346549
 GameObject:
@@ -12523,7 +12523,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &5195269647343116466
 GameObject:
@@ -12667,7 +12667,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &5235559760494318864
 GameObject:
@@ -13288,7 +13288,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &5542266966815568254
 GameObject:
@@ -13553,7 +13553,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &5620735301091911108
 GameObject:
@@ -13825,7 +13825,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &5723826587549899164
 GameObject:
@@ -14169,7 +14169,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &5832137166337190718
 GameObject:
@@ -14379,7 +14379,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &5891132730112637418
 GameObject:
@@ -14523,7 +14523,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &5916789736635244991
 GameObject:
@@ -16067,7 +16067,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &6391945526187305639
 GameObject:
@@ -16202,7 +16202,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &6412657256038711777
 GameObject:
@@ -17159,7 +17159,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &6790434246610998626
 GameObject:
@@ -18290,7 +18290,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &7277600045187636126
 GameObject:
@@ -18390,7 +18390,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 82d530a64840cba44a85b515d8979f3f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoLocalSettingsPresenter
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoLocalSettingsPresenter
   settingsPanel: {fileID: 7277600045187636126}
   pcSensitivity: {fileID: 252894736884306322}
   touchSensitivity: {fileID: 6363455853822414580}
@@ -18834,7 +18834,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ed53da7e614ef404588ce2fc2cb84406, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoSaveCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoSaveCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &7530579045031008246
 GameObject:
@@ -18978,7 +18978,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &7553949906532231839
 GameObject:
@@ -19113,7 +19113,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &7629266100416885984
 GameObject:
@@ -19340,7 +19340,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 16aac5b567d8924449a17b7816de20ea, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTouchPad
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.TouchInputPad
   isLookPad: 0
 --- !u!1 &7789587580241334597
 GameObject:
@@ -19762,7 +19762,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &7992236530129348471
 GameObject:
@@ -20295,7 +20295,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1c56082c168b87946a53e17264bcc65a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionHudPresenter
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionHudPresenter
   standardEndingPanel: {fileID: 425237604444132950}
   standardEndingTitleText: {fileID: 5576701691407488647}
   standardEndingMessageText: {fileID: 5928313524919682748}
@@ -20380,9 +20380,9 @@ MonoBehaviour:
   components:
   - {fileID: 2855336652755498405}
   componentTypes:
-  - Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionHudPresenter
+  - Hotfix.JinxCasino.UI.JinxCasinoImmersionHudPresenter
   bindingKeys:
-  - JinxCasinoImmersionHudView|Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionHudPresenter
+  - JinxCasinoImmersionHudView|Hotfix.JinxCasino.UI.JinxCasinoImmersionHudPresenter
   bindingMethods:
   - None
 --- !u!1 &8412605667962427722
@@ -20518,7 +20518,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &8426717234064128693
 GameObject:
@@ -20790,7 +20790,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &8458338671969275768
 GameObject:
@@ -21219,7 +21219,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &8663993354015732208
 GameObject:
@@ -21567,7 +21567,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
 --- !u!1 &8908180538884774698
 GameObject:
@@ -22392,7 +22392,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 474bfa1e1e7b4314a4853a0928ab4ff4, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoImmersionSettingsCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoImmersionSettingsCancelRelay
   presenter: {fileID: 2855336652755498405}
 --- !u!1 &9195744740547937256
 GameObject:
@@ -22527,5 +22527,5 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 53c76fc241a43154dbfdce1d10c80d01, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.Adapters.UI.JinxCasinoTutorialCancelRelay
+  m_EditorClassIdentifier: Hotfix::Hotfix.JinxCasino.UI.JinxCasinoTutorialCancelRelay
   owner: {fileID: 2855336652755498405}
