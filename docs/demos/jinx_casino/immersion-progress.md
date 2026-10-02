@@ -269,3 +269,11 @@ S1协作拉杆另有明确体验缺口：保存场景只有伙伴仪表与自动
 此项证明本次公共输入迁移及S1入口通过Android IL2CPP与资源构建，不证明实际安装、启动、离线加载或手柄可用。ADB设备列表为空，Android真机30分钟、后台恢复、安全区与触控/Xbox均待验。Windows启动验证所在机器为i7-12700KF、RTX3050、约64GB内存，未采集性能数据，也不替代指定GTX1650级性能目标。
 
 事务最终报告Android S1构建成功且编辑器已恢复；git状态未留下新的平台配置/生成代码变更，Windows ZIP哈希与构建前相同。此次未修改C#、未新增或运行测试；修正运行手册中一处已删除布局测试的旧入口，改为实际机台可读性检查。S1仍待可见助手、完整实玩、录像与用户验收，未进入S2。
+
+## 合拍台可见助手
+
+双端构建记录已推送b1efc6e。本轮在保存场景的s1.sync旁装配现有原创Avatar，保留FBX引用、原材质与关节；没有增加Collider、Camera或Listener。S1LeversPresentation独占右臂与头部，按真实杆角驱动握点及点头，发条袖臂小幅伸缩保持手掌接触；不修改经济、规则或NPC拉杆时间。临时装配脚本及meta已删除，编辑器目录仍仅三个正式构建工具。
+
+复用原StandardWinUsesVisibleVerifierAndDepartureBeforeRecordingOneEnding用例，增加助手真实动作、暂停冻结、Restore握点接触和资金不变断言。68ab8dff首轮在等待实际绿灯时失败，尚未走到新助手断言，原因未确证；随后补充实际投入检查、聚焦截图及新增暂停步骤的虚拟手柄夹具，9deb3a61精确1/1通过。没有放宽绿灯等待时间或新增测试类，没有全量测试。Editor编译及最终Console均无错误。
+
+已查看S1LeverAssistantWaiting-20261002124812与S1LeverAssistantCompleted-20261002124813实际720p截图：助手脸部/伸臂可见，握点随杆拉下；主要操作、双仪表及完整规则牌仍可读。新Run与重复Restore路径经只读审查，未单独实测，不将本次断言扩大为全部恢复验收。此前Windows ZIP/Android APK尚不含本次助手，后续样板交付需重构建；真机、完整Player实玩、录像与S1用户验收仍待完成。

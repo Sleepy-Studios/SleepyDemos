@@ -29,6 +29,14 @@ namespace Hotfix.JinxCasino.Adapters
         [SerializeField] private Renderer syncLamp;
         [SerializeField] private Material lampDark;
         [SerializeField] private Material lampComplete;
+        [SerializeField] private Transform assistantArm;
+        [SerializeField] private Transform assistantPalm;
+        [SerializeField] private Transform assistantGrip;
+        [SerializeField] private Transform assistantHead;
+        private Quaternion assistantArmRest;
+        private Quaternion assistantHeadRest;
+        private Vector3 assistantArmScale;
+        private Vector3 assistantPalmRest;
         private Quaternion[] leverRest;
         private Quaternion[] needleRest;
         private float[] currentAngles;
@@ -63,6 +71,13 @@ namespace Hotfix.JinxCasino.Adapters
             leverRest = Array.ConvertAll(participants, value => value.Lever.localRotation);
             needleRest = Array.ConvertAll(participants, value => value.Needle.localRotation);
             currentAngles = new float[2]; desiredAngles = new float[2];
+            if (assistantArm != null && assistantPalm != null)
+            {
+                assistantArmRest = assistantArm.localRotation;
+                assistantArmScale = assistantArm.localScale;
+                assistantPalmRest = assistantArm.InverseTransformPoint(assistantPalm.position);
+            }
+            if (assistantHead != null) assistantHeadRest = assistantHead.localRotation;
         }
         protected override void ResetVisual()
         {
@@ -75,6 +90,7 @@ namespace Hotfix.JinxCasino.Adapters
             }
             if (helpWrench != null) helpWrench.gameObject.SetActive(false);
             SetMaterial(syncLamp, lampDark);
+            RenderAssistant();
         }
         protected override void ApplyView(JinxCasinoTableView view, bool newSettlement, bool snap)
         {
@@ -93,6 +109,7 @@ namespace Hotfix.JinxCasino.Adapters
                 if (snap) { currentAngles[index] = desiredAngles[index]; participants[index].Lever.localRotation = leverRest[index] * Quaternion.AngleAxis(currentAngles[index], Vector3.right); }
             }
             if (snap || !IsPaused) RenderInstruments(view);
+            if (snap) RenderAssistant();
             SetResult(round.IsComplete ? (round.IsObjectiveSuccess ? "合拍完成" : "合拍失败") + " · 返还 " + round.Payout : view.LeverWindowOpen ? "现在拉" : "等指针进入窗口");
         }
         protected override void Tick(float seconds)
@@ -104,6 +121,21 @@ namespace Hotfix.JinxCasino.Adapters
                 participants[index].Lever.localRotation = leverRest[index] * Quaternion.AngleAxis(currentAngles[index], Vector3.right);
             }
             RenderInstruments(Latest);
+            RenderAssistant();
+        }
+        private void RenderAssistant()
+        {
+            if (assistantArm == null || assistantPalm == null || assistantGrip == null || assistantPalmRest.sqrMagnitude < .0001f) return;
+            // 发条袖臂轻微伸缩，握点始终贴合已按真实结果移动的杆；不另开Update或改变玩法时钟。
+            assistantArm.localRotation = assistantArmRest;
+            assistantArm.localScale = assistantArmScale;
+            Vector3 restReach = assistantArm.TransformVector(assistantPalmRest);
+            Vector3 reach = assistantGrip.position - assistantArm.position;
+            if (restReach.sqrMagnitude < .0001f || reach.sqrMagnitude < .0001f) return;
+            assistantArm.rotation = Quaternion.FromToRotation(restReach, reach) * assistantArm.rotation;
+            assistantArm.localScale = assistantArmScale * (reach.magnitude / restReach.magnitude);
+            if (assistantHead != null)
+                assistantHead.localRotation = assistantHeadRest * Quaternion.Euler(-10 * currentAngles[1] / 40, 0, 0);
         }
         private void RenderInstruments(JinxCasinoTableView view)
         {

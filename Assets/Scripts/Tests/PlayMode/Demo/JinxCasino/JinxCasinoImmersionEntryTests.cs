@@ -471,6 +471,8 @@ namespace Tests.Demo
         public IEnumerator StandardWinUsesVisibleVerifierAndDepartureBeforeRecordingOneEnding()
         {
             yield return EnterSample();
+            gamepad = InputSystem.AddDevice<Gamepad>();
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             yield return MouseClick(Field<Button>(presenter, "start"));
             yield return Wait(() => owner.HasAdventure && !owner.IsAdventureInputBlocked, "标准局进入探索", 3);
@@ -489,12 +491,34 @@ namespace Tests.Demo
             yield return KeyPress(Key.E);
             yield return Wait(() => owner.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f,
                 "标准局聚焦合拍台", 3);
+            var leverPresentation = levers.GetComponentInChildren<JinxCasinoS1LeversPresentation>(true);
+            var assistantArm = Field<Transform>(leverPresentation, "assistantArm");
+            var assistantPalm = Field<Transform>(leverPresentation, "assistantPalm");
+            var assistantGrip = Field<Transform>(leverPresentation, "assistantGrip");
+            Assert.That(assistantArm, Is.Not.Null, "合拍台需要真实可见助手。");
+            Quaternion waitingArm = assistantArm.localRotation;
             yield return ClickTarget(camera, levers, "chip100"); yield return ClickTarget(camera, levers, "commit");
+            yield return Screenshot("S1LeverAssistantWaiting");
+            Assert.That(owner.TableView.HasOwnActiveRound, Is.True, "实体确认后必须建立已投入局：" + owner.TableFeedback);
             yield return Wait(() => owner.TableView.LeverWindowOpen, "实际合拍绿灯", 4);
             yield return ClickTarget(camera, levers, "primary");
             yield return Wait(() => owner.AdventureState.SettledRoundSequence == 1, "真实合拍结算", 6);
             Assert.That(owner.AdventureState.Coins, Is.GreaterThanOrEqualTo(owner.AdventureTarget));
             long earned = owner.AdventureState.Coins;
+            yield return Wait(() => Quaternion.Angle(waitingArm, assistantArm.localRotation) > 5, "助手跟随真实NPC拉杆", 2);
+            yield return PadPress(GamepadButton.Start);
+            Assert.That(owner.IsImmersionPaused, Is.True);
+            Quaternion pausedArm = assistantArm.localRotation;
+            Vector3 pausedPalm = assistantPalm.position;
+            yield return new WaitForSecondsRealtime(.15f);
+            Assert.That(assistantArm.localRotation, Is.EqualTo(pausedArm));
+            Assert.That(assistantPalm.position, Is.EqualTo(pausedPalm));
+            yield return PadPress(GamepadButton.Start);
+            yield return Wait(() => !owner.IsImmersionPaused, "助手与机台明确继续", 2);
+            leverPresentation.Restore(owner.TableView);
+            Assert.That(Vector3.Distance(assistantPalm.position, assistantGrip.position), Is.LessThan(.025f), "恢复握点仍贴合已拉下的杆。");
+            Assert.That(owner.AdventureState.Coins, Is.EqualTo(earned), "恢复助手表现不能再次发奖。");
+            yield return Screenshot("S1LeverAssistantCompleted");
             yield return KeyPress(Key.Escape);
             yield return Wait(() => Cursor.lockState == CursorLockMode.Locked, "离桌恢复探索", 3);
             yield return MoveUntil(Key.S, () => body.transform.position.z <= -4.6f);
