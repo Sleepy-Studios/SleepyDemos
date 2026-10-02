@@ -264,7 +264,7 @@ namespace Hotfix.JinxCasino.Rules
         private long EffectiveTarget => Math.Max(0, checked(state.StageTarget + state.StageTargetAdjustment));
         private bool CanAdvance => state.Phase != CasinoAdventurePhase.Ended;
         private bool IsGameAllowed(CasinoGameKind game) => state.Config.AllowedGames.Length == 0 || Array.IndexOf(state.Config.AllowedGames, game) >= 0;
-        private bool IsGameAvailable(CasinoGameDefinition game) => IsGameAllowed(game.Kind) && (state.Mode == CasinoAdventureMode.Practice || game.AreaIndex <= state.StageIndex % 4
+        private bool IsGameAvailable(CasinoGameDefinition game) => IsGameAllowed(game.Kind) && (state.Mode == CasinoAdventureMode.Practice || Array.IndexOf(state.Config.InitiallyAvailableGames, game.Kind) >= 0 || game.AreaIndex <= state.StageIndex % 4
             || state.GameRotationOffset > 0 && (int)game.Kind == (state.StageIndex * 5 + state.GameRotationOffset) % 17);
 
         private void PrepareStage()
@@ -402,6 +402,10 @@ namespace Hotfix.JinxCasino.Rules
             foreach (string id in config.ShopItemIds) if (CasinoContentCatalog.FindItem(id) == null) throw new ArgumentException("商店配置含未知道具。");
             var gameKinds = new HashSet<CasinoGameKind>();
             foreach (var game in config.AllowedGames) if (!Enum.IsDefined(typeof(CasinoGameKind), game) || !gameKinds.Add(game)) throw new ArgumentException("机台配置含无效或重复类型。");
+            config.InitiallyAvailableGames ??= Array.Empty<CasinoGameKind>();
+            var initiallyAvailable = new HashSet<CasinoGameKind>();
+            foreach (var game in config.InitiallyAvailableGames)
+                if (!Enum.IsDefined(typeof(CasinoGameKind), game) || !initiallyAvailable.Add(game)) throw new ArgumentException("起始机台配置含无效或重复类型。");
             var eventIds = new HashSet<string>();
             foreach (var weight in config.EventWeights) if (weight == null || weight.Weight < 0 || weight.Weight > 1000000 || CasinoContentCatalog.FindEvent(weight.EventId) == null || !eventIds.Add(weight.EventId)) throw new ArgumentException("事件权重配置非法。");
         }

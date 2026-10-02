@@ -82,3 +82,9 @@ JinxCasinoTableSessionTests作业ab91c93f，EditMode7/7通过：Slots明确拉�
 输入修复：静止指针不再覆盖键盘目标导航；重新锁定光标时只丢弃一次视角增量，保留离散交互。InputRouter整组ec37f25f为10/11，新用例漏传真实锁定状态导致失败；补齐pointerLocked后精确重测0c98fc15为1/1，其余10项未变，无全量测试。
 
 暂停整合：PresentationClockTests 651e38e8为3/3；PresentationPauseTests 1b8cd396为2/3。移动桌测试原fixture将根节点悬空，触发防悬空保护；改为地面根+抬高Collider中心后，精确重测a7234176为1/1，未改生产安全判断。以上暂停组件仍随宿主整合留在工作区，不能视作完整场景暂停验收。
+
+## 起始机台范围与旧档兼容
+
+输入焦点修复已推送c731601。领域配置增加InitiallyAvailableGames，让独立样板能在首区开放协作拉杆，同时保留AllowedGames最终限制。旧存档缺少字段时仍按原区域解锁，不扩大旧原型内容。
+
+三个精确EditMode方法通过：db601de4（默认/旧档缺字段）、b43ce73f（三样板实际拉杆投入及恢复幂等）、8ed0bf3c（标准/练习恢复后不能绕过AllowedGames），共3/3。未执行全量测试。保存的样板配置曾仍是默认值，正在用独立分步装配入口修正；生产规则通过不代表资产或实玩通过。

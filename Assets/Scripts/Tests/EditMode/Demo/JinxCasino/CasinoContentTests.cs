@@ -181,6 +181,72 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void DefaultAndLegacyMissingInitialGamesKeepOriginalFirstAreaUnlocks()
+        {
+            var session = CasinoAdventureSession.Start(2, CasinoAdventureMode.Standard, 1, CasinoAdventureTests.QuietConfig());
+            Assert.That(session.State.Config.InitiallyAvailableGames, Is.Empty);
+            string snapshot = session.ToSnapshotJson();
+            Assert.That(snapshot, Does.Contain("\"InitiallyAvailableGames\":[],"));
+            // 模拟发布过的v1快照：没有新字段，不能因此默认提前开放二区拉杆。
+            string legacy = snapshot.Replace("\"InitiallyAvailableGames\":[],", string.Empty)
+                .Replace("\"SchemaVersion\":2", "\"SchemaVersion\":1");
+            var restored = CasinoAdventureSession.Restore(legacy);
+            var firstArea = new[] { CasinoGameKind.Slots, CasinoGameKind.Roulette, CasinoGameKind.CoinFlip,
+                CasinoGameKind.Blackjack, CasinoGameKind.HighLow, CasinoGameKind.LuckyDraw };
+            foreach (var candidate in new[] { session, restored })
+            {
+                Assert.That(candidate.State.Config.InitiallyAvailableGames, Is.Empty);
+                Assert.That(candidate.GetAvailableGames().Select(game => game.Kind), Is.EquivalentTo(firstArea));
+                uint random = candidate.State.RandomState;
+                Assert.That(candidate.BeginGame("locked-levers", CasinoGameKind.CooperativeLevers, 10, 0).Error, Is.EqualTo("GameLocked"));
+                Assert.That(candidate.State.RandomState, Is.EqualTo(random));
+                Assert.That(candidate.State.Coins, Is.EqualTo(1000));
+                Assert.That(candidate.HasActiveRound, Is.False);
+            }
+        }
+
+        [Test]
+        public void ExplicitInitialS1GamesOpenRealLeverRoundAndSurviveRestore()
+        {
+            var config = CasinoAdventureTests.QuietConfig();
+            config.AllowedGames = new[] { CasinoGameKind.Slots, CasinoGameKind.Blackjack, CasinoGameKind.CooperativeLevers };
+            config.InitiallyAvailableGames = (CasinoGameKind[])config.AllowedGames.Clone();
+            var session = CasinoAdventureSession.Start(2, CasinoAdventureMode.Standard, 1, config);
+            Assert.That(session.State.StageIndex, Is.Zero);
+            Assert.That(session.GetAvailableGames().Select(game => game.Kind), Is.EquivalentTo(config.AllowedGames));
+            Assert.That(session.BeginGame("initial-levers", CasinoGameKind.CooperativeLevers, 10, 0, "s1-levers").Success, Is.True);
+            Assert.That(session.HasActiveRound, Is.True, "起始开放必须允许实际投入，不能仅改变目录展示。");
+            var before = session.State;
+            var restored = CasinoAdventureSession.Restore(session.ToSnapshotJson());
+            Assert.That(restored.GetAvailableGames().Select(game => game.Kind), Is.EquivalentTo(config.AllowedGames));
+            Assert.That(restored.State.ActiveStationId, Is.EqualTo("s1-levers"));
+            Assert.That(restored.State.ActiveRoundJson, Is.EqualTo(before.ActiveRoundJson));
+            Assert.That(restored.State.LockedCoins, Is.EqualTo(10));
+            Assert.That(restored.BeginGame("initial-levers", CasinoGameKind.CooperativeLevers, 10, 0, "s1-levers").Changed, Is.False);
+            Assert.That(restored.State.RandomState, Is.EqualTo(before.RandomState));
+            Assert.That(restored.State.Coins, Is.EqualTo(before.Coins));
+        }
+
+        [Test]
+        public void InitialGamesCannotOverrideAllowedGamesInStandardOrPracticeAfterRestore()
+        {
+            var config = CasinoAdventureTests.QuietConfig();
+            config.AllowedGames = new[] { CasinoGameKind.Slots, CasinoGameKind.Blackjack };
+            config.InitiallyAvailableGames = new[] { CasinoGameKind.Slots, CasinoGameKind.Blackjack, CasinoGameKind.CooperativeLevers };
+            foreach (var mode in new[] { CasinoAdventureMode.Standard, CasinoAdventureMode.Practice })
+            {
+                var session = CasinoAdventureSession.Restore(CasinoAdventureSession.Start(2, mode, 1, config).ToSnapshotJson());
+                Assert.That(session.GetAvailableGames().Select(game => game.Kind), Is.EquivalentTo(config.AllowedGames));
+                uint random = session.State.RandomState;
+                Assert.That(session.BeginGame("unassembled-levers", CasinoGameKind.CooperativeLevers, 10, 0).Error, Is.EqualTo("GameLocked"));
+                Assert.That(session.State.RandomState, Is.EqualTo(random));
+                Assert.That(session.State.Coins, Is.EqualTo(1000));
+                Assert.That(session.State.LockedCoins, Is.Zero);
+                Assert.That(session.HasActiveRound, Is.False);
+            }
+        }
+
+        [Test]
         public void P1MerchantAwardsOnlyConfiguredUsableItemsAcrossDifferentSeeds()
         {
             var config = CasinoAdventureTests.SingleEventConfig("mystery_merchant");

@@ -29,6 +29,8 @@ namespace Hotfix.JinxCasino.Rules
         public string[] ShopItemIds = Array.Empty<string>();
         /// 为空时全机台开放；非空仅允许本场景实际装配的机台，练习和结局挑战同样遵守。
         public CasinoGameKind[] AllowedGames = Array.Empty<CasinoGameKind>();
+        /// 场景明确配置的起始可用玩法，仍受AllowedGames限制；旧档缺失时视为空。
+        public CasinoGameKind[] InitiallyAvailableGames = Array.Empty<CasinoGameKind>();
         /// 为空使用目录默认权重，设为 0 可禁用某事件。
         public CasinoEventWeight[] EventWeights = Array.Empty<CasinoEventWeight>();
     }
