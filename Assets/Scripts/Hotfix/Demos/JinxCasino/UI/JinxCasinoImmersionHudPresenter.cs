@@ -115,13 +115,16 @@ namespace Hotfix.JinxCasino.UI
             wallet.text = "筹码  " + (owner.Game.State?.Coins ?? 0);
             objective.text = AdventureObjective(adventure);
             var table = owner.Player.TableView;
-            bool atDesk = table != null || owner.Player.HasShopFocus;
+            // 离桌会立即清会话，但相机仍在返回；这期间不能提前开放探索触区。
+            bool atDesk = owner.Player.HasFocus;
             bool touching = owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch;
             bool usingGamepad = owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad;
-            movePad.gameObject.SetActive(state == 2 && !atDesk && touching);
-            lookPad.gameObject.SetActive(state == 2 && !atDesk && touching);
-            interact.gameObject.SetActive(state == 2 && !atDesk && touching);
+            bool exploring = state == 2 && owner.Player.IsExplorationInputReady;
+            movePad.gameObject.SetActive(exploring && touching);
+            lookPad.gameObject.SetActive(exploring && touching);
+            interact.gameObject.SetActive(exploring && touching);
             exitTable.gameObject.SetActive(state == 2 && atDesk);
+            exitTable.interactable = table != null || owner.Player.HasShopFocus;
             if (pauseLabel != null) pauseLabel.text = usingGamepad ? "Menu 暂停" : touching || atDesk ? "暂停" : "Esc 暂停";
             if (exitTableLabel != null) exitTableLabel.text = usingGamepad ? "B 离开桌面" : touching ? "离开桌面" : "Esc 离开桌面";
             string action = owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
@@ -129,6 +132,7 @@ namespace Hotfix.JinxCasino.UI
             prompt.text = atDesk ? owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad
                 ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
                 : owner.Player.Exit.IsNearby ? action + " " + owner.Player.Exit.Prompt : owner.Player.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
+            if (state == 2 && !exploring && table == null && !owner.Player.HasShopFocus) prompt.text = "正在回到探索视角…";
             feedback.text = InteractionFeedback(table);
         }
         private string AdventureObjective(CasinoAdventureState state)

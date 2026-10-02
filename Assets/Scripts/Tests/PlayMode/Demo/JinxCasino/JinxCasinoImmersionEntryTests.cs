@@ -43,6 +43,7 @@ namespace Tests.Demo
         private string saveDirectory;
         private string settingsTestKey;
         private bool standaloneOverride;
+        private int touchSequence;
 
         [UnityTest, Timeout(180000)]
         public IEnumerator SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause()
@@ -174,19 +175,19 @@ namespace Tests.Demo
         [UnityTest, Timeout(240000)]
         public IEnumerator SavedTutorialAdvancesOnlyThroughRealMovementObjectsAndSettlements()
         {
-            yield return EnterSample();
+            yield return EnterSample(touchEntry: true);
             var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
             var body = owner.Player.Body; var camera = owner.Player.Camera;
-            yield return MouseClick(Field<Button>(presenter, "tutorialStartButton"));
-            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen && Cursor.lockState == CursorLockMode.Locked,
+            yield return TouchTap(Field<Button>(presenter, "tutorialStartButton"));
+            yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen && Cursor.lockState == CursorLockMode.None,
                 "真实教学入口进入探索", 3);
             Assert.That(owner.Game.State.Teaching.Step, Is.EqualTo(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Look));
             Assert.That(owner.Game.State.Mode, Is.EqualTo(Hotfix.JinxCasino.Rules.CasinoAdventureMode.Practice));
             Assert.That(owner.Game.State.Config.MaximumStake, Is.EqualTo(10));
             string tutorialRun = owner.Game.State.RunId;
-            yield return KeyPress(Key.Escape);
+            yield return TouchTap(Field<Button>(presenter, "pause"));
             yield return Wait(() => owner.Player.IsPaused, "教学暂停", 3);
-            yield return MouseClick(Field<Button>(presenter, "tutorialRetryButton"));
+            yield return TouchTap(Field<Button>(presenter, "tutorialRetryButton"));
             yield return Wait(() => Field<Button>(presenter, "tutorialCancelButton").gameObject.activeInHierarchy, "重玩确认", 3);
             gamepad = InputSystem.AddDevice<Gamepad>();
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
@@ -195,78 +196,79 @@ namespace Tests.Demo
             yield return Wait(() => Field<GameObject>(presenter, "pauseMenu").activeInHierarchy, "手柄Menu取消确认后返回暂停", 3);
             Assert.That(owner.Player.IsPaused, Is.True, "关闭确认不能悄悄恢复时钟。");
             Assert.That(owner.Game.State.RunId, Is.EqualTo(tutorialRun));
-            yield return MouseClick(Field<Button>(presenter, "resume"));
+            yield return TouchTap(Field<Button>(presenter, "resume"));
             yield return Wait(() => !owner.Player.IsPaused && !owner.Player.IsMenuOpen, "显式继续教学", 3);
             yield return null; yield return null;
-            for (int i = 0; i < 15 && owner.Game.State.Teaching.Step == Hotfix.JinxCasino.Rules.CasinoTutorialStep.Look; i++)
+            for (int i = 0; i < 5 && owner.Game.State.Teaching.Step == Hotfix.JinxCasino.Rules.CasinoTutorialStep.Look; i++)
             {
-                InputSystem.QueueStateEvent(mouse, new MouseState { delta = new Vector2(0, 200) }); yield return null;
-                InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
+                yield return TouchLook(Field<Core.Runtime.Inputs.TouchInputPad>(presenter, "lookPad"), Vector2.up * (Screen.height * .2f));
             }
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Walk);
             var stations = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None);
             var fruit = stations.Single(value => value.StationId == "s1.fruit");
             var cards = stations.Single(value => value.StationId == "s1.cards");
             var levers = stations.Single(value => value.StationId == "s1.sync");
-            yield return MoveUntil(Key.W, () => body.transform.position.z >= fruit.InteractionPosition.z - .12f);
-            yield return MoveUntil(Key.A, () => body.transform.position.x <= fruit.InteractionPosition.x + .15f);
+            var movePad = Field<Core.Runtime.Inputs.TouchInputPad>(presenter, "movePad");
+            yield return TouchMoveUntil(movePad, Vector2.up, () => body.transform.position.z >= fruit.InteractionPosition.z - .12f);
+            yield return TouchMoveUntil(movePad, Vector2.left, () => body.transform.position.x <= fruit.InteractionPosition.x + .15f);
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.EnterSlots);
-            yield return KeyPress(Key.E); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.AddChips);
-            yield return ClickTarget(camera, fruit, "chip10"); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Confirm);
-            yield return ClickTarget(camera, fruit, "commit"); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.SlotsResult);
+            yield return TouchTap(Field<Button>(presenter, "interact")); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.AddChips);
+            yield return TouchTarget(camera, fruit, "chip10"); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Confirm);
+            yield return TouchTarget(camera, fruit, "commit"); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.SlotsResult);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(1000));
-            yield return ClickTarget(camera, fruit, "primary");
+            yield return TouchTarget(camera, fruit, "primary");
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.LeaveSlots);
             Assert.That(fruit.GetComponent<JinxCasinoS1SlotsPresentation>().IsAnimating, Is.False);
             Assert.That(owner.Game.State.SettledRoundSequence, Is.EqualTo(1));
             yield return Screenshot("S1TutorialFruitResult");
-            yield return KeyPress(Key.Escape); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Blackjack);
-            yield return MoveUntil(Key.D, () => body.transform.position.x >= -.10f);
-            yield return MoveUntil(Key.W, () => body.transform.position.z >= cards.InteractionPosition.z - .12f);
-            yield return KeyPress(Key.E);
+            yield return TouchTap(Field<Button>(presenter, "exitTable")); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Blackjack);
+            Assert.That(owner.Player.HasFocus && movePad.gameObject.activeInHierarchy, Is.False, "离桌过渡期间不能提前开放摇杆。");
+            yield return TouchMoveUntil(movePad, Vector2.right, () => body.transform.position.x >= -.10f);
+            yield return TouchMoveUntil(movePad, Vector2.up, () => body.transform.position.z >= cards.InteractionPosition.z - .12f);
+            yield return TouchTap(Field<Button>(presenter, "interact"));
             yield return Wait(() => owner.Player.TableView?.StationId == cards.StationId && Vector3.Distance(camera.transform.position, cards.FocusPose.position) < .001f, "教学聚焦二十一点", 3);
-            yield return ClickTarget(camera, cards, "chip10"); yield return ClickTarget(camera, cards, "commit");
-            if (owner.Game.HasActiveRound) yield return ClickTarget(camera, cards, "secondary");
+            yield return TouchTarget(camera, cards, "chip10"); yield return TouchTarget(camera, cards, "commit");
+            if (owner.Game.HasActiveRound) yield return TouchTarget(camera, cards, "secondary");
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.BuyWrench);
             Assert.That(cards.GetComponent<JinxCasinoS1BlackjackPresentation>().IsAnimating, Is.False);
-            yield return KeyPress(Key.Escape);
-            yield return Wait(() => Cursor.lockState == CursorLockMode.Locked, "牌桌恢复探索", 3);
-            yield return MoveUntil(Key.S, () => body.transform.position.z <= -4.6f);
+            yield return TouchTap(Field<Button>(presenter, "exitTable"));
+            yield return Wait(() => owner.Player.TableView == null && movePad.gameObject.activeInHierarchy, "牌桌恢复触屏探索", 3);
+            yield return TouchMoveUntil(movePad, Vector2.down, () => body.transform.position.z <= -4.6f);
             var counter = Object.FindFirstObjectByType<JinxCasinoShopCounter>();
-            yield return MoveUntil(Key.A, () => body.transform.position.x <= counter.InteractionPosition.x + .15f);
-            yield return KeyPress(Key.E);
+            yield return TouchMoveUntil(movePad, Vector2.left, () => body.transform.position.x <= counter.InteractionPosition.x + .15f);
+            yield return TouchTap(Field<Button>(presenter, "interact"));
             yield return Wait(() => owner.Player.HasShopFocus && Vector3.Distance(camera.transform.position, counter.FocusPose.position) < .01f,
                 "教学柜台聚焦完成", 3);
-            yield return ClickTarget(camera, counter.Targets.Single(target => target.TargetId == "s1.supply.action0"));
+            yield return TouchTarget(camera, counter.Targets.Single(target => target.TargetId == "s1.supply.action0"));
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.UseWrench);
-            yield return ClickTarget(camera, counter.Targets.Single(target => target.TargetId == "s1.supply.action1"));
+            yield return TouchTarget(camera, counter.Targets.Single(target => target.TargetId == "s1.supply.action1"));
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Levers);
             Assert.That(owner.Game.State.CooperationHelpCharges, Is.EqualTo(1));
-            yield return KeyPress(Key.Escape);
-            yield return Wait(() => Cursor.lockState == CursorLockMode.Locked, "柜台恢复探索", 3);
-            yield return MoveUntil(Key.D, () => body.transform.position.x >= -.10f);
-            yield return MoveUntil(Key.W, () => body.transform.position.z >= levers.InteractionPosition.z - .12f);
-            yield return MoveUntil(Key.D, () => body.transform.position.x >= levers.InteractionPosition.x - .15f);
-            yield return KeyPress(Key.E);
+            yield return TouchTap(Field<Button>(presenter, "exitTable"));
+            yield return Wait(() => !owner.Player.HasShopFocus && movePad.gameObject.activeInHierarchy, "柜台恢复触屏探索", 3);
+            yield return TouchMoveUntil(movePad, Vector2.right, () => body.transform.position.x >= -.10f);
+            yield return TouchMoveUntil(movePad, Vector2.up, () => body.transform.position.z >= levers.InteractionPosition.z - .12f);
+            yield return TouchMoveUntil(movePad, Vector2.right, () => body.transform.position.x >= levers.InteractionPosition.x - .15f);
+            yield return TouchTap(Field<Button>(presenter, "interact"));
             yield return Wait(() => owner.Player.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f, "教学聚焦合拍台", 3);
-            yield return ClickTarget(camera, levers, "chip10"); yield return ClickTarget(camera, levers, "commit");
+            yield return TouchTarget(camera, levers, "chip10"); yield return TouchTarget(camera, levers, "commit");
             yield return Wait(() => owner.Player.TableView.LeverWindowOpen, "实际绿灯窗口", 4);
-            yield return ClickTarget(camera, levers, "primary");
+            yield return TouchTarget(camera, levers, "primary");
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Ready);
             Assert.That(owner.Game.State.SettledRoundSequence, Is.EqualTo(3));
             yield return Screenshot("S1TutorialReady");
-            yield return KeyPress(Key.Escape);
+            yield return TouchTap(Field<Button>(presenter, "exitTable"));
             yield return Wait(() => Field<Button>(presenter, "tutorialCompleteButton").gameObject.activeInHierarchy, "明确完成教学按钮", 3);
-            yield return MouseClick(Field<Button>(presenter, "tutorialReadyBackButton"));
+            yield return TouchTap(Field<Button>(presenter, "tutorialReadyBackButton"));
             yield return Wait(() => !owner.Player.IsMenuOpen, "稍后完成仍可继续练习", 3);
-            yield return KeyPress(Key.Escape);
+            yield return TouchTap(Field<Button>(presenter, "pause"));
             yield return Wait(() => owner.Player.IsPaused && Field<Button>(presenter, "tutorialReviewButton").gameObject.activeInHierarchy,
                 "暂停提供重新打开教学结果入口", 3);
-            yield return MouseClick(Field<Button>(presenter, "tutorialReviewButton"));
-            yield return MouseClick(Field<Button>(presenter, "tutorialCompleteButton"));
+            yield return TouchTap(Field<Button>(presenter, "tutorialReviewButton"));
+            yield return TouchTap(Field<Button>(presenter, "tutorialCompleteButton"));
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Completed);
             long coins = owner.Game.State.Coins; uint random = owner.Game.State.RandomState;
-            yield return MouseClick(Field<Button>(presenter, "tutorialContinueButton"));
+            yield return TouchTap(Field<Button>(presenter, "tutorialContinueButton"));
             yield return Wait(() => !owner.Player.IsMenuOpen, "明确继续当前练习", 3);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(coins)); Assert.That(owner.Game.State.RandomState, Is.EqualTo(random));
         }
@@ -673,7 +675,7 @@ namespace Tests.Demo
         private IEnumerator WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep step)
         { yield return Wait(() => owner.Game.State.Teaching.Step == step, "真实教学步骤：" + step, 10); }
 
-        private IEnumerator EnterSample(bool enterWithHeldGamepad = false)
+        private IEnumerator EnterSample(bool enterWithHeldGamepad = false, bool touchEntry = false)
         {
             if (GameSceneNavigator.Instance == null)
             {
@@ -682,8 +684,9 @@ namespace Tests.Demo
             }
             yield return Wait(IsStableHub, "正式Hub稳定", 90);
             Assert.That(GameSceneNavigator.Instance.IsEditorDirect, Is.False);
-            resolution = new GameViewResolution(1280, 720);
-            yield return Wait(() => Screen.width == 1280 && Screen.height == 720, "720p实际GameView", 15);
+            int width = touchEntry ? 960 : 1280, height = touchEntry ? 600 : 720;
+            resolution = new GameViewResolution(width, height);
+            yield return Wait(() => Screen.width == width && Screen.height == height, "实际横屏GameView", 15);
             originalInputSettings = InputSystem.settings; testInputSettings = Object.Instantiate(originalInputSettings);
             testInputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             testInputSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
@@ -711,6 +714,11 @@ namespace Tests.Demo
                 }
                 Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(casinoButton.gameObject), "实际方向导航可到达赌场入口。");
                 InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
+            }
+            else if (touchEntry)
+            {
+                touchscreen = InputSystem.AddDevice<Touchscreen>();
+                yield return TouchTap(casinoButton);
             }
             else yield return MouseClick(casinoButton);
             yield return Wait(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.JinxCasino && !GameSceneNavigator.Instance.IsTransitioning,
@@ -755,7 +763,11 @@ namespace Tests.Demo
         private IEnumerator MoveUntil(Key key, Func<bool> arrived)
         {
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
-            yield return Wait(arrived, "实际" + key + "通道移动", 8);
+            double deadline = Time.realtimeSinceStartupAsDouble + 8;
+            while (!arrived() && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
+            Assert.That(arrived(), Is.True, $"实际{key}通道移动超时；位置={owner.Player.Body.transform.position}，朝向={owner.Player.Body.transform.eulerAngles}，" +
+                $"设备={owner.Player.DeviceKind}，聚焦={owner.Player.HasFocus}，暂停={owner.Player.IsPaused}，菜单={owner.Player.IsMenuOpen}，" +
+                $"上下文={Field<object>(owner.Player, "appliedInputContext")}，按键={keyboard[key].isPressed}");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
         }
         private IEnumerator MouseClick(Selectable button)
@@ -779,6 +791,14 @@ namespace Tests.Demo
         private IEnumerator ClickTarget(Camera camera, JinxCasinoTableTarget target)
         {
             yield return Wait(() => target.IsAvailable, "实体目标可操作：" + target.TargetId, 3);
+            var point = TargetPosition(camera, target);
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = point }); yield return null;
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = point }.WithButton(MouseButton.Left)); yield return null;
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = point }); yield return null; yield return null;
+        }
+
+        private static Vector2 TargetPosition(Camera camera, JinxCasinoTableTarget target)
+        {
             Physics.SyncTransforms(); var collider = target.GetComponent<Collider>(); Assert.That(collider, Is.Not.Null);
             Vector3 screen = camera.WorldToScreenPoint(collider.bounds.center);
             Assert.That(screen.z, Is.GreaterThan(0)); Assert.That(screen.x, Is.InRange(0, Screen.width), target.TargetId); Assert.That(screen.y, Is.InRange(0, Screen.height), target.TargetId);
@@ -786,9 +806,71 @@ namespace Tests.Demo
             Assert.That(Physics.Raycast(camera.ScreenPointToRay(point), out var hit, 4, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore), Is.True);
             Assert.That(hit.collider.GetComponentInParent<JinxCasinoTableTarget>(), Is.SameAs(target),
                 "真实相机射线不得穿透桌体或其它目标。首个命中：" + hit.collider.name + "，位置：" + hit.point);
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = point }); yield return null;
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = point }.WithButton(MouseButton.Left)); yield return null;
-            InputSystem.QueueStateEvent(mouse, new MouseState { position = point }); yield return null; yield return null;
+            return point;
+        }
+
+        private IEnumerator TouchTap(Selectable button)
+        {
+            Assert.That(button != null && button.isActiveAndEnabled && button.interactable, Is.True);
+            yield return null; yield return null;
+            var point = UiPosition(button);
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = point }, hits);
+            Assert.That(hits, Is.Not.Empty);
+            Assert.That(hits[0].gameObject.GetComponentInParent<Selectable>(), Is.SameAs(button), "触屏按钮不得被遮挡。");
+            yield return TouchTap(point);
+        }
+
+        private IEnumerator TouchTarget(Camera camera, JinxCasinoStation station, string suffix) =>
+            TouchTarget(camera, station.Targets.Single(value => value.TargetId == station.StationId + "." + suffix));
+
+        private IEnumerator TouchTarget(Camera camera, JinxCasinoTableTarget target)
+        {
+            yield return Wait(() => target.IsAvailable, "触屏实体目标可操作：" + target.TargetId, 3);
+            var point = TargetPosition(camera, target);
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = point }, hits);
+            Assert.That(hits, Is.Empty, "实体触区不得被 HUD 或摇杆遮挡。");
+            yield return TouchTap(point);
+            Assert.That(owner.Player.DeviceKind, Is.EqualTo(Core.Runtime.Inputs.InputDeviceKind.Touch));
+        }
+
+        private IEnumerator TouchTap(Vector2 point)
+        {
+            int id = ++touchSequence;
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = point, phase = UnityEngine.InputSystem.TouchPhase.Began }); yield return null;
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = point, phase = UnityEngine.InputSystem.TouchPhase.Ended }); yield return null; yield return null;
+        }
+
+        private static Vector2 UiPosition(Component component)
+        {
+            Canvas.ForceUpdateCanvases();
+            var rect = (RectTransform)component.transform;
+            return RectTransformUtility.WorldToScreenPoint(component.GetComponentInParent<Canvas>().worldCamera, rect.TransformPoint(rect.rect.center));
+        }
+
+        private IEnumerator TouchMoveUntil(Core.Runtime.Inputs.TouchInputPad pad, Vector2 direction, Func<bool> arrived)
+        {
+            if (arrived()) yield break;
+            yield return Wait(() => pad.gameObject.activeInHierarchy, "触屏摇杆已随探索上下文恢复", 3);
+            int id = ++touchSequence;
+            var origin = UiPosition(pad);
+            var held = origin + direction * (80f * Screen.height / 720f);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = origin, phase = UnityEngine.InputSystem.TouchPhase.Began }); yield return null; yield return null;
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = held, phase = UnityEngine.InputSystem.TouchPhase.Moved }); yield return null; yield return null;
+            yield return Wait(arrived, "实际触屏摇杆移动", 8);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = held, phase = UnityEngine.InputSystem.TouchPhase.Ended }); yield return null; yield return null;
+            Assert.That(pad.Move, Is.EqualTo(Vector2.zero), "松开摇杆后不能残留移动。");
+        }
+
+        private IEnumerator TouchLook(Core.Runtime.Inputs.TouchInputPad pad, Vector2 delta)
+        {
+            Assert.That(pad.gameObject.activeInHierarchy, Is.True);
+            int id = ++touchSequence;
+            var origin = UiPosition(pad);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = origin, phase = UnityEngine.InputSystem.TouchPhase.Began }); yield return null; yield return null;
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = origin + delta, phase = UnityEngine.InputSystem.TouchPhase.Moved }); yield return null; yield return null;
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, position = origin + delta, phase = UnityEngine.InputSystem.TouchPhase.Ended }); yield return null; yield return null;
         }
 
         [UnityTest, Timeout(180000)]

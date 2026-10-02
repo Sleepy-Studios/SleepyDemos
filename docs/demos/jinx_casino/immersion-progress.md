@@ -411,3 +411,15 @@ Core.Runtime的MenuInputScope补齐Submit/Cancel实际设备通知，与Move/Poi
 初次Hub集成ca3d02ed的UnitySkills包装器在域重载后报原生任务9513069a未恢复，但原生XML显示2026-10-02T20:03:52Z至20:04:07Z两个目标用例2/2通过，Editor已退出测试。随后补公共触控焦点恢复、Submit/Cancel通知及真实赌场手柄入口，正式编译2026-10-02T20:15:21Z成功、0错误。最终dde32b08的原生XML（20:21:09Z–20:21:24Z）Hub2/2通过；c5bbdfab（20:25:02Z–20:25:05Z）CoreMenuOwnsExactlyOneSubmitAndTableUsesIndependentFocus 1/1通过；e3d24b22（20:27:31Z–20:27:58Z）SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause 1/1通过。后三个包装器也报原生任务未恢复，逐次核对当次XML名称/时间和Editor退出状态后才继续，没有因观察失效重启同一测试。结果分别保存于Library/JinxCasino/Verification的HubMenuInput-dde32b08.xml、CoreMenuInput-c5bbdfab.xml、HeldGamepadEntry-e3d24b22.xml。
 
 最终四个直接相关PlayMode用例通过，Console0错误，Editor不在Play/编译中；未运行全量。公共输入模块/runbook、场景模块/runbook、当前计划同次更新。源Prefab/正式美术未改，未重建双端产物，未验证真实Xbox或Android。Mobile_RPAsset原字节SHA256仍为DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9；字体缓存及原有UnitySkills/vTabs/.blend1等保持未暂存。提交名「fix(input): 补齐 Hub 导航与跨设备焦点恢复」，实际SHA由Git与交付回复记录；Goal保持进行中。
+
+## 2026-10-03：触屏三机台教学与离桌恢复修复
+
+基线8101c33ebceb09573128cf419e16d2db8c2e0c47。复用现有SavedTutorialAdvancesOnlyThroughRealMovementObjectsAndSettlements，不新增测试文件/数量快照：改为960×600共用窄横屏布局，Touchscreen实际点击Hub/教学/暂停，拖动保存的移动摇杆及右侧滑动区，实体指针完成水果机、二十一点、补给柜台、协作拉杆与教学收尾。保留已有手柄Menu取消确认断言；教学主流程使用触控，不搬角色或调用按钮监听器。触屏/鼠标共用目标投影与真实物理首命中校验，触屏额外验证HUD不遮挡实体触区；松开摇杆验证无残留移动。测试辅助代码仍只在现有Tests.PlayMode。
+
+首轮c50dc064原生XML为1失败（2026-10-02T20:48:09Z–20:48:40Z）：真实触控已完成水果机，离桌后移动超时。旧HUD在具体会话清除后立即开放探索触区，但相机仍在0.35秒返回，随后切上下文ResetInput清掉已按住手指。首修HUD按HasFocus隐藏触区，并尝试在聚焦结束同帧切Gameplay；bb7773e8触控1/1通过，但c6c607f7键鼠D移动失败。115719b3记录位置(-4.72,0.08,-4.57)、朝向0、KeyboardMouse、无聚焦/暂停/菜单、Gameplay且D已按下，确认提前启用上下文后尚未执行首次中立读取，连续量门闩一直屏蔽新按键。
+
+最终保留Player每帧先ApplyContext再ReadFrame的顺序，增加IsExplorationInputReady及lastReadInputContext，切上下文清读取标记。HUD必须等待相机归位、Gameplay启用且已读取、无暂停/菜单，才显示摇杆、滑动区和交互按钮；返回时离桌按钮禁用并显示“正在回到探索视角…”。未改公共输入的防长按规则、经济或保存格式。同步Demo模块生命周期文档。
+
+最终正式编译2026-10-02T21:13:56Z成功、0错误。b440342c原生XML（21:17:01Z–21:17:29Z）SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause 1/1通过，覆盖手柄Hub进入、设备切换、键鼠实体机台/柜台、暂停与返回；4d608691原生XML（21:18:58Z–21:19:36Z）触控教学1/1通过。UnitySkills包装器仍报域重载后原生任务未恢复，逐次核对当次XML名称/时间与Editor退出状态后继续，未重复启动尚在执行的任务。两份最终XML保存在Library/JinxCasino/Verification/EntryReturn-b440342c.xml与TouchTutorial-4d608691.xml；失败及中间结果同目录保留。仅运行两个直接相关用例，未运行全量。最终Console0错误、Editor退出Play且无编译。
+
+960×600的水果机与合拍台截图留在同验证目录，证明此次实际输入路径，不能证明美术或手指容错验收。已有规则铭牌在较窄视口的构图仍需正式视觉阶段复查；未以中心命中测试代表触区大小、刘海安全区、Android真机30分钟或目标硬件性能达标。本轮未改Prefab或制作正式美术，未重建双端包；四稿确认、实物Xbox/Android及S1体验仍待完成。Mobile_RPAsset原字节SHA256保持DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9；字体缓存及UnitySkills/vTabs/.blend1等未暂存。提交名「fix(jinx): 修复离桌触区恢复并验证触屏教学」，实际SHA由Git与交付回复记录；Goal保持进行中。

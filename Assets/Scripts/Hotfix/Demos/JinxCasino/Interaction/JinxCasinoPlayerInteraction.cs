@@ -34,6 +34,7 @@ namespace Hotfix.JinxCasino.Interaction
         private JinxCasinoStation focusedStation;
         private JinxCasinoS1Presentation focusedPresentation;
         private GameplayInputContext? appliedInputContext;
+        private GameplayInputContext? lastReadInputContext;
         private CursorLockMode previousCursorLock;
         private bool previousCursorVisible;
         private bool cursorCaptured;
@@ -62,6 +63,9 @@ namespace Hotfix.JinxCasino.Interaction
         public bool AcceptsCommands => Game != null && Game.CommandInputEnabled;
         public bool IsMenuOpen => immersionScreenOpen;
         public bool HasFocus => tableFocus?.IsActive ?? false;
+        /// 相机已归位且探索输入已接管；HUD据此开放触区，避免手指在切上下文时被清掉。
+        public bool IsExplorationInputReady => !HasFocus && !IsPaused && !IsMenuOpen &&
+            appliedInputContext == GameplayInputContext.Gameplay && lastReadInputContext == GameplayInputContext.Gameplay;
         internal bool IsFocusReady => tableFocus?.IsReady ?? false;
         internal JinxCasinoStation FocusedStation => focusedStation;
         internal JinxCasinoS1Presentation FocusedPresentation => focusedPresentation;
@@ -212,6 +216,7 @@ namespace Hotfix.JinxCasino.Interaction
             previousTouchMove = movement;
             var frame = immersionInput.ReadFrame(Time.unscaledDeltaTime, configuration.LookSensitivity,
                 context == GameplayInputContext.Gameplay && Cursor.lockState == CursorLockMode.Locked);
+            lastReadInputContext = context;
             var actions = immersionInput.ConsumeActions();
             immersionMenu?.Update();
             if ((actions & GameplayInputActions.Pause) != 0)
@@ -255,6 +260,7 @@ namespace Hotfix.JinxCasino.Interaction
         private void ApplyContext(GameplayInputContext context)
         {
             if (appliedInputContext == context) return;
+            lastReadInputContext = null;
             movePad?.ResetInput(); lookPad?.ResetInput();
             immersionInput.SetContext(context);
             immersionMenu?.SetContext(context, immersionFirstSelection != null ? immersionFirstSelection : EventSystem.current?.currentSelectedGameObject);

@@ -84,6 +84,8 @@ CasinoLocalPreferences当前记录版本2包含手柄死区、最大半径、视
 
 桌面指针统一由GameplayInputRouter.ReadFrame返回PointerPosition/PointerPressed，后者单次消费；鼠标/触屏共用Pointer绑定，菜单不将其二次转成Confirm。上下文切换、暂停清空待处理点击，已有按住输入须释放。实体宿主使用本地相机ScreenPointToRay交给TableSelection；输入基础本身不直接修改筹码。
 
+离桌先结束具体会话，再平滑归还相机；HasFocus在归位结束前保持true。HUD据HasFocus保留桌面状态，返回中的离桌按钮禁用并显示过渡提示。探索摇杆/滑动/交互触区还须等待IsExplorationInputReady：相机已归位、Gameplay上下文已恢复且已读取、无菜单/暂停。切上下文会清除读取标记。Player保留每帧先切上下文再读取输入的顺序，HUD随后开放触区，避免中途清掉玩家刚按住的手指，也避免新按键被首次中立读取前的门闩屏蔽。会话草稿清理与已投入局恢复仍按原规则处理。
+
 调整保存的.inputactions时保留Point/Click等宿主所需动作及已有ID。PlayMode路由测试读取实际保存资产；合成设备使用临时InputSettings让输入送入Game View，结束恢复原设置，避免测试操作者的Editor焦点影响事件路由。正式后台/断连暂停规则不改变，仍待宿主与真机验收。
 
 ## 三款桌面规则适配
