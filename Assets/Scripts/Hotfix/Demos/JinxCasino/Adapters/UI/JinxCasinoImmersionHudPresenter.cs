@@ -38,6 +38,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             resume.onClick.AddListener(Resume); pause.onClick.AddListener(Pause);
             leave.onClick.AddListener(Leave); interact.onClick.AddListener(Interact); exitTable.onClick.AddListener(ExitTable);
             BindTutorialControls();
+            BindSaveControls();
             Refresh();
         }
 
@@ -45,6 +46,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         public void Unbind()
         {
             if (owner == null) return;
+            UnbindSaveControls();
             UnbindTutorialControls();
             owner.Changed -= Refresh; owner.ImmersionInputChanged -= Refresh;
             owner.BindTouchPads(null, null); owner.SetImmersionMenuState(false, false, null);
@@ -65,15 +67,17 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void Refresh()
         {
             if (owner == null) return;
-            int state = ResolveTutorialHudState();
+            int state = ResolveSaveHudState(ResolveTutorialHudState());
             if (menuState != state)
             {
                 menuState = state;
                 mainMenu.SetActive(state == 0); pauseMenu.SetActive(state == 1); fieldHud.SetActive(state == 2);
                 RefreshTutorialControls(state);
-                owner.SetImmersionMenuState(state != 2, false, TutorialFirstSelection(state), HasTutorialUi ? CancelTutorialWindow : null);
+                RefreshSaveControls(state);
+                owner.SetImmersionMenuState(state != 2, false, SaveFirstSelection(state), HasSaveUi ? CancelSaveWindow : HasTutorialUi ? CancelTutorialWindow : null);
             }
             RefreshTutorialControls(state);
+            RefreshSaveControls(state);
             var adventure = owner.AdventureState;
             wallet.text = "筹码  " + owner.Balance;
             objective.text = adventure == null ? string.Empty : adventure.Mode == CasinoAdventureMode.Practice ? "自由练习" :

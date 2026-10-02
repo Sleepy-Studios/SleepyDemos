@@ -28,10 +28,17 @@ namespace Hotfix.Editor.JinxCasino
                 var font = root.GetComponentInChildren<TMP_Text>(true)?.font;
                 if (font == null) throw new InvalidOperationException("保存HUD缺少字体引用。");
                 var start = menu.Find("Start").GetComponent<Button>(); var practice = menu.Find("Practice").GetComponent<Button>();
-                PlaceTutorialRect((RectTransform)start.transform, new Vector2(48, -440), new Vector2(550, 76));
-                PlaceTutorialRect((RectTransform)practice.transform, new Vector2(48, -532), new Vector2(550, 76));
+                var savedLoad = menu.Find("LoadAdventure")?.GetComponent<Button>();
+                // 三槽入口已经占有四按钮布局时，教学更新不能把它改回三按钮布局。
+                if (savedLoad == null)
+                {
+                    PlaceTutorialRect((RectTransform)start.transform, new Vector2(48, -440), new Vector2(550, 76));
+                    PlaceTutorialRect((RectTransform)practice.transform, new Vector2(48, -532), new Vector2(550, 76));
+                }
                 var tutorial = EnsureTutorialButton(menu, "Tutorial", font, "互动教学", new Vector2(48, -624), new Vector2(550, 76));
-                SetReference(saved, "tutorialStartButton", tutorial); TutorialNavigation(start, practice, tutorial);
+                SetReference(saved, "tutorialStartButton", tutorial);
+                if (savedLoad != null) TutorialNavigation(start, practice, tutorial, savedLoad);
+                else TutorialNavigation(start, practice, tutorial);
                 SetReference(saved, "tutorialMainFeedbackText", menu.Find("Footer").GetComponent<TMP_Text>());
                 SetReference(saved, "tutorialPauseFeedbackText", paused.Find("Hint").GetComponent<TMP_Text>());
                 var skip = EnsureTutorialButton(paused, "TutorialSkip", font, "跳过教学", new Vector2(48, -452), new Vector2(554, 74));

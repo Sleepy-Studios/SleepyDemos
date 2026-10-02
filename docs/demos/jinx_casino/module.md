@@ -105,3 +105,10 @@ JinxCasinoTutorialHost在新的Practice中同步启动教学，并把实际应�
 教学入口与选择控件保存在原JinxCasinoImmersionHudView中，JinxCasinoImmersionHudTutorial作为同一Presenter的partial维护绑定和退订。教学条不接管桌面焦点；Ready/完成选择等待离桌过渡结束，或由玩家暂停时打开。暂停菜单可再次打开此前暂缓的教学结果，避免“稍后”后无入口。重玩/新标准冒险共用明确确认卡，取消不替换聚合；跳过保留已投入局。
 
 SetImmersionMenuState可选取消回调仅在菜单打开时保存。Core Cancel及Demo手柄Menu由同一菜单返回函数处理，同帧至多退一层，确认窗口取消后保留原暂停。旧未配置教学HUD保持原入口；View退订和Controller销毁都清理回调。教学仅限制单次投入10，不保证获胜、不补发筹码，不把练习资金带入新正式局。
+
+
+## 沉浸HUD的三槽存档
+
+JinxCasinoImmersionHudSave复用GetSaveSlotInfo、SaveAdventure和LoadAdventure；不另建文件格式或存储目录。主菜单读取、暂停保存/读取共用三槽列表；空槽禁用读取，覆盖已有槽及替换当前局先进入确认卡。取消只退当前层级并保留暂停，读取成功后显式继续，后台/手柄断连仍由PauseState阻止恢复。
+
+槽摘要仅在打开和操作后重读，包含模式、区域、筹码、时间及备份恢复提示。确认前重新读取可用性，并核对打开列表时的RunId，避免界面旧选择写入另一个新局。保存后继续使用选定槽的原自动保存契约。Core Cancel和手柄Menu统一经过CancelSaveWindow，未打开存档时交回教学/暂停逻辑；自身按帧去重，菜单销毁清理监听。
