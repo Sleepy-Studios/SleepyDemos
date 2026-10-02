@@ -20,6 +20,8 @@ namespace Hotfix.JinxCasino.Adapters.Input
             AddButton(exploration, "Interact", "<Keyboard>/e", "<Gamepad>/buttonSouth");
             AddButton(exploration, "Pause", "<Keyboard>/escape", "<Gamepad>/start");
             var table = asset.AddActionMap("Table");
+            table.AddAction("Point", InputActionType.PassThrough, "<Pointer>/position", expectedControlLayout: "Vector2");
+            AddButton(table, "Click", "<Pointer>/press");
             AddKeyboardVector(table.AddAction("Navigate", InputActionType.Value, expectedControlLayout: "Vector2"), false);
             var padNavigate = table.AddAction("PadNavigate", InputActionType.Value, expectedControlLayout: "Vector2");
             padNavigate.AddBinding("<Gamepad>/leftStick"); padNavigate.AddBinding("<Gamepad>/dpad");

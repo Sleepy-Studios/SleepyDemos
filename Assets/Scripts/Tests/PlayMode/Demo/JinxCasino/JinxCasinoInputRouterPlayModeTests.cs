@@ -1,4 +1,5 @@
 using System.Collections;
+using System.IO;
 using Hotfix.JinxCasino.Adapters.Input;
 using NUnit.Framework;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace Tests.Demo
     {
         private Keyboard keyboard;
         private Mouse mouse;
+        private Touchscreen touchscreen;
         private RecordingCasinoGamepad gamepad;
         private InputActionAsset source;
         private JinxCasinoInputRouter router;
@@ -24,15 +26,28 @@ namespace Tests.Demo
         private GameObject ownedEventSystem;
         private GameObject ownedButton;
         private string layoutName;
+        private InputSettings originalSettings;
+        private InputSettings testSettings;
 
         [UnitySetUp]
         public IEnumerator Setup()
         {
+            // 合成输入不能依赖操作者当前聚焦哪个Editor窗口；只借用临时设置，不修改项目资产。
+            originalSettings = InputSystem.settings;
+            testSettings = Object.Instantiate(originalSettings);
+            testSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+#if UNITY_EDITOR
+            testSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+#endif
+            InputSystem.settings = testSettings;
             keyboard = InputSystem.AddDevice<Keyboard>(); mouse = InputSystem.AddDevice<Mouse>();
+            touchscreen = InputSystem.AddDevice<Touchscreen>();
             layoutName = "JinxCasinoRecordingGamepad" + System.Guid.NewGuid().ToString("N");
             InputSystem.RegisterLayout<RecordingCasinoGamepad>(layoutName);
             gamepad = (RecordingCasinoGamepad)InputSystem.AddDevice(layoutName);
-            source = JinxCasinoInputAsset.Create(); source.devices = new InputDevice[] { keyboard, mouse, gamepad };
+            // 验证实际交付的动作配置，避免只测工厂而遗漏保存资产中的绑定差异。
+            source = InputActionAsset.FromJson(File.ReadAllText("Assets/LoadResources/Demos/jinx_casino/Data/JinxCasinoImmersion.inputactions"));
+            source.devices = new InputDevice[] { keyboard, mouse, gamepad, touchscreen };
             router = new JinxCasinoInputRouter(source);
             yield return null;
             router.ReadFrame(0.016f); router.ConsumeActions();
@@ -48,7 +63,11 @@ namespace Tests.Demo
             if (gamepad != null && gamepad.added) InputSystem.RemoveDevice(gamepad);
             if (keyboard != null && keyboard.added) InputSystem.RemoveDevice(keyboard);
             if (mouse != null && mouse.added) InputSystem.RemoveDevice(mouse);
+            if (touchscreen != null && touchscreen.added) InputSystem.RemoveDevice(touchscreen);
             if (layoutName != null) InputSystem.RemoveLayout(layoutName);
+            if (originalSettings != null) InputSystem.settings = originalSettings;
+            if (testSettings != null) Object.Destroy(testSettings);
+            originalSettings = null; testSettings = null;
             yield return null;
         }
 
@@ -204,6 +223,51 @@ namespace Tests.Demo
             Assert.That(router.ReadFrame(0.016f, 0.12f, true).LookDegrees, Is.EqualTo(Vector2.zero));
             InputSystem.QueueStateEvent(mouse, new MouseState { delta = new Vector2(10, 0) }); yield return null;
             Assert.That(router.ReadFrame(0.016f, 0.12f, true).LookDegrees.x, Is.EqualTo(1.2f).Within(0.0001f));
+        }
+
+        [UnityTest]
+        public IEnumerator TablePointerProvidesScreenPositionAndConsumesEachMousePressOnce()
+        {
+            router.SetContext(JinxCasinoInputContext.Table);
+            yield return null; router.ReadFrame(0.016f);
+            var position = new Vector2(310, 225);
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = position }.WithButton(MouseButton.Left));
+            yield return null;
+            var frame = router.ReadFrame(0.016f);
+            Assert.That(frame.PointerPosition, Is.EqualTo(position));
+            Assert.That(frame.PointerPressed, Is.True);
+            Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False);
+            Assert.That(router.ConsumeActions(), Is.EqualTo(JinxCasinoInputActions.None), "实体点击不得重复变成菜单/手柄确认。");
+            router.SetContext(JinxCasinoInputContext.Menu);
+            Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False);
+            router.SetContext(JinxCasinoInputContext.Table);
+            yield return null; router.ReadFrame(0.016f);
+            Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False, "按住切回桌面不能重复点击。");
+        }
+
+        [UnityTest]
+        public IEnumerator TouchscreenUsesSamePointerFrameAndPauseDiscardsPendingPress()
+        {
+            router.SetContext(JinxCasinoInputContext.Table);
+            yield return null; router.ReadFrame(0.016f);
+            var position = new Vector2(400, 250);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = position,
+                phase = UnityEngine.InputSystem.TouchPhase.Began });
+            yield return null;
+            var frame = router.ReadFrame(0.016f);
+            Assert.That(frame.PointerPosition, Is.EqualTo(position));
+            Assert.That(frame.PointerPressed, Is.True);
+            Assert.That(frame.DeviceKind, Is.EqualTo(JinxCasinoInputDeviceKind.Touch));
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = position,
+                phase = UnityEngine.InputSystem.TouchPhase.Ended });
+            yield return null; router.ReadFrame(0.016f);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 2, position = position,
+                phase = UnityEngine.InputSystem.TouchPhase.Began });
+            yield return null;
+            router.PauseState.RequestPause(JinxCasinoPauseReason.User);
+            Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False);
+            Assert.That(router.PauseState.TryResume(), Is.True);
+            Assert.That(router.ReadFrame(0.016f).PointerPressed, Is.False);
         }
 
         public sealed class RecordingCasinoGamepad : Gamepad

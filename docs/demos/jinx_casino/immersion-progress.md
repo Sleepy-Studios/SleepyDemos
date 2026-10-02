@@ -56,3 +56,7 @@ Unity Test Runner：CasinoStationIdentityTests 5eaebcd1，4/4；CasinoAdventureT
 ## 手柄偏好迁移
 
 机台定位已推送25636e3。本机偏好v1→v2增加手柄参数并保留旧设置、原存储键和明确保存语义。CasinoLocalPreferencesMigrationTests作业11b0eca1，5/5；CasinoLocalPreferencesTests作业d245acad，8/8。正式Editor编译通过，未执行全量测试。控件及Host实际应用待接入，未冒充Xbox硬件验收。
+
+## 桌面鼠标与触屏指针
+
+手柄偏好迁移已推送ebe03f6。Table新增Point/Click动作，统一返回屏幕坐标和单次按下，供实体射线选择；Editor更新实际资产并保留原动作ID。工厂配置测试27910950为10/10；改读保存资产后d163e366为4/10（键鼠/触屏未收到输入），精确诊断25e2d760为1/1并记录设备启用、应用聚焦、原始坐标及绑定正常。为排除Editor焦点分流对合成设备的影响，测试用临时InputSettings且结束恢复；实际资产整组重测1637ab29，10/10。一次性诊断日志已移除，生产后台策略未改。正式编译通过，无全量测试；未将合成事件当作手机/Xbox真机验收。

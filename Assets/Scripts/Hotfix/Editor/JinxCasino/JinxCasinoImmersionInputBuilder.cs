@@ -27,6 +27,24 @@ namespace Hotfix.Editor.JinxCasino
             }
             var saved = AssetDatabase.LoadAssetAtPath<InputActionAsset>(AssetPath);
             if (saved == null) throw new InvalidOperationException("输入配置导入失败：" + AssetPath);
+            var table = saved.FindActionMap("Table", true);
+            if (table.FindAction("Point") == null || table.FindAction("Click") == null)
+            {
+                // 仅补缺失动作，不重建资产，保留已保存动作ID及人工键位。
+                var updated = UnityEngine.Object.Instantiate(saved);
+                try
+                {
+                    var updatedTable = updated.FindActionMap("Table", true);
+                    if (updatedTable.FindAction("Point") == null)
+                        updatedTable.AddAction("Point", InputActionType.PassThrough, "<Pointer>/position", expectedControlLayout: "Vector2");
+                    if (updatedTable.FindAction("Click") == null)
+                        updatedTable.AddAction("Click", InputActionType.Button, "<Pointer>/press", interactions: "Press(behavior=0)", expectedControlLayout: "Button");
+                    File.WriteAllText(AssetPath, updated.ToJson());
+                }
+                finally { UnityEngine.Object.DestroyImmediate(updated); }
+                AssetDatabase.ImportAsset(AssetPath, ImportAssetOptions.ForceSynchronousImport);
+                saved = AssetDatabase.LoadAssetAtPath<InputActionAsset>(AssetPath);
+            }
             using (var validation = new JinxCasinoInputRouter(saved)) { }
             Debug.Log("[JinxCasino] 独立输入配置已保存并验证：" + AssetPath);
         }

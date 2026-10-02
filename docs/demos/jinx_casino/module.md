@@ -65,3 +65,7 @@ Hotfix.Editor新增菜单“Tools/SleepyDemos/整蛊赌场/沉浸样板/创建�
 CasinoLocalPreferences版本2保留全部旧字段，增加手柄死区、最大半径、视角速度/倍率、反转Y、震动开关/强度。PlayerPrefs地址仍为JinxCasino.LocalPreferences.v1，合法旧记录只在内存补默认值，明确保存才写新版；坏记录只读回退，取消预览不写盘。ToInputSettings输出独立输入参数，不能在每帧构建；后续宿主在加载/预览/取消时ApplySettings。
 
 数据存储已接入，手柄设置控件与实际输入宿主仍在S1整合中，不能据此声明硬件设置体验完成。
+
+桌面指针统一由InputRouter.ReadFrame返回PointerPosition/PointerPressed，后者单次消费；鼠标/触屏共用Pointer绑定，菜单不将其二次转成Confirm。上下文切换、暂停清空待处理点击，已有按住输入须释放。实体宿主使用本地相机ScreenPointToRay交给TableSelection；输入基础本身不直接修改筹码。
+
+输入装配菜单仅补缺失的Point/Click，保留已有动作ID与人工键位。PlayMode路由测试读取实际保存的.inputactions；合成设备使用临时InputSettings让输入送入Game View，结束恢复原设置，避免测试操作者的Editor焦点影响事件路由。正式后台/断连暂停规则不改变，仍待宿主与真机验收。

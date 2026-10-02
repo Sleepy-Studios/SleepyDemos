@@ -20,6 +20,9 @@ namespace Hotfix.JinxCasino.Adapters.Input
         private InputActionMap activeMap;
         private JinxCasinoInputSettings settings;
         private JinxCasinoInputActions pending;
+        private bool pendingPointerPress;
+        private bool hasPointerPosition;
+        private Vector2 previousPointerPosition;
         private Vector2 touchMove;
         private Vector2 touchLook;
         private bool continuousSuppressed;
@@ -114,6 +117,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
             if (continuousSuppressed && keyboardMove.sqrMagnitude + padMove.sqrMagnitude + padLook.sqrMagnitude + navigation.sqrMagnitude + touchMove.sqrMagnitude < 0.0001f)
                 continuousSuppressed = false;
             var frame = new JinxCasinoInputFrame { DeviceKind = deviceKind, IsPaused = PauseState.IsPaused };
+            bool pointerPressed = pendingPointerPress; pendingPointerPress = false;
             if (PauseState.IsPaused || continuousSuppressed) return frame;
             // 模态关闭/光标重新锁定可能产生warp增量，第一次恢复采样只丢弃增量，不吞真实离散按键。
             if (skipLookDelta) { mouse = touchDelta = Vector2.zero; skipLookDelta = false; }
@@ -122,7 +126,12 @@ namespace Hotfix.JinxCasino.Adapters.Input
                 frame.Move = Vector2.ClampMagnitude(keyboardMove + padMove + touchMove, 1);
                 frame.LookDegrees = JinxCasinoInputMath.LookDegrees(mouse, touchDelta, padLook, unscaledDeltaSeconds, mouseDegreesPerPixel, settings);
             }
-            else if (context == JinxCasinoInputContext.Table) frame.TableNavigation = Vector2.ClampMagnitude(navigation, 1);
+            else if (context == JinxCasinoInputContext.Table)
+            {
+                frame.TableNavigation = Vector2.ClampMagnitude(navigation, 1);
+                frame.PointerPosition = table["Point"].ReadValue<Vector2>();
+                frame.PointerPressed = pointerPressed;
+            }
             return frame;
         }
 
@@ -195,7 +204,8 @@ namespace Hotfix.JinxCasino.Adapters.Input
 
         private void ActivateContext(JinxCasinoInputContext value)
         {
-            asset.Disable(); context = value; pending = JinxCasinoInputActions.None;
+            asset.Disable(); context = value; pending = JinxCasinoInputActions.None; pendingPointerPress = false;
+            hasPointerPosition = false;
             touchMove = touchLook = Vector2.zero; awaitingRelease.Clear(); continuousSuppressed = true; skipLookDelta = true;
             activeMap = value == JinxCasinoInputContext.Exploration ? exploration : value == JinxCasinoInputContext.Table ? table : menu;
             CaptureHeldButtons(); activeMap.Enable();
@@ -204,8 +214,20 @@ namespace Hotfix.JinxCasino.Adapters.Input
         private void OnPerformed(InputAction.CallbackContext callback)
         {
             if (disposed || callback.action.actionMap != activeMap || awaitingRelease.Contains(callback.action)) return;
+            if (callback.action.name == "Point")
+            {
+                Vector2 position = callback.ReadValue<Vector2>();
+                if (hasPointerPosition && (position - previousPointerPosition).sqrMagnitude >= 4) RecordDevice(callback.control.device);
+                previousPointerPosition = position; hasPointerPosition = true;
+                return;
+            }
             if (callback.action.type != InputActionType.Button) return;
             RecordDevice(callback.control.device);
+            if (callback.action.name == "Click")
+            {
+                if (!PauseState.IsPaused) pendingPointerPress = true;
+                return;
+            }
             if (TryAction(callback.action.name, out var action) && Allowed(action) && (!PauseState.IsPaused || action == JinxCasinoInputActions.Pause)) pending |= action;
         }
 
@@ -272,7 +294,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
 
         private void OnPauseChanged()
         {
-            pending = JinxCasinoInputActions.None; touchMove = touchLook = Vector2.zero;
+            pending = JinxCasinoInputActions.None; pendingPointerPress = false; touchMove = touchLook = Vector2.zero;
             continuousSuppressed = true; skipLookDelta = true; CaptureHeldButtons(); StopRumble();
         }
 
@@ -309,7 +331,7 @@ namespace Hotfix.JinxCasino.Adapters.Input
         {
             var required = new[] {
                 "Exploration/Move", "Exploration/PadMove", "Exploration/MouseLook", "Exploration/LookHold", "Exploration/PadLook", "Exploration/Interact", "Exploration/Pause",
-                "Table/Navigate", "Table/PadNavigate", "Table/Confirm", "Table/Back", "Table/Secondary", "Table/Help", "Table/PreviousGroup", "Table/NextGroup", "Table/Pause", "Menu/Pause" };
+                "Table/Point", "Table/Click", "Table/Navigate", "Table/PadNavigate", "Table/Confirm", "Table/Back", "Table/Secondary", "Table/Help", "Table/PreviousGroup", "Table/NextGroup", "Table/Pause", "Menu/Pause" };
             foreach (string path in required) value.FindAction(path, true);
             if (value.actionMaps.Count != 3 || value.FindActionMap("Menu", true).actions.Count != 1)
                 throw new ArgumentException("必须传Demo三张Map，Menu禁止重复Submit/Cancel/Navigate。", nameof(value));
