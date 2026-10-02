@@ -423,3 +423,13 @@ Core.Runtime的MenuInputScope补齐Submit/Cancel实际设备通知，与Move/Poi
 最终正式编译2026-10-02T21:13:56Z成功、0错误。b440342c原生XML（21:17:01Z–21:17:29Z）SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause 1/1通过，覆盖手柄Hub进入、设备切换、键鼠实体机台/柜台、暂停与返回；4d608691原生XML（21:18:58Z–21:19:36Z）触控教学1/1通过。UnitySkills包装器仍报域重载后原生任务未恢复，逐次核对当次XML名称/时间与Editor退出状态后继续，未重复启动尚在执行的任务。两份最终XML保存在Library/JinxCasino/Verification/EntryReturn-b440342c.xml与TouchTutorial-4d608691.xml；失败及中间结果同目录保留。仅运行两个直接相关用例，未运行全量。最终Console0错误、Editor退出Play且无编译。
 
 960×600的水果机与合拍台截图留在同验证目录，证明此次实际输入路径，不能证明美术或手指容错验收。已有规则铭牌在较窄视口的构图仍需正式视觉阶段复查；未以中心命中测试代表触区大小、刘海安全区、Android真机30分钟或目标硬件性能达标。本轮未改Prefab或制作正式美术，未重建双端包；四稿确认、实物Xbox/Android及S1体验仍待完成。Mobile_RPAsset原字节SHA256保持DC8738A63912D36FE6B168CEA93B8D4E463BC740530CF2D7B729A15AA052F7E9；字体缓存及UnitySkills/vTabs/.blend1等未暂存。提交名「fix(jinx): 修复离桌触区恢复并验证触屏教学」，实际SHA由Git与交付回复记录；Goal保持进行中。
+
+## 2026-10-03：窄横屏机台聚焦构图
+
+基线adf8692b60ec6bbbdfb1f6bfe8c9c50ca05649b4。对照既有1280×720水果机截图与960×600触屏截图：前者规则牌完整，后者左侧文字被视口裁掉。TableFocus原样使用垂直FOV导致窄比例水平范围缩小。现在将保存值定义为16:9参考垂直FOV；窄视口按投影比例扩展，保持水平参考范围，宽屏仍用原垂直FOV。活动聚焦每Tick重算当前camera.aspect，原进入/退出过渡保留，不修改camera.aspect，退出恢复原姿态/FOV。未制作新Prefab/美术或平台专属UI，不以该修复替代正式按钮、字号与触区设计。
+
+扩展现有FocusRestoresExactBorrowedPoseAndRejectsNestedEntry：16:9建立真实视口边缘点，4:3切换保持投影位置，21:9保留原FOV且退出恢复原视图/比例；无新测试文件或固定布局快照。现有触屏教学增加三台规则牌/金额区实际RectTransform四角的视口校验，保留实体物理首命中与完整操作。水果机首次进入先等待实际聚焦完成，避免将过渡相机作为检查时机。
+
+正式编译2026-10-02T21:33:19Z成功、0错误。e080aac0原生XML（21:37:18Z–21:37:20Z）相机用例1/1通过；b07d421f原生XML（21:39:45Z–21:40:24Z）960×600触屏教学1/1通过，三台规则/金额区均在视口内。UnitySkills包装器继续报域重载后原生任务未恢复；逐次核对当次原生XML名称/时间、Editor退出状态后继续，没有重启仍在执行的任务。最终结果保存在Library/JinxCasino/Verification/FocusAspect-e080aac0.xml及FocusAspectTouch-b07d421f.xml。仅运行两个直接相关用例，未运行全量。
+
+已实际查看本次960×600截图S1TutorialFruitResult-20261002214009-0cd87fb6b27444ada904b5009ffe2916.png及S1TutorialReady-20261002214022-ccb26e9587ca42dc8926684b5049b639.png，水果机规则牌左侧完整、合拍台规则与操作区域可见。当前资源仍是原样板，按钮/文字在低分辨率的大小和手指容错尚未验收；图稿确认后仍需从共享机台设计解决可读性，不能将投影校验等同视觉质量达标。最终Console0错误，Editor不在Play/编译；未重建双端包、未真机实测。字体缓存、Mobile_RPAsset、UnitySkills/vTabs/.blend1等仍保持未暂存。提交名「fix(jinx): 保持窄横屏机台的水平构图」，实际SHA由Git与交付回复记录；Goal保持进行中。

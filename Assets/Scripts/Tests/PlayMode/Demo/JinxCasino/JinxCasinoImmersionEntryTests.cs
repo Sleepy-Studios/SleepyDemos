@@ -213,6 +213,8 @@ namespace Tests.Demo
             yield return TouchMoveUntil(movePad, Vector2.left, () => body.transform.position.x <= fruit.InteractionPosition.x + .15f);
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.EnterSlots);
             yield return TouchTap(Field<Button>(presenter, "interact")); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.AddChips);
+            yield return Wait(() => owner.Player.IsFocusReady, "触屏水果机聚焦完成", 3);
+            AssertDeskLabelsVisible(camera, fruit);
             yield return TouchTarget(camera, fruit, "chip10"); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.Confirm);
             yield return TouchTarget(camera, fruit, "commit"); yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.SlotsResult);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(1000));
@@ -227,6 +229,7 @@ namespace Tests.Demo
             yield return TouchMoveUntil(movePad, Vector2.up, () => body.transform.position.z >= cards.InteractionPosition.z - .12f);
             yield return TouchTap(Field<Button>(presenter, "interact"));
             yield return Wait(() => owner.Player.TableView?.StationId == cards.StationId && Vector3.Distance(camera.transform.position, cards.FocusPose.position) < .001f, "教学聚焦二十一点", 3);
+            AssertDeskLabelsVisible(camera, cards);
             yield return TouchTarget(camera, cards, "chip10"); yield return TouchTarget(camera, cards, "commit");
             if (owner.Game.HasActiveRound) yield return TouchTarget(camera, cards, "secondary");
             yield return WaitStep(Hotfix.JinxCasino.Rules.CasinoTutorialStep.BuyWrench);
@@ -251,6 +254,7 @@ namespace Tests.Demo
             yield return TouchMoveUntil(movePad, Vector2.right, () => body.transform.position.x >= levers.InteractionPosition.x - .15f);
             yield return TouchTap(Field<Button>(presenter, "interact"));
             yield return Wait(() => owner.Player.TableView?.StationId == levers.StationId && Vector3.Distance(camera.transform.position, levers.FocusPose.position) < .001f, "教学聚焦合拍台", 3);
+            AssertDeskLabelsVisible(camera, levers);
             yield return TouchTarget(camera, levers, "chip10"); yield return TouchTarget(camera, levers, "commit");
             yield return Wait(() => owner.Player.TableView.LeverWindowOpen, "实际绿灯窗口", 4);
             yield return TouchTarget(camera, levers, "primary");
@@ -807,6 +811,25 @@ namespace Tests.Demo
             Assert.That(hit.collider.GetComponentInParent<JinxCasinoTableTarget>(), Is.SameAs(target),
                 "真实相机射线不得穿透桌体或其它目标。首个命中：" + hit.collider.name + "，位置：" + hit.point);
             return point;
+        }
+
+        private static void AssertDeskLabelsVisible(Camera camera, JinxCasinoStation station)
+        {
+            var presentation = station.GetComponent<JinxCasinoS1Presentation>();
+            foreach (string field in new[] { "rulesText", "amountText" })
+            {
+                var label = (TMPro.TMP_Text)typeof(JinxCasinoS1Presentation).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(presentation);
+                Assert.That(label, Is.Not.Null);
+                label.ForceMeshUpdate();
+                var corners = new Vector3[4]; label.rectTransform.GetWorldCorners(corners);
+                foreach (var corner in corners)
+                {
+                    Vector3 viewport = camera.WorldToViewportPoint(corner);
+                    Assert.That(viewport.z, Is.GreaterThan(0), station.StationId + "." + field);
+                    Assert.That(viewport.x, Is.InRange(0, 1), station.StationId + "." + field + "横向被视口裁掉");
+                    Assert.That(viewport.y, Is.InRange(0, 1), station.StationId + "." + field + "纵向被视口裁掉");
+                }
+            }
         }
 
         private IEnumerator TouchTap(Selectable button)

@@ -6,6 +6,7 @@ namespace Hotfix.JinxCasino.Interaction
     /// 只管理现有相机的桌面聚焦；宿主据IsActive屏蔽角色移动，不改变钱包或游戏时钟。
     public sealed class JinxCasinoTableFocus : IDisposable
     {
+        private const float ReferenceAspect = 16f / 9f;
         private readonly Camera camera;
         private Vector3 returnPosition;
         private Quaternion returnRotation;
@@ -48,7 +49,7 @@ namespace Hotfix.JinxCasino.Interaction
         /// <summary>聚焦柜台等已有场景交互点；仍借用唯一相机并保留同一退出契约。</summary>
         /// <param name="owner">拥有挂点的启用组件。</param>
         /// <param name="pose">属于该组件层级的保存挂点。</param>
-        /// <param name="fieldOfView">30至75度的桌面视野。</param>
+        /// <param name="fieldOfView">16:9参考构图的30至75度垂直视野；较窄视口自动扩展以保持水平可见范围。</param>
         /// <param name="seconds">过渡秒数。</param>
         /// <returns>是否成功开始聚焦。</returns>
         public bool TryEnter(Behaviour owner, Transform pose, float fieldOfView, float seconds = .35f)
@@ -100,10 +101,18 @@ namespace Hotfix.JinxCasino.Interaction
             float t = duration <= 0 ? 1 : Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / duration));
             Vector3 destination = isReturning ? returnPosition : focusPose.position;
             Quaternion rotation = isReturning ? returnRotation : focusPose.rotation;
-            float fov = isReturning ? returnFieldOfView : focusedFieldOfView;
+            float fov = isReturning ? returnFieldOfView : AdaptFieldOfView();
             camera.transform.SetPositionAndRotation(Vector3.Lerp(fromPosition, destination, t), Quaternion.Slerp(fromRotation, rotation, t));
             camera.fieldOfView = Mathf.Lerp(fromFieldOfView, fov, t);
             if (isReturning && t >= 1) { station = null; focusOwner = null; focusPose = null; isReturning = false; hasCapturedPose = false; }
+        }
+
+        private float AdaptFieldOfView()
+        {
+            // 同一挂点服务两端；宽屏保留垂直构图，窄横屏保持原水平范围，不裁掉侧边规则和操作件。
+            float aspect = Mathf.Max(.1f, camera.aspect);
+            if (aspect >= ReferenceAspect) return focusedFieldOfView;
+            return 2f * Mathf.Atan(Mathf.Tan(focusedFieldOfView * Mathf.Deg2Rad * .5f) * ReferenceAspect / aspect) * Mathf.Rad2Deg;
         }
 
         /// 宿主销毁或机台失效时恢复相机，避免下次进入保留桌面FOV。

@@ -27,6 +27,7 @@ namespace Tests.Demo
             var cameraObject = new GameObject("Borrowed camera");
             cameraObject.transform.SetParent(root.transform);
             camera = cameraObject.AddComponent<Camera>(); camera.enabled = false;
+            camera.aspect = 16f / 9f;
             camera.transform.position = new Vector3(0, 1, -3); camera.fieldOfView = 62;
             var tableObject = new GameObject("Table"); tableObject.transform.SetParent(root.transform);
             station = tableObject.AddComponent<JinxCasinoStation>();
@@ -70,11 +71,20 @@ namespace Tests.Demo
             station.transform.position += Vector3.right;
             focus.Tick(0.02f);
             Assert.That(Vector3.Distance(camera.transform.position, station.FocusPose.position), Is.LessThan(0.00001f));
+            var edge = camera.ViewportToWorldPoint(new Vector3(.02f, .5f, 1));
+            camera.aspect = 4f / 3f;
+            focus.Tick(0);
+            Assert.That(camera.WorldToViewportPoint(edge).x, Is.EqualTo(.02f).Within(.0001f), "窄视口应保持边缘物件的水平构图。");
+            camera.aspect = 21f / 9f;
+            focus.Tick(0);
+            Assert.That(camera.fieldOfView, Is.EqualTo(station.FocusFieldOfView).Within(.0001f), "宽屏保持原垂直构图。");
+            Assert.That(camera.WorldToViewportPoint(edge).x, Is.GreaterThan(.02f));
             focus.Exit(); focus.Tick(0.35f);
             Assert.That(focus.IsActive, Is.False);
             Assert.That(camera.transform.position, Is.EqualTo(position));
             Assert.That(Quaternion.Angle(camera.transform.rotation, rotation), Is.LessThan(0.001f));
             Assert.That(camera.fieldOfView, Is.EqualTo(62));
+            Assert.That(camera.aspect, Is.EqualTo(21f / 9f), "聚焦不能修改调用方视口比例。");
         }
 
         [Test]
