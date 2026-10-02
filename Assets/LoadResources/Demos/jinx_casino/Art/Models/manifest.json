@@ -1,0 +1,4154 @@
+{
+  "blender": "5.2.1 LTS",
+  "units": "metres",
+  "sourceFront": "-Y",
+  "sourceUp": "+Z",
+  "sourceRight": "-X",
+  "unityFront": "+Z",
+  "unityUp": "+Y",
+  "unityRight": "+X",
+  "axisGate": "526c02d9",
+  "export": {
+    "axisForward": "-Z",
+    "axisUp": "Y",
+    "bakeSpaceTransform": true,
+    "applyUnitScale": true,
+    "cameras": false,
+    "lights": false,
+    "animations": false
+  },
+  "palette": {
+    "InkBlue": "14213B",
+    "PlumRed": "AD315D",
+    "CreamYellow": "F4DC9A",
+    "Mint": "54C4AD",
+    "CopperGold": "BE8C50",
+    "FaceInk": "101623",
+    "PaperLight": "FFF1CB",
+    "color_blue": "36A8FF",
+    "color_pink": "FF6BA9",
+    "color_mint": "56DFB0",
+    "color_gold": "F5CA57",
+    "color_violet": "A57AFF"
+  },
+  "cosmeticAbsence": [
+    {
+      "id": "hat_none",
+      "model": null
+    }
+  ],
+  "models": [
+    {
+      "name": "Avatar",
+      "category": "Avatar",
+      "ruleId": null,
+      "file": "Avatar.fbx",
+      "triangles": 5180,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "PaperLight",
+        "PlumRed",
+        "color_blue"
+      ],
+      "meshCount": 6,
+      "boundsSource": {
+        "min": [
+          -0.5799999833106995,
+          -0.27149999141693115,
+          0.0
+        ],
+        "max": [
+          0.5799999833106995,
+          0.32500001788139343,
+          1.9184287786483765
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.5799999833106995,
+          0.0,
+          -0.32500001788139343
+        ],
+        "max": [
+          0.5799999833106995,
+          1.9184287786483765,
+          0.27149999141693115
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Avatar.Body",
+          "sourcePosition": [
+            0.0,
+            0.0,
+            0.8799999952316284
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.8799999952316284
+          ]
+        },
+        {
+          "name": "Avatar.Head",
+          "sourcePosition": [
+            0.0,
+            0.0,
+            1.6399999856948853
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            1.6399999856948853
+          ]
+        },
+        {
+          "name": "Avatar.ArmLeftPivot",
+          "sourcePosition": [
+            0.3400000035762787,
+            0.0,
+            1.25
+          ],
+          "localPosition": [
+            0.3400000035762787,
+            0.0,
+            1.25
+          ]
+        },
+        {
+          "name": "Avatar.ArmRightPivot",
+          "sourcePosition": [
+            -0.3400000035762787,
+            0.0,
+            1.25
+          ],
+          "localPosition": [
+            -0.3400000035762787,
+            0.0,
+            1.25
+          ]
+        },
+        {
+          "name": "Avatar.HatMount",
+          "sourcePosition": [
+            0.0,
+            0.0,
+            1.9199999570846558
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.2799999713897705
+          ]
+        },
+        {
+          "name": "Avatar.HeadKey",
+          "sourcePosition": [
+            0.0,
+            0.14000000059604645,
+            1.7200000286102295
+          ],
+          "localPosition": [
+            0.0,
+            0.14000000059604645,
+            0.08000004291534424
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Avatar",
+        "Avatar.Body",
+        "Avatar.Head",
+        "Avatar.ArmLeftPivot",
+        "Avatar.ArmRightPivot",
+        "Avatar.HatMount",
+        "Avatar.Mesh",
+        "Avatar.ArmRightPivot.Mesh",
+        "Avatar.ArmLeftPivot.Mesh",
+        "Avatar.Body.Mesh",
+        "Avatar.Head.Mesh",
+        "Avatar.HeadKey",
+        "Avatar.HeadKey.Mesh"
+      ],
+      "sha256": "caf3549889dbcf65187778227ba66977272f8f154dfaa35cd622f018cc47631e",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "Slots",
+      "category": "Station",
+      "ruleId": "Slots",
+      "file": "Slots.fbx",
+      "triangles": 9500,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 5,
+      "boundsSource": {
+        "min": [
+          -1.2899999618530273,
+          -0.7250000238418579,
+          0.0
+        ],
+        "max": [
+          1.225000023841858,
+          0.7250000238418579,
+          2.5300002098083496
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.225000023841858,
+          0.0,
+          -0.7250000238418579
+        ],
+        "max": [
+          1.2899999618530273,
+          2.5300002098083496,
+          0.7250000238418579
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Slots.Reel0",
+          "sourcePosition": [
+            -0.550000011920929,
+            -0.28999999165534973,
+            1.7699999809265137
+          ],
+          "localPosition": [
+            -0.550000011920929,
+            -0.28999999165534973,
+            1.7699999809265137
+          ]
+        },
+        {
+          "name": "Slots.Reel1",
+          "sourcePosition": [
+            0.0,
+            -0.28999999165534973,
+            1.7699999809265137
+          ],
+          "localPosition": [
+            0.0,
+            -0.28999999165534973,
+            1.7699999809265137
+          ]
+        },
+        {
+          "name": "Slots.Reel2",
+          "sourcePosition": [
+            0.550000011920929,
+            -0.28999999165534973,
+            1.7699999809265137
+          ],
+          "localPosition": [
+            0.550000011920929,
+            -0.28999999165534973,
+            1.7699999809265137
+          ]
+        },
+        {
+          "name": "Slots.Lever",
+          "sourcePosition": [
+            -1.1699999570846558,
+            0.019999999552965164,
+            1.2400000095367432
+          ],
+          "localPosition": [
+            -1.1699999570846558,
+            0.019999999552965164,
+            1.2400000095367432
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Slots",
+        "Slots.Mesh",
+        "Slots.Reel0",
+        "Slots.Reel0.Mesh",
+        "Slots.Reel1",
+        "Slots.Reel1.Mesh",
+        "Slots.Reel2",
+        "Slots.Reel2.Mesh",
+        "Slots.Lever",
+        "Slots.Lever.Mesh"
+      ],
+      "sha256": "1e14b7f6e95467d1158aa0ca73c1c817116050bd5350e937b7be4e500df77ded",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Slots.png",
+      "iconSha256": "d82344d8b078fa52d4c776e2034ddc517398e788635f6477e89ae2bcdfbb3626",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "CooperativeVault",
+      "category": "Station",
+      "ruleId": "CooperativeVault",
+      "file": "CooperativeVault.fbx",
+      "triangles": 4767,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 3,
+      "boundsSource": {
+        "min": [
+          -1.1749999523162842,
+          -0.9800000190734863,
+          0.0
+        ],
+        "max": [
+          1.1749999523162842,
+          0.7249999642372131,
+          2.369999885559082
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.1749999523162842,
+          0.0,
+          -0.7249999642372131
+        ],
+        "max": [
+          1.1749999523162842,
+          2.369999885559082,
+          0.9800000190734863
+        ]
+      },
+      "pivots": [
+        {
+          "name": "CooperativeVault.Door",
+          "sourcePosition": [
+            1.0199999809265137,
+            -0.7200000286102295,
+            1.2999999523162842
+          ],
+          "localPosition": [
+            1.0199999809265137,
+            -0.7200000286102295,
+            1.2999999523162842
+          ]
+        },
+        {
+          "name": "CooperativeVault.Wheel",
+          "sourcePosition": [
+            0.0,
+            -0.8999999761581421,
+            1.3300000429153442
+          ],
+          "localPosition": [
+            -1.0199999809265137,
+            -0.1799999475479126,
+            0.03000009059906006
+          ]
+        }
+      ],
+      "nodeNames": [
+        "CooperativeVault",
+        "CooperativeVault.Door",
+        "CooperativeVault.Door.Mesh",
+        "CooperativeVault.Wheel",
+        "CooperativeVault.Wheel.Mesh",
+        "CooperativeVault.Mesh"
+      ],
+      "sha256": "7e6eada6967012e994997479a9ee782ffe1cc612fc2673b2767d27e579e33b8a",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "CooperativeVault.png",
+      "iconSha256": "e988eeb4ae9f845a55f340dd366a24159e45b5dcb995427559a2ee2b624a0e2b",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Roulette",
+      "category": "Station",
+      "ruleId": "Roulette",
+      "file": "Roulette.fbx",
+      "triangles": 6332,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.1799999475479126,
+          -1.1799999475479126,
+          0.0
+        ],
+        "max": [
+          1.1799999475479126,
+          1.179999828338623,
+          1.659999966621399
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.1799999475479126,
+          0.0,
+          -1.179999828338623
+        ],
+        "max": [
+          1.1799999475479126,
+          1.659999966621399,
+          1.1799999475479126
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Roulette.Wheel",
+          "sourcePosition": [
+            0.0,
+            0.0,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            1.2699999809265137
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Roulette",
+        "Roulette.Wheel",
+        "Roulette.Wheel.Mesh",
+        "Roulette.Mesh"
+      ],
+      "sha256": "0a136db1440f26ba625db6975050396667342d06e77d80c7d641b086d8a8f22a",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Roulette.png",
+      "iconSha256": "e73bcb546eb318204261c0375c1237af40e4971b0f0611e09e95d3010193036e",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "CoinFlip",
+      "category": "Station",
+      "ruleId": "CoinFlip",
+      "file": "CoinFlip.fbx",
+      "triangles": 3100,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.125,
+          -0.6600000262260437,
+          0.0
+        ],
+        "max": [
+          1.125,
+          0.6600000262260437,
+          2.7699999809265137
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.125,
+          0.0,
+          -0.6600000262260437
+        ],
+        "max": [
+          1.125,
+          2.7699999809265137,
+          0.6600000262260437
+        ]
+      },
+      "pivots": [
+        {
+          "name": "CoinFlip.Coin",
+          "sourcePosition": [
+            0.0,
+            -0.029999999329447746,
+            1.909999966621399
+          ],
+          "localPosition": [
+            0.0,
+            -0.029999999329447746,
+            1.909999966621399
+          ]
+        }
+      ],
+      "nodeNames": [
+        "CoinFlip",
+        "CoinFlip.Mesh",
+        "CoinFlip.Coin",
+        "CoinFlip.Coin.Mesh"
+      ],
+      "sha256": "abff19b217920e62ed349f372101d2e43e5b81e29f2477f4e06181ae09661e54",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "CoinFlip.png",
+      "iconSha256": "8507286fbcfa5b8a8fc6de78c0d12125afa16ef1ac91961de1ea12547ac66ad2",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Blackjack",
+      "category": "Station",
+      "ruleId": "Blackjack",
+      "file": "Blackjack.fbx",
+      "triangles": 5296,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.350000023841858,
+          -0.824999988079071,
+          0.0
+        ],
+        "max": [
+          1.350000023841858,
+          0.824999988079071,
+          2.065101146697998
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.350000023841858,
+          0.0,
+          -0.824999988079071
+        ],
+        "max": [
+          1.350000023841858,
+          2.065101146697998,
+          0.824999988079071
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Blackjack.DealerArm",
+          "sourcePosition": [
+            0.8899999856948853,
+            0.3199999928474426,
+            1.440000057220459
+          ],
+          "localPosition": [
+            0.8899999856948853,
+            0.3199999928474426,
+            1.440000057220459
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Blackjack",
+        "Blackjack.Mesh",
+        "Blackjack.DealerArm",
+        "Blackjack.DealerArm.Mesh"
+      ],
+      "sha256": "4812e4abfdcbb5a88a5c0ac0694ff1d97a6d80b422cbce3c8446b425bf3dc4a1",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Blackjack.png",
+      "iconSha256": "0175d2d5a69db4df1f69a4f62fcb59fc6fe88b47647fd91d6ce7d3b5cd118e88",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "SicBo",
+      "category": "Station",
+      "ruleId": "SicBo",
+      "file": "SicBo.fbx",
+      "triangles": 6120,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 7,
+      "boundsSource": {
+        "min": [
+          -1.2999999523162842,
+          -0.7749999761581421,
+          0.0
+        ],
+        "max": [
+          1.2999999523162842,
+          0.7749999761581421,
+          1.9649999141693115
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.2999999523162842,
+          0.0,
+          -0.7749999761581421
+        ],
+        "max": [
+          1.2999999523162842,
+          1.9649999141693115,
+          0.7749999761581421
+        ]
+      },
+      "pivots": [
+        {
+          "name": "SicBo.DiceCup0",
+          "sourcePosition": [
+            -0.7200000286102295,
+            0.05000000074505806,
+            1.3799999952316284
+          ],
+          "localPosition": [
+            -0.7200000286102295,
+            0.05000000074505806,
+            1.3799999952316284
+          ]
+        },
+        {
+          "name": "SicBo.Die0",
+          "sourcePosition": [
+            -0.7200000286102295,
+            0.05000000074505806,
+            1.590000033378601
+          ],
+          "localPosition": [
+            -0.7200000286102295,
+            0.05000000074505806,
+            1.590000033378601
+          ]
+        },
+        {
+          "name": "SicBo.DiceCup1",
+          "sourcePosition": [
+            0.0,
+            0.05000000074505806,
+            1.3799999952316284
+          ],
+          "localPosition": [
+            0.0,
+            0.05000000074505806,
+            1.3799999952316284
+          ]
+        },
+        {
+          "name": "SicBo.Die1",
+          "sourcePosition": [
+            0.0,
+            0.05000000074505806,
+            1.590000033378601
+          ],
+          "localPosition": [
+            0.0,
+            0.05000000074505806,
+            1.590000033378601
+          ]
+        },
+        {
+          "name": "SicBo.DiceCup2",
+          "sourcePosition": [
+            0.7200000286102295,
+            0.05000000074505806,
+            1.3799999952316284
+          ],
+          "localPosition": [
+            0.7200000286102295,
+            0.05000000074505806,
+            1.3799999952316284
+          ]
+        },
+        {
+          "name": "SicBo.Die2",
+          "sourcePosition": [
+            0.7200000286102295,
+            0.05000000074505806,
+            1.590000033378601
+          ],
+          "localPosition": [
+            0.7200000286102295,
+            0.05000000074505806,
+            1.590000033378601
+          ]
+        }
+      ],
+      "nodeNames": [
+        "SicBo",
+        "SicBo.Mesh",
+        "SicBo.DiceCup0",
+        "SicBo.DiceCup0.Mesh",
+        "SicBo.Die0",
+        "SicBo.Die0.Mesh",
+        "SicBo.DiceCup1",
+        "SicBo.DiceCup1.Mesh",
+        "SicBo.Die1",
+        "SicBo.Die1.Mesh",
+        "SicBo.DiceCup2",
+        "SicBo.DiceCup2.Mesh",
+        "SicBo.Die2",
+        "SicBo.Die2.Mesh"
+      ],
+      "sha256": "eb426152f979820df90d59de1be0ae4748f2a45ad3e1bb1806b2013e6fa30d5f",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "SicBo.png",
+      "iconSha256": "d11323d8c4bd5e2fcdb4cf2c91aef3b66934137dd8a732914637211a8282f2d0",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "DragonTiger",
+      "category": "Station",
+      "ruleId": "DragonTiger",
+      "file": "DragonTiger.fbx",
+      "triangles": 4200,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -1.2999999523162842,
+          -0.75,
+          0.0
+        ],
+        "max": [
+          1.2999999523162842,
+          0.75,
+          2.5035488605499268
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.2999999523162842,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          1.2999999523162842,
+          2.5035488605499268,
+          0.75
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "DragonTiger",
+        "DragonTiger.Mesh"
+      ],
+      "sha256": "f324d465beaf9a8914812f9b6fa2b2dcd88c3ff4873c54156da252d96a485b2c",
+      "icon": "DragonTiger.png",
+      "iconSha256": "15893b9ced1395367012850c98f7fc32ef82da2a760093fb78c43c1000c180e7",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "HighLow",
+      "category": "Station",
+      "ruleId": "HighLow",
+      "file": "HighLow.fbx",
+      "triangles": 2924,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.1749999523162842,
+          -0.75,
+          0.0
+        ],
+        "max": [
+          1.1749999523162842,
+          0.75,
+          2.1579017639160156
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.1749999523162842,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          1.1749999523162842,
+          2.1579017639160156,
+          0.75
+        ]
+      },
+      "pivots": [
+        {
+          "name": "HighLow.TurnPage",
+          "sourcePosition": [
+            0.0,
+            0.10000000149011612,
+            1.6799999475479126
+          ],
+          "localPosition": [
+            0.0,
+            0.10000000149011612,
+            1.6799999475479126
+          ]
+        }
+      ],
+      "nodeNames": [
+        "HighLow",
+        "HighLow.Mesh",
+        "HighLow.TurnPage",
+        "HighLow.TurningLeaf"
+      ],
+      "sha256": "cac01ac4d6588b91d4e72cdc343bece6af0f3161f032606787154d162d7bdac5",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "HighLow.png",
+      "iconSha256": "1ec50fa3acacad9df6ead1b0d0a095afafbe33f588eceee7f62df643cdbcdfd1",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "LuckyDraw",
+      "category": "Station",
+      "ruleId": "LuckyDraw",
+      "file": "LuckyDraw.fbx",
+      "triangles": 6780,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 7,
+      "boundsSource": {
+        "min": [
+          -1.0199999809265137,
+          -1.0199999809265137,
+          0.0
+        ],
+        "max": [
+          1.0199999809265137,
+          1.0199999809265137,
+          2.3600001335144043
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.0199999809265137,
+          0.0,
+          -1.0199999809265137
+        ],
+        "max": [
+          1.0199999809265137,
+          2.3600001335144043,
+          1.0199999809265137
+        ]
+      },
+      "pivots": [
+        {
+          "name": "LuckyDraw.Tube0",
+          "sourcePosition": [
+            0.6200000047683716,
+            0.0,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            0.6200000047683716,
+            0.0,
+            1.2799999713897705
+          ]
+        },
+        {
+          "name": "LuckyDraw.Tube1",
+          "sourcePosition": [
+            0.3100000023841858,
+            0.5369357466697693,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            0.3100000023841858,
+            0.5369357466697693,
+            1.2799999713897705
+          ]
+        },
+        {
+          "name": "LuckyDraw.Tube2",
+          "sourcePosition": [
+            -0.3100000023841858,
+            0.5369357466697693,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            -0.3100000023841858,
+            0.5369357466697693,
+            1.2799999713897705
+          ]
+        },
+        {
+          "name": "LuckyDraw.Tube3",
+          "sourcePosition": [
+            -0.6200000047683716,
+            7.592809956632449e-17,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            -0.6200000047683716,
+            7.592809956632449e-17,
+            1.2799999713897705
+          ]
+        },
+        {
+          "name": "LuckyDraw.Tube4",
+          "sourcePosition": [
+            -0.3100000023841858,
+            -0.5369357466697693,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            -0.3100000023841858,
+            -0.5369357466697693,
+            1.2799999713897705
+          ]
+        },
+        {
+          "name": "LuckyDraw.Tube5",
+          "sourcePosition": [
+            0.3100000023841858,
+            -0.5369357466697693,
+            1.2799999713897705
+          ],
+          "localPosition": [
+            0.3100000023841858,
+            -0.5369357466697693,
+            1.2799999713897705
+          ]
+        }
+      ],
+      "nodeNames": [
+        "LuckyDraw",
+        "LuckyDraw.Mesh",
+        "LuckyDraw.Tube0",
+        "LuckyDraw.Tube0.Mesh",
+        "LuckyDraw.Tube1",
+        "LuckyDraw.Tube1.Mesh",
+        "LuckyDraw.Tube2",
+        "LuckyDraw.Tube2.Mesh",
+        "LuckyDraw.Tube3",
+        "LuckyDraw.Tube3.Mesh",
+        "LuckyDraw.Tube4",
+        "LuckyDraw.Tube4.Mesh",
+        "LuckyDraw.Tube5",
+        "LuckyDraw.Tube5.Mesh"
+      ],
+      "sha256": "d13cdc4319a4c213525bbfff7700a2e447f501ccfdb90d86cb4c6054cd92fc73",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "LuckyDraw.png",
+      "iconSha256": "d70dc8bdcc1a49bbff2f2e84b96772910847696561f2cc1384bce996e0c8a389",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Bingo",
+      "category": "Station",
+      "ruleId": "Bingo",
+      "file": "Bingo.fbx",
+      "triangles": 8104,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 3,
+      "boundsSource": {
+        "min": [
+          -1.024999976158142,
+          -0.7250000238418579,
+          0.0
+        ],
+        "max": [
+          1.024999976158142,
+          0.7250000238418579,
+          2.6700000762939453
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.024999976158142,
+          0.0,
+          -0.7250000238418579
+        ],
+        "max": [
+          1.024999976158142,
+          2.6700000762939453,
+          0.7250000238418579
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Bingo.Globe",
+          "sourcePosition": [
+            0.0,
+            0.05000000074505806,
+            1.8899999856948853
+          ],
+          "localPosition": [
+            0.0,
+            0.05000000074505806,
+            1.8899999856948853
+          ]
+        },
+        {
+          "name": "Bingo.Bell",
+          "sourcePosition": [
+            0.0,
+            0.05000000074505806,
+            2.4800000190734863
+          ],
+          "localPosition": [
+            0.0,
+            0.05000000074505806,
+            2.4800000190734863
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Bingo",
+        "Bingo.Mesh",
+        "Bingo.Globe",
+        "Bingo.Globe.Mesh",
+        "Bingo.Bell",
+        "Bingo.BellShell"
+      ],
+      "sha256": "ba0b1a25c2020f85dd1fbb72b33d685f23996487a2b4c8655710718be7bbd2b2",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Bingo.png",
+      "iconSha256": "371ab41e8e9ac2dba00d5cf437023d2d4bf7db982fe435b8453dd53eb4e99531",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Plinko",
+      "category": "Station",
+      "ruleId": "Plinko",
+      "file": "Plinko.fbx",
+      "triangles": 15332,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 3,
+      "boundsSource": {
+        "min": [
+          -1.0499999523162842,
+          -0.7250000238418579,
+          0.0
+        ],
+        "max": [
+          1.0499999523162842,
+          0.7250000238418579,
+          3.119999885559082
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.0499999523162842,
+          0.0,
+          -0.7250000238418579
+        ],
+        "max": [
+          1.0499999523162842,
+          3.119999885559082,
+          0.7250000238418579
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Plinko.Ball",
+          "sourcePosition": [
+            0.0,
+            0.12999999523162842,
+            2.9100000858306885
+          ],
+          "localPosition": [
+            0.0,
+            0.12999999523162842,
+            2.9100000858306885
+          ]
+        },
+        {
+          "name": "Plinko.DropGate",
+          "sourcePosition": [
+            0.0,
+            0.1599999964237213,
+            3.0
+          ],
+          "localPosition": [
+            0.0,
+            0.1599999964237213,
+            3.0
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Plinko",
+        "Plinko.Mesh",
+        "Plinko.Ball",
+        "Plinko.DropBall",
+        "Plinko.DropGate",
+        "Plinko.DropFunnel"
+      ],
+      "sha256": "9c8b198eab5e417b8aedcfd242c8817d27d0bfcad9901b89b0a9c2c88008da33",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Plinko.png",
+      "iconSha256": "e6ede6da5d4b1f5e9f9bf5d5198c29d682b775ed6fb84e4cb2254c98c6a717db",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true,
+      "slots": {
+        "count": 15,
+        "dividers": 16,
+        "pitchMetres": 0.114,
+        "indexDirectionSource": "-X to +X",
+        "indexDirectionUnity": "+X to -X",
+        "unityBallInitial": [
+          0,
+          2.91,
+          -0.13
+        ],
+        "unityBallOffsetX": "(3+Level*0.5-Cursor)*0.114",
+        "unityBallOffsetY": "-Level*0.19875",
+        "unityBallOffsetZ": "Level/8*0.25"
+      }
+    },
+    {
+      "name": "CooperativeLevers",
+      "category": "Station",
+      "ruleId": "CooperativeLevers",
+      "file": "CooperativeLevers.fbx",
+      "triangles": 5900,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 13,
+      "boundsSource": {
+        "min": [
+          -1.350000023841858,
+          -0.75,
+          0.0
+        ],
+        "max": [
+          1.350000023841858,
+          0.75,
+          2.5199999809265137
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.350000023841858,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          1.350000023841858,
+          2.5199999809265137,
+          0.75
+        ]
+      },
+      "pivots": [
+        {
+          "name": "CooperativeLevers.TimingFace0",
+          "sourcePosition": [
+            -1.0,
+            -0.11999999731779099,
+            1.9500000476837158
+          ],
+          "localPosition": [
+            -1.0,
+            -0.11999999731779099,
+            1.9500000476837158
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever0",
+          "sourcePosition": [
+            -1.0,
+            -0.3199999928474426,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            -1.0,
+            -0.3199999928474426,
+            1.2699999809265137
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingFace1",
+          "sourcePosition": [
+            -0.6000000238418579,
+            -0.11999999731779099,
+            1.9500000476837158
+          ],
+          "localPosition": [
+            -0.6000000238418579,
+            -0.11999999731779099,
+            1.9500000476837158
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever1",
+          "sourcePosition": [
+            -0.6000000238418579,
+            -0.3199999928474426,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            -0.6000000238418579,
+            -0.3199999928474426,
+            1.2699999809265137
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingFace2",
+          "sourcePosition": [
+            -0.20000000298023224,
+            -0.11999999731779099,
+            1.9500000476837158
+          ],
+          "localPosition": [
+            -0.20000000298023224,
+            -0.11999999731779099,
+            1.9500000476837158
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever2",
+          "sourcePosition": [
+            -0.20000000298023224,
+            -0.3199999928474426,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            -0.20000000298023224,
+            -0.3199999928474426,
+            1.2699999809265137
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingFace3",
+          "sourcePosition": [
+            0.20000000298023224,
+            -0.11999999731779099,
+            1.9500000476837158
+          ],
+          "localPosition": [
+            0.20000000298023224,
+            -0.11999999731779099,
+            1.9500000476837158
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever3",
+          "sourcePosition": [
+            0.20000000298023224,
+            -0.3199999928474426,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            0.20000000298023224,
+            -0.3199999928474426,
+            1.2699999809265137
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingFace4",
+          "sourcePosition": [
+            0.6000000238418579,
+            -0.11999999731779099,
+            1.9500000476837158
+          ],
+          "localPosition": [
+            0.6000000238418579,
+            -0.11999999731779099,
+            1.9500000476837158
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever4",
+          "sourcePosition": [
+            0.6000000238418579,
+            -0.3199999928474426,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            0.6000000238418579,
+            -0.3199999928474426,
+            1.2699999809265137
+          ]
+        },
+        {
+          "name": "CooperativeLevers.TimingFace5",
+          "sourcePosition": [
+            1.0,
+            -0.11999999731779099,
+            1.9500000476837158
+          ],
+          "localPosition": [
+            1.0,
+            -0.11999999731779099,
+            1.9500000476837158
+          ]
+        },
+        {
+          "name": "CooperativeLevers.Lever5",
+          "sourcePosition": [
+            1.0,
+            -0.3199999928474426,
+            1.2699999809265137
+          ],
+          "localPosition": [
+            1.0,
+            -0.3199999928474426,
+            1.2699999809265137
+          ]
+        }
+      ],
+      "nodeNames": [
+        "CooperativeLevers",
+        "CooperativeLevers.Mesh",
+        "CooperativeLevers.TimingFace0",
+        "CooperativeLevers.TimingFace0.Mesh",
+        "CooperativeLevers.Lever0",
+        "CooperativeLevers.Lever0.Mesh",
+        "CooperativeLevers.TimingFace1",
+        "CooperativeLevers.TimingFace1.Mesh",
+        "CooperativeLevers.Lever1",
+        "CooperativeLevers.Lever1.Mesh",
+        "CooperativeLevers.TimingFace2",
+        "CooperativeLevers.TimingFace2.Mesh",
+        "CooperativeLevers.Lever2",
+        "CooperativeLevers.Lever2.Mesh",
+        "CooperativeLevers.TimingFace3",
+        "CooperativeLevers.TimingFace3.Mesh",
+        "CooperativeLevers.Lever3",
+        "CooperativeLevers.Lever3.Mesh",
+        "CooperativeLevers.TimingFace4",
+        "CooperativeLevers.TimingFace4.Mesh",
+        "CooperativeLevers.Lever4",
+        "CooperativeLevers.Lever4.Mesh",
+        "CooperativeLevers.TimingFace5",
+        "CooperativeLevers.TimingFace5.Mesh",
+        "CooperativeLevers.Lever5",
+        "CooperativeLevers.Lever5.Mesh"
+      ],
+      "sha256": "353445094288967edf6fd5e185bd869ab5565e421e05b9600d96b122395fadf1",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "CooperativeLevers.png",
+      "iconSha256": "5ff03d3822bacc3de8a496db3a190c4be4943e60bbd8df8b0dfc049112965e64",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "PushYourLuckDice",
+      "category": "Station",
+      "ruleId": "PushYourLuckDice",
+      "file": "PushYourLuckDice.fbx",
+      "triangles": 5640,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.100000023841858,
+          -0.699999988079071,
+          0.0
+        ],
+        "max": [
+          1.100000023841858,
+          0.699999988079071,
+          2.440000057220459
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.100000023841858,
+          0.0,
+          -0.699999988079071
+        ],
+        "max": [
+          1.100000023841858,
+          2.440000057220459,
+          0.699999988079071
+        ]
+      },
+      "pivots": [
+        {
+          "name": "PushYourLuckDice.DiceTower",
+          "sourcePosition": [
+            0.0,
+            0.10000000149011612,
+            1.3200000524520874
+          ],
+          "localPosition": [
+            0.0,
+            0.10000000149011612,
+            1.3200000524520874
+          ]
+        }
+      ],
+      "nodeNames": [
+        "PushYourLuckDice",
+        "PushYourLuckDice.Mesh",
+        "PushYourLuckDice.DiceTower",
+        "PushYourLuckDice.DiceTower.Mesh"
+      ],
+      "sha256": "6df03d6ae4753cc3592afd4e429b52b970810909743cb2483ba86d91813881de",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "PushYourLuckDice.png",
+      "iconSha256": "395ed2c1af3ab31db43d861bfe11efae0d6a37212ebfc2428b185831919a5088",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "PassingBag",
+      "category": "Station",
+      "ruleId": "PassingBag",
+      "file": "PassingBag.fbx",
+      "triangles": 3096,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.3250000476837158,
+          -0.75,
+          0.0
+        ],
+        "max": [
+          1.3250000476837158,
+          0.75,
+          2.515000104904175
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.3250000476837158,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          1.3250000476837158,
+          2.515000104904175,
+          0.75
+        ]
+      },
+      "pivots": [
+        {
+          "name": "PassingBag.Bag",
+          "sourcePosition": [
+            0.0,
+            0.1599999964237213,
+            2.1500000953674316
+          ],
+          "localPosition": [
+            0.0,
+            0.1599999964237213,
+            2.1500000953674316
+          ]
+        }
+      ],
+      "nodeNames": [
+        "PassingBag",
+        "PassingBag.Mesh",
+        "PassingBag.Bag",
+        "PassingBag.Bag.Mesh"
+      ],
+      "sha256": "552614631644302624f4aeca9b94805655747e637515f04d1360afa120108072",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "PassingBag.png",
+      "iconSha256": "05583ec1534093d766e172dc1cf009e2c4902e2d24424e248521faae11ac10b2",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "BlindAuction",
+      "category": "Station",
+      "ruleId": "BlindAuction",
+      "file": "BlindAuction.fbx",
+      "triangles": 3548,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 3,
+      "boundsSource": {
+        "min": [
+          -1.25,
+          -0.7749999761581421,
+          0.0
+        ],
+        "max": [
+          1.25,
+          0.7749999761581421,
+          2.5149998664855957
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.25,
+          0.0,
+          -0.7749999761581421
+        ],
+        "max": [
+          1.25,
+          2.5149998664855957,
+          0.7749999761581421
+        ]
+      },
+      "pivots": [
+        {
+          "name": "BlindAuction.Lid",
+          "sourcePosition": [
+            0.0,
+            0.33000001311302185,
+            2.069999933242798
+          ],
+          "localPosition": [
+            0.0,
+            0.33000001311302185,
+            2.069999933242798
+          ]
+        },
+        {
+          "name": "BlindAuction.Gavel",
+          "sourcePosition": [
+            -0.9800000190734863,
+            -0.30000001192092896,
+            1.2599999904632568
+          ],
+          "localPosition": [
+            -0.9800000190734863,
+            -0.30000001192092896,
+            1.2599999904632568
+          ]
+        }
+      ],
+      "nodeNames": [
+        "BlindAuction",
+        "BlindAuction.Mesh",
+        "BlindAuction.Lid",
+        "BlindAuction.Lid.Mesh",
+        "BlindAuction.Gavel",
+        "BlindAuction.Gavel.Mesh"
+      ],
+      "sha256": "35c74a7e21e3e0671929b8f6d1dcc536065f973b111e6147ef9720c09bf36117",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "BlindAuction.png",
+      "iconSha256": "ff0cfe95e0a9b01eba323cac5d70a77129fd79257c9c982b20a1be0b0f425bf6",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "MechanicalRace",
+      "category": "Station",
+      "ruleId": "MechanicalRace",
+      "file": "MechanicalRace.fbx",
+      "triangles": 5044,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 5,
+      "boundsSource": {
+        "min": [
+          -1.4249999523162842,
+          -0.875,
+          0.0
+        ],
+        "max": [
+          1.4249999523162842,
+          0.875,
+          2.4149999618530273
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.4249999523162842,
+          0.0,
+          -0.875
+        ],
+        "max": [
+          1.4249999523162842,
+          2.4149999618530273,
+          0.875
+        ]
+      },
+      "pivots": [
+        {
+          "name": "MechanicalRace.Racer0",
+          "sourcePosition": [
+            -0.699999988079071,
+            -0.47999998927116394,
+            1.4500000476837158
+          ],
+          "localPosition": [
+            -0.699999988079071,
+            -0.47999998927116394,
+            1.4500000476837158
+          ]
+        },
+        {
+          "name": "MechanicalRace.Racer1",
+          "sourcePosition": [
+            -0.5299999713897705,
+            -0.1599999964237213,
+            1.4500000476837158
+          ],
+          "localPosition": [
+            -0.5299999713897705,
+            -0.1599999964237213,
+            1.4500000476837158
+          ]
+        },
+        {
+          "name": "MechanicalRace.Racer2",
+          "sourcePosition": [
+            -0.36000001430511475,
+            0.1599999964237213,
+            1.4500000476837158
+          ],
+          "localPosition": [
+            -0.36000001430511475,
+            0.1599999964237213,
+            1.4500000476837158
+          ]
+        },
+        {
+          "name": "MechanicalRace.Racer3",
+          "sourcePosition": [
+            -0.1899999976158142,
+            0.47999998927116394,
+            1.4500000476837158
+          ],
+          "localPosition": [
+            -0.1899999976158142,
+            0.47999998927116394,
+            1.4500000476837158
+          ]
+        }
+      ],
+      "nodeNames": [
+        "MechanicalRace",
+        "MechanicalRace.Mesh",
+        "MechanicalRace.Racer0",
+        "MechanicalRace.Racer0.Mesh",
+        "MechanicalRace.Racer1",
+        "MechanicalRace.Racer1.Mesh",
+        "MechanicalRace.Racer2",
+        "MechanicalRace.Racer2.Mesh",
+        "MechanicalRace.Racer3",
+        "MechanicalRace.Racer3.Mesh"
+      ],
+      "sha256": "26a0df77fb2a8544f0a2dcafa7f75e17c6218c437a9f17373ebbecf2d18f75fa",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "MechanicalRace.png",
+      "iconSha256": "b4a39928540fb66f46c60a0fb5b1a60d625493cd9c8be96eda1e7b0cf11de75f",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "ChickenElevator",
+      "category": "Station",
+      "ruleId": "ChickenElevator",
+      "file": "ChickenElevator.fbx",
+      "triangles": 4352,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 3,
+      "boundsSource": {
+        "min": [
+          -1.2000000476837158,
+          -0.7749999761581421,
+          0.0
+        ],
+        "max": [
+          1.2000000476837158,
+          0.7749999761581421,
+          3.059999942779541
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.2000000476837158,
+          0.0,
+          -0.7749999761581421
+        ],
+        "max": [
+          1.2000000476837158,
+          3.059999942779541,
+          0.7749999761581421
+        ]
+      },
+      "pivots": [
+        {
+          "name": "ChickenElevator.Elevator-0.62",
+          "sourcePosition": [
+            -0.6200000047683716,
+            -0.10000000149011612,
+            1.4199999570846558
+          ],
+          "localPosition": [
+            -0.6200000047683716,
+            -0.10000000149011612,
+            1.4199999570846558
+          ]
+        },
+        {
+          "name": "ChickenElevator.Elevator0.62",
+          "sourcePosition": [
+            0.6200000047683716,
+            -0.10000000149011612,
+            1.4199999570846558
+          ],
+          "localPosition": [
+            0.6200000047683716,
+            -0.10000000149011612,
+            1.4199999570846558
+          ]
+        }
+      ],
+      "nodeNames": [
+        "ChickenElevator",
+        "ChickenElevator.Mesh",
+        "ChickenElevator.Elevator-0.62",
+        "ChickenElevator.Elevator-0.62.Mesh",
+        "ChickenElevator.Elevator0.62",
+        "ChickenElevator.Elevator0.62.Mesh"
+      ],
+      "sha256": "27078a991ac7b8822ab31c8d908c255438771ef0e842f1199c023ba1e3f308ec",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "ChickenElevator.png",
+      "iconSha256": "7e52328c8af3612181cc1236fa3a03c2d4654379e44a0f23ec87103becd1a548",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_bubble_gun",
+      "category": "Item",
+      "ruleId": "bubble_gun",
+      "file": "Item_bubble_gun.fbx",
+      "triangles": 1748,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.13199999928474426,
+          -0.4240000247955322,
+          0.0
+        ],
+        "max": [
+          0.13199999928474426,
+          0.2800000011920929,
+          0.602043092250824
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.13199999928474426,
+          0.0,
+          -0.2800000011920929
+        ],
+        "max": [
+          0.13199999928474426,
+          0.602043092250824,
+          0.4240000247955322
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_bubble_gun",
+        "Item_bubble_gun.Mesh"
+      ],
+      "sha256": "4c3e21ee9216505a3fc92fa0d1a599f2e7289720ca557f2a0384d74e3daede94",
+      "icon": "Item_bubble_gun.png",
+      "iconSha256": "9096a56547c27a1b4d54cfb1b957008a4ccb7c7200dd8978f73cda26aa10de95",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_banana_peel",
+      "category": "Item",
+      "ruleId": "banana_peel",
+      "file": "Item_banana_peel.fbx",
+      "triangles": 392,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.2146410197019577,
+          -0.3317691385746002,
+          0.0
+        ],
+        "max": [
+          0.36000001430511475,
+          0.3317691385746002,
+          0.36285293102264404
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.36000001430511475,
+          0.0,
+          -0.3317691385746002
+        ],
+        "max": [
+          0.2146410197019577,
+          0.36285293102264404,
+          0.3317691385746002
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_banana_peel",
+        "Item_banana_peel.Mesh"
+      ],
+      "sha256": "dcba2c302e2f43a15c89ec85de68649fd5ed5794b25fdec370c9490c1adc62a6",
+      "icon": "Item_banana_peel.png",
+      "iconSha256": "90461c3b4794b92b92b60144554a5e5e58a283a4c21400134d057658f14bf913",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_spring_glove",
+      "category": "Item",
+      "ruleId": "spring_glove",
+      "file": "Item_spring_glove.fbx",
+      "triangles": 3736,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.26499998569488525,
+          -0.22499999403953552,
+          0.0
+        ],
+        "max": [
+          0.20999999344348907,
+          0.1550000011920929,
+          0.7099999785423279
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.20999999344348907,
+          0.0,
+          -0.1550000011920929
+        ],
+        "max": [
+          0.26499998569488525,
+          0.7099999785423279,
+          0.22499999403953552
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_spring_glove",
+        "Item_spring_glove.Mesh"
+      ],
+      "sha256": "56bca262ff6cfd3715c039f4f023b926ab79567442888cf9e98355e9b4838873",
+      "icon": "Item_spring_glove.png",
+      "iconSha256": "0711616fa65e584b058e439159f4b1bbe51613555f76ff0e133c3048ae6055f2",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_fake_jackpot",
+      "category": "Item",
+      "ruleId": "fake_jackpot",
+      "file": "Item_fake_jackpot.fbx",
+      "triangles": 1248,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3100000023841858,
+          -0.1575000137090683,
+          0.0
+        ],
+        "max": [
+          0.3270763158798218,
+          0.11999998986721039,
+          0.7456920742988586
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3270763158798218,
+          0.0,
+          -0.11999998986721039
+        ],
+        "max": [
+          0.3100000023841858,
+          0.7456920742988586,
+          0.1575000137090683
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_fake_jackpot",
+        "Item_fake_jackpot.Mesh"
+      ],
+      "sha256": "dd6889b6c92aa2c6dc8706f0109334ad57afab4a235cbcf0d2be5256cd12dac7",
+      "icon": "Item_fake_jackpot.png",
+      "iconSha256": "daf7fe9568213f402c0705caa52c9533b0aebf5d672d12e63def8eb3b64f915c",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_ink_balloon",
+      "category": "Item",
+      "ruleId": "ink_balloon",
+      "file": "Item_ink_balloon.fbx",
+      "triangles": 684,
+      "materialNames": [
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.23999997973442078,
+          -0.22200000286102295,
+          0.0
+        ],
+        "max": [
+          0.23999999463558197,
+          0.20999999344348907,
+          0.804175853729248
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.23999999463558197,
+          0.0,
+          -0.20999999344348907
+        ],
+        "max": [
+          0.23999997973442078,
+          0.804175853729248,
+          0.22200000286102295
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_ink_balloon",
+        "Item_ink_balloon.Mesh"
+      ],
+      "sha256": "3ec6afa040fb6cb18a21de2908234dc280051571d61be42caa460df42e9676c4",
+      "icon": "Item_ink_balloon.png",
+      "iconSha256": "38692429c8f118e63250c4fe3ac0d822897e28a4e050ecbf1cdc339a98b0a1ab",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_magnet_hat",
+      "category": "Item",
+      "ruleId": "magnet_hat",
+      "file": "Item_magnet_hat.fbx",
+      "triangles": 824,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3400000035762787,
+          -0.3400000035762787,
+          0.0
+        ],
+        "max": [
+          0.3400000035762787,
+          0.3400000035762787,
+          0.5449999570846558
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3400000035762787,
+          0.0,
+          -0.3400000035762787
+        ],
+        "max": [
+          0.3400000035762787,
+          0.5449999570846558,
+          0.3400000035762787
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_magnet_hat",
+        "Item_magnet_hat.Mesh"
+      ],
+      "sha256": "a8793e7086a727d42ce639bcacb64d125202a23a490b65d957dcfb7d2789f269",
+      "icon": "Item_magnet_hat.png",
+      "iconSha256": "bedcec245b1787fceed2c5f181069ae1fb4ce25c67844694629c62b8695db1a9",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_remote_horn",
+      "category": "Item",
+      "ruleId": "remote_horn",
+      "file": "Item_remote_horn.fbx",
+      "triangles": 1472,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.2370000034570694,
+          -0.43700000643730164,
+          0.0
+        ],
+        "max": [
+          0.2370000034570694,
+          0.36000001430511475,
+          0.5870000123977661
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.2370000034570694,
+          0.0,
+          -0.36000001430511475
+        ],
+        "max": [
+          0.2370000034570694,
+          0.5870000123977661,
+          0.43700000643730164
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_remote_horn",
+        "Item_remote_horn.Mesh"
+      ],
+      "sha256": "e2ce021b8dbf5715b4bcf07266b78c1830b7801fe12fd1c01056639d532b9ac6",
+      "icon": "Item_remote_horn.png",
+      "iconSha256": "d9c642d54dc0c5b4e145c50c052a88a6be24d77a19d79f677b863d99861480f3",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_disguise_spray",
+      "category": "Item",
+      "ruleId": "disguise_spray",
+      "file": "Item_disguise_spray.fbx",
+      "triangles": 1208,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.1599999964237213,
+          -0.19200000166893005,
+          0.0
+        ],
+        "max": [
+          0.1599999964237213,
+          0.1599999964237213,
+          0.6399999856948853
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.1599999964237213,
+          0.0,
+          -0.1599999964237213
+        ],
+        "max": [
+          0.1599999964237213,
+          0.6399999856948853,
+          0.19200000166893005
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_disguise_spray",
+        "Item_disguise_spray.Mesh"
+      ],
+      "sha256": "178062de5447c2b3f2d6f3bc30af166ca9c9e9ee936b411d008c2705aceb79b9",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Item_disguise_spray.png",
+      "iconSha256": "114ecf70e2a87bd3e06d3d5ff02b6482e0430cb734aff01cb572970be3cee729",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_relay_battery",
+      "category": "Item",
+      "ruleId": "relay_battery",
+      "file": "Item_relay_battery.fbx",
+      "triangles": 700,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.19499999284744263,
+          -0.1469999998807907,
+          0.0
+        ],
+        "max": [
+          0.19499999284744263,
+          0.125,
+          0.5949999094009399
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.19499999284744263,
+          0.0,
+          -0.125
+        ],
+        "max": [
+          0.19499999284744263,
+          0.5949999094009399,
+          0.1469999998807907
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_relay_battery",
+        "Item_relay_battery.Mesh"
+      ],
+      "sha256": "d4641503fe2f2a6ad590b486e644b50b121e91097d30f08f7d9d7dc94218c862",
+      "icon": "Item_relay_battery.png",
+      "iconSha256": "0e01e32cce67fb0e1904ab8b5f7cc30dd9daa7a613c09f27bdb88531a8112ab0",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_rescue_whistle",
+      "category": "Item",
+      "ruleId": "rescue_whistle",
+      "file": "Item_rescue_whistle.fbx",
+      "triangles": 944,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.17000000178813934,
+          -0.343999981880188,
+          0.0
+        ],
+        "max": [
+          0.21000000834465027,
+          0.29499995708465576,
+          0.6549999713897705
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.21000000834465027,
+          0.0,
+          -0.29499995708465576
+        ],
+        "max": [
+          0.17000000178813934,
+          0.6549999713897705,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_rescue_whistle",
+        "Item_rescue_whistle.Mesh"
+      ],
+      "sha256": "1c3f77a52429c47bb59bda3dc9776ff00d0885e424fd9274470b9b98ee00bdb8",
+      "icon": "Item_rescue_whistle.png",
+      "iconSha256": "f79217ed99c4bbc9059a33d860d55ceb5f0a7148b7561faac9f490cc51bd5395",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_duo_wrench",
+      "category": "Item",
+      "ruleId": "duo_wrench",
+      "file": "Item_duo_wrench.fbx",
+      "triangles": 1544,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.23249998688697815,
+          -0.04800001531839371,
+          0.0
+        ],
+        "max": [
+          0.23250000178813934,
+          0.04800001531839371,
+          0.7080000042915344
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.23250000178813934,
+          0.0,
+          -0.04800001531839371
+        ],
+        "max": [
+          0.23249998688697815,
+          0.7080000042915344,
+          0.04800001531839371
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_duo_wrench",
+        "Item_duo_wrench.Mesh"
+      ],
+      "sha256": "7f0a838a4b449b3bdc4e1a04173167633f8abcedfa13246229e8fee883cd2d58",
+      "icon": "Item_duo_wrench.png",
+      "iconSha256": "d67258f524c00240a1552eced1edeb0ad6a22fcd65642f73b67d5a198b5c26fb",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_extra_time",
+      "category": "Item",
+      "ruleId": "extra_time",
+      "file": "Item_extra_time.fbx",
+      "triangles": 1668,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3100000023841858,
+          -0.1300000101327896,
+          0.0
+        ],
+        "max": [
+          0.3100000023841858,
+          0.10000000149011612,
+          0.824999988079071
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3100000023841858,
+          0.0,
+          -0.10000000149011612
+        ],
+        "max": [
+          0.3100000023841858,
+          0.824999988079071,
+          0.1300000101327896
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_extra_time",
+        "Item_extra_time.Mesh"
+      ],
+      "sha256": "659bb4948057a9fb49fc358e877a901530f1e79c85feece5019dbca7dd176d6e",
+      "icon": "Item_extra_time.png",
+      "iconSha256": "ee1ed13f098869c258eec09b6e21df554d7df367a201b68216ce2428fcc4a521",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_teleport_bell",
+      "category": "Item",
+      "ruleId": "teleport_bell",
+      "file": "Item_teleport_bell.fbx",
+      "triangles": 1632,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.2549999952316284,
+          -0.2549999952316284,
+          0.0
+        ],
+        "max": [
+          0.2549999952316284,
+          0.2549999952316284,
+          0.6559999585151672
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.2549999952316284,
+          0.0,
+          -0.2549999952316284
+        ],
+        "max": [
+          0.2549999952316284,
+          0.6559999585151672,
+          0.2549999952316284
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_teleport_bell",
+        "Item_teleport_bell.Mesh"
+      ],
+      "sha256": "3e637c1c7f56680614284eb2df58dd95306a0c207f6a6232b0a6c2447474154f",
+      "icon": "Item_teleport_bell.png",
+      "iconSha256": "5808510c241ef056e9d95899ef71e7ef062e22db6cb42a9fe9f815aa56a72db3",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_shared_shield",
+      "category": "Item",
+      "ruleId": "shared_shield",
+      "file": "Item_shared_shield.fbx",
+      "triangles": 792,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.335989385843277,
+          -0.1850000023841858,
+          0.0
+        ],
+        "max": [
+          0.33598941564559937,
+          0.04000000283122063,
+          0.655972957611084
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.33598941564559937,
+          0.0,
+          -0.04000000283122063
+        ],
+        "max": [
+          0.335989385843277,
+          0.655972957611084,
+          0.1850000023841858
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_shared_shield",
+        "Item_shared_shield.Mesh"
+      ],
+      "sha256": "298d58c149efcfc4a946b3be507290a0837c70187d17457061b7a5dd6c3551ad",
+      "icon": "Item_shared_shield.png",
+      "iconSha256": "da2245effef304a1c017a5d82df4edc0fabf734044192d7aee615ade17167914",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_reroll_dice",
+      "category": "Item",
+      "ruleId": "reroll_dice",
+      "file": "Item_reroll_dice.fbx",
+      "triangles": 1740,
+      "materialNames": [
+        "CopperGold",
+        "FaceInk",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.36500000953674316,
+          -0.2540000081062317,
+          0.0
+        ],
+        "max": [
+          0.36500000953674316,
+          0.23000000417232513,
+          0.7300000190734863
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.36500000953674316,
+          0.0,
+          -0.23000000417232513
+        ],
+        "max": [
+          0.36500000953674316,
+          0.7300000190734863,
+          0.2540000081062317
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_reroll_dice",
+        "Item_reroll_dice.Mesh"
+      ],
+      "sha256": "8935e3f6f8959db5393b122a1c36ead6be678ae729e53ce5ab7b16c085909eb1",
+      "icon": "Item_reroll_dice.png",
+      "iconSha256": "7eacb28404351e3aa36faa88dcb8a0c0f75e39480eafdcd4b77f71b895267183",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_redraw_card",
+      "category": "Item",
+      "ruleId": "redraw_card",
+      "file": "Item_redraw_card.fbx",
+      "triangles": 964,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3043702244758606,
+          -0.06499999761581421,
+          0.0
+        ],
+        "max": [
+          0.3043702244758606,
+          0.07349999994039536,
+          0.6297453045845032
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3043702244758606,
+          0.0,
+          -0.07349999994039536
+        ],
+        "max": [
+          0.3043702244758606,
+          0.6297453045845032,
+          0.06499999761581421
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_redraw_card",
+        "Item_redraw_card.Mesh"
+      ],
+      "sha256": "75137a9e6e4ca9b3efde464d5cd47dcf37f8b3981b0e992047a94876223c67d7",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Item_redraw_card.png",
+      "iconSha256": "6cd0f523f913dd720086c9f16cd7d8a3f11fc9b8d09ec15c450bb70661fd0a04",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_lock_reel",
+      "category": "Item",
+      "ruleId": "lock_reel",
+      "file": "Item_lock_reel.fbx",
+      "triangles": 2308,
+      "materialNames": [
+        "CopperGold",
+        "FaceInk",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.30159997940063477,
+          -0.17149999737739563,
+          0.0
+        ],
+        "max": [
+          0.30159997940063477,
+          0.054999999701976776,
+          0.6065999865531921
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.30159997940063477,
+          0.0,
+          -0.054999999701976776
+        ],
+        "max": [
+          0.30159997940063477,
+          0.6065999865531921,
+          0.17149999737739563
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_lock_reel",
+        "Item_lock_reel.Mesh"
+      ],
+      "sha256": "94f9028dc747a6e6cec0fa532ccd0bd0b48f158bbd100a8db2c36823963350c7",
+      "icon": "Item_lock_reel.png",
+      "iconSha256": "7a4f7d69558402d9136aac0deb7ffbed9aa425882db885f3062a8dcc46107fb5",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_xray",
+      "category": "Item",
+      "ruleId": "xray",
+      "file": "Item_xray.fbx",
+      "triangles": 1724,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3580000102519989,
+          -0.028000012040138245,
+          0.0
+        ],
+        "max": [
+          0.3580000102519989,
+          0.27327761054039,
+          0.35600000619888306
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3580000102519989,
+          0.0,
+          -0.27327761054039
+        ],
+        "max": [
+          0.3580000102519989,
+          0.35600000619888306,
+          0.028000012040138245
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_xray",
+        "Item_xray.Mesh"
+      ],
+      "sha256": "33ca711988d8194193fe78e5a37d6e751171665915e350384550a60fa5c28a33",
+      "icon": "Item_xray.png",
+      "iconSha256": "7344619f9defc79663ea0b400974565f747596632632e96c4dfb9c48e96701ac",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_stop_loss",
+      "category": "Item",
+      "ruleId": "stop_loss",
+      "file": "Item_stop_loss.fbx",
+      "triangles": 1376,
+      "materialNames": [
+        "CopperGold",
+        "FaceInk",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.20500001311302185,
+          -0.062000006437301636,
+          0.0
+        ],
+        "max": [
+          0.20500001311302185,
+          0.017500000074505806,
+          0.5899999737739563
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.20500001311302185,
+          0.0,
+          -0.017500000074505806
+        ],
+        "max": [
+          0.20500001311302185,
+          0.5899999737739563,
+          0.062000006437301636
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_stop_loss",
+        "Item_stop_loss.Mesh"
+      ],
+      "sha256": "d0716657f48d27ad116671340ac6b2e3965598b6d25af5274eb1ffc6306eb10f",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Item_stop_loss.png",
+      "iconSha256": "e1d06bfde1c893c77e7bcf7f725f04746b16a5e62e0d977da476c9be9169c1fe",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_jackpot_coupon",
+      "category": "Item",
+      "ruleId": "jackpot_coupon",
+      "file": "Item_jackpot_coupon.fbx",
+      "triangles": 820,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.1899999976158142,
+          -0.06499999761581421,
+          0.0
+        ],
+        "max": [
+          0.1899999976158142,
+          0.017500000074505806,
+          0.5899999737739563
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.1899999976158142,
+          0.0,
+          -0.017500000074505806
+        ],
+        "max": [
+          0.1899999976158142,
+          0.5899999737739563,
+          0.06499999761581421
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_jackpot_coupon",
+        "Item_jackpot_coupon.Mesh"
+      ],
+      "sha256": "9893bdeb5289958b4c4b6fff692846c82b7be53dc0ae5ae7434fed33c0b8bf8a",
+      "icon": "Item_jackpot_coupon.png",
+      "iconSha256": "8dba68f52bbd96fcb571a7af2a7a999f312d553961344953dc50050e4afe822a",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_map_radar",
+      "category": "Item",
+      "ruleId": "map_radar",
+      "file": "Item_map_radar.fbx",
+      "triangles": 2704,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.14899998903274536,
+          -2.980232238769531e-08
+        ],
+        "max": [
+          0.28999999165534973,
+          0.12999999523162842,
+          0.6399999856948853
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -2.980232238769531e-08,
+          -0.12999999523162842
+        ],
+        "max": [
+          0.28999999165534973,
+          0.6399999856948853,
+          0.14899998903274536
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_map_radar",
+        "Item_map_radar.Mesh"
+      ],
+      "sha256": "702e184b17d4d4eb67ca3ec1a8abe0bf6894c9bbcba218d928c5b31bc8c596ab",
+      "icon": "Item_map_radar.png",
+      "iconSha256": "2f513f5e263fa48c040be76fde3772631f8471426e765229280d0cc4f019eeb6",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_shortcut_key",
+      "category": "Item",
+      "ruleId": "shortcut_key",
+      "file": "Item_shortcut_key.fbx",
+      "triangles": 856,
+      "materialNames": [
+        "CopperGold",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.16499999165534973,
+          -0.05349999666213989,
+          0.0
+        ],
+        "max": [
+          0.17500001192092896,
+          0.04500000178813934,
+          0.640999972820282
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.17500001192092896,
+          0.0,
+          -0.04500000178813934
+        ],
+        "max": [
+          0.16499999165534973,
+          0.640999972820282,
+          0.05349999666213989
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_shortcut_key",
+        "Item_shortcut_key.Mesh"
+      ],
+      "sha256": "1c8de2f8848611e6faad64e5419b8db9dca05667e880b1c650c29d4341c65ab9",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12,
+      "icon": "Item_shortcut_key.png",
+      "iconSha256": "426cc1e6aeff728eb74d154d56c2428a15aaa3e36191c9da9288c92700970e29",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_event_remote",
+      "category": "Item",
+      "ruleId": "event_remote",
+      "file": "Item_event_remote.fbx",
+      "triangles": 1048,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.14000000059604645,
+          -0.11599999666213989,
+          0.0
+        ],
+        "max": [
+          0.14000000059604645,
+          0.07999999821186066,
+          0.8750000596046448
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.14000000059604645,
+          0.0,
+          -0.07999999821186066
+        ],
+        "max": [
+          0.14000000059604645,
+          0.8750000596046448,
+          0.11599999666213989
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_event_remote",
+        "Item_event_remote.Mesh"
+      ],
+      "sha256": "0a45629a2ddc74bec96b4f3b9867fbb8bbc7427f7615a91a3c2f0d029d69f713",
+      "icon": "Item_event_remote.png",
+      "iconSha256": "73a4d433ba1407b90c366d75fcb39d1c9c7bc017474a938e823588df87c4732e",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "Item_mystery_coupon",
+      "category": "Item",
+      "ruleId": "mystery_coupon",
+      "file": "Item_mystery_coupon.fbx",
+      "triangles": 1516,
+      "materialNames": [
+        "InkBlue",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.1899999976158142,
+          -0.0650000050663948,
+          0.0
+        ],
+        "max": [
+          0.1899999976158142,
+          0.017500000074505806,
+          0.5899999737739563
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.1899999976158142,
+          0.0,
+          -0.017500000074505806
+        ],
+        "max": [
+          0.1899999976158142,
+          0.5899999737739563,
+          0.0650000050663948
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Item_mystery_coupon",
+        "Item_mystery_coupon.Mesh"
+      ],
+      "sha256": "a5cd9fdb9ed673d0edcbf75215e86e5585b21bb7f80fd4d10d570858e4dc067d",
+      "icon": "Item_mystery_coupon.png",
+      "iconSha256": "af8f1a9b685c466f30c1a9f8d721075748d4642f34fd02f2061f854245e4e20d",
+      "iconSize": [
+        512,
+        512
+      ],
+      "iconTransparent": true
+    },
+    {
+      "name": "hat_party",
+      "category": "Hat",
+      "ruleId": "hat_party",
+      "file": "hat_party.fbx",
+      "triangles": 888,
+      "materialNames": [
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3499999940395355,
+          -0.3499999940395355,
+          0.0
+        ],
+        "max": [
+          0.3499999940395355,
+          0.3499999940395355,
+          0.5649999976158142
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3499999940395355,
+          0.0,
+          -0.3499999940395355
+        ],
+        "max": [
+          0.3499999940395355,
+          0.5649999976158142,
+          0.3499999940395355
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "hat_party",
+        "hat_party.Mesh"
+      ],
+      "sha256": "86990dd1b09239f24b5cd3fb517f9a476543c6394d4d89516a9bf9a26ede762f"
+    },
+    {
+      "name": "hat_banana",
+      "category": "Hat",
+      "ruleId": "hat_banana",
+      "file": "hat_banana.fbx",
+      "triangles": 1304,
+      "materialNames": [
+        "CreamYellow",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3563919961452484,
+          -0.3499999940395355,
+          0.0
+        ],
+        "max": [
+          0.3499999940395355,
+          0.3499999940395355,
+          0.35108479857444763
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3499999940395355,
+          0.0,
+          -0.3499999940395355
+        ],
+        "max": [
+          0.3563919961452484,
+          0.35108479857444763,
+          0.3499999940395355
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "hat_banana",
+        "hat_banana.Mesh"
+      ],
+      "sha256": "a47abfe1302ed2ef52d4188fa5c8880fcba27cf42f1bf3d1ccedd659abdfbe19",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "hat_mechanic",
+      "category": "Hat",
+      "ruleId": "hat_mechanic",
+      "file": "hat_mechanic.fbx",
+      "triangles": 1756,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3499999940395355,
+          -0.39500001072883606,
+          0.0
+        ],
+        "max": [
+          0.3499999940395355,
+          0.3499999940395355,
+          0.3400000035762787
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3499999940395355,
+          0.0,
+          -0.3499999940395355
+        ],
+        "max": [
+          0.3499999940395355,
+          0.3400000035762787,
+          0.39500001072883606
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "hat_mechanic",
+        "hat_mechanic.Mesh"
+      ],
+      "sha256": "ef96b4d2725a26c096861b0d09a9a4b82aca3f3cd1ee1b585eab265b4df19a93",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "hat_crown",
+      "category": "Hat",
+      "ruleId": "hat_crown",
+      "file": "hat_crown.fbx",
+      "triangles": 1836,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3499999940395355,
+          -0.3499999940395355,
+          0.0
+        ],
+        "max": [
+          0.3499999940395355,
+          0.3499999940395355,
+          0.46000000834465027
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3499999940395355,
+          0.0,
+          -0.3499999940395355
+        ],
+        "max": [
+          0.3499999940395355,
+          0.46000000834465027,
+          0.3499999940395355
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "hat_crown",
+        "hat_crown.Mesh"
+      ],
+      "sha256": "19c3e617d4107f82e68bd7df51898373812ee27a667b9cc4458495a658e50824"
+    },
+    {
+      "name": "hat_lucky",
+      "category": "Hat",
+      "ruleId": "hat_lucky",
+      "file": "hat_lucky.fbx",
+      "triangles": 1832,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.3499999940395355,
+          -0.3499999940395355,
+          0.0
+        ],
+        "max": [
+          0.3499999940395355,
+          0.4099999964237213,
+          0.4449999928474426
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3499999940395355,
+          0.0,
+          -0.4099999964237213
+        ],
+        "max": [
+          0.3499999940395355,
+          0.4449999928474426,
+          0.3499999940395355
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "hat_lucky",
+        "hat_lucky.Mesh"
+      ],
+      "sha256": "074e5d15521fd0edeb6b629f0b0a3002d08d68cd4753d9e84df2780c8fb8ef84"
+    },
+    {
+      "name": "Face_emote_wave",
+      "category": "Face",
+      "ruleId": "emote_wave",
+      "file": "Face_emote_wave.fbx",
+      "triangles": 684,
+      "materialNames": [
+        "FaceInk",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.343999981880188,
+          -0.23999997973442078
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.24000000953674316
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999997973442078,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.24000000953674316,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_wave",
+        "Face_emote_wave.Mesh"
+      ],
+      "sha256": "3c1cc19bb5c2cf8ba7b7e75957df4d71a34704794c29596a90ca0ce6f2776cba"
+    },
+    {
+      "name": "Face_emote_clap",
+      "category": "Face",
+      "ruleId": "emote_clap",
+      "file": "Face_emote_clap.fbx",
+      "triangles": 492,
+      "materialNames": [
+        "CopperGold",
+        "FaceInk",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.343999981880188,
+          -0.23999999463558197
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.23999999463558197
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999999463558197,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.23999999463558197,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_clap",
+        "Face_emote_clap.Mesh"
+      ],
+      "sha256": "8ae62dc63a64a919e717811a95ef0450ad7e87370ac8c9e60d65d57477d83c52"
+    },
+    {
+      "name": "Face_emote_shrug",
+      "category": "Face",
+      "ruleId": "emote_shrug",
+      "file": "Face_emote_shrug.fbx",
+      "triangles": 788,
+      "materialNames": [
+        "FaceInk",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.3434999883174896,
+          -0.23999997973442078
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.24000000953674316
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999997973442078,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.24000000953674316,
+          0.3434999883174896
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_shrug",
+        "Face_emote_shrug.Mesh"
+      ],
+      "sha256": "85cabe4546ff7cc73e0bff9fd4efe726c2325df6d6e4c9d5e42f9e4ea09793d6"
+    },
+    {
+      "name": "Face_emote_dance",
+      "category": "Face",
+      "ruleId": "emote_dance",
+      "file": "Face_emote_dance.fbx",
+      "triangles": 1132,
+      "materialNames": [
+        "FaceInk",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.343999981880188,
+          -0.23999997973442078
+        ],
+        "max": [
+          0.2900000214576721,
+          -0.262056827545166,
+          0.24000000953674316
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.2900000214576721,
+          -0.23999997973442078,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.24000000953674316,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_dance",
+        "Face_emote_dance.Mesh"
+      ],
+      "sha256": "bf078a55a4580070ccfd54437fa1e73766d123841284459e83358ce86367c8dd"
+    },
+    {
+      "name": "Face_emote_salute",
+      "category": "Face",
+      "ruleId": "emote_salute",
+      "file": "Face_emote_salute.fbx",
+      "triangles": 504,
+      "materialNames": [
+        "FaceInk",
+        "Mint",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.343999981880188,
+          -0.23999999463558197
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.23999999463558197
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999999463558197,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.23999999463558197,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_salute",
+        "Face_emote_salute.Mesh"
+      ],
+      "sha256": "ed97d7e8f19776cca7dec1ba349ec9ed7769a9dd5d7776cbed4bf97897dd20dd",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "Face_emote_bow",
+      "category": "Face",
+      "ruleId": "emote_bow",
+      "file": "Face_emote_bow.fbx",
+      "triangles": 520,
+      "materialNames": [
+        "FaceInk",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.343999981880188,
+          -0.23999999463558197
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.23999999463558197
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999999463558197,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.23999999463558197,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_bow",
+        "Face_emote_bow.Mesh"
+      ],
+      "sha256": "ced9ac22a76d16b34e3e82b9eb0c6646dfa8a9e984990158547011111e4388df"
+    },
+    {
+      "name": "Face_emote_crown",
+      "category": "Face",
+      "ruleId": "emote_crown",
+      "file": "Face_emote_crown.fbx",
+      "triangles": 316,
+      "materialNames": [
+        "CopperGold",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.343999981880188,
+          -0.23999999463558197
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.23999999463558197
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999999463558197,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.23999999463558197,
+          0.343999981880188
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_crown",
+        "Face_emote_crown.Mesh"
+      ],
+      "sha256": "1cd1196e3f655c6481cc4cc11f5ac2037343000a8209b3e400d689f5b1ec9744"
+    },
+    {
+      "name": "Face_emote_fireworks",
+      "category": "Face",
+      "ruleId": "emote_fireworks",
+      "file": "Face_emote_fireworks.fbx",
+      "triangles": 320,
+      "materialNames": [
+        "CopperGold",
+        "PaperLight",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.28999999165534973,
+          -0.34699997305870056,
+          -0.23999999463558197
+        ],
+        "max": [
+          0.28999999165534973,
+          -0.262056827545166,
+          0.23999999463558197
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.28999999165534973,
+          -0.23999999463558197,
+          0.262056827545166
+        ],
+        "max": [
+          0.28999999165534973,
+          0.23999999463558197,
+          0.34699997305870056
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Face_emote_fireworks",
+        "Face_emote_fireworks.Mesh"
+      ],
+      "sha256": "132e9bf895410cacb1e6fd2d836db2d586442d0327c315c7d20f9dfa8c7c374a"
+    },
+    {
+      "name": "Mission_chip_rain",
+      "category": "Mission",
+      "ruleId": "chip_rain",
+      "file": "Mission_chip_rain.fbx",
+      "triangles": 836,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.23999999463558197,
+          -0.0820000022649765,
+          0.0
+        ],
+        "max": [
+          0.23999999463558197,
+          0.037500012665987015,
+          0.47999998927116394
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.23999999463558197,
+          0.0,
+          -0.037500012665987015
+        ],
+        "max": [
+          0.23999999463558197,
+          0.47999998927116394,
+          0.0820000022649765
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Mission_chip_rain",
+        "Mission_chip_rain.Mesh"
+      ],
+      "sha256": "f954852c337abf52d4a84d5d2384557acb4016f624a11c2cd0c1b7e1561e6278"
+    },
+    {
+      "name": "Mission_mascot_chase",
+      "category": "Mission",
+      "ruleId": "mascot_chase",
+      "file": "Mission_mascot_chase.fbx",
+      "triangles": 1396,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "FaceInk",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.393317312002182,
+          -0.33686161041259766,
+          0.0
+        ],
+        "max": [
+          0.393317312002182,
+          0.33686161041259766,
+          1.065000057220459
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.393317312002182,
+          0.0,
+          -0.33686161041259766
+        ],
+        "max": [
+          0.393317312002182,
+          1.065000057220459,
+          0.33686161041259766
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Mission_mascot_chase",
+        "Mission_mascot_chase.Mesh"
+      ],
+      "sha256": "d3fe1759b7a80529a4406cd5b0363b42ef755917825533fa80ce671d0e04a761"
+    },
+    {
+      "name": "Mission_gold_delivery",
+      "category": "Mission",
+      "ruleId": "gold_delivery",
+      "file": "Mission_gold_delivery.fbx",
+      "triangles": 1388,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.42500001192092896,
+          -0.3109999895095825,
+          0.0
+        ],
+        "max": [
+          0.42500001192092896,
+          0.29249998927116394,
+          0.5799999833106995
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.42500001192092896,
+          0.0,
+          -0.29249998927116394
+        ],
+        "max": [
+          0.42500001192092896,
+          0.5799999833106995,
+          0.3109999895095825
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Mission_gold_delivery",
+        "Mission_gold_delivery.Mesh"
+      ],
+      "sha256": "67fd3ab99748f90bbee2cae454e17d420dbba642fb2ca4eb9658a652158ba062"
+    },
+    {
+      "name": "Mission_power_relay",
+      "category": "Mission",
+      "ruleId": "power_relay",
+      "file": "Mission_power_relay.fbx",
+      "triangles": 1220,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -0.30686160922050476,
+          -0.30686160922050476,
+          0.0
+        ],
+        "max": [
+          0.30686160922050476,
+          0.30686163902282715,
+          0.7649999856948853
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.30686160922050476,
+          0.0,
+          -0.30686163902282715
+        ],
+        "max": [
+          0.30686160922050476,
+          0.7649999856948853,
+          0.30686160922050476
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Mission_power_relay",
+        "Mission_power_relay.Mesh"
+      ],
+      "sha256": "c5a623b0a4be5c90f445a32a6bcc8170d39ab3002a7f49d1dd2b3c9af273d11c"
+    },
+    {
+      "name": "Mission_sync_buttons",
+      "category": "Mission",
+      "ruleId": "sync_buttons",
+      "file": "Mission_sync_buttons.fbx",
+      "triangles": 1332,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -0.3278774321079254,
+          -0.3278774321079254,
+          0.0
+        ],
+        "max": [
+          0.3278774321079254,
+          0.3499999940395355,
+          1.059999942779541
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3278774321079254,
+          0.0,
+          -0.3499999940395355
+        ],
+        "max": [
+          0.3278774321079254,
+          1.059999942779541,
+          0.3278774321079254
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Mission_sync_buttons.Button",
+          "sourcePosition": [
+            0.0,
+            0.0,
+            0.27000001072883606
+          ],
+          "localPosition": [
+            0.0,
+            0.0,
+            0.27000001072883606
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Mission_sync_buttons",
+        "Mission_sync_buttons.Mesh",
+        "Mission_sync_buttons.Button",
+        "Mission_sync_buttons.SyncButton"
+      ],
+      "sha256": "8c13b449e5c3b38b554bdea6c8b030df5438a2d45cfa7dfa6bd2833cfbc5c6f6",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "Mission_power_repair",
+      "category": "Mission",
+      "ruleId": "power_repair",
+      "file": "Mission_power_repair.fbx",
+      "triangles": 1784,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -0.4030667543411255,
+          -0.34299999475479126,
+          0.0
+        ],
+        "max": [
+          0.3149999678134918,
+          0.20999999344348907,
+          0.8034738898277283
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -0.3149999678134918,
+          0.0,
+          -0.20999999344348907
+        ],
+        "max": [
+          0.4030667543411255,
+          0.8034738898277283,
+          0.34299999475479126
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Mission_power_repair.Door",
+          "sourcePosition": [
+            0.28999999165534973,
+            -0.23000000417232513,
+            0.39347389340400696
+          ],
+          "localPosition": [
+            0.28999999165534973,
+            -0.23000000417232513,
+            0.39347389340400696
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Mission_power_repair",
+        "Mission_power_repair.Door",
+        "Mission_power_repair.RepairPanel",
+        "Mission_power_repair.Mesh"
+      ],
+      "sha256": "5ec19ad5e77d6961ee2320981bf4d2a64f263389a6a4215d4e0e70c1a025c55d",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "Region_lobby",
+      "category": "Region",
+      "ruleId": "lobby",
+      "file": "Region_lobby.fbx",
+      "triangles": 2880,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -1.4800000190734863,
+          -0.26999998092651367,
+          0.0
+        ],
+        "max": [
+          1.4800000190734863,
+          0.20499999821186066,
+          3.9800000190734863
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.4800000190734863,
+          0.0,
+          -0.20499999821186066
+        ],
+        "max": [
+          1.4800000190734863,
+          3.9800000190734863,
+          0.26999998092651367
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Region_lobby",
+        "Region_lobby.Mesh"
+      ],
+      "sha256": "9e450e9baa920d1d0f604b1335965a391be4d98ecd1539d97aaeefffdcc46ef6"
+    },
+    {
+      "name": "Region_arcade",
+      "category": "Region",
+      "ruleId": "arcade",
+      "file": "Region_arcade.fbx",
+      "triangles": 3136,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -1.209999918937683,
+          -0.15000000596046448,
+          0.0
+        ],
+        "max": [
+          1.209999918937683,
+          0.3499999940395355,
+          3.356752634048462
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.209999918937683,
+          0.0,
+          -0.3499999940395355
+        ],
+        "max": [
+          1.209999918937683,
+          3.356752634048462,
+          0.15000000596046448
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Region_arcade",
+        "Region_arcade.Mesh"
+      ],
+      "sha256": "d7dd8d8b98f285cee73c212b640bf0fead3a097425d73b6bd8669f6254faf9bb"
+    },
+    {
+      "name": "Region_backroom",
+      "category": "Region",
+      "ruleId": "backroom",
+      "file": "Region_backroom.fbx",
+      "triangles": 3332,
+      "materialNames": [
+        "CopperGold",
+        "CreamYellow",
+        "InkBlue",
+        "PlumRed"
+      ],
+      "meshCount": 2,
+      "boundsSource": {
+        "min": [
+          -1.2851998805999756,
+          -0.5149999856948853,
+          0.0
+        ],
+        "max": [
+          1.2000000476837158,
+          0.6150000095367432,
+          3.2850000858306885
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.2000000476837158,
+          0.0,
+          -0.6150000095367432
+        ],
+        "max": [
+          1.2851998805999756,
+          3.2850000858306885,
+          0.5149999856948853
+        ]
+      },
+      "pivots": [
+        {
+          "name": "Region_backroom.Gear",
+          "sourcePosition": [
+            -0.44999998807907104,
+            0.0,
+            1.5700000524520874
+          ],
+          "localPosition": [
+            -0.44999998807907104,
+            0.0,
+            1.5700000524520874
+          ]
+        }
+      ],
+      "nodeNames": [
+        "Region_backroom",
+        "Region_backroom.Mesh",
+        "Region_backroom.Gear",
+        "Region_backroom.Gear.Mesh"
+      ],
+      "sha256": "abaf33b4900fb173398567155f112408f8ca407976c144ea117a3c689f5f9526",
+      "hierarchyBake": "G*sourceLocal*inverse(G)",
+      "zeroAreaThreshold": 1e-12
+    },
+    {
+      "name": "Region_penthouse",
+      "category": "Region",
+      "ruleId": "penthouse",
+      "file": "Region_penthouse.fbx",
+      "triangles": 1788,
+      "materialNames": [
+        "CopperGold",
+        "InkBlue",
+        "Mint",
+        "PlumRed"
+      ],
+      "meshCount": 1,
+      "boundsSource": {
+        "min": [
+          -1.2999999523162842,
+          -0.42500001192092896,
+          0.0
+        ],
+        "max": [
+          1.3000000715255737,
+          0.42500001192092896,
+          3.1600000858306885
+        ]
+      },
+      "boundsUnity": {
+        "min": [
+          -1.3000000715255737,
+          0.0,
+          -0.42500001192092896
+        ],
+        "max": [
+          1.2999999523162842,
+          3.1600000858306885,
+          0.42500001192092896
+        ]
+      },
+      "pivots": [],
+      "nodeNames": [
+        "Region_penthouse",
+        "Region_penthouse.Mesh"
+      ],
+      "sha256": "981cd183202a6edc58aa57940d86f0aa5631997cdb6a121365d884e491f62b1c"
+    }
+  ]
+}
