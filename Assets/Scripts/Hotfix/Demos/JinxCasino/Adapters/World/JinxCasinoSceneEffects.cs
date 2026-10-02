@@ -32,6 +32,24 @@ namespace Hotfix.JinxCasino.Adapters
         private Transform[] missionMarkers = Array.Empty<Transform>();
         private float announcementUntil;
         private string announcement;
+        private JinxCasinoPresentationClock presentationClock;
+        private float PresentationTime => presentationClock?.TimeSeconds ?? Time.unscaledTime;
+        private float PresentationDelta => presentationClock?.GetDeltaSeconds(Time.frameCount) ?? Time.unscaledDeltaTime;
+
+        /// <summary>绑定本Demo演出时钟，迁移正在演出的剩余时间；null保留旧原型真实时间。</summary>
+        /// <param name="clock">宿主共享时钟，不关闭组件，不清除已提交效果。</param>
+        public void BindPresentationClock(JinxCasinoPresentationClock clock)
+        {
+            if (ReferenceEquals(presentationClock, clock)) return;
+            float before = PresentationTime;
+            presentationClock = clock;
+            float offset = PresentationTime - before;
+            foreach (var effect in active) { effect.StartedAt += offset; effect.EndsAt += offset; }
+            foreach (var target in new List<Transform>(protectedTargets.Keys)) protectedTargets[target] += offset;
+            foreach (var saved in restoredProtection) saved.Until += offset;
+            announcementUntil += offset;
+            foreach (var area in facilities) if (area != null) area.BindPresentationClock(clock);
+        }
 
         /// 短整蛊只影响移动，面板输入与已提交结果不受影响。
         public float LocalMovementMultiplier
@@ -40,7 +58,7 @@ namespace Hotfix.JinxCasino.Adapters
             {
                 float multiplier = 1;
                 foreach (var effect in active)
-                    if (effect.Target == localPlayer && Time.unscaledTime < effect.EndsAt)
+                    if (effect.Target == localPlayer && PresentationTime < effect.EndsAt)
                     {
                         if (effect.Kind == "Bubble") multiplier = 0;
                         else if (effect.Kind == "Banana" || effect.Kind == "Slow" || effect.Kind == "SlipperyFloor") multiplier = Mathf.Min(multiplier, 0.4f);
@@ -54,11 +72,11 @@ namespace Hotfix.JinxCasino.Adapters
         {
             get
             {
-                foreach (var effect in active) if (effect.Target == localPlayer && effect.Kind == "Ink" && Time.unscaledTime < effect.EndsAt) return 0.7f;
+                foreach (var effect in active) if (effect.Target == localPlayer && effect.Kind == "Ink" && PresentationTime < effect.EndsAt) return 0.7f;
                 return 0;
             }
         }
-        public string Announcement => Time.unscaledTime < announcementUntil ? announcement ?? string.Empty : string.Empty;
+        public string Announcement => PresentationTime < announcementUntil ? announcement ?? string.Empty : string.Empty;
         public bool IsRadarActive => currentState != null && currentState.Phase == CasinoAdventurePhase.Playing && currentState.ElapsedMilliseconds < radarExpiresMilliseconds;
         public bool IsCarryingGold => IsOpenMission("gold_delivery") && currentState.ActiveMission.Carrying;
         public int ActiveVisualCount => active.Count + (carriedGold != null ? 1 : 0);
@@ -84,6 +102,7 @@ namespace Hotfix.JinxCasino.Adapters
         {
             ClearEffects(); facilities = areas ?? Array.Empty<JinxCasinoAreaFacilities>(); disguiseMaterial = costume;
             carriedGoldPrefab = goldPrefab; carryAnchor = anchor; collisionLayers = collisionMask;
+            foreach (var area in facilities) if (area != null) area.BindPresentationClock(presentationClock);
         }
 
         /// <summary>为角色绑定独立视觉根及可换装Renderer，避免扭动玩家相机和碰撞体。</summary>
@@ -113,7 +132,7 @@ namespace Hotfix.JinxCasino.Adapters
                 {
                     if (protection == null) continue;
                     long remaining = protection.UntilMilliseconds - state.ElapsedMilliseconds;
-                    if (remaining > 0) restoredProtection.Add(new RestoredProtection { TargetId = protection.TargetId, Until = Time.unscaledTime + Mathf.Min(5, remaining / 1000f) });
+                    if (remaining > 0) restoredProtection.Add(new RestoredProtection { TargetId = protection.TargetId, Until = PresentationTime + Mathf.Min(5, remaining / 1000f) });
                 }
             }
             ReconcileRestoredProtection();
@@ -152,7 +171,7 @@ namespace Hotfix.JinxCasino.Adapters
             foreach (var target in ResolveTargets(targetId))
             {
                 hasTarget = true;
-                if (protectedTargets.TryGetValue(target, out float until) && until > Time.unscaledTime) return false;
+                if (protectedTargets.TryGetValue(target, out float until) && until > PresentationTime) return false;
             }
             return hasTarget;
         }
@@ -174,7 +193,7 @@ namespace Hotfix.JinxCasino.Adapters
                 else if (IsActorEffect(effect.EffectKind))
                     foreach (var target in ResolveTargets(effect.TargetId)) ApplyToTarget(effect, target, duration);
                 announcement = effect.EffectKind == "FakeJackpot" ? "整蛊广播：假大奖！不会增加筹码。" : effect.Description;
-                announcementUntil = Time.unscaledTime + Mathf.Min(3, duration);
+                announcementUntil = PresentationTime + Mathf.Min(3, duration);
             }
         }
 
@@ -257,7 +276,7 @@ namespace Hotfix.JinxCasino.Adapters
             for (int index = restoredProtection.Count - 1; index >= 0; index--)
             {
                 var saved = restoredProtection[index];
-                if (saved.Until <= Time.unscaledTime) { restoredProtection.RemoveAt(index); continue; }
+                if (saved.Until <= PresentationTime) { restoredProtection.RemoveAt(index); continue; }
                 // Host会在同步后再开放区域及传送玩家，因此保留逻辑记录，下一查询再映射新激活实体。
                 foreach (var target in ResolveTargets(saved.TargetId))
                 {
@@ -271,12 +290,12 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (effect.ProtectionMilliseconds > 0)
             {
-                if (protectedTargets.TryGetValue(target, out float until) && until > Time.unscaledTime) return;
-                protectedTargets[target] = Time.unscaledTime + 5;
+                if (protectedTargets.TryGetValue(target, out float until) && until > PresentationTime) return;
+                protectedTargets[target] = PresentationTime + 5;
             }
             var binding = Array.Find(actors, actor => actor != null && actor.Target == target);
             var visual = new ActiveEffect { Target = target, VisualRoot = binding?.VisualRoot,
-                StartedAt = Time.unscaledTime, EndsAt = Time.unscaledTime + duration, Kind = effect.EffectKind, Duration = duration };
+                StartedAt = PresentationTime, EndsAt = PresentationTime + duration, Kind = effect.EffectKind, Duration = duration };
             if (visual.VisualRoot != null)
             {
                 visual.OriginalLocalPosition = visual.VisualRoot.localPosition;
@@ -287,7 +306,9 @@ namespace Hotfix.JinxCasino.Adapters
             {
                 visual.Instance = Instantiate(prefab, target.position + Vector3.up, Quaternion.identity, transform);
                 DisableEffectColliders(visual.Instance); visual.Instance.SetActive(true);
-                foreach (var audio in visual.Instance.GetComponentsInChildren<AudioSource>(true))
+                visual.Audio = visual.Instance.GetComponentsInChildren<AudioSource>(true);
+                visual.Particles = visual.Instance.GetComponentsInChildren<ParticleSystem>(true);
+                foreach (var audio in visual.Audio)
                 {
                     audio.volume = Mathf.Min(audio.volume, 0.5f);
                     var director = GetComponent<JinxCasinoAudioDirector>();
@@ -321,6 +342,7 @@ namespace Hotfix.JinxCasino.Adapters
                 if (safe != null) { visual.MotionDirection = safe.position - target.position; visual.MotionDirection.y = 0; visual.MotionDirection = Vector3.ClampMagnitude(visual.MotionDirection, 1); }
             }
             active.Add(visual);
+            SynchronizeOwnedPlayback(visual, presentationClock?.IsPaused ?? false);
         }
 
         private Transform GetCurrentSafePoint()
@@ -367,14 +389,38 @@ namespace Hotfix.JinxCasino.Adapters
             for (int index = active.Count - 1; index >= 0; index--)
             {
                 var effect = active[index];
-                if (effect.Target == null || Time.unscaledTime >= effect.EndsAt) { Finish(effect); active.RemoveAt(index); continue; }
+                if (effect.Target == null) { Finish(effect); active.RemoveAt(index); continue; }
+                bool paused = presentationClock?.IsPaused ?? false;
+                SynchronizeOwnedPlayback(effect, paused);
+                if (paused) continue;
+                if (PresentationTime >= effect.EndsAt) { Finish(effect); active.RemoveAt(index); continue; }
                 if (effect.Instance != null) effect.Instance.transform.position = effect.Target.position + Vector3.up;
-                float elapsed = Time.unscaledTime - effect.StartedAt;
-                if (effect.Kind == "SpringPunch") JinxCasinoWorldMotion.MoveActor(effect.Target, effect.MotionDirection * (0.65f * Time.unscaledDeltaTime / effect.Duration), collisionLayers);
-                else if (effect.Kind == "Magnet") JinxCasinoWorldMotion.MoveActor(effect.Target, effect.MotionDirection * (Time.unscaledDeltaTime / effect.Duration), collisionLayers);
+                float elapsed = PresentationTime - effect.StartedAt;
+                if (effect.Kind == "SpringPunch") JinxCasinoWorldMotion.MoveActor(effect.Target, effect.MotionDirection * (0.65f * PresentationDelta / effect.Duration), collisionLayers);
+                else if (effect.Kind == "Magnet") JinxCasinoWorldMotion.MoveActor(effect.Target, effect.MotionDirection * (PresentationDelta / effect.Duration), collisionLayers);
                 if (effect.VisualRoot == null) continue;
                 if (effect.Kind == "Bubble") effect.VisualRoot.localPosition = effect.OriginalLocalPosition + Vector3.up * (0.12f + Mathf.Sin(elapsed * 9) * 0.05f);
                 else if (effect.Kind == "Banana" || effect.Kind == "SlipperyFloor") effect.VisualRoot.localRotation = effect.OriginalLocalRotation * Quaternion.Euler(Mathf.Sin(elapsed * 10) * 12, 0, Mathf.Sin(elapsed * 7) * 8);
+            }
+        }
+
+        private static void SynchronizeOwnedPlayback(ActiveEffect effect, bool paused)
+        {
+            if (effect.PlaybackPaused == paused) return;
+            effect.PlaybackPaused = paused;
+            if (paused)
+            {
+                foreach (var audio in effect.Audio)
+                    if (audio != null && audio.isPlaying) { effect.PausedAudio.Add(audio); audio.Pause(); }
+                // 单独暂停每个系统，避免父系统重复操纵已暂停的子系统。
+                foreach (var particles in effect.Particles)
+                    if (particles != null && particles.isPlaying) { effect.PausedParticles.Add(particles); particles.Pause(false); }
+            }
+            else
+            {
+                foreach (var audio in effect.PausedAudio) if (audio != null && audio.gameObject.activeInHierarchy) audio.UnPause();
+                foreach (var particles in effect.PausedParticles) if (particles != null && particles.gameObject.activeInHierarchy) particles.Play(false);
+                effect.PausedAudio.Clear(); effect.PausedParticles.Clear();
             }
         }
 
@@ -412,6 +458,11 @@ namespace Hotfix.JinxCasino.Adapters
             public float EndsAt;
             public float Duration;
             public string Kind;
+            public bool PlaybackPaused;
+            public AudioSource[] Audio = Array.Empty<AudioSource>();
+            public ParticleSystem[] Particles = Array.Empty<ParticleSystem>();
+            public readonly List<AudioSource> PausedAudio = new List<AudioSource>();
+            public readonly List<ParticleSystem> PausedParticles = new List<ParticleSystem>();
             public readonly List<MaterialState> Materials = new List<MaterialState>();
         }
         private sealed class MaterialState { public Renderer Renderer; public Material[] Original; }

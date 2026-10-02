@@ -17,6 +17,15 @@ namespace Hotfix.JinxCasino.Adapters
         private bool powerFaulted;
         private bool shortcutOpen;
         private bool originalGateActive;
+        private JinxCasinoPresentationClock presentationClock;
+
+        /// <summary>把宿主共享时钟传给保存的移动桌，不改变灯光或门的领域状态。</summary>
+        /// <param name="clock">当前Demo表现时钟；null保持旧原型时间。</param>
+        public void BindPresentationClock(JinxCasinoPresentationClock clock)
+        {
+            presentationClock = clock;
+            foreach (var table in tables) if (table != null) table.BindPresentationClock(clock);
+        }
 
         public int AreaIndex => areaIndex;
         public Transform SafeSpawn => safeSpawn;
@@ -36,6 +45,7 @@ namespace Hotfix.JinxCasino.Adapters
             ClearRuntimeState(); areaIndex = Mathf.Clamp(index, 0, 3); safeSpawn = spawn;
             lights = managedLights ?? Array.Empty<Light>(); shortcutGate = gate;
             tables = movingTables ?? Array.Empty<JinxCasinoMovingTable>(); radarStations = stations ?? Array.Empty<Transform>();
+            BindPresentationClock(presentationClock);
         }
 
         /// <summary>同步停电任务；首次停电保存原状态，结束精确恢复，不永久改灯光资产。</summary>

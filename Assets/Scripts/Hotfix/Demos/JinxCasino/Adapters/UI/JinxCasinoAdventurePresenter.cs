@@ -315,7 +315,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 if (target == Window.Settings) localSettingsPresenter.ShowSettings();
                 if (target == Window.Emotes) localSettingsPresenter.ShowEmotes();
             }
-            controller?.BindAdventurePresenter(this, target != Window.None);
+            controller?.BindAdventurePresenter(this, target != Window.None, target == Window.Settings);
             if (target == Window.Shop && controller?.AdventureState != null) RefreshCards(controller.AdventureState);
             if (target == Window.Machine) RefreshMachine();
             Refresh();

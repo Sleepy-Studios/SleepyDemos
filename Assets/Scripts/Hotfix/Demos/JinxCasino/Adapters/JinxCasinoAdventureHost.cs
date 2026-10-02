@@ -53,7 +53,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// 正在使用的本地存档槽；0表示尚未主动保存。
         public int SelectedSaveSlot => selectedSaveSlot;
         /// 打开操作面板时停止移动/转向，冒险计时继续推进。
-        public bool IsAdventureInputBlocked => adventureInputBlocked && !IsLegacySession;
+        public bool IsAdventureInputBlocked => (adventureInputBlocked || immersionScreenOpen) && !IsLegacySession;
         /// 当前区域已经装配的安全出生位置。
         public Vector3 CurrentAdventureSafePosition => areas?.FirstOrDefault(area => area != null && area.Index == displayedArea)?.SafePosition ?? Vector3.zero;
 
@@ -90,6 +90,7 @@ namespace Hotfix.JinxCasino.Adapters
         public void ConfigureAdventure(JinxCasinoGameSettings configuration, JinxCasinoWorldArea[] worldAreas, JinxCasinoSceneEffects effects)
         {
             gameSettings = configuration; areas = worldAreas; sceneEffects = effects;
+            if (UsesImmersion) sceneEffects?.BindPresentationClock(PresentationClock);
         }
 
         /// <summary>为本机用户或测试宿主注入独立存档存储。</summary>
@@ -99,9 +100,12 @@ namespace Hotfix.JinxCasino.Adapters
         /// <summary>界面拥有模态操作状态，解绑时必须释放。</summary>
         /// <param name="presenter">具体界面实例；解绑传null。</param>
         /// <param name="blocked">是否正在选择/操作机台或菜单。</param>
-        public void BindAdventurePresenter(JinxCasinoAdventurePresenter presenter, bool blocked)
+        /// <param name="pausesClock">设置等菜单要求暂停本机领域时钟，旧原型默认不变。</param>
+        public void BindAdventurePresenter(JinxCasinoAdventurePresenter presenter, bool blocked, bool pausesClock = false)
         {
             adventurePresenter = presenter; adventureInputBlocked = blocked;
+            immersionModalPaused = blocked && pausesClock;
+            PresentationClock?.SetPaused(IsImmersionPaused);
             if (blocked) { movePad?.ResetInput(); lookPad?.ResetInput(); }
         }
 
@@ -112,7 +116,9 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (IsBusy || IsLegacySession) { adventureStatus = "请先结束当前操作。"; Changed?.Invoke(); return; }
             var config = gameSettings != null ? gameSettings.CreateConfig() : new CasinoAdventureConfig();
-            adventure = CasinoAdventureSession.Start(seed ?? unchecked((uint)Guid.NewGuid().GetHashCode()), mode, 1, config);
+            var started = CasinoAdventureSession.Start(seed ?? unchecked((uint)Guid.NewGuid().GetHashCode()), mode, 1, config);
+            ResetImmersionTableForRestore();
+            adventure = started;
             adventureMilliseconds = 0; selectedSaveSlot = 0; displayedArea = -1;
             adventureStatus = mode == CasinoAdventureMode.Practice ? "练习局已开始：无倒计时，不计入正式成长。" : "第一站已开放，机台结果与事件由本局种子决定。";
             RefreshAdventureState();
@@ -123,15 +129,24 @@ namespace Hotfix.JinxCasino.Adapters
         /// <param name="game">机台类型。</param>
         /// <param name="stake">最高投入，实际成交或亏损按规则结算。</param>
         /// <param name="choice">投入前展示并确认的选择。</param>
-        public CasinoAdventureResult BeginAdventureGame(string requestId, CasinoGameKind game, long stake, int choice)
-            => ApplyAdventureCommand(() => adventure.BeginGame(requestId, game, stake, choice));
+        /// <param name="stationId">新桌面保存的机台实例ID，null仅兼容旧原型。</param>
+        public CasinoAdventureResult BeginAdventureGame(string requestId, CasinoGameKind game, long stake, int choice, string stationId = null)
+            => ApplyAdventureCommand(() => adventure.BeginGame(requestId, game, stake, choice, stationId));
 
         /// <summary>提交当前机台操作，UI不能直接修改结果或钱包。</summary>
         /// <param name="requestId">一次操作的稳定编号。</param>
         /// <param name="action">机台允许的操作。</param>
         /// <param name="value">密码、号码、竞价或选择参数。</param>
-        public CasinoAdventureResult ActInAdventure(string requestId, CasinoMiniGameAction action, int value = 0)
-            => ApplyAdventureCommand(() => adventure.Act(requestId, action, value));
+        /// <param name="stationId">必须与已投入的机台相同。</param>
+        public CasinoAdventureResult ActInAdventure(string requestId, CasinoMiniGameAction action, int value = 0, string stationId = null)
+            => ApplyAdventureCommand(() => adventure.Act(requestId, action, value, stationId));
+
+        /// <summary>为旧版未定位活动局认领实际进入的同玩法机台，不重新投入。</summary>
+        /// <param name="requestId">保留用于重试的请求ID。</param>
+        /// <param name="stationId">具体保存机台ID。</param>
+        /// <param name="game">实际机台的玩法。</param>
+        public CasinoAdventureResult BindAdventureStation(string requestId, string stationId, CasinoGameKind game)
+            => ApplyAdventureCommand(() => adventure.BindActiveStation(requestId, stationId, game));
 
         /// <summary>购买当前商店可售道具。</summary>
         /// <param name="itemId">目录稳定ID。</param>
@@ -197,6 +212,7 @@ namespace Hotfix.JinxCasino.Adapters
             try
             {
                 var restored = SaveStore.Load(slot);
+                ResetImmersionTableForRestore();
                 adventureRestoreInProgress = true;
                 adventure = restored; selectedSaveSlot = slot; adventureMilliseconds = 0; displayedArea = -1;
                 adventureStatus = "已继续存档" + slot + "，未完成的机台保持原状态。";
@@ -211,7 +227,11 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (adventure == null || IsAdventureInputBlocked || IsBusy || body == null) return;
             var nearest = FindNearbyStation();
-            if (nearest != null) adventurePresenter?.ShowStation(nearest.Game);
+            if (nearest != null && UsesImmersion)
+            {
+                if (!TryOpenImmersionTable(nearest)) { adventureStatus = "此机台暂不可操作。"; Changed?.Invoke(); }
+            }
+            else if (nearest != null) adventurePresenter?.ShowStation(nearest.Game);
             else { adventureStatus = "靠近机台后按E或触碰交互按钮。"; Changed?.Invoke(); }
         }
 
@@ -267,6 +287,7 @@ namespace Hotfix.JinxCasino.Adapters
                 foreach (var area in areas) if (area != null) area.SetUnlocked(practice || area.Index <= currentArea);
                 if (displayedArea != currentArea)
                 {
+                    ResetImmersionTableForRestore();
                     displayedArea = currentArea;
                     var area = areas.FirstOrDefault(candidate => candidate != null && candidate.Index == currentArea);
                     if (area != null && body != null)
@@ -292,6 +313,7 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void ClearAdventureForLegacy()
         {
+            ResetImmersionTableForRestore();
             SaveAdventureBeforeExit(); adventure = null; adventureState = null;
             adventureMilliseconds = 0; displayedArea = -1; selectedSaveSlot = 0;
         }

@@ -21,7 +21,7 @@ namespace Hotfix.JinxCasino.Adapters
         [SerializeField] private Transform[] stationAnchors;
         private INetworkSessionService network;
         private CasinoNetworkCoordinator coordinator;
-        private JinxCasinoHudView hud;
+        private View hud;
         private CancellationTokenSource lifetime;
         private CharacterController body;
         private JinxCasinoTouchPad movePad;
@@ -72,14 +72,26 @@ namespace Hotfix.JinxCasino.Adapters
                 await navigator.WaitUntilStableAsync(GameSceneId.JinxCasino, lifetime.Token);
                 body = worldCamera.GetComponentInParent<CharacterController>();
                 yaw = worldCamera.transform.eulerAngles.y;
-                var result = await UIManager.Instance.ShowAsync<JinxCasinoHudView, JinxCasinoController>(this,
-                    new UIShowOptions(animated: false), lifetime.Token);
-                if (result.Status == UIOperationStatus.Failed) throw result.Exception;
-                hud = result.View as JinxCasinoHudView;
+                hud = await ShowLocalHudAsync();
                 Changed?.Invoke();
             }
             catch (OperationCanceledException) { }
             catch (Exception exception) { Status = exception.Message; Debug.LogException(exception, this); Changed?.Invoke(); }
+        }
+
+        private async UniTask<View> ShowLocalHudAsync()
+        {
+            if (UsesImmersion)
+            {
+                var result = await UIManager.Instance.ShowAsync<JinxCasinoImmersionHudView, JinxCasinoController>(this,
+                    new UIShowOptions(animated: false), lifetime.Token);
+                if (result.Status == UIOperationStatus.Failed) throw result.Exception;
+                return result.View;
+            }
+            var legacy = await UIManager.Instance.ShowAsync<JinxCasinoHudView, JinxCasinoController>(this,
+                new UIShowOptions(animated: false), lifetime.Token);
+            if (legacy.Status == UIOperationStatus.Failed) throw legacy.Exception;
+            return legacy.View;
         }
 
         /// <summary>为当前 View 注册两块独立触控区域。</summary>
@@ -184,6 +196,7 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void Update()
         {
+            if (UsesImmersion) { UpdateImmersion(); return; }
             if (isExiting || !hasFocus || isApplicationPaused || worldCamera == null || body == null) return;
             UpdateAdventure(Time.deltaTime);
             if (IsAdventureInputBlocked) { movePad?.ResetInput(); lookPad?.ResetInput(); return; }
@@ -229,11 +242,13 @@ namespace Hotfix.JinxCasino.Adapters
         private void OnApplicationFocus(bool focused)
         {
             hasFocus = focused;
+            immersionInput?.PauseState.SetApplicationFocus(focused);
             if (!focused) { movePad?.ResetInput(); lookPad?.ResetInput(); }
         }
         private void OnApplicationPause(bool paused)
         {
             isApplicationPaused = paused;
+            immersionInput?.PauseState.SetApplicationPaused(paused);
             if (paused) { movePad?.ResetInput(); lookPad?.ResetInput(); }
         }
 
@@ -269,10 +284,7 @@ namespace Hotfix.JinxCasino.Adapters
                     {
                         try
                         {
-                            var restored = await UIManager.Instance.ShowAsync<JinxCasinoHudView, JinxCasinoController>(this,
-                                new UIShowOptions(animated: false), lifetime.Token);
-                            if (restored.Status == UIOperationStatus.Failed) throw restored.Exception;
-                            hud = restored.View as JinxCasinoHudView;
+                            hud = await ShowLocalHudAsync();
                         }
                         catch (OperationCanceledException) { }
                         catch (Exception exception)
@@ -288,6 +300,7 @@ namespace Hotfix.JinxCasino.Adapters
         private void OnDestroy()
         {
             isExiting = true;
+            DisposeImmersionInput();
             SaveAdventureBeforeExit();
             lifetime?.Cancel();
             var previousCoordinator = coordinator; coordinator = null;

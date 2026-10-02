@@ -18,6 +18,19 @@ namespace Hotfix.JinxCasino.Adapters
         private bool returning;
         private bool occupied;
         private int collisionMask = -1;
+        private JinxCasinoPresentationClock presentationClock;
+        private float PresentationTime => presentationClock?.TimeSeconds ?? Time.unscaledTime;
+        private float PresentationDelta => presentationClock?.GetDeltaSeconds(Time.frameCount) ?? Time.unscaledDeltaTime;
+
+        /// <summary>绑定本机暂停时钟，正在移动的桌体保留剩余演出时间。</summary>
+        /// <param name="clock">所属Demo共享时钟；null保持旧原型时间。</param>
+        public void BindPresentationClock(JinxCasinoPresentationClock clock)
+        {
+            if (ReferenceEquals(presentationClock, clock)) return;
+            float before = PresentationTime; presentationClock = clock;
+            float offset = PresentationTime - before;
+            startedAt += offset; endsAt += offset;
+        }
 
         public CasinoGameKind Game => game;
         public bool IsMoving => moving || returning;
@@ -39,7 +52,7 @@ namespace Hotfix.JinxCasino.Adapters
             collisionMask = layers; origin = tableRoot.position;
             Vector3 travel = tableRoot.TransformVector(localTravel); travel.y = 0;
             destination = origin + Vector3.ClampMagnitude(travel, 1.5f);
-            startedAt = Time.unscaledTime; endsAt = startedAt + Mathf.Clamp(duration, 0.1f, 3f); moving = true;
+            startedAt = PresentationTime; endsAt = startedAt + Mathf.Clamp(duration, 0.1f, 3f); moving = true;
         }
 
         /// 请求安全归位，遇到玩家挡路时等待而不瞬移挤压角色。
@@ -51,20 +64,20 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void Update()
         {
-            if (tableRoot == null || occupied) return;
+            if (tableRoot == null || occupied || (presentationClock?.IsPaused ?? false)) return;
             if (moving)
             {
-                if (Time.unscaledTime >= endsAt) EndMotion();
+                if (PresentationTime >= endsAt) EndMotion();
                 else
                 {
-                    float progress = Mathf.Clamp01((Time.unscaledTime - startedAt) / Mathf.Max(0.1f, endsAt - startedAt));
+                    float progress = Mathf.Clamp01((PresentationTime - startedAt) / Mathf.Max(0.1f, endsAt - startedAt));
                     var goal = Vector3.Lerp(origin, destination, Mathf.Sin(progress * Mathf.PI));
                     JinxCasinoWorldMotion.MoveTable(tableRoot, bodyCollider, goal, collisionMask);
                 }
             }
             if (returning)
             {
-                var goal = Vector3.MoveTowards(tableRoot.position, origin, Time.unscaledDeltaTime * 1.5f);
+                var goal = Vector3.MoveTowards(tableRoot.position, origin, PresentationDelta * 1.5f);
                 JinxCasinoWorldMotion.MoveTable(tableRoot, bodyCollider, goal, collisionMask);
                 if ((tableRoot.position - origin).sqrMagnitude < 0.0001f) returning = false;
             }

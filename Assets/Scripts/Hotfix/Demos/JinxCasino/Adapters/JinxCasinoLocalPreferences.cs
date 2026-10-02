@@ -28,6 +28,7 @@ namespace Hotfix.JinxCasino.Adapters
         {
             if (preferences == null || !preferences.IsValid) throw new ArgumentException("本地偏好无效。", nameof(preferences));
             localPreferences = preferences.Copy();
+            immersionInput?.ApplySettings(localPreferences.ToInputSettings());
             GetComponent<JinxCasinoAudioDirector>()?.SetVolume(localPreferences.Volume, localPreferences.Muted);
             LocalPreferencesChanged?.Invoke();
         }

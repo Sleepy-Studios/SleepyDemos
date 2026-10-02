@@ -36,6 +36,7 @@ namespace Hotfix.JinxCasino.Adapters
         private int sequence;
         private int operation;
         private float spinUntil;
+        private float PresentationTime => owner != null && owner.PresentationClock != null ? owner.PresentationClock.TimeSeconds : Time.unscaledTime;
 
         /// <summary>装配保存的视觉与结果牌，内部FBX保持身份变换，外层朝交互位置摆放。</summary>
         /// <param name="controller">场景规则宿主。</param>
@@ -66,10 +67,12 @@ namespace Hotfix.JinxCasino.Adapters
             bool reset = runId != state.RunId || previousGame != station.Game || owner.IsAdventureRestoreInProgress;
             if (reset) { ResetPoses(); spinUntil = 0; sequence = state.SettledRoundSequence; operation = -1; runId = state.RunId; previousGame = station.Game; }
             var current = owner.GetAdventurePresentation();
-            view = current != null && current.Game == station.Game ? current : null;
+            string resultStation = owner.HasActiveAdventureRound ? state.ActiveStationId : state.LastStationId;
+            bool matchesStation = string.IsNullOrEmpty(station.StationId) || station.StationId == resultStation;
+            view = current != null && current.Game == station.Game && matchesStation ? current : null;
             if (view != null)
             {
-                if (!reset && (sequence != state.SettledRoundSequence || !view.IsComplete && operation != view.OperationCount)) spinUntil = Time.unscaledTime + 1.1f;
+                if (!reset && (sequence != state.SettledRoundSequence || !view.IsComplete && operation != view.OperationCount)) spinUntil = PresentationTime + 1.1f;
                 operation = view.OperationCount;
                 if (resultText != null) resultText.text = view.IsComplete ? "已结算 · 返还 " + view.Payout + "\n" + string.Join(" / ", view.NumberValues) : "进行中 · " + Math.Max(0, view.RemainingMilliseconds / 1000) + "秒";
             }
@@ -78,33 +81,33 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void Update()
         {
-            if (view == null || station == null) return;
-            float spin = Time.unscaledTime < spinUntil ? Time.unscaledTime * 600 : 0;
+            if (view == null || station == null || (owner != null && (owner.PresentationClock?.IsPaused ?? false))) return;
+            float spin = PresentationTime < spinUntil ? PresentationTime * 600 : 0;
             switch (station.Game)
             {
                 case CasinoGameKind.Slots:
                     for (int index = 0; index < 3; index++) Rotate("Reel" + index, Vector3.right, spin != 0 ? spin + index * 45 : Value(index) * 60); break;
                 case CasinoGameKind.Roulette: Rotate("Wheel", Vector3.up, spin != 0 ? spin : Value(0) * 360f / 37); break;
                 case CasinoGameKind.CoinFlip: Rotate("Coin", Vector3.right, spin != 0 ? spin : Value(0) * 180); break;
-                case CasinoGameKind.Blackjack: Rotate("DealerArm", Vector3.forward, spin != 0 ? Mathf.Sin(Time.unscaledTime * 8) * 22 : 0); break;
-                case CasinoGameKind.HighLow: Rotate("TurnPage", Vector3.up, spin != 0 ? Mathf.Sin(Time.unscaledTime * 6) * 80 : 0); break;
+                case CasinoGameKind.Blackjack: Rotate("DealerArm", Vector3.forward, spin != 0 ? Mathf.Sin(PresentationTime * 8) * 22 : 0); break;
+                case CasinoGameKind.HighLow: Rotate("TurnPage", Vector3.up, spin != 0 ? Mathf.Sin(PresentationTime * 6) * 80 : 0); break;
                 case CasinoGameKind.LuckyDraw:
-                    for (int index = 0; index < 6; index++) Move("Tube" + index, Vector3.up * (spin != 0 ? Mathf.Abs(Mathf.Sin(Time.unscaledTime * 7 + index)) * 0.1f : 0)); break;
-                case CasinoGameKind.Bingo: Rotate("Globe", Vector3.up, spin); Rotate("Bell", Vector3.forward, spin != 0 ? Mathf.Sin(Time.unscaledTime * 9) * 16 : 0); break;
+                    for (int index = 0; index < 6; index++) Move("Tube" + index, Vector3.up * (spin != 0 ? Mathf.Abs(Mathf.Sin(PresentationTime * 7 + index)) * 0.1f : 0)); break;
+                case CasinoGameKind.Bingo: Rotate("Globe", Vector3.up, spin); Rotate("Bell", Vector3.forward, spin != 0 ? Mathf.Sin(PresentationTime * 9) * 16 : 0); break;
                 case CasinoGameKind.SicBo:
-                    for (int index = 0; index < 3; index++) { Rotate("Die" + index, Vector3.right, spin != 0 ? spin + index * 30 : (Value(index) - 1) * 90); Move("DiceCup" + index, Vector3.up * (spin != 0 ? Mathf.Abs(Mathf.Sin(Time.unscaledTime * 10)) * 0.1f : 0)); } break;
-                case CasinoGameKind.PushYourLuckDice: Rotate("DiceTower", Vector3.forward, spin != 0 ? Mathf.Sin(Time.unscaledTime * 10) * 12 : 0); break;
+                    for (int index = 0; index < 3; index++) { Rotate("Die" + index, Vector3.right, spin != 0 ? spin + index * 30 : (Value(index) - 1) * 90); Move("DiceCup" + index, Vector3.up * (spin != 0 ? Mathf.Abs(Mathf.Sin(PresentationTime * 10)) * 0.1f : 0)); } break;
+                case CasinoGameKind.PushYourLuckDice: Rotate("DiceTower", Vector3.forward, spin != 0 ? Mathf.Sin(PresentationTime * 10) * 12 : 0); break;
                 case CasinoGameKind.Plinko:
                     // 源板15槽沿Blender+X排列，转换为Unity-X；公开Cursor就是绝对槽，不能再减初始选择。
                     Move("Ball", new Vector3((3 + view.Level * 0.5f - view.Cursor) * 0.114f, -view.Level * 0.19875f, view.Level * (0.25f / 8))); break;
                 case CasinoGameKind.CooperativeLevers:
                     for (int index = 0; index < view.SelectedValues.Length; index++) Rotate("Lever" + index, Vector3.right, view.SelectedValues[index] != 0 ? -40 : 0); break;
-                case CasinoGameKind.PassingBag: Move("Bag", view.IsComplete ? Vector3.zero : new Vector3(Mathf.Sin(Time.unscaledTime * 7) * 0.12f, Mathf.Abs(Mathf.Sin(Time.unscaledTime * 5)) * 0.12f, 0)); break;
+                case CasinoGameKind.PassingBag: Move("Bag", view.IsComplete ? Vector3.zero : new Vector3(Mathf.Sin(PresentationTime * 7) * 0.12f, Mathf.Abs(Mathf.Sin(PresentationTime * 5)) * 0.12f, 0)); break;
                 case CasinoGameKind.MechanicalRace:
                     for (int index = 0; index < 4; index++) Move("Racer" + index, Vector3.left * (Mathf.Clamp01(Value(index) / 1200f) * 1.2f)); break;
                 case CasinoGameKind.CooperativeVault: Rotate("Wheel", Vector3.forward, view.IsObjectiveSuccess ? 95 : spin); Rotate("Door", Vector3.up, view.IsObjectiveSuccess ? -65 : 0); break;
                 case CasinoGameKind.ChickenElevator: Move("Elevator-0.62", Vector3.up * (view.Level * 0.24f)); Move("Elevator0.62", Vector3.up * (view.Level * 0.24f)); break;
-                case CasinoGameKind.BlindAuction: Rotate("Lid", Vector3.right, view.IsComplete && view.Cost > 0 ? -70 : 0); Rotate("Gavel", Vector3.right, spin != 0 ? Mathf.Sin(Time.unscaledTime * 8) * 25 : 0); break;
+                case CasinoGameKind.BlindAuction: Rotate("Lid", Vector3.right, view.IsComplete && view.Cost > 0 ? -70 : 0); Rotate("Gavel", Vector3.right, spin != 0 ? Mathf.Sin(PresentationTime * 8) * 25 : 0); break;
             }
         }
 

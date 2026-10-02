@@ -19,6 +19,11 @@ namespace Hotfix.JinxCasino.Adapters
         private bool isFocused;
         private Vector3 restPosition;
         private float pressRemaining;
+        private JinxCasinoPresentationClock presentationClock;
+
+        /// <summary>绑定所属Demo的按压反馈时间；暂停不清除已经按下的视觉。</summary>
+        /// <param name="clock">机台宿主共享时钟；null保持旧原型时间。</param>
+        public void BindPresentationClock(JinxCasinoPresentationClock clock) => presentationClock = clock;
         private MaterialPropertyBlock feedback;
         private MaterialPropertyBlock[] originalBlocks;
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
@@ -98,7 +103,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// 请求一次实体操作；未启用时无副作用，资金校验由订阅的规则适配完成。
         public bool TryInvoke()
         {
-            if (!IsAvailable) return false;
+            if (!IsAvailable || (presentationClock?.IsPaused ?? false)) return false;
             pressRemaining = 0.12f;
             Invoked?.Invoke(this);
             return true;
@@ -106,8 +111,8 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void Update()
         {
-            if (pressRemaining <= 0) return;
-            pressRemaining = Mathf.Max(0, pressRemaining - Time.unscaledDeltaTime);
+            if (pressRemaining <= 0 || (presentationClock?.IsPaused ?? false)) return;
+            pressRemaining = Mathf.Max(0, pressRemaining - (presentationClock?.GetDeltaSeconds(Time.frameCount) ?? Time.unscaledDeltaTime));
             if (pressVisual != null)
                 pressVisual.localPosition = restPosition + Vector3.down * (pressRemaining > 0 ? 0.008f : 0);
         }
