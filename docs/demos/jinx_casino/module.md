@@ -60,7 +60,7 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 ## 沉浸交互基础（S1进行中）
 
-机台仍位于Adapters/World，命名空间保持Hotfix.JinxCasino.Adapters。JinxCasinoStation新增保存的StationId/FocusPose/FocusFieldOfView/Targets；ConfigureTable拒绝外部目标或重复目标ID。JinxCasinoTableFocus借用相机，在0.35秒过渡后开放输入，退出/失效/Dispose恢复原姿态和FOV；不改变角色、钱包或时钟。JinxCasinoTableSelection用实际Collider射线和稳定NavigationOrder选择同一组目标，遮挡不穿透、跳过禁用目标。JinxCasinoTableTarget只发设备无关命令，反馈使用属性块、不实例化材质。
+机台当前位于Adapters/World，命名空间为Hotfix.JinxCasino.Adapters，这是现有历史布局，不是后续必须遵守的架构约束。交互、表现、UI和冒险流程应按真实职责组织；后续重做结合职责、调用链及序列化兼容调整，不只批量改名。JinxCasinoStation保存StationId/FocusPose/FocusFieldOfView/Targets；ConfigureTable拒绝外部目标或重复目标ID。JinxCasinoTableFocus借用相机，在0.35秒过渡后开放输入，退出/失效/Dispose恢复原姿态和FOV；不改变角色、钱包或时钟。JinxCasinoTableSelection用实际Collider射线和稳定NavigationOrder选择同一组目标，遮挡不穿透、跳过禁用目标。JinxCasinoTableTarget只发设备无关命令，反馈使用属性块、不实例化材质。
 
 这些组件已接入Immersion场景的Controller、三款实体机台与柜台；旧Main保留原型面板用于历史恢复。入口类使用实际指针与保存物件验证，但样板整体仍待正式体验验收。
 

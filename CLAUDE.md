@@ -20,6 +20,7 @@
 - `Assets/Scripts/Hotfix/Editor`：只服务 Hotfix 业务或 Demo 的编辑器扩展，使用独立 `Hotfix.Editor` 程序集，可以引用 Hotfix；运行时不得引用编辑器程序集。
 - `Assets/LoadResources`：可加载资源；单个 Demo 资源放在 `Demos/<DemoId>/`，稳定共享的资源放公共目录；`Assets/Scenes`：启动入口场景。
 - 先判断框架、编辑器或业务职责，再决定落点；复用现有模式，不引入无关的并行框架或目录体系。
+- Demo 按自身玩法和职责组织代码，不把无人机或任何单个 Demo 当通用目录模板，不强制采用 `Adapters/` 分层。只有确实转换外部系统接口或宿主协议的代码才称适配器；玩法、UI、镜头、场景表现和流程编排按其真实职责命名与拆分，不能全部塞进适配目录或一个巨型 Controller。
 
 ## 工作方式与修改保护
 

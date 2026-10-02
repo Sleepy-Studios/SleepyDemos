@@ -46,12 +46,12 @@ Assets/Scripts/Hotfix/Demos/<DemoName>/
 
 普通 Hotfix 业务模块仍使用 `Assets/Scripts/Hotfix/Module/`，不要把二者全局混为一谈。
 
-复杂 Demo 建议明确区分：
+根据当前 Demo 的真实复杂度明确职责，不以无人机或其它 Demo 作为必须照搬的模板：
 
-- 核心玩法：只依赖 Unity 和本 Demo 类型，放控制、物理、状态、装备等逻辑。
-- 宿主适配：放项目专属 UI、资源加载、Hub 导航和演出编排，收口到 `Adapters/`。
+- 玩法规则与状态、世界交互、场景表现、UI 和模式流程按职责组织；小 Demo 无需为了目录完整而人为分层。
+- 只在确有外部接口转换或宿主协议隔离时建立接入类。不要求 `Adapters/` 目录，不把所有 MonoBehaviour、UI 和演出编排统称为适配器。
 
-核心代码不能反向引用适配器。Demo 专属能力也不能因为调用方便塞进 `Core.Runtime`。
+纯规则不反向依赖 UI 或外部接入。Demo 专属能力也不能因为调用方便塞进 `Core.Runtime`；跨 Demo 的通用能力按实际复用价值抽取。目录命名不能替代职责拆分，不用巨型 Controller 或大量转发包装掩盖耦合。
 
 只服务该 Demo 的 Builder、Inspector 和资源装配工具放在：
 
