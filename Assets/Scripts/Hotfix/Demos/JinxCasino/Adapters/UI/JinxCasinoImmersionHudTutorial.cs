@@ -39,7 +39,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private int tutorialPauseNavigationMask = -1;
 
         private enum TutorialConfirmation { None, NewStandard, RestartTutorial }
-        private string TutorialRun => owner.AdventureState?.RunId;
+        private string TutorialRun => owner.Game.State?.RunId;
         private bool HasTutorialUi => tutorialStartButton != null && tutorialReadyPanel != null && tutorialChoicePanel != null && tutorialConfirmPanel != null;
 
         private void BindTutorialControls()
@@ -67,11 +67,11 @@ namespace Hotfix.JinxCasino.Adapters.UI
         // Ready/结束选择只在探索或玩家主动暂停时获得Core菜单导航，不能抢具体机台/退出过渡。
         private int ResolveTutorialHudState()
         {
-            if (!owner.HasAdventure) return 0;
+            if (!owner.Game.HasAdventure) return 0;
             if (HasTutorialUi)
             {
                 if (tutorialConfirmation != TutorialConfirmation.None) return 5;
-                bool canChoose = owner.IsImmersionPaused || !owner.HasImmersionFocus && !owner.HasActiveAdventureRound;
+                bool canChoose = owner.IsImmersionPaused || !owner.HasImmersionFocus && !owner.Game.HasActiveRound;
                 if (canChoose && tutorialDismissedRun != TutorialRun && (owner.TutorialStatus == CasinoTutorialStatus.Completed || owner.TutorialStatus == CasinoTutorialStatus.Skipped)) return 4;
                 if (canChoose && tutorialReadyDeferredRun != TutorialRun && owner.TutorialStatus == CasinoTutorialStatus.Active && owner.TutorialStep == CasinoTutorialStep.Ready) return 3;
             }
@@ -102,11 +102,11 @@ namespace Hotfix.JinxCasino.Adapters.UI
             stripRect.sizeDelta = new Vector2(stripRect.sizeDelta.x, stripHeight);
             tutorialMainFeedbackText.text = tutorialUiFeedback ?? "水果维修  /  发条牌桌  /  合拍拉杆";
             tutorialPauseFeedbackText.text = tutorialUiFeedback ?? "旅程已暂停，准备好再继续。";
-            tutorialChoiceMessageText.text = owner.TutorialHint + (owner.HasActiveAdventureRound ? "\n当前机台已投入，继续练习可以接着完成。" : string.Empty);
+            tutorialChoiceMessageText.text = owner.TutorialHint + (owner.Game.HasActiveRound ? "\n当前机台已投入，继续练习可以接着完成。" : string.Empty);
             bool restarting = tutorialConfirmation == TutorialConfirmation.RestartTutorial;
             tutorialConfirmTitleText.text = restarting ? "重新开始教学？" : "开始正式冒险？";
             tutorialConfirmMessageText.text = restarting ? "会结束当前练习并重新开始互动教学。未保存的练习进度不会继续。" : "会结束当前练习并开始新的正式冒险，筹码重新计算。";
-            if (owner.HasActiveAdventureRound) tutorialConfirmMessageText.text += "\n当前已投入的机台也将结束。";
+            if (owner.Game.HasActiveRound) tutorialConfirmMessageText.text += "\n当前已投入的机台也将结束。";
             tutorialConfirmFeedbackText.text = tutorialUiFeedback ?? string.Empty;
         }
 

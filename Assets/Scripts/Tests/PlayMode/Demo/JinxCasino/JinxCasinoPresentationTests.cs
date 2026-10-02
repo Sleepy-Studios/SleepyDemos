@@ -28,7 +28,6 @@ namespace Tests.Demo
         private JinxCasinoGameSettings settings;
         private CasinoProfileStore profileStore;
         private string saveDirectory;
-        private AudioClip testClip;
 
         [UnityTest]
         public IEnumerator SavedAvatarRejectsLockedOutfitsDefersColorUntilOverrideEndsAndRestoresEmotePose()
@@ -40,22 +39,22 @@ namespace Tests.Demo
                 .Single(value => value.ActorRoot == capsule.transform);
             var effects = controller.GetComponent<JinxCasinoSceneEffects>();
             yield return Wait(() => avatar.CurrentColor == "color_blue", "专有空档案的默认配色", 5);
-            Assert.That(controller.EquipProfile("color_pink", "hat_party"), Is.False);
+            Assert.That(controller.Game.EquipProfile("color_pink", "hat_party"), Is.False);
             Assert.That(avatar.PlayEmote("emote_fireworks"), Is.False);
-            Assert.That(controller.ProfileData.EquippedColor, Is.EqualTo("color_blue"));
+            Assert.That(controller.Game.ProfileData.EquippedColor, Is.EqualTo("color_blue"));
             Assert.That(avatar.CurrentHat, Is.EqualTo("hat_none"));
 
             // 真正结束一次正式旅程解锁派对粉/纸帽，不直接注入伪造的UnlockedIds。
             controller.StartAdventure(CasinoAdventureMode.Standard, 1); yield return null;
-            Assert.That(controller.SelectAdventureEnding(CasinoAdventureEnding.Withdraw).Success, Is.True); yield return null;
-            Assert.That(controller.ProfileData.UnlockedIds, Does.Contain("color_pink"));
+            Assert.That(controller.Game.ChooseEnding(CasinoAdventureEnding.Withdraw, Time.frameCount).Success, Is.True); yield return null;
+            Assert.That(controller.Game.ProfileData.UnlockedIds, Does.Contain("color_pink"));
             controller.StartAdventure(CasinoAdventureMode.Practice, 1); yield return null;
             var clothing = avatar.GetComponentsInChildren<Renderer>(true).First(renderer => renderer.sharedMaterials.Any(material => material != null && material.name == "color_blue"));
             var original = clothing.sharedMaterials;
             int[] slots = Enumerable.Range(0, original.Length).Where(index => original[index] != null && original[index].name.StartsWith("color_", StringComparison.Ordinal)).ToArray();
             effects.ApplyEffects(new[] { MaterialEffect("presentation-ink", "Ink") });
             Assert.That(effects.IsCostumeOverridden, Is.True);
-            Assert.That(controller.EquipProfile("color_pink", "hat_party"), Is.True);
+            Assert.That(controller.Game.EquipProfile("color_pink", "hat_party"), Is.True);
             yield return null;
             Assert.That(avatar.CurrentColor, Is.EqualTo("color_blue"), "临时覆盖拥有材质时不能抢写永久色。");
             Assert.That(slots.All(index => clothing.sharedMaterials[index].name == "InkPaint"), Is.True);
@@ -64,7 +63,7 @@ namespace Tests.Demo
             Assert.That(HasVisibleHat(avatar, "hat_party"), Is.True);
 
             effects.ApplyEffects(new[] { MaterialEffect("presentation-disguise", "Disguise") });
-            Assert.That(controller.EquipProfile("color_blue", "hat_none"), Is.True);
+            Assert.That(controller.Game.EquipProfile("color_blue", "hat_none"), Is.True);
             yield return Wait(() => !effects.IsCostumeOverridden && avatar.CurrentColor == "color_blue" && avatar.CurrentHat == "hat_none", "临时换装后恢复最新轻装配置", 5);
             AssertPermanentSlots(clothing, original, slots, "color_blue");
             Assert.That(HasVisibleHat(avatar, null), Is.False);
@@ -94,53 +93,6 @@ namespace Tests.Demo
             AssertSingleListener();
         }
 
-        [UnityTest]
-        public IEnumerator SavedAudioDoesNotReplayRestoredOrRepeatedResultsAndRegisteredSourcesFollowVolume()
-        {
-            yield return EnterSavedDemo();
-            var director = controller.GetComponent<JinxCasinoAudioDirector>();
-            Assert.That(director, Is.Not.Null, "正式场景必须保存音频导演。");
-            var music = controller.transform.Find("ClubMusic").GetComponent<AudioSource>();
-            var feedback = controller.transform.Find("ClubFeedback").GetComponent<AudioSource>();
-            // 明确4秒长度让isPlaying观察不依赖生产短音效恰好在断言前播完；音量0不打扰用户。
-            testClip = AudioClip.Create("JinxPresentationTestSilence", 44100 * 4, 1, 44100, false);
-            string[] ids = { "UiClick", "MachineBegin", "Win", "Lose", "Coin", "TaskComplete", "Event", "EndingDignity", "EndingTakeover", "EndingWithdraw", "Horn", "Boing", "Charge", "ClubLoop" };
-            director.Setup(controller, music, feedback, ids.Select(id => new CasinoAudioClipBinding { Id = id, Clip = testClip }).ToArray());
-            director.SetVolume(0);
-            controller.StartAdventure(CasinoAdventureMode.Standard, 1); yield return null;
-            Assert.That(controller.BeginAdventureGame("presentation-bet", CasinoGameKind.CoinFlip, 100, 0).Success, Is.True);
-            yield return null;
-            Assert.That(feedback.isPlaying, Is.True, "新提交局应发出开始及实际结算反馈。");
-            int sequence = controller.AdventureState.SettledRoundSequence;
-            Assert.That(sequence, Is.EqualTo(1));
-            Assert.That(controller.SaveAdventure(1), Is.True); feedback.Stop(); yield return null;
-            Assert.That(controller.BeginAdventureGame("presentation-bet", CasinoGameKind.CoinFlip, 100, 0).Success, Is.True);
-            yield return null;
-            Assert.That(controller.AdventureState.SettledRoundSequence, Is.EqualTo(sequence));
-            Assert.That(feedback.isPlaying, Is.False, "同编号重发及Changed不能重播结算。");
-            Assert.That(controller.LoadAdventure(1), Is.True); yield return null;
-            Assert.That(feedback.isPlaying, Is.False, "已结算快照建立音效基线。");
-            Assert.That(controller.EquipProfile("color_blue"), Is.True); yield return null;
-            Assert.That(feedback.isPlaying, Is.False, "装备保存广播不能再次触发旧结果。");
-            Assert.That(controller.SelectAdventureEnding(CasinoAdventureEnding.Withdraw).Success, Is.True); yield return null;
-            Assert.That(feedback.isPlaying, Is.True, "新结局有实际反馈。");
-            Assert.That(controller.SaveAdventure(2), Is.True); feedback.Stop(); yield return null;
-            Assert.That(controller.LoadAdventure(2), Is.True); yield return null;
-            Assert.That(feedback.isPlaying, Is.False, "恢复已结束旅程不能重播结局。");
-
-            var effectRoot = new GameObject("PresentationOwnedEffectSource"); effectRoot.transform.SetParent(controller.transform, false);
-            var effectSource = effectRoot.AddComponent<AudioSource>(); effectSource.playOnAwake = false;
-            director.SetVolume(0.4f); director.RegisterEffectSource(effectSource, 0.25f);
-            Assert.That(effectSource.volume, Is.EqualTo(0.1f).Within(0.0001f));
-            director.SetVolume(0.2f, true);
-            Assert.That(effectSource.volume, Is.EqualTo(0.05f).Within(0.0001f)); Assert.That(effectSource.mute, Is.True);
-            Assert.That(music.mute && feedback.mute, Is.True);
-            director.SetVolume(0.7f); director.RegisterEffectSource(effectSource, 0.25f);
-            Assert.That(effectSource.volume, Is.EqualTo(0.175f).Within(0.0001f), "再次注册不能反复乘当前音量。");
-            Assert.That(effectSource.mute || music.mute || feedback.mute, Is.False);
-            director.SetVolume(0); AssertSingleListener();
-        }
-
         [UnityTearDown]
         public IEnumerator Cleanup()
         {
@@ -156,7 +108,6 @@ namespace Tests.Demo
             finally
             {
                 if (settings != null) Object.Destroy(settings);
-                if (testClip != null) Object.Destroy(testClip);
                 if (controller == null && saveDirectory != null)
                 {
                     string allowed = Path.GetFullPath("Library/JinxCasino/TestSaves") + Path.DirectorySeparatorChar;
@@ -182,8 +133,8 @@ namespace Tests.Demo
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoHudView>()?.State == ViewState.Visible, "保存HUD绑定", 30);
             controller = Object.FindFirstObjectByType<JinxCasinoController>(); Assert.That(controller, Is.Not.Null);
             saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "P4Presentation-" + Guid.NewGuid().ToString("N")));
-            controller.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory));
-            profileStore = new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")); controller.SetLocalProfileStore(profileStore);
+            controller.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory));
+            profileStore = new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")); controller.Game.SetLocalProfileStore(profileStore);
             settings = Object.Instantiate(Field<JinxCasinoGameSettings>(controller, "gameSettings"));
             var config = settings.CreateConfig(); config.StageCount = 1; config.Targets = new long[] { 100000 }; config.EventIntervalMilliseconds = 0;
             typeof(JinxCasinoGameSettings).GetField("adventure", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(settings, config);

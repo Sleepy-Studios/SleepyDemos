@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 #if UNITY_EDITOR
 using System;
 using System.Collections;
@@ -47,7 +48,7 @@ namespace Tests.Demo
             loaded = EditorSceneManager.LoadSceneInPlayMode(ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
             yield return Until(() => loaded.IsValid() && loaded.isLoaded, "保存场景完成加载", 10);
             presentation = Components<JinxCasinoS1BlackjackPresentation>().Single();
-            Assert.That(Components<JinxCasinoController>().All(owner => owner.AdventureState == null), Is.True,
+            Assert.That(Components<JinxCasinoController>().All(owner => owner.Game.State == null), Is.True,
                 "夹具只测试表现，不能启动冒险后由OnDestroy自动写存档。");
             presentation.enabled = true;
             // 只读序列化资源绑定；这些字段不是规则/计时内部状态。TMP文本使用其公开text属性。

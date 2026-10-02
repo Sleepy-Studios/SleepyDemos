@@ -144,20 +144,20 @@ namespace Hotfix.JinxCasino.Adapters.UI
             Listen(practiceButton, () => StartMode(CasinoAdventureMode.Practice));
             Listen(endlessButton, () => StartMode(CasinoAdventureMode.Endless));
             Listen(interactButton, controller.InteractWithNearbyStation);
-            Listen(resumeRoundButton, () => ShowStation(controller.AdventureState.ActiveGame));
+            Listen(resumeRoundButton, () => ShowStation(controller.Game.State.ActiveGame));
             Listen(shopButton, () => Open(Window.Shop));
             Listen(slotsButton, OpenSlots);
-            Listen(finishStageButton, () => controller.CompleteAdventureStage());
-            Listen(nextStageButton, () => { controller.BeginNextAdventureStage(); Open(Window.None); });
+            Listen(finishStageButton, () => controller.Game.CompleteStage(Time.frameCount));
+            Listen(nextStageButton, () => { controller.Game.BeginNextStage(Time.frameCount); Open(Window.None); });
             Listen(confirmBetButton, ConfirmBet);
             Listen(machineCloseButton, ReturnToField);
             Listen(shopCloseButton, ReturnToField);
             Listen(slotsCloseButton, ReturnToField);
-            Listen(withdrawButton, () => controller.SelectAdventureEnding(CasinoAdventureEnding.Withdraw));
-            Listen(leaveEndingButton, () => controller.SelectAdventureEnding(CasinoAdventureEnding.LeaveWithDignity));
-            Listen(takeoverButton, () => controller.SelectAdventureEnding(CasinoAdventureEnding.TakeOver));
+            Listen(withdrawButton, () => controller.Game.ChooseEnding(CasinoAdventureEnding.Withdraw, Time.frameCount));
+            Listen(leaveEndingButton, () => controller.Game.ChooseEnding(CasinoAdventureEnding.LeaveWithDignity, Time.frameCount));
+            Listen(takeoverButton, () => controller.Game.ChooseEnding(CasinoAdventureEnding.TakeOver, Time.frameCount));
             Listen(vaultChallengeButton, () => ShowStation(CasinoGameKind.CooperativeVault));
-            Listen(refillButton, () => controller.RefillPractice());
+            Listen(refillButton, () => controller.Game.RefillPractice(Time.frameCount));
             Listen(backButton, controller.RequestExit);
             foreach (var button in panelBackButtons) Listen(button, controller.RequestExit);
             Listen(eventButton, () => Open(Window.Event));
@@ -194,7 +194,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
                     if (window == Window.Slots) { ReadSlotInfo(); RefreshSlots(); }
                 });
             }
-            Open(controller.HasAdventure ? Window.None : Window.Menu);
+            Open(controller.Game.HasAdventure ? Window.None : Window.Menu);
         }
 
         /// 解绑界面，释放本界面的输入阻挡；关闭机台面板不撤销已投入的规则局。
@@ -222,9 +222,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
         /// <param name="game">已开放、已接近或正在恢复的机台。</param>
         public void ShowStation(CasinoGameKind game)
         {
-            if (controller == null || !controller.HasAdventure) return;
-            if (controller.HasActiveAdventureRound) game = controller.AdventureState.ActiveGame;
-            if (!controller.HasActiveAdventureRound && !IsGameAllowed(controller.AdventureState.Config, game)) return;
+            if (controller == null || !controller.Game.HasAdventure) return;
+            if (controller.Game.HasActiveRound) game = controller.Game.State.ActiveGame;
+            if (!controller.Game.HasActiveRound && !IsGameAllowed(controller.Game.State.Config, game)) return;
             selectedGame = game; beginRequest = Guid.NewGuid().ToString("N");
             machineFeedback = null; legacyActionOverride = false;
             int choice = rememberedChoices.TryGetValue(game, out int previous) ? previous : game == CasinoGameKind.CoinFlip ? 2 : 0;
@@ -235,17 +235,17 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void StartMode(CasinoAdventureMode mode)
         {
             controller.StartAdventure(mode);
-            if (controller.HasAdventure) Open(Window.None);
+            if (controller.Game.HasAdventure) Open(Window.None);
         }
 
         private void Refresh()
         {
             if (controller == null) return;
-            var state = controller.AdventureState;
+            var state = controller.Game.State;
             if (emoteButton != null) emoteButton.gameObject.SetActive(state != null && window == Window.None);
             if (socialButton != null) socialButton.gameObject.SetActive(state != null && window == Window.None);
             statusText.text = !string.IsNullOrEmpty(controller.AdventureSceneAnnouncement) ? controller.AdventureSceneAnnouncement :
-                !string.IsNullOrEmpty(controller.LocalSocialMessage) ? controller.LocalSocialMessage : controller.AdventureStatus;
+                !string.IsNullOrEmpty(controller.LocalSocialMessage) ? controller.LocalSocialMessage : controller.Game.Status;
             if (state == null)
             {
                 hudText.text = "倒霉蛋俱乐部  ·  选择你的旅程";
@@ -264,7 +264,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             int areaIndex = Mathf.Clamp(state.StageIndex % 4, 0, 3);
             var area = CasinoContentCatalog.Areas[areaIndex];
             string clock = state.Mode == CasinoAdventureMode.Practice ? "自由练习" : TimeText(state.RemainingMilliseconds);
-            hudText.text = area.Name + "  ·  " + clock + "\n团队筹码 " + state.Coins + "  /  额度 " + controller.AdventureTarget
+            hudText.text = area.Name + "  ·  " + clock + "\n团队筹码 " + state.Coins + "  /  额度 " + controller.Game.Target
                 + (state.LockedCoins > 0 ? "  ·  机台预留 " + state.LockedCoins : string.Empty);
             RefreshMission(state);
             if (radarPanel != null)
@@ -281,8 +281,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
             }
             interactButton.interactable = state.Phase == CasinoAdventurePhase.Playing && window == Window.None;
             shopButton.interactable = state.Phase != CasinoAdventurePhase.Ended;
-            finishStageButton.interactable = state.Mode != CasinoAdventureMode.Practice && state.Phase == CasinoAdventurePhase.Playing && !controller.HasActiveAdventureRound && state.Coins >= controller.AdventureTarget;
-            resumeRoundButton.gameObject.SetActive(controller.HasActiveAdventureRound);
+            finishStageButton.interactable = state.Mode != CasinoAdventureMode.Practice && state.Phase == CasinoAdventurePhase.Playing && !controller.Game.HasActiveRound && state.Coins >= controller.Game.Target;
+            resumeRoundButton.gameObject.SetActive(controller.Game.HasActiveRound);
             nextStageButton.gameObject.SetActive(state.Phase == CasinoAdventurePhase.Shopping);
             refillButton.gameObject.SetActive(state.Mode == CasinoAdventureMode.Practice);
             eventButton.gameObject.SetActive(state.EventChoicePending);
@@ -316,32 +316,32 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 if (target == Window.Emotes) localSettingsPresenter.ShowEmotes();
             }
             controller?.BindAdventurePresenter(this, target != Window.None, target == Window.Settings);
-            if (target == Window.Shop && controller?.AdventureState != null) RefreshCards(controller.AdventureState);
+            if (target == Window.Shop && controller?.Game.State != null) RefreshCards(controller.Game.State);
             if (target == Window.Machine) RefreshMachine();
             Refresh();
         }
 
         private void RefreshMachine()
         {
-            if (controller == null || controller.AdventureState == null) return;
-            var state = controller.AdventureState;
+            if (controller == null || controller.Game.State == null) return;
+            var state = controller.Game.State;
             var definition = Array.Find(CasinoContentCatalog.Games, game => game.Kind == selectedGame);
             machineTitle.text = definition?.Name ?? "机台";
             bool validChoice = int.TryParse(choiceInput.text, out int choice);
             bool cooperationHelp = (selectedGame == CasinoGameKind.CooperativeLevers || selectedGame == CasinoGameKind.CooperativeVault) &&
-                (controller.HasActiveAdventureRound ? controller.GetAdventurePresentation()?.CooperationHelpUsed == true : state.CooperationHelpCharges > 0);
+                (controller.Game.HasActiveRound ? controller.Game.GetPresentation()?.CooperationHelpUsed == true : state.CooperationHelpCharges > 0);
             string rules;
             try { rules = validChoice ? CasinoMachineUiOptions.Describe(selectedGame, choice, state.NextDiceBias, cooperationHelp) : "请选择下注区域或玩法。"; }
             catch (ArgumentOutOfRangeException) { validChoice = false; rules = CasinoMachineUiOptions.Describe(selectedGame, 0, state.NextDiceBias, cooperationHelp) + "\n当前选择不可用，请重新选择。"; }
-            machineRules.text = rules + "\n" + HumanRules(controller.AdventureBetRules);
-            string roundText = HumanRoundText(controller.HasActiveAdventureRound ? controller.ActiveRoundDescription : state.LastRoundDescription ?? "先选择投入与玩法，再确认投入。");
+            machineRules.text = rules + "\n" + HumanRules(controller.Game.BetRules);
+            string roundText = HumanRoundText(controller.Game.HasActiveRound ? controller.Game.ActiveRoundDescription : state.LastRoundDescription ?? "先选择投入与玩法，再确认投入。");
             // 计时刷新保留最近的失败提示，同时继续展示当前机台状态，避免错误被下一帧结果文本冲掉。
             machineResult.text = string.IsNullOrEmpty(machineFeedback) ? roundText : machineFeedback + "\n\n" + roundText;
-            confirmBetButton.gameObject.SetActive(!controller.HasActiveAdventureRound && (state.Phase == CasinoAdventurePhase.Playing || state.Phase == CasinoAdventurePhase.Finale));
-            stakeInput.interactable = choiceInput.interactable = !controller.HasActiveAdventureRound;
-            RefreshChoicePickers(choice, !controller.HasActiveAdventureRound);
+            confirmBetButton.gameObject.SetActive(!controller.Game.HasActiveRound && (state.Phase == CasinoAdventurePhase.Playing || state.Phase == CasinoAdventurePhase.Finale));
+            stakeInput.interactable = choiceInput.interactable = !controller.Game.HasActiveRound;
+            RefreshChoicePickers(choice, !controller.Game.HasActiveRound);
             confirmBetButton.interactable = validChoice && long.TryParse(stakeInput.text, out long stake) && stake > 0;
-            actions = controller.GetAdventureActions();
+            actions = controller.Game.GetActions();
             for (int index = 0; index < actionButtons.Length; index++)
             {
                 bool available = index < actions.Length;
@@ -358,7 +358,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
 
         private void RefreshLeverWindowCue()
         {
-            var view = controller.GetAdventurePresentation();
+            var view = controller.Game.GetPresentation();
             if (selectedGame != CasinoGameKind.CooperativeLevers || view == null || view.IsComplete) return;
             int.TryParse(actionInput.text, out int target);
             int margin = view.CooperationHelpUsed ? 100 : 0;
@@ -380,7 +380,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (!long.TryParse(stakeInput.text, out long stake) || !int.TryParse(choiceInput.text, out int choice))
             { machineFeedback = "请输入整数投入，并选择玩法。"; RefreshMachine(); return; }
             machineFeedback = null;
-            var result = controller.BeginAdventureGame(beginRequest, selectedGame, stake, choice);
+            var result = controller.Game.BeginGame(beginRequest, selectedGame, stake, choice, null, Time.frameCount);
             if (result.Success) beginRequest = Guid.NewGuid().ToString("N");
             else machineFeedback = result.Description ?? result.Error;
             RefreshMachine();
@@ -437,7 +437,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (selected != null)
             {
                 string key = selectedGame + ":" + selected.Kind + ":" + selected.Minimum + ":" + selected.Maximum + ":" + state.PlayerCount;
-                var view = controller.GetAdventurePresentation();
+                var view = controller.Game.GetPresentation();
                 key += ":" + state.RunId + ":" + state.SettledRoundSequence + ":" + string.Join(",", view?.SelectedValues ?? Array.Empty<int>());
                 if (key != actionOptionsKey)
                 {
@@ -489,7 +489,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 case CasinoMiniGameAction.SelectNumber: return "选入这个号码";
                 case CasinoMiniGameAction.PickPrize: return "打开这个签筒";
                 case CasinoMiniGameAction.DropBall: return "从这里投下";
-                case CasinoMiniGameAction.PullLever: return controller.AdventureState.PlayerCount == 1 ? "拉下自己的杠杆" : "拉下选定杠杆";
+                case CasinoMiniGameAction.PullLever: return controller.Game.State.PlayerCount == 1 ? "拉下自己的杠杆" : "拉下选定杠杆";
                 case CasinoMiniGameAction.InspectClue: return "查看这条线索";
                 case CasinoMiniGameAction.EnterCode: return "输入密码开锁";
                 case CasinoMiniGameAction.Bid: return "提交出价";
@@ -503,7 +503,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             text = text.Replace("每人可查看0/1/2号线索", "可查看百位、十位、个位线索")
                 .Replace("选择0或1号梯", "选择左侧或右侧电梯")
                 .Replace("选择落点0..6", "在右侧选择落点后投下弹珠");
-            if (selectedGame == CasinoGameKind.LuckyDraw && controller.HasActiveAdventureRound)
+            if (selectedGame == CasinoGameKind.LuckyDraw && controller.Game.HasActiveRound)
             {
                 string revealed = text.IndexOf("透视筒值：", StringComparison.Ordinal) >= 0 ? text.Substring(text.IndexOf("透视筒值：", StringComparison.Ordinal)) : string.Empty;
                 return "选择你要打开的签筒。\n" + revealed;
@@ -511,20 +511,20 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (selectedGame == CasinoGameKind.LuckyDraw)
                 for (int index = 0; index < 6; index++)
                     if (text.Contains("签筒 " + index + " 抽到")) return text.Replace("签筒 " + index + " 抽到", "第 " + (index + 1) + " 签筒抽到");
-            if (selectedGame == CasinoGameKind.CooperativeLevers && controller.AdventureState.PlayerCount == 1)
+            if (selectedGame == CasinoGameKind.CooperativeLevers && controller.Game.State.PlayerCount == 1)
                 text = text.Replace("单人：NPC在500毫秒拉1号，你负责0号。", "助手会在每周期第五百毫秒拉下另一根。你负责自己的杠杆。")
                     .Replace("杠杆i窗口[200+i*250,400+i*250]毫秒", "你的窗口为每周期第200至400毫秒")
                     .Replace("杠杆i窗口[100+i*250,500+i*250]毫秒", "你的窗口为每周期第100至500毫秒");
-            if (selectedGame == CasinoGameKind.MechanicalRace && controller.HasActiveAdventureRound)
+            if (selectedGame == CasinoGameKind.MechanicalRace && controller.Game.HasActiveRound)
                 for (int index = 0; index < 4; index++)
                     if (text.Contains("下注跑者 " + index + "，")) return text.Replace("下注跑者 " + index + "，", "支持跑者 " + (index + 1) + "，");
             if (selectedGame == CasinoGameKind.MechanicalRace)
                 for (int index = 0; index < 4; index++)
                     if (text.Contains("机械赛跑赢家 " + index + "，")) return text.Replace("机械赛跑赢家 " + index + "，", "机械赛跑赢家 · 跑者 " + (index + 1) + "，");
-            if (selectedGame == CasinoGameKind.PassingBag && controller.HasActiveAdventureRound)
+            if (selectedGame == CasinoGameKind.PassingBag && controller.Game.HasActiveRound)
             {
                 text = text.Replace("你是0号", "你是当前玩家").Replace("1号NPC收到后700毫秒自动传回", "助手收到后七百毫秒自动传回");
-                if (controller.AdventureState.PlayerCount == 1) text = text.Replace("持有人 0，", "当前在你手中，").Replace("持有人 1，", "当前在助手手中，");
+                if (controller.Game.State.PlayerCount == 1) text = text.Replace("持有人 0，", "当前在你手中，").Replace("持有人 1，", "当前在助手手中，");
             }
             return text;
         }
@@ -564,7 +564,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (action.RequiresValue && (!int.TryParse(input, out value) || value < action.Minimum || value > action.Maximum))
             { machineFeedback = action.Kind == CasinoMiniGameAction.EnterCode ? "请填写三位密码。" : action.Kind == CasinoMiniGameAction.Bid ? "请填写预算内的有效出价。" : "请先选择本次操作的目标。"; RefreshMachine(); return; }
             machineFeedback = null;
-            var result = controller.ActInAdventure(Guid.NewGuid().ToString("N"), action.Kind, value);
+            var result = controller.Game.Act(Guid.NewGuid().ToString("N"), action.Kind, value, null, Time.frameCount);
             legacyActionOverride = false;
             if (!result.Success) machineFeedback = result.Description ?? result.Error;
             RefreshMachine();
@@ -585,7 +585,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
 
         private void UseItem(string id)
         {
-            if (controller.AdventureState.PreparedItems.Contains(id)) controller.CancelPreparedItem(id);
+            if (controller.Game.State.PreparedItems.Contains(id)) controller.Game.CancelPreparedItem(id, Time.frameCount);
             else controller.UseAdventureItem(id);
         }
 
@@ -604,7 +604,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 : "本区未达额度。\n" + (canRescue ? "可以使用库存救场哨尝试救场，或选择狼狈撤离。" : "选择狼狈撤离，或返回园区入口开始新的旅程。");
             if (ended)
             {
-                if (endingRecord == null) endingRecord = controller.ProfileData?.FinishedRunRecords.FirstOrDefault(value => value.RunId == state.RunId);
+                if (endingRecord == null) endingRecord = controller.Game.ProfileData?.FinishedRunRecords.FirstOrDefault(value => value.RunId == state.RunId);
                 if (endingRecord != null)
                 {
                     string title = endingRecord.Rescues > 0 ? "救场王" : endingRecord.Pranks >= 3 ? "整蛊大师" : state.Ending == CasinoAdventureEnding.Withdraw ? "倒霉蛋" : "俱乐部幸存者";
@@ -628,7 +628,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 var info = slotInfo[index];
                 if (info == null) continue;
                 slotTexts[index].text = "存档 " + (index + 1) + "\n" + (info.IsEmpty ? "空槽" : info.Error ?? ("第" + (info.StageIndex + 1) + "区 · " + info.Coins + "筹码" + (info.UsesBackup ? "（备份可恢复）" : string.Empty)));
-                saveButtons[index].interactable = controller.HasAdventure;
+                saveButtons[index].interactable = controller.Game.HasAdventure;
                 loadButtons[index].interactable = !info.IsEmpty && string.IsNullOrEmpty(info.Error);
             }
         }
@@ -636,8 +636,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             var info = slotInfo[slot - 1];
             if (!info.IsEmpty && overwriteSlot != slot) { overwriteSlot = slot; overwriteText.text = "存档" + slot + "已有内容，再次点保存确认覆盖。"; return; }
-            if (controller.SaveAdventure(slot)) { overwriteSlot = 0; overwriteText.text = "保存完成。阶段结束和离场会继续保存此槽。"; }
-            else overwriteText.text = controller.AdventureStatus;
+            if (controller.Game.SaveAdventure(slot)) { overwriteSlot = 0; overwriteText.text = "保存完成。阶段结束和离场会继续保存此槽。"; }
+            else overwriteText.text = controller.Game.Status;
             ReadSlotInfo();
             RefreshSlots();
         }
@@ -645,7 +645,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void ReadSlotInfo()
         {
             // 磁盘校验只在用户打开存档及其保存/读取操作后执行，常规100毫秒HUD刷新仅使用缓存。
-            for (int index = 0; index < slotInfo.Length; index++) slotInfo[index] = controller.GetSaveSlotInfo(index + 1);
+            for (int index = 0; index < slotInfo.Length; index++) slotInfo[index] = controller.Game.GetSaveSlotInfo(index + 1);
         }
 
         private void OnBeginParameterChanged(string text)
@@ -657,9 +657,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
 
         private void ReturnToField()
         {
-            var phase = controller.AdventureState?.Phase;
-            Open(!controller.HasAdventure ? Window.Menu : phase == CasinoAdventurePhase.Finale || phase == CasinoAdventurePhase.Failed || phase == CasinoAdventurePhase.Ended ? Window.Ending :
-                controller.AdventureState.EventChoicePending ? Window.Event : Window.None);
+            var phase = controller.Game.State?.Phase;
+            Open(!controller.Game.HasAdventure ? Window.Menu : phase == CasinoAdventurePhase.Finale || phase == CasinoAdventurePhase.Failed || phase == CasinoAdventurePhase.Ended ? Window.Ending :
+                controller.Game.State.EventChoicePending ? Window.Event : Window.None);
         }
 
         private void RefreshMission(CasinoAdventureState state)
@@ -673,7 +673,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
 
         private void RefreshEvent(CasinoAdventureState state)
         {
-            eventActions = controller.GetAdventureEventActions();
+            eventActions = controller.Game.GetEventActions();
             var definition = CasinoContentCatalog.FindEvent(state.CurrentEventId);
             eventText.text = (definition?.Name ?? "团队事件") + "\n" + (definition?.Description ?? "请选择如何回应事件。") +
                 (string.IsNullOrEmpty(eventFeedback) ? string.Empty : "\n" + eventFeedback);
@@ -706,9 +706,9 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (index < 0 || index >= eventActions.Length) return;
             string itemId = exchangeDropdown.gameObject.activeSelf && exchangeDropdown.value < exchangeItemIds.Count ? exchangeItemIds[exchangeDropdown.value] : null;
             eventFeedback = null;
-            var result = controller.ResolveAdventureEvent(eventActions[index].Choice, itemId);
+            var result = controller.Game.ResolveEvent(eventActions[index].Choice, itemId, Time.frameCount);
             if (!result.Success) eventFeedback = result.Description ?? result.Error;
-            if (controller.AdventureState.EventChoicePending) RefreshEvent(controller.AdventureState);
+            if (controller.Game.State.EventChoicePending) RefreshEvent(controller.Game.State);
             else ReturnToField();
         }
 
@@ -723,7 +723,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             {
                 if (config.ShopItemIds.Length > 0 && Array.IndexOf(config.ShopItemIds, item.Id) < 0 || !HasCompatibleGame(config, item.Id)) continue;
                 var card = Instantiate(itemTemplate, itemContent); card.gameObject.SetActive(true);
-                card.Bind(item, () => controller.PurchaseItem(item.Id), () => UseItem(item.Id)); cards.Add(card);
+                card.Bind(item, () => controller.Game.PurchaseItem(item.Id, Time.frameCount), () => UseItem(item.Id)); cards.Add(card);
             }
         }
 

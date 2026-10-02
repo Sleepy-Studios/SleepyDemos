@@ -16,7 +16,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// 最近现场离场反馈；没有额外钱包或结局状态。
         public string ExitFeedback { get; private set; }
         /// 当前已有真正Ended的单区标准结果，供必要结局卡显示。
-        public bool HasStandardEnding => adventureState?.Mode == CasinoAdventureMode.Standard && adventureState.Phase == CasinoAdventurePhase.Ended && adventureState.Config.StageCount == 1;
+        public bool HasStandardEnding => Game.State?.Mode == CasinoAdventureMode.Standard && Game.State.Phase == CasinoAdventurePhase.Ended && Game.State.Config.StageCount == 1;
         /// 当前能实际接近且看到的检票/离场物件。
         public bool IsExitTerminalNearby => PreferNearbyExit(FindNearbyStation());
         /// 与实际最近物件及原领域阶段一致，不把返回Hub误称为通关。
@@ -27,9 +27,9 @@ namespace Hotfix.JinxCasino.Adapters
                 var terminal = FindNearbyExitTerminal();
                 if (terminal == null || !IsExitTerminalNearby) return string.Empty;
                 if (HasStandardEnding) return "返回大厅";
-                if (HasActiveAdventureRound) return "回原机台完成这一局";
-                if (terminal.Action == JinxCasinoExitAction.Verify) return adventureState.Phase == CasinoAdventurePhase.Finale ? "核验已通过，前往离场口" : "核验本次筹码";
-                return IsExitWithdrawalArmed(terminal) ? "再次交互确认撤离" : adventureState.Phase == CasinoAdventurePhase.Finale ? "领取离场券" : "提前离场";
+                if (Game.HasActiveRound) return "回原机台完成这一局";
+                if (terminal.Action == JinxCasinoExitAction.Verify) return Game.State.Phase == CasinoAdventurePhase.Finale ? "核验已通过，前往离场口" : "核验本次筹码";
+                return IsExitWithdrawalArmed(terminal) ? "再次交互确认撤离" : Game.State.Phase == CasinoAdventurePhase.Finale ? "领取离场券" : "提前离场";
             }
         }
 
@@ -46,11 +46,11 @@ namespace Hotfix.JinxCasino.Adapters
         /// <summary>查询该物件的短时撤离确认，仅是输入意图，不是已支付结局。</summary>
         /// <param name="terminal">实际保存的离场物件。</param>
         public bool IsExitWithdrawalArmed(JinxCasinoExitTerminal terminal) => terminal != null && armedExitTerminal == terminal &&
-            armedExitRun == adventureState?.RunId && (PresentationClock?.TimeSeconds ?? 0) < exitArmedUntil;
+            armedExitRun == Game.State?.RunId && (PresentationClock?.TimeSeconds ?? 0) < exitArmedUntil;
 
         private JinxCasinoExitTerminal FindNearbyExitTerminal()
         {
-            if (!UsesImmersion || body == null || worldCamera == null || adventureState?.Mode != CasinoAdventureMode.Standard || adventureState.Config.StageCount != 1) return null;
+            if (!UsesImmersion || body == null || worldCamera == null || Game.State?.Mode != CasinoAdventureMode.Standard || Game.State.Config.StageCount != 1) return null;
             JinxCasinoExitTerminal nearest = null; float best = 1.6f * 1.6f;
             foreach (var terminal in exitTerminals)
             {
@@ -80,31 +80,31 @@ namespace Hotfix.JinxCasino.Adapters
             var terminal = FindNearbyExitTerminal();
             if (terminal == null) return;
             lastExitActionFrame = Time.frameCount;
-            feedbackExitTerminal = terminal; feedbackExitPhase = adventureState.Phase;
+            feedbackExitTerminal = terminal; feedbackExitPhase = Game.State.Phase;
             if (HasStandardEnding) { RequestExit(); return; }
-            if (HasActiveAdventureRound)
+            if (Game.HasActiveRound)
             { ExitFeedback = "先回到投入筹码的机台，完成这一局后再来。"; ImmersionInputChanged?.Invoke(); return; }
             CasinoAdventureResult result;
             if (terminal.Action == JinxCasinoExitAction.Verify)
             {
-                if (adventureState.Phase == CasinoAdventurePhase.Finale)
+                if (Game.State.Phase == CasinoAdventurePhase.Finale)
                 { ExitFeedback = "核验已通过，请去另一侧领取离场券。"; ImmersionInputChanged?.Invoke(); return; }
-                if (adventureState.Phase != CasinoAdventurePhase.Playing)
+                if (Game.State.Phase != CasinoAdventurePhase.Playing)
                 { ExitFeedback = "时间已到，请前往另一侧离场口。"; ImmersionInputChanged?.Invoke(); return; }
-                result = CompleteAdventureStage();
+                result = Game.CompleteStage(Time.frameCount);
             }
-            else if (adventureState.Phase == CasinoAdventurePhase.Finale)
-                result = SelectAdventureEnding(CasinoAdventureEnding.LeaveWithDignity);
+            else if (Game.State.Phase == CasinoAdventurePhase.Finale)
+                result = Game.ChooseEnding(CasinoAdventureEnding.LeaveWithDignity, Time.frameCount);
             else if (!IsExitWithdrawalArmed(terminal))
             {
-                armedExitTerminal = terminal; armedExitRun = adventureState.RunId;
+                armedExitTerminal = terminal; armedExitRun = Game.State.RunId;
                 exitArmedUntil = (PresentationClock?.TimeSeconds ?? 0) + 5;
                 ExitFeedback = "再次交互确认撤离：会结束本次旅程，并保留剩余筹码。";
                 ImmersionInputChanged?.Invoke(); return;
             }
-            else result = SelectAdventureEnding(CasinoAdventureEnding.Withdraw);
+            else result = Game.ChooseEnding(CasinoAdventureEnding.Withdraw, Time.frameCount);
             ExitFeedback = result.Success && terminal.Action == JinxCasinoExitAction.Verify ? "验票通过，请到离场口领取离场券。" : result.Description ?? result.Error;
-            feedbackExitPhase = adventureState.Phase;
+            feedbackExitPhase = Game.State.Phase;
             if (result.Success) ClearExitIntent();
             ImmersionInputChanged?.Invoke();
         }
@@ -113,9 +113,9 @@ namespace Hotfix.JinxCasino.Adapters
         {
             var nearby = FindNearbyExitTerminal();
             bool changed = false;
-            if (ExitFeedback != null && (nearby != feedbackExitTerminal || adventureState?.Phase != feedbackExitPhase))
+            if (ExitFeedback != null && (nearby != feedbackExitTerminal || Game.State?.Phase != feedbackExitPhase))
             { ExitFeedback = null; feedbackExitTerminal = null; changed = true; }
-            if (armedExitTerminal != null && (armedExitRun != adventureState?.RunId ||
+            if (armedExitTerminal != null && (armedExitRun != Game.State?.RunId ||
                 (PresentationClock?.TimeSeconds ?? 0) >= exitArmedUntil || nearby != armedExitTerminal))
             { ClearExitIntent(); ExitFeedback = null; feedbackExitTerminal = null; changed = true; }
             if (changed) ImmersionInputChanged?.Invoke();

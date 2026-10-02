@@ -10,7 +10,11 @@
 
 正式导航的JinxCasino地址在当前工作分支使用`Scenes/Immersion.unity`。`JinxCasinoController`根据保存的独立InputActionAsset选择`JinxCasinoImmersionHudView`，旧Main无该引用时继续使用原型HUD。菜单使用Core已有Canvas、EventSystem和View生命周期；不新建启动框架。
 
-`JinxCasinoImmersionHost`连接探索/机台/菜单输入上下文、具体机台聚焦与物理射线选择。`JinxCasinoTableSession`通过`JinxCasinoControllerTableOperations`向原领域提交命令。离桌只清草稿，已投入局及随机状态保留；新局、读档和区域传送前恢复借用相机，退出释放菜单输入作用域、事件订阅和光标状态。
+`JinxCasinoGame`在Controller组件构造时建立，构造不读档；它唯一持有冒险聚合、缓存状态、规则命令、计时、三槽和成长。`JinxCasinoImmersionHost`连接探索/机台/菜单输入、具体聚焦与物理射线；`Interaction/JinxCasinoTableSession`直接持有Game与真实Station，不再使用TableOperations接口或包装。离桌只清草稿，已投入局及随机状态保留；新局、读档和区域传送前恢复借用相机，退出释放菜单输入作用域、Game订阅和光标状态。
+
+Game的State getter返回既有缓存，不重新Capture；只有规则变更或教学观察刷新。经济命令接收实际输入帧和稳定请求编号，同帧新操作拒绝，已记录请求仍由领域核对指纹。Changed仅发布公开场景效果，Controller据此同步区域/角色/演出；模型与HUD读取owner.Game的状态和公开投影，不再通过Controller转发规则属性。
+
+读档先从Store取得候选并触发ValidatingRestore，再由BeforeRunReplacement清聚焦并安装；IsRestoring覆盖通知，使音效/模型建立恢复基线。BeforeSave刷新真实教学观察，notify=false只更新缓存，避免保存递归触发场景；Game负责原子保存、阶段自动检查点和成长去重。Controller在Awake订阅、销毁前保存并释放这些订阅。较早OnEnable的表现协调器直接使用已有Game，不依赖Controller.Start完成导航。
 
 `JinxCasinoS1PresentationCoordinator`把本台公开状态发送给水果机、二十一点、协作拉杆专属组件，离桌后仍保留演出。组件只读公开牌面和结算序号，不直接支付或开奖；显式Restore静态还原，不重播旧奖励。暗牌收到公开结果后才翻面，暂停保持中间姿态，新局清除演出队列。
 
@@ -20,7 +24,7 @@
 
 ## 保留的原型主链路
 
-内容优先的离线入口由`JinxCasinoAdventurePresenter`绑定当前`JinxCasinoController`，后者持有`CasinoAdventureSession`。小游戏`CasinoMiniGameRound`只运行规则与整数时钟；冒险统一提交钱包、库存、事件、任务和阶段。UI不得直接改资金或重新开奖，关面板保留已提交局，恢复后继续合法动作。旧P0`CasinoNetworkCoordinator`入口独立保留用于已有联网边界回归，不能与内容局共用钱包。
+旧通用面板、P0会话和Main场景仍待删除，不是新原型的兼容承诺。为保持本次依赖完整，其调用已同步到Game；当前正式导航仍使用Immersion。小游戏`CasinoMiniGameRound`只运行规则与整数时钟；冒险统一提交钱包、库存、事件、任务和阶段。UI不得直接改资金或重新开奖，关闭表现保留已提交局，恢复后继续合法动作。
 
 `JinxCasinoGameSettings`保存每局配置，创建局时复制。P1限制三机台/三商品/三事件，奖励池也限制为可用内容；四区版本解除这些限制。`JinxCasinoWorldArea`只控制已保存的内容与锁门；任务Director实例化保存的触发目标，验证本地身份与接近距离，再由领域唯一发奖。
 
@@ -34,7 +38,7 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 `Persistence/CasinoLocalSaveStore`默认使用`Application.persistentDataPath/JinxCasino/PrototypeV2`的三个独立槽。冒险快照仅接受版本4，缺失版本或旧版本均拒绝，不搜索旧目录和迁移数据。完整规则快照先校验再原子替换，保留上一不同快照；损坏主文件不能滚入有效备份，相同快照不滚动备份。主动选槽后阶段边界和退出保存，未选槽不会隐式覆盖其他槽。
 
-永久成长由`CasinoProfile`统计已提交的正式局流水，按RunId去重；练习不给永久战绩。`Persistence/CasinoProfileStore`使用PrototypeV2/Profile目录的原子JSON/校验和备份。`JinxCasinoProfileHost`先保存候选再提交缓存，失败不吞掉待登记RunId，有限频率重试；每帧不访问磁盘。配色、帽子和表情必须已经解锁，修改损坏档案不能被静默重置覆盖。
+永久成长由`CasinoProfile`统计已提交的正式局流水，按RunId去重；练习不给永久战绩。`Persistence/CasinoProfileStore`使用PrototypeV2/Profile目录的原子JSON/校验和备份。Game先保存候选再提交档案缓存，失败不吞掉待登记RunId，5秒后重试；已删除旧ProfileHost partial。配色、帽子和表情必须已经解锁，修改损坏档案不能被静默重置覆盖。
 
 本机偏好由`CasinoLocalPreferencesStore`使用独立PlayerPrefs键保存，不进入旅程/网络状态。设置预览只影响本机场景，关闭、事件打断或View释放都会撤销未确认修改；明确保存后先写盘，再提交偏好。PC和触控增量先分别乘各自倍率，再沿用原基础灵敏度。左右手仅镜像保存的触控区域并清理持有指针，不修改Core安全区。
 
@@ -84,7 +88,7 @@ CasinoLocalPreferences当前记录版本2包含手柄死区、最大半径、视
 
 ## 三款桌面规则适配
 
-JinxCasinoTableSession管理具体机台的本地筹码草稿，通过IJinxCasinoTableOperations薄边界调用原冒险规则。Slots确认草稿后由实体拉柄执行投入；Blackjack确认后直接发牌，Primary/Secondary分别要牌/停牌；Levers确认后由玩家0号杆提交时机动作。筹码面额10/50/100，清空和离桌只清未投入草稿。
+Interaction/JinxCasinoTableSession管理具体机台的本地筹码草稿，直接调用具体Game。Station提供稳定ID、真实启用状态、玩法及操作点；构造固定原身份，轮换或关闭后须重新进入。Slots确认草稿后由实体拉柄执行投入；Blackjack确认后直接发牌，Primary/Secondary分别要牌/停牌；Levers确认后由玩家0号杆提交时机动作。筹码面额10/50/100，清空和离桌只清未投入草稿。
 
 GetView按ActiveStationId/LastStationId过滤公开投影，同一视图给各物件查询可用性和原因。金额、阶段、事件修正变化使已准备的水果机草稿失效，须重新确认。相同帧/相同动作不重复提交，领域重试保留requestId，较早存档不能重放已成功的旧操作。
 

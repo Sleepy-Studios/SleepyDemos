@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 using System;
 using System.Collections.Generic;
 using Core.Runtime.Inputs;
@@ -199,7 +200,7 @@ namespace Hotfix.JinxCasino.Adapters
             if (!tableFocus.TryEnter(station)) return false;
             focusedStation = station;
             focusedPresentation = station.GetComponent<JinxCasinoS1Presentation>();
-            tableSession = new JinxCasinoTableSession(new JinxCasinoControllerTableOperations(this, station), station.StationId, station.Game);
+            tableSession = new JinxCasinoTableSession(Game, station);
             foreach (var target in station.Targets) if (target != null)
             { target.BindPresentationClock(PresentationClock); target.Invoked += OnTableTargetInvoked; }
             tableSelection.Bind(station); TableFeedback = null; HasTableFeedbackError = false;

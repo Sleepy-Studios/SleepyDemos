@@ -45,54 +45,54 @@ namespace Tests.Demo
             yield return EnterP2();
             yield return Screenshot("P2Menu720p");
             Click(Field<Button>(presenter, "standardButton")); yield return null;
-            Assert.That(controller.AdventureState.Config.StageCount, Is.EqualTo(4));
-            Assert.That(controller.AdventureState.Config.StageDurationMilliseconds, Is.EqualTo(240000));
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(1000));
+            Assert.That(controller.Game.State.Config.StageCount, Is.EqualTo(4));
+            Assert.That(controller.Game.State.Config.StageDurationMilliseconds, Is.EqualTo(240000));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(1000));
             var firstGate = VerifyLockedGate(areas[1]);
 
             yield return CompleteCurrentStage();
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(1000), "区域额度只是门槛，不收费");
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(1000), "区域额度只是门槛，不收费");
             yield return Screenshot("P2FirstShopping720p");
             yield return ContinueAfterShopping();
             Assert.That(Vector3.Distance(body.transform.position, areas[1].SafePosition), Is.LessThan(0.15f));
             VerifyOpenGate(firstGate);
 
             yield return OpenFixedStation(CasinoGameKind.CoinFlip);
-            Assert.That(controller.BeginAdventureGame("checkpoint-bet", CasinoGameKind.CoinFlip, 10, 0).Success, Is.True);
+            Assert.That(controller.Game.BeginGame("checkpoint-bet", CasinoGameKind.CoinFlip, 10, 0, null, Time.frameCount).Success, Is.True);
             yield return null;
-            long checkpointCoins = controller.AdventureState.Coins;
-            Assert.That(controller.SaveAdventure(1), Is.True);
+            long checkpointCoins = controller.Game.State.Coins;
+            Assert.That(controller.Game.SaveAdventure(1), Is.True);
             Assert.That(store.Load(1).State.StageIndex, Is.EqualTo(1));
-            Assert.That(controller.BeginAdventureGame("after-save", CasinoGameKind.CoinFlip, 50, 0).Success, Is.True);
+            Assert.That(controller.Game.BeginGame("after-save", CasinoGameKind.CoinFlip, 50, 0, null, Time.frameCount).Success, Is.True);
             yield return null;
-            Assert.That(controller.AdventureState.Coins, Is.Not.EqualTo(checkpointCoins));
+            Assert.That(controller.Game.State.Coins, Is.Not.EqualTo(checkpointCoins));
             Assert.That(controller.LoadAdventure(1), Is.True); yield return null;
-            Assert.That(controller.AdventureState.StageIndex, Is.EqualTo(1));
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(checkpointCoins));
-            Assert.That(controller.BeginAdventureGame("checkpoint-bet", CasinoGameKind.CoinFlip, 10, 0).Success, Is.True);
+            Assert.That(controller.Game.State.StageIndex, Is.EqualTo(1));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(checkpointCoins));
+            Assert.That(controller.Game.BeginGame("checkpoint-bet", CasinoGameKind.CoinFlip, 10, 0, null, Time.frameCount).Success, Is.True);
             yield return null;
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(checkpointCoins), "阶段恢复后重发已支付请求不能重新开奖入账");
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(checkpointCoins), "阶段恢复后重发已支付请求不能重新开奖入账");
             Click(Field<Button>(presenter, "machineCloseButton")); yield return null;
 
-            while (controller.AdventureState.Phase != CasinoAdventurePhase.Finale)
+            while (controller.Game.State.Phase != CasinoAdventurePhase.Finale)
             {
-                int stage = controller.AdventureState.StageIndex;
+                int stage = controller.Game.State.StageIndex;
                 var nextGate = stage < 3 ? VerifyLockedGate(areas[stage + 1]) : null;
                 yield return CompleteCurrentStage();
-                if (controller.AdventureState.Phase == CasinoAdventurePhase.Shopping)
+                if (controller.Game.State.Phase == CasinoAdventurePhase.Shopping)
                 {
                     yield return ContinueAfterShopping();
                     VerifyOpenGate(nextGate);
                 }
             }
-            Assert.That(controller.AdventureState.CompletedStages, Is.EqualTo(4));
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(checkpointCoins));
+            Assert.That(controller.Game.State.CompletedStages, Is.EqualTo(4));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(checkpointCoins));
             yield return Resize(1600, 720);
             yield return Screenshot("P2Finale20x9");
             yield return OpenProfileAndReturnToEnding(CasinoAdventurePhase.Finale);
             Click(Field<Button>(presenter, "leaveEndingButton")); yield return null;
-            Assert.That(controller.AdventureState.Ending, Is.EqualTo(CasinoAdventureEnding.LeaveWithDignity));
-            Assert.That(controller.ProfileData.DignifiedExits, Is.EqualTo(1));
+            Assert.That(controller.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.LeaveWithDignity));
+            Assert.That(controller.Game.ProfileData.DignifiedExits, Is.EqualTo(1));
             Assert.That(profileStore.LoadOrCreate().Data.FinishedRuns, Is.EqualTo(1));
             yield return OpenProfileAndReturnToEnding(CasinoAdventurePhase.Ended);
             yield return AssertSelectedEndingArtwork(CasinoAdventureEnding.LeaveWithDignity);
@@ -106,27 +106,27 @@ namespace Tests.Demo
             yield return EnterP2();
             Click(Field<Button>(presenter, "standardButton")); yield return null;
             yield return AdvanceAllFourStages();
-            Assert.That(controller.AdventureState.TakeOverUnlocked, Is.False);
+            Assert.That(controller.Game.State.TakeOverUnlocked, Is.False);
             Assert.That(Field<Button>(presenter, "takeoverButton").interactable, Is.False);
             Click(Field<Button>(presenter, "vaultChallengeButton")); yield return null;
             SetText(Field<object>(presenter, "stakeInput"), "10");
             SetText(Field<object>(presenter, "choiceInput"), "0");
             yield return null;
             Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
-            Assert.That(controller.HasActiveAdventureRound, Is.True);
+            Assert.That(controller.Game.HasActiveRound, Is.True);
             yield return RevealVisibleVaultClues();
             yield return Screenshot("P2VisibleVaultClues720p");
             int code = int.Parse(VisibleVaultClues());
             yield return SubmitAction(CasinoMiniGameAction.EnterCode, code);
-            Assert.That(controller.HasActiveAdventureRound, Is.False);
-            Assert.That(controller.AdventureState.TakeOverUnlocked, Is.True);
-            Assert.That(controller.AdventureState.LastRoundPayout, Is.GreaterThan(controller.AdventureState.LastRoundCost));
+            Assert.That(controller.Game.HasActiveRound, Is.False);
+            Assert.That(controller.Game.State.TakeOverUnlocked, Is.True);
+            Assert.That(controller.Game.State.LastRoundPayout, Is.GreaterThan(controller.Game.State.LastRoundCost));
             Click(Field<Button>(presenter, "machineCloseButton")); yield return null;
             Assert.That(Field<Button>(presenter, "takeoverButton").interactable, Is.True);
             yield return Resize(1600, 720); yield return Screenshot("P2TakeoverChoice20x9");
             Click(Field<Button>(presenter, "takeoverButton")); yield return null;
-            Assert.That(controller.AdventureState.Ending, Is.EqualTo(CasinoAdventureEnding.TakeOver));
-            Assert.That(controller.ProfileData.Takeovers, Is.EqualTo(1));
+            Assert.That(controller.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.TakeOver));
+            Assert.That(controller.Game.ProfileData.Takeovers, Is.EqualTo(1));
             Assert.That(profileStore.LoadOrCreate().Data.FinishedRuns, Is.EqualTo(1));
             yield return AssertSelectedEndingArtwork(CasinoAdventureEnding.TakeOver);
             yield return Screenshot("P4EndingTakeover20x9");
@@ -138,14 +138,14 @@ namespace Tests.Demo
         {
             yield return EnterP2(config => { config.Targets = new long[] { 10000, 10000, 10000, 10000 }; config.StageDurationMilliseconds = 2500; });
             Click(Field<Button>(presenter, "standardButton")); yield return null;
-            yield return Wait(() => controller.AdventureState.Phase == CasinoAdventurePhase.Failed, "专有短计时副本触发真实失败", 10);
-            Assert.That(controller.AdventureState.CompletedStages, Is.Zero);
+            yield return Wait(() => controller.Game.State.Phase == CasinoAdventurePhase.Failed, "专有短计时副本触发真实失败", 10);
+            Assert.That(controller.Game.State.CompletedStages, Is.Zero);
             Assert.That(Field<GameObject>(areas[1], "lockedGate").activeSelf, Is.True);
             Assert.That(Field<GameObject>(areas[3], "contents").activeInHierarchy, Is.False);
             yield return Resize(1600, 720); yield return Screenshot("P2Failed20x9");
             Click(Field<Button>(presenter, "withdrawButton")); yield return null;
-            Assert.That(controller.AdventureState.Ending, Is.EqualTo(CasinoAdventureEnding.Withdraw));
-            Assert.That(controller.ProfileData.Withdrawals, Is.EqualTo(1));
+            Assert.That(controller.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.Withdraw));
+            Assert.That(controller.Game.ProfileData.Withdrawals, Is.EqualTo(1));
             Assert.That(profileStore.LoadOrCreate().Data.FinishedRuns, Is.EqualTo(1));
             yield return AssertSelectedEndingArtwork(CasinoAdventureEnding.Withdraw);
             yield return Screenshot("P4EndingWithdraw20x9");
@@ -157,36 +157,36 @@ namespace Tests.Demo
         {
             yield return EnterP2();
             Click(Field<Button>(presenter, "practiceButton")); yield return null;
-            Assert.That(controller.AdventureState.Mode, Is.EqualTo(CasinoAdventureMode.Practice));
+            Assert.That(controller.Game.State.Mode, Is.EqualTo(CasinoAdventureMode.Practice));
             foreach (var area in areas)
             {
                 Assert.That(Field<GameObject>(area, "contents").activeInHierarchy, Is.True);
                 var gate = Field<GameObject>(area, "lockedGate"); if (gate != null) Assert.That(gate.activeSelf, Is.False);
             }
-            Assert.That(controller.GetAvailableAdventureGames(), Has.Length.EqualTo(17));
+            Assert.That(controller.Game.GetAvailableGames(), Has.Length.EqualTo(17));
             var played = new HashSet<CasinoGameKind>();
             foreach (CasinoGameKind game in Enum.GetValues(typeof(CasinoGameKind)))
             {
                 yield return null;
-                Assert.That(controller.RefillPractice().Success, Is.True);
+                Assert.That(controller.Game.RefillPractice(Time.frameCount).Success, Is.True);
                 yield return null;
                 yield return OpenFixedStation(game);
                 SetText(Field<object>(presenter, "stakeInput"), "10");
                 SetText(Field<object>(presenter, "choiceInput"), game == CasinoGameKind.CoinFlip ? "2" : "0");
                 yield return null;
                 Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
-                Assert.That(controller.AdventureState.ActiveGame, Is.EqualTo(game));
+                Assert.That(controller.Game.State.ActiveGame, Is.EqualTo(game));
                 yield return CompletePracticeGame(game);
-                Assert.That(controller.HasActiveAdventureRound, Is.False, game.ToString());
-                Assert.That(controller.AdventureState.LockedCoins, Is.Zero);
-                Assert.That(controller.AdventureState.LastRoundCost, Is.InRange(0, 10));
-                Assert.That(controller.AdventureState.Coins, Is.GreaterThanOrEqualTo(0));
+                Assert.That(controller.Game.HasActiveRound, Is.False, game.ToString());
+                Assert.That(controller.Game.State.LockedCoins, Is.Zero);
+                Assert.That(controller.Game.State.LastRoundCost, Is.InRange(0, 10));
+                Assert.That(controller.Game.State.Coins, Is.GreaterThanOrEqualTo(0));
                 played.Add(game);
                 if (game == CasinoGameKind.Blackjack || game == CasinoGameKind.CooperativeVault) yield return Screenshot("P2Practice" + game + "720p");
                 Click(Field<Button>(presenter, "machineCloseButton")); yield return null;
             }
             Assert.That(played.Count, Is.EqualTo(17));
-            Assert.That(controller.ProfileData.FinishedRuns, Is.Zero, "练习不能写正式成长战绩");
+            Assert.That(controller.Game.ProfileData.FinishedRuns, Is.Zero, "练习不能写正式成长战绩");
             yield return Resize(1600, 720); yield return Screenshot("P2PracticeAllAreas20x9");
             Click(Field<Button>(presenter, "slotsButton")); yield return null;
             yield return ExitThroughSavedPanel();
@@ -194,11 +194,11 @@ namespace Tests.Demo
 
         private IEnumerator OpenProfileAndReturnToEnding(CasinoAdventurePhase expectedPhase)
         {
-            Assert.That(controller.AdventureState.Phase, Is.EqualTo(expectedPhase));
+            Assert.That(controller.Game.State.Phase, Is.EqualTo(expectedPhase));
             Assert.That(Field<GameObject>(presenter, "endingPanel").activeInHierarchy, Is.True);
-            long coins = controller.AdventureState.Coins;
-            long finished = controller.ProfileData.FinishedRuns;
-            long fame = controller.ProfileData.Fame;
+            long coins = controller.Game.State.Coins;
+            long finished = controller.Game.ProfileData.FinishedRuns;
+            long fame = controller.Game.ProfileData.Fame;
             var profile = Field<JinxCasinoProfilePresenter>(presenter, "profilePresenter");
             Click(Field<Button>(presenter, "profileButton")); yield return null;
             Assert.That(profile.gameObject.activeInHierarchy, Is.True);
@@ -206,13 +206,13 @@ namespace Tests.Demo
             Click(Field<Button>(profile, "closeButton")); yield return null;
             Assert.That(profile.gameObject.activeInHierarchy, Is.False);
             Assert.That(Field<GameObject>(presenter, "endingPanel").activeInHierarchy, Is.True, "档案关闭必须按原阶段返回结局，不落到场地");
-            Assert.That(controller.AdventureState.Phase, Is.EqualTo(expectedPhase));
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(coins));
-            Assert.That(controller.ProfileData.FinishedRuns, Is.EqualTo(finished)); Assert.That(controller.ProfileData.Fame, Is.EqualTo(fame));
+            Assert.That(controller.Game.State.Phase, Is.EqualTo(expectedPhase));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(coins));
+            Assert.That(controller.Game.ProfileData.FinishedRuns, Is.EqualTo(finished)); Assert.That(controller.Game.ProfileData.Fame, Is.EqualTo(fame));
             if (expectedPhase == CasinoAdventurePhase.Finale)
             {
                 Assert.That(Field<Button>(presenter, "leaveEndingButton").isActiveAndEnabled, Is.True);
-                Assert.That(Field<Button>(presenter, "takeoverButton").interactable, Is.EqualTo(controller.AdventureState.TakeOverUnlocked));
+                Assert.That(Field<Button>(presenter, "takeoverButton").interactable, Is.EqualTo(controller.Game.State.TakeOverUnlocked));
             }
             else
             {
@@ -232,7 +232,7 @@ namespace Tests.Demo
             yield return Wait(() => image.isActiveAndEnabled && image.gameObject.activeInHierarchy && image.sprite == expected && !image.canvasRenderer.cull,
                 "实际P4结局图片可见绘制", 2);
             Assert.That(image.color.a, Is.GreaterThanOrEqualTo(0.99f));
-            Assert.That(controller.AdventureState.Ending, Is.EqualTo(ending));
+            Assert.That(controller.Game.State.Ending, Is.EqualTo(ending));
             var rect = image.rectTransform; var canvas = image.GetComponentInParent<Canvas>();
             var center = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, rect.TransformPoint(rect.rect.center));
             Assert.That(center.x, Is.InRange(0, Screen.width)); Assert.That(center.y, Is.InRange(0, Screen.height));
@@ -241,7 +241,7 @@ namespace Tests.Demo
 
         private IEnumerator CompletePracticeGame(CasinoGameKind game)
         {
-            if (!controller.HasActiveAdventureRound)
+            if (!controller.Game.HasActiveRound)
             {
                 Assert.That(game == CasinoGameKind.Slots || game == CasinoGameKind.Roulette || game == CasinoGameKind.SicBo || game == CasinoGameKind.DragonTiger || game == CasinoGameKind.Blackjack, Is.True,
                     "只有原本即时或天然21点的玩法可以创建后直接完成");
@@ -251,46 +251,46 @@ namespace Tests.Demo
             {
                 case CasinoGameKind.CoinFlip:
                     yield return SubmitAction(CasinoMiniGameAction.GuessHeads);
-                    if (controller.HasActiveAdventureRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
+                    if (controller.Game.HasActiveRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
                     break;
                 case CasinoGameKind.Blackjack: yield return SubmitAction(CasinoMiniGameAction.Stand); break;
                 case CasinoGameKind.HighLow:
                     yield return SubmitAction(CasinoMiniGameAction.GuessHigher);
-                    if (controller.HasActiveAdventureRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
+                    if (controller.Game.HasActiveRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
                     break;
                 case CasinoGameKind.LuckyDraw: yield return SubmitAction(CasinoMiniGameAction.PickPrize, 2); break;
                 case CasinoGameKind.Bingo:
                     foreach (int number in new[] { 3, 14, 27 }) yield return SubmitAction(CasinoMiniGameAction.SelectNumber, number);
-                    for (int draw = 0; draw < 10 && controller.HasActiveAdventureRound; draw++) yield return SubmitAction(CasinoMiniGameAction.DrawNumber);
+                    for (int draw = 0; draw < 10 && controller.Game.HasActiveRound; draw++) yield return SubmitAction(CasinoMiniGameAction.DrawNumber);
                     break;
                 case CasinoGameKind.Plinko:
                     yield return SubmitAction(CasinoMiniGameAction.DropBall, 3);
-                    yield return Wait(() => !controller.HasActiveAdventureRound, "弹珠真实八层落盘", 5); break;
+                    yield return Wait(() => !controller.Game.HasActiveRound, "弹珠真实八层落盘", 5); break;
                 case CasinoGameKind.CooperativeLevers:
                     yield return Wait(() => LeverWindowOpen(), "公开周期提示进入0号协作窗口", 8);
                     yield return SubmitAction(CasinoMiniGameAction.PullLever, 0);
-                    yield return Wait(() => !controller.HasActiveAdventureRound, "单人NPC协作拉杆结算", 5); break;
+                    yield return Wait(() => !controller.Game.HasActiveRound, "单人NPC协作拉杆结算", 5); break;
                 case CasinoGameKind.PushYourLuckDice:
                     yield return SubmitAction(CasinoMiniGameAction.RollDice);
-                    if (controller.HasActiveAdventureRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
+                    if (controller.Game.HasActiveRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
                     break;
                 case CasinoGameKind.PassingBag:
                     yield return SubmitAction(CasinoMiniGameAction.PassBag);
-                    yield return Wait(() => !controller.HasActiveAdventureRound, "福袋真实保险丝与传递结算", 10); break;
+                    yield return Wait(() => !controller.Game.HasActiveRound, "福袋真实保险丝与传递结算", 10); break;
                 case CasinoGameKind.BlindAuction:
                     yield return SubmitAction(CasinoMiniGameAction.RevealClue);
                     yield return SubmitAction(CasinoMiniGameAction.Bid, 9);
-                    yield return Wait(() => !controller.HasActiveAdventureRound, "盲拍真实截止成交", 12);
-                    Assert.That(controller.AdventureState.LastRoundCost, Is.EqualTo(9)); break;
+                    yield return Wait(() => !controller.Game.HasActiveRound, "盲拍真实截止成交", 12);
+                    Assert.That(controller.Game.State.LastRoundCost, Is.EqualTo(9)); break;
                 case CasinoGameKind.MechanicalRace:
-                    for (int boost = 0; boost < 3 && controller.HasActiveAdventureRound; boost++) yield return SubmitAction(CasinoMiniGameAction.Boost);
-                    if (controller.HasActiveAdventureRound) yield return SubmitAction(CasinoMiniGameAction.Dodge);
-                    yield return Wait(() => !controller.HasActiveAdventureRound, "机械赛跑真实固定tick结算", 35); break;
+                    for (int boost = 0; boost < 3 && controller.Game.HasActiveRound; boost++) yield return SubmitAction(CasinoMiniGameAction.Boost);
+                    if (controller.Game.HasActiveRound) yield return SubmitAction(CasinoMiniGameAction.Dodge);
+                    yield return Wait(() => !controller.Game.HasActiveRound, "机械赛跑真实固定tick结算", 35); break;
                 case CasinoGameKind.CooperativeVault:
                     yield return RevealVisibleVaultClues(); yield return SubmitAction(CasinoMiniGameAction.EnterCode, int.Parse(VisibleVaultClues())); break;
                 case CasinoGameKind.ChickenElevator:
                     yield return SubmitAction(CasinoMiniGameAction.Climb, 0);
-                    if (controller.HasActiveAdventureRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
+                    if (controller.Game.HasActiveRound) yield return SubmitAction(CasinoMiniGameAction.CashOut);
                     break;
                 default: Assert.Fail("缺少该游戏的真实操作流程：" + game); break;
             }
@@ -298,7 +298,7 @@ namespace Tests.Demo
 
         private bool LeverWindowOpen()
         {
-            if (!controller.HasActiveAdventureRound) return false;
+            if (!controller.Game.HasActiveRound) return false;
             var match = Regex.Match(Text(Field<object>(presenter, "machineResult")), "周期位置 (\\d+)");
             return match.Success && int.TryParse(match.Groups[1].Value, out int position) && position >= 200 && position <= 400;
         }
@@ -327,42 +327,42 @@ namespace Tests.Demo
                 value = VisibleVaultClues().IndexOf('?');
                 if (value < 0) yield break;
             }
-            int index = Array.FindIndex(controller.GetAdventureActions(), action => action.Kind == kind);
+            int index = Array.FindIndex(controller.Game.GetActions(), action => action.Kind == kind);
             Assert.That(index, Is.GreaterThanOrEqualTo(0), "当前真实机台应提供" + kind);
-            if (controller.GetAdventureActions()[index].RequiresValue) SetText(Field<object>(presenter, "actionInput"), value.ToString());
-            int receipts = controller.AdventureState.ProcessedRequests.Count;
+            if (controller.Game.GetActions()[index].RequiresValue) SetText(Field<object>(presenter, "actionInput"), value.ToString());
+            int receipts = controller.Game.State.ProcessedRequests.Count;
             Click(Field<Button[]>(presenter, "actionButtons")[index]); yield return null;
-            Assert.That(controller.AdventureState.ProcessedRequests.Count, Is.EqualTo(receipts + 1), "必须实际提交机台动作而非只等待自动结算");
-            Assert.That(controller.AdventureState.ProcessedRequests.Last().Result.Success, Is.True, controller.AdventureStatus);
+            Assert.That(controller.Game.State.ProcessedRequests.Count, Is.EqualTo(receipts + 1), "必须实际提交机台动作而非只等待自动结算");
+            Assert.That(controller.Game.State.ProcessedRequests.Last().Result.Success, Is.True, controller.Game.Status);
         }
 
         private IEnumerator AdvanceAllFourStages()
         {
             for (int stage = 0; stage < 4; stage++)
             {
-                Assert.That(controller.AdventureState.StageIndex, Is.EqualTo(stage));
+                Assert.That(controller.Game.State.StageIndex, Is.EqualTo(stage));
                 yield return CompleteCurrentStage();
                 if (stage < 3) yield return ContinueAfterShopping();
             }
-            Assert.That(controller.AdventureState.Phase, Is.EqualTo(CasinoAdventurePhase.Finale));
-            Assert.That(controller.AdventureState.CompletedStages, Is.EqualTo(4));
+            Assert.That(controller.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Finale));
+            Assert.That(controller.Game.State.CompletedStages, Is.EqualTo(4));
         }
         private IEnumerator CompleteCurrentStage()
         {
-            Assert.That(controller.AdventureState.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
-            Assert.That(controller.AdventureState.Coins, Is.GreaterThanOrEqualTo(controller.AdventureTarget));
+            Assert.That(controller.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
+            Assert.That(controller.Game.State.Coins, Is.GreaterThanOrEqualTo(controller.Game.Target));
             Click(Field<Button>(presenter, "finishStageButton")); yield return null;
-            var expected = controller.AdventureState.StageIndex == 3 ? CasinoAdventurePhase.Finale : CasinoAdventurePhase.Shopping;
-            yield return Wait(() => controller.AdventureState.Phase == expected, "真实额度按钮完成当前区域", 5);
+            var expected = controller.Game.State.StageIndex == 3 ? CasinoAdventurePhase.Finale : CasinoAdventurePhase.Shopping;
+            yield return Wait(() => controller.Game.State.Phase == expected, "真实额度按钮完成当前区域", 5);
         }
         private IEnumerator ContinueAfterShopping()
         {
-            int next = controller.AdventureState.StageIndex + 1;
+            int next = controller.Game.State.StageIndex + 1;
             Assert.That(Field<GameObject>(presenter, "shopPanel").activeInHierarchy, Is.True);
             Assert.That(Field<GameObject>(areas[next], "lockedGate").activeSelf, Is.True);
             Click(Field<Button>(presenter, "shopCloseButton")); yield return null;
             Click(Field<Button>(presenter, "nextStageButton")); yield return null;
-            yield return Wait(() => controller.AdventureState.StageIndex == next && controller.AdventureState.Phase == CasinoAdventurePhase.Playing, "明确购物后进入下一站", 5);
+            yield return Wait(() => controller.Game.State.StageIndex == next && controller.Game.State.Phase == CasinoAdventurePhase.Playing, "明确购物后进入下一站", 5);
             Assert.That(Field<GameObject>(areas[next], "lockedGate").activeSelf, Is.False);
             Assert.That(Field<GameObject>(areas[next], "contents").activeInHierarchy, Is.True);
             Assert.That(Vector3.Distance(body.transform.position, areas[next].SafePosition), Is.LessThan(0.15f));
@@ -439,8 +439,8 @@ namespace Tests.Demo
             Assert.That(saved.CreateConfig().StageDurationMilliseconds, Is.EqualTo(240000));
             Assert.That(saved.CreateConfig().Targets, Is.EqualTo(new long[] { 1200, 2000, 3500, 5000 }));
             saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "P2-" + Guid.NewGuid().ToString("N")));
-            store = new CasinoLocalSaveStore(saveDirectory); controller.SetLocalSaveStore(store);
-            profileStore = new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")); controller.SetLocalProfileStore(profileStore);
+            store = new CasinoLocalSaveStore(saveDirectory); controller.Game.SetLocalSaveStore(store);
+            profileStore = new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")); controller.Game.SetLocalProfileStore(profileStore);
             yield return null; yield return null;
         }
 

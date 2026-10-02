@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 using System;
 using System.Collections.Generic;
 using Hotfix.JinxCasino.Rules;

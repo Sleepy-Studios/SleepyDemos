@@ -53,7 +53,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             if (owner == null) return;
             feedback.text = owner.LocalSocialStatus;
-            bool available = owner.HasAdventure && consumer != null;
+            bool available = owner.Game.HasAdventure && consumer != null;
             sendButton.interactable = markButton.interactable = available; clearButton.interactable = consumer != null;
         }
         private void PlayClick() => owner?.GetComponent<JinxCasinoAudioDirector>()?.PlayUiClick();

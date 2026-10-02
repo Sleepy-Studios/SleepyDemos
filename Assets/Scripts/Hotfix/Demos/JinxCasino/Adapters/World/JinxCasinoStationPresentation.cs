@@ -62,12 +62,12 @@ namespace Hotfix.JinxCasino.Adapters
         private void Refresh()
         {
             if (owner == null || station == null) return;
-            var state = owner.AdventureState;
+            var state = owner.Game.State;
             if (state == null) { view = null; ResetPoses(); if (resultText != null) resultText.text = string.Empty; return; }
-            bool reset = runId != state.RunId || previousGame != station.Game || owner.IsAdventureRestoreInProgress;
+            bool reset = runId != state.RunId || previousGame != station.Game || owner.Game.IsRestoring;
             if (reset) { ResetPoses(); spinUntil = 0; sequence = state.SettledRoundSequence; operation = -1; runId = state.RunId; previousGame = station.Game; }
-            var current = owner.GetAdventurePresentation();
-            string resultStation = owner.HasActiveAdventureRound ? state.ActiveStationId : state.LastStationId;
+            var current = owner.Game.GetPresentation();
+            string resultStation = owner.Game.HasActiveRound ? state.ActiveStationId : state.LastStationId;
             bool matchesStation = string.IsNullOrEmpty(station.StationId) || station.StationId == resultStation;
             view = current != null && current.Game == station.Game && matchesStation ? current : null;
             if (view != null)

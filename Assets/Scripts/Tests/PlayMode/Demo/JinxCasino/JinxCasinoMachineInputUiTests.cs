@@ -54,14 +54,14 @@ namespace Tests.Demo
             yield return Wait(() => ((Component)options).GetComponentsInChildren<Toggle>().Length == 0, "下拉列表完成淡出并销毁", 2);
             SetText(Field<object>(presenter, "stakeInput"), "10");
             Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
-            Assert.That(controller.AdventureState.ProcessedRequests.Last().Result.Success, Is.True);
-            Assert.That(controller.GetAdventurePresentation().Choice, Is.EqualTo(39));
+            Assert.That(controller.Game.State.ProcessedRequests.Last().Result.Success, Is.True);
+            Assert.That(controller.Game.GetPresentation().Choice, Is.EqualTo(39));
             presenter.ShowStation(CasinoGameKind.SicBo); yield return null;
             Assert.That(Labels(groups).Count, Is.EqualTo(5)); SetValue(groups, 4); SetValue(options, 5); yield return null;
             Assert.That(Text(Field<object>(presenter, "choiceInput")), Is.EqualTo("305"));
             Assert.That(Text(Field<object>(presenter, "machineRules")), Does.Contain("0.46%"));
             Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
-            Assert.That(controller.GetAdventurePresentation().Choice, Is.EqualTo(305));
+            Assert.That(controller.Game.GetPresentation().Choice, Is.EqualTo(305));
             presenter.ShowStation(CasinoGameKind.CoinFlip); yield return null; SetValue(options, 0);
             Assert.That(Text(Field<object>(presenter, "choiceInput")), Is.EqualTo("0"));
             presenter.ShowStation(CasinoGameKind.Slots); yield return null;
@@ -83,16 +83,16 @@ namespace Tests.Demo
             Assert.That(((Component)Field<object>(presenter, "actionInput")).gameObject.activeSelf, Is.False);
             Assert.That(((Component)Field<object>(presenter, "numberInput")).gameObject.activeSelf, Is.False);
             Submit(CasinoMiniGameAction.PickPrize); yield return null;
-            Assert.That(controller.HasActiveAdventureRound, Is.False); Assert.That(controller.AdventureState.LastRoundCost, Is.EqualTo(10));
-            Assert.That(controller.GetAdventurePresentation().Choice, Is.EqualTo(25));
-            Assert.That(controller.AdventureState.LastRoundDescription, Does.Contain("签筒 1 抽到"), "下拉第二签筒必须提交规则值一");
+            Assert.That(controller.Game.HasActiveRound, Is.False); Assert.That(controller.Game.State.LastRoundCost, Is.EqualTo(10));
+            Assert.That(controller.Game.GetPresentation().Choice, Is.EqualTo(25));
+            Assert.That(controller.Game.State.LastRoundDescription, Does.Contain("签筒 1 抽到"), "下拉第二签筒必须提交规则值一");
             presenter.ShowStation(CasinoGameKind.CooperativeLevers); yield return null;
             Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
             Assert.That(Labels(actionPicker).Count, Is.EqualTo(1)); Assert.That(Labels(actionPicker)[0], Does.Contain("你的杠杆"));
             yield return Wait(() => LeverWindowOpen(), "真实杠杆窗口", 12);
             Submit(CasinoMiniGameAction.PullLever); yield return null;
-            yield return Wait(() => !controller.HasActiveAdventureRound, "助手完成另一根杠杆", 3);
-            Assert.That(controller.AdventureState.LastRoundPayout, Is.EqualTo(40));
+            yield return Wait(() => !controller.Game.HasActiveRound, "助手完成另一根杠杆", 3);
+            Assert.That(controller.Game.State.LastRoundPayout, Is.EqualTo(40));
         }
 
         [UnityTest, Timeout(180000)]
@@ -111,16 +111,16 @@ namespace Tests.Demo
             Assert.That(Text(password), Is.EqualTo("123"), "查看线索和计时刷新不能覆写已输入密码");
             string code = VisibleClues(); Assert.That(Regex.IsMatch(code, "^[1-9]{3}$"), Is.True);
             SetText(password, code); Submit(CasinoMiniGameAction.EnterCode); yield return null;
-            Assert.That(controller.HasActiveAdventureRound, Is.False); Assert.That(controller.AdventureState.LastRoundPayout, Is.EqualTo(30));
+            Assert.That(controller.Game.HasActiveRound, Is.False); Assert.That(controller.Game.State.LastRoundPayout, Is.EqualTo(30));
         }
 
         private void Submit(CasinoMiniGameAction action)
         {
-            int index = Array.FindIndex(controller.GetAdventureActions(), descriptor => descriptor.Kind == action);
-            Assert.That(index, Is.GreaterThanOrEqualTo(0)); int count = controller.AdventureState.ProcessedRequests.Count;
+            int index = Array.FindIndex(controller.Game.GetActions(), descriptor => descriptor.Kind == action);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0)); int count = controller.Game.State.ProcessedRequests.Count;
             Click(Field<Button[]>(presenter, "actionButtons")[index]);
-            Assert.That(controller.AdventureState.ProcessedRequests.Count, Is.EqualTo(count + 1));
-            Assert.That(controller.AdventureState.ProcessedRequests.Last().Result.Success, Is.True, controller.AdventureStatus);
+            Assert.That(controller.Game.State.ProcessedRequests.Count, Is.EqualTo(count + 1));
+            Assert.That(controller.Game.State.ProcessedRequests.Last().Result.Success, Is.True, controller.Game.Status);
         }
         private string VisibleClues()
         {
@@ -151,7 +151,7 @@ namespace Tests.Demo
             SetField(runtimeSettings, "adventure", config);
             controller.ConfigureAdventure(runtimeSettings, Field<JinxCasinoWorldArea[]>(controller, "areas"), Field<JinxCasinoSceneEffects>(controller, "sceneEffects"));
             saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "MachineUi-" + Guid.NewGuid().ToString("N")));
-            controller.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); controller.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
+            controller.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); controller.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
             yield return null; Click(Field<Button>(presenter, "practiceButton")); yield return null;
         }
 

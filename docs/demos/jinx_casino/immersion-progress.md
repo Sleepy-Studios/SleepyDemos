@@ -331,3 +331,19 @@ Unity正式编译及最终Console 0错误。d2ec34f1 EditMode桌面7/7；c4ebc8e
 原审查Agent本轮只读细化下一步Game迁移，无文件修改或Unity操作。AdventureHost的状态/命令/计时/存档及ProfileHost的成长归具体Game，Controller保留场景同步、读档前校验/聚焦清理和保存前教学观察；TableSession直接持有Game/Station并删除转发接口。S1PresentationCoordinator在-100顺序的OnEnable即创建会话，因此Game须在其绑定前存在，不能等Controller.Start或await导航后才创建；缓存状态getter不得每次Capture。此为下一步实施依据，不表示拆分已完成。
 
 同步rules-baseline和module，提交名「refactor(jinx): 删除旧局认领并要求原机台身份」，SHA见git log。旧P0/P4链和完整Adapters清理仍待完成，正式美术/Hub制作仍等四稿确认；不以本次代码回归越过S1用户验收。
+
+## 具体Game与直接桌面会话
+
+旧局认领清理已推送366d08c。本轮从Controller迁出唯一冒险聚合、缓存状态、计时、命令、三槽、教学规则调用与成长，新增具体JinxCasinoGame，不持有Controller/场景对象，构造不读取数据。State getter返回已捕获副本；经济操作使用实际帧号和稳定请求，回执重试仍由领域核对指纹。保存前教学观察只更新缓存、不递归场景；相位自动存档与候选成长原子提交由Game负责，失败保留可重试RunId。
+
+Controller的Game属性在组件构造时建立，Awake绑定Changed/BeforeRunReplacement/ValidatingRestore/BeforeSave，销毁前保存并退订。场景侧只负责真实距离、区域/角色/镜头清理、设置和演出；读档先验证候选，恢复标志覆盖表现通知。早于Controller.Start启用的S1PresentationCoordinator直接使用现有Game，避免懒工厂或启动后补接口。当前9份场景Controller partial仍待后续PlayerInteraction归位，不声称全部职责拆分已经完成。
+
+TableSession/Contracts移至Interaction，保留原meta；直接持有Game和真实Station，删除IJinxCasinoTableOperations、ControllerTableOperations及meta。状态、动作、公开表现和资金命令不再经Controller转发，Controller/HUD/音效/场景调用方与相关测试同步。删除旧ProfileHost partial及meta，成长逻辑归Game。测试原RuleHost接口夹具改为具体Game及真实Station/Target，无新增测试文件、程序集、固定数量/布局快照或生产Builder。
+
+首轮正式编译0错误，c8df8cef EditMode桌面7/7；52d4eed8当前入口PlayMode类9/9，覆盖真实输入探索/购物/机台/教学、设置、三槽、重返、独立返回、两种结局与Closing牌桌恢复。未执行项目全量测试。这些证据覆盖保存场景中较早启用的表现协调器接入，不覆盖实际Xbox/Android或新参考稿视觉。
+
+补查音效恢复去重时，d24638a6旧PresentationTests在等待旧HUD阶段超时，尚未到音效断言；将该有效用例迁入当前ImmersionEntryTests，不再使用旧HUD夹具，不删断言跳过。旧Avatar用例及其旧夹具仍待随旧表现清理。迁移中修正缺少HUD局部引用的编译接缝；bc7ade68在结局后错误点击暂停菜单返回失败，改为实际结局卡返回。bc0b2e4a精确1/1通过，覆盖重复请求、结算/结局恢复、换装通知不重播声音和注册音源音量/静音。最终17项相关用例通过，保留上述初次失败事实；迁移只重跑该精确方法，生产代码未因此改变。
+
+Controller脚本及两份移动桌面meta逐项与HEAD核对一致；保存Scene/Prefab无改动，MvcBind组件类型与字段本次未迁移，不重生成原人工UI。Game/Interaction新meta由Editor产生；无关字体动态补字、UnitySkills/vTabs/平台设置等保留。同步README、实施状态、module和rules-baseline；代码属于Hotfix Demo，无Core或新程序集变化。正式资源仍等待四稿确认，当前包不包含本次重构。
+
+提交名「refactor(jinx): 拆出具体游戏对象并删除桌面转发层」，SHA见git log。Game、直接桌面及调用方构成同一可编译依赖闭环，未等待整个重做阶段结束；下一闭环移出玩家交互并清理旧P0/P4流程。S1画面、Android触屏/Xbox、Windows原生键盘及新Player构建仍待验证，Goal不标记完成。

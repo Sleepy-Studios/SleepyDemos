@@ -30,14 +30,14 @@ namespace Hotfix.JinxCasino.Adapters.UI
         }
         // 已提交局及相机退出过渡均保留原输入；不以 Closing/Finale 冒充结果。
         private int ResolveEndingHudState(int normalState) => HasStandardEndingUi && owner.HasStandardEnding &&
-            !owner.HasActiveAdventureRound && !owner.HasImmersionFocus ? 8 : normalState;
+            !owner.Game.HasActiveRound && !owner.HasImmersionFocus ? 8 : normalState;
 
         private void RefreshStandardEndingControls(int state)
         {
             if (!HasStandardEndingUi) return;
             standardEndingPanel.SetActive(state == 8);
             if (state != 8) return;
-            var snapshot = owner.AdventureState;
+            var snapshot = owner.Game.State;
             bool dignity = snapshot.Ending == CasinoAdventureEnding.LeaveWithDignity;
             bool withdraw = snapshot.Ending == CasinoAdventureEnding.Withdraw;
             standardEndingTitleText.text = dignity ? "见好就收 · 体面离场" : withdraw ? "狼狈撤离 · 下次再来" : "本次旅程已结束";
@@ -46,7 +46,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             standardEndingStatsText.text = "剩余筹码  " + snapshot.Coins + "\n完成区域  " + snapshot.CompletedStages + " / " + snapshot.Config.StageCount +
                 "\n已结算机台  " + snapshot.SettledRoundSequence + " 局";
             // 原宿主完成成长写盘后才更新此状态；UI 不登记、不推算声望奖励。
-            standardEndingProfileText.text = owner.ProfileStatus ?? string.Empty;
+            standardEndingProfileText.text = owner.Game.ProfileStatus ?? string.Empty;
             if (standardEndingSaveButton != null) standardEndingSaveButton.interactable = HasSaveUi && !owner.IsBusy;
             standardEndingReturnButton.interactable = !owner.IsBusy;
             var returnLabel = standardEndingReturnButton.GetComponentInChildren<TMP_Text>(true);

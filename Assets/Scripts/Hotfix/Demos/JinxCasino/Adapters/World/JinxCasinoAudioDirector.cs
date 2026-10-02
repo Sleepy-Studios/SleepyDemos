@@ -74,7 +74,7 @@ namespace Hotfix.JinxCasino.Adapters
         private void Bind()
         {
             if (bound || owner == null) return;
-            bound = true; ResetBaseline(owner.AdventureState); owner.Changed += Refresh;
+            bound = true; ResetBaseline(owner.Game.State); owner.Changed += Refresh;
             if (music != null)
             {
                 music.clip = FindClip("ClubLoop"); music.loop = true; music.playOnAwake = false;
@@ -93,8 +93,8 @@ namespace Hotfix.JinxCasino.Adapters
         }
         private void Refresh()
         {
-            var state = owner.AdventureState;
-            if (owner.IsAdventureRestoreInProgress) { ResetBaseline(state); return; }
+            var state = owner.Game.State;
+            if (owner.Game.IsRestoring) { ResetBaseline(state); return; }
             if (state == null) { ResetBaseline(null); return; }
             if (runId != state.RunId) { runId = state.RunId; settledSequence = 0; ending = CasinoAdventureEnding.None; effects.Clear(); requests.Clear(); }
             // 较旧快照建立新基线；正常原子结算只会递增。

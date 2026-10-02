@@ -247,7 +247,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void RefreshEmotes()
         {
             if (owner == null || emotePanel == null || emoteDropdown == null || !emotePanel.activeInHierarchy) return;
-            var data = owner.ProfileData;
+            var data = owner.Game.ProfileData;
             string key = data == null ? string.Empty : string.Join("|", data.UnlockedIds);
             if (key == emoteKey) return;
             string previous = emoteDropdown.value >= 0 && emoteDropdown.value < emoteIds.Count ? emoteIds[emoteDropdown.value] : data?.EquippedEmote;

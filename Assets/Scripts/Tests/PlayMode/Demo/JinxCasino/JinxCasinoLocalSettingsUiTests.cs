@@ -95,11 +95,11 @@ namespace Tests.Demo
             var body = Field<CharacterController>(controller, "body");
             var avatar = body.GetComponentsInChildren<JinxCasinoAvatarPresentation>(true).Single(value => value.ActorRoot == body.transform);
             var rightArm = avatar.GetComponentsInChildren<Transform>(true).Single(value => value.name == "Avatar.ArmRightPivot");
-            string equipped = controller.ProfileData.EquippedEmote; long coins = controller.AdventureState.Coins;
+            string equipped = controller.Game.ProfileData.EquippedEmote; long coins = controller.Game.State.Coins;
             Click(Field<Button>(adventure, "emoteButton")); yield return null;
             Assert.That(Field<GameObject>(local, "emotePanel").activeInHierarchy, Is.True);
             var dropdown = Field<object>(local, "emoteDropdown");
-            var expected = CasinoProfileCatalog.Definitions.Where(value => value.Kind == CasinoCosmeticKind.Emote && controller.ProfileData.UnlockedIds.Contains(value.Id)).Select(value => value.Name).ToArray();
+            var expected = CasinoProfileCatalog.Definitions.Where(value => value.Kind == CasinoCosmeticKind.Emote && controller.Game.ProfileData.UnlockedIds.Contains(value.Id)).Select(value => value.Name).ToArray();
             CollectionAssert.AreEqual(expected, Labels(dropdown)); Assert.That(Labels(dropdown), Does.Contain("挥手"));
             Assert.That(avatar.IsPlayingEmote, Is.False); Quaternion originalArm = rightArm.localRotation; Vector3 actorPosition = body.transform.position;
             SetValue(dropdown, Array.IndexOf(expected, "挥手")); Click(Field<Button>(local, "playEmoteButton")); yield return null;
@@ -110,7 +110,7 @@ namespace Tests.Demo
             yield return Screenshot("P4SavedEmote720p");
             yield return Wait(() => !avatar.IsPlayingEmote, "两秒表情结束", 4);
             Assert.That(Quaternion.Angle(originalArm, rightArm.localRotation), Is.LessThan(1));
-            Assert.That(controller.ProfileData.EquippedEmote, Is.EqualTo(equipped)); Assert.That(controller.AdventureState.Coins, Is.EqualTo(coins));
+            Assert.That(controller.Game.ProfileData.EquippedEmote, Is.EqualTo(equipped)); Assert.That(controller.Game.State.Coins, Is.EqualTo(coins));
             Click(Field<Button>(local, "emoteCloseButton")); yield return null;
             Click(Field<Button>(adventure, "settingsButton")); yield return null; yield return ExitBySavedBack();
         }
@@ -152,7 +152,7 @@ namespace Tests.Demo
                 preferenceKey = "JinxCasino.Tests.LocalSettingsUi." + Guid.NewGuid().ToString("N"); preferences = new CasinoLocalPreferencesStore(preferenceKey);
                 saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "LocalSettingsUi-" + Guid.NewGuid().ToString("N")));
             }
-            controller.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); controller.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
+            controller.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); controller.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
             controller.LoadLocalPreferences(preferences); yield return null;
         }
         private IEnumerator ExitBySavedBack()

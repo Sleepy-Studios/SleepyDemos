@@ -52,8 +52,8 @@ namespace Tests.Demo
             yield return null;
             Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
             SetWire(Field<object>(presenter, "actionInput"), "0");
-            Assert.That(controller.GetAdventurePresentation().CooperationHelpUsed, Is.False);
-            Assert.That(controller.GetAdventurePresentation().SelectedValues, Has.Length.EqualTo(2), "只控制0号与单人NPC1，不伪造6名联网玩家。");
+            Assert.That(controller.Game.GetPresentation().CooperationHelpUsed, Is.False);
+            Assert.That(controller.Game.GetPresentation().SelectedValues, Has.Length.EqualTo(2), "只控制0号与单人NPC1，不伪造6名联网玩家。");
             yield return WaitLeverCycle(100);
             var plainDark = lamps[0].sharedMaterials;
             AssertLeverCaption("等待窗口");
@@ -66,24 +66,24 @@ namespace Tests.Demo
             yield return WaitLeverCycle(500);
             AssertLeverCaption("等待窗口");
             Assert.That(lamps[0].sharedMaterials, Is.EqualTo(plainDark), "普通窗口在500毫秒已关闭。");
-            yield return Wait(() => controller.GetAdventurePresentation().ElapsedMilliseconds >= 2000 && Cycle() >= 230 && Cycle() <= 380, "下一普通自然周期的开放窗口", 10);
+            yield return Wait(() => controller.Game.GetPresentation().ElapsedMilliseconds >= 2000 && Cycle() >= 230 && Cycle() <= 380, "下一普通自然周期的开放窗口", 10);
             Click(PullButton()); yield return null;
-            Assert.That(controller.GetAdventurePresentation().SelectedValues[0], Is.EqualTo(1));
+            Assert.That(controller.Game.GetPresentation().SelectedValues[0], Is.EqualTo(1));
             Assert.That(Quaternion.Angle(left.localRotation, leftRest), Is.GreaterThan(20), "真实按钮应驱动保存的0号拉杆。");
-            yield return Wait(() => !controller.HasActiveAdventureRound, "NPC1在同周期完成真实协作", 5);
-            Assert.That(controller.GetAdventurePresentation().Payout, Is.EqualTo(40));
-            Assert.That(controller.GetAdventurePresentation().SelectedValues[1], Is.EqualTo(1));
+            yield return Wait(() => !controller.Game.HasActiveRound, "NPC1在同周期完成真实协作", 5);
+            Assert.That(controller.Game.GetPresentation().Payout, Is.EqualTo(40));
+            Assert.That(controller.Game.GetPresentation().SelectedValues[1], Is.EqualTo(1));
             yield return Wait(() => Quaternion.Angle(npc.localRotation, npcRest) > 20, "结算后的实际NPC拉杆演出", 2);
             Assert.That(Quaternion.Angle(npc.localRotation, npcRest), Is.GreaterThan(20));
 
             yield return null;
-            Assert.That(controller.PurchaseItem("duo_wrench").Success, Is.True); yield return null;
+            Assert.That(controller.Game.PurchaseItem("duo_wrench", Time.frameCount).Success, Is.True); yield return null;
             Assert.That(controller.UseAdventureItem("duo_wrench").Success, Is.True); yield return null;
-            Assert.That(controller.AdventureState.CooperationHelpCharges, Is.EqualTo(1));
+            Assert.That(controller.Game.State.CooperationHelpCharges, Is.EqualTo(1));
             Click(Field<Button>(presenter, "confirmBetButton")); yield return null;
-            Assert.That(controller.GetAdventurePresentation().CooperationHelpUsed, Is.True);
-            Assert.That(controller.AdventureState.CooperationHelpCharges, Is.Zero);
-            Assert.That(controller.AdventureState.Inventory.Find(entry => entry.ItemId == "duo_wrench")?.Count ?? 0, Is.Zero);
+            Assert.That(controller.Game.GetPresentation().CooperationHelpUsed, Is.True);
+            Assert.That(controller.Game.State.CooperationHelpCharges, Is.Zero);
+            Assert.That(controller.Game.State.Inventory.Find(entry => entry.ItemId == "duo_wrench")?.Count ?? 0, Is.Zero);
             SetWire(Field<object>(presenter, "actionInput"), "0");
             yield return WaitLeverCycle(100);
             AssertLeverCaption("窗口开放");
@@ -92,12 +92,12 @@ namespace Tests.Demo
             yield return Screenshot("P4LeverWrenchEarlyWindow");
             yield return Wait(() => Cycle() >= 1300 && Cycle() <= 1600, "无0号操作的自然周期后半段", 8);
             for (int index = 2; index < 6; index++) Assert.That(lamps[index].sharedMaterials, Is.EqualTo(inactiveLamps[index - 2]), "单人未参加编号" + index + "不能因未来窗口冒充玩家灯。");
-            yield return Wait(() => controller.GetAdventurePresentation().ElapsedMilliseconds >= 2000 && Cycle() >= 410 && Cycle() <= 500, "扳手扩大的晚端窗口", 10);
+            yield return Wait(() => controller.Game.GetPresentation().ElapsedMilliseconds >= 2000 && Cycle() >= 410 && Cycle() <= 500, "扳手扩大的晚端窗口", 10);
             AssertLeverCaption("窗口开放");
             Assert.That(LampLight(lamps[0]), Is.GreaterThan(MaterialLight(plainDark) + .1f));
             Click(PullButton()); yield return null;
-            yield return Wait(() => !controller.HasActiveAdventureRound, "在扩大窗口晚端实际拉下并完成", 5);
-            Assert.That(controller.GetAdventurePresentation().Payout, Is.EqualTo(40));
+            yield return Wait(() => !controller.Game.HasActiveRound, "在扩大窗口晚端实际拉下并完成", 5);
+            Assert.That(controller.Game.GetPresentation().Payout, Is.EqualTo(40));
             yield return Screenshot("P4LeverWrenchCompleted");
             yield return Frame(station.InteractionPosition + Vector3.back * .7f, station.transform.position + Vector3.up * 1.9f);
             Assert.That(Quaternion.Angle(left.localRotation, leftRest), Is.GreaterThan(20));
@@ -105,18 +105,18 @@ namespace Tests.Demo
             AssertSingleListener();
         }
 
-        private long Cycle() => controller.GetAdventurePresentation().ElapsedMilliseconds % 2000;
+        private long Cycle() => controller.Game.GetPresentation().ElapsedMilliseconds % 2000;
         private IEnumerator WaitLeverCycle(long value)
-        { yield return Wait(() => controller.HasActiveAdventureRound && Cycle() >= value && Cycle() < value + 100, "实际拉杆周期" + value, 12); yield return new WaitForEndOfFrame(); }
+        { yield return Wait(() => controller.Game.HasActiveRound && Cycle() >= value && Cycle() < value + 100, "实际拉杆周期" + value, 12); yield return new WaitForEndOfFrame(); }
         private Button PullButton()
         {
-            int index = Array.FindIndex(controller.GetAdventureActions(), action => action.Kind == CasinoMiniGameAction.PullLever);
+            int index = Array.FindIndex(controller.Game.GetActions(), action => action.Kind == CasinoMiniGameAction.PullLever);
             Assert.That(index, Is.GreaterThanOrEqualTo(0)); return Field<Button[]>(presenter, "actionButtons")[index];
         }
         private void AssertLeverCaption(string expected)
         {
             var texts = Field<object[]>(presenter, "actionButtonTexts");
-            int index = Array.FindIndex(controller.GetAdventureActions(), action => action.Kind == CasinoMiniGameAction.PullLever);
+            int index = Array.FindIndex(controller.Game.GetActions(), action => action.Kind == CasinoMiniGameAction.PullLever);
             Assert.That(index, Is.GreaterThanOrEqualTo(0));
             Assert.That((string)texts[index].GetType().GetProperty("text").GetValue(texts[index]), Does.Contain(expected));
         }
@@ -138,7 +138,7 @@ namespace Tests.Demo
         {
             yield return EnterSavedDemo();
             yield return StartPracticeFromSavedButton();
-            Assert.That(controller.GetAvailableAdventureGames(), Has.Length.EqualTo(17));
+            Assert.That(controller.Game.GetAvailableGames(), Has.Length.EqualTo(17));
             foreach (var area in Field<JinxCasinoWorldArea[]>(controller, "areas").OrderBy(value => value.Index))
             {
                 Assert.That(area.gameObject.activeInHierarchy, Is.True);
@@ -151,11 +151,11 @@ namespace Tests.Demo
             var starts = racers.Select(node => node.localPosition).ToArray();
             var bed = Node(race,"MechanicalRace.Mesh").GetComponent<MeshFilter>().sharedMesh.bounds;
             yield return Frame(race.InteractionPosition + Vector3.back * 0.6f, race.transform.position + Vector3.up * 1.5f);
-            Assert.That(controller.BeginAdventureGame(Id(),CasinoGameKind.MechanicalRace,10,0).Success,Is.True); yield return null;
-            for(int step=0;step<3;step++) { Assert.That(controller.ActInAdventure(Id(),CasinoMiniGameAction.Boost).Success,Is.True); yield return null; }
-            yield return Wait(()=>controller.GetAdventurePresentation().NumberValues.Any(value=>value>=350),"赛跑已公开实际进度",15);
+            Assert.That(controller.Game.BeginGame(Id(),CasinoGameKind.MechanicalRace,10,0, null, Time.frameCount).Success,Is.True); yield return null;
+            for(int step=0;step<3;step++) { Assert.That(controller.Game.Act(Id(),CasinoMiniGameAction.Boost, 0, null, Time.frameCount).Success,Is.True); yield return null; }
+            yield return Wait(()=>controller.Game.GetPresentation().NumberValues.Any(value=>value>=350),"赛跑已公开实际进度",15);
             yield return null;
-            var progress=controller.GetAdventurePresentation().NumberValues;
+            var progress=controller.Game.GetPresentation().NumberValues;
             var distances=racers.Select((node,index)=>starts[index].x-node.localPosition.x).ToArray();
             Assert.That(distances.All(distance=>distance>0),Is.True,"所有跑者沿模型-X轨道前进，不能沿Z横跨车道。");
             for(int index=0;index<4;index++)
@@ -167,7 +167,7 @@ namespace Tests.Demo
             for(int first=0;first<4;first++) for(int second=0;second<4;second++)
                 if(progress[first]>progress[second]+150) Assert.That(distances[first],Is.GreaterThan(distances[second]),"模型进度排序应和已公开的大幅领先相符。");
             yield return Screenshot("P4RaceTrack", true);
-            yield return Wait(()=>!controller.HasActiveAdventureRound,"赛跑真实tick结束",35);
+            yield return Wait(()=>!controller.Game.HasActiveRound,"赛跑真实tick结束",35);
 
             var plinko=Station(CasinoGameKind.Plinko); var ball=Node(plinko,"Plinko.Ball");
             Vector3 ballStart=ball.localPosition;
@@ -176,15 +176,15 @@ namespace Tests.Demo
             float[] launches=new float[7];
             for(int choice=0;choice<7;choice++)
             {
-                yield return null; Assert.That(controller.RefillPractice().Success,Is.True); yield return null;
+                yield return null; Assert.That(controller.Game.RefillPractice(Time.frameCount).Success,Is.True); yield return null;
                 yield return Frame(plinko.InteractionPosition + Vector3.back*.55f,plinko.transform.position+Vector3.up*2.0f);
-                Assert.That(controller.BeginAdventureGame(Id(),CasinoGameKind.Plinko,10,choice).Success,Is.True); yield return null;
+                Assert.That(controller.Game.BeginGame(Id(),CasinoGameKind.Plinko,10,choice, null, Time.frameCount).Success,Is.True); yield return null;
                 launches[choice]=ball.localPosition.x;
-                Assert.That(controller.GetAdventurePresentation().Cursor,Is.EqualTo(choice));
-                Assert.That(controller.ActInAdventure(Id(),CasinoMiniGameAction.DropBall,choice).Success,Is.True); yield return null;
+                Assert.That(controller.Game.GetPresentation().Cursor,Is.EqualTo(choice));
+                Assert.That(controller.Game.Act(Id(),CasinoMiniGameAction.DropBall,choice, null, Time.frameCount).Success,Is.True); yield return null;
                 if(choice==0 || choice==6) yield return Screenshot("P4PlinkoLaunch"+choice, true);
-                yield return Wait(()=>!controller.HasActiveAdventureRound,"弹珠八层实际开奖",12); yield return null;
-                var result=controller.GetAdventurePresentation(); Assert.That(result.Level,Is.EqualTo(8)); Assert.That(result.Cursor,Is.InRange(0,14));
+                yield return Wait(()=>!controller.Game.HasActiveRound,"弹珠八层实际开奖",12); yield return null;
+                var result=controller.Game.GetPresentation(); Assert.That(result.Level,Is.EqualTo(8)); Assert.That(result.Cursor,Is.InRange(0,14));
                 // 按美术公开的15槽中心检查最终落点；不是复写动画逐层插值或RNG。
                 float center=(7-result.Cursor)*slotContract.pitchMetres;
                 Assert.That(ball.localPosition.x,Is.EqualTo(center).Within(.002f),"实际终槽和公开Cursor一致。");
@@ -196,29 +196,29 @@ namespace Tests.Demo
             for(int index=1;index<7;index++) Assert.That(launches[index],Is.LessThan(launches[index-1]));
             Assert.That(launches[0],Is.GreaterThan(.30f)); Assert.That(launches[6],Is.LessThan(-.30f));
 
-            yield return null; Assert.That(controller.RefillPractice().Success,Is.True); yield return null;
+            yield return null; Assert.That(controller.Game.RefillPractice(Time.frameCount).Success,Is.True); yield return null;
             foreach(string item in new[]{"stop_loss","jackpot_coupon"})
-            { Assert.That(controller.PurchaseItem(item).Success,Is.True); yield return null; Assert.That(controller.UseAdventureItem(item).Success,Is.True); yield return null; }
+            { Assert.That(controller.Game.PurchaseItem(item, Time.frameCount).Success,Is.True); yield return null; Assert.That(controller.UseAdventureItem(item).Success,Is.True); yield return null; }
             var vault=Station(CasinoGameKind.CooperativeVault); var door=Node(vault,"CooperativeVault.Door");
             Quaternion doorClosed=door.localRotation;
             yield return Frame(vault.InteractionPosition+Vector3.back*.6f,vault.transform.position+Vector3.up*1.4f);
-            Assert.That(controller.BeginAdventureGame(Id(),CasinoGameKind.CooperativeVault,100,0).Success,Is.True); yield return null;
-            for(int clue=0;clue<3 && controller.GetAdventureActions().All(action=>action.Kind!=CasinoMiniGameAction.EnterCode);clue++)
+            Assert.That(controller.Game.BeginGame(Id(),CasinoGameKind.CooperativeVault,100,0, null, Time.frameCount).Success,Is.True); yield return null;
+            for(int clue=0;clue<3 && controller.Game.GetActions().All(action=>action.Kind!=CasinoMiniGameAction.EnterCode);clue++)
             {
-                int hidden=Array.FindIndex(controller.GetAdventurePresentation().SelectedValues,value=>value==0);
+                int hidden=Array.FindIndex(controller.Game.GetPresentation().SelectedValues,value=>value==0);
                 Assert.That(hidden,Is.GreaterThanOrEqualTo(0));
-                Assert.That(controller.ActInAdventure(Id(),CasinoMiniGameAction.InspectClue,hidden).Success,Is.True); yield return null;
+                Assert.That(controller.Game.Act(Id(),CasinoMiniGameAction.InspectClue,hidden, null, Time.frameCount).Success,Is.True); yield return null;
             }
-            Assert.That(controller.GetAdventureActions().Any(action=>action.Kind==CasinoMiniGameAction.EnterCode),Is.True);
+            Assert.That(controller.Game.GetActions().Any(action=>action.Kind==CasinoMiniGameAction.EnterCode),Is.True);
             // 密码真实各位为1..6；公开动作允许0..999，000是可提交且肯定错误的尝试。
             for(int attempt=0;attempt<3;attempt++)
-            { Assert.That(controller.ActInAdventure(Id(),CasinoMiniGameAction.EnterCode,0).Success,Is.True); yield return null; }
-            var failedVault=controller.GetAdventurePresentation();
+            { Assert.That(controller.Game.Act(Id(),CasinoMiniGameAction.EnterCode,0, null, Time.frameCount).Success,Is.True); yield return null; }
+            var failedVault=controller.Game.GetPresentation();
             Assert.That(failedVault.IsComplete,Is.True); Assert.That(failedVault.IsObjectiveSuccess,Is.False);
             Assert.That(failedVault.Payout,Is.GreaterThan(failedVault.Cost),"保险+彩金补偿大于投入仍不是开锁胜利。");
             Assert.That(Quaternion.Angle(door.localRotation,doorClosed),Is.LessThan(.01f));
             yield return Screenshot("P4InsuredVaultClosed", true);
-            Assert.That(controller.SaveAdventure(1),Is.True);
+            Assert.That(controller.Game.SaveAdventure(1),Is.True);
             var feedback=controller.transform.Find("ClubFeedback").GetComponent<AudioSource>(); feedback.Stop(); yield return null;
             Assert.That(controller.LoadAdventure(1),Is.True); yield return null;
             Assert.That(feedback.isPlaying,Is.False); Assert.That(Quaternion.Angle(door.localRotation,doorClosed),Is.LessThan(.01f));
@@ -259,7 +259,7 @@ namespace Tests.Demo
             stations=controller.gameObject.scene.GetRootGameObjects().SelectMany(root=>root.GetComponentsInChildren<JinxCasinoStation>(true)).Where(station=>station.GetComponent<JinxCasinoRotationStand>()==null).ToArray();
             Assert.That(stations,Has.Length.EqualTo(17)); Assert.That(stations.All(station=>station.GetComponent<JinxCasinoStationPresentation>()!=null),Is.True);
             saveDirectory=Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves","P4Station-"+Guid.NewGuid().ToString("N")));
-            controller.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); controller.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory,"Profile")));
+            controller.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); controller.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory,"Profile")));
             settings=Object.Instantiate(Field<JinxCasinoGameSettings>(controller,"gameSettings")); var config=settings.CreateConfig();
             config.EventIntervalMilliseconds=0; config.AllowedGames=Array.Empty<CasinoGameKind>(); config.ShopItemIds=Array.Empty<string>();
             typeof(JinxCasinoGameSettings).GetField("adventure",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(settings,config);
@@ -270,9 +270,9 @@ namespace Tests.Demo
         {
             Assert.That(Field<GameObject>(presenter, "menuPanel").activeInHierarchy, Is.True, "必须从保存的开始菜单进入练习。");
             Click(Field<Button>(presenter, "practiceButton"));
-            yield return Wait(() => controller.HasAdventure && !Field<GameObject>(presenter, "menuPanel").activeInHierarchy,
+            yield return Wait(() => controller.Game.HasAdventure && !Field<GameObject>(presenter, "menuPanel").activeInHierarchy,
                 "真实练习按钮建立旅程并关闭开始菜单", 5);
-            Assert.That(controller.AdventureState.Mode, Is.EqualTo(CasinoAdventureMode.Practice));
+            Assert.That(controller.Game.State.Mode, Is.EqualTo(CasinoAdventureMode.Practice));
             Canvas.ForceUpdateCanvases(); yield return null; yield return null;
             AssertFieldVisible();
         }

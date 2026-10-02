@@ -41,8 +41,8 @@ namespace Tests.Demo
             Configure(config => { config.EventIntervalMilliseconds = 0; config.Targets = new long[] { 10000 }; });
             yield return Screenshot("P1Menu");
             Click(Field<Button>(presenter, "standardButton"));
-            yield return Wait(() => controller.HasAdventure, "标准冒险菜单按钮", 5);
-            Assert.That(controller.AdventureState.Mode, Is.EqualTo(CasinoAdventureMode.Standard));
+            yield return Wait(() => controller.Game.HasAdventure, "标准冒险菜单按钮", 5);
+            Assert.That(controller.Game.State.Mode, Is.EqualTo(CasinoAdventureMode.Standard));
             controller.StartAdventure(CasinoAdventureMode.Standard, 1);
             yield return null;
 
@@ -56,15 +56,15 @@ namespace Tests.Demo
                 Click(Field<Button>(card, "purchaseButton"));
                 yield return Wait(() => Inventory(id) == 1, "保存商店按钮购买 " + id, 5);
                 yield return null;
-                int remaining = controller.AdventureState.RemainingMilliseconds;
+                int remaining = controller.Game.State.RemainingMilliseconds;
                 Click(Field<Button>(card, "useButton"));
                 yield return null;
-                if (id == "stop_loss") Assert.That(controller.AdventureState.PreparedItems, Does.Contain(id));
+                if (id == "stop_loss") Assert.That(controller.Game.State.PreparedItems, Does.Contain(id));
                 else Assert.That(Inventory(id), Is.Zero);
-                if (id == "extra_time") Assert.That(controller.AdventureState.RemainingMilliseconds, Is.GreaterThan(remaining + 29000));
-                if (id == "bubble_gun") Assert.That(controller.AdventureState.Effects.Any(effect => effect.EffectKind == "Bubble"), Is.True);
+                if (id == "extra_time") Assert.That(controller.Game.State.RemainingMilliseconds, Is.GreaterThan(remaining + 29000));
+                if (id == "bubble_gun") Assert.That(controller.Game.State.Effects.Any(effect => effect.EffectKind == "Bubble"), Is.True);
             }
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(730));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(730));
             yield return Screenshot("P1Shop");
             Click(Field<Button>(presenter, "shopCloseButton"));
             yield return null;
@@ -73,33 +73,33 @@ namespace Tests.Demo
             SetText(Field<object>(presenter, "choiceInput"), "2");
             yield return null;
             Click(Field<Button>(presenter, "confirmBetButton"));
-            long failedAt = controller.AdventureState.ElapsedMilliseconds;
+            long failedAt = controller.Game.State.ElapsedMilliseconds;
             yield return null;
-            Assert.That(controller.HasActiveAdventureRound, Is.False);
+            Assert.That(controller.Game.HasActiveRound, Is.False);
             Assert.That(Text(Field<object>(presenter, "machineResult")), Does.Contain("最高投入"));
-            yield return Wait(() => controller.AdventureState.ElapsedMilliseconds >= failedAt + 200, "失败提示经过自动HUD刷新", 5);
+            yield return Wait(() => controller.Game.State.ElapsedMilliseconds >= failedAt + 200, "失败提示经过自动HUD刷新", 5);
             Assert.That(Text(Field<object>(presenter, "machineResult")), Does.Contain("最高投入"));
             SetText(Field<object>(presenter, "stakeInput"), "100");
             yield return null;
             Click(Field<Button>(presenter, "confirmBetButton"));
-            yield return Wait(() => controller.HasActiveAdventureRound, "改投入后新请求编号成功提交", 5);
-            Assert.That(controller.AdventureState.LockedCoins, Is.EqualTo(100));
+            yield return Wait(() => controller.Game.HasActiveRound, "改投入后新请求编号成功提交", 5);
+            Assert.That(controller.Game.State.LockedCoins, Is.EqualTo(100));
             Assert.That(Inventory("stop_loss"), Is.Zero);
-            Assert.That(controller.AdventureState.PreparedItems, Is.Empty);
+            Assert.That(controller.Game.State.PreparedItems, Is.Empty);
             yield return null;
             ClickAction(CasinoMiniGameAction.GuessHeads);
             yield return null;
-            Assert.That(controller.HasActiveAdventureRound, Is.True, "种子1的首枚连胜硬币为正面，赢后须明确收手。");
-            string round = controller.AdventureState.ActiveRoundJson;
-            Assert.That(controller.GetAdventureActions().Any(action => action.Kind == CasinoMiniGameAction.CashOut), Is.True);
+            Assert.That(controller.Game.HasActiveRound, Is.True, "种子1的首枚连胜硬币为正面，赢后须明确收手。");
+            string round = controller.Game.State.ActiveRoundJson;
+            Assert.That(controller.Game.GetActions().Any(action => action.Kind == CasinoMiniGameAction.CashOut), Is.True);
             yield return Screenshot("P1CoinChain");
             Click(Field<Button>(presenter, "machineCloseButton"));
             yield return null;
-            Assert.That(controller.HasActiveAdventureRound, Is.True);
+            Assert.That(controller.Game.HasActiveRound, Is.True);
             Assert.That(controller.IsAdventureInputBlocked, Is.False);
             Click(Field<Button>(presenter, "resumeRoundButton"));
             yield return null;
-            Assert.That(controller.AdventureState.ActiveRoundJson, Is.EqualTo(round), "关闭面板不能取消或重开机台。");
+            Assert.That(controller.Game.State.ActiveRoundJson, Is.EqualTo(round), "关闭面板不能取消或重开机台。");
             Click(Field<Button>(presenter, "machineCloseButton"));
             yield return null;
             Click(Field<Button>(presenter, "slotsButton"));
@@ -115,20 +115,20 @@ namespace Tests.Demo
             Click(Field<Button>(presenter, "slotsCloseButton")); yield return null;
             Click(Field<Button>(presenter, "resumeRoundButton")); yield return null;
             ClickAction(CasinoMiniGameAction.CashOut); yield return null;
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(830));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(830));
 
             for (int index = 0; index < 3; index++)
             {
                 Click(Field<Button>(presenter, "machineCloseButton")); yield return null;
                 Click(Field<Button>(presenter, "slotsButton")); yield return null;
                 Click(Field<Button[]>(presenter, "loadButtons")[index]); yield return null;
-                Assert.That(controller.SelectedSaveSlot, Is.EqualTo(index + 1));
-                Assert.That(controller.AdventureState.Coins, Is.EqualTo(730));
-                Assert.That(controller.AdventureState.LockedCoins, Is.EqualTo(100));
-                Assert.That(controller.AdventureState.ActiveRoundJson, Is.EqualTo(round));
+                Assert.That(controller.Game.SelectedSaveSlot, Is.EqualTo(index + 1));
+                Assert.That(controller.Game.State.Coins, Is.EqualTo(730));
+                Assert.That(controller.Game.State.LockedCoins, Is.EqualTo(100));
+                Assert.That(controller.Game.State.ActiveRoundJson, Is.EqualTo(round));
                 Click(Field<Button>(presenter, "resumeRoundButton")); yield return null;
                 ClickAction(CasinoMiniGameAction.CashOut); yield return null;
-                Assert.That(controller.AdventureState.Coins, Is.EqualTo(830), "恢复后的同一局仅结算一次。");
+                Assert.That(controller.Game.State.Coins, Is.EqualTo(830), "恢复后的同一局仅结算一次。");
             }
             yield return ExitViaPanelButton();
         }
@@ -139,27 +139,27 @@ namespace Tests.Demo
             yield return EnterP1();
             Configure(config => { config.Targets = new long[] { 10000 }; config.EventIntervalMilliseconds = 2000; OnlyEvent(config, "mystery_merchant"); });
             controller.StartAdventure(CasinoAdventureMode.Standard, 27);
-            yield return Wait(() => controller.AdventureState.EventChoicePending && Field<GameObject>(presenter, "eventPanel").activeInHierarchy, "神秘商人保存事件面板", 10);
+            yield return Wait(() => controller.Game.State.EventChoicePending && Field<GameObject>(presenter, "eventPanel").activeInHierarchy, "神秘商人保存事件面板", 10);
             Assert.That(controller.IsAdventureInputBlocked, Is.True);
             Assert.That(Field<Button[]>(presenter, "eventButtons").Length, Is.EqualTo(2));
             yield return Screenshot("P1EventChoice");
-            long coins = controller.AdventureState.Coins;
-            int count = controller.AdventureState.Inventory.Sum(item => item.Count);
+            long coins = controller.Game.State.Coins;
+            int count = controller.Game.State.Inventory.Sum(item => item.Count);
             Click(Field<Button[]>(presenter, "eventButtons")[1]);
             // 同步按钮提交即验证本次事件；下一帧可能合法触发新的周期事件，不能将它误判成旧选择未关闭。
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(coins - 80));
-            Assert.That(controller.AdventureState.Inventory.Sum(item => item.Count), Is.EqualTo(count + 1));
-            Assert.That(controller.AdventureState.Inventory.All(item => Array.IndexOf(controller.AdventureState.Config.ShopItemIds, item.ItemId) >= 0), Is.True);
-            Assert.That(controller.AdventureState.EventChoicePending, Is.False);
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(coins - 80));
+            Assert.That(controller.Game.State.Inventory.Sum(item => item.Count), Is.EqualTo(count + 1));
+            Assert.That(controller.Game.State.Inventory.All(item => Array.IndexOf(controller.Game.State.Config.ShopItemIds, item.ItemId) >= 0), Is.True);
+            Assert.That(controller.Game.State.EventChoicePending, Is.False);
             yield return null;
 
             Configure(config => { config.Targets = new long[] { 10000 }; config.EventIntervalMilliseconds = 5000; OnlyEvent(config, "chip_rain"); });
             controller.StartAdventure(CasinoAdventureMode.Standard, 43);
-            yield return Wait(() => controller.AdventureState.ActiveMission?.EventId == "chip_rain" &&
+            yield return Wait(() => controller.Game.State.ActiveMission?.EventId == "chip_rain" &&
                 Object.FindObjectsByType<JinxCasinoMissionTarget>(FindObjectsSortMode.None).Length == 5, "筹码雨保存目标实例生成", 15);
-            var mission = controller.AdventureState.ActiveMission;
+            var mission = controller.Game.State.ActiveMission;
             string missionId = mission.Id;
-            long beforeReward = controller.AdventureState.Coins;
+            long beforeReward = controller.Game.State.Coins;
             Assert.That(Text(Field<object>(presenter, "missionText")), Does.Contain("0/5"));
             var body = Field<CharacterController>(controller, "body");
             Assert.That(controller.IsLocalAdventureActor(body.transform), Is.True);
@@ -174,16 +174,16 @@ namespace Tests.Demo
                 // 真实CharacterController穿过保存的Trigger，不用SendMessage或直接领域发奖代替回调。
                 body.Move(Vector3.left * 2); Physics.SyncTransforms();
                 int expected = index + 1;
-                yield return Wait(() => controller.AdventureState.ActiveMission?.Id == missionId && controller.AdventureState.ActiveMission.Progress >= expected,
+                yield return Wait(() => controller.Game.State.ActiveMission?.Id == missionId && controller.Game.State.ActiveMission.Progress >= expected,
                     "本地玩家实际进入第" + expected + "个任务Trigger", 5);
-                if (expected < targets.Length) Assert.That(controller.AdventureState.Coins, Is.EqualTo(beforeReward));
+                if (expected < targets.Length) Assert.That(controller.Game.State.Coins, Is.EqualTo(beforeReward));
             }
-            Assert.That(controller.AdventureState.ActiveMission.Completed, Is.True);
-            Assert.That(controller.AdventureState.ActiveMission.Visited.Distinct().Count(), Is.EqualTo(5));
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(beforeReward + mission.RewardCoins));
+            Assert.That(controller.Game.State.ActiveMission.Completed, Is.True);
+            Assert.That(controller.Game.State.ActiveMission.Visited.Distinct().Count(), Is.EqualTo(5));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(beforeReward + mission.RewardCoins));
             Assert.That(Text(Field<object>(presenter, "missionText")), Does.Contain("5/5"));
             yield return null; yield return null;
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(beforeReward + mission.RewardCoins));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(beforeReward + mission.RewardCoins));
             yield return Screenshot("P1ChipRainCompleted");
             Click(Field<Button>(presenter, "slotsButton")); yield return null;
             yield return ExitViaPanelButton();
@@ -196,14 +196,14 @@ namespace Tests.Demo
             Configure(config => { config.Targets = new long[] { 900 }; config.EventIntervalMilliseconds = 0; });
             controller.StartAdventure(CasinoAdventureMode.Standard, 57); yield return null;
             Click(Field<Button>(presenter, "finishStageButton"));
-            yield return Wait(() => controller.AdventureState.Phase == CasinoAdventurePhase.Finale, "一阶段额度结算", 5);
+            yield return Wait(() => controller.Game.State.Phase == CasinoAdventurePhase.Finale, "一阶段额度结算", 5);
             Assert.That(Field<GameObject>(presenter, "endingPanel").activeInHierarchy, Is.True);
             Assert.That(Field<Button>(presenter, "vaultChallengeButton").gameObject.activeInHierarchy, Is.False);
             Assert.That(Field<Button>(presenter, "takeoverButton").gameObject.activeInHierarchy, Is.False);
             yield return Screenshot("P1Finale");
             Click(Field<Button>(presenter, "leaveEndingButton")); yield return null;
-            Assert.That(controller.AdventureState.Phase, Is.EqualTo(CasinoAdventurePhase.Ended));
-            Assert.That(controller.AdventureState.Ending, Is.EqualTo(CasinoAdventureEnding.LeaveWithDignity));
+            Assert.That(controller.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Ended));
+            Assert.That(controller.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.LeaveWithDignity));
             yield return ExitViaPanelButton();
         }
 
@@ -213,13 +213,13 @@ namespace Tests.Demo
             yield return EnterP1();
             Configure(config => { config.Targets = new long[] { 10000 }; config.StageDurationMilliseconds = 3000; config.EventIntervalMilliseconds = 0; });
             controller.StartAdventure(CasinoAdventureMode.Standard, 61);
-            yield return Wait(() => controller.AdventureState.Phase == CasinoAdventurePhase.Failed, "真实时钟进入未达标失败", 10);
+            yield return Wait(() => controller.Game.State.Phase == CasinoAdventurePhase.Failed, "真实时钟进入未达标失败", 10);
             Assert.That(Field<GameObject>(presenter, "endingPanel").activeInHierarchy, Is.True);
             Assert.That(Field<Button>(presenter, "withdrawButton").gameObject.activeInHierarchy, Is.True);
             yield return Screenshot("P1Failed");
             Click(Field<Button>(presenter, "withdrawButton")); yield return null;
-            Assert.That(controller.AdventureState.Ending, Is.EqualTo(CasinoAdventureEnding.Withdraw));
-            Assert.That(controller.AdventureState.Phase, Is.EqualTo(CasinoAdventurePhase.Ended));
+            Assert.That(controller.Game.State.Ending, Is.EqualTo(CasinoAdventureEnding.Withdraw));
+            Assert.That(controller.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Ended));
             yield return ExitViaPanelButton();
         }
 
@@ -275,8 +275,8 @@ namespace Tests.Demo
             // P1交互回归使用独立范围配置；正式场景扩展到四区后不再锁死生产StageCount。
             Configure(config => { });
             saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "P1Flow-" + Guid.NewGuid().ToString("N")));
-            store = new CasinoLocalSaveStore(saveDirectory); controller.SetLocalSaveStore(store);
-            controller.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
+            store = new CasinoLocalSaveStore(saveDirectory); controller.Game.SetLocalSaveStore(store);
+            controller.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
             AssertSingleListener(); yield return null; yield return null;
         }
 
@@ -293,10 +293,10 @@ namespace Tests.Demo
 
         private static void OnlyEvent(CasinoAdventureConfig config, string id)
             => config.EventWeights = CasinoContentCatalog.Events.Select(entry => new CasinoEventWeight { EventId = entry.Id, Weight = entry.Id == id ? 1 : 0 }).ToArray();
-        private int Inventory(string id) => controller.AdventureState.Inventory.Find(item => item.ItemId == id)?.Count ?? 0;
+        private int Inventory(string id) => controller.Game.State.Inventory.Find(item => item.ItemId == id)?.Count ?? 0;
         private void ClickAction(CasinoMiniGameAction kind)
         {
-            int index = Array.FindIndex(controller.GetAdventureActions(), action => action.Kind == kind);
+            int index = Array.FindIndex(controller.Game.GetActions(), action => action.Kind == kind);
             Assert.That(index, Is.GreaterThanOrEqualTo(0)); Click(Field<Button[]>(presenter, "actionButtons")[index]);
         }
 

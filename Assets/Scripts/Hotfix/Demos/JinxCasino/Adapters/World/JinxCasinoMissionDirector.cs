@@ -31,12 +31,12 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void Refresh()
         {
-            var state = owner.AdventureState;
+            var state = owner.Game.State;
             var mission = state?.ActiveMission;
             if (mission == null || string.IsNullOrEmpty(mission.Id) || mission.Completed || mission.Failed)
             { ClearTargets(); return; }
             // 同ID较早存档会回退Visited/Carrying，旧目标实例的submitted不能跨恢复沿用。
-            if (missionId != mission.Id || owner.IsAdventureRestoreInProgress)
+            if (missionId != mission.Id || owner.Game.IsRestoring)
             {
                 ClearTargets(); missionId = mission.Id;
                 var origin = owner.CurrentAdventureSafePosition + new Vector3(0, 0.7f, 2);

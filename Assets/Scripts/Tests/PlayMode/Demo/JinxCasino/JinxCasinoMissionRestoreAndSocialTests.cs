@@ -45,29 +45,29 @@ namespace Tests.Demo
         private IEnumerator MissionRestore(string eventId)
         {
             yield return Enter(eventId); Click(Field<Button>(presenter, "standardButton")); yield return null;
-            Assert.That(controller.PurchaseItem("event_remote").Success, Is.True); yield return null;
+            Assert.That(controller.Game.PurchaseItem("event_remote", Time.frameCount).Success, Is.True); yield return null;
             Assert.That(controller.UseAdventureItem("event_remote").Success, Is.True); yield return null;
-            yield return Wait(() => controller.AdventureState.ActiveMission?.EventId == eventId && Targets().Length > 0, "真实任务保存模板生成", 5);
-            string taskId = controller.AdventureState.ActiveMission.Id; long beforeReward = controller.AdventureState.Coins;
-            Assert.That(controller.SaveAdventure(1), Is.True);
+            yield return Wait(() => controller.Game.State.ActiveMission?.EventId == eventId && Targets().Length > 0, "真实任务保存模板生成", 5);
+            string taskId = controller.Game.State.ActiveMission.Id; long beforeReward = controller.Game.State.Coins;
+            Assert.That(controller.Game.SaveAdventure(1), Is.True);
             var oldTarget = Target(0); yield return Touch(oldTarget);
-            Assert.That(eventId == "chip_rain" ? controller.AdventureState.ActiveMission.Progress == 1 : controller.AdventureState.ActiveMission.Carrying, Is.True);
+            Assert.That(eventId == "chip_rain" ? controller.Game.State.ActiveMission.Progress == 1 : controller.Game.State.ActiveMission.Carrying, Is.True);
             Assert.That(controller.LoadAdventure(1), Is.True); yield return null;
-            Assert.That(controller.AdventureState.ActiveMission.Id, Is.EqualTo(taskId));
-            Assert.That(controller.AdventureState.ActiveMission.Progress, Is.Zero); Assert.That(controller.AdventureState.ActiveMission.Carrying, Is.False);
+            Assert.That(controller.Game.State.ActiveMission.Id, Is.EqualTo(taskId));
+            Assert.That(controller.Game.State.ActiveMission.Progress, Is.Zero); Assert.That(controller.Game.State.ActiveMission.Carrying, Is.False);
             Assert.That(oldTarget == null || !oldTarget.gameObject.activeInHierarchy, Is.True, "恢复先停用旧目标，延迟Destroy不能再次提交");
             var renewed = Target(0); yield return Touch(renewed);
-            Assert.That(eventId == "chip_rain" ? controller.AdventureState.ActiveMission.Progress == 1 : controller.AdventureState.ActiveMission.Carrying, Is.True,
+            Assert.That(eventId == "chip_rain" ? controller.Game.State.ActiveMission.Progress == 1 : controller.Game.State.ActiveMission.Carrying, Is.True,
                 "恢复前成功过的同ID目标仍必须接受实际CharacterController触发，不能保留submitted锁");
             if (eventId == "chip_rain")
                 for (int point = 1; point < 5; point++) yield return Touch(Target(point));
             else yield return Touch(Target(1));
-            Assert.That(controller.AdventureState.ActiveMission.Completed, Is.True);
-            long expected = beforeReward + controller.AdventureState.ActiveMission.RewardCoins;
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(expected)); Assert.That(controller.SaveAdventure(2), Is.True);
+            Assert.That(controller.Game.State.ActiveMission.Completed, Is.True);
+            long expected = beforeReward + controller.Game.State.ActiveMission.RewardCoins;
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(expected)); Assert.That(controller.Game.SaveAdventure(2), Is.True);
             Assert.That(controller.LoadAdventure(2), Is.True); yield return null; yield return null;
-            Assert.That(Targets(), Is.Empty); Assert.That(controller.AdventureState.Coins, Is.EqualTo(expected));
-            Assert.That(controller.AdventureState.ActiveMission.Completed, Is.True);
+            Assert.That(Targets(), Is.Empty); Assert.That(controller.Game.State.Coins, Is.EqualTo(expected));
+            Assert.That(controller.Game.State.ActiveMission.Completed, Is.True);
         }
 
         [UnityTest, Timeout(180000)]
@@ -77,7 +77,7 @@ namespace Tests.Demo
             var fixedStation = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None)
                 .Where(value => value.Game == CasinoGameKind.Roulette && value.GetComponent<JinxCasinoRotationStand>() == null).First();
             Place(fixedStation.InteractionPosition + Vector3.up * 0.03f); yield return null;
-            long coins = controller.AdventureState.Coins; int requests = controller.AdventureState.ProcessedRequests.Count;
+            long coins = controller.Game.State.Coins; int requests = controller.Game.State.ProcessedRequests.Count;
             Click(Field<Button>(presenter, "socialButton")); yield return null;
             var social = Field<JinxCasinoSocialPresenter>(presenter, "socialPresenter"); var consumer = controller.GetComponent<JinxCasinoLocalSocialFeedback>();
             Assert.That(consumer, Is.Not.Null);
@@ -100,7 +100,7 @@ namespace Tests.Demo
             Place(controller.CurrentAdventureSafePosition + Vector3.up * 10); yield return null;
             Click(Field<Button>(social, "markButton")); yield return null;
             Assert.That(consumer.Marker, Is.Null); Assert.That(consumer.Status, Does.Contain("暂无附近机台"));
-            Assert.That(controller.AdventureState.Coins, Is.EqualTo(coins)); Assert.That(controller.AdventureState.ProcessedRequests.Count, Is.EqualTo(requests));
+            Assert.That(controller.Game.State.Coins, Is.EqualTo(coins)); Assert.That(controller.Game.State.ProcessedRequests.Count, Is.EqualTo(requests));
         }
 
         [UnityTest, Timeout(180000)]
@@ -110,7 +110,7 @@ namespace Tests.Demo
             var station = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None).First(value => value.Game == CasinoGameKind.Roulette && value.GetComponent<JinxCasinoRotationStand>() == null);
             Place(station.InteractionPosition + Vector3.up * 0.03f); yield return null;
             Assert.That(controller.MarkNearbyStation(), Is.True); var consumer = controller.GetComponent<JinxCasinoLocalSocialFeedback>(); var first = consumer.Marker;
-            Assert.That(controller.SaveAdventure(1), Is.True); Assert.That(controller.LoadAdventure(1), Is.True);
+            Assert.That(controller.Game.SaveAdventure(1), Is.True); Assert.That(controller.LoadAdventure(1), Is.True);
             Assert.That(consumer.Marker, Is.Null); Assert.That(first == null || !first.gameObject.activeSelf, Is.True); yield return null;
             Place(station.InteractionPosition + Vector3.up * 0.03f); yield return null;
             Assert.That(controller.MarkNearbyStation(), Is.True); var second = consumer.Marker;
@@ -130,12 +130,12 @@ namespace Tests.Demo
         private JinxCasinoMissionTarget Target(int index) => Targets().Single(value => Field<int>(value, "index") == index);
         private IEnumerator Touch(JinxCasinoMissionTarget target)
         {
-            var mission = controller.AdventureState.ActiveMission; int progress = mission.Progress; bool carrying = mission.Carrying;
+            var mission = controller.Game.State.ActiveMission; int progress = mission.Progress; bool carrying = mission.Carrying;
             Assert.That(target.GetComponent<Collider>().isTrigger, Is.True);
             Place(target.transform.position + new Vector3(2.2f, -0.7f, 0)); yield return null;
             body.Move(Vector3.left * 2.2f); Physics.SyncTransforms();
-            yield return Wait(() => controller.AdventureState.ActiveMission?.Id == mission.Id &&
-                (controller.AdventureState.ActiveMission.Progress != progress || controller.AdventureState.ActiveMission.Carrying != carrying), "真实触发任务目标", 5);
+            yield return Wait(() => controller.Game.State.ActiveMission?.Id == mission.Id &&
+                (controller.Game.State.ActiveMission.Progress != progress || controller.Game.State.ActiveMission.Carrying != carrying), "真实触发任务目标", 5);
         }
         private void Place(Vector3 position)
         { body.enabled = false; body.transform.position = position; body.enabled = true; Physics.SyncTransforms(); }
@@ -159,7 +159,7 @@ namespace Tests.Demo
             SetField(settings, "adventure", config);
             controller.ConfigureAdventure(settings, Field<JinxCasinoWorldArea[]>(controller, "areas"), Field<JinxCasinoSceneEffects>(controller, "sceneEffects"));
             directory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "MissionSocial-" + Guid.NewGuid().ToString("N")));
-            controller.SetLocalSaveStore(new CasinoLocalSaveStore(directory)); controller.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(directory, "Profile"))); yield return null;
+            controller.Game.SetLocalSaveStore(new CasinoLocalSaveStore(directory)); controller.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(directory, "Profile"))); yield return null;
         }
         [UnityTearDown]
         public IEnumerator Cleanup()

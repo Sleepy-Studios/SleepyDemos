@@ -65,8 +65,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
         private void OpenSaveWrite() => OpenSaveBrowser(true);
         private void OpenSaveBrowser(bool writing)
         {
-            if (owner == null || owner.IsBusy || !HasSaveUi || writing && !owner.HasAdventure) return;
-            saveWriting = writing; saveSourceRun = owner.AdventureState?.RunId;
+            if (owner == null || owner.IsBusy || !HasSaveUi || writing && !owner.Game.HasAdventure) return;
+            saveWriting = writing; saveSourceRun = owner.Game.State?.RunId;
             saveBrowserOpen = true; savePendingSlot = 0; saveUiFeedback = null;
             ReloadSaveInfos(); Refresh();
         }
@@ -74,7 +74,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             for (int slot = 1; slot <= 3; slot++)
             {
-                try { saveInfos[slot - 1] = owner.GetSaveSlotInfo(slot); }
+                try { saveInfos[slot - 1] = owner.Game.GetSaveSlotInfo(slot); }
                 catch (Exception) { saveInfos[slot - 1] = new CasinoSaveSlotInfo { Slot = slot, Error = "暂时无法读取此槽，请稍后再试。" }; }
             }
         }
@@ -111,7 +111,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
                 saveConfirmTitleText.text = saveWriting ? "覆盖存档 " + savePendingSlot + "？" : "读取存档 " + savePendingSlot + "？";
                 saveConfirmMessageText.text = saveWriting ? "此槽将保存你当前的旅程，替换原来的进度。"
                     : "会放弃当前旅程中尚未保存的进度，继续所选存档。";
-                if (!saveWriting && owner.HasActiveAdventureRound) saveConfirmMessageText.text += "\n当前已经投入的机台将由所选存档替换。";
+                if (!saveWriting && owner.Game.HasActiveRound) saveConfirmMessageText.text += "\n当前已经投入的机台将由所选存档替换。";
                 saveConfirmFeedbackText.text = saveUiFeedback ?? string.Empty;
             }
             RefreshSavePauseNavigation(state);
@@ -164,7 +164,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             ReloadSaveInfos();
             if (!CanSelectSaveSlot(slot)) { saveUiFeedback = "此槽暂时无法恢复，请选择另一个存档。"; Refresh(); return; }
             var info = saveInfos[slot - 1]; saveUiFeedback = null;
-            if (saveWriting && !info.IsEmpty || !saveWriting && owner.HasAdventure) { savePendingSlot = slot; Refresh(); }
+            if (saveWriting && !info.IsEmpty || !saveWriting && owner.Game.HasAdventure) { savePendingSlot = slot; Refresh(); }
             else ExecuteSaveOperation(slot);
         }
         private void ConfirmSaveOperation() { if (savePendingSlot > 0) ExecuteSaveOperation(savePendingSlot); }
@@ -172,14 +172,14 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             if (owner.IsBusy || lastSaveActionFrame == Time.frameCount) return;
             lastSaveActionFrame = Time.frameCount;
-            if (saveSourceRun != owner.AdventureState?.RunId)
+            if (saveSourceRun != owner.Game.State?.RunId)
             { saveUiFeedback = "当前旅程已改变，请返回后重新选择。"; Refresh(); return; }
-            bool success = saveWriting ? owner.SaveAdventure(slot) : owner.LoadAdventure(slot);
-            saveUiFeedback = owner.AdventureStatus;
+            bool success = saveWriting ? owner.Game.SaveAdventure(slot) : owner.LoadAdventure(slot);
+            saveUiFeedback = owner.Game.Status;
             if (!success) { Refresh(); return; }
             savePendingSlot = 0;
             if (saveWriting)
-            { ReloadSaveInfos(); saveSourceRun = owner.AdventureState?.RunId; Refresh(); }
+            { ReloadSaveInfos(); saveSourceRun = owner.Game.State?.RunId; Refresh(); }
             else
             {
                 saveBrowserOpen = false;

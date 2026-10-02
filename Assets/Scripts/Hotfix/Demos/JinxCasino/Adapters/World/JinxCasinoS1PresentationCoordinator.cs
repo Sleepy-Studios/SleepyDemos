@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 using UnityEngine;
 
 namespace Hotfix.JinxCasino.Adapters
@@ -25,7 +26,7 @@ namespace Hotfix.JinxCasino.Adapters
             if (owner == null || stations == null) return;
             observers = new JinxCasinoTableSession[stations.Length];
             for (int i = 0; i < stations.Length; i++)
-                observers[i] = new JinxCasinoTableSession(new JinxCasinoControllerTableOperations(owner, stations[i]), stations[i].StationId, stations[i].Game);
+                observers[i] = new JinxCasinoTableSession(owner.Game, stations[i]);
             owner.Changed += Refresh; owner.ImmersionInputChanged += Refresh;
             Refresh();
         }
@@ -33,7 +34,7 @@ namespace Hotfix.JinxCasino.Adapters
         private void Refresh()
         {
             if (owner == null || observers == null) return;
-            var state = owner.AdventureState;
+            var state = owner.Game.State;
             for (int i = 0; i < observers.Length; i++)
             {
                 var visual = presentations[i];
@@ -41,7 +42,7 @@ namespace Hotfix.JinxCasino.Adapters
                 if (state == null) { visual.Present(null, owner.IsImmersionPaused); continue; }
                 visual.BeginRun(state.RunId);
                 var view = owner.GetFocusedTableView(stations[i]) ?? observers[i].GetView();
-                if (owner.IsAdventureRestoreInProgress) { visual.Present(null, owner.IsImmersionPaused); visual.Restore(view); }
+                if (owner.Game.IsRestoring) { visual.Present(null, owner.IsImmersionPaused); visual.Restore(view); }
                 else visual.Present(view, owner.IsImmersionPaused);
             }
         }

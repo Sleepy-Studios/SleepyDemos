@@ -8,7 +8,7 @@ Windows x64 ZIP、Android ARM64 APK；第一人称自由探索、靠近聚焦机
 
 本轮按顺序推进：同步规范→制作赌场大厅/共享二十一点/Hub主页面/加载界面四张可还原参考稿→用户确认视觉后优化Hub和两种Loading→赌场职责整理与PrototypeV2存档→二十一点完整切片及另外两台/大厅→双端样板与演示。图稿不作为运行资源或体验通过证据。
 
-四张稿已形成[可审阅视觉基线](architecture/prototype-v2-visual-review.md)，尚待用户确认；未制作新正式场景/Prefab。独立推进存档代码清理：冒险已改为版本4和PrototypeV2目录，Persistence已移出Adapters；其余旧调用链尚待整理。进度与提交事实见[实施记录](immersion-progress.md)。
+四张稿已形成[可审阅视觉基线](architecture/prototype-v2-visual-review.md)，尚待用户确认；未制作新正式场景/Prefab。存档已改为版本4和PrototypeV2；Persistence与桌面Interaction已移出Adapters，具体Game持有冒险/存档/成长，机台会话直接使用Game/Station，旧认领和TableOperations接口/包装已删除。场景Controller的玩家交互拆分、其余Adapters和旧P0/P4链仍待整理。进度与提交事实见[实施记录](immersion-progress.md)。
 
 赌场使用酒红、深绿、木质、少量黄铜与暖灯；不制作繁密雕花、复杂窗景或大量镜面。Hub独立采用清爽卡片展示，保留现有有效Demo入口。StartupLoading与CommonLoading视觉统一但生命周期独立，保持SetTitle/SetProgress API及真实进度；不新建UI框架或平台专属Prefab。
 

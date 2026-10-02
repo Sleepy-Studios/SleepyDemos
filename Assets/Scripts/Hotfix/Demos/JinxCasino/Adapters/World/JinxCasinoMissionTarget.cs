@@ -40,7 +40,7 @@ namespace Hotfix.JinxCasino.Adapters
         private void OnTriggerEnter(Collider other)
         {
             if (submitted || owner == null || !owner.IsLocalAdventureActor(other.transform)) return;
-            var mission = owner.AdventureState?.ActiveMission;
+            var mission = owner.Game.State?.ActiveMission;
             if (mission == null || mission.Id != missionId) return;
             CasinoTaskAction action = mission.Action;
             if (eventId == "gold_delivery") action = index == 0 ? CasinoTaskAction.Carry : CasinoTaskAction.Deliver;

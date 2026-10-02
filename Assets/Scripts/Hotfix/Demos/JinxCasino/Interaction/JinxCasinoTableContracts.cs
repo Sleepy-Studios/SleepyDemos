@@ -1,37 +1,8 @@
 using Hotfix.JinxCasino.Rules;
+using Hotfix.JinxCasino.Adapters;
 
-namespace Hotfix.JinxCasino.Adapters
+namespace Hotfix.JinxCasino.Interaction
 {
-    /// 桌面控制的薄宿主边界；快照必须复用宿主已有副本，不能在getter重新Capture领域。
-    public interface IJinxCasinoTableOperations
-    {
-        CasinoAdventureState AdventureState { get; }
-        string StationId { get; }
-        CasinoGameKind StationGame { get; }
-        bool IsStationAvailable { get; }
-        string AdventureBetRules { get; }
-        string ActiveRoundDescription { get; }
-        /// 当前活动或已完成局的公开投影，不能读取隐藏牌堆。
-        CasinoMiniGamePresentation GetAdventurePresentation();
-        /// 当前局的真实合法动作。
-        CasinoMiniGameActionDescriptor[] GetAdventureActions();
-        /// 按当前场景配置和区域开放的机台。
-        CasinoGameDefinition[] GetAvailableAdventureGames();
-        /// <summary>通过现有宿主提交明确投入，不预先扣款或构造第二套规则。</summary>
-        /// <param name="requestId">同一操作重试保留的唯一编号。</param>
-        /// <param name="game">实际机台玩法。</param>
-        /// <param name="stake">已确认的最高投入。</param>
-        /// <param name="choice">S1三款均为0。</param>
-        /// <param name="stationId">具体已保存机台ID。</param>
-        CasinoAdventureResult BeginAdventureGame(string requestId, CasinoGameKind game, long stake, int choice, string stationId);
-        /// <summary>通过现有宿主操作已投入且属于本机台的局。</summary>
-        /// <param name="requestId">同一动作重试保留的编号。</param>
-        /// <param name="action">由真实小游戏允许的动作。</param>
-        /// <param name="value">当前动作的参数，单人拉杆仅0。</param>
-        /// <param name="stationId">具体已保存机台ID。</param>
-        CasinoAdventureResult ActInAdventure(string requestId, CasinoMiniGameAction action, int value, string stationId);
-    }
-
     public readonly struct JinxCasinoTableAvailability
     {
         public bool IsAvailable { get; }

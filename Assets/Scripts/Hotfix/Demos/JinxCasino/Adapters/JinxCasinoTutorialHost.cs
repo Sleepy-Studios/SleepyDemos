@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 using System;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
@@ -20,9 +21,9 @@ namespace Hotfix.JinxCasino.Adapters
         /// 包括台内/柜台聚焦与相机退出过渡；完成选择菜单不能在此期间抢走操作焦点。
         public bool HasImmersionFocus => tableFocus?.IsActive ?? false;
         /// 当前练习的教学状态；未开始的正式/普通练习返回None。
-        public CasinoTutorialStatus TutorialStatus => adventureState?.Teaching?.Status ?? CasinoTutorialStatus.None;
+        public CasinoTutorialStatus TutorialStatus => Game.State?.Teaching?.Status ?? CasinoTutorialStatus.None;
         /// 当前持久检查点，必须结合TutorialStatus解释。
-        public CasinoTutorialStep TutorialStep => adventureState?.Teaching?.Step ?? CasinoTutorialStep.Look;
+        public CasinoTutorialStep TutorialStep => Game.State?.Teaching?.Step ?? CasinoTutorialStep.Look;
         /// 最近教学反馈，不覆盖原机台/柜台的真实交易回执。
         public string TutorialFeedback { get; private set; }
         /// 非模态操作提示；UI只显示，不自行提交教学事实。
@@ -82,17 +83,11 @@ namespace Hotfix.JinxCasino.Adapters
         public CasinoAdventureResult StartTutorialAdventure(bool replaceCurrentRun = false, uint? seed = null)
         {
             if (!UsesImmersion || IsBusy || IsLegacySession) return TutorialFailure("TutorialUnavailable", "请先结束当前操作，并从沉浸样板进入教学。");
-            if (adventure != null && !replaceCurrentRun) return TutorialFailure("TutorialReplacementRequired", "先选择保存或放弃当前局，再明确重玩教学。");
+            if (Game.HasAdventure && !replaceCurrentRun) return TutorialFailure("TutorialReplacementRequired", "先选择保存或放弃当前局，再明确重玩教学。");
             try
             {
                 var config = gameSettings != null ? gameSettings.CreateConfig() : new CasinoAdventureConfig();
-                config.MaximumStake = 10; config.EventIntervalMilliseconds = 0;
-                var started = CasinoAdventureSession.Start(seed ?? unchecked((uint)Guid.NewGuid().GetHashCode()), CasinoAdventureMode.Practice, 1, config);
-                var result = started.StartTutorial(CommandId());
-                if (!result.Success) return PublishTutorialFeedback(result);
-                // 新聚合先成功启动教学再交给宿主。任何失败都不能丢弃用户旧局，且无一帧计时间隙。
-                AdoptAdventureSession(started, result.Description);
-                return PublishTutorialFeedback(result);
+                return PublishTutorialFeedback(Game.StartTutorialAdventure(config, replaceCurrentRun, seed));
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is OverflowException)
             { return TutorialFailure("TutorialStartFailed", exception.Message); }
@@ -101,29 +96,28 @@ namespace Hotfix.JinxCasino.Adapters
         /// 明确跳过提示，保留本Practice的钱包、库存与已经投入的活动局。
         public CasinoAdventureResult SkipTutorial()
         {
-            if (adventure == null || IsBusy) return TutorialFailure("TutorialInactive", "当前没有可操作教学。");
-            var result = adventure.SkipTutorial(CommandId());
-            if (result.Changed) { ResetTutorialObservations(); RefreshAdventureState(); }
+            if (!Game.HasAdventure || IsBusy) return TutorialFailure("TutorialInactive", "当前没有可操作教学。");
+            var result = Game.SkipTutorial();
+            if (result.Changed) ResetTutorialObservations();
             return PublishTutorialFeedback(result);
         }
 
         /// Ready后由玩家明确完成；仍保留Practice，不自动开始正式局或搬运练习钱包。
         public CasinoAdventureResult CompleteTutorial()
         {
-            if (adventure == null || IsBusy || TutorialStatus != CasinoTutorialStatus.Active || TutorialStep != CasinoTutorialStep.Ready)
+            if (!Game.HasAdventure || IsBusy || TutorialStatus != CasinoTutorialStatus.Active || TutorialStep != CasinoTutorialStep.Ready)
                 return TutorialFailure("TutorialNotReady", "请先完成实际教学步骤。");
-            var result = adventure.ObserveTutorial(CasinoTutorialFact.Continue, 1);
-            if (result.Changed) RefreshAdventureState();
+            var result = Game.CompleteTutorial();
             return PublishTutorialFeedback(result);
         }
 
         private bool SynchronizeTutorialObservation()
         {
-            var teaching = adventureState?.Teaching;
-            if (adventure == null || teaching?.Status != CasinoTutorialStatus.Active) return false;
-            if (tutorialObservedRun != adventureState.RunId || tutorialObservedStep != teaching.Step)
+            var teaching = Game.State?.Teaching;
+            if (!Game.HasAdventure || teaching?.Status != CasinoTutorialStatus.Active) return false;
+            if (tutorialObservedRun != Game.State.RunId || tutorialObservedStep != teaching.Step)
             {
-                tutorialObservedRun = adventureState.RunId; tutorialObservedStep = teaching.Step;
+                tutorialObservedRun = Game.State.RunId; tutorialObservedStep = teaching.Step;
                 tutorialLookDegrees = teaching.LookMillidegrees / 1000d; tutorialWalkMeters = teaching.WalkMillimeters / 1000d;
                 tutorialReportedLook = teaching.LookMillidegrees; tutorialReportedWalk = teaching.WalkMillimeters;
                 tutorialReportedWalkStation = null; tutorialNextObservationTime = 0; tutorialAttemptedSettlement = 0;
@@ -134,7 +128,7 @@ namespace Hotfix.JinxCasino.Adapters
         // 唯一调用点在探索旋转和CharacterController.Move之后；不观察Focus/Restore/传送产生的变换。
         private void ObserveTutorialAppliedExploration(float appliedYaw, float appliedPitch, float distance, bool hadMoveInput)
         {
-            if (IsImmersionPaused || IsAdventureInputBlocked || adventureRestoreInProgress || !SynchronizeTutorialObservation()) return;
+            if (IsImmersionPaused || IsAdventureInputBlocked || Game.IsRestoring || !SynchronizeTutorialObservation()) return;
             if (tutorialObservedStep == CasinoTutorialStep.Look)
             {
                 tutorialLookDegrees = Math.Min(15, tutorialLookDegrees + Math.Abs(appliedYaw) + Math.Abs(appliedPitch));
@@ -195,7 +189,7 @@ namespace Hotfix.JinxCasino.Adapters
         // 在实际共享聚焦时钟Tick后观察；不能把加载/传送的系统清理算作玩家离桌。
         private void UpdateTutorialSceneFacts()
         {
-            if (IsImmersionPaused || IsAdventureInputBlocked || adventureRestoreInProgress || !SynchronizeTutorialObservation()) return;
+            if (IsImmersionPaused || IsAdventureInputBlocked || Game.IsRestoring || !SynchronizeTutorialObservation()) return;
             if (tutorialPendingExitStation != null && tableFocus != null && !tableFocus.IsActive)
             {
                 string left = tutorialPendingExitStation; tutorialPendingExitStation = null;
@@ -209,10 +203,10 @@ namespace Hotfix.JinxCasino.Adapters
                 return;
             }
             if (TutorialStep != CasinoTutorialStep.SlotsResult && TutorialStep != CasinoTutorialStep.Blackjack && TutorialStep != CasinoTutorialStep.Levers) return;
-            if (stationId != adventureState.Teaching.StationId || focusedPresentation == null) return;
-            int sequence = adventureState.SettledRoundSequence;
-            if (sequence <= adventureState.Teaching.SettlementBaseline || sequence == tutorialAttemptedSettlement ||
-                adventureState.LastStationId != stationId || focusedPresentation.PresentedSettlementSequence != sequence) return;
+            if (stationId != Game.State.Teaching.StationId || focusedPresentation == null) return;
+            int sequence = Game.State.SettledRoundSequence;
+            if (sequence <= Game.State.Teaching.SettlementBaseline || sequence == tutorialAttemptedSettlement ||
+                Game.State.LastStationId != stationId || focusedPresentation.PresentedSettlementSequence != sequence) return;
             // 只尝试一次同序号结果。协作失败要给真实重试提示，不能每次Refresh反复核验/刷回执。
             tutorialAttemptedSettlement = sequence;
             ObserveTutorialFact(CasinoTutorialFact.RoundPresented, sequence, stationId);
@@ -233,12 +227,10 @@ namespace Hotfix.JinxCasino.Adapters
         private CasinoAdventureResult ObserveTutorialFact(CasinoTutorialFact fact, int value, string stationId = null, bool publish = true)
         {
             // 教学观察有自己的只读事实入口，不能占用lastUserCommandFrame或伪造经济请求编号。
-            var result = adventure.ObserveTutorial(fact, value, stationId);
+            var result = Game.ObserveTutorial(fact, value, stationId, publish);
             if (result.Changed)
             {
                 TutorialFeedback = null;
-                if (publish) RefreshAdventureState();
-                else adventureState = adventure.CaptureState(); // 保存/销毁前只刷新持久副本，不递归触发场景表现和View。
             }
             else if (!result.Success && publish)
             {
@@ -255,6 +247,6 @@ namespace Hotfix.JinxCasino.Adapters
             ImmersionInputChanged?.Invoke(); return result;
         }
         private CasinoAdventureResult TutorialFailure(string error, string description) => PublishTutorialFeedback(
-            new CasinoAdventureResult { Error = error, Description = description, Balance = adventureState?.Coins ?? 0 });
+            new CasinoAdventureResult { Error = error, Description = description, Balance = Game.State?.Coins ?? 0 });
     }
 }

@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 using Core.Runtime.Inputs;
 using Hotfix.JinxCasino.Rules;
 using TMPro;
@@ -109,7 +110,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             RefreshTutorialControls(state);
             RefreshSaveControls(state);
             RefreshStandardEndingControls(state);
-            var adventure = owner.AdventureState;
+            var adventure = owner.Game.State;
             wallet.text = "筹码  " + owner.Balance;
             objective.text = AdventureObjective(adventure);
             var table = owner.TableView;
@@ -136,7 +137,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (state.Phase == CasinoAdventurePhase.Closing) return "时间结束 · 完成当前机台";
             if (state.Phase == CasinoAdventurePhase.Finale) return "核验通过 · 前往离场口";
             if (state.Phase == CasinoAdventurePhase.Failed) return "本次未达标 · 前往离场口";
-            return "目标 " + owner.AdventureTarget + "   ·   " + Mathf.CeilToInt(state.RemainingMilliseconds / 1000f) + " 秒";
+            return "目标 " + owner.Game.Target + "   ·   " + Mathf.CeilToInt(state.RemainingMilliseconds / 1000f) + " 秒";
         }
 
         private string InteractionFeedback(JinxCasinoTableView table)
@@ -145,12 +146,12 @@ namespace Hotfix.JinxCasino.Adapters.UI
             if (table == null)
             {
                 if (owner.IsExitTerminalNearby) return owner.ExitFeedback ?? string.Empty;
-                var state = owner.AdventureState;
+                var state = owner.Game.State;
                 if (state?.Mode != CasinoAdventureMode.Standard) return string.Empty;
                 if (state.Phase == CasinoAdventurePhase.Closing) return "时间到了，先回到原机台完成这一局。";
                 if (state.Phase == CasinoAdventurePhase.Finale) return "验票通过，前往离场口领取离场券。";
                 if (state.Phase == CasinoAdventurePhase.Failed) return "本次未达标，前往离场口结束旅程。";
-                if (state.Phase == CasinoAdventurePhase.Playing && state.Coins >= owner.AdventureTarget) return "筹码已达标，前往验票口核验。";
+                if (state.Phase == CasinoAdventurePhase.Playing && state.Coins >= owner.Game.Target) return "筹码已达标，前往验票口核验。";
                 return string.Empty;
             }
             if (owner.HasTableFeedbackError) return owner.TableFeedback;

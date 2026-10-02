@@ -47,7 +47,7 @@ namespace Hotfix.JinxCasino.Adapters
         public bool Send(string id)
         {
             int index = Array.IndexOf(CasinoLocalMessages.Ids, id);
-            if (owner == null || !owner.HasAdventure || owner.AdventureState.Phase == CasinoAdventurePhase.Ended || index < 0) return Reject("请开始旅程并选择消息。");
+            if (owner == null || !owner.Game.HasAdventure || owner.Game.State.Phase == CasinoAdventurePhase.Ended || index < 0) return Reject("请开始旅程并选择消息。");
             if (!CanAct()) return false;
             nextActionAt = Time.unscaledTime + 1;
             message = "单人提示：" + CasinoLocalMessages.Labels[index]; messageUntil = Time.unscaledTime + 4;
@@ -59,7 +59,7 @@ namespace Hotfix.JinxCasino.Adapters
         /// <returns>生成保存标记实例时为true。</returns>
         public bool Mark(JinxCasinoStation station)
         {
-            if (owner == null || !owner.HasAdventure || owner.AdventureState.Phase == CasinoAdventurePhase.Ended || station == null ||
+            if (owner == null || !owner.Game.HasAdventure || owner.Game.State.Phase == CasinoAdventurePhase.Ended || station == null ||
                 !station.isActiveAndEnabled || owner.GetNearbyLocalSocialStation() != station) return Reject("暂无附近机台，请靠近后再标记。");
             if (markerPrefab == null || markerPrefab.GetComponentsInChildren<Collider>(true).Length > 0 ||
                 markerPrefab.GetComponentsInChildren<Camera>(true).Length > 0 || markerPrefab.GetComponentsInChildren<AudioListener>(true).Length > 0)
@@ -100,8 +100,8 @@ namespace Hotfix.JinxCasino.Adapters
         }
         private void ObserveRun()
         {
-            var state = owner != null ? owner.AdventureState : null;
-            if (state == null || owner.IsAdventureRestoreInProgress || state.RunId != runId || state.StageIndex != stageIndex || state.Phase == CasinoAdventurePhase.Ended)
+            var state = owner != null ? owner.Game.State : null;
+            if (state == null || owner.Game.IsRestoring || state.RunId != runId || state.StageIndex != stageIndex || state.Phase == CasinoAdventurePhase.Ended)
                 Clear();
             runId = state?.RunId; stageIndex = state?.StageIndex ?? -1;
         }

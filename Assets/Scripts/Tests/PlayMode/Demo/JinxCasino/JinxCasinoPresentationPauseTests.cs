@@ -122,14 +122,14 @@ namespace Tests.Demo
             typeof(JinxCasinoStationPresentation).GetMethod("Setup").Invoke(presentation, new object[] { owner, station, model, null, null });
             machine.SetActive(true); owner.StartAdventure(CasinoAdventureMode.Practice, 5);
             yield return null; yield return null;
-            Assert.That(owner.BeginAdventureGame("one-confirm", CasinoGameKind.Slots, 10, 0).Success, Is.True);
+            Assert.That(owner.Game.BeginGame("one-confirm", CasinoGameKind.Slots, 10, 0, null, Time.frameCount).Success, Is.True);
             yield return null; yield return null;
-            Quaternion before = reel.localRotation; long wallet = owner.AdventureState.Coins;
+            Quaternion before = reel.localRotation; long wallet = owner.Game.State.Coins;
             owner.BindAdventurePresenter(null, true, true);
             yield return new WaitForSecondsRealtime(.18f);
             Assert.That(owner.IsImmersionPaused, Is.True);
             Assert.That(reel.localRotation, Is.EqualTo(before));
-            Assert.That(owner.AdventureState.Coins, Is.EqualTo(wallet));
+            Assert.That(owner.Game.State.Coins, Is.EqualTo(wallet));
             owner.BindAdventurePresenter(null, false); driver.Speed = 5;
             yield return Until(() => Quaternion.Angle(reel.localRotation, before) > 1, "明确继续后拉轮继续演出");
             driver.Speed = 30;
@@ -137,7 +137,7 @@ namespace Tests.Demo
             Quaternion settled = reel.localRotation;
             yield return new WaitForSecondsRealtime(.05f);
             Assert.That(reel.localRotation, Is.EqualTo(settled), "结束后保持实际结果，不重启动画。");
-            Assert.That(owner.AdventureState.Coins, Is.EqualTo(wallet), "只恢复演出，不重复付款开奖。");
+            Assert.That(owner.Game.State.Coins, Is.EqualTo(wallet), "只恢复演出，不重复付款开奖。");
         }
 
         private GameObject Child(string name)

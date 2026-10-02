@@ -61,8 +61,8 @@ namespace Hotfix.JinxCasino.Adapters.UI
             refreshing = true;
             try
             {
-                var data = owner.ProfileData;
-                summary.text = data == null ? owner.ProfileStatus : "声望 " + data.Fame + " · 等级 " + owner.ProfileLevel + " · 正式旅程 " + data.FinishedRuns + "\n" + owner.ProfileStatus;
+                var data = owner.Game.ProfileData;
+                summary.text = data == null ? owner.Game.ProfileStatus : "声望 " + data.Fame + " · 等级 " + owner.Game.ProfileLevel + " · 正式旅程 " + data.FinishedRuns + "\n" + owner.Game.ProfileStatus;
                 wardrobeControls.SetActive(page == 1 && data != null);
                 if (data == null) { content.text = "档案读取失败时保留已有文件，旅程存档与档案分开。"; return; }
                 if (page == 0) content.text = Statistics(data);
@@ -93,7 +93,7 @@ namespace Hotfix.JinxCasino.Adapters.UI
         {
             if (refreshing || owner == null || kind < 0 || kind >= choices.Length || value < 0 || value >= choices[kind].Count) return;
             string id = choices[kind][value];
-            owner.EquipProfile(kind == 0 ? id : null, kind == 1 ? id : null, kind == 2 ? id : null, kind == 3 ? id : null);
+            owner.Game.EquipProfile(kind == 0 ? id : null, kind == 1 ? id : null, kind == 2 ? id : null, kind == 3 ? id : null);
             Refresh();
         }
 

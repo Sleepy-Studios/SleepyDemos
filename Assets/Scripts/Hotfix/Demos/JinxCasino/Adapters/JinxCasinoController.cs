@@ -38,9 +38,9 @@ namespace Hotfix.JinxCasino.Adapters
         /// P0 状态与错误信息。
         public string Status { get; private set; } = "P0：选择互联网房间或明确的离线规则验证。";
         /// 当前已提交的共享钱包。
-        public long Balance => adventureState?.Coins ?? coordinator?.Session?.Balance ?? 0;
+        public long Balance => Game.State?.Coins ?? coordinator?.Session?.Balance ?? 0;
         /// 真正的传输性质，空闲时没有会话。
-        public NetworkTransportKind? TransportKind => adventure != null ? NetworkTransportKind.Offline : network?.CurrentSession?.TransportKind;
+        public NetworkTransportKind? TransportKind => Game.HasAdventure ? NetworkTransportKind.Offline : network?.CurrentSession?.TransportKind;
         /// 当前房间码，离线会话不作为可分享的互联网房间。
         public string RoomCode => network?.CurrentSession?.Code.ToString() ?? string.Empty;
         /// 最近一笔本地请求的结果。
@@ -197,6 +197,7 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void Update()
         {
+            Game.CommandInputEnabled = !IsBusy;
             if (UsesImmersion) { UpdateImmersion(); return; }
             if (isExiting || !hasFocus || isApplicationPaused || worldCamera == null || body == null) return;
             UpdateAdventure(Time.deltaTime);
@@ -258,10 +259,11 @@ namespace Hotfix.JinxCasino.Adapters
         /// 独立包返回本游戏主菜单，Editor的Hub接入保持原行为。
         public bool IsStandalonePlayer => GameSceneNavigator.Instance?.StandaloneScene == GameSceneId.JinxCasino;
         /// 仅独立包主菜单接受退出应用，不用此方法丢弃正在进行的旅程。
-        public void QuitStandaloneApplication() { if (IsStandalonePlayer && !HasAdventure && !IsBusy) Application.Quit(); }
+        public void QuitStandaloneApplication() { if (IsStandalonePlayer && !Game.HasAdventure && !IsBusy) Application.Quit(); }
         private async UniTaskVoid ExitAsync()
         {
             isExiting = true;
+            Game.CommandInputEnabled = false;
             SaveAdventureBeforeExit();
             try
             {
@@ -309,6 +311,8 @@ namespace Hotfix.JinxCasino.Adapters
             isExiting = true;
             DisposeImmersionInput();
             SaveAdventureBeforeExit();
+            ReleaseGameSubscriptions();
+            Game.CommandInputEnabled = false;
             lifetime?.Cancel();
             var previousCoordinator = coordinator; coordinator = null;
             previousCoordinator?.Dispose();

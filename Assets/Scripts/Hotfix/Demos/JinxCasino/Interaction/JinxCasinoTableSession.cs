@@ -1,13 +1,15 @@
 using System;
 using System.Linq;
 using Hotfix.JinxCasino.Rules;
+using Hotfix.JinxCasino.Adapters;
 
-namespace Hotfix.JinxCasino.Adapters
+namespace Hotfix.JinxCasino.Interaction
 {
     /// S1三款物理机台控制。只保留未提交草稿，全部资金、随机、局与幂等仍属于原冒险聚合。
     public sealed class JinxCasinoTableSession
     {
-        private readonly IJinxCasinoTableOperations host;
+        private readonly JinxCasinoGame gameFlow;
+        private readonly JinxCasinoStation station;
         private readonly string stationId;
         private readonly CasinoGameKind game;
         private long draftStake;
@@ -31,16 +33,16 @@ namespace Hotfix.JinxCasino.Adapters
         public string LastRequestId => lastCommand?.RequestId;
 
         /// <summary>进入具体机台建立本地草稿；重返只读取原机台已投入局，构造不开奖或支付。</summary>
-        /// <param name="operations">本台的薄宿主适配，使用已有AdventureState副本。</param>
-        /// <param name="id">具体保存的机台ID，非空且符合规则ID格式。</param>
-        /// <param name="kind">S1仅水果机、二十一点、合拍拉杆。</param>
-        public JinxCasinoTableSession(IJinxCasinoTableOperations operations, string id, CasinoGameKind kind)
+        /// <param name="flow">本场景唯一游戏对象，提供既有缓存状态和规则操作。</param>
+        /// <param name="table">已保存的具体机台，不按游戏类型猜测身份。</param>
+        public JinxCasinoTableSession(JinxCasinoGame flow, JinxCasinoStation table)
         {
-            host = operations ?? throw new ArgumentNullException(nameof(operations));
-            if (!ValidId(id)) throw new ArgumentException("需要具体保存的机台ID。", nameof(id));
-            if (kind != CasinoGameKind.Slots && kind != CasinoGameKind.Blackjack && kind != CasinoGameKind.CooperativeLevers)
-                throw new ArgumentOutOfRangeException(nameof(kind), "S1仅接入三款样板机台。");
-            stationId = id; game = kind;
+            gameFlow = flow ?? throw new ArgumentNullException(nameof(flow));
+            station = table != null ? table : throw new ArgumentNullException(nameof(table));
+            if (!ValidId(table.StationId)) throw new ArgumentException("需要具体保存的机台ID。", nameof(table));
+            if (table.Game != CasinoGameKind.Slots && table.Game != CasinoGameKind.Blackjack && table.Game != CasinoGameKind.CooperativeLevers)
+                throw new ArgumentOutOfRangeException(nameof(table), "S1仅接入三款样板机台。");
+            stationId = table.StationId; game = table.Game;
         }
 
         /// 读取当前本台可见状态；不会Capture新领域快照、绑定其它局、随机或支付。
@@ -104,7 +106,7 @@ namespace Hotfix.JinxCasino.Adapters
             {
                 ClearDraft(); return Finish(Local("筹码草稿已清空，已投入局保持原状态。"));
             }
-            var state = host.AdventureState;
+            var state = gameFlow.State;
             if (action == JinxCasinoTableAction.Commit)
             {
                 if (game == CasinoGameKind.Slots)
@@ -112,13 +114,13 @@ namespace Hotfix.JinxCasino.Adapters
                     slotsPrepared = true; preparationKey = PreparationKey(state); preparationReason = null;
                     return Finish(Local("已确认草稿；拉下将投入 " + draftStake + " 筹码。"));
                 }
-                return Finish(Send(NewCommand(CommandKind.Begin, state)));
+                return Finish(Send(NewCommand(CommandKind.Begin, state), frameId));
             }
-            if (game == CasinoGameKind.Slots) return Finish(Send(NewCommand(CommandKind.Begin, state)));
+            if (game == CasinoGameKind.Slots) return Finish(Send(NewCommand(CommandKind.Begin, state), frameId));
             var command = NewCommand(CommandKind.Act, state);
             command.Action = game == CasinoGameKind.Blackjack ? action == JinxCasinoTableAction.Primary ? CasinoMiniGameAction.Hit : CasinoMiniGameAction.Stand : CasinoMiniGameAction.PullLever;
             command.Value = value;
-            return Finish(Send(command));
+            return Finish(Send(command, frameId));
         }
 
         /// <summary>重试最近一条领域命令，保留请求与原参数；不复用到新局或更早的恢复检查点。</summary>
@@ -134,7 +136,7 @@ namespace Hotfix.JinxCasino.Adapters
             if (receipt == null && (state.StageIndex != lastCommand.StageIndex ||
                 lastCommand.Kind == CommandKind.Begin && game == CasinoGameKind.Slots && (!slotsPrepared || preparationKey != lastCommand.PreparationKey)))
                 return Finish(Fail("PreparationChanged", "阶段或投入规则已改变，请重新确认。"));
-            return Finish(Send(lastCommand));
+            return Finish(Send(lastCommand, frameId));
         }
 
         /// 离开只取消本地草稿，已投入局仍在原机台；重返创建新Session读取原快照。
@@ -142,17 +144,17 @@ namespace Hotfix.JinxCasino.Adapters
 
         private CasinoAdventureState ReadState()
         {
-            var state = host.AdventureState;
+            var state = gameFlow.State;
             if (!ReferenceEquals(state, cachedState))
             {
-                cachedState = state; cachedPresentation = host.GetAdventurePresentation();
-                cachedActions = host.GetAdventureActions() ?? Array.Empty<CasinoMiniGameActionDescriptor>();
-                cachedGames = host.GetAvailableAdventureGames() ?? Array.Empty<CasinoGameDefinition>();
+                cachedState = state; cachedPresentation = gameFlow.GetPresentation();
+                cachedActions = gameFlow.GetActions() ?? Array.Empty<CasinoMiniGameActionDescriptor>();
+                cachedGames = gameFlow.GetAvailableGames() ?? Array.Empty<CasinoGameDefinition>();
             }
             return state;
         }
 
-        private bool StationMatches => host.IsStationAvailable && host.StationId == stationId && host.StationGame == game;
+        private bool StationMatches => station != null && station.isActiveAndEnabled && station.HasTableInteraction && station.StationId == stationId && station.Game == game;
         private bool HasAction(CasinoMiniGameAction action) => cachedActions.Any(entry => entry.Kind == action);
 
         private string LocalRules(CasinoAdventureState state, long maximum, bool helped)
@@ -196,11 +198,11 @@ namespace Hotfix.JinxCasino.Adapters
             Kind = kind, Stake = draftStake, PreparationKey = preparationKey
         };
 
-        private JinxCasinoTableResult Send(DomainCommand command)
+        private JinxCasinoTableResult Send(DomainCommand command, int frameId)
         {
             lastCommand = command;
-            CasinoAdventureResult result = command.Kind == CommandKind.Begin ? host.BeginAdventureGame(command.RequestId, game, command.Stake, 0, stationId) :
-                host.ActInAdventure(command.RequestId, command.Action, command.Value, stationId);
+            CasinoAdventureResult result = command.Kind == CommandKind.Begin ? gameFlow.BeginGame(command.RequestId, game, command.Stake, 0, stationId, frameId) :
+                gameFlow.Act(command.RequestId, command.Action, command.Value, stationId, frameId);
             if (result.Success && !command.AppliedLocally)
             {
                 if (command.Kind == CommandKind.Begin) ClearDraft();

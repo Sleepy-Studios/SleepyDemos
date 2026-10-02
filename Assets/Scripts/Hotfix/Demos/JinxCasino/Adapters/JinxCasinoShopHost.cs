@@ -44,7 +44,7 @@ namespace Hotfix.JinxCasino.Adapters
 
         private void ApplyShopCommand(JinxCasinoTableAction action, int value)
         {
-            if (focusedShop == null || !tableFocus.IsReady || IsImmersionPaused || !IsShopNearby || adventure == null ||
+            if (focusedShop == null || !tableFocus.IsReady || IsImmersionPaused || !IsShopNearby || !Game.HasAdventure ||
                 lastShopActionFrame == Time.frameCount) return;
             lastShopActionFrame = Time.frameCount;
             if (action == JinxCasinoTableAction.SelectProduct)
@@ -57,9 +57,9 @@ namespace Hotfix.JinxCasino.Adapters
                 var item = focusedShop.Product(selectedShopProduct);
                 if (item == null) return;
                 CasinoAdventureResult result = null;
-                if (action == JinxCasinoTableAction.PurchaseProduct) result = PurchaseItem(item.Id);
+                if (action == JinxCasinoTableAction.PurchaseProduct) result = Game.PurchaseItem(item.Id, Time.frameCount);
                 else if (action == JinxCasinoTableAction.UseProduct || action == JinxCasinoTableAction.Secondary)
-                    result = AdventureState.PreparedItems.Contains(item.Id) ? CancelPreparedItem(item.Id) : UseAdventureItem(item.Id, "team");
+                    result = Game.State.PreparedItems.Contains(item.Id) ? Game.CancelPreparedItem(item.Id, Time.frameCount) : UseAdventureItem(item.Id, "team");
                 else if (action == JinxCasinoTableAction.Help) ShopFeedback = item.Description;
                 if (result != null)
                 {
@@ -70,7 +70,7 @@ namespace Hotfix.JinxCasino.Adapters
             RefreshImmersionShop(); ImmersionInputChanged?.Invoke();
         }
 
-        private void RefreshImmersionShop() => focusedShop?.Present(AdventureState, selectedShopProduct, ShopFeedback);
+        private void RefreshImmersionShop() => focusedShop?.Present(Game.State, selectedShopProduct, ShopFeedback);
 
         private void CloseImmersionShop()
         {

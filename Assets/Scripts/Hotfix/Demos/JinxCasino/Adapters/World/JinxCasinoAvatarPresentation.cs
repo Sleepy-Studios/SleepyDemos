@@ -94,7 +94,7 @@ namespace Hotfix.JinxCasino.Adapters
         private void RefreshProfile()
         {
             // ProfileData是深副本，只在绑定或Changed时读取；每帧运动使用缓存。
-            var data = owner.ProfileData;
+            var data = owner.Game.ProfileData;
             if (data == null) return;
             unlockedEmotes.Clear();
             foreach (var id in data.UnlockedIds) if (id.StartsWith("emote_", StringComparison.Ordinal)) unlockedEmotes.Add(id);

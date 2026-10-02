@@ -30,9 +30,9 @@ namespace Hotfix.JinxCasino.Adapters
         private void Refresh()
         {
             if (owner == null || station == null) return;
-            var state = owner.AdventureState;
+            var state = owner.Game.State;
             bool available = state != null && state.StageIndex % 4 == station.AreaIndex && state.GameRotationOffset > 0;
-            if (owner.HasActiveAdventureRound && lastGame == (int)state.ActiveGame) return;
+            if (owner.Game.HasActiveRound && lastGame == (int)state.ActiveGame) return;
             station.enabled = available;
             int index = available ? (state.StageIndex * 5 + state.GameRotationOffset) % 17 : -1;
             if (index == lastGame && index >= 0) return;

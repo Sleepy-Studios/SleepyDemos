@@ -10,6 +10,8 @@ PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案
 - `Rules/MiniGames/CasinoMiniGameRound.cs`：17款独立规则、操作路由、随机状态和公开表现数据。
 - `Rules/Adventure/CasinoAdventureSession.cs`：阶段、钱包、库存、事件、活动局、请求去重与结算。
 - `Rules/Progression/`：永久成长和解锁目录；练习不计正式战绩。
+- `JinxCasinoGame.cs`：持有唯一冒险及档案，协调命令、整数计时、缓存、三槽和恢复；不持有Controller或场景对象。
+- `Interaction/`：具体机台会话、公开View/Result/Availability；直接使用Game和Station，不另建转发接口。
 - `Persistence/`：三槽冒险、永久档案的原子写入与损坏恢复，本机偏好单独保存。
 
 表现读取公开数据，不读取隐藏牌、密码或秘密报价。动画和物理不能决定收益。所有扣款、实际成交价、奖励、消耗通过规则入口执行；已提交操作不能因关闭界面或重返机台重复执行。

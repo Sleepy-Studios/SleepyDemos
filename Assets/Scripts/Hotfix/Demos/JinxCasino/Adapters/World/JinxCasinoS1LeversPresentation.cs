@@ -1,3 +1,4 @@
+using Hotfix.JinxCasino.Interaction;
 using System;
 using Hotfix.JinxCasino.Rules;
 using TMPro;

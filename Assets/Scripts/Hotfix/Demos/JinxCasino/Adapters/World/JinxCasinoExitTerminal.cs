@@ -56,18 +56,18 @@ namespace Hotfix.JinxCasino.Adapters
         private void Refresh()
         {
             if (caption == null || status == null || owner == null) return;
-            var state = owner.AdventureState;
+            var state = owner.Game.State;
             if (state == null || state.Mode != CasinoAdventureMode.Standard || state.Config.StageCount != 1)
             { caption.text = action == JinxCasinoExitAction.Verify ? "验票口" : "离场口"; status.text = "标准冒险结束后\n在这里离场"; return; }
             if (state.Phase == CasinoAdventurePhase.Ended)
             { caption.text = "返回大厅"; status.text = state.Ending == CasinoAdventureEnding.LeaveWithDignity ? "见好就收\n体面离场" : "带着剩余筹码\n下次再来"; return; }
-            if (owner.HasActiveAdventureRound)
+            if (owner.Game.HasActiveRound)
             { caption.text = action == JinxCasinoExitAction.Verify ? "验票口" : "离场口"; status.text = "先回原机台\n完成这一局"; return; }
             if (action == JinxCasinoExitAction.Verify)
             {
                 caption.text = state.Phase == CasinoAdventurePhase.Finale ? "验票通过" : "核验筹码";
                 status.text = state.Phase == CasinoAdventurePhase.Finale ? "前往另一侧离场口\n领取离场券" :
-                    state.Phase == CasinoAdventurePhase.Failed ? "时间已到\n前往离场口" : "持有 " + state.Coins + " / " + owner.AdventureTarget + "\n达标后在此核验";
+                    state.Phase == CasinoAdventurePhase.Failed ? "时间已到\n前往离场口" : "持有 " + state.Coins + " / " + owner.Game.Target + "\n达标后在此核验";
             }
             else
             {
