@@ -2,9 +2,10 @@
 
 Windows / Android 原创单机赌场冒险。内部标识 JinxCasino / jinx_casino。
 
-当前执行**单机沉浸重做 S0–S5**：第一人称探索、聚焦实体桌面、完整教学、统一视觉、键鼠/触屏/Xbox手柄。先完成水果机、二十一点、协作拉杆三款体验样板，由用户确认后再扩展。联网移出本轮，选型待定。
+当前按用户要求**暂停实现，先复核手机交互、美术与代码职责**。原单机沉浸重做S0–S5目标保留，S1画面和手机操作尚未获认可；新提案待审阅，不自动继续扩展。联网移出本轮，选型待定。
 
 - [当前计划与验收门槛](implementation.md)
+- [体验与美术重做提案（待审阅）](architecture/experience-redesign-proposal.md)
 - [当前进度与提交记录](immersion-progress.md)
 - [视觉与交互规范](architecture/immersion-design.md)
 - [可复用规则与存档边界](architecture/rules-baseline.md)
