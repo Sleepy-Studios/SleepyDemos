@@ -24,6 +24,13 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Title;
         private LoopScrollView LoopScrollView_DemoList;
         private TextMeshProUGUI TextMeshProUGUI_Status;
+        private UIImageLoader UIImageLoader_Hero;
+        private TextMeshProUGUI TextMeshProUGUI_Subtitle;
+        private TextMeshProUGUI TextMeshProUGUI_Description;
+        private Button Button_Start;
+        private Button Button_Settings;
+        private TextMeshProUGUI TextMeshProUGUI_StartLabel;
+        private TextMeshProUGUI TextMeshProUGUI_Hints;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -39,6 +46,15 @@ namespace Hotfix
             TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
             LoopScrollView_DemoList = componentItemIndex.Get<LoopScrollView>(2);
             TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(3);
+            UIImageLoader_Hero = componentItemIndex.Get<UIImageLoader>(4);
+            TextMeshProUGUI_Subtitle = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(6);
+            Button_Start = componentItemIndex.Get<Button>(7);
+            Button_Settings = componentItemIndex.Get<Button>(8);
+            TextMeshProUGUI_StartLabel = componentItemIndex.Get<TextMeshProUGUI>(9);
+            TextMeshProUGUI_Hints = componentItemIndex.Get<TextMeshProUGUI>(10);
+            this.RegisterButton(Button_Start, OnStartClick);
+            this.RegisterButton(Button_Settings, OnSettingsClick);
         }
     }
 }

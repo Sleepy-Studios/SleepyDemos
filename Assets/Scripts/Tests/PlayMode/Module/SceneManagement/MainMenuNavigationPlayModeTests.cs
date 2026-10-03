@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Core.Runtime;
+using Core.Runtime.Inputs;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.SceneManagement;
@@ -43,6 +44,9 @@ namespace Tests.Module
             yield return null; yield return null;
             Vector2 position = ButtonPosition(button);
             yield return Click(position);
+            Assert.That(runtime.LoadCount, Is.Zero, "点击卡片只切换预览，不能误进入场景。");
+            position = ButtonPosition(Field<Button>(firstMenu, "Button_Start"));
+            yield return Click(position);
             yield return Wait(() => runtime.LoadCount == 1 && firstMenu.State == ViewState.Destroyed, "Loading 替换旧 Hub", 15);
             yield return Click(position);
             Assert.That(runtime.LoadCount, Is.EqualTo(1), "加载期间重复点击不能再发起进入请求。");
@@ -58,15 +62,17 @@ namespace Tests.Module
             Assert.That(feedbackSize.x, Is.LessThanOrEqualTo(feedback.rectTransform.rect.width), "失败提示应在已有控件内完整显示。");
             Assert.That(feedbackSize.y, Is.LessThanOrEqualTo(feedback.rectTransform.rect.height), "失败提示不能溢出遮住入口。");
             foreach (var card in VisibleCards(restoredMenu))
-                Assert.That(card.Button.interactable, Is.EqualTo(card.Entry.SceneId.HasValue), "未开放卡片不能操作，已开放入口应恢复。");
+                Assert.That(card.Button.interactable, Is.True, "恢复后所有卡片可浏览；未开放限制由开始按钮承担。");
 
             // 新实例需要经过帧末 Canvas 注册/布局；随后仍验证真实射线并通过 InputSystem 点击。
             yield return null; yield return null;
-            yield return Click(ButtonPosition(CardForScene(restoredMenu, GameSceneId.JinxCasino)));
+            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo("倒霉蛋俱乐部"), "失败恢复应保留待重试玩法。");
+            yield return Click(ButtonPosition(Field<Button>(restoredMenu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 2, "新 Hub 可以实际点击重试", 15);
             LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenuView\] 无法进入 JinxCasino：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "重试失败也能恢复", 15);
+            yield return null; yield return null;
             Assert.That(CardForScene(UIManager.Instance.Get<MainMenuView>(), GameSceneId.JinxCasino).interactable, Is.True);
         }
 
@@ -77,7 +83,7 @@ namespace Tests.Module
             var firstMenu = UIManager.Instance.Get<MainMenuView>();
             yield return WaitForInitialSelection(firstMenu);
             var firstSelection = EventSystem.current.currentSelectedGameObject;
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.DownArrow)); yield return null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.RightArrow)); yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
             Assert.That(EventSystem.current.currentSelectedGameObject, Is.Not.EqualTo(firstSelection), "方向键应移动真实焦点。");
             yield return Wait(() => SelectedCardIsVisible(), "键盘焦点滚入视口", 5);
@@ -120,8 +126,8 @@ namespace Tests.Module
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             yield return Wait(() => runtime.LoadCount == 3, "松开 A 后可明确再次进入", 15);
-            AssertRequestedScene(GameSceneId.DroneFlight);
-            ExpectEntryFailure(GameSceneId.DroneFlight);
+            AssertRequestedScene(gamepadTarget);
+            ExpectEntryFailure(gamepadTarget);
             runtime.FailEntry();
             yield return Wait(IsStableHub, "再次进入结束后收口", 15);
             yield return WaitForInitialSelection(UIManager.Instance.Get<MainMenuView>());
@@ -148,11 +154,17 @@ namespace Tests.Module
                 yield return WaitForInitialSelection(menu);
                 for (int attempt = 0; attempt < 20 && list.GetVisibleCell(0) != null; attempt++)
                 {
-                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.DpadDown)); yield return null;
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.DpadRight)); yield return null;
                     InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
                     yield return Wait(() => EventSystem.current.sendNavigationEvents && SelectedCardIsVisible(), "手柄滚动并重新建立有效焦点", 5);
                 }
                 Assert.That(list.GetVisibleCell(0), Is.Null, "操作应越过首行回收边界，而不是只在初始卡片之间导航。");
+                // 未开放卡片现在也允许浏览；进入断言选择下一个已开放项目。
+                while (!entries[EventSystem.current.currentSelectedGameObject.GetComponentInParent<LoopCell>().Context.Index].SceneId.HasValue)
+                {
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.DpadRight)); yield return null;
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+                }
                 var selected = EventSystem.current.currentSelectedGameObject.GetComponent<LoopScrollMenuButton>();
                 var selectedCell = selected.GetComponentInParent<LoopCell>();
                 Assert.That(selectedCell.Context.IsCurrent, Is.True);
@@ -173,6 +185,83 @@ namespace Tests.Module
                 entries.Clear(); entries.AddRange(originals);
                 if (menu.State != ViewState.Destroyed) list.SetTotalCount(entries, getItemKey: item => ((MainMenuDemoEntry)item).Key);
             }
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator SelectionSharesArtworkAndUnopenedDemoCannotEnter()
+        {
+            yield return PrepareHub();
+            var menu = UIManager.Instance.Get<MainMenuView>();
+            var button = CardForScene(menu, GameSceneId.BlockPorters);
+            yield return Click(ButtonPosition(button));
+            Assert.That(runtime.LoadCount, Is.Zero);
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("小小搬豆工"));
+            var hero = Field<UIImageLoader>(menu, "UIImageLoader_Hero");
+            var list = Field<LoopScrollView>(menu, "LoopScrollView_DemoList");
+            yield return Wait(() => hero.TargetImage.sprite != null &&
+                hero.TargetImage.sprite == list.GetVisibleCell(1)?.GetComponentInChildren<UIImageLoader>().TargetImage.sprite,
+                "大预览与卡片复用同一个主体 Sprite", 10);
+            var preview = list.GetVisibleCell(1).GetComponentInChildren<UIImageLoader>();
+            Assert.That(hero.TargetImage.preserveAspect && preview.TargetImage.preserveAspect, Is.True);
+
+            var entries = Field<List<MainMenuDemoEntry>>(menu, "entries");
+            int unopened = entries.FindIndex(entry => !entry.SceneId.HasValue);
+            list.ScrollToCell(unopened, ScrollAlignment.End);
+            yield return null; yield return null;
+            var unavailable = list.GetVisibleCell(unopened).GetComponentInChildren<LoopScrollMenuButton>();
+            yield return Click(ButtonPosition(unavailable));
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("UI 交互展台"));
+            Assert.That(Field<Button>(menu, "Button_Start").interactable, Is.False);
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_StartLabel").text, Is.EqualTo("未开放"));
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter)); yield return null;
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
+            Assert.That(runtime.LoadCount, Is.Zero, "未开放项目允许浏览，但提交不能进入。");
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator TouchSelectsPreviewBeforeExplicitStart()
+        {
+            yield return PrepareHub();
+            touchscreen = InputSystem.AddDevice<Touchscreen>();
+            InputDeviceState.Notify(touchscreen);
+            yield return null; yield return null;
+            var menu = UIManager.Instance.Get<MainMenuView>();
+            yield return Tap(ButtonPosition(CardForScene(menu, GameSceneId.BlockPorters)));
+            Assert.That(runtime.LoadCount, Is.Zero, "触控选择卡片不能直接进入场景。");
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("小小搬豆工"));
+            yield return Tap(ButtonPosition(Field<Button>(menu, "Button_Start")));
+            yield return Wait(() => runtime.LoadCount == 1, "触控开始按钮进入当前预览", 15);
+            AssertRequestedScene(GameSceneId.BlockPorters);
+            ExpectEntryFailure(GameSceneId.BlockPorters);
+            runtime.FailEntry();
+            yield return Wait(IsStableHub, "触控进入失败收口", 15);
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator SettingsEntryRestoresAfterClosingPanelAndLeavingHall()
+        {
+            yield return PrepareHub();
+            var menu = UIManager.Instance.Get<MainMenuView>();
+            var settings = UIManager.Instance.Get<DlssSettingsView>();
+            Assert.That(settings, Is.Not.Null);
+            var originalEntry = Field<Button>(settings, "Button_OpenButton");
+            Assert.That(originalEntry.gameObject.activeSelf, Is.False, "大厅只显示自己的画质入口。");
+            yield return Click(ButtonPosition(Field<Button>(menu, "Button_Settings")));
+            yield return Wait(() => settings.IsSettingsPanelOpen, "打开已有画质面板", 5);
+            yield return Click(ButtonPosition(Field<Button>(settings, "Button_CloseButton")));
+            yield return Wait(() => !settings.IsSettingsPanelOpen && !originalEntry.gameObject.activeSelf,
+                "关闭设置后恢复大厅入口作用域", 5);
+            yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine();
+            Assert.That(originalEntry.gameObject.activeSelf, Is.True, "离开大厅应释放入口抑制，不影响其他 Demo。");
+            yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+        }
+
+        private IEnumerator Tap(Vector2 position)
+        {
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = position,
+                phase = UnityEngine.InputSystem.TouchPhase.Began }); yield return null;
+            InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = 1, position = position,
+                phase = UnityEngine.InputSystem.TouchPhase.Ended }); yield return null; yield return null;
         }
 
         private IEnumerator PrepareHub()
@@ -206,6 +295,7 @@ namespace Tests.Module
             UIOperationResult shown = default;
             yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine(result => shown = result);
             Assert.That(shown.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            yield return null; yield return null;
         }
 
         [UnityTearDown]
@@ -261,7 +351,9 @@ namespace Tests.Module
             typeof(GameSceneNavigator).GetProperty(nameof(GameSceneNavigator.Instance)).SetValue(null, navigator);
 
         private static IEnumerator WaitForInitialSelection(MainMenuView menu) => Wait(() =>
-            EventSystem.current.sendNavigationEvents && EventSystem.current.currentSelectedGameObject == CardForScene(menu, GameSceneId.DroneFlight).gameObject,
+            EventSystem.current.sendNavigationEvents && EventSystem.current.currentSelectedGameObject ==
+                (Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Status").text.Contains("进入失败")
+                    ? Field<Button>(menu, "Button_Start").gameObject : CardForScene(menu, GameSceneId.DroneFlight).gameObject),
             "公共输入恢复 Hub 默认焦点", 5);
 
         private static GameSceneId SelectedScene(MainMenuView menu)
@@ -304,7 +396,8 @@ namespace Tests.Module
             if (list == null || cell == null || !cell.Context.IsCurrent) return false;
             var viewport = list.ScrollRect.viewport;
             var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(viewport, cell.RectTransform);
-            return bounds.min.y >= viewport.rect.yMin - 1 && bounds.max.y <= viewport.rect.yMax + 1;
+            return bounds.min.y >= viewport.rect.yMin - 1 && bounds.max.y <= viewport.rect.yMax + 1 &&
+                bounds.min.x >= viewport.rect.xMin - 1 && bounds.max.x <= viewport.rect.xMax + 1;
         }
 
         private void AssertRequestedScene(GameSceneId target)

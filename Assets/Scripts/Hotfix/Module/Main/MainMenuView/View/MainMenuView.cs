@@ -4,10 +4,12 @@ namespace Hotfix
     using Core.Runtime.Inputs;
     using Cysharp.Threading.Tasks;
     using Hotfix.SceneManagement;
+    using SleepyStudios.LoopScroll;
     using System;
     using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.EventSystems;
+    using UnityEngine.InputSystem;
 
     [Module("Main")]
     [Mvc("MainMenuView")]
@@ -19,20 +21,25 @@ namespace Hotfix
         private string entryFeedback;
         private MenuInputScope menuInput;
         private LoopScrollMenuNavigation navigation;
+        private int selectedIndex = -1;
+        private IDisposable graphicsEntryLease;
+        private bool settingsBorrowed;
 
         protected override void OnGameObjectInitialize()
         {
-            entries.Add(new MainMenuDemoEntry("drone_flight", "无人机飞行", "起飞、穿越与精准操控，在训练场探索飞行手感。", "LoadResources/UI/Hall/Art/DroneFlightPreview", GameSceneId.DroneFlight));
-            entries.Add(new MainMenuDemoEntry("block_porters", "小小搬豆工", "操纵搬运机械，在立体场地中完成运送挑战。", "LoadResources/UI/Hall/Art/BlockPortersPreview", GameSceneId.BlockPorters));
-            entries.Add(new MainMenuDemoEntry("jinx_casino", "倒霉蛋俱乐部", "走进复古俱乐部，直接操作机台，挑战自己的运气。", "LoadResources/UI/Hall/Art/JinxCasinoPreview", GameSceneId.JinxCasino));
-            entries.Add(new MainMenuDemoEntry("dlss", "DLSS 实验室", "比较画质与性能，体验实时渲染技术的差异。", "LoadResources/UI/Hall/Art/DlssPreview", GameSceneId.Dlss));
-            entries.Add(new MainMenuDemoEntry("ui_validation", "UI 交互展台", "界面与导航的交互体验，即将开放。", "LoadResources/UI/Hall/Art/UiValidationPreview", null));
+            const string art = "LoadResources/UI/Hall/Art/Gallery/";
+            entries.Add(new MainMenuDemoEntry("drone_flight", "无人机飞行", "在训练场探索飞行手感。\n选择机型，开始你的飞行体验。", art + "DroneFlight", GameSceneId.DroneFlight, "起飞、穿越与精准操控"));
+            entries.Add(new MainMenuDemoEntry("block_porters", "小小搬豆工", "操纵搬运机械，规划运送路线。\n在立体场地中完成搬运挑战。", art + "BlockPorters", GameSceneId.BlockPorters, "机械协作，巧妙搬运"));
+            entries.Add(new MainMenuDemoEntry("jinx_casino", "倒霉蛋俱乐部", "走进复古俱乐部，直接操作机台。\n选择你的玩法，挑战自己的运气。", art + "JinxCasino", GameSceneId.JinxCasino, "下一次，会有好运吗？"));
+            entries.Add(new MainMenuDemoEntry("dlss", "DLSS 实验室", "切换画质模式，比较画面与性能。\n体验实时渲染技术带来的差异。", art + "Dlss", GameSceneId.Dlss, "探索画质与性能的平衡"));
+            entries.Add(new MainMenuDemoEntry("ui_validation", "UI 交互展台", "界面与导航的交互体验。\n展台正在准备中，敬请期待。", art + "UiValidation", null, "新的体验，即将开放"));
             this.RegisterLoopScrollRect<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoRectData);
             this.RegisterLoopScrollClick<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoClick);
             this.RegisterLoopScrollItemHide<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoItemHide);
             navigation = LoopScrollView_DemoList.GetComponent<LoopScrollMenuNavigation>();
             navigation.Initialize(LoopScrollView_DemoList);
             LoopScrollView_DemoList.SetTotalCount(entries, getItemKey: item => ((MainMenuDemoEntry)item).Key);
+            SelectEntry(0);
             EventDispatcher.AddEventListener(EventConst.MainOpenView, OnMainOpenView);
         }
 
@@ -41,8 +48,11 @@ namespace Hotfix
             base.OnShow();
             RefreshEntryControls();
             ReleaseMenuInput();
-            menuInput = new MenuInputScope(EventSystem.current);
+            menuInput = new MenuInputScope(EventSystem.current, selectionRoot: transform);
             menuInput.SetContext(GameplayInputContext.Menu, navigation.FirstSelection);
+            graphicsEntryLease = GraphicsSettingsUI.SuppressEntry();
+            InputDeviceState.Changed += RefreshInputHints;
+            RefreshInputHints();
             UpdateMenuInputAsync(menuInput).Forget();
             GlobalData.Subscribe<UserData>(OnUserData, true);
             EventDispatcher.TriggerEvent(EventConst.MainOpenView);
@@ -52,6 +62,7 @@ namespace Hotfix
         {
             base.OnHide();
             ReleaseMenuInput();
+            ReleasePresentation();
             GlobalData.UnSubscribe<UserData>(OnUserData);
         }
 
@@ -59,6 +70,7 @@ namespace Hotfix
         {
             base.OnDestroy();
             ReleaseMenuInput();
+            ReleasePresentation();
             EventDispatcher.RemoveEventListener(EventConst.MainOpenView, OnMainOpenView);
         }
 
@@ -70,7 +82,21 @@ namespace Hotfix
             {
                 // OnShow 可能早于返回 Hub 的事务收尾，导航完成后自动恢复入口。
                 if (lastCanEnter != CanEnterDemo) RefreshAvailability();
-                scope.Update(navigation.FirstSelection);
+                if (settingsBorrowed && UIManager.Instance.Get<DlssSettingsView>()?.IsSettingsPanelOpen != true)
+                {
+                    settingsBorrowed = false;
+                    graphicsEntryLease = GraphicsSettingsUI.SuppressEntry();
+                }
+                if (InputDeviceState.ActiveKind == InputDeviceKind.Touch) scope.Update();
+                else scope.Update(!string.IsNullOrEmpty(entryFeedback) && Button_Start.interactable
+                    ? Button_Start.gameObject : navigation.FirstSelection);
+                // 焦点由公共列表导航维护，本页只同步当前玩法的展示数据。
+                var selected = EventSystem.current?.currentSelectedGameObject;
+                if (selected != null && selected.transform.IsChildOf(LoopScrollView_DemoList.transform))
+                {
+                    var cell = selected.GetComponentInParent<LoopCell>();
+                    if (cell != null && cell.Context.IsCurrent) SelectEntry(cell.Context.Index);
+                }
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
             }
         }
@@ -92,8 +118,24 @@ namespace Hotfix
 
         private void OnDemoClick(MainMenuDemoItemView item, int index)
         {
+            SelectEntry(index);
+            // 指针点击只选择；公共输入记录的键盘/手柄确认直接进入。
+            if (InputDeviceState.ActiveDevice is Keyboard || InputDeviceState.ActiveDevice is Gamepad) OnStartClick();
+        }
+
+        private void SelectEntry(int index)
+        {
+            if (index < 0 || index >= entries.Count || selectedIndex == index) return;
+            if (selectedIndex >= 0 && selectedIndex < entries.Count) entries[selectedIndex].IsSelected = false;
+            selectedIndex = index;
             var entry = entries[index];
-            if (entry.CanEnter && entry.SceneId.HasValue && CanEnterDemo) EnterDemoAsync(entry.SceneId.Value).Forget();
+            entry.IsSelected = true;
+            TextMeshProUGUI_Title.text = entry.Title;
+            TextMeshProUGUI_Subtitle.text = entry.Subtitle;
+            TextMeshProUGUI_Description.text = entry.Description;
+            UIImageLoader_Hero.SetImage(entry.PreviewAddress, setNativeSize: false, isAsync: true);
+            RefreshVisibleCards();
+            RefreshPrimaryAction();
         }
 
         private bool CanEnterDemo => !isEnteringDemo && GameSceneNavigator.Instance?.IsTransitioning != true;
@@ -134,7 +176,11 @@ namespace Hotfix
                     navigator.CurrentScene == GameSceneId.Hub && !navigator.IsTransitioning)
                 {
                     var current = UIManager.Instance.Get<MainMenuView>();
-                    if (current?.IsEnable == true) current.RefreshEntryControls(message);
+                    if (current?.IsEnable == true)
+                    {
+                        current.SelectEntry(current.entries.FindIndex(entry => entry.SceneId == target));
+                        current.RefreshEntryControls(message);
+                    }
                 }
             }
         }
@@ -143,14 +189,82 @@ namespace Hotfix
         {
             entryFeedback = message;
             RefreshAvailability();
+            if (!string.IsNullOrEmpty(message)) EventSystem.current?.SetSelectedGameObject(null);
         }
 
         private void RefreshAvailability()
         {
             lastCanEnter = CanEnterDemo;
-            foreach (var entry in entries) entry.CanEnter = lastCanEnter && entry.SceneId.HasValue;
-            LoopScrollView_DemoList.RefreshCells();
-            TextMeshProUGUI_Status.text = entryFeedback ?? (lastCanEnter ? "选择一张卡片，开始体验" : "正在准备体验…");
+            foreach (var entry in entries)
+            {
+                entry.CanEnter = lastCanEnter && entry.SceneId.HasValue;
+                entry.CanBrowse = lastCanEnter;
+            }
+            RefreshVisibleCards();
+            RefreshPrimaryAction();
+            TextMeshProUGUI_Status.text = entryFeedback ?? (lastCanEnter ? "选择一个玩法，开始体验" : "正在准备体验…");
+            TextMeshProUGUI_Status.color = string.IsNullOrEmpty(entryFeedback)
+                ? new Color(.39f, .43f, .42f) : new Color(.72f, .22f, .16f);
+        }
+
+        private void OnStartClick()
+        {
+            if (selectedIndex < 0 || selectedIndex >= entries.Count) return;
+            var entry = entries[selectedIndex];
+            if (entry.CanEnter && entry.SceneId.HasValue && CanEnterDemo) EnterDemoAsync(entry.SceneId.Value).Forget();
+        }
+
+        private void OnSettingsClick()
+        {
+            var settings = UIManager.Instance.Get<DlssSettingsView>();
+            if (settings == null || settings.State != ViewState.Visible) return;
+            graphicsEntryLease?.Dispose();
+            graphicsEntryLease = null;
+            settingsBorrowed = true;
+            settings.SetSettingsPanelOpen(true);
+        }
+
+        private void RefreshPrimaryAction()
+        {
+            if (selectedIndex < 0 || selectedIndex >= entries.Count) return;
+            var entry = entries[selectedIndex];
+            Button_Start.interactable = entry.CanEnter && CanEnterDemo;
+            Button_Settings.interactable = CanEnterDemo;
+            TextMeshProUGUI_StartLabel.text = !entry.SceneId.HasValue ? "未开放" :
+                !CanEnterDemo ? "加载中…" : string.IsNullOrEmpty(entryFeedback) ? "开始体验" : "重试";
+        }
+
+        private void RefreshVisibleCards()
+        {
+            // 业务选中态不改变列表身份；直接刷新已绑定 Item，避免回收整排卡片和重复加载主体图。
+            var views = LoopScrollView_DemoList.ItemViews();
+            for (int index = 0; index < entries.Count; index++)
+            {
+                var cell = LoopScrollView_DemoList.GetVisibleCell(index);
+                if (cell != null && cell.Context.IsCurrent && views.TryGetItemView(cell, out var item) &&
+                    item is MainMenuDemoItemView card) card.SetData(entries[index]);
+            }
+        }
+
+        private void ReleasePresentation()
+        {
+            InputDeviceState.Changed -= RefreshInputHints;
+            graphicsEntryLease?.Dispose();
+            graphicsEntryLease = null;
+            settingsBorrowed = false;
+        }
+
+        private void RefreshInputHints()
+        {
+            if (Application.isMobilePlatform || InputDeviceState.ActiveKind == InputDeviceKind.Touch)
+                TextMeshProUGUI_Hints.text = "滑动选择玩法 · 点击开始体验";
+            else if (InputDeviceState.PromptKind == InputDeviceKind.Gamepad)
+            {
+                string confirm = InputDeviceState.PromptStyle == GamepadStyle.PlayStation ? "×" :
+                    InputDeviceState.PromptStyle == GamepadStyle.Switch ? "B" : "A";
+                TextMeshProUGUI_Hints.text = $"方向键 / 摇杆 选择    {confirm} 确认";
+            }
+            else TextMeshProUGUI_Hints.text = "← → 选择    Enter 确认";
         }
     }
 }

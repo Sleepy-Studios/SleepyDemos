@@ -25,15 +25,21 @@
 
 ## 主菜单卡片
 
-`MainMenuView` 持有普通 `MainMenuDemoEntry` 集合，每项包含稳定 Key、图片资源地址、标题、描述、目标场景与可进入状态。页面通过现有 Loop Scroll 展示卡片，Grid 列数由实际 Viewport 和模板尺寸决定，不维护另一套手机页面。当前登记无人机飞行、小小搬豆工、倒霉蛋俱乐部、DLSS 实验室；UI 交互展台没有目标场景，保持“未开放”。
+`MainMenuView` 持有普通 `MainMenuDemoEntry` 集合，每项包含稳定 Key、主体图片地址、标题、副标题、描述、目标场景、浏览/进入状态及业务选中态。大厅采用明亮展厅布局：左侧玩法说明与开始按钮，右侧主体大预览，下方横向 Loop Scroll 卡片。当前登记无人机飞行、小小搬豆工、倒霉蛋俱乐部、DLSS 实验室；UI 交互展台没有目标场景，可浏览介绍但不能进入。
 
-页面注册 typed 数据、点击与回收回调，再提交真实集合。数据回调只调用 `item.SetData(entries[index])`；卡片继承普通 ItemView，在具体 `SetData(MainMenuDemoEntry data)` 中更新图片、标题、描述和进入按钮。桥接先完成控件初始化，再交付数据，复用不重复绑定；点击由页面按当前索引处理，卡片无需缓存数据或物理 Cell 上下文。
+大厅专属美术位于 `Assets/LoadResources/UI/Hall/Art/Gallery/`：共用一张 Backdrop，每个 Demo 只有一张透明主体图，主展示与 Item 通过相同地址复用；不分别制作完整背景和缩略图。宣传主体不代表 Demo 内实际场景，也不含文字或按钮。背景使用等比覆盖，主体使用 Preserve Aspect，面板与按钮使用有 Border 的 Sliced 图片；不得将完整 UI 效果图当页面底图。
+
+`MainMenuGalleryLayout` 根据页面 RectTransform 和实际安全区调整本页内容，桌面以 1920×1080 为设计基准，超宽屏扩展背景并限制内容宽度。横屏手机 16:9/20:9 共用同一个 Prefab，放大卡片、收起长说明，通过横向滑动浏览。设备识别复用 Core.InputDeviceState，不新增 CanvasScaler 或输入底座。
+
+页面注册 typed 数据、点击与回收回调，再提交真实集合。数据回调只调用 `item.SetData(entries[index])`；卡片继承普通 ItemView，在具体 SetData 中更新图片、标题、副标题、选中框和状态标签。桥接先初始化再交付数据，复用不重复绑定；图片地址未改变时不重复加载。卡片不缓存业务数据或物理 Cell 上下文。
 
 模板控件引用和按钮事件由正式 MvcBind 生成。卡片使用已有 `UIImageLoader` 按地址异步加载预览，回收回调调用 `Clear` 释放当前图片并阻止旧请求写回；不再增加业务 Card/Button 子类、预览序列化组件或手写控件索引。生成文件的引用随 Prefab 重生成，不直接修改 `*Component.cs`。
 
-列表仅使用一个公共 `LoopScrollMenuNavigation`，卡片进入按钮使用 `LoopScrollMenuButton`。页面持有单个 `MenuInputScope`，每帧传入导航组件当前的 `FirstSelection`，隐藏及销毁时释放。物理按钮回收后的身份保护、Grid 导航和滚入目标由公共组件处理；业务不保存相邻按钮、导航字典或自建输入层。详细契约见 [Loop Scroll 宿主桥接](loop-scroll.md) 和 [公共玩法输入](gameplay-input.md)。
+列表仅使用一个公共 `LoopScrollMenuNavigation`，卡片使用 `LoopScrollMenuButton`。页面持有单个 MenuInputScope，隐藏及销毁时释放。键鼠/手柄更新默认焦点；触屏仅驱动输入门闩，不因布局重排抢回焦点。物理按钮回收后的身份保护、左右导航和滚入目标由公共组件处理。业务只将焦点同步到当前预览，不维护另一套导航字典。详细契约见 [Loop Scroll 宿主桥接](loop-scroll.md) 和 [公共玩法输入](gameplay-input.md)。
 
-点击统一进入 `EnterDemoAsync`，加载期间禁用全部开放入口，防止重复或跨入口请求。正常返回 Hub 时，页面可能先于导航事务收尾显示，因此在可进入状态改变后刷新集合。失败提示使用独立 Status 控件；Loading 会销毁旧页面，异步收尾必须刷新当前恢复出来的页面。
+指针点击卡片只选择预览，点击“开始体验”才进入；键盘/手柄在卡片上确认可直接进入。进入仍统一经过 EnterDemoAsync，加载期间禁用浏览和开始操作，防止重复请求。正常返回 Hub 时按导航事务状态恢复控件。失败提示使用独立 Status 控件；Loading 会销毁旧页面，收尾刷新当前新实例并保留失败目标，将开始按钮变为“重试”；按住确认键不重复提交。
+
+大厅借用 GraphicsSettingsUI 的入口抑制作用域，显示自己的画质按钮；点击时释放抑制并打开原有画质面板，关闭后恢复抑制，离开大厅释放作用域。该过程不修改画质面板美术或其他 Demo 的公共入口。
 
 ## 改这里时注意什么
 

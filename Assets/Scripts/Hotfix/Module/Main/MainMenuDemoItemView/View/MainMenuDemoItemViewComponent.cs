@@ -18,6 +18,8 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Description;
         private LoopScrollMenuButton LoopScrollMenuButton_Enter;
         private TextMeshProUGUI TextMeshProUGUI_Action;
+        private Image Image_Selection;
+        private Image Image_Badge;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -34,6 +36,8 @@ namespace Hotfix
             TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(2);
             LoopScrollMenuButton_Enter = componentItemIndex.Get<LoopScrollMenuButton>(3);
             TextMeshProUGUI_Action = componentItemIndex.Get<TextMeshProUGUI>(4);
+            Image_Selection = componentItemIndex.Get<Image>(5);
+            Image_Badge = componentItemIndex.Get<Image>(6);
             this.RegisterButton(LoopScrollMenuButton_Enter, OnEnterClick);
         }
     }
