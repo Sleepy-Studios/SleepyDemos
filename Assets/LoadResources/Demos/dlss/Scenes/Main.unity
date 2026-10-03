@@ -12622,6 +12622,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00e794c679ae51e48bd61c799d3fa297, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.Dlss.DlssDemoController
+  actions: {fileID: -944628639613478452, guid: 8707e4f2a594c55468c0f6d1e239cbdb, type: 3}
   worldCamera: {fileID: 200049579}
   movingObject: {fileID: 1441240476}
   spinningObject: {fileID: 2042790099}

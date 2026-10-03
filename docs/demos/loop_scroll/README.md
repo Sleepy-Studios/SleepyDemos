@@ -6,7 +6,7 @@
 - 主菜单提供基础、多类型、聊天、轮播分页与宿主 MvcBind 示例；子场景有返回按钮。
 - 首次中文；主菜单 `中文 / English` 切换并保留选择，示例稳定 ID 不随语言变化。
 - 宿主 MvcBind 页面展示中心定位、±60 Canvas UI 像素偏移、手动取消和完成/取消状态；拖动可打断定位，按钮始终可用。
-- 重建：先 `Build Imported Sample Scenes`，再 `Build MvcBind Example`，后者向宿主的场景目录追加入口。
+- 维护已保存宿主场景；一次性 Build MvcBind Example 已删除。各示例场景通过 LoopScrollInputHost 接入公共三端导航与反馈。
 - [宿主模块](../../modules/loop-scroll.md) 与 [接入步骤](../../runbooks/use-loop-scroll.md)。
 
 包的一个 Showcase Sample 包含 Main 与四个独立子场景。纯包目录不包含宿主 MvcBind 入口；宿主示例场景仍位于 `Assets/LoadResources/Demos/loop_scroll/Scenes/LoopScrollMvcExample.unity`。Editor 导航不修改 Build Settings，独立 Player 演示需要显式传入场景组。包 API、架构及发布验证在独立仓库维护。

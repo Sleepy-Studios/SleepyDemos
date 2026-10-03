@@ -31,23 +31,4 @@ namespace Core.Runtime
         }
     }
 
-    public class View<T, U, V> : View
-    {
-        protected T params1;
-        protected U params2;
-        protected V params3;
-
-        /// <summary>接收页面数据；UIManager在控件初始化完成后、显示前调用。</summary>
-        /// <param name="data1">第一份导航数据。</param>
-        /// <param name="data2">第二份导航数据。</param>
-        /// <param name="data3">第三份导航数据。</param>
-        /// <returns>当前页面。</returns>
-        public virtual View<T, U, V> SetData(T data1, U data2, V data3)
-        {
-            params1 = data1;
-            params2 = data2;
-            params3 = data3;
-            return this;
-        }
-    }
 }

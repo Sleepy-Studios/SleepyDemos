@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
@@ -293,17 +294,38 @@ namespace Core.Runtime
             InteractionGate.EnsureOnTop();
         }
 
+        /// <summary>宿主和独立动态示例共用的 Submit/Cancel 用途绑定。</summary>
+        /// <param name="module">当前唯一的 UI 输入模块。</param>
+        public static void ConfigureMenuBindings(InputSystemUIInputModule module)
+        {
+            foreach (var action in new[] { module.submit?.action, module.cancel?.action })
+            {
+                if (action == null) continue;
+                for (int i = 0; i < action.bindings.Count; i++)
+                {
+                    string path = action.bindings[i].path;
+                    if (path == "<Gamepad>/buttonSouth") action.ApplyBindingOverride(i, "<Gamepad>/{Submit}");
+                    else if (path == "<Gamepad>/buttonEast") action.ApplyBindingOverride(i, "<Gamepad>/{Cancel}");
+                }
+            }
+        }
+
         private void EnsureEventSystem()
         {
+            Core.Runtime.Inputs.InputDeviceState.Initialize();
             if (EventSystem.current != null)
             {
+                var existingModule = EventSystem.current.GetComponent<InputSystemUIInputModule>();
+                if (existingModule != null) ConfigureMenuBindings(existingModule);
                 return;
             }
 
             var go = new GameObject("EventSystem");
             go.transform.SetParent(Root, false);
             go.AddComponent<EventSystem>();
-            go.AddComponent<InputSystemUIInputModule>();
+            var module = go.AddComponent<InputSystemUIInputModule>();
+            module.AssignDefaultActions();
+            ConfigureMenuBindings(module);
         }
     }
 }

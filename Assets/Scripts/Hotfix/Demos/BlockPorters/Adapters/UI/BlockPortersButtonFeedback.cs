@@ -23,7 +23,7 @@ namespace Hotfix.BlockPorters.Adapters
         {
             if (!gameObject.activeInHierarchy) return;
             pulse = Mathf.Max(0, pulse - delta);
-            float target = pressed ? .96f : 1 + Mathf.Sin(pulse / .18f * Mathf.PI) * .035f;
+            float target = pressed && Core.Runtime.Inputs.InputDeviceState.ActiveKind != Core.Runtime.Inputs.InputDeviceKind.Touch ? .96f : 1 + Mathf.Sin(pulse / .18f * Mathf.PI) * .035f;
             transform.localScale = Vector3.one * Mathf.MoveTowards(transform.localScale.x, target, delta * 2);
         }
     }

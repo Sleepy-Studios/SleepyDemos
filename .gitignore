@@ -63,3 +63,6 @@ sysinfo.txt
 Thumbs.db
 Desktop.ini
 **/FR2_Cache.asset*
+
+# Local Unity verification reports and temporary refactor artifacts
+ValidationArtifacts~/

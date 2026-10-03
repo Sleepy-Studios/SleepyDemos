@@ -32,7 +32,7 @@
 
 1. `HybridMetadataSystem` 读取 `HotfixConfig.AotAssemblies`，通过 `HybridAotAssemblyLoader` 补充 HybridCLR 泛型元数据。
 2. `HotfixAssemblySystem` 读取 `HotfixConfig.HotfixAssemblies`，通过 `HotfixAssemblyLoader` 加载热更程序集。
-3. 加载到的热更程序集会交给 `UITypeReflection.Init / Scan`，供后续 Hotfix View 注册使用。
+3. `UITypeReflection` 初始化已加载 Hotfix 程序集的页面索引，并扫描 Core 与启动宿主程序集；HotfixEntry 补充扫描自身程序集，重复调用不重复枚举类型。
 4. `HotfixEntrySystem` 才会进入 Hotfix 业务入口。
 
 ## 编辑器入口
@@ -68,7 +68,7 @@
 
 - Editor 中能打开 `Tools/UI Framework/Hotfix Build`。
 - 启动时 `HybridMetadataSystem` 和 `HotfixAssemblySystem` 不报错。
-- 热更程序集加载后，Hotfix View 能被 `UITypeReflection` 扫描到。
+- 热更程序集加载后，具体 View 自动按类名与 Mvc 别名进入索引，新增页面无需手写清单；未知名称只查缓存，不扫描其它程序集兜底。
 - `Tests.Module.HotfixAssemblyDefinitionFilterTests` 和 `Tests.Module.TestAssemblyBoundaryTests` 全部通过。
 - `HotfixConfig.HotfixAssemblies` 当前只包含 `Hotfix.dll`，热更代码目录不存在 `.Tests.dll`。
 - 如果使用本地 Mock Server，资源包 URL 能访问并被 YooAsset 正常下载。

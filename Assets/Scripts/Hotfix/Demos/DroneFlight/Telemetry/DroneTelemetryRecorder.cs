@@ -1,7 +1,6 @@
 using System;
 using System.Text;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Hotfix.DroneFlight
 {
@@ -248,13 +247,9 @@ namespace Hotfix.DroneFlight
                 : 0f;
         }
 
-        private void Update()
+        /// 把本会话遥测摘要复制到剪贴板，由统一动作或操作面板调用。
+        public void CopySummary()
         {
-            if (Keyboard.current == null || !Keyboard.current.f4Key.wasPressedThisFrame)
-            {
-                return;
-            }
-
             GUIUtility.systemCopyBuffer = buffer.BuildSummary();
             Debug.Log("[DroneFlight] 已复制最近遥测摘要。", this);
         }

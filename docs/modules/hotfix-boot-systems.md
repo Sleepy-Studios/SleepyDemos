@@ -7,7 +7,7 @@ Hotfix 启动系统用于承接 Core 完成热更装配后的业务初始化。�
 主链路：
 
 1. `HotfixEntry.Awake`
-2. `UITypeReflection.Scan`
+2. `UITypeReflection.Scan(typeof(HotfixEntry).Assembly)`，补充扫描业务程序集，已经扫描过时直接跳过
 3. `HotfixBootService.RunBootSystems`
 4. `LubanConfigSystem`
 5. `GlobalDataSystem`

@@ -2,7 +2,7 @@
 
 ## 目标
 
-正式模型可以持续换皮和扩展，但不能破坏飞控、起落架、云台和装备挂载使用的结构语义。机器真源为 `DroneFlightModelContract`；`DroneFlightMechanismBuilder` 与契约测试共同读取它，本文只解释维护意图。
+正式模型可以持续换皮和扩展，但不能破坏飞控、起落架、云台和装备挂载使用的结构语义。机器真源为 `DroneFlightModelContract`；保存资产与契约测试按它验收，旧一次性装配 Builder 已删除，本文只解释维护意图。
 
 ## 坐标和根节点
 

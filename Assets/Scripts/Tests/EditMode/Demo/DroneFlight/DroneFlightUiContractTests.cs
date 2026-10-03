@@ -5,7 +5,6 @@ using Core.Editor.MvcBind;
 using Core.Runtime;
 using Hotfix;
 using Hotfix.DroneFlight;
-using Hotfix.Editor.DroneFlight;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -68,8 +67,11 @@ namespace Tests.Demo
                 new[] { "OnPlainButtonClick", "OnGrappleButtonClick", "OnHarpoonButtonClick" },
                 selectIndex.BindingMethods);
             Assert.That(select.transform.Find("Panel/PlainButton"), Is.Not.Null);
+            // HUD 仅装配三端操作表现；飞控与体验编排仍由场景持有。
+            Assert.That(hud.GetComponent<DroneControlsPresenter>(), Is.Not.Null);
             Assert.That(hud.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
-                component => component.GetType().Name.EndsWith("Presenter")));
+                component => component.GetType().Name.EndsWith("Presenter") &&
+                             component is not DroneControlsPresenter));
             Assert.That(debug.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
                 component => component.GetType().Name.EndsWith("Presenter")));
             var controlsPanel = hud.transform.Find("ControlsPanel");
@@ -105,34 +107,6 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void HudBuilder_WhenControlBindingsAreMissing_RestoresCompleteSelection()
-        {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
-            var clone = Object.Instantiate(prefab);
-            try
-            {
-                RemoveControlTextBindings(clone.GetComponent<ComponentItemIndex>());
-
-                var nodes = DroneFlightMechanismBuilder.CreateHudBindingNodes(clone);
-                var components = MvcCodeGenerator.CollectComponents(nodes);
-
-                Assert.That(components.Count, Is.EqualTo(12));
-                foreach (var nodeName in ControlTextNames)
-                {
-                    Assert.That(
-                        components.Count(item =>
-                            item.componentType == typeof(TextMeshProUGUI) &&
-                            item.component.gameObject.name == nodeName),
-                        Is.EqualTo(1));
-                }
-            }
-            finally
-            {
-                Object.DestroyImmediate(clone);
-            }
-        }
-
-        [Test]
         public void HandwrittenViews_DoNotSearchFixedPrefabNodesAtRuntime()
         {
             var forbiddenTokens = new[]
@@ -162,15 +136,5 @@ namespace Tests.Demo
             Assert.That(index.BindingMethods.Length, Is.EqualTo(index.Components.Length));
         }
 
-        private static void RemoveControlTextBindings(ComponentItemIndex index)
-        {
-            var keep = Enumerable.Range(0, index.Components.Length)
-                .Where(position => !ControlTextNames.Contains(index.Components[position].gameObject.name))
-                .ToArray();
-            index.Components = keep.Select(position => index.Components[position]).ToArray();
-            index.ComponentTypes = keep.Select(position => index.ComponentTypes[position]).ToArray();
-            index.BindingKeys = keep.Select(position => index.BindingKeys[position]).ToArray();
-            index.BindingMethods = keep.Select(position => index.BindingMethods[position]).ToArray();
-        }
     }
 }

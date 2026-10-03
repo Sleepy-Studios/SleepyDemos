@@ -96,7 +96,7 @@ namespace Hotfix.SceneManagement
 
                 cancellationToken.ThrowIfCancellationRequested();
                 await UIManager.Instance.InitializeAsync();
-                UITypeReflection.Scan(typeof(DemoIslandEditorBootstrap).Assembly);
+                UITypeReflection.Init(typeof(View).Assembly, typeof(DemoIslandEditorBootstrap).Assembly);
                 var startupContext = new StartupContext(config, null, this);
                 await HotfixBootService.RunBootSystems(new HotfixStartupContext(startupContext));
                 UIManager.Instance.RegisterWorldTransitionProvider(new HotfixWorldTransitionProvider());

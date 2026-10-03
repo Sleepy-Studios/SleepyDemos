@@ -446,7 +446,6 @@ MonoBehaviour:
   config: {fileID: 11400000, guid: 2bb6820c92290d441bc80d748554f38a, type: 2}
   armOnStart: 0
   responseProfile: 1
-  externalMassProviderSource: {fileID: 0}
 --- !u!114 &4846730869351800733
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -460,6 +459,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DronePlayerInput
   config: {fileID: 11400000, guid: 5e0d9de2280e97e468a9fd91e501e3ef, type: 2}
+  actions: {fileID: -944628639613478452, guid: 301b27e55897ec7478306fcd6476c7aa, type: 3}
 --- !u!114 &2641262617175871642
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -509,11 +509,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f99adbc4b92f1cb41b8b5dc22cb4908b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneEquipmentHost
-  flightController: {fileID: 0}
-  droneBody: {fileID: 0}
-  aimCamera: {fileID: 0}
-  cameraRig: {fileID: 0}
-  moduleSource: {fileID: 0}
 --- !u!114 &671318384656341078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -538,11 +533,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2afceb9552486f479f68d6daa3b309f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneRemoteControllerExperience
-  playerCamera: {fileID: 0}
-  droneCameraRig: {fileID: 0}
-  flightInput: {fileID: 0}
-  flightController: {fileID: 0}
-  equipmentInput: {fileID: 0}
 --- !u!114 &2606969721376755229
 MonoBehaviour:
   m_ObjectHideFlags: 0

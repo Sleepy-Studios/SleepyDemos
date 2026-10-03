@@ -151,7 +151,23 @@ namespace Hotfix.JinxCasino.Interaction
         public bool HasTableFeedbackError { get; private set; }
         /// 当前物件是否仍在演出，不能提前宣称结果已经展示。
         public bool IsTableAnimating => focusedPresentation != null && focusedPresentation.IsAnimating;
-        /// 当前设备用于切换按键图标，不读取全局Gamepad.current。
+        private readonly Dictionary<(string path, string caption), string> inputLabels = new();
+
+        /// <summary>从当前输入会话解析提示，连接手柄时优先显示其绑定。</summary>
+        /// <param name="path">Map/Action 路径。</param>
+        /// <param name="caption">动作文案。</param>
+        /// <returns>设备绑定与文案。</returns>
+        public string InputLabel(string path, string caption)
+        {
+            var key = (path, caption);
+            if (!inputLabels.TryGetValue(key, out string label))
+            { label = InputBindingDisplay.Label(immersionInput?.FindAction(path), caption); inputLabels[key] = label; }
+            return label;
+        }
+        private void OnPromptChanged() { inputLabels.Clear(); Changed?.Invoke(); }
+        private void OnBindingChanged(object target, InputActionChange change)
+        { if (change == InputActionChange.BoundControlsChanged) OnPromptChanged(); }
+
         public InputDeviceKind DeviceKind => immersionInput?.DeviceKind ?? InputDeviceKind.KeyboardMouse;
         /// 暂停面板及设备提示订阅，离场随宿主释放。
         public event Action Changed;
@@ -191,6 +207,8 @@ namespace Hotfix.JinxCasino.Interaction
             previousCursorLock = Cursor.lockState; previousCursorVisible = Cursor.visible; cursorCaptured = true;
             immersionInput = new GameplayInputRouter(immersionInputAsset, inputSettings, "Exploration", "Table");
             immersionInput.DeviceChanged += OnDeviceChanged;
+            InputDeviceState.Changed += OnPromptChanged;
+            InputSystem.onActionChange += OnBindingChanged;
             immersionInput.PauseState.Changed += OnPauseChanged;
             immersionInput.PauseState.SetApplicationFocus(hasFocus);
             immersionInput.PauseState.SetApplicationPaused(isApplicationPaused);
@@ -390,6 +408,7 @@ namespace Hotfix.JinxCasino.Interaction
         public void Dispose()
         {
             active = false; immersionMenuCancel = null;
+            InputDeviceState.Changed -= OnPromptChanged; InputSystem.onActionChange -= OnBindingChanged; inputLabels.Clear();
             CloseTable(); tableFocus?.Dispose(); tableSelection?.Dispose(); immersionMenu?.Dispose();
             if (immersionInput != null)
             {

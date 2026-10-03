@@ -3,7 +3,7 @@ using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using Hotfix.DroneFlight;
 using UnityEngine;
-using UnityEngine.InputSystem;
+using System.Threading;
 
 namespace Hotfix.DroneFlight.Adapters
 {
@@ -19,34 +19,28 @@ namespace Hotfix.DroneFlight.Adapters
         private bool isDebugDrawVisible;
         private bool isShuttingDown;
 
-        private void Update()
+        private DronePlayerInput input;
+        internal void ConfigureInput(DronePlayerInput value)
         {
-            if (isShuttingDown || viewData == null || Keyboard.current == null)
+            if (input != null) input.PresentationRequested -= OnPresentation;
+            input = value;
+            if (input != null) input.PresentationRequested += OnPresentation;
+        }
+        private void OnDestroy() => ConfigureInput(null);
+        private void OnPresentation(string command)
+        {
+            if (isShuttingDown || viewData == null) return;
+            switch (command)
             {
-                return;
-            }
-
-            var shortcut = DroneFlightDebugShortcutRequest.FromPressedKeys(
-                Keyboard.current.f2Key.wasPressedThisFrame,
-                Keyboard.current.f3Key.wasPressedThisFrame);
-            if (shortcut.ToggleDraw)
-            {
-                ToggleDebugDraw();
-            }
-
-            if (shortcut.TogglePanel)
-            {
-                ToggleDebugPanelAsync().Forget();
-            }
-
-            if (Keyboard.current.f1Key.wasPressedThisFrame)
-            {
-                hudView?.ToggleControls();
+                case "Help": hudView?.ToggleControls(); break;
+                case "DebugDraw": ToggleDebugDraw(); break;
+                case "DebugPanel": ToggleDebugPanelAsync().Forget(); break;
+                case "CopyTelemetry": input.GetComponent<DroneTelemetryRecorder>()?.CopySummary(); break;
             }
         }
 
         internal async UniTask<DroneVehicleKind?> ShowVehicleSelectAsync(
-            CancellationTokenProvider cancellationProvider = null)
+            CancellationToken cancellationToken = default)
         {
             var completion = new UniTaskCompletionSource<DroneVehicleKind>();
             var data = new DroneFlightVehicleSelectionData(value => completion.TrySetResult(value));
@@ -54,7 +48,7 @@ namespace Hotfix.DroneFlight.Adapters
                 DroneFlightVehicleSelectionData>(
                 data,
                 new UIShowOptions(animated: true, hidePrevious: false),
-                cancellationProvider?.Token ?? default);
+                cancellationToken);
             if (result.Status == UIOperationStatus.Canceled)
             {
                 return null;
@@ -70,7 +64,7 @@ namespace Hotfix.DroneFlight.Adapters
             try
             {
                 var selection = await completion.Task.AttachExternalCancellation(
-                    cancellationProvider?.Token ?? default);
+                    cancellationToken);
                 await CloseExpectedAsync(vehicleSelectView);
                 vehicleSelectView = null;
                 return selection;
@@ -89,14 +83,15 @@ namespace Hotfix.DroneFlight.Adapters
             isShuttingDown = false;
             debugDrawRenderer = renderer;
             isDebugDrawVisible = false;
-            debugDrawRenderer?.SetEnabled(false);
-            viewData = new DroneFlightViewData(telemetrySource, sessionId);
+            if (debugDrawRenderer != null) debugDrawRenderer.enabled = false;
+            viewData = new DroneFlightViewData(telemetrySource, sessionId, input);
             var result = await UIManager.Instance.ShowAsync<DroneFlightHudView, DroneFlightViewData>(
                 viewData,
                 new UIShowOptions(animated: false, hidePrevious: false));
             if (result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored)
             {
                 hudView = result.View as DroneFlightHudView;
+            hudView?.gameObject.GetComponent<DroneControlsPresenter>()?.Bind(input);
                 return true;
             }
 
@@ -111,7 +106,7 @@ namespace Hotfix.DroneFlight.Adapters
         internal async UniTask CloseOwnedViewsAsync()
         {
             isShuttingDown = true;
-            debugDrawRenderer?.SetEnabled(false);
+            if (debugDrawRenderer != null) debugDrawRenderer.enabled = false;
             await CloseExpectedAsync(vehicleSelectView);
             await CloseExpectedAsync(debugView);
             await CloseExpectedAsync(hudView);
@@ -134,13 +129,14 @@ namespace Hotfix.DroneFlight.Adapters
                 viewData,
                 new UIShowOptions(animated: false, hidePrevious: false));
             hudView = result.View as DroneFlightHudView;
+            hudView?.gameObject.GetComponent<DroneControlsPresenter>()?.Bind(input);
             return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
         }
 
         private void ToggleDebugDraw()
         {
             isDebugDrawVisible = !isDebugDrawVisible;
-            debugDrawRenderer?.SetEnabled(isDebugDrawVisible);
+            if (debugDrawRenderer != null) debugDrawRenderer.enabled = isDebugDrawVisible;
         }
 
         private async UniTaskVoid ToggleDebugPanelAsync()
@@ -180,21 +176,4 @@ namespace Hotfix.DroneFlight.Adapters
         }
     }
 
-    internal static class DroneFlightDebugRendererExtensions
-    {
-        internal static void SetEnabled(this DroneFlightDebugDrawRenderer renderer, bool value)
-        {
-            if (renderer != null)
-            {
-                renderer.enabled = value;
-            }
-        }
-    }
-
-    /// <summary>让场景销毁令牌可由直启/正式启动共同传入。</summary>
-    internal sealed class CancellationTokenProvider
-    {
-        internal CancellationTokenProvider(System.Threading.CancellationToken token) => Token = token;
-        internal System.Threading.CancellationToken Token { get; }
-    }
 }

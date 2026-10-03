@@ -12,7 +12,7 @@ namespace Hotfix.AppDelegate
         /// <param name="hotfixContext">Core提供的资源配置与启动视图；StartupScene为空时保持Hub入口。</param>
         public static async UniTask Awake(HotfixStartupContext hotfixContext)
         {
-            hotfixContext.LoadingView?.SetProgress(0.85f, "热更初始化", "扫描热更 View 类型");
+            hotfixContext.LoadingView?.SetProgress(0.85f, "热更初始化", "发现业务页面");
             UITypeReflection.Scan(typeof(HotfixEntry).Assembly);
             await HotfixBootService.RunBootSystems(hotfixContext);
             await UniTask.Yield();

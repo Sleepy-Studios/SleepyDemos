@@ -1,4 +1,3 @@
-using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,15 +10,26 @@ namespace Core.Runtime
     [RequireComponent(typeof(TextMeshProUGUI))]
     public sealed class TMPAutoFitLayoutElement : MonoBehaviour, ITextPreprocessor
     {
-        private static readonly FieldInfo FontSizeBaseField = typeof(TMP_Text).GetField(
-            "m_fontSizeBase",
-            BindingFlags.Instance | BindingFlags.NonPublic);
-
         private enum DriverMode
         {
             Auto,
             ContentSizeFitter,
             LayoutElement
+        }
+
+        [SerializeField, Min(1f)] private float designFontSize;
+
+        /// 配置的设计字号，不随 TMP 自动缩小而改变。
+        public float DesignFontSize => designFontSize;
+
+        /// <summary>业务更改设计字号时使用此入口，短文本恢复该字号。</summary>
+        /// <param name="value">有限且大于零的设计字号。</param>
+        public void SetDesignFontSize(float value)
+        {
+            if (float.IsNaN(value) || float.IsInfinity(value) || value <= 0)
+                throw new System.ArgumentOutOfRangeException(nameof(value));
+            designFontSize = value;
+            RefreshLayout();
         }
 
         [Header("尺寸约束")]
@@ -96,10 +106,9 @@ namespace Core.Runtime
                 int previousLockedWrapIndex = lockedWrapIndex;
                 lockedWrapIndex = -1;
                 bool originalAutoSizing = textMeshPro.enableAutoSizing;
-                float designFontSize = GetDesignFontSize();
-
                 textMeshPro.enableAutoSizing = true;
                 textMeshPro.fontSize = designFontSize;
+                textMeshPro.fontSizeMax = designFontSize;
                 textMeshPro.enableAutoSizing = false;
                 textMeshPro.textWrappingMode = TextWrappingModes.NoWrap;
                 textMeshPro.overflowMode = TextOverflowModes.Overflow;
@@ -135,7 +144,9 @@ namespace Core.Runtime
                 RectTransform targetRoot = layoutRoot != null ? layoutRoot : transform.parent as RectTransform;
                 if (targetRoot != null) LayoutRebuilder.ForceRebuildLayoutImmediate(targetRoot);
 
-                bool autoSizing = enableAutoSizingWhenHeightExceeded || originalAutoSizing;
+                // 短文本恢复设计字号，不能沿用上一条长文本留下的自动缩放及旧矩形尺寸。
+                bool autoSizing = heightLimited && enableAutoSizingWhenHeightExceeded ||
+                                  originalAutoSizing && (widthLimited || heightLimited);
                 if (enableAutoSizingWhenHeightExceeded && wrapBeforeAutoSizing) autoSizing = heightLimited;
                 textMeshPro.enableAutoSizing = autoSizing;
                 if (autoSizing || previousLockedWrapIndex != lockedWrapIndex) textMeshPro.ForceMeshUpdate();
@@ -226,15 +237,9 @@ namespace Core.Runtime
         private void CacheComponents()
         {
             textMeshPro ??= GetComponent<TextMeshProUGUI>();
+            if (designFontSize <= 0f && textMeshPro != null) designFontSize = textMeshPro.fontSize;
             layoutElement ??= GetComponent<LayoutElement>();
             contentSizeFitter ??= GetComponent<ContentSizeFitter>();
-        }
-
-        private float GetDesignFontSize()
-        {
-            return FontSizeBaseField?.GetValue(textMeshPro) is float fontSizeBase
-                ? fontSizeBase
-                : textMeshPro.fontSize;
         }
 
         private int GetFirstWrappedLineStartIndex(float wrappedHeight)

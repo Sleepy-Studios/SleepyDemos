@@ -69,6 +69,6 @@ list.CancelAnimation();
 
 打开 Assets/Samples/SleepyLoopScroll/Showcase/Main.unity 或 Tools/Sleepy Loop Scroll/Open Showcase，进入四个包子场景及宿主 MvcBind 页面。首次中文，主菜单切换语言并持久化，子场景可返回。
 
-重建前保存场景，执行 Build Imported Sample Scenes，再 Build MvcBind Example；重复执行不重复追加入口。Editor 不修改 Build Settings，独立 Player 显式包含全部场景。验证只运行包测试、LoopScrollMvcGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests 和直接受影响类。
+宿主 MvcBind 示例场景已保存，一次性 Build MvcBind Example 已删除。重导包示例时保留宿主场景和 LoopScrollInputHost 接线。Editor 不修改 Build Settings，独立 Player 显式包含全部场景。验证只运行包测试、LoopScrollMvcGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests 和直接受影响类。
 
 常见问题：Content 布局冲突、缺失 Type 0、重复 Key、异步不检查 IsCurrent。见包 Troubleshooting 和 UnifiedValidation。

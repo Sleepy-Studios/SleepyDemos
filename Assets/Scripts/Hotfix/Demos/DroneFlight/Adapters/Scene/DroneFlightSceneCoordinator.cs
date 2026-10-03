@@ -54,6 +54,7 @@ namespace Hotfix.DroneFlight.Adapters
             if (currentInput != null)
             {
                 currentInput.ReloadRequested -= HandleReloadRequested;
+                currentInput.ExitRequested -= HandleExitRequested;
             }
             if (demoExit != null)
             {
@@ -99,7 +100,7 @@ namespace Hotfix.DroneFlight.Adapters
             }
 
             var selection = await uiController.ShowVehicleSelectAsync(
-                new CancellationTokenProvider(cancellationToken));
+                cancellationToken);
             if (!selection.HasValue || cancellationToken.IsCancellationRequested)
             {
                 return;
@@ -161,6 +162,9 @@ namespace Hotfix.DroneFlight.Adapters
 
                 currentInput = runtime.Input;
                 currentInput.ReloadRequested += HandleReloadRequested;
+                currentInput.ExitRequested += HandleExitRequested;
+                uiController.ConfigureInput(currentInput);
+                demoExit?.ConfigureInput(currentInput);
                 runtime.Activate();
                 await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
                 if (remote != null)

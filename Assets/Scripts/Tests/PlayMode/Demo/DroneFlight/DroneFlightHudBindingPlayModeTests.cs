@@ -36,13 +36,13 @@ namespace Tests.Demo
             view.InitWithGameObject(instance);
             yield return view.Show(false).ToCoroutine();
 
-            Assert.That(ReadText(header), Is.EqualTo("操作提示  ·  F1 收起"));
+            Assert.That(ReadText(header), Is.EqualTo("操作提示 · 收起"));
             StringAssert.StartsWith("<b>飞行与档位</b>", ReadText(flight));
             StringAssert.StartsWith("<b>视角与机构</b>", ReadText(camera));
             StringAssert.StartsWith("<b>系统</b>", ReadText(system));
 
             view.ToggleControls();
-            Assert.That(ReadText(header), Is.EqualTo("操作提示  ·  F1 展开"));
+            Assert.That(ReadText(header), Is.EqualTo("操作提示 · 展开"));
             Assert.That(flight.transform.parent.gameObject.activeSelf, Is.False);
 
             yield return view.DestroyAsync().ToCoroutine();

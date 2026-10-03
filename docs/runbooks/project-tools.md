@@ -236,3 +236,7 @@ powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_
 - Runbook 更名或职责变化导致上表链接失效
 
 仅改实现细节、菜单文案不变时，可只改代码与注释，不必改本文。
+
+## 已保存的 Demo 装配资源
+
+DroneFlight 机体/UI/捕鱼场景、DLSS 场景/面板、Loop Scroll 宿主示例的一次性 Builder 已删除。日常直接维护保存的场景/Prefab，用现有 MvcBind 更新绑定；配置 Inspector、关卡工作台、字体工具、资源 Collector、HybridCLR 和正式平台构建事务继续维护。

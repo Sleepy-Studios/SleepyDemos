@@ -1,3 +1,5 @@
+using Core.Runtime;
+using Core.Runtime.Inputs;
 using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
 using Hotfix.SceneManagement;
@@ -10,6 +12,15 @@ namespace Hotfix.Dlss
     /// DLSS Demo 的导航与观察视角宿主。
     public sealed class DlssDemoController : MonoBehaviour
     {
+        [SerializeField] private InputActionAsset actions;
+        private InputActionSession input;
+        private IResourceLoader controlsLoader;
+        private GameObject controlsObject;
+        private bool loadingControls;
+        private DlssControlsPresenter controls;
+        internal InputActionSession Actions => input;
+        internal bool AcceptsControls => !exiting && !SettingsOpen;
+        private bool SettingsOpen => UIManager.Instance.Get<DlssSettingsView>()?.IsSettingsPanelOpen == true;
         [SerializeField] private Camera worldCamera;
         [SerializeField] private Transform movingObject;
         [SerializeField] private Transform spinningObject;
@@ -17,23 +28,32 @@ namespace Hotfix.Dlss
         private Quaternion homeRotation;
         private float yaw, pitch;
         private bool exiting;
+        private readonly GameplayInputSettings inputSettings = new();
 
-        /// <summary>由 Demo Builder 装配固定场景引用。</summary>
-        /// <param name="camera">玩法主相机。</param>
-        /// <param name="moving">平移演示物体。</param>
-        /// <param name="spinning">旋转演示物体。</param>
-        public void Configure(Camera camera, Transform moving, Transform spinning)
-        {
-            worldCamera = camera; movingObject = moving; spinningObject = spinning;
-        }
-
-        private void Start()
+        private async UniTaskVoid Start()
         {
             homePosition = worldCamera.transform.position;
             homeRotation = worldCamera.transform.rotation;
             movingOrigin = movingObject != null ? movingObject.position : Vector3.zero;
             ResetCamera();
-
+            input = new InputActionSession(actions); input.SetMap("Observe");
+            controlsLoader = ResourceServices.CreateLoader();
+            var loader = controlsLoader;
+            loadingControls = true;
+            try
+            {
+                var instance = await loader.InstantiateAsync("LoadResources/Demos/dlss/Prefabs/UI/DlssControls", UIRootManager.Instance.GetRoot(UILayer.Decorate));
+                if (this == null) { if (instance != null) loader.ReleaseInstance(instance); return; }
+                if (instance == null) return;
+                controlsObject = instance;
+                controls = instance.GetComponent<DlssControlsPresenter>(); controls.Bind(this);
+            }
+            finally
+            {
+                // 加载器尚在等待时不提前释放资源句柄；场景销毁后的迟到实例也由同一所有者回收。
+                loadingControls = false;
+                if (this == null) loader.Dispose();
+            }
         }
 
         private void Update()
@@ -42,29 +62,43 @@ namespace Hotfix.Dlss
             if (movingObject != null) movingObject.position = movingOrigin + Vector3.right * Mathf.Sin(Time.time * 0.65f) * 1.5f;
             if (spinningObject != null) spinningObject.Rotate(new Vector3(12, 28, 8) * Time.deltaTime);
             UpdateCameraInput();
-            if (Keyboard.current != null && Keyboard.current.backspaceKey.wasPressedThisFrame) RequestExit();
+            if (input?.Pressed("Exit") == true) RequestExit();
+            if (input?.Pressed("Settings") == true) OpenSettings();
         }
 
         private void UpdateCameraInput()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard == null) return;
-            if (keyboard.rKey.wasPressedThisFrame) ResetCamera();
-            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-            if (Mouse.current != null && Mouse.current.rightButton.isPressed && !overUi)
+            if (input == null) return;
+            string map = SettingsOpen ? "Menu" : "Observe";
+            if (input.Map?.name != map)
             {
-                Vector2 delta = Mouse.current.delta.ReadValue();
-                yaw += delta.x * 0.12f;
-                pitch = Mathf.Clamp(pitch - delta.y * 0.12f, -75, 75);
-                worldCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0);
+                input.SetMap(map); controls?.gameObject.SetActive(!SettingsOpen);
             }
-            Vector3 movement = Vector3.zero;
-            if (keyboard.wKey.isPressed) movement += worldCamera.transform.forward;
-            if (keyboard.sKey.isPressed) movement -= worldCamera.transform.forward;
-            if (keyboard.dKey.isPressed) movement += worldCamera.transform.right;
-            if (keyboard.aKey.isPressed) movement -= worldCamera.transform.right;
-            float speed = keyboard.leftShiftKey.isPressed ? 8 : 3;
-            worldCamera.transform.position += movement * (speed * Time.unscaledDeltaTime);
+            if (SettingsOpen) return;
+            if (input.Pressed("Reset")) ResetCamera();
+            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            Vector2 mouse = input.Held("LookHold") && !overUi ? input.Read<Vector2>("MouseLook") : Vector2.zero;
+            Vector2 pad = input.ReadVector("Look");
+            Vector2 touch = controls != null ? controls.Look : Vector2.zero;
+            Vector2 degrees = GameplayInputMath.LookDegrees(mouse, touch, pad, Time.unscaledDeltaTime, .12f, inputSettings);
+            yaw += degrees.x; pitch = Mathf.Clamp(pitch - degrees.y, -75, 75);
+            worldCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0);
+            Vector2 move = input.ReadVector("Move") + (controls != null ? controls.Move : Vector2.zero);
+            float speed = input.Held("Sprint") || controls?.Sprint == true ? 8 : 3;
+            worldCamera.transform.position += (worldCamera.transform.forward * move.y + worldCamera.transform.right * move.x) * (speed * Time.unscaledDeltaTime);
+        }
+
+        /// 打开公共设置并马上退出观察动作；关闭后等松键再恢复。
+        public void OpenSettings()
+        {
+            UIManager.Instance.Get<DlssSettingsView>()?.SetSettingsPanelOpen(true);
+            input?.SetMap("Menu"); controls?.gameObject.SetActive(false);
+        }
+        private void OnDestroy()
+        {
+            input?.Dispose();
+            if (controlsObject != null) controlsLoader?.ReleaseInstance(controlsObject);
+            if (!loadingControls) controlsLoader?.Dispose();
         }
 
         /// 恢复初始视角并重置时域历史。

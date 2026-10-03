@@ -130,3 +130,9 @@ autoScroll.SetText(title, shouldAutoStart: true);
 圆角、渐变、翻转、矩形裁剪和自动滚动还应在真实 Canvas 中做一次 Play Mode 目视检查；当前仓库没有可用的 `UIFrameworkValidation` 页面或菜单，按业务 Prefab 接入后验证即可。
 
 完整步骤见 [运行 Unity 自动化测试](./run-unity-tests.md)。
+
+## 交互状态与业务选中
+
+UIStateInteraction 绑定独立 UIState，配置 Normal/Hover/Focused/Pressed/Disabled；UITab 的 Normal/Selected 继续表示业务状态。鼠标悬停和方向导航不能修改 Tab 索引。触屏不显示交互反馈；禁用逻辑仍由 Selectable/CanvasGroup 控制。由 UIState 接管的属性关闭原生 Transition，避免同一属性被两方写入。
+
+TMPAutoFitLayoutElement 在 Inspector 保存设计字号，运行时更改使用 SetDesignFontSize(value)。TMP 自动缩小后的当前 fontSize 不再作为恢复依据；文本变短恢复设计字号，不读取 TMP 私有字段。当前保存资源没有挂载该组件，无字号资产迁移。

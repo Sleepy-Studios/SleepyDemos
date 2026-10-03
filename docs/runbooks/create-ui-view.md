@@ -193,3 +193,7 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 6. 从 `AppEntrance` 进入主界面，验证显示、点击、关闭和返回。
 7. 临时旋转 View 或 `PerspectiveRoot` 的 X/Y 轴，确认透视效果和射线区域符合预期。
 8. 在 `16:9`、超宽和窄屏 Game View 下检查布局。
+
+## 页面自动发现
+
+具体 View 由正式启动或 Editor 直启的一次性程序集扫描自动发现，新增页面无需登记清单。继承 View，使用公开无参构造，并保持类名及 Mvc 别名唯一；抽象类、开放泛型、ItemView 不参与页面发现。字符串入口使用已缓存的类名/Mvc 别名；泛型入口按类型创建，不依赖名称索引。首次构造使用 Activator，之后由 UICache 复用，销毁后重新创建。

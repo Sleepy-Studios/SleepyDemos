@@ -1,7 +1,6 @@
 using Core.Runtime;
 using Hotfix.DroneFlight;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Hotfix.DroneFlight.Adapters
 {
@@ -33,20 +32,9 @@ namespace Hotfix.DroneFlight.Adapters
 
         private void Update()
         {
-            var keyboard = Keyboard.current;
-            if (keyboard == null)
-            {
-                return;
-            }
-
-            if (keyboard.fKey.wasPressedThisFrame)
-            {
-                Activate();
-            }
-            else if (keyboard.escapeKey.wasPressedThisFrame)
-            {
-                ReturnToWaiting();
-            }
+            if (flightInput?.Session == null) return;
+            if (!IsActive && flightInput.Session.Pressed("Activate")) Activate();
+            else if (IsActive && flightInput.Pressed("Back")) ReturnToWaiting();
         }
 
         /// 立即进入第三人称控制；不会自动解锁或起飞。
@@ -109,9 +97,15 @@ namespace Hotfix.DroneFlight.Adapters
             playerCamera = player;
             droneCameraRig = rig;
             flightInput = input;
+            if (flightInput != null) flightInput.ActivateRequested += Activate;
             flightController = controller;
             equipmentInput = equipment;
             ApplyWaiting();
+        }
+
+        private void OnDestroy()
+        {
+            if (flightInput != null) flightInput.ActivateRequested -= Activate;
         }
 
         private void ApplyWaiting()

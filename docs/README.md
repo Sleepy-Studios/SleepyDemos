@@ -56,6 +56,7 @@
 - `agent/`
   - Agent 协作入口与项目级技能说明
   - [项目 Skill 入口](./agent/skills.md)
+  - [全项目精简与三端操作审计](./agent/code-audit-2026-10-03.md)
   - [原始 Goal 归档规则](./agent/prompts/README.md)
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤

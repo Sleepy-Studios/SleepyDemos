@@ -72,7 +72,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 正式视觉模型由仓库外 `F:/个人/DroneFlight/DroneFlight.blend` 维护，FBX 副本进入 Demo 私有 `Art/Models`。Blender 源使用米制、`+X` 右 / `+Y` 前 / `+Z` 上，导入 Unity 后统一为 `+X` 右 / `+Y` 上 / `+Z` 前；导出层只有 Airframe、四个 RotorHub、两套 CW/CCW 共享桨叶、四个 LandingGear 和三级云台共 14 个正式对象。Prefab 中 FL/RR 共用 CCW Mesh，FR/RL 共用 CW Mesh，不复制四份桨叶资源。
 
-`DroneFlightMechanismBuilder` 是视觉装配的唯一编辑期入口：它关闭 FBX 动画、灯光、相机和 BlendShape 导入，按 `MAT_*` 槽确定性映射到六个外部 URP Lit 材质，并把完整 FBX 嵌套为 `DronePrototype/DroneModel`。`DroneRotor` 直接挂到四个 `RotorHub_*`，起落架控制器直接引用四个 `LandingGear_*`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch`；只在各轮毂下实例化必要的共享 CW/CCW 桨叶，不再维护第二套 Rotor、LandingGear 或 Gimbal 包装层。机体与机臂 BoxCollider 统一收在 `CollisionProxies`，脚底代理跟随真实起落架节点，不使用动态 MeshCollider。灯带材质启用 Emission，本阶段不生成 BaseColor、Normal 或 ORM 位图。
+正式保存资产是视觉装配真源，一次性机体/UI/捕鱼场景 Builder 已删除。当前导入设置关闭 FBX 动画、灯光、相机和 BlendShape 导入，按 `MAT_*` 槽确定性映射到六个外部 URP Lit 材质，并把完整 FBX 嵌套为 `DronePrototype/DroneModel`。`DroneRotor` 直接挂到四个 `RotorHub_*`，起落架控制器直接引用四个 `LandingGear_*`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch`；只在各轮毂下实例化必要的共享 CW/CCW 桨叶，不再维护第二套 Rotor、LandingGear 或 Gimbal 包装层。机体与机臂 BoxCollider 统一收在 `CollisionProxies`，脚底代理跟随真实起落架节点，不使用动态 MeshCollider。灯带材质启用 Emission，本阶段不生成 BaseColor、Normal 或 ORM 位图。
 
 上述节点、坐标、轴向、材质槽和挂点的机器真源是 `DroneFlightModelContract`。Builder 与 `DronePrototypeContractTests` 必须读取同一契约；完整语义见[正式模型契约](model-contract.md)。
 
@@ -100,7 +100,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 ## 装备公共接口
 
-`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理，并直接实现飞控需要的 `IDroneExternalMassProvider`。可瞄准装备另实现 `IDroneAimingEquipment`，由 Host 保存/恢复 CameraRig。`DroneEquipmentInput` 只把 H/J/K/L/V 输入路由到当前 Host 和起落架，不包含任何旧抓钩或卷扬分支：
+`DroneEquipmentHost` 通过 `IDroneEquipmentModule` 统一转发装备类型、状态、主操作、收放线、HUD/F3 快照和清理，并直接实现飞控需要的 `IDroneExternalMassProvider`。可瞄准装备另实现 `IDroneAimingEquipment`，由 Host 保存/恢复 CameraRig。`DroneEquipmentInput` 消费 DronePlayerInput 的统一输入帧，动作路由到当前 Host 和起落架，不包含任何旧抓钩或卷扬分支：
 
 - 纯无人机保留零质量 Host 作为飞控接口适配层，但不包含 `IDroneEquipmentModule`、装备刚体或装备 Collider，HUD 不显示 H/J/K 装备操作。
 - `BodyMassKilograms` 表示包含已安装装备的整机空载质量。抓斗为关节求解保留的动态质量由主刚体等额扣除，三种机型的空载总质量和悬停前馈保持一致；HUD/F3 的附加设备质量恒为 `0 kg`。
@@ -144,7 +144,7 @@ Assets/LoadResources/Demos/drone_flight/
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
 - HUD 保留顶部状态、左下飞行遥测和底部装备提示；操作面板默认展开，标题、飞行/档位、视角/系统和装备操作分区显示，按 F1 整体收起或展开，不显示虚构的电池、GNSS 或图传信号。
 - HUD、Debug 和机型选择 View 中固定存在的 Prefab 节点统一进入根节点 `ComponentItemIndex`，业务代码只使用 MvcBind 生成的强类型字段，不在 `OnShow()` 或其它生命周期内按名称重复查找。
-- `DroneFlightMechanismBuilder` 修改 HUD 节点后会同步完整绑定索引，并把生成代码写回 `Adapters/UI/<View名>/View`。重新执行 Builder 不得丢失绑定或把代码生成到旧 `Hotfix/Module` 目录。
+- HUD 修改后使用现有 MvcBind 更新完整绑定索引，输出仍在 `Adapters/UI/<View名>/View`；不重跑已删除的装配脚本。
 - 相机监听器、运行时机体组件以及捕鱼场景显式注入的 Canvas/Button 属于运行时组合或场景结构，不是 View Prefab 固定节点；这些位置可以在组合阶段缓存组件，但必须用中文注释说明原因。
 
 ## 飞控与遥测
@@ -179,3 +179,9 @@ DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什�
 
 操作和调参见[调试和整定 DroneFlight](runbooks/tune.md)，Editor 直启见[直接运行 Demo 岛](../../runbooks/run-demo-island-directly.md)。
 设计演进见[DroneFlight 设计演进与决策记录](history.md)，未来接入正式项目见[迁移 DroneFlight](runbooks/migrate.md)，最初需求见[原始 Goal](../../agent/prompts/demos/drone_flight/original-goal.md)。
+
+## 三端输入与面板
+
+Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使用公共 InputActionSession，键鼠保留原操作和键盘平滑；手柄左摇杆升降/偏航、右摇杆平移，触屏两个 TouchInputPad 同为摇杆模式。确认键短按解锁/锁定、长按按配置重载；Switch A 确认。返回键 Active → Waiting，再次返回退出 Hub；触屏有进入遥控入口。
+
+左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由保存的 DroneControlsPresenter 管理，UIController 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。

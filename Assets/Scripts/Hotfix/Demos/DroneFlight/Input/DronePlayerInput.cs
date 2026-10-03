@@ -1,164 +1,177 @@
 using System;
+using System.Collections.Generic;
+using Core.Runtime.Inputs;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Hotfix.DroneFlight
 {
-    /// <summary>
-    /// MVP 键盘和手柄输入适配器，只向飞控提交统一归一化输入。
-    /// </summary>
-    [RequireComponent(typeof(DroneFlightController))]
+    /// 四轴输入只转成飞控命令；资产、死区、设备和松键门闩使用 Core 实现。
+    [DefaultExecutionOrder(-200), RequireComponent(typeof(DroneFlightController))]
     public sealed class DronePlayerInput : MonoBehaviour
     {
-        [SerializeField, InspectorName("输入配置")]
-        [Tooltip("集中管理键盘平滑和长按复位参数。")]
-        private DroneInputConfig config;
-
+        [SerializeField] private DroneInputConfig config;
+        [SerializeField] private InputActionAsset actions;
+        private InputActionSession session;
         private DroneFlightController controller;
+        private DroneCameraRig cameraRig;
+        private DroneEquipmentHost equipment;
+        private DroneLandingGearController landingGear;
         private Vector4 smoothedKeyboardInput;
+        private Vector2 touchLeft, touchRight;
+        private bool touchArmHeld, wasArmHeld;
+        private static readonly string[] ImmediateCommands = { "Takeoff", "Landing", "ProfileCine", "ProfileNormal", "ProfileSport", "LandingGear", "Help", "DebugDraw", "DebugPanel", "CopyTelemetry" };
+        private readonly HashSet<string> pendingCommands = new();
+        private readonly HashSet<string> frameCommands = new();
         private DroneResetHoldTracker resetHoldTracker;
-        private bool reloadRequestSent;
-
-        /// 长按达到配置时间后发送一次；输入组件不直接切换场景。
         internal event Action ReloadRequested;
-
-        /// 长按 R 的归一化复位进度。
-        internal float ResetProgress => resetHoldTracker?.Progress ?? 0f;
-
-        /// 长按重载所需时间，单位秒。
-        internal float ResetHoldSeconds => config != null ? config.ResetHoldSeconds : 5f;
+        internal event Action ExitRequested;
+        internal event Action ActivateRequested;
+        internal event Action<bool> PanelChanged;
+        internal event Action<string> PresentationRequested;
+        internal InputActionSession Session => session;
+        internal float ResetProgress => resetHoldTracker?.Progress ?? 0;
+        internal float ResetHoldSeconds => config != null ? config.ResetHoldSeconds : 5;
+        /// 操作面板打开时手动飞行输入被清空。
+        public bool IsPanelOpen { get; private set; }
+        /// HUD 只在当前无人机受控且面板关闭时提交双摇杆。
+        public bool AcceptsFlightInput => isActiveAndEnabled && !IsPanelOpen;
+        internal Vector2 CameraLook { get; private set; }
+        internal float LineInput { get; private set; }
+        internal Vector2 AimPosition { get; private set; } = new(.5f, .5f);
+        internal bool HasMouseAim => InputDeviceState.ActiveKind == InputDeviceKind.KeyboardMouse;
+        internal float ZoomInput { get; private set; }
 
         private void Awake()
         {
             controller = GetComponent<DroneFlightController>();
+            cameraRig = GetComponent<DroneCameraRig>();
+            equipment = GetComponent<DroneEquipmentHost>();
+            landingGear = GetComponent<DroneLandingGearController>();
             resetHoldTracker = new DroneResetHoldTracker(ResetHoldSeconds);
+            if (actions != null) session = new InputActionSession(actions);
         }
+        private void OnEnable() => session?.SetMap("Flight");
+        private void OnDisable()
+        {
+            ResetBufferedInput(); SetPanelOpen(false);
+            session?.SetMap("Waiting");
+        }
+        private void OnDestroy() => session?.Dispose();
+        private void OnApplicationFocus(bool focus) { if (!focus) ResetBufferedInput(); }
+        private void OnApplicationPause(bool paused) { if (paused) ResetBufferedInput(); }
 
         private void Update()
         {
-            if (controller == null)
-            {
-                return;
-            }
+            if (session == null || controller == null) return;
+            frameCommands.Clear(); foreach (var command in pendingCommands) frameCommands.Add(command); pendingCommands.Clear();
+            if (Pressed("Panel")) SetPanelOpen(!IsPanelOpen);
+            if (IsPanelOpen) { controller.SetControlInput(default); return; }
+            bool armHeld = touchArmHeld || session.Held("ArmOrReset");
+            if (armHeld && !wasArmHeld) resetHoldTracker.Begin();
+            if (armHeld && resetHoldTracker.Step(Time.unscaledDeltaTime)) { ResetBufferedInput(); ReloadRequested?.Invoke(); }
+            if (!armHeld && wasArmHeld && resetHoldTracker.Release() == DroneResetReleaseResult.ShortPress)
+                controller.SetArmed(!controller.IsArmed);
+            wasArmHeld = armHeld;
 
-            var keyboard = Keyboard.current;
-            HandleResetInput(keyboard);
-
-            var targetKeyboard = ReadKeyboard(keyboard);
-            var fallbackRiseRate = config != null ? config.KeyboardFallbackRiseRate : 3f;
-            var riseRate = controller.InputRiseRate > 0f ? controller.InputRiseRate : fallbackRiseRate;
-            smoothedKeyboardInput = new Vector4(
-                StepKeyboardAxis(smoothedKeyboardInput.x, targetKeyboard.x, riseRate),
-                StepKeyboardAxis(smoothedKeyboardInput.y, targetKeyboard.y, riseRate),
-                StepKeyboardAxis(smoothedKeyboardInput.z, targetKeyboard.z, riseRate),
-                StepKeyboardAxis(smoothedKeyboardInput.w, targetKeyboard.w, riseRate));
-
-            var gamepadInput = ReadGamepad(Gamepad.current);
-            var input = gamepadInput.sqrMagnitude > 0.0001f ? gamepadInput : smoothedKeyboardInput;
-            controller.SetControlInput(DroneControlInput.Create(input.x, input.y, input.z, input.w));
-
-            if (keyboard == null)
+            Vector2 planar = session.ReadVector("Move");
+            Vector2 vertical = session.ReadVector("VerticalYaw");
+            bool padOrTouch = InputDeviceState.ActiveKind != InputDeviceKind.KeyboardMouse;
+            var target = new Vector4(vertical.y, vertical.x, planar.y, planar.x);
+            if (InputDeviceState.ActiveKind == InputDeviceKind.Touch) target = new Vector4(touchLeft.y, touchLeft.x, touchRight.y, touchRight.x);
+            bool lookMode = session.Held("ViewModifier") || touchLookMode;
+            CameraLook = session.ReadVector("CameraLook");
+            if (lookMode) { CameraLook += InputDeviceState.ActiveKind == InputDeviceKind.Touch ? touchRight : session.ReadVector("PadLook"); target.z = target.w = 0; }
+            if (!padOrTouch)
             {
-                return;
+                float rise = controller.InputRiseRate > 0 ? controller.InputRiseRate : config != null ? config.KeyboardFallbackRiseRate : 3;
+                smoothedKeyboardInput = new Vector4(Step(smoothedKeyboardInput.x, target.x, rise), Step(smoothedKeyboardInput.y, target.y, rise),
+                    Step(smoothedKeyboardInput.z, target.z, rise), Step(smoothedKeyboardInput.w, target.w, rise));
+                target = smoothedKeyboardInput;
             }
+            else { smoothedKeyboardInput = Vector4.zero; }
+            controller.SetControlInput(DroneControlInput.Create(target.x, target.y, target.z, target.w));
+            LineInput = session.Read<float>("Line") + touchLine;
+            ZoomInput = session.Read<float>("Zoom");
+            var point = session.Read<Vector2>("Point");
+            if (HasMouseAim && Screen.width > 0 && Screen.height > 0)
+                AimPosition = new Vector2(Mathf.Clamp01(point.x / Screen.width), Mathf.Clamp01(point.y / Screen.height));
+            else if (lookMode) AimPosition = new Vector2(Mathf.Clamp01(AimPosition.x + CameraLook.x * Time.unscaledDeltaTime * .5f),
+                Mathf.Clamp01(AimPosition.y + CameraLook.y * Time.unscaledDeltaTime * .5f));
+            foreach (string command in ImmediateCommands)
+                if (Pressed(command)) ExecuteImmediate(command);
+        }
+        private bool touchLookMode;
+        private float touchLine;
 
-            if (keyboard.tKey.wasPressedThisFrame)
-            {
-                controller.BeginAutomaticTakeoff();
-            }
-            else if (keyboard.gKey.wasPressedThisFrame)
-            {
-                controller.BeginAutomaticLanding();
-            }
+        internal bool Pressed(string name) => frameCommands.Contains(name) || session?.Pressed(name) == true;
+        internal string Label(string name, string caption) => InputBindingDisplay.Label(session?.Asset.FindAction("Flight/" + name), caption);
 
-            if (keyboard.digit1Key.wasPressedThisFrame)
+        /// <summary>触控按钮与操作面板提交同一玩法命令，下一帧消费。</summary>
+        /// <param name="command">保存的动作名称。</param>
+        public void Execute(string command)
+        {
+            if (session?.Asset.FindAction(command) == null) throw new ArgumentException("未知无人机动作：" + command);
+            if (command == "Panel") { SetPanelOpen(!IsPanelOpen); return; }
+            if (IsPanelOpen || !isActiveAndEnabled) ExecuteImmediate(command); else pendingCommands.Add(command);
+        }
+        private void ExecuteImmediate(string command)
+        {
+            switch (command)
             {
-                controller.SetResponseProfile(DroneResponseProfile.Cine);
-            }
-            else if (keyboard.digit2Key.wasPressedThisFrame)
-            {
-                controller.SetResponseProfile(DroneResponseProfile.Normal);
-            }
-            else if (keyboard.digit3Key.wasPressedThisFrame)
-            {
-                controller.SetResponseProfile(DroneResponseProfile.Sport);
+                case "Activate": ActivateRequested?.Invoke(); break;
+                case "Back": if (!isActiveAndEnabled) ExitRequested?.Invoke(); break;
+                case "ArmOrReset": controller.SetArmed(!controller.IsArmed); break;
+                case "Exit": ExitRequested?.Invoke(); break;
+                case "Takeoff": controller.BeginAutomaticTakeoff(); break;
+                case "Landing": controller.BeginAutomaticLanding(); break;
+                case "ProfileCine": controller.SetResponseProfile(DroneResponseProfile.Cine); break;
+                case "ProfileNormal": controller.SetResponseProfile(DroneResponseProfile.Normal); break;
+                case "ProfileSport": controller.SetResponseProfile(DroneResponseProfile.Sport); break;
+                case "LandingGear": landingGear?.Toggle(); break;
+                case "ZoomIn": cameraRig?.AdjustFieldOfView(-5); break;
+                case "ZoomOut": cameraRig?.AdjustFieldOfView(5); break;
+                case "SwitchCamera": SwitchCamera(); break;
+                case "Equipment": equipment?.PrimaryAction(); break;
+                case "Aim": equipment?.ToggleAimMode(); break;
+                case "Help": case "DebugDraw": case "DebugPanel": case "CopyTelemetry": PresentationRequested?.Invoke(command); break;
             }
         }
-
-        /// 清空键盘平滑输入，避免复位后残留移动命令。
+        internal void SwitchCamera()
+        {
+            if (cameraRig != null && cameraRig.Mode != DroneCameraMode.HarpoonAim)
+                cameraRig.SetMode((DroneCameraMode)(((int)cameraRig.Mode + 1) % (int)DroneCameraMode.HarpoonAim));
+        }
+        /// <summary>打开操作面板时清空手动输入，保持飞控稳定逻辑。</summary>
+        /// <param name="open">面板是否打开。</param>
+        public void SetPanelOpen(bool open)
+        {
+            if (IsPanelOpen == open) return;
+            IsPanelOpen = open; ResetBufferedInput();
+            session?.SetMap(open ? "Menu" : isActiveAndEnabled ? "Flight" : "Waiting");
+            PanelChanged?.Invoke(open);
+        }
+        /// <summary>记录双摇杆，不模拟 Gamepad 设备。</summary>
+        /// <param name="left">升降/偏航。</param>
+        /// <param name="right">前后/左右，镜头模式下控制镜头。</param>
+        public void SetTouchFrame(Vector2 left, Vector2 right) { touchLeft = left; touchRight = right; }
+        /// <summary>触屏确认键的真实保持状态。</summary>
+        /// <param name="held">是否按住。</param>
+        public void SetTouchArmHeld(bool held) => touchArmHeld = held;
+        /// <summary>切换手机右摇杆的镜头职责。</summary>
+        /// <param name="value">是否控制镜头。</param>
+        public void SetTouchLookMode(bool value) => touchLookMode = value;
+        /// <summary>触控收放线的保持量。</summary>
+        /// <param name="value">负数收线，正数放线，零停止。</param>
+        public void SetTouchLine(float value) => touchLine = Mathf.Clamp(value, -1, 1);
         internal void ResetBufferedInput()
         {
-            smoothedKeyboardInput = Vector4.zero;
+            smoothedKeyboardInput = Vector4.zero; touchLeft = touchRight = CameraLook = Vector2.zero;
+            LineInput = ZoomInput = touchLine = 0; touchArmHeld = wasArmHeld = false;
+            resetHoldTracker?.Release(); frameCommands.Clear(); pendingCommands.Clear();
             controller?.SetControlInput(default);
         }
-
-        private void HandleResetInput(Keyboard keyboard)
-        {
-            if (keyboard == null || resetHoldTracker == null)
-            {
-                return;
-            }
-
-            if (keyboard.rKey.wasPressedThisFrame)
-            {
-                resetHoldTracker.Begin();
-                reloadRequestSent = false;
-            }
-
-            if (keyboard.rKey.isPressed
-                && resetHoldTracker.Step(Time.unscaledDeltaTime))
-            {
-                if (!reloadRequestSent)
-                {
-                    reloadRequestSent = true;
-                    ResetBufferedInput();
-                    ReloadRequested?.Invoke();
-                }
-            }
-
-            if (keyboard.rKey.wasReleasedThisFrame
-                && resetHoldTracker.Release() == DroneResetReleaseResult.ShortPress)
-            {
-                controller.SetArmed(!controller.IsArmed);
-            }
-        }
-
-        private static Vector4 ReadKeyboard(Keyboard keyboard)
-        {
-            if (keyboard == null)
-            {
-                return Vector4.zero;
-            }
-
-            var lift = ReadButtonAxis(keyboard.leftCtrlKey.isPressed, keyboard.spaceKey.isPressed);
-            var yaw = ReadButtonAxis(keyboard.qKey.isPressed, keyboard.eKey.isPressed);
-            var forward = ReadButtonAxis(keyboard.sKey.isPressed, keyboard.wKey.isPressed);
-            var right = ReadButtonAxis(keyboard.aKey.isPressed, keyboard.dKey.isPressed);
-            return new Vector4(lift, yaw, forward, right);
-        }
-
-        private static Vector4 ReadGamepad(Gamepad gamepad)
-        {
-            if (gamepad == null)
-            {
-                return Vector4.zero;
-            }
-
-            var leftStick = gamepad.leftStick.ReadValue();
-            var rightStick = gamepad.rightStick.ReadValue();
-            return new Vector4(leftStick.y, leftStick.x, rightStick.y, rightStick.x);
-        }
-
-        private static float ReadButtonAxis(bool negative, bool positive)
-        {
-            return (positive ? 1f : 0f) - (negative ? 1f : 0f);
-        }
-
-        private float StepKeyboardAxis(float current, float target, float riseRate)
-        {
-            var fallRate = config != null ? config.KeyboardFallRate : 5f;
-            var rate = Mathf.Approximately(target, 0f) ? fallRate : riseRate;
-            return Mathf.MoveTowards(current, target, Mathf.Max(0f, rate) * Time.unscaledDeltaTime);
-        }
+        private float Step(float current, float target, float rise)
+            => Mathf.MoveTowards(current, target, Mathf.Max(0, Mathf.Approximately(target, 0) ? config != null ? config.KeyboardFallRate : 5 : rise) * Time.unscaledDeltaTime);
     }
 }

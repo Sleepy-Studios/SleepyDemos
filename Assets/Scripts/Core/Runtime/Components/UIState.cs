@@ -55,6 +55,16 @@ namespace Core.Runtime
         public string CurrentStateId => currentStateId;
         public IReadOnlyList<UIStateInfo> States => states;
 
+        /// <summary>动态创建的 UI 显式配置状态；保存的 Prefab 继续使用 Inspector 配置。</summary>
+        /// <param name="values">状态定义，每项只修改其拥有的表现属性。</param>
+        public void ConfigureStates(IEnumerable<UIStateInfo> values)
+        {
+            if (values == null) throw new ArgumentNullException(nameof(values));
+            states = new List<UIStateInfo>(values);
+            RebuildStateMap();
+            SetState(currentStateId);
+        }
+
         private void Awake()
         {
             RebuildStateMap();

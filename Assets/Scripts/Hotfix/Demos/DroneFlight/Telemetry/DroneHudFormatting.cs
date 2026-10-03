@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -73,65 +74,44 @@ namespace Hotfix.DroneFlight
         {
             if (snapshot.OperationState == DroneFlightOperationState.Fault)
             {
-                return "飞控故障：请长按 R 重新运行场景";
+                return "飞控故障：请长按确认键重新运行场景";
             }
 
             if (snapshot.OperationState == DroneFlightOperationState.Landing
                 && snapshot.LandingGearState is DroneLandingGearState.Retracted or DroneLandingGearState.Retracting)
             {
-                return "降落警告：起落架尚未放下，请按 L";
+                return "降落警告：起落架尚未放下，请放下起落架";
             }
 
             return snapshot.IsMotorSaturated ? "电机输出饱和" : string.Empty;
         }
 
-        internal static string FormatControls()
-        {
-            return FormatControls(DroneEquipmentKind.Grapple);
-        }
+        internal static string FormatControls(DroneEquipmentKind kind, Func<string, string> key)
+            => FormatFlightControls(key) + "\n" + FormatCameraControls(key) + "\n" + FormatSystemControls(key) + "\n" + FormatEquipmentControls(kind, key);
 
-        internal static string FormatControls(DroneEquipmentKind kind)
-        {
-            return FormatFlightControls()
-                   + "\n" + FormatCameraControls()
-                   + "\n" + FormatSystemControls()
-                   + "\n" + FormatEquipmentControls(kind);
-        }
+        internal static string FormatFlightControls(Func<string, string> key)
+            => key("ArmOrReset") + "  解锁 / 锁定（长按重新运行场景）\n"
+                + key("Takeoff") + " / " + key("Landing") + "  自动起飞 / 降落\n"
+                + key("Move") + "  水平移动    " + key("VerticalYaw") + "  升降 / 偏航\n"
+                + "操作面板：平稳 / 普通 / 运动";
 
-        internal static string FormatFlightControls()
-        {
-            return "R  解锁 / 锁定（长按重新运行场景）\n"
-                   + "T / G  自动起飞 / 降落\n"
-                   + "WASD  水平移动    Q / E  偏航\n"
-                   + "Space / 左 Ctrl  升降\n"
-                   + "1 / 2 / 3  平稳 / 普通 / 运动";
-        }
+        internal static string FormatCameraControls(Func<string, string> key)
+            => key("SwitchCamera") + "  切换视角\n"
+                + key("ViewModifier") + " + 右摇杆 / 镜头模式  调整镜头\n"
+                + key("Zoom") + " / 操作面板  缩放镜头\n"
+                + key("LandingGear") + " / 操作面板  起落架收放";
 
-        internal static string FormatCameraControls()
-        {
-            return "C  切换视角\n"
-                   + "方向键  调整镜头\n"
-                   + "- / =  缩放镜头\n"
-                   + "L  起落架收放";
-        }
+        internal static string FormatSystemControls(Func<string, string> key)
+            => key("Panel") + "  操作面板\n" + key("DebugDraw") + "  动力矢量\n"
+                + key("DebugPanel") + "  调试面板\n" + key("CopyTelemetry") + "  复制遥测\n" + key("Exit") + "  返回主界面";
 
-        internal static string FormatSystemControls()
-        {
-            return "F2  动力矢量\n"
-                   + "F3  调试面板\n"
-                   + "F4  复制遥测\n"
-                   + "Backspace  返回主界面";
-        }
-
-        internal static string FormatEquipmentControls(DroneEquipmentKind kind)
-        {
-            return kind switch
+        internal static string FormatEquipmentControls(DroneEquipmentKind kind, Func<string, string> key)
+            => kind switch
             {
-                DroneEquipmentKind.Grapple => "H  四爪开合    J / K  上收 / 下放",
-                DroneEquipmentKind.Harpoon => "V  机腹瞄准    H  发射 / 解除回收    J / K  收线 / 放线",
+                DroneEquipmentKind.Grapple => key("Equipment") + "  四爪开合    " + key("Line") + "  上收 / 下放",
+                DroneEquipmentKind.Harpoon => key("Aim") + "  机腹瞄准    " + key("Equipment") + "  发射 / 解除回收    " + key("Line") + "  收线 / 放线",
                 _ => "无附加装备操作"
             };
-        }
 
         internal static string FormatProfile(DroneResponseProfile profile)
         {

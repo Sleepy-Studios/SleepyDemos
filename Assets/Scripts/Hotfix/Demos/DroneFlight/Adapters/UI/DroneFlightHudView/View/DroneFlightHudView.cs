@@ -1,6 +1,7 @@
 namespace Hotfix
 {
     using Core.Runtime;
+    using Core.Runtime.Inputs;
     using DroneFlight;
     using DroneFlight.Adapters;
 
@@ -10,11 +11,16 @@ namespace Hotfix
     {
         private DroneFlightUiTelemetrySource telemetrySource;
         private bool controlsVisible;
+        private DroneEquipmentKind? lastControlsKind;
+        private System.Func<string, string> keyLabel;
 
         protected override void OnShow()
         {
             base.OnShow();
             Unsubscribe();
+            lastControlsKind = null;
+            keyLabel = name => params1?.Input?.Label(name, "") ?? string.Empty;
+            InputDeviceState.Changed += OnPromptChanged;
             SetControlsVisible(true);
             telemetrySource = params1?.TelemetrySource;
             RefreshControlSections(telemetrySource != null
@@ -70,6 +76,7 @@ namespace Hotfix
 
         private void Unsubscribe()
         {
+            InputDeviceState.Changed -= OnPromptChanged;
             if (telemetrySource != null)
             {
                 telemetrySource.SnapshotChanged -= OnSnapshotChanged;
@@ -93,31 +100,39 @@ namespace Hotfix
             if (TextMeshProUGUI_ControlsHeaderText != null)
             {
                 TextMeshProUGUI_ControlsHeaderText.text =
-                    value ? "操作提示  ·  F1 收起" : "操作提示  ·  F1 展开";
+                    (params1?.Input?.Label("Help", "操作提示") ?? "操作提示") + (value ? " · 收起" : " · 展开");
             }
         }
 
+        private void OnPromptChanged()
+        {
+            lastControlsKind = null;
+            RefreshControlSections(telemetrySource != null ? telemetrySource.Current.Equipment.Kind : DroneEquipmentKind.None);
+            SetControlsVisible(controlsVisible);
+        }
         private void RefreshControlSections(DroneEquipmentKind kind)
         {
+            if (lastControlsKind == kind) return;
+            lastControlsKind = kind;
             if (TextMeshProUGUI_FlightControlsText != null)
             {
                 TextMeshProUGUI_FlightControlsText.text =
-                    "<b>飞行与档位</b>\n" + DroneHudFormatter.FormatFlightControls();
+                    "<b>飞行与档位</b>\n" + DroneHudFormatter.FormatFlightControls(keyLabel);
             }
             if (TextMeshProUGUI_CameraControlsText != null)
             {
                 TextMeshProUGUI_CameraControlsText.text =
-                    "<b>视角与机构</b>\n" + DroneHudFormatter.FormatCameraControls();
+                    "<b>视角与机构</b>\n" + DroneHudFormatter.FormatCameraControls(keyLabel);
             }
             if (TextMeshProUGUI_SystemControlsText != null)
             {
                 TextMeshProUGUI_SystemControlsText.text =
-                    "<b>系统</b>\n" + DroneHudFormatter.FormatSystemControls();
+                    "<b>系统</b>\n" + DroneHudFormatter.FormatSystemControls(keyLabel);
             }
             if (TextMeshProUGUI_ControlsText != null)
             {
                 TextMeshProUGUI_ControlsText.text =
-                    "<b>当前装备</b>    " + DroneHudFormatter.FormatEquipmentControls(kind);
+                    "<b>当前装备</b>    " + DroneHudFormatter.FormatEquipmentControls(kind, keyLabel);
             }
         }
     }

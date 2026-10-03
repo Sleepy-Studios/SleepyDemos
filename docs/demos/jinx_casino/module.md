@@ -136,6 +136,8 @@ LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对�
 
 ## 沉浸设置接入
 
+公共输入设备区分实际操作与提示设备：连接手柄优先显示其实际动作绑定，键鼠/触控操作仍可用。Switch 确认/返回通过 Submit/Cancel 用途解析为 A/B；HUD 绑定文案按设备与绑定变化失效，不每帧解析按键。触控仅保留业务选中视觉，菜单仍由 Core EventSystem 提交和返回。
+
 沉浸HUD复用JinxCasinoLocalSettingsPresenter及原CasinoLocalPreferencesStore。主菜单与暂停菜单均有设置入口，设置状态优先于其它菜单；关闭时回原菜单，不隐式恢复暂停。首次绑定加载原本机键，预览通过宿主立即应用到Core公共输入与场景音源，明确保存才写盘；取消、关闭和View释放撤销未保存预览。
 
 保存Prefab将键鼠/触控、手柄、声音分为三页。手柄页暴露倍率、角速度、死区、最大半径、反转Y、震动开关与强度；设置页面通过保存的控件预览本机偏好。菜单焦点复用Core EventSystem，每页使用保存控件，不创建运行时UI。场景音乐与SFX接入既有AudioDirector，不新增AudioListener。此处不代表画质/分辨率与真机体验已经完成。

@@ -1,3 +1,4 @@
+using Core.Runtime.Inputs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -148,12 +149,20 @@ namespace Hotfix.BlockPorters.Adapters
             Unbind(); owner = controller; settingsOpen = false; hadResult = false;
             displayedProgress = targetProgress = 0;
             for (int i = 0; i < queueKeys.Length; i++) queueKeys[i] = -1;
+            var menu = GetComponent<UIMenuScope>();
+            if (menu != null) menu.Canceled += ToggleSettings;
+            var settingsMenu = settingsPanel.GetComponent<UIMenuScope>();
+            if (settingsMenu != null) settingsMenu.Canceled += CloseSettings;
             owner.Changed += RequestRefresh; Refresh();
         }
         /// 解除订阅并移除对场景会话的引用。
         public void Unbind()
         {
             if (owner != null) owner.Changed -= RequestRefresh;
+            var menu = GetComponent<UIMenuScope>();
+            if (menu != null) menu.Canceled -= ToggleSettings;
+            var settingsMenu = settingsPanel != null ? settingsPanel.GetComponent<UIMenuScope>() : null;
+            if (settingsMenu != null) settingsMenu.Canceled -= CloseSettings;
             ClearAdvances(); shownSession = null; refreshPending = false;
             owner = null; settingsOpen = false;
         }

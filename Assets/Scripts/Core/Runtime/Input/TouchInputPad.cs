@@ -33,6 +33,7 @@ namespace Core.Runtime.Inputs
         public void OnPointerDown(PointerEventData eventData)
         {
             if (pointerId != int.MinValue) return;
+            InputDeviceState.NotifyTouch();
             pointerId = eventData.pointerId;
             origin = eventData.position;
         }

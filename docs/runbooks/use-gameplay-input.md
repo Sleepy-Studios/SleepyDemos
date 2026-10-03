@@ -13,3 +13,9 @@
 初始控件必须在菜单需要导航时可用；触屏/鼠标点空白后，方向、确认或返回会通过公共作用域补回焦点。不要在页面另写设备切换选中逻辑；当前指针选中的有效控件不会被默认焦点覆盖。
 
 验证现有Tests.Module.GameplayInputStateTests、GameplayInputRouterTests、TouchInputPadTests的直接受影响范围，并实测自己业务入口与返回。不同平台、真实手柄、触屏、后台和震动支持须另有设备验证，不由Editor合成输入代替。
+
+## 专属动作与提示
+
+无人机等非 Move/Look 玩法创建 InputActionSession(source)，SetMap("自己的 Map") 后读取动作；上下文切换和退出交还现有 UI 导航，源资产不启停。InputBindingPrompt.Bind(session.Asset.FindAction(...)) 让提示跟随同一个生效副本；无需另建 PlayerInput、Resources 扫描或协议注册表。
+
+普通页面/内部弹窗在保存资源添加 UIMenuScope，按钮添加 UICancelRelay；业务订阅 Canceled 做关闭/返回。该组件与玩法 Router 的 MenuInputScope 使用同一所有者栈，只有顶层驱动导航，避免后台页面抢焦点。Phone UI 根据 ActiveKind 显隐摇杆，提示根据 PromptKind；两者不能合成一个设备状态。

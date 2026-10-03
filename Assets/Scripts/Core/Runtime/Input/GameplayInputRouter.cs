@@ -14,8 +14,7 @@ namespace Core.Runtime.Inputs
         private readonly InputActionMap gameplayMap;
         private readonly InputActionMap interactionMap;
         private readonly InputActionMap menu;
-        private readonly IDisposable buttonSubscription;
-        private readonly InputAction touchPress;
+        private readonly InputActionSession session;
         private readonly HashSet<InputAction> awaitingRelease = new HashSet<InputAction>();
         private readonly Dictionary<InputControl, Vector2> previousPadValues = new Dictionary<InputControl, Vector2>();
         private InputActionMap activeMap;
@@ -38,6 +37,11 @@ namespace Core.Runtime.Inputs
 
         /// 暂停门闩，宿主必须据此冻结领域与场景演出，而不是仅挡移动。
         public LocalPauseState PauseState { get; } = new LocalPauseState();
+        /// <summary>获取本会话的实际动作，供提示解析绑定。</summary>
+        /// <param name="path">Map/Action 路径。</param>
+        /// <returns>已保存并克隆的实际动作。</returns>
+        public InputAction FindAction(string path) => asset.FindAction(path, true);
+
         public GameplayInputContext Context => context;
         public InputDeviceKind DeviceKind => deviceKind;
         public GameplayInputSettings Settings => settings.Copy();
@@ -59,9 +63,8 @@ namespace Core.Runtime.Inputs
             // 移动端初次进入先提供触控入口；之后只由实际设备活动切换，不因平台强制盖回触屏。
             deviceKind = Application.isMobilePlatform ? InputDeviceKind.Touch : InputDeviceKind.KeyboardMouse;
             ValidateAsset(source, gameplayMapName, interactionMapName, menuMapName);
-            asset = UnityEngine.Object.Instantiate(source);
-            // devices是运行时属性，Instantiate不依赖它被序列化。测试与限定控制器可在源资产设置白名单。
-            asset.devices = source.devices;
+            session = new InputActionSession(source);
+            asset = session.Asset;
             gameplayMap = asset.FindActionMap(gameplayMapName, true);
             interactionMap = asset.FindActionMap(interactionMapName, true);
             menu = asset.FindActionMap(menuMapName, true);
@@ -70,11 +73,7 @@ namespace Core.Runtime.Inputs
             asset.Disable();
             PauseState.Changed += OnPauseChanged;
             InputSystem.onDeviceChange += OnDeviceChange;
-            buttonSubscription = InputSystem.onAnyButtonPress.Call(OnAnyButtonPress);
-            // 单指TouchState并非整个Touchscreen状态，onAnyButtonPress可能漏报；交给Action解析后只识别设备。
-            touchPress = new InputAction("IdentifyTouchDevice", InputActionType.PassThrough, "<Touchscreen>/touch*/press");
-            touchPress.performed += OnTouchPress;
-            touchPress.Enable();
+            InputDeviceState.Activity += OnDeviceActivity;
             ActivateContext(GameplayInputContext.Gameplay);
         }
 
@@ -125,7 +124,7 @@ namespace Core.Runtime.Inputs
                 && gameplayMap["LookHold"].IsPressed()) ? gameplayMap["MouseLook"].ReadValue<Vector2>() : Vector2.zero;
             Vector2 touchDelta = touchLook; touchLook = Vector2.zero;
             if (mouse.sqrMagnitude > 0.01f)
-                SetDevice(InputDeviceKind.KeyboardMouse);
+            { InputDeviceState.Notify(Mouse.current); SetDevice(InputDeviceKind.KeyboardMouse); }
             if (continuousSuppressed && keyboardMove.sqrMagnitude + padMove.sqrMagnitude + padLook.sqrMagnitude + navigation.sqrMagnitude + touchMove.sqrMagnitude < 0.0001f)
                 continuousSuppressed = false;
             var frame = new GameplayInputFrame { DeviceKind = deviceKind, IsPaused = PauseState.IsPaused };
@@ -168,7 +167,7 @@ namespace Core.Runtime.Inputs
         {
             ThrowIfDisposed();
             if (!Finite(move.x) || !Finite(move.y) || !Finite(lookDelta.x) || !Finite(lookDelta.y)) throw new ArgumentException("触屏输入必须为有限值。");
-            if (hadActivity) SetDevice(InputDeviceKind.Touch);
+            if (hadActivity) { InputDeviceState.NotifyTouch(); SetDevice(InputDeviceKind.Touch); }
             if (context != GameplayInputContext.Gameplay || PauseState.IsPaused) { touchMove = touchLook = Vector2.zero; return; }
             touchMove = Vector2.ClampMagnitude(move, 1); touchLook += lookDelta;
         }
@@ -181,7 +180,7 @@ namespace Core.Runtime.Inputs
             ThrowIfDisposed();
             int numeric = (int)action;
             if (numeric <= 0 || (numeric & (numeric - 1)) != 0 || !Allowed(action) || PauseState.IsPaused && action != GameplayInputActions.Pause) return false;
-            SetDevice(InputDeviceKind.Touch); pending |= action; return true;
+            InputDeviceState.NotifyTouch(); SetDevice(InputDeviceKind.Touch); pending |= action; return true;
         }
 
         /// <summary>播放可选短震动；仅作用于最近实际使用的手柄，暂停/断连/设备切换/Dispose停止。</summary>
@@ -211,13 +210,13 @@ namespace Core.Runtime.Inputs
         public void Dispose()
         {
             if (disposed) return;
-            disposed = true; StopRumble(); buttonSubscription.Dispose();
-            touchPress.performed -= OnTouchPress; touchPress.Dispose();
+            disposed = true; StopRumble();
+            InputDeviceState.Activity -= OnDeviceActivity;
             InputSystem.onDeviceChange -= OnDeviceChange; PauseState.Changed -= OnPauseChanged;
             foreach (var map in new[] { gameplayMap, interactionMap, menu })
                 foreach (var action in map.actions) { action.performed -= OnPerformed; action.canceled -= OnCanceled; }
             asset.Disable(); awaitingRelease.Clear(); previousPadValues.Clear(); pending = GameplayInputActions.None;
-            if (Application.isPlaying) UnityEngine.Object.Destroy(asset); else UnityEngine.Object.DestroyImmediate(asset);
+            session.Dispose();
         }
 
         private void ActivateContext(GameplayInputContext value)
@@ -254,9 +253,8 @@ namespace Core.Runtime.Inputs
         }
 
         private void OnCanceled(InputAction.CallbackContext callback) => awaitingRelease.Remove(callback.action);
-        private void OnAnyButtonPress(InputControl control) { if (!disposed && IsAllowedDevice(control.device)) RecordDevice(control.device); }
-        private void OnTouchPress(InputAction.CallbackContext callback)
-        { if (!disposed && callback.ReadValue<float>() > 0 && IsAllowedDevice(callback.control.device)) RecordDevice(callback.control.device); }
+        private void OnDeviceActivity(InputDevice device)
+        { if (!disposed && IsAllowedDevice(device)) RecordDevice(device); }
 
         private void RecordDevice(InputDevice device)
         {
@@ -291,7 +289,7 @@ namespace Core.Runtime.Inputs
                 strongest = value;
             }
             // 持续按住的摇杆不抢回刚切换的键鼠提示；只有实际变化且越过死区才更换设备。
-            if (changedSource != null) { activeGamepad = changedSource; SetDevice(InputDeviceKind.Gamepad); }
+            if (changedSource != null) { InputDeviceState.Notify(changedSource); activeGamepad = changedSource; SetDevice(InputDeviceKind.Gamepad); }
             return strongest;
         }
 

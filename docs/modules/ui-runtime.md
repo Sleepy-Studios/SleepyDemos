@@ -11,7 +11,8 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UINavigationCoordinator`：纯 C# FIFO 单写入协调器，只管理 operation、取消、队列与结果完成，不访问 Unity 场景或 Singleton。
 - `UIWorldTransitionTransaction`：快照本次操作的 Provider，缓存每个目标唯一解析结果，并在回滚时恢复已尝试的世界表现终态。
 - `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，并提供事务快照与恢复。
-- `UICache`：按 View 类型缓存 View 实例。
+- `UICache`：按 View 类型缓存 View 实例，仅在没有可复用实例时通过 Activator.CreateInstance 构造；泛型入口无需登记。
+- `UITypeReflection`：启动时按 View 继承关系发现页面，缓存类名与 Mvc 别名；每个指定程序集在本轮初始化中只扫描一次，运行时 Get 只查字典，不扫描整个 AppDomain。排除 View 基类、抽象类、开放泛型及 ItemView；不同类型同名沿用先发现者优先。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `UIRootManager.BindToBaseCamera`：Additive 场景切换时迁移持久化 UI Camera 的 URP Camera Stack 归属。
 - `Components/`：公共基础组件及无业务依赖的 UGUI/TMP 表现组件。
@@ -199,3 +200,13 @@ Loading --加载失败或取消--> Faulted
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。
 
 独立 UPM 虚拟列表与 ItemView/MvcBind 的接入由 [Loop Scroll 宿主桥接](loop-scroll.md) 维护；包内算法不归入 Core，宿主的薄桥接归入 Core.Runtime。
+
+## 三端控件表现
+
+UIState 继续只写声明的表现属性。UIStateInteraction 消费 EventSystem 的悬停、按下、选择及 Submit 事件，不点击业务按钮；业务 Selected 由 UITab/Toggle 等维护独立目标。交互优先级为 Disabled、Pressed、Focused、Hover、Normal；鼠标显示 Hover，键盘/手柄显示 Focused，触屏统一映射 Normal，但禁用仍阻止输入。
+
+已保存组件使用独立 InteractionFeedback，不与业务颜色/开关抢属性；其原生 Transition 关闭。动态 Showcase 在宿主桥接里显式配置 UIState，不修改包源码。UITab 使用一条初始化流程，异步时逐项 Yield；隐藏/销毁取消当前代际，旧完成与 finally 不影响新初始化。
+
+鼠标设备识别来自真实移动或按下，不把新界面的 PointerEnter、Point 初始状态当成实际操作。这样触屏打开菜单后，静止鼠标不会隐藏触控区。Hub 保存确认提示，处于根页面时不显示无效返回；Loop Scroll 保存确认/返回提示，全部引用同一公共图标目录。
+
+UIMenuScope 保存于普通页面/弹窗资源，MenuInputScope 的顶层所有者独占导航；关闭后恢复有效旧焦点，方向导航限制在当前作用域。按钮启用或禁用时刷新邻接关系，嵌套作用域的控件不加入父级导航。虚拟列表继续使用 LoopScrollMenuNavigation 的稳定 Key 和按钮绑定身份，不重新模拟 Submit。

@@ -20,7 +20,7 @@ Editor 直启时只复用以下正式能力：
 
 - `HotfixConfig` 与 `ResourceServices`。
 - YooAsset 初始化。
-- `UIManager.InitializeAsync()` 与 `UITypeReflection`。
+- `UIManager.InitializeAsync()` 与 `UITypeReflection.Init`，明确扫描 Core 与当前 Hotfix 程序集。
 - 幂等的 `HotfixBootService`。
 - `HotfixWorldTransitionProvider`。
 - `EditorDirectGameSceneRuntime` 与 `GameSceneNavigator`。

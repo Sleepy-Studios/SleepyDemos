@@ -24,6 +24,7 @@ namespace Core.Runtime
         private readonly Dictionary<Button, UnityAction> buttonHandlers = new Dictionary<Button, UnityAction>();
         private bool initialized;
         private bool initializing;
+        private int initializationGeneration;
 
         /// 选择前拦截回调。返回 false 时阻止本次选择和通知。
         public Func<int, bool> TrySelect { get; set; }
@@ -45,6 +46,12 @@ namespace Core.Runtime
         private void Start()
         {
             InitializeExistingItems();
+        }
+
+        private void OnDisable()
+        {
+            initializationGeneration++;
+            initializing = false;
         }
 
         private void OnDestroy()
@@ -91,177 +98,44 @@ namespace Core.Runtime
             Action action = null,
             bool isAsync = false)
         {
-            if (isAsync)
-            {
-                InitAsyncInternal(desc, itemImages, initIndex, notify, action).Forget();
-                return;
-            }
-
-            InitImmediate(desc, itemImages, initIndex, notify);
-            action?.Invoke();
+            if (desc == null || initializing) return;
+            var content = isAsync ? new List<string>(desc) : desc;
+            InitItemsAsync(content, itemImages, initIndex, notify, action, isAsync).Forget();
         }
 
-        private void InitImmediate(
-            IList<string> desc,
-            IReadOnlyList<string> itemImages,
-            int initIndex,
-            bool notify)
+        private async UniTask InitItemsAsync(IList<string> desc, IReadOnlyList<string> itemImages,
+            int initIndex, bool notify, Action completed, bool isAsync)
         {
-            if (desc == null || initializing)
-            {
-                return;
-            }
-
+            int generation = ++initializationGeneration;
             initializing = true;
             try
             {
-                var requiredCount = desc.Count;
-                EnsureItemList(requiredCount);
-                if (requiredCount == 0)
-                {
-                    for (int i = 0; i < items.Count; i++)
-                    {
-                        if (items[i] != null)
-                        {
-                            items[i].SetActive(false);
-                        }
-                    }
-
-                    ClearSelection();
-                    return;
-                }
-
-                if (items.Count < requiredCount)
-                {
-                    Debug.LogWarning($"[UITab] {name} 可用 Item 数量不足：需要 {requiredCount}，实际 {items.Count}。请配置 prefab 或至少一个模板项。");
-                }
-
-                var visibleCount = Mathf.Min(requiredCount, items.Count);
+                EnsureItemList(desc.Count);
+                if (items.Count < desc.Count)
+                    Debug.LogWarning($"[UITab] {name} 可用 Item 数量不足：需要 {desc.Count}，实际 {items.Count}。请配置 prefab 或至少一个模板项。");
+                int visibleCount = Mathf.Min(desc.Count, items.Count);
                 for (int i = 0; i < visibleCount; i++)
                 {
+                    if (this == null || generation != initializationGeneration) return;
                     var item = items[i];
-                    if (item == null)
+                    if (item != null)
                     {
-                        continue;
+                        item.SetActive(true);
+                        SetItemText(item, desc[i]);
+                        SetItemImage(item, itemImages != null && i < itemImages.Count ? itemImages[i] : null, isAsync);
+                        InitItem(item, i);
                     }
-
-                    item.SetActive(true);
-                    SetItemText(item, desc[i]);
-                    SetItemImage(
-                        item,
-                        itemImages != null && i < itemImages.Count ? itemImages[i] : null,
-                        false);
-                    InitItem(item, i);
+                    if (isAsync) await UniTask.Yield();
                 }
-
-                for (int i = visibleCount; i < items.Count; i++)
-                {
-                    if (items[i] != null)
-                    {
-                        items[i].SetActive(false);
-                    }
-                }
-
-                if (initIndex >= 0 && initIndex < visibleCount)
-                {
-                    Select(initIndex, notify);
-                }
-                else
-                {
-                    ClearSelection();
-                }
+                if (this == null || generation != initializationGeneration) return;
+                for (int i = visibleCount; i < items.Count; i++) if (items[i] != null) items[i].SetActive(false);
+                if (initIndex >= 0 && initIndex < visibleCount) Select(initIndex, notify); else ClearSelection();
+                completed?.Invoke();
             }
             finally
             {
-                initialized = true;
-                initializing = false;
-            }
-        }
-
-        private async UniTaskVoid InitAsyncInternal(
-            IList<string> desc,
-            IReadOnlyList<string> itemImages,
-            int initIndex,
-            bool notify,
-            Action action)
-        {
-            if (desc == null || initializing)
-            {
-                return;
-            }
-
-            initializing = true;
-            try
-            {
-                var requiredCount = desc.Count;
-                EnsureItemList(requiredCount);
-                if (requiredCount == 0)
-                {
-                    for (int i = 0; i < items.Count; i++)
-                    {
-                        if (items[i] != null)
-                        {
-                            items[i].SetActive(false);
-                        }
-                    }
-
-                    ClearSelection();
-                    action?.Invoke();
-                    return;
-                }
-
-                if (items.Count < requiredCount)
-                {
-                    Debug.LogWarning($"[UITab] {name} 可用 Item 数量不足：需要 {requiredCount}，实际 {items.Count}。请配置 prefab 或至少一个模板项。");
-                }
-
-                var visibleCount = Mathf.Min(requiredCount, items.Count);
-                for (int i = 0; i < visibleCount; i++)
-                {
-                    var item = items[i];
-                    if (item == null)
-                    {
-                        continue;
-                    }
-
-                    item.SetActive(true);
-                    SetItemText(item, desc[i]);
-                    SetItemImage(
-                        item,
-                        itemImages != null && i < itemImages.Count ? itemImages[i] : null,
-                        true);
-                    InitItem(item, i);
-
-                    await UniTask.Yield();
-                    if (this == null || gameObject == null)
-                    {
-                        return;
-                    }
-                }
-
-                for (int i = visibleCount; i < items.Count; i++)
-                {
-                    if (items[i] != null)
-                    {
-                        items[i].SetActive(false);
-                    }
-                }
-
-                if (initIndex >= 0 && initIndex < visibleCount)
-                {
-                    Select(initIndex, notify);
-                }
-                else
-                {
-                    ClearSelection();
-                }
-
-                action?.Invoke();
-            }
-            finally
-            {
-                initialized = true;
-                initializing = false;
+                // 旧操作的 finally 不得释放新初始化的门闩。
+                if (this != null && generation == initializationGeneration) { initialized = true; initializing = false; }
             }
         }
 

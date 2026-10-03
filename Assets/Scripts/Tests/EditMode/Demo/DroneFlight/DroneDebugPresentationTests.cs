@@ -8,26 +8,10 @@ using UnityEngine;
 namespace Tests.Demo
 {
     /*
-     * 测试说明：验证 F2/F3 调试快捷键相互独立，以及动力矢量显示平滑不改变物理真值。
+     * 测试说明：验证动力矢量显示平滑不改变物理真值；调试动作独立性由真实输入回归覆盖。
      */
     public sealed class DroneDebugPresentationTests
     {
-        [TestCase(false, false, false, false)]
-        [TestCase(true, false, true, false)]
-        [TestCase(false, true, false, true)]
-        [TestCase(true, true, true, true)]
-        public void ShortcutRequest_RoutesF2AndF3Independently(
-            bool f2Pressed,
-            bool f3Pressed,
-            bool expectedDraw,
-            bool expectedPanel)
-        {
-            var request = DroneFlightDebugShortcutRequest.FromPressedKeys(f2Pressed, f3Pressed);
-
-            Assert.That(request.ToggleDraw, Is.EqualTo(expectedDraw));
-            Assert.That(request.TogglePanel, Is.EqualTo(expectedPanel));
-        }
-
         [Test]
         public void Smoother_FirstFrameCapturesTargetAndResetClearsHistory()
         {

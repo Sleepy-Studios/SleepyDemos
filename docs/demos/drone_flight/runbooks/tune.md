@@ -8,7 +8,7 @@
 
 ## 公共操作
 
-- 选择机型后会在首个物理步直接进入第三人称 Active，但电机仍锁定；`F` 只兼容旧 Waiting 会话，不是正常启动步骤。
+- 选择机型后会在首个物理步直接进入第三人称 Active，但电机仍锁定；`F` 用于返回 Waiting 后重新进入遥控，手柄确认/触屏按钮提供同一入口。
 - `R`：短按解锁/锁定；长按达到配置时间后重载整个 DroneFlight 并返回机型选择。
 - `T/G`：自动起飞/降落。
 - `WASD`：水平移动；`Q/E`：偏航；`Space/左 Ctrl`：升降。
@@ -147,3 +147,9 @@ F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精�
 6. 新增 DroneFlight 测试文件时，放入对应 TestMode 的 `Demo/DroneFlight` 目录并使用 `Tests.Demo` 命名空间；先在文件顶部补中文测试说明，再在 `Tests/EditMode/Demo/DroneFlight` 中唯一的 `DroneFlightTestDiagnostics` 描述表登记测试类。该入口同时覆盖 EditMode 与 PlayMode，保证 Console 日志可读。
 
 重建设备资源执行：`Tools > SleepyDemos > DroneFlight > 重建基础、装备与组合机体`。该工具只在编辑期重建 `DronePrototype`、两个独立装备 Prefab、两个已保存的组合 Variant，并同步 DroneFlight HUD 的保存态布局；不生成重复的纯无人机 Variant，也不覆盖场景。游戏运行时不会执行该工具或动态拼装装备。执行后通过 Unity Test Runner 运行本任务精确测试，不另起 BatchMode，也不使用 dotnet/msbuild。
+
+## 手柄与手机
+
+手柄确认键短按解锁，长按按输入配置复位；Xbox/PlayStation 下方确认，Switch A 确认。左摇杆升降/偏航，右摇杆平移；按住左扳机调整镜头并停止右摇杆平移；左肩切镜头，右肩打开操作面板。装备使用西/北键和方向键上下。手机保留四轴双摇杆，按钮与面板提交同一命令，不提供街机自动高度控制。
+
+动作绑定维护 Data/DroneFlight.inputactions；触区和面板维护已保存 HUD Prefab，不运行旧机体/UI Builder。保留正式配置 Inspector、模型契约和构建入口。模拟设备测试不能代替真实三类手柄与 Android 验收。

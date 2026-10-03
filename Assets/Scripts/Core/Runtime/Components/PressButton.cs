@@ -17,33 +17,33 @@ namespace Core.Runtime
         private static readonly Dictionary<int, PressButton> ActivePointers = new();
         private readonly Dictionary<int, PressButton> boundPointers = new();
 
-        private readonly UnityEvent _onMouseDown = new();
-        private readonly UnityEvent _onMouseMove = new();
-        private readonly UnityEvent _onMouseUp = new();
-        private readonly UnityEvent _onLongPress = new();
+        private readonly UnityEvent onMouseDown = new();
+        private readonly UnityEvent onMouseMove = new();
+        private readonly UnityEvent onMouseUp = new();
+        private readonly UnityEvent onLongPress = new();
 
-        private bool _isPressed;
-        private bool _isDragged;
-        private float _pressTime;
-        private Vector2 _downPosition;
-        private int _activePointerId = -1;
+        private bool isPressed;
+        private bool isDragged;
+        private float pressTime;
+        private Vector2 downPosition;
+        private int activePointerId = int.MinValue;
 
         public bool IsPressed
         {
-            get => _isPressed;
-            set => _isPressed = value;
+            get => isPressed;
+            set => isPressed = value;
         }
 
         public bool IsDragged
         {
-            get => _isDragged;
-            set => _isDragged = value;
+            get => isDragged;
+            set => isDragged = value;
         }
 
-        public UnityEvent OnMouseDown => _onMouseDown;
-        public UnityEvent OnMouseMove => _onMouseMove;
-        public UnityEvent OnMouseUp => _onMouseUp;
-        public UnityEvent OnLongPress => _onLongPress;
+        public UnityEvent OnMouseDown => onMouseDown;
+        public UnityEvent OnMouseMove => onMouseMove;
+        public UnityEvent OnMouseUp => onMouseUp;
+        public UnityEvent OnLongPress => onLongPress;
 
         public Vector2 MovePosition { get; private set; }
         public Vector2 MoveLocalPosition { get; private set; }
@@ -72,43 +72,44 @@ namespace Core.Runtime
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            if (eventData == null || _activePointerId != -1 || !CanControlPointer(eventData.pointerId))
+            if (eventData == null || activePointerId != int.MinValue || !CanControlPointer(eventData.pointerId))
             {
                 return;
             }
 
-            _activePointerId = eventData.pointerId;
-            BindPointer(_activePointerId, this);
-            _isPressed = true;
-            _isDragged = false;
-            _pressTime = Time.time;
-            _downPosition = eventData.position;
+            activePointerId = eventData.pointerId;
+            BindPointer(activePointerId, this);
+            isPressed = true;
+            isDragged = false;
+            pressTime = Time.time;
+            downPosition = eventData.position;
             MovePosition = eventData.position;
             MoveLocalPosition = GetLocalPosition(eventData.position);
-            transform.localScale = originScale * pressedScale;
-            _onMouseDown?.Invoke();
+            transform.localScale = Core.Runtime.Inputs.InputDeviceState.ActiveKind == Core.Runtime.Inputs.InputDeviceKind.Touch
+                ? originScale : originScale * pressedScale;
+            onMouseDown?.Invoke();
         }
 
         public void OnPointerUp(PointerEventData eventData)
         {
-            if (eventData == null || _activePointerId != eventData.pointerId)
+            if (eventData == null || activePointerId != eventData.pointerId)
             {
                 return;
             }
 
-            UnbindPointer(_activePointerId, this);
-            _activePointerId = -1;
-            _isPressed = false;
-            _isDragged = false;
+            UnbindPointer(activePointerId, this);
+            activePointerId = int.MinValue;
+            isPressed = false;
+            isDragged = false;
             transform.localScale = originScale;
             MovePosition = eventData.position;
             MoveLocalPosition = GetLocalPosition(eventData.position);
-            _onMouseUp?.Invoke();
+            onMouseUp?.Invoke();
         }
 
         public void OnPointerExit(PointerEventData eventData)
         {
-            if (eventData == null || _activePointerId != eventData.pointerId)
+            if (eventData == null || activePointerId != eventData.pointerId)
             {
                 return;
             }
@@ -118,18 +119,18 @@ namespace Core.Runtime
 
         public void OnPointerMove(PointerEventData eventData)
         {
-            if (!_isPressed || _activePointerId != eventData.pointerId)
+            if (!isPressed || activePointerId != eventData.pointerId)
             {
                 return;
             }
 
             MovePosition = eventData.position;
             MoveLocalPosition = GetLocalPosition(eventData.position);
-            if (!_isDragged)
+            if (!isDragged)
             {
-                if (dragThreshold <= 0f || (eventData.position - _downPosition).sqrMagnitude >= dragThreshold * dragThreshold)
+                if (dragThreshold <= 0f || (eventData.position - downPosition).sqrMagnitude >= dragThreshold * dragThreshold)
                 {
-                    _isDragged = true;
+                    isDragged = true;
                 }
                 else
                 {
@@ -137,47 +138,47 @@ namespace Core.Runtime
                 }
             }
 
-            _onMouseMove?.Invoke();
+            onMouseMove?.Invoke();
         }
 
         private void Update()
         {
-            if (!_isPressed)
+            if (!isPressed)
             {
                 return;
             }
 
-            if (pressDuration > 0f && Time.time - _pressTime >= pressDuration)
+            if (pressDuration > 0f && Time.time - pressTime >= pressDuration)
             {
-                _onLongPress?.Invoke();
-                _pressTime = Time.time;
+                onLongPress?.Invoke();
+                pressTime = Time.time;
             }
         }
 
         private void OnDisable()
         {
-            if (_activePointerId != -1)
+            if (activePointerId != int.MinValue)
             {
-                UnbindPointer(_activePointerId, this);
-                _activePointerId = -1;
+                UnbindPointer(activePointerId, this);
+                activePointerId = int.MinValue;
             }
 
-            if (_isPressed)
+            if (isPressed)
             {
                 transform.localScale = originScale;
-                _onMouseUp?.Invoke();
+                onMouseUp?.Invoke();
             }
 
-            _isPressed = false;
-            _isDragged = false;
+            isPressed = false;
+            isDragged = false;
         }
 
         private void OnDestroy()
         {
-            if (_activePointerId != -1)
+            if (activePointerId != int.MinValue)
             {
-                UnbindPointer(_activePointerId, this);
-                _activePointerId = -1;
+                UnbindPointer(activePointerId, this);
+                activePointerId = int.MinValue;
             }
             if (boundPointers.Count <= 0)
             {

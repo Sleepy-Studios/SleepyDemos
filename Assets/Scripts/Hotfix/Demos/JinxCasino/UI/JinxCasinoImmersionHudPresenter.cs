@@ -1,6 +1,6 @@
+using Core.Runtime.Inputs;
 using Hotfix.JinxCasino;
 using Hotfix.JinxCasino.Interaction;
-using Core.Runtime.Inputs;
 using Hotfix.JinxCasino.Rules;
 using TMPro;
 using UnityEngine;
@@ -23,6 +23,7 @@ namespace Hotfix.JinxCasino.UI
         private bool mainMenuSizeCaptured;
         private TMP_Text pauseLabel;
         private TMP_Text exitTableLabel;
+        private string tableInputLabel;
         [SerializeField] private Button start;
         [SerializeField] private Button practice;
         [SerializeField] private Button resume;
@@ -39,12 +40,12 @@ namespace Hotfix.JinxCasino.UI
         /// <param name="controller">所属本地场景。</param>
         public void Bind(JinxCasinoController controller)
         {
-            Unbind(); owner = controller; menuState = -1;
+            Unbind(); owner = controller; menuState = -1; tableInputLabel = null;
             pauseLabel = pause.GetComponentInChildren<TMP_Text>(true);
             exitTableLabel = exitTable.GetComponentInChildren<TMP_Text>(true);
             if (!mainMenuSizeCaptured) { mainMenuSize = ((RectTransform)mainMenu.transform).sizeDelta; mainMenuSizeCaptured = true; }
             if (quitGameButton != null) quitGameButton.onClick.AddListener(QuitGame);
-            owner.Changed += Refresh; owner.Player.Changed += Refresh;
+            owner.Changed += Refresh; owner.Player.Changed += OnPlayerChanged;
             owner.Player.BindTouchPads(movePad, lookPad);
             start.onClick.AddListener(StartAdventure); practice.onClick.AddListener(StartPractice);
             resume.onClick.AddListener(Resume); pause.onClick.AddListener(Pause);
@@ -67,7 +68,7 @@ namespace Hotfix.JinxCasino.UI
             UnbindStandardEndingControls();
             UnbindSaveControls();
             UnbindTutorialControls();
-            owner.Changed -= Refresh; owner.Player.Changed -= Refresh;
+            owner.Changed -= Refresh; owner.Player.Changed -= OnPlayerChanged;
             owner.Player.BindTouchPads(null, null); owner.Player.SetMenuState(false, false, null);
             start.onClick.RemoveListener(StartAdventure); practice.onClick.RemoveListener(StartPractice);
             resume.onClick.RemoveListener(Resume); pause.onClick.RemoveListener(Pause);
@@ -118,20 +119,23 @@ namespace Hotfix.JinxCasino.UI
             // 离桌会立即清会话，但相机仍在返回；这期间不能提前开放探索触区。
             bool atDesk = owner.Player.HasFocus;
             bool touching = owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Touch;
-            bool usingGamepad = owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad;
             bool exploring = state == 2 && owner.Player.IsExplorationInputReady;
             movePad.gameObject.SetActive(exploring && touching);
             lookPad.gameObject.SetActive(exploring && touching);
             interact.gameObject.SetActive(exploring && touching);
             exitTable.gameObject.SetActive(state == 2 && atDesk);
             exitTable.interactable = table != null || owner.Player.HasShopFocus;
-            if (pauseLabel != null) pauseLabel.text = usingGamepad ? "Menu 暂停" : touching || atDesk ? "暂停" : "Esc 暂停";
-            if (exitTableLabel != null) exitTableLabel.text = usingGamepad ? "B 离开桌面" : touching ? "离开桌面" : "Esc 离开桌面";
-            string action = owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad ? "A" : touching ? "交互" : "E";
+            if (pauseLabel != null) pauseLabel.text = owner.Player.InputLabel("Menu/Pause", "暂停");
+            if (exitTableLabel != null) exitTableLabel.text = owner.Player.InputLabel("Table/Back", "离开桌面");
+            string action = owner.Player.InputLabel("Exploration/Interact", "");
             var nearby = owner.Player.FindNearbyStation();
-            prompt.text = atDesk ? owner.Player.DeviceKind == Core.Runtime.Inputs.InputDeviceKind.Gamepad
-                ? "方向选择 · A 操作 · X 次要 · Y 规则 · B 离开" : touching ? "点选桌面物件 · 轻触返回离开" : "点击物件 · 方向键 / Enter · H 规则 · Esc 离开"
-                : owner.Player.Exit.IsNearby ? action + " " + owner.Player.Exit.Prompt : owner.Player.IsShopNearby ? action + " 查看附近机台 / 补给柜台" : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
+            tableInputLabel ??= "方向选择 · " + owner.Player.InputLabel("Table/Confirm", "操作")
+                + " · " + owner.Player.InputLabel("Table/Secondary", "次要") + " · "
+                + owner.Player.InputLabel("Table/Help", "规则") + " · " + owner.Player.InputLabel("Table/Back", "离开");
+            prompt.text = atDesk ? tableInputLabel
+                : owner.Player.Exit.IsNearby ? action + " " + owner.Player.Exit.Prompt
+                : owner.Player.IsShopNearby ? action + " 查看附近机台 / 补给柜台"
+                : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
             if (state == 2 && !exploring && table == null && !owner.Player.HasShopFocus) prompt.text = "正在回到探索视角…";
             feedback.text = InteractionFeedback(table);
         }
@@ -171,5 +175,6 @@ namespace Hotfix.JinxCasino.UI
             return table.Presentation?.IsComplete == true ? "结果已显示在机台上，可继续投入或离开。" : "选择筹码，确认后开始游玩。";
         }
         private void OnDestroy() => Unbind();
+        private void OnPlayerChanged() { tableInputLabel = null; Refresh(); }
     }
 }

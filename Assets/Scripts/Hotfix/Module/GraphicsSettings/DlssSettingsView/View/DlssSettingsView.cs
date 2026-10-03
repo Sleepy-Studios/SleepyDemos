@@ -1,4 +1,5 @@
 using Core.Runtime;
+using Core.Runtime.Inputs;
 using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -41,7 +42,12 @@ namespace Hotfix
                 if (settingsPanel != null) settingsPanel.gameObject.SetActive(originalPanel);
             }
         }
-        protected override void OnGameObjectInitialize() { }
+        protected override void OnGameObjectInitialize()
+        {
+            var panelScope = transform.Find("SettingsPanel")?.GetComponent<UIMenuScope>();
+            if (panelScope != null) panelScope.Canceled += CloseSettingsPanel;
+        }
+        private void CloseSettingsPanel() => SetSettingsPanelOpen(false);
         protected override void OnShow()
         {
             base.OnShow();

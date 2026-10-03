@@ -272,7 +272,7 @@ Cine 更慢、更柔和；Sport 允许更快的速度、倾角和响应。档位
 
 `DroneFlightSceneCoordinator` 根据 `DroneVehicleKind` 选择三个成品地址之一。Prefab 实例先在失活状态完成出生位置和运行引用配置，`DroneFlightVehicleAssembler` 注入相机、输入、控制会话、装备宿主和遥测引用，然后才激活机体。
 
-装配器不会在运行时创建抓斗或渔叉结构，也不会把纯无人机临时改造成装备机。装备 Prefab 和组合 Variant 由 Editor Builder 预先建立并保存，便于在 Inspector 中检查，也让资源引用和物理层级能被契约测试锁定。
+装配器不会在运行时创建抓斗或渔叉结构，也不会把纯无人机临时改造成装备机。装备 Prefab 和组合 Variant 已预先建立并保存，后续直接维护保存资产，便于在 Inspector 中检查，也让资源引用和物理层级能被契约测试锁定。
 
 三机型共同使用：
 
