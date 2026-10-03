@@ -5,7 +5,7 @@ using UnityEngine.UI;
 namespace Core.Runtime
 {
     public enum CommonTipsType { Warning, Success, Notice }
-    /// 统一 Tips 文本测量和背景适配；长正文保留字号，通过 ScrollRect 展示。
+    /// Tips 文本与背景适配；说明使用纵向滚动，消息使用单行自动滚动。
     [DisallowMultipleComponent]
     public sealed class UITipsPanel : MonoBehaviour
     {
@@ -26,15 +26,15 @@ namespace Core.Runtime
         [SerializeField] private Button closeButton;
         [SerializeField] private Image messageBackground;
         [SerializeField] private Outline messageOutline;
+        [SerializeField] private TMPAutoScrollEnableBehaviour messageScroll;
         private float maximumWidth = 600;
         private int baseLeftPadding = -1;
         /// 主体矩形，箭头独立于其布局。
         public RectTransform Body => body;
         /// 当前正文可滚动距离。
-        public float ScrollDistance => Mathf.Max(0, scroll.content.rect.height - scroll.viewport.rect.height);
-        /// 当前滚动位置，0 为顶部，1 为末尾。
-        public float ScrollProgress => 1 - scroll.verticalNormalizedPosition;
+        public float ScrollDistance => scroll == null ? 0 : Mathf.Max(0, scroll.content.rect.height - scroll.viewport.rect.height);
         internal Button CloseButton => closeButton;
+        internal TMPAutoScrollEnableBehaviour MessageScroll => messageScroll;
 
         /// <summary>更新内容；下一次 RefreshLayout 重新测量并从顶部显示。</summary>
         /// <param name="content">正文，null 视为空。</param>
@@ -48,8 +48,11 @@ namespace Core.Runtime
             titleText.gameObject.SetActive(!string.IsNullOrWhiteSpace(title));
             maximumWidth = Mathf.Max(1, maxWidth);
             if (icon != null) { icon.sprite = sprite; icon.gameObject.SetActive(sprite != null); }
-            scroll.StopMovement();
-            scroll.verticalNormalizedPosition = 1;
+            if (scroll != null)
+            {
+                scroll.StopMovement();
+                scroll.verticalNormalizedPosition = 1;
+            }
         }
 
         /// <summary>更新三种状态的消息，图标来自正式 Prefab 的直接引用。</summary>
@@ -65,7 +68,12 @@ namespace Core.Runtime
                 CommonTipsType.Notice => noticeIcon,
                 _ => throw new System.ArgumentOutOfRangeException(nameof(type))
             };
+            content = (content ?? string.Empty).Replace("\r\n", " ").Replace("\r", " ").Replace("\n", " ");
             SetContent(content, null, maxWidth, sprite);
+            var options = TMPAutoScrollOptions.Default;
+            options.Loop = false;
+            options.UseUnscaledTime = true;
+            messageScroll.SetOptions(options);
             // 复用单色符号，着色使用统一语义色；警告三角本身已带红色与白色叹号。
             if (icon != null) icon.color = type == CommonTipsType.Warning ? Color.white
                 : type == CommonTipsType.Success ? ColorUtil.Colors.Success : ColorUtil.Colors.Notice;
@@ -88,8 +96,8 @@ namespace Core.Runtime
                 messageDetails.interactable = interactive;
             }
             if (closeButton != null) closeButton.interactable = interactive;
-            // 短消息把滚轮交给外层通知列表，长消息仍可单独阅读。
-            scroll.enabled = interactive && scroll.vertical;
+            // 普通说明保留纵向阅读；消息滚轮由外层列表处理。
+            if (scroll != null) scroll.enabled = interactive && scroll.vertical;
         }
 
         /// <summary>按可用区域刷新背景与滚动高度，返回最终主体尺寸。</summary>
@@ -108,6 +116,20 @@ namespace Core.Runtime
             float textWidth = Mathf.Min(textLimit, Mathf.Max(1, Mathf.Max(contentWidth, titleWidth)));
             float width = Mathf.Min(widthLimit, textWidth + inset);
             body.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+            if (messageScroll != null)
+            {
+                // 消息文字不参与纵向 Content 布局，保持单行字号和稳定裁剪区域。
+                var viewport = (RectTransform)messageScroll.transform;
+                float lineHeight = Mathf.Max(contentText.fontSize, contentText.GetPreferredValues(contentText.text, Mathf.Infinity, Mathf.Infinity).y);
+                float height = Mathf.Min(availableSize.y, padding.vertical + Mathf.Max(lineHeight, iconWidth > 0 ? icon.rectTransform.rect.height : 0));
+                viewportLayout.preferredWidth = textWidth;
+                viewportLayout.preferredHeight = Mathf.Max(1, height - padding.vertical);
+                viewport.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, textWidth);
+                viewport.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, viewportLayout.preferredHeight);
+                body.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(bodyLayout.transform as RectTransform);
+                return body.rect.size;
+            }
             titleFit.SetMaxWidth(textWidth, false);
             contentFit.SetMaxWidth(textWidth, false);
             // 正文使用独立 Content 布局，不把滚动高度上限交给 TMP 缩字。
@@ -142,9 +164,5 @@ namespace Core.Runtime
             if (!scroll.vertical) scroll.verticalNormalizedPosition = 1;
             return body.rect.size;
         }
-
-        /// <summary>设置正文的归一化滚动进度。</summary>
-        /// <param name="progress">0 顶部，1 底部，用于非交互消息条自动滚动。</param>
-        public void SetScrollProgress(float progress) => scroll.verticalNormalizedPosition = 1 - Mathf.Clamp01(progress);
     }
 }

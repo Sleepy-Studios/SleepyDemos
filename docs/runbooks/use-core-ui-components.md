@@ -93,15 +93,15 @@ canvasGroup.SetCanvasGroupVisible(false);
 
 `Show/Hide` 只操作 GameObject 激活状态。CanvasGroup 可见性必须使用 `SetCanvasGroupVisible`，避免调用方误以为两者生命周期一致。
 
-自动滚动既可在 Inspector 绑定 viewport 和 TMP，也可显式初始化：
+直接拖入 `Assets/LoadResources/UI/Common/TMPAutoScroll.prefab`，绑定子节点 `Text` 的 TMP 后赋值即可；无需 ItemView 或 SubViewWithGameObject。自己装配时在 Inspector 绑定 viewport 和 TMP，也可显式初始化：
 
 ```csharp
 autoScroll.Initialize(viewport, titleText);
 autoScroll.SetOptions(TMPAutoScrollOptions.Default);
-autoScroll.SetText(title, shouldAutoStart: true);
+titleText.text = title;
 ```
 
-组件会监听 TMP 顶点脏回调，因此业务继续直接写 `titleText.text = title` 也能重新测宽；viewport 默认补 `RectMask2D`。短文本不滚动并恢复原位置、尺寸和 TMP 格式。
+组件会监听 TMP 顶点脏回调，因此业务继续直接写 `titleText.text = title` 也能重新测宽；通过文字顶点与四维 UV 裁剪，不添加独立遮罩。短文本不滚动并恢复原位置与 TMP 格式。配置 `UseUnscaledTime = true` 可在暂停游戏时继续滚动；`Loop = false` 时，`ScrollCompleted` 在末端停留完成后触发，短文本测量完成即触发。修改文本、字号或可用宽度会重新测量，禁用时复位，重新启用时重新开始。
 
 `RoundedCorners` 所需 Shader 位于 `Assets/LoadResources/Art/Shaders/UIRoundedCorners.shader`。挂载后组件自动开启 Canvas 的 TexCoord1/TexCoord2；若启用 `Use As Mask` 会补 `Mask`。Item 列表优先复用相同半径以命中材质缓存。
 
@@ -118,7 +118,7 @@ autoScroll.SetText(title, shouldAutoStart: true);
 - `ViewList` 仅适合有限数量的 View 项；大量数据列表需要重新评估并单独设计。
 - 不要把 `CanvasGroup.SetCanvasGroupVisible` 当作 GameObject 激活切换，也不要再增加同名 `CanvasGroup.Show/Hide`。
 - 不要从 Hotfix 直接复制大型 `UIUtil` 或第三方包的内部扩展到 `Core.Runtime/Extends`。
-- `TMPAutoScrollView.cs` 属于钓鱼项目生成的 ItemView 适配层；当前项目直接使用 `TMPAutoScrollEnableBehaviour`，只有真实 View 调用方需要时才补薄适配。
+- `TMPAutoScrollView.cs` 属于钓鱼项目的 ItemView 适配层；当前项目使用独立组件与预制体，直接操作 TMP，不引入这层包装。
 
 ## 验证
 
@@ -135,7 +135,7 @@ autoScroll.SetText(title, shouldAutoStart: true);
 
 UIStateInteraction 绑定独立 UIState，配置 Normal/Hover/Focused/Pressed/Disabled；UITab 的 Normal/Selected 继续表示业务状态。鼠标悬停和方向导航不能修改 Tab 索引。触屏不显示交互反馈；禁用逻辑仍由 Selectable/CanvasGroup 控制。由 UIState 接管的属性关闭原生 Transition，避免同一属性被两方写入。
 
-TMPAutoFitLayoutElement 在 Inspector 保存设计字号，运行时更改使用 SetDesignFontSize(value)。TMP 自动缩小后的当前 fontSize 不再作为恢复依据；文本变短恢复设计字号，不读取 TMP 私有字段。SimpleTips/CommonTips 的正式资源使用该组件，正文超高由滚动区域承载，不启用超高缩字。
+TMPAutoFitLayoutElement 在 Inspector 保存设计字号，运行时更改使用 SetDesignFontSize(value)。TMP 自动缩小后的当前 fontSize 不再作为恢复依据；文本变短恢复设计字号，不读取 TMP 私有字段。SimpleTips 的正式资源使用该组件，正文超高由滚动区域承载，不启用超高缩字。CommonTips 正文使用 TMPAutoScroll，保持单行与固定字号。
 
 ## 时间、颜色与倒计时
 
@@ -173,7 +173,7 @@ SimpleTips 默认上方、间距 12、主体最大宽度 600。短文本收缩�
 
 可在业务按钮挂 `SimpleTipsTrigger`，Inspector 保存目标、标题、正文与 Click/Hover 模式。Click 接收点击或公共菜单 Submit；Hover 接收悬停及菜单聚焦，离开/失焦或组件禁用时只关闭自己拥有的提示。悬停模式不接管菜单焦点、不阻挡点击。直接调用接口时也可用 `new SimpleTipsOptions(closeOnOutside: false)` 由业务控制关闭。
 
-CommonTips 新消息叠在前面，不覆盖旧消息。收起时可见三层，悬停通知区域（包含消息间隙）展开全部尚未到期的消息；列表过高可滚动。默认每条停留 2 秒，长正文自动滚动到末尾后才开始这段停留。悬停时暂停计时和自动正文滚动，离开后从剩余时间继续；× 只关闭所在消息。区域外仍可点击，显示时不抢焦点，不受 timeScale 影响。三种图标为 Prefab 中的直接 Sprite 引用，不依赖 emoji 字形。
+CommonTips 新消息叠在前面，不覆盖旧消息。收起时可见三层，悬停通知区域（包含消息间隙）展开全部尚未到期的消息；列表过高可滚动。默认每条停留 2 秒，长正文自动滚动到末尾后才开始这段停留。长消息默认首停 1.5 秒、速度 40 UI 像素/秒、末停 2 秒，换行符按空格显示。悬停时暂停消失计时，文字继续滚动，离开后从剩余时间继续；× 只关闭所在消息。区域外仍可点击，显示时不抢焦点，不受 timeScale 影响。三种图标为 Prefab 中的直接 Sprite 引用，不依赖 emoji 字形。
 
 预先取消的 Show 请求返回 Canceled，并保留当前 Tips。CommonTips 的令牌在显示后取消只移除本次消息；`HideTipsMessageBarsAsync()` 清空全部并取消已排队消息。SimpleTips 仍使用单条替换规则：排队期间取消或显示失败时，没有新请求接管则清理失去所有权的旧提示，避免残留 Blocker；已显示后仍允许外部点击或返回关闭。
 

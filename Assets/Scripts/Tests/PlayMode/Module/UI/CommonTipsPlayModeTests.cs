@@ -378,13 +378,58 @@ namespace Tests.Module
             rect.sizeDelta = new Vector2(800, 180);
             yield return null;
             var panel = view.gameObject.GetComponentInChildren<UITipsPanel>();
-            Assert.That(panel.ScrollDistance, Is.GreaterThan(0));
+            var autoScroll = panel.GetComponentInChildren<TMPAutoScrollEnableBehaviour>();
+            var text = autoScroll.GetComponentInChildren<TextMeshProUGUI>();
+            Assert.That(text.text, Does.Not.Contain("\n"));
+            Assert.That(text.textWrappingMode, Is.EqualTo(TextWrappingModes.NoWrap));
+            Assert.That(autoScroll.IsReading, Is.True);
+            var options = TMPAutoScrollOptions.Default;
+            options.StartDelay = .05f; options.EndStayTime = .05f;
+            options.PixelsPerSecond = 600; options.Loop = false; options.UseUnscaledTime = true;
+            autoScroll.SetOptions(options);
+            var stack = view.gameObject.GetComponent<UITipsStack>();
+            stack.OnPointerEnter(new PointerEventData(EventSystem.current));
+            Time.timeScale = 0;
             yield return new WaitForSecondsRealtime(.3f);
-            Assert.That(view.State, Is.EqualTo(ViewState.Visible), "长消息不能按短文本时长提前关闭");
-            yield return new WaitForSecondsRealtime(.8f);
-            Assert.That(panel.ScrollProgress, Is.GreaterThan(0));
-            float remaining = panel.ScrollDistance / 48 + 1;
-            yield return new WaitForSecondsRealtime(remaining);
+            Assert.That(text.rectTransform.anchoredPosition.x, Is.LessThan(0), "悬停和暂停游戏时文字仍滚动");
+            Assert.That(view.State, Is.EqualTo(ViewState.Visible));
+            float deadline = Time.realtimeSinceStartup + 8;
+            while (autoScroll.IsReading && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(autoScroll.IsReading, Is.False, "本轮必须完成，不能因布局反馈反复重启");
+            yield return new WaitForSecondsRealtime(.3f);
+            Assert.That(view.State, Is.EqualTo(ViewState.Visible), "悬停仍阻止自动消失");
+            stack.OnPointerExit(new PointerEventData(EventSystem.current));
+            yield return new WaitForSecondsRealtime(.3f);
+            Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
+        }
+
+        [UnityTest] public IEnumerator ChangingTextOrWidthRestartsReadingAndFullStayDuration()
+        {
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("短消息", CommonTipsType.Notice, .5f));
+            var view = UIManager.Instance.Get<CommonTipsView>();
+            var panel = view.gameObject.GetComponentInChildren<UITipsPanel>();
+            var autoScroll = panel.GetComponentInChildren<TMPAutoScrollEnableBehaviour>();
+            var text = autoScroll.GetComponentInChildren<TextMeshProUGUI>();
+            yield return new WaitForSecondsRealtime(.25f);
+            text.text = "直接修改 TMP 后，这条长消息需要重新阅读并重新计算完整停留时长。";
+            var options = TMPAutoScrollOptions.Default;
+            options.StartDelay = .01f; options.EndStayTime = .01f;
+            options.PixelsPerSecond = 3000; options.Loop = false; options.UseUnscaledTime = true;
+            autoScroll.SetOptions(options);
+            float deadline = Time.realtimeSinceStartup + 3;
+            while (autoScroll.IsReading && Time.realtimeSinceStartup < deadline) yield return null;
+            Assert.That(autoScroll.IsReading, Is.False);
+            yield return new WaitForSecondsRealtime(.3f);
+            Assert.That(view.State, Is.EqualTo(ViewState.Visible));
+            // 新短文本与安全区变化，不应沿用上一轮已经消耗的停留时间。
+            text.text = "新短消息";
+            var rect = (RectTransform)view.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+            rect.sizeDelta = new Vector2(400, 300);
+            yield return null; yield return null;
+            yield return new WaitForSecondsRealtime(.3f);
+            Assert.That(view.State, Is.EqualTo(ViewState.Visible));
+            yield return new WaitForSecondsRealtime(.3f);
             Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
         }
 

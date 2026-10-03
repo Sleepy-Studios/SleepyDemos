@@ -14,7 +14,6 @@ namespace Core.Runtime
         private const int CollapsedCount = 3;
         private const float CollapsedStep = 10;
         private const float ExpandedGap = 12;
-        private const float ScrollSpeed = 48;
         [SerializeField] private UITipsPanel itemTemplate;
         [SerializeField] private RectTransform region;
         [SerializeField] private ScrollRect stackScroll;
@@ -32,6 +31,8 @@ namespace Core.Runtime
             internal Vector2 Size;
             internal float Elapsed;
             internal float Duration;
+            internal bool ReadComplete;
+            internal Action OnReadComplete;
             internal CancellationToken Cancellation;
         }
 
@@ -42,7 +43,7 @@ namespace Core.Runtime
         /// 最后一条消息被关闭或到期时触发；Clear 不触发。
         public event Action Emptied;
 
-        /// <summary>添加独立消息；新消息位于最前，悬停期间暂停所有消息的阅读计时。</summary>
+        /// <summary>添加独立消息；新消息位于最前，悬停期间暂停消失计时，文字继续滚动。</summary>
         /// <param name="content">支持 TMP 富文本的正文。</param>
         /// <param name="type">三种提示状态。</param>
         /// <param name="duration">正文滚动结束后的停留秒数，必须有限且大于零。</param>
@@ -63,6 +64,8 @@ namespace Core.Runtime
                 Id = ++nextId, Panel = panel, Group = panel.GetComponent<CanvasGroup>(),
                 Duration = duration, Cancellation = cancellationToken
             };
+            message.OnReadComplete = () => { message.ReadComplete = true; message.Elapsed = 0; };
+            panel.MessageScroll.ScrollCompleted += message.OnReadComplete;
             messages.Insert(0, message);
             panel.CloseButton.onClick.AddListener(() => Dismiss(message.Id));
             panel.Body.anchoredPosition = new Vector2(0, -12);
@@ -117,12 +120,15 @@ namespace Core.Runtime
             {
                 var message = messages[i];
                 if (message.Cancellation.IsCancellationRequested) { Dismiss(message.Id); continue; }
-                if (Expanded) continue;
-                float scrollSeconds = message.Panel.ScrollDistance / ScrollSpeed;
-                float scrollStart = scrollSeconds > 0 ? .75f : 0;
+                if (message.Panel.MessageScroll.IsReading)
+                {
+                    message.ReadComplete = false;
+                    message.Elapsed = 0;
+                    continue;
+                }
+                if (Expanded || !message.ReadComplete) continue;
                 message.Elapsed += delta;
-                if (scrollSeconds > 0) message.Panel.SetScrollProgress((message.Elapsed - scrollStart) / scrollSeconds);
-                if (message.Elapsed >= scrollStart + scrollSeconds + message.Duration) Dismiss(message.Id);
+                if (message.Elapsed >= message.Duration) Dismiss(message.Id);
             }
             if (messages.Count > 0) Arrange(delta, false);
         }
@@ -182,6 +188,7 @@ namespace Core.Runtime
         {
             var message = messages[index];
             messages.RemoveAt(index);
+            message.Panel.MessageScroll.ScrollCompleted -= message.OnReadComplete;
             message.Panel.CloseButton.onClick.RemoveAllListeners();
             message.Panel.gameObject.SetActive(false);
             Destroy(message.Panel.gameObject);

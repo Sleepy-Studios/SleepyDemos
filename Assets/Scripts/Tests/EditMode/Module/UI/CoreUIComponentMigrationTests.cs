@@ -97,7 +97,7 @@ namespace Tests.Module
         }
 
         [Test]
-        public void TMPAutoScroll_InitializeInstallsViewportRectMask()
+        public void TMPAutoScroll_InitializeDoesNotAddPerItemMask()
         {
             GameObject viewport = new GameObject("Viewport", typeof(RectTransform));
             GameObject textObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
@@ -106,7 +106,7 @@ namespace Tests.Module
                 textObject.transform.SetParent(viewport.transform, false);
                 TMPAutoScrollEnableBehaviour scroll = viewport.AddComponent<TMPAutoScrollEnableBehaviour>();
                 scroll.Initialize(viewport.GetComponent<RectTransform>(), textObject.GetComponent<TextMeshProUGUI>());
-                Assert.That(viewport.GetComponent<RectMask2D>(), Is.Not.Null);
+                Assert.That(viewport.GetComponent<RectMask2D>(), Is.Null, "文字网格裁剪不需要独立遮罩");
             }
             finally
             {
