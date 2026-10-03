@@ -468,3 +468,17 @@ Windows从新ZIP独立解压到Library/JinxCasino/PlayerValidation/2026100221530
 同一“用户确认四稿后制作正式资源”条件已在c622d85、1975c00、36bc11c及当前连续记录中保持未满足；前几轮继续了独立输入/构建验证，现在正式Hub/Loading、三台与大厅制作必须等待该确认。窗口自动化和远端诊断没有提供有效的原生键盘/暂停结论，真实键盘结果仍待回复；Android/Xbox/最终体验也不能用现有Editor证据替代。故按长期Goal阻塞规则标记blocked，不标记完成或擅自缩小目标。确认视觉方向即可恢复资源制作，设备验收随后推进；不把所有外部条件捆成开始制作的前提。已有两个询问保持待回复，不重复询问或将自动续跑视为确认。
 
 当前计划及参考稿制作顺序同步实际已做工作，四稿审阅文档已请求在Codex面板打开（工具返回queued，未宣称当前可见）。本次只提交文档和门槛状态，保留所有无关修改；后续从同分支与最新可分享包继续。
+
+## 2026-10-03：Hub卡片、加载界面与初始化时序
+
+用户确认四稿并授权继续，随后要求普通列表遵循钓鱼项目的代码习惯，并明确数据可能早于初始化。当前实现用 typed RectData/Click/ItemHide 接收普通 Item 和索引；卡片控件、按钮事件由 MvcBind 生成。业务不保存 CellBindContext，不增加 Card/Button 子类或预览序列化组件。Core.ItemView<T>.SetData 保存数据，控件绑定成功后才调用独立 RefreshUI；提前配置只刷新最后一份。页面 View<T> 保持加载前配置，在 OnShow 消费数据的契约已补入公共文档；钓鱼项目仅只读参考，未修改。
+
+Hub正式Prefab改为共享卡片Grid，卡片含预览、标题、描述和按钮，保留四个有效入口及一个未开放入口。公共导航处理Grid列数、滚动、回收身份、按下/抬手换绑及默认目标变化；刷新仅恢复同一个仍可见的Key，触屏点击空白不会被普通帧更新抢回。StartupLoading改用直接引用的TMP字体，CommonLoading通过MvcBind重绑，两者共用简洁视觉并保留真实SetTitle/SetProgress。图片采用简单保存场景预览，未继续制作复杂封面。一次性Hub装配源码、菜单和meta均已删除，正式资产保留。
+
+直接相关Unity Test Runner共13个不同用例通过：LoopScrollMvcGenerationTests 2/2、LoopScrollItemViewBridgeTests 7/7、GameplayInputRouterTests.CoreMenuOwnsExactlyOneSubmitAndTableUsesIndependentFocus 1/1、MainMenuNavigationPlayModeTests 3/3。导航和菜单输入在最终焦点调整后分别精确复测通过；Hub最终原生XML时间为2026-10-03 01:47:08Z至01:47:37Z。最初发现的提示溢出、焦点恢复和跨测试残留均已修正；入口测试每项通过公共UI导航关闭重开页面，保留真实InputSystem输入及有效断言，没有用直接调用按钮监听器代替。
+
+UnitySkills包装任务在Domain Reload后报告句柄未恢复、计数为0；此处通过结果依据已核对的原生TestResults.xml，各次副本在Library/JinxCasino/Verification/2026-10-03-hub/，不提交缓存。未运行全量或第三方测试，JinxCasinoImmersionEntryTests只更新了新Hub定位调用方并确认编译，本轮未运行赌场全流程。Editor正式编译通过；没有重打Windows/Android包、完成新视觉验收或Android/实物Xbox真机验收，旧试玩包仍对应旧构建基线。S1与完整Goal未完成，继续三机台和大厅正式切片。
+
+小闭环均已推送：SleepyLoopScroll 06a9b12（只读LayoutLaneCount）；SleepyDemos a3d4271（普通绑定及初始化后刷新）、7ddb8fd/1b04987（焦点恢复及触屏行为修正）、5cd3124（Hub卡片）、fada0b9（两种Loading）。Mobile_RPAsset及ProjectSettings哈希保持此前记录的原字节；无关UnitySkills、vTabs与建模备份修改未暂存。协作规则无需重复修改，现有AGENTS/CLAUDE已明确临时Builder清理和有效测试保留要求；初始化契约进入UI模块与接入手册。
+
+Goal追踪器仍保留旧视觉等待条件的blocked状态，当前助手接口没有恢复active的能力。本次按用户继续授权完成上述工作，不以该历史字段重新要求视觉确认，也不把完整Goal标记完成。
