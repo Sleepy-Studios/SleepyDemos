@@ -200,7 +200,10 @@ namespace Tests.Module
             Assert.That(system.sendNavigationEvents, Is.True, "刷新虚拟列表默认焦点不能重置输入释放门闩。");
             system.SetSelectedGameObject(null);
             navigation.Update(ownedButton);
-            Assert.That(system.currentSelectedGameObject, Is.EqualTo(ownedButton), "卡片回收清焦点后，恢复当前有效默认目标。");
+            Assert.That(system.currentSelectedGameObject, Is.Null, "普通更新不抢回触屏点击空白后清除的焦点。");
+            navigation.Update(null);
+            navigation.Update(ownedButton);
+            Assert.That(system.currentSelectedGameObject, Is.EqualTo(ownedButton), "默认目标变为可用后恢复焦点。");
             Assert.That(submits, Is.Zero, "恢复焦点不能自动提交。");
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
             Assert.That(submits, Is.EqualTo(1)); Assert.That(router.ConsumeActions(), Is.EqualTo(GameplayInputActions.None));

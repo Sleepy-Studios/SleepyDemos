@@ -16,6 +16,7 @@ namespace Core.Runtime
         private string pendingKey;
         private int pendingStep;
         private int pendingBand = -1;
+        private bool restoreRecycledSelection;
 
         /// 当前可用的列表菜单焦点，交给页面唯一的 MenuInputScope 使用。
         public GameObject FirstSelection
@@ -61,7 +62,7 @@ namespace Core.Runtime
                 list.DataChanged -= OnDataChanged;
             }
             foreach (var button in buttons.Values) ClearButton(button);
-            buttons.Clear(); list = null; pendingKey = null;
+            buttons.Clear(); list = null; pendingKey = null; restoreRecycledSelection = false;
         }
 
         private void OnBound(LoopCell cell, CellBindContext context)
@@ -76,6 +77,8 @@ namespace Core.Runtime
         private void OnUnbound(LoopCell cell, CellBindContext context)
         {
             if (!buttons.TryGetValue(cell, out var button)) return;
+            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == button.gameObject)
+                restoreRecycledSelection = true;
             ClearButton(button); buttons.Remove(cell);
         }
 
@@ -95,6 +98,19 @@ namespace Core.Runtime
 
         private void LateUpdate()
         {
+            var events = EventSystem.current;
+            if (restoreRecycledSelection && events != null && events.sendNavigationEvents)
+            {
+                var current = events.currentSelectedGameObject;
+                var available = FirstSelection;
+                var target = available != null ? available.GetComponent<LoopScrollMenuButton>() : null;
+                if (current != null) restoreRecycledSelection = false;
+                else if (target != null && target.Context.Key == selectedKey)
+                {
+                    restoreRecycledSelection = false;
+                    events.SetSelectedGameObject(available);
+                }
+            }
             if (pendingKey == null || list == null || !list.TryGetIndex(pendingKey, out var index)) return;
             var cell = list.GetVisibleCell(index);
             if (cell != null && buttons.TryGetValue(cell, out var button) && button.Context.Key == pendingKey)
@@ -115,7 +131,7 @@ namespace Core.Runtime
 
         internal void RememberSelection(LoopScrollMenuButton button)
         {
-            if (button.Context.IsCurrent) { selectedKey = button.Context.Key; pendingKey = null; }
+            if (button.Context.IsCurrent) { selectedKey = button.Context.Key; pendingKey = null; restoreRecycledSelection = false; }
         }
 
         internal bool IsCurrentSelection(LoopScrollMenuButton button)

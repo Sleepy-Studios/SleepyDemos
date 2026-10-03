@@ -70,9 +70,10 @@ namespace Core.Runtime.Inputs
         /// <param name="firstMenuSelection">当前数据身份对应的可用菜单控件；为空时不恢复过期物理按钮。</param>
         public void Update(GameObject firstMenuSelection)
         {
+            bool targetChanged = initialSelection != firstMenuSelection;
             initialSelection = firstMenuSelection;
             Update();
-            if (context == GameplayInputContext.Menu)
+            if (targetChanged && context == GameplayInputContext.Menu)
                 RestoreMenuFocus();
         }
 
