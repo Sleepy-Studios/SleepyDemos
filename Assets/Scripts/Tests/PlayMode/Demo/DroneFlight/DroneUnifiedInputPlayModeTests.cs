@@ -1,6 +1,9 @@
 #if UNITY_EDITOR
 using System.Collections;
 using Core.Runtime.Inputs;
+using Core.Runtime;
+using Cysharp.Threading.Tasks;
+using Hotfix;
 using Hotfix.DroneFlight;
 using NUnit.Framework;
 using UnityEditor;
@@ -15,6 +18,7 @@ using Object = UnityEngine.Object;
 
 namespace Tests.Demo
 {
+    /// 三端四轴输入、菜单/帮助松键门闩，以及保存态指南的设备提示和取消焦点。
     public sealed class DroneUnifiedInputPlayModeTests
     {
         private GameObject drone;
@@ -22,6 +26,9 @@ namespace Tests.Demo
         private InputSettings originalSettings, testSettings;
         private DronePlayerInput input;
         private DroneFlightController controller;
+        private GameObject helpInstance, helpEvents;
+        private DroneFlightHelpView helpTestView;
+        private Keyboard helpKeyboard;
 
         [UnitySetUp]
         public IEnumerator Setup()
@@ -43,9 +50,74 @@ namespace Tests.Demo
         [UnityTearDown]
         public IEnumerator Cleanup()
         {
+            if(helpTestView != null) yield return helpTestView.HideAsync(false).ToCoroutine();
+            Object.Destroy(helpInstance);Object.Destroy(helpEvents);helpTestView=null;helpInstance=helpEvents=null;
             Object.Destroy(drone);
-            InputSystem.RemoveDevice(gamepad);
+            if(gamepad != null) InputSystem.RemoveDevice(gamepad);
+            if(helpKeyboard != null) InputSystem.RemoveDevice(helpKeyboard);helpKeyboard=null;
             InputSystem.settings = originalSettings; Object.Destroy(testSettings);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator HelpPreservesSourceMenuAndRequiresReleaseBeforeFlight()
+        {
+            InputSystem.QueueStateEvent(gamepad,new GamepadState { leftStick=Vector2.up });
+            yield return null;
+            input.SetHelpOpen(true);
+            Assert.That(input.IsPanelOpen,Is.False);
+            Assert.That(input.AcceptsFlightInput,Is.False);
+            Assert.That(controller.CurrentControlInput.Lift,Is.Zero);
+            input.Execute("Exit");
+            InputSystem.QueueStateEvent(gamepad,new GamepadState().WithButton(GamepadButton.South));
+            yield return null;
+            input.SetHelpOpen(false);
+            yield return null;
+            Assert.That(controller.IsArmed,Is.False);
+            Assert.That(input.ResetProgress,Is.Zero);
+            InputSystem.QueueStateEvent(gamepad,new GamepadState());yield return null;
+            input.SetPanelOpen(true); input.SetHelpOpen(true); input.SetHelpOpen(false);
+            Assert.That(input.IsPanelOpen,Is.True,"关闭帮助返回原操作菜单，不直接回飞行。");
+            Assert.That(input.AcceptsFlightInput,Is.False);
+            input.SetPanelOpen(false);
+            Assert.That(input.AcceptsFlightInput,Is.True);
+            input.SetDebugOpen(true);
+            Assert.That(input.AcceptsFlightInput,Is.False,"调试菜单导航不能同时飞行。");
+            input.Execute("ArmOrReset");
+            Assert.That(controller.IsArmed,Is.False);
+            input.SetDebugOpen(false);
+        }
+
+        [UnityTest]
+        public IEnumerator HelpPrefabUsesMenuFocusCancelAndLiveDevicePrompts()
+        {
+            var events = helpEvents = EventSystem.current == null ? new GameObject("HelpEvents",typeof(EventSystem),typeof(InputSystemUIInputModule)) : null;
+            var instance=helpInstance=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHelpView.prefab"));
+            var view=helpTestView=new DroneFlightHelpView();
+            view.InitWithGameObject(instance);view.SetData(new DroneFlightViewData(null,"help-test",input));
+            input.SetHelpOpen(true);
+            yield return view.ShowAsync(false).ToCoroutine();
+            for(int i=0;i<5;i++) yield return null;
+            var index=instance.GetComponent<ComponentItemIndex>();
+            var device=System.Array.Find(index.Components,x=>x.name=="Device") as TMPro.TextMeshProUGUI;
+            Assert.That(device.text,Does.Contain("手柄"));
+            Assert.That(EventSystem.current.currentSelectedGameObject,Is.Not.Null);
+            Assert.That(EventSystem.current.currentSelectedGameObject.transform.IsChildOf(instance.transform),Is.True);
+            int helpCommands=0;
+            void Observe(string command) { if(command=="Help") helpCommands++; }
+            input.PresentationRequested+=Observe;
+            ExecuteEvents.Execute(EventSystem.current.currentSelectedGameObject,new BaseEventData(EventSystem.current),ExecuteEvents.cancelHandler);
+            Assert.That(helpCommands,Is.EqualTo(1));
+            input.PresentationRequested-=Observe;
+            InputSystem.RemoveDevice(gamepad);gamepad=null;InputDeviceState.NotifyTouch();yield return null;
+            Assert.That(device.text,Is.EqualTo("触屏"));
+            var flight=System.Array.Find(index.Components,x=>x.name=="Flight") as TMPro.TextMeshProUGUI;
+            Assert.That(flight.text,Does.Contain("左摇杆"));
+            helpKeyboard=InputSystem.AddDevice<Keyboard>();InputDeviceState.Notify(helpKeyboard);yield return null;
+            Assert.That(device.text,Is.EqualTo("键鼠"));
+            Assert.That(flight.text,Does.Not.Contain("左摇杆"));
+            yield return view.HideAsync(false).ToCoroutine();
+            input.SetHelpOpen(false);Object.Destroy(instance);if(events!=null) Object.Destroy(events);
             yield return null;
         }
 
@@ -108,6 +180,8 @@ namespace Tests.Demo
             try
             {
                 presenter.Bind(input); InputDeviceState.NotifyTouch(); yield return null;
+                var backButton = System.Array.Find(hud.GetComponentsInChildren<InputCommandButton>(true), button => button.Command == "Back");
+                Assert.That(backButton != null && backButton.gameObject.activeInHierarchy, Is.True, "飞行期间必须保留触屏返回遥控等待的入口。");
                 var fields = new SerializedObject(presenter);
                 var left = (TouchInputPad)fields.FindProperty("leftPad").objectReferenceValue;
                 var right = (TouchInputPad)fields.FindProperty("rightPad").objectReferenceValue;
@@ -121,7 +195,20 @@ namespace Tests.Demo
                 Assert.That(controller.CurrentControlInput.Lift, Is.GreaterThan(0));
                 Assert.That(controller.CurrentControlInput.Right, Is.GreaterThan(0));
                 left.OnPointerUp(a); Assert.That(right.Move.x, Is.GreaterThan(0));
-                input.SetPanelOpen(true); input.SetPanelOpen(false);
+                input.enabled = false; yield return null;
+                input.enabled = true; yield return null;
+                right.OnDrag(b); yield return null;
+                Assert.That(controller.CurrentControlInput.Right, Is.Zero, "退出并重新进入遥控不能沿用旧手指。");
+                input.SetPanelOpen(true);
+                var operationPanel = (GameObject)fields.FindProperty("operationPanel").objectReferenceValue;
+                var helpButton = System.Array.Find(operationPanel.GetComponentsInChildren<InputCommandButton>(true), button => button.Command == "Help");
+                Assert.That(helpButton, Is.Not.Null);
+                EventSystem.current.SetSelectedGameObject(helpButton.gameObject);
+                input.SetHelpOpen(true);
+                Assert.That(operationPanel.activeSelf, Is.False);
+                input.SetHelpOpen(false);
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(helpButton.gameObject), "关闭指南应恢复来源菜单的同一焦点。");
+                input.SetPanelOpen(false);
                 right.OnDrag(b); yield return null; yield return null;
                 Assert.That(controller.CurrentControlInput.Right, Is.Zero, "面板切换后旧指针不可继续飞行。");
                 Assert.That(InputDeviceState.ActiveKind, Is.EqualTo(InputDeviceKind.Touch), "打开面板的静止鼠标不能抢走触控。");

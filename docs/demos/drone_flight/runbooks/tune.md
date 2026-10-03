@@ -14,7 +14,7 @@
 - `WASD`：水平移动；`Q/E`：偏航；`Space/左 Ctrl`：升降。
 - `1/2/3`：平稳（Cine）/普通（Normal）/运动（Sport）。
 - `C`：切视角；方向键：云台/环绕；`-/=`：FOV。
-- `F1`：收起/展开分类操作面板；默认展开。
+- `F1`：打开/关闭独立操作指南；手柄或触屏从操作菜单进入。关闭按钮、返回按钮和公共取消键返回来源界面，不退出遥控。
 - `L`：手动起落架。
 - `F2`：Game 与 Scene 视图共享的世界空间受力/运动矢量；显示层会平滑 FixedUpdate 的离散数据，不改变真实物理。
 - `F3`：中文原始遥测调试面板。
@@ -56,7 +56,7 @@
 1. Blender 源文件保存在仓库外 `F:/个人/DroneFlight/DroneFlight.blend`，以米为单位；机头按 Blender `+Y`，上方为 `+Z`。14 个正式节点必须 Rotation 为零、Scale 为一且无负缩放。
 2. 运行同目录建模脚本生成源文件和 FBX；历史源的一次性方向迁移使用 `migrate_axis_and_export.py`。脚本固定采用 `Z Forward / Y Up / Apply Transform / Scale 1`，只导出 14 个正式对象，并确保隐藏的 `RotorBlade_CCW`、`RotorBlade_CW` 也被选中。不要手工导出相机、灯光、地面、标注、预览旋翼或辅助 Empty。
 3. 将同一 FBX 复制到 `Assets/LoadResources/Demos/drone_flight/Art/Models/DroneFlight.fbx`，确认仓库外与项目内文件 SHA-256 一致。
-4. 在 Unity 执行 `Tools > SleepyDemos > DroneFlight > 重建基础、装备与组合机体`。工具会更新六个外部 URP Lit 材质、基础视觉和代理碰撞，并重建抓斗/渔叉装备与两个 Variant；不会修改飞控、Rotor 施力点或运行时公开接口。
+4. 在 Unity 的 Prefab Mode 中维护已保存的基础机体、抓斗/渔叉装备与两个 Variant，核对外部材质、视觉和代理碰撞。一次性机体 Builder 已删除，不重建或覆盖手工维护的资产；遵循模型契约保护飞控、Rotor 施力点和运行时接口。
 5. 检查 `DronePrototype/DroneModel` 中完整嵌套的 FBX；ModelImporter 必须启用 `Bake Axis Conversion`，项目中不得再存在 DroneFlight 专用模型轴后处理器。`DroneModel`、`Airframe` 与 14 个正式节点都应是 Identity 局部旋转、单位正缩放。`DroneRotor` 应直接位于四个 `RotorHub_*`，四个 Hub 下各有一个共享 Mesh 的桨叶实例，起落架控制器直接引用 `LandingGear_FL/FR/RL/RR`，CameraRig 直接引用 FBX 内 `GimbalYaw/GimbalPitch/CameraBody`。根节点只额外保留 `CollisionProxies` 和必要运行时挂点，不得再出现第二套 Rotor、LandingGear、Gimbal 包装层。四个 Rotor 的物理推力轴继续显式绑定机体根局部 `+Y`；在 Scene 的 Local 模式确认 Yaw `+Y`、Pitch `+X`、CameraBody `+Z`，再把 Yaw 转到左右侧检查模型镜面和 Game 画面同向。
 
 ## 飞控调参顺序
@@ -146,7 +146,7 @@ F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精�
 5. 如果运动过快看不清，可在测试运行时暂停 Unity 或使用 Test Runner 的单用例执行；不要为了方便观察修改 `Time.timeScale`、飞控配置或断言阈值。
 6. 新增 DroneFlight 测试文件时，放入对应 TestMode 的 `Demo/DroneFlight` 目录并使用 `Tests.Demo` 命名空间；先在文件顶部补中文测试说明，再在 `Tests/EditMode/Demo/DroneFlight` 中唯一的 `DroneFlightTestDiagnostics` 描述表登记测试类。该入口同时覆盖 EditMode 与 PlayMode，保证 Console 日志可读。
 
-重建设备资源执行：`Tools > SleepyDemos > DroneFlight > 重建基础、装备与组合机体`。该工具只在编辑期重建 `DronePrototype`、两个独立装备 Prefab、两个已保存的组合 Variant，并同步 DroneFlight HUD 的保存态布局；不生成重复的纯无人机 Variant，也不覆盖场景。游戏运行时不会执行该工具或动态拼装装备。执行后通过 Unity Test Runner 运行本任务精确测试，不另起 BatchMode，也不使用 dotnet/msbuild。
+设备和 UI 的保存态 Prefab 是装配真源；一次性生成工具完成任务后删除。维护 `DronePrototype`、两个装备 Prefab、组合 Variant 或三页 UI 时直接编辑对应资产，UI 绑定使用现有 MvcBind，不通过旧机体 Builder 覆盖界面。修改后通过 Unity Test Runner 运行直接相关测试，不另起 BatchMode，也不使用 dotnet/msbuild。
 
 ## 手柄与手机
 

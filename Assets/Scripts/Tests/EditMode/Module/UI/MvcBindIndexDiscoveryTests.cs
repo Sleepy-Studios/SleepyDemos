@@ -71,11 +71,11 @@ namespace Tests.Module
             Assert.That(settings.useCustomModuleOutputDirectory, Is.True);
             Assert.That(
                 settings.customModuleOutputDirectory,
-                Is.EqualTo("Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI"));
+                Is.EqualTo("Assets/Scripts/Hotfix/Demos/DroneFlight/UI"));
             Assert.That(
                 settings.outputFolder,
                 Is.EqualTo(
-                    "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI/DroneFlightHudView/View"));
+                    "Assets/Scripts/Hotfix/Demos/DroneFlight/UI/DroneFlightHudView/View"));
         }
 
         [Test]

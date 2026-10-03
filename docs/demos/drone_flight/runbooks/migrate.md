@@ -8,7 +8,7 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 
 必须复制：
 
-- `Assets/Scripts/Hotfix/Demos/DroneFlight` 中除 `Adapters` 外的核心目录。
+- `Assets/Scripts/Hotfix/Demos/DroneFlight` 下的 `Control`、`Physics`、`Input`、`Camera`、`Equipment`、`Payload`、`Telemetry`、`Vehicle`、`Cruise`、`Runtime` 核心目录；输入所需的公共能力依赖见下文。
 - `Assets/LoadResources/Demos/drone_flight` 中的 `Art`、`Data` 与 `Prefabs`；按正式项目需要选择场景。
 - 所有脚本与资源对应的 `.meta`，以保留 GUID 和 Prefab 引用。
 
@@ -18,9 +18,9 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 - DroneFlight 专项测试；合入目标项目已有 Test Runner 程序集，不复制或新增测试 asmdef。
 - [架构设计](../architecture/design.md)、[模块维护说明](../module.md)和本 runbook。
 
-## 只重写宿主适配
+## 按职责接入目标项目
 
-`Adapters/{Scene,UI,Fishing,Experience}` 是预期按目标宿主选择、替换或删除的区域：
+`Scene`、`UI`、`Fishing`、`Experience` 分别管理场景会话、界面、捕鱼任务和遥控体验。迁移时按目标项目需要选择、复用或调整，不把它们整体视为必须重写的适配层：
 
 | 当前能力 | 正式项目处理 |
 |---|---|
@@ -30,7 +30,7 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 | Hub 生命周期、Editor 直启 | 接入正式启动流程或删除 |
 | 捕鱼 QTE/UI | 接入正式玩法编排；不放回核心目录 |
 
-核心目录禁止引用 `Core.Runtime`、`UIManager`、`ResourceServices`、`GameSceneNavigator` 和适配层具体类型。迁移前先运行 `DroneFlightPortabilityBoundaryTests`。
+飞控与物理核心禁止引用 `UIManager`、`ResourceServices`、`GameSceneNavigator` 及场景、UI、任务和体验流程的具体类型。公共输入仍依赖 `Core.Runtime.Inputs`；迁移时接入或替换实际使用的输入能力，不要求复制整个 Core。迁移前先运行 `DroneFlightPortabilityBoundaryTests`。
 
 ## 最小接入方式
 
@@ -54,7 +54,7 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 
 - Unity Input System：手动输入和快捷键。
 - URP Lit：当前正式机体材质；换渲染管线时需替换材质。
-- TMP/UGUI、UniTask：仅 SleepyDemos UI/生命周期适配层需要，纯核心与 Standalone 不应依赖。
+- TMP/UGUI、UniTask：按界面、诊断显示和异步生命周期实际引用保留；不把 UI 或异步场景事务引入飞控、物理算法。
 
 ## 迁移顺序
 
@@ -62,14 +62,14 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 2. 连同 `.meta` 复制核心、配置和资源，等待 Unity 导入。
 3. 用 Standalone 手动场景验证纯核心闭环。
 4. 用两点航线验证自动起飞、航点抵达和结束策略。
-5. 在目标项目建立自己的 Adapter，接资源、UI、场景和生命周期。
+5. 按目标项目既有职责接资源、UI、场景和生命周期，不额外建立统一 Adapter 层。
 6. 合入专项测试，先跑边界/配置/路线 EditMode，再跑真实 Prefab PlayMode。
 7. 最后接抓斗、渔叉和正式业务演出。
 
 ## 常见错误
 
 - Missing Script：漏复制 `.meta` 或脚本目录不完整。
-- 找不到 SleepyDemos 类型：核心中出现宿主依赖；将引用移到目标 Adapter，不要把 Core 整体搬入正式项目。
+- 找不到 SleepyDemos 类型：先区分公共输入依赖与 UI/资源/场景服务；前者按需接入，后者留在相应职责目录，不要把 Core 整体搬入正式项目。
 - 无人机不响应：检查是否使用 StandaloneBootstrap/正式场景装配器，而非只实例化 FBX。
 - 自动路线直接瞬移：错误绕过了 Autopilot/FlightController；路线只能提交控制目标。
 - Prefab 载荷异常：组合 Variant 或装备配置未完整复制。
@@ -80,6 +80,6 @@ DroneFlight 采用源码级可迁移边界。运行时代码仍属于 `Hotfix.dl
 - Standalone 手动飞行可解锁、起飞、降落和切换镜头。
 - 两点单次、循环和往返路线推进正确，自动飞行不写 Transform 或 Rigidbody 速度。
 - 三种成品 Prefab 各只生成一个实例；装备生命周期与载荷反馈正常。
-- 正式宿主的 UI、资源加载、重载和返回由目标 Adapter 接管。
-- 迁移报告列出复制目录、重写 Adapter、包差异及尚未执行的人工验证。
+- 正式宿主的 UI、资源加载、重载和返回由目标项目对应的界面与场景流程接管。
+- 迁移报告列出复制目录、调整的接入点、包差异及尚未执行的人工验证。
 

@@ -9,7 +9,6 @@ using Core.Runtime.Inputs;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.DroneFlight;
-using Hotfix.DroneFlight.Adapters;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
 using UnityEngine;

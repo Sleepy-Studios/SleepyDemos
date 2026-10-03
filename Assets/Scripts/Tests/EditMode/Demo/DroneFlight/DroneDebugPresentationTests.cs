@@ -13,6 +13,48 @@ namespace Tests.Demo
     public sealed class DroneDebugPresentationTests
     {
         [Test]
+        public void EquipmentReadout_PreservesDifferentPayloadValuesAndSwitchesVehicleFields()
+        {
+            var grapple = new DroneEquipmentSnapshot(DroneEquipmentKind.Grapple, DroneEquipmentState.Carrying,
+                "", 0, 2.5f, 1.25f, .8f, 12.3f, 2, true, Vector3.down, Vector3.zero);
+            var text = DroneDebugFormatting.Equipment(grapple);
+            StringAssert.Contains("真实载荷  2.50 kg", text);
+            StringAssert.Contains("受支持载荷  1.25 kg", text);
+            StringAssert.Contains("携带中", text);
+            var harpoon = new DroneEquipmentSnapshot(DroneEquipmentKind.Harpoon, DroneEquipmentState.Attached,
+                "", 0, 0, 0, 4f, 8f, 1, false, Vector3.down, Vector3.zero);
+            text = DroneDebugFormatting.Equipment(harpoon);
+            StringAssert.Contains("已命中", text);
+            StringAssert.Contains("可发射  否", text);
+            StringAssert.Contains("瞄准方向", text);
+            StringAssert.DoesNotContain("真实载荷", text);
+            text = DroneDebugFormatting.Equipment(default);
+            StringAssert.Contains("无附加模块", text);
+            StringAssert.DoesNotContain("张力", text);
+        }
+
+        [Test]
+        public void DebugPanel_ShortViewportClampsHeightWithoutShrinkingTextScale()
+        {
+            var root = new GameObject("DebugLayoutFixture", typeof(RectTransform));
+            try
+            {
+                var rect = root.GetComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(1920, 600);
+                var panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>();
+                panel.SetParent(root.transform, false);
+                var layout = root.AddComponent<DroneDebugPanelLayout>();
+                typeof(DroneDebugPanelLayout).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(layout, panel);
+                layout.ApplyLayout(new Rect(0, 0, 1, 1));
+                Assert.That(panel.sizeDelta.y, Is.EqualTo(536));
+                Assert.That(panel.localScale, Is.EqualTo(Vector3.one));
+                Assert.That(panel.anchoredPosition, Is.EqualTo(new Vector2(-24, -32)));
+            }
+            finally { Object.DestroyImmediate(root); }
+        }
+
+        [Test]
         public void Smoother_FirstFrameCapturesTargetAndResetClearsHistory()
         {
             var smoother = new DroneDebugVectorSmoother();

@@ -26,14 +26,14 @@ namespace Tests.Module
             var settings = CreateSettings();
             settings.useCustomModuleOutputDirectory = true;
             settings.customModuleOutputDirectory =
-                "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI";
+                "Assets/Scripts/Hotfix/Demos/DroneFlight/UI";
 
             var output = MvcBindPathUtility.ToOutputFolder(settings);
 
             Assert.That(
                 output,
                 Is.EqualTo(
-                    "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI/DroneFlightHudView/View"));
+                    "Assets/Scripts/Hotfix/Demos/DroneFlight/UI/DroneFlightHudView/View"));
             StringAssert.DoesNotContain("UI/DroneFlight/", output);
         }
 
@@ -43,7 +43,7 @@ namespace Tests.Module
             var settings = CreateSettings();
             settings.useCustomModuleOutputDirectory = true;
             settings.customModuleOutputDirectory =
-                "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI";
+                "Assets/Scripts/Hotfix/Demos/DroneFlight/UI";
 
             var applied = settings.ApplyPrefabPath(
                 "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightDebugView.prefab");
@@ -53,7 +53,7 @@ namespace Tests.Module
             Assert.That(
                 settings.outputFolder,
                 Is.EqualTo(
-                    "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI/DroneFlightDebugView/View"));
+                    "Assets/Scripts/Hotfix/Demos/DroneFlight/UI/DroneFlightDebugView/View"));
         }
 
         [TestCase("")]

@@ -384,7 +384,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1e99b0b89697094b8fdb9ff20d29c00, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.Adapters.SleepyDemos.DroneCinematicCameraTracker
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneCinematicCameraTracker
   config: {fileID: 11400000, guid: 6b59f1b0322ce834fb148c67cffe770e, type: 2}
 --- !u!20 &501140002
 Camera:
@@ -1033,6 +1033,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6081480344925023250, guid: 09529e9409d9b4a4f972666cae04fa02, type: 3}
+      propertyPath: m_EditorClassIdentifier
+      value: Hotfix::Hotfix.DroneFlight.DroneBezierMissionPath
+      objectReference: {fileID: 0}
     - target: {fileID: 8176722237037299769, guid: 09529e9409d9b4a4f972666cae04fa02, type: 3}
       propertyPath: m_Name
       value: DroneFishingBezierRoute
@@ -1052,7 +1056,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af40d315d6fb05c478099012fc1a39b2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.Adapters.SleepyDemos.DroneBezierMissionPath
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneBezierMissionPath
 --- !u!1 &1225557478
 GameObject:
   m_ObjectHideFlags: 0
@@ -1743,7 +1747,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 640982bbb29eb284abb257eee45f0d7a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.Adapters.SleepyDemos.DroneFishingMissionCoordinator
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFishingMissionCoordinator
   config: {fileID: 11400000, guid: 6b59f1b0322ce834fb148c67cffe770e, type: 2}
   sceneCamera: {fileID: 501140002}
   cameraTracker: {fileID: 501140001}

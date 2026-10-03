@@ -24,7 +24,7 @@ namespace Tests.Demo
 
         private static readonly string[] ControlTextNames =
         {
-            "ControlsHeaderText", "FlightControlsText", "CameraControlsText", "SystemControlsText"
+            "StatusText", "CameraText", "HeightText", "DistanceText", "HorizontalText", "VerticalText", "GearText", "EquipmentText", "WarningText"
         };
 
         [Test]
@@ -58,8 +58,8 @@ namespace Tests.Demo
             Assert.That(select.GetComponent<ComponentItemIndex>(), Is.Not.Null);
             var hudIndex = hud.GetComponent<ComponentItemIndex>();
             AssertIndexArraysAreAligned(hudIndex);
-            Assert.That(hudIndex.Components.Length, Is.EqualTo(12));
-            Assert.That(debug.GetComponent<ComponentItemIndex>().Components.Length, Is.EqualTo(1));
+            Assert.That(hudIndex.Components, Has.None.Null);
+            AssertIndexArraysAreAligned(debug.GetComponent<ComponentItemIndex>());
             var selectIndex = select.GetComponent<ComponentItemIndex>();
             AssertIndexArraysAreAligned(selectIndex);
             foreach (string method in new[] { "OnPlainButtonClick", "OnGrappleButtonClick", "OnHarpoonButtonClick", "OnStartButtonClick", "OnBackButtonClick" })
@@ -79,14 +79,11 @@ namespace Tests.Demo
                              component is not DroneControlsPresenter));
             Assert.That(debug.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
                 component => component.GetType().Name.EndsWith("Presenter")));
-            var controlsPanel = hud.transform.Find("ControlsPanel");
-            Assert.That(controlsPanel.GetComponent<RectTransform>().anchorMin.x, Is.EqualTo(1f));
-            Assert.That(controlsPanel.gameObject.activeSelf, Is.True);
-            Assert.That(controlsPanel.Find("ControlsHeaderText"), Is.Not.Null);
-            Assert.That(controlsPanel.Find("FlightControlsText"), Is.Not.Null);
-            Assert.That(controlsPanel.Find("CameraControlsText"), Is.Not.Null);
-            Assert.That(controlsPanel.Find("SystemControlsText"), Is.Not.Null);
-            Assert.That(debug.transform.Find("DebugPanel").GetComponent<RectTransform>().anchorMin, Is.EqualTo(new Vector2(1f, 0f)));
+            Assert.That(hud.GetComponent<DroneHudLayout>(), Is.Not.Null);
+            var group = hudIndex.Components.OfType<CanvasGroup>().Single(value => value.name == "TelemetryRoot");
+            Assert.That(group.blocksRaycasts, Is.False);
+            Assert.That(group.interactable, Is.False);
+            Assert.That(hud.GetComponent<CanvasGroup>().blocksRaycasts, Is.True);
         }
 
         [Test]
@@ -97,8 +94,7 @@ namespace Tests.Demo
 
             foreach (var nodeName in ControlTextNames)
             {
-                var text = hud.transform.Find($"ControlsPanel/{nodeName}")
-                    ?.GetComponent<TextMeshProUGUI>();
+                var text = hud.GetComponentsInChildren<TextMeshProUGUI>(true).SingleOrDefault(value => value.name == nodeName);
                 Assert.That(text, Is.Not.Null, $"HUD 缺少固定文本节点：{nodeName}");
                 Assert.That(
                     index.Components.Count(component => component == text),

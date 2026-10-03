@@ -15,7 +15,7 @@
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。核心源码与宿主接入、界面表现保持单向边界：机型选择 View 与专属布局位于 `UI/`，场景和 UIManager 接入仍在 `Adapters/`；HUD、调试页尚沿用原 `Adapters/UI` 位置，随对应页面维护再整理。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
+业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。代码按实际职责组织：`Scene/` 管理资源加载、场景导航和会话生命周期，`UI/` 集中机型选择、HUD、调试 View、界面布局与 UIController，`Fishing/` 管理捕鱼任务、路径与演出，`Experience/` 管理等待/遥控状态及相机接管。不再设置统一的 `Adapters/` 层；飞控、物理和装备仍不反向依赖界面、资源服务或场景流程。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -62,7 +62,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 `FishingBurstMvp.unity` 是 Editor 可直接运行的独立迁移验证场景，不注册 Hub，也不修改正式 `Main.unity` 的机型选择流程。场景用一个按钮代表三次鱼群爆发 QTE 全部成功，随后执行场外入场、固定机位跟拍、环绕、俯冲、渔叉命中、真实载荷返航和重播。
 
-- `Adapters/Fishing/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
+- `Fishing/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
 - `DroneMissionAutopilot` 只生成 `DroneControlInput`、目标高度和偏航输入，禁止直接写 Transform 或刚体速度；实际飞行继续经过现有四旋翼控制链。
 - `DroneFishingMissionCoordinator` 管理阶段、超时、鱼随机位置和重播。鱼在命中前为 Kinematic，命中后解除冻结，质量通过现有渔叉绳索进入飞控载荷反馈。
 - `DroneCinematicCameraTracker` 缓动旋转和 FOV，但持续保持初始世界坐标。自动渔叉瞄准通过 `IDroneAutomatedAimingEquipment` 适配世界坐标目标，玩家原有 `V/H` 入口不变。
@@ -95,7 +95,7 @@ Assets/LoadResources/Demos/drone_flight/
 
 - `DroneFlightConfig` 只保存无人机本体：动力调校、机体、Rigidbody、电机、PID、Profile、自动起降与起落架。
 - `DroneCameraConfig`、`DroneInputConfig`、`DroneAutopilotConfig`、`DroneDiagnosticsConfig` 分别管理镜头、输入、巡航自动驾驶和诊断刷新参数。
-- `DroneFishingMissionConfig` 属于 `Adapters/Fishing`，只管理捕鱼演出节奏与固定机位。
+- `DroneFishingMissionConfig` 属于 `Fishing/`，只管理捕鱼演出节奏与固定机位。
 - `DroneGrappleConfig` 只由抓斗 Prefab 引用，保存固定吊臂长度、升降行程/速度/加速度、万向节摆角与被动阻尼、四爪驱动、捕获体积、FixedJoint 断裂和载荷平滑参数。
 - `DroneHarpoonConfig` 只由渔叉 Prefab 引用，保存弹体质量、发射冲量、瞄准半径、向下圆锥角、命中规则、绳长、卷线、弹簧阻尼、张力和受限 PD 回收参数。
 - 需要跨场景复用的数值进入配置资产，场景结构引用保留序列化，装配器能够注入的运行时连接不显示在 Inspector。
@@ -145,20 +145,23 @@ Assets/LoadResources/Demos/drone_flight/
 - Gimbal 的机械姿态由正式 FBX 的 `GimbalYaw/GimbalPitch` 驱动：Yaw 绕烘焙后的本地 `+Y`，Pitch 绕本地 `+X`，输出位置与光轴分别取 `CameraBody.position/forward`。运行角度叠加到导入 Bind Pose 上并保持世界地平线，默认 FOV `65°`；ThirdPerson 按机体偏航追尾，使用 `(0, 0.85, -2.2) m` 偏移与 `0.18 s` 速度前瞻；Orbit 绕世界竖直轴、默认距离 `2.5 m`。
 - FixedForward 保留机体横滚/俯仰，默认 FOV `75°`；Belly 与 HarpoonAim 使用机腹稳定向下视角，默认 FOV 分别为 `60°`、`55°`。
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
-- HUD 保留顶部状态、左下飞行遥测和底部装备提示；操作面板默认展开，标题、飞行/档位、视角/系统和装备操作分区显示，按 F1 整体收起或展开，不显示虚构的电池、GNSS 或图传信号。
-- HUD、Debug 和机型选择 View 中固定存在的 Prefab 节点统一进入根节点 `ComponentItemIndex`，业务代码只使用 MvcBind 生成的强类型字段，不在 `OnShow()` 或其它生命周期内按名称重复查找。
-- HUD 修改后使用现有 MvcBind 更新完整绑定索引，输出仍在 `Adapters/UI/<View名>/View`；不重跑已删除的装配脚本。
+- HUD 正上方显示当前视角及切换提示，左上显示飞控状态与档位，左下显示高度、距离与水平/垂直速度；触屏将遥测移至左上，避让双摇杆。装备提示按纯无人机、抓斗、渔叉切换，告警和长按重置仅在对应状态出现。完整操作说明移至独立 `DroneFlightHelpView`，通过 F1 或操作菜单的帮助入口打开。指南按当前提示设备与装备显示四组真实操作，不显示开发诊断或虚构的电池、GNSS、图传信号。
+- 操作指南使用 `Tip/Modal`、强类型 `DroneFlightViewData`、公共 `UIMenuScope` 焦点与取消事件；正文可滚动，窄屏切换单列并避让安全区。`IsHelpOpen` 独立阻止飞行输入并清空保持状态，保留 `IsPanelOpen` 来源：关闭后回原操作菜单或飞行，等待旧按键释放，不将取消穿透为退出遥控。
+- HUD、帮助、Debug 和机型选择 View 中固定存在的绑定节点统一进入根节点 `ComponentItemIndex`，业务代码使用 MvcBind 生成的强类型字段；布局和触控表现组件通过 Prefab 序列化引用其子节点，不在显示时按名称查找。
+- HUD 修改后使用现有 MvcBind 更新完整绑定索引，自定义 Module 输出目录选择 `Assets/Scripts/Hotfix/Demos/DroneFlight/UI`，工具追加 `<View名>/View`；不重跑已删除的装配脚本。
 - 相机监听器、运行时机体组件以及捕鱼场景显式注入的 Canvas/Button 属于运行时组合或场景结构，不是 View Prefab 固定节点；这些位置可以在组合阶段缓存组件，但必须用中文注释说明原因。
 
 ## 飞控与遥测
 
 主控制链保持：输入整形 → 位置/速度控制 → 推力方向姿态控制 → 三轴角速度 PID → 物理控制分配 → RPM → 四点施力与反扭矩。装备只通过外部质量接口提供受支持质量。
 
-F3 面板保留未经视觉平滑的原始遥测数据，并按机型追加：
+调试页通过公共 `UIMenuScope` 支持方向导航、确认和取消，关闭、F2 矢量与复制遥测按钮仍提交同一输入命令。`IsDebugOpen` 在阅读/导航期间清空手动输入，关闭后恢复来源菜单或飞行并等待松键；F2/F3/F4 仍独立工作，不改变物理真值。
+
+F3 面板从同一刷新事件读取结构化 `DroneDebugSnapshot`，按动力输出、角速度 PID、质量承载和装备诊断四组显示，不解析多行文本。高度不足时正文滚动，标题与操作按钮固定；保留未经视觉平滑的原始遥测，并按机型追加：
 
 - 纯无人机：明确显示无附加模块，装备质量和载荷均为零。
 - 抓斗：四爪开合、当前升降行程、捕获候选数、FixedJoint 拉力、真实/受支持载荷。
-- 渔叉：瞄准有效性、弹体状态、目标绳长、张力与命中点。
+- 渔叉：弹体状态、是否可发射、绳长、张力、命中数与瞄准方向。
 
 F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/实际速度和目标加速度箭头。`DroneFlightDebugDrawRenderer` 在 `LateUpdate` 读取物理真值并更新 LineRenderer、箭头和 TMP 3D 标签；这些对象没有 Rigidbody/Collider，关闭 F2 或销毁机体时统一隐藏/清理。视觉长度使用饱和曲线并限制为画面短边的 `22%`，端点与标签再裁剪进视口安全区。TMP 关闭 Auto Size、基础字号固定 `36`，使用粗体、深色描边和轻微阴影，Transform 按相机距离换算为 `18–26 px`（1080p 约 `22 px`）；全局布局按总量/加速度、旋翼的优先级避开机体投影和已有标签，不隐藏任何数值。线宽和箭头同样按像素换算，完整物理数值仍由标签/F3 显示。
 

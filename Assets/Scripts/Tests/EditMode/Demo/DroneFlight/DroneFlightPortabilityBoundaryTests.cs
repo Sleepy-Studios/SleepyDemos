@@ -10,7 +10,7 @@ namespace Tests.Demo
     public sealed class DroneFlightPortabilityBoundaryTests
     {
         private const string ModuleRoot = "Assets/Scripts/Hotfix/Demos/DroneFlight";
-        private const string AdapterRoot = ModuleRoot + "/Adapters";
+        private static readonly string[] PresentationDirectories = { "Scene", "UI", "Fishing", "Experience" };
 
         private static readonly string[] CoreDirectories =
         {
@@ -26,7 +26,7 @@ namespace Tests.Demo
             "GameSceneNavigator", "DemoIslandEditorBootstrap", "GameSceneId.Hub", "ComponentItemIndex"
         };
 
-        private static readonly string[] AdapterConcreteTypes =
+        private static readonly string[] PresentationConcreteTypes =
         {
             "DroneRemoteControllerExperience", "DroneFlightUIController", "DroneFlightSceneCoordinator",
             "DroneFlightDemoExit", "DroneFishingMissionCoordinator", "DroneBezierMissionPath",
@@ -35,12 +35,12 @@ namespace Tests.Demo
         };
 
         [Test]
-        public void CoreDirectories_DoNotReferenceSleepyDemosHostServicesOrAdapters()
+        public void CoreDirectories_DoNotReferenceSceneOrPresentationServices()
         {
             foreach (var path in EnumerateCoreFiles())
             {
                 var source = File.ReadAllText(path);
-                foreach (var dependency in ForbiddenHostDependencies.Concat(AdapterConcreteTypes))
+                foreach (var dependency in ForbiddenHostDependencies.Concat(PresentationConcreteTypes))
                 {
                     StringAssert.DoesNotContain(
                         dependency,
@@ -51,15 +51,16 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void HostDependencies_AreConfinedToHostAdaptersAndPresentation()
+        public void HostDependencies_AreConfinedToSceneAndPresentation()
         {
             var modulePath = Path.GetFullPath(ModuleRoot);
-            var adapterPath = Path.GetFullPath(AdapterRoot);
-            var uiPath = Path.GetFullPath(ModuleRoot + "/UI") + Path.DirectorySeparatorChar;
+            var presentationPaths = PresentationDirectories
+                .Select(directory => Path.GetFullPath(ModuleRoot + "/" + directory) + Path.DirectorySeparatorChar)
+                .ToArray();
             var violations = Directory.GetFiles(modulePath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => ForbiddenHostDependencies.Any(dependency => File.ReadAllText(path).Contains(dependency)))
-                .Where(path => !path.StartsWith(adapterPath, System.StringComparison.OrdinalIgnoreCase))
-                .Where(path => !path.StartsWith(uiPath, System.StringComparison.OrdinalIgnoreCase))
+                .Where(path => !presentationPaths.Any(directory =>
+                    path.StartsWith(directory, System.StringComparison.OrdinalIgnoreCase)))
                 .Select(path => Path.GetRelativePath(modulePath, path).Replace('\\', '/'))
                 .ToArray();
 

@@ -20,6 +20,8 @@ namespace Tests.Demo
                 ["DroneControlInputTests"] = "验证飞行输入归一化与非法值保护",
                 ["DroneAttitudeMathTests"] = "验证姿态误差、航向和机体系速度数学",
                 ["DroneHudFormatterTests"] = "验证 HUD、快捷键提示和飞控告警",
+                ["DroneHudPresentationTests"] = "验证相机仪表按视角显示字段与切换提示",
+                ["DroneDebugPresentationTests"] = "验证调试遥测、装备字段与面板适配",
                 ["DroneFlightUiContractTests"] = "验证正式 UI 地址、层级和布局契约",
                 ["DroneLandingGearStateMachineTests"] = "验证起落架状态机和手动切换",
                 ["DroneMotorModelTests"] = "验证电机一阶响应、推力和运行时调参",
@@ -42,7 +44,8 @@ namespace Tests.Demo
                 ["DroneFishingMissionPlayModeTests"] = "验证捕鱼 MVP 固定机位和自动渔叉瞄准",
                 ["DroneStandaloneBootstrapPlayModeTests"] = "验证独立场景无需宿主框架即可装配手动无人机",
                 ["DroneFlightHudBindingPlayModeTests"] = "验证 HUD 固定节点的 MvcBind 运行时初始化与刷新",
-                ["DroneCameraLifecycleTests"] = "验证第三人称、机腹和云台镜头生命周期"
+                ["DroneCameraLifecycleTests"] = "验证第三人称、机腹和云台镜头生命周期",
+                ["DroneUnifiedInputPlayModeTests"] = "验证三端四轴输入、帮助与操作菜单门闩、指南焦点与设备提示"
             };
 
         [InitializeOnLoadMethod]

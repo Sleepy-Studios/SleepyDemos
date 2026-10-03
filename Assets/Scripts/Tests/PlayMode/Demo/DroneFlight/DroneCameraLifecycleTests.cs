@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Linq;
 using Hotfix.DroneFlight;
-using Hotfix.DroneFlight.Adapters;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;

@@ -1,6 +1,5 @@
 using System.Collections;
 using Hotfix.DroneFlight;
-using Hotfix.DroneFlight.Adapters;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;

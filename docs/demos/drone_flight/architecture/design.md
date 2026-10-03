@@ -56,7 +56,7 @@ DroneFlight 把“谁在控制”与“无人机怎样产生力”分开了。
 - `DronePlayerInput` 读取键鼠或 Input System，产生归一化的前后、左右、升降和偏航输入。
 - `DroneCruiseRunner` 推进通用航点状态，处理单次、循环、往返、等待和抵达判定。
 - `DroneMissionAutopilot` 把世界坐标目标换算为飞控输入、目标高度和偏航输入。
-- `Adapters/Fishing/DroneBezierMissionPath` 与 `DroneFishingMissionCoordinator` 负责捕鱼演出路径和阶段编排。
+- `Fishing/DroneBezierMissionPath` 与 `DroneFishingMissionCoordinator` 负责捕鱼演出路径和阶段编排。
 
 这些控制来源最终都调用飞控现有输入或高度接口。它们不会写 Transform，也不会直接覆盖 Rigidbody 速度，所以自动巡航仍然受电机响应、最大推力、碰撞和载荷影响。
 
@@ -327,22 +327,23 @@ Cine 更慢、更柔和；Sport 允许更快的速度、倾角和响应。档位
 
 CameraRig 只修改相机和云台表现，不写机体 Rigidbody。Telemetry、HUD 和 F2/F3 调试显示读取控制目标、实际速度、Rotor 推力、载荷和饱和状态，但不会反向驱动飞控。
 
-## 核心与宿主适配边界
+## 职责目录与依赖边界
 
 DroneFlight 仍通过 `DroneFlight.asmref` 归属 `Hotfix.dll`，没有新增 `DroneFlight.Runtime` 或 `DroneFlight.Editor` 程序集，也没有改变 HybridCLR 热更新列表和 DLL 装配顺序。
 
 运行时代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`：
 
 - `Control`、`Physics`、`Input`、`Camera`、`Equipment`、`Payload`、`Telemetry`、`Vehicle`、`Cruise`、`Runtime` 是可脱离 SleepyDemos 宿主理解的核心。
-- `Adapters/Scene` 负责资源加载、场景导航和 Hub 生命周期。
-- `UI` 放机型选择 View 与专属布局；页面表示选择和反馈，不承担资源加载或生成机体。
-- `Adapters/UI` 的 UIController 连接正式 UIManager 与场景会话，保留强类型 ViewData；HUD、调试 View 尚在旧位置，待各自页面优化时整理。
-- `Adapters/Fishing` 负责捕鱼演出。
-- `Adapters/Experience` 负责项目内遥控器接管体验。
+- `Scene` 负责资源加载、场景导航和 Hub 会话生命周期。
+- `UI` 集中机型选择、HUD、调试 View 与专属布局；UIController 连接正式 UIManager 与场景会话，保留强类型 ViewData。页面表示选择和反馈，不承担机体资源加载或生成。
+- `Fishing` 负责捕鱼任务编排、贝塞尔路径、演出镜头与任务配置。
+- `Experience` 负责等待/遥控状态切换与相机接管。
 
-核心目录不能依赖 `Core.Runtime` 的 UI/资源服务、`UIManager`、`ResourceServices`、`GameSceneNavigator` 或 Adapters 具体类。输入转换按项目约定复用 `Core.Runtime.Inputs`，不在 Demo 复制设备识别、死区和松键门闩。该边界由 `DroneFlightPortabilityBoundaryTests` 扫描锁定。
+这些是正常游戏职责，不因调用 Unity/Core 就统一归入 `Adapters`。业务类型使用 `Hotfix.DroneFlight`，既有 View 保持 `Hotfix` 命名空间；不通过新增程序集或转发层隔离目录。
 
-迁移到新宿主时，应保留飞控、装备、配置和成品 Prefab，替换 `Adapters/` 中对应的资源、UI、导航与演出接入，并按宿主 UI 框架适配 `UI/` 中的表现页面。当前边界是“降低宿主耦合”，不是承诺复制两个目录后零修改运行。
+核心目录不能依赖 `Core.Runtime` 的 UI/资源服务、`UIManager`、`ResourceServices`、`GameSceneNavigator` 或上述场景、界面、任务、体验的具体流程类型。输入转换按项目约定复用 `Core.Runtime.Inputs`，不在 Demo 复制设备识别、死区和松键门闩。目录简化不改变依赖方向，该边界由 `DroneFlightPortabilityBoundaryTests` 扫描锁定。
+
+迁移到新宿主时，应保留飞控、装备、配置和成品 Prefab，按需要接入 `Scene` 的资源/导航流程与 `UI` 的表现页面，并选择复用或调整 `Fishing`、`Experience` 中的玩法流程。无需为迁移另建统一 Adapter 层，也不承诺复制目录后零修改运行。
 
 ## 当前能力与明确边界
 
@@ -366,7 +367,7 @@ DroneFlight 仍通过 `DroneFlight.asmref` 归属 `Hotfix.dll`，没有新增 `D
 - 任意项目零修改迁移。
 - 任意新装备自动兼容。
 
-新增 AI、网络或回放控制时，从统一控制来源扩展；新增路线事件时扩展 Cruise；新增装备时实现装备与质量接口；接入新项目时替换 Adapters。不要为了新需求绕过现有飞控链建立第二套运动系统。
+新增 AI、网络或回放控制时，从统一控制来源扩展；新增路线事件时扩展 Cruise；新增装备时实现装备与质量接口；接入新项目时按实际职责调整资源、UI、导航和玩法流程。不要为了新需求绕过现有飞控链建立第二套运动系统。
 
 ## 修改原则
 
@@ -374,6 +375,6 @@ DroneFlight 仍通过 `DroneFlight.asmref` 归属 `Hotfix.dll`，没有新增 `D
 - 不用超大阻尼掩盖控制器或 Joint 不稳定。
 - 不因视觉换皮移动 Rotor 施力点、装备挂点、Collider 或质量契约。
 - 不在运行时动态重建正式机体和装备组合。
-- 不让适配层依赖反向进入可迁移核心。
+- 不让界面、资源服务、场景或任务流程的依赖反向进入飞控与物理核心。
 - 算法原理写在本文；模块入口和生命周期写在模块文档；操作步骤写在 runbook；历史替代原因写在 history。
 - 源码、Prefab、Unity 编译和运行验证才是实现证据，文档与静态搜索不能替代它们。

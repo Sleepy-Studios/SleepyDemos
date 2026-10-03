@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d53dacf12520e724b93147c5069126a3, type: 3}
   m_Name: DroneFishingMissionConfig
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.Adapters.SleepyDemos.DroneFishingMissionConfig
+  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFishingMissionConfig
   fishAreaHalfExtents: {x: 3, y: 3}
   fishDepthMeters: -5
   orbitLoops: 2
