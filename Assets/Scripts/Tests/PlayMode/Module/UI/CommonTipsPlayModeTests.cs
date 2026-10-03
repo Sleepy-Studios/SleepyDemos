@@ -42,8 +42,8 @@ namespace Tests.Module
             Time.timeScale = 1;
             TimeUtil.SetTimeSource(null);
             UIManager.Instance.OnBeforeOpen = previousBeforeOpen;
-            yield return TipsUI.HideSimpleAsync().ToCoroutine();
-            yield return TipsUI.HideAsync().ToCoroutine();
+            yield return SingleUIManager.Instance.HideSimpleTipsAsync().ToCoroutine();
+            yield return SingleUIManager.Instance.HideTipsMessageBarsAsync().ToCoroutine();
             yield return UIManager.Instance.CloseAllAsync().ToCoroutine();
             ResourceServices.RegisterDefault(previousResources);
             foreach (var value in objects) if (value != null) Object.Destroy(value);
@@ -101,21 +101,22 @@ namespace Tests.Module
             Assert.That(completed, Is.EqualTo(1));
         }
 
-        [UnityTest] public IEnumerator MessageReplacementKeepsNewTextBeyondOldExpiryAndExpiresDuringPause()
+        [UnityTest] public IEnumerator MessagesStackAndExpireIndependentlyDuringPause()
         {
-            yield return Show(TipsUI.ShowAsync("旧提示", CommonTipsType.Warning, .1f));
-            yield return new WaitForSecondsRealtime(.04f);
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("旧提示", CommonTipsType.Warning, .25f));
             Time.timeScale = 0;
-            yield return Show(TipsUI.ShowAsync("新提示", CommonTipsType.Success, .3f));
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("新提示", CommonTipsType.Success, .6f));
             var view = UIManager.Instance.Get<CommonTipsView>();
-            yield return new WaitForSecondsRealtime(.12f);
+            var stack = view.gameObject.GetComponent<UITipsStack>();
+            Assert.That(stack.Count, Is.EqualTo(2), "新消息追加，不能覆盖旧消息");
+            yield return new WaitForSecondsRealtime(.3f);
+            Assert.That(stack.Count, Is.EqualTo(1));
             Assert.That(view.State, Is.EqualTo(ViewState.Visible));
             Assert.That(view.gameObject.GetComponentsInChildren<TMP_Text>()[0].text, Is.EqualTo("新提示"));
-            Assert.That(view.gameObject.GetComponent<CanvasGroup>().blocksRaycasts, Is.False);
             Assert.That(UIManager.Instance.GetStackTopView(), Is.Null, "Widget 不进入 Page/Modal 返回栈");
             yield return UIManager.Instance.BackAsync(false).ToCoroutine();
             Assert.That(view.State, Is.EqualTo(ViewState.Visible));
-            yield return new WaitForSecondsRealtime(.3f);
+            yield return new WaitForSecondsRealtime(.4f);
             Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
         }
 
@@ -126,9 +127,9 @@ namespace Tests.Module
             Sprite previous = null;
             foreach (CommonTipsType type in new[] { CommonTipsType.Warning, CommonTipsType.Success, CommonTipsType.Notice })
             {
-                yield return Show(TipsUI.ShowAsync("状态 " + type, type, 5));
+                yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("状态 " + type, type, 5));
                 var view = UIManager.Instance.Get<CommonTipsView>();
-                Image icon = Array.Find(view.gameObject.GetComponentsInChildren<Image>(), image => image.name == "Icon");
+                Image icon = Array.FindLast(view.gameObject.GetComponentsInChildren<Image>(), image => image.name == "Icon");
                 Assert.That(icon.sprite, Is.Not.Null);
                 Assert.That(icon.sprite, Is.Not.SameAs(previous));
                 Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(selected.gameObject));
@@ -136,11 +137,131 @@ namespace Tests.Module
             }
         }
 
+        [UnityTest] public IEnumerator HoverExpandsAllMessagesAndPausesRemainingLifetime()
+        {
+            for (int i = 0; i < 5; i++)
+                yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("消息 " + i, CommonTipsType.Success, 1));
+            var view = UIManager.Instance.Get<CommonTipsView>();
+            var stack = view.gameObject.GetComponent<UITipsStack>();
+            yield return new WaitForSecondsRealtime(.2f);
+            var panels = view.gameObject.GetComponentsInChildren<UITipsPanel>();
+            var latest = panels[panels.Length - 1];
+            Assert.That(latest.GetComponentInChildren<TMP_Text>().text, Is.EqualTo("消息 4"));
+            Assert.That(latest.GetComponent<CanvasGroup>().alpha, Is.GreaterThan(.9f));
+            Assert.That(panels[0].GetComponent<CanvasGroup>().alpha, Is.LessThan(.1f), "收起只显示前面三层");
+            stack.OnPointerEnter(new PointerEventData(EventSystem.current));
+            Time.timeScale = 0;
+            yield return new WaitForSecondsRealtime(1.1f);
+            Assert.That(stack.Expanded, Is.True);
+            Assert.That(stack.Count, Is.EqualTo(5));
+            for (int i = panels.Length - 2; i >= 0; i--)
+            {
+                Assert.That(panels[i].GetComponent<CanvasGroup>().alpha, Is.GreaterThan(.9f));
+                Assert.That(panels[i].Body.anchoredPosition.y + panels[i + 1].Body.rect.height,
+                    Is.LessThan(panels[i + 1].Body.anchoredPosition.y), "展开从新到旧排列，不互相遮挡");
+            }
+            stack.OnPointerExit(new PointerEventData(EventSystem.current));
+            yield return new WaitForSecondsRealtime(.15f);
+            Assert.That(stack.Count, Is.EqualTo(5), "移开后继续剩余时间，不能立即清空");
+            yield return new WaitForSecondsRealtime(1);
+            Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
+        }
+
+        [UnityTest] public IEnumerator CloseButtonOnlyDismissesItsMessageAndKeepsPageFocus()
+        {
+            Button selected = Anchor();
+            EventSystem.current.SetSelectedGameObject(selected.gameObject);
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("保留", CommonTipsType.Success, 5));
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("关闭这一条", CommonTipsType.Notice, 5));
+            var view = UIManager.Instance.Get<CommonTipsView>();
+            var panels = view.gameObject.GetComponentsInChildren<UITipsPanel>();
+            var close = panels[1].GetComponentInChildren<Button>();
+            var pointer = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left };
+            close.OnPointerDown(pointer); close.OnPointerUp(pointer); close.OnPointerClick(pointer);
+            yield return null;
+            Assert.That(view.gameObject.GetComponent<UITipsStack>().Count, Is.EqualTo(1));
+            Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(selected.gameObject));
+            Assert.That(view.gameObject.GetComponentsInChildren<TMP_Text>()[0].text, Is.EqualTo("保留"));
+            // 通知区域以外没有全屏射线遮挡。
+            pointer.position = RectTransformUtility.WorldToScreenPoint(UIRootManager.Instance.UICamera, selected.transform.position);
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            Assert.That(hits.Exists(hit => hit.gameObject.transform.IsChildOf(view.transform)), Is.False);
+        }
+
+        [UnityTest] public IEnumerator CancelingOneMessageKeepsOthersAndManyMessagesScrollInsideSafeArea()
+        {
+            using var source = new CancellationTokenSource();
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("取消这一条", CommonTipsType.Warning, 30, source.Token));
+            for (int i = 0; i < 8; i++)
+                yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("保留 " + i, CommonTipsType.Notice, 30));
+            var view = UIManager.Instance.Get<CommonTipsView>();
+            var stack = view.gameObject.GetComponent<UITipsStack>();
+            var rect = view.transform as RectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f); rect.sizeDelta = new Vector2(420, 280);
+            stack.OnPointerEnter(new PointerEventData(EventSystem.current));
+            source.Cancel();
+            yield return null;
+            var scroll = Array.Find(view.gameObject.GetComponentsInChildren<ScrollRect>(), value => value.name == "MessageRegion");
+            Rect safe = TooltipPlacementUtil.GetSafeRect(rect);
+            Assert.That(scroll.viewport.rect.height, Is.LessThanOrEqualTo(safe.height + .1f), "缩小安全区时动画也不得越界");
+            yield return new WaitForSecondsRealtime(.5f);
+            Assert.That(stack.Count, Is.EqualTo(8));
+            Assert.That(view.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(scroll.vertical, Is.True);
+            Assert.That(scroll.content.rect.height, Is.GreaterThan(scroll.viewport.rect.height));
+            Assert.That(scroll.viewport.rect.height, Is.LessThanOrEqualTo(safe.height + .1f));
+            Assert.That(scroll.viewport.rect.width, Is.LessThanOrEqualTo(safe.width + .1f));
+            scroll.verticalNormalizedPosition = 0;
+            yield return null;
+            Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(.01f));
+        }
+
+        [UnityTest] public IEnumerator EmptyCloseQueuedAfterNewShowCannotCloseTheNewMessage()
+        {
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("即将到期", CommonTipsType.Success, .15f));
+            var gate = new UniTaskCompletionSource();
+            UIManager.Instance.OnBeforeOpen = async view => { if (view is SimpleTipsView) await gate.Task; };
+            var blocking = SingleUIManager.Instance.ShowSimpleTipsAsync(Anchor().transform as RectTransform, "阻塞其他导航");
+            yield return null;
+            var next = SingleUIManager.Instance.ShowTipsMessageBarAsync("不能被旧关闭清掉", CommonTipsType.Notice, 5);
+            yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(UIManager.Instance.Get<CommonTipsView>().transform.Find("MessageRegion").gameObject.activeSelf,
+                Is.False, "空列表等待导航关闭期间不留下透明挡区");
+            gate.TrySetResult();
+            yield return Show(blocking);
+            yield return Show(next);
+            yield return null; yield return null;
+            var messages = UIManager.Instance.Get<CommonTipsView>();
+            Assert.That(messages.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(messages.gameObject.GetComponent<UITipsStack>().Count, Is.EqualTo(1));
+            Assert.That(messages.gameObject.GetComponentsInChildren<TMP_Text>()[0].text, Is.EqualTo("不能被旧关闭清掉"));
+        }
+
+        [UnityTest] public IEnumerator HideAllCancelsPendingMessagesButAllowsLaterRequests()
+        {
+            var gate = new UniTaskCompletionSource();
+            UIManager.Instance.OnBeforeOpen = async view => { if (view is SimpleTipsView) await gate.Task; };
+            var blocking = SingleUIManager.Instance.ShowSimpleTipsAsync(Anchor().transform as RectTransform, "等待");
+            yield return null;
+            var canceled = SingleUIManager.Instance.ShowTipsMessageBarAsync("排队取消", CommonTipsType.Warning, 5);
+            var hide = SingleUIManager.Instance.HideTipsMessageBarsAsync();
+            var later = SingleUIManager.Instance.ShowTipsMessageBarAsync("后来请求", CommonTipsType.Success, 5);
+            gate.TrySetResult();
+            yield return Show(blocking);
+            yield return canceled.ToCoroutine(result => Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled)));
+            yield return hide.ToCoroutine();
+            yield return Show(later);
+            var view = UIManager.Instance.Get<CommonTipsView>();
+            Assert.That(view.gameObject.GetComponent<UITipsStack>().Count, Is.EqualTo(1));
+            Assert.That(view.gameObject.GetComponentsInChildren<TMP_Text>()[0].text, Is.EqualTo("后来请求"));
+        }
+
         [UnityTest] public IEnumerator SimpleOutsideClickAndCancelRestoreOriginalSelection()
         {
             Button selected = Anchor();
             EventSystem.current.SetSelectedGameObject(selected.gameObject);
-            yield return Show(TipsUI.ShowSimpleAsync(selected.transform as RectTransform, "说明", "标题"));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(selected.transform as RectTransform, "说明", "标题"));
             yield return null;
             yield return null;
             var view = UIManager.Instance.Get<SimpleTipsView>();
@@ -150,7 +271,7 @@ namespace Tests.Module
             yield return null;
             Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
             Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(selected.gameObject));
-            yield return Show(TipsUI.ShowSimpleAsync(selected.transform as RectTransform, "再打开"));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(selected.transform as RectTransform, "再打开"));
             yield return null;
             var data = new BaseEventData(EventSystem.current);
             view.gameObject.GetComponent<UIMenuScope>().OnCancel(data);
@@ -164,7 +285,7 @@ namespace Tests.Module
             Button target = Anchor();
             RectTransform rect = target.transform as RectTransform;
             rect.pivot = new Vector2(.1f, .9f);
-            yield return Show(TipsUI.ShowSimpleAsync(rect, "目标中心不依赖 Pivot"));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(rect, "目标中心不依赖 Pivot"));
             var view = UIManager.Instance.Get<SimpleTipsView>();
             UITipsPanel panel = view.gameObject.GetComponent<UITipsPanel>();
             Vector3 old = panel.Body.position;
@@ -182,7 +303,7 @@ namespace Tests.Module
         {
             RectTransform target = Anchor().transform as RectTransform;
             string longText = string.Concat(System.Linq.Enumerable.Repeat("这是一段很长的说明，用于验证正文换行和安全区域内的滚动。\n", 70));
-            yield return Show(TipsUI.ShowSimpleAsync(target, longText, "长标题与正文尺寸验证", new SimpleTipsOptions(maxWidth: 360)));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(target, longText, "长标题与正文尺寸验证", new SimpleTipsOptions(maxWidth: 360)));
             yield return null;
             var view = UIManager.Instance.Get<SimpleTipsView>();
             var panel = view.gameObject.GetComponent<UITipsPanel>();
@@ -193,7 +314,7 @@ namespace Tests.Module
             float height = panel.Body.rect.height;
             TMP_Text content = Array.Find(view.gameObject.GetComponentsInChildren<TMP_Text>(), text => text.name == "Text");
             Assert.That(content.fontSize, Is.EqualTo(24));
-            yield return Show(TipsUI.ShowSimpleAsync(target, "短说明", options: new SimpleTipsOptions(maxWidth: 360)));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(target, "短说明", options: new SimpleTipsOptions(maxWidth: 360)));
             yield return null;
             Assert.That(panel.Body.rect.height, Is.LessThan(height));
             Assert.That(panel.Body.rect.width, Is.LessThan(360));
@@ -209,7 +330,7 @@ namespace Tests.Module
             trigger.Show();
             yield return null;
             Button second = Anchor();
-            yield return Show(TipsUI.ShowSimpleAsync(second.transform as RectTransform, "第二个目标", options: new SimpleTipsOptions(closeOnOutside: false)));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(second.transform as RectTransform, "第二个目标", options: new SimpleTipsOptions(closeOnOutside: false)));
             trigger.Hide();
             yield return null;
             var view = UIManager.Instance.Get<SimpleTipsView>();
@@ -226,7 +347,7 @@ namespace Tests.Module
             var viewportRect = viewport.transform as RectTransform;
             viewportRect.anchorMin = viewportRect.anchorMax = new Vector2(.5f, .5f); viewportRect.sizeDelta = new Vector2(160, 90);
             target.transform.SetParent(viewport.transform, false);
-            yield return Show(TipsUI.ShowSimpleAsync(target.transform as RectTransform, "列表说明"));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(target.transform as RectTransform, "列表说明"));
             var view = UIManager.Instance.Get<SimpleTipsView>();
             (target.transform as RectTransform).anchoredPosition = new Vector2(0, 300);
             yield return null;
@@ -238,7 +359,7 @@ namespace Tests.Module
         {
             using (var source = new CancellationTokenSource())
             {
-                yield return Show(TipsUI.ShowSimpleAsync(Anchor().transform as RectTransform, "可关闭的提示", cancellationToken: source.Token));
+                yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(Anchor().transform as RectTransform, "可关闭的提示", cancellationToken: source.Token));
                 var view = UIManager.Instance.Get<SimpleTipsView>();
                 source.Cancel();
                 view.gameObject.GetComponentInChildren<Button>().onClick.Invoke();
@@ -250,13 +371,13 @@ namespace Tests.Module
 
         [UnityTest] public IEnumerator LongMessageScrollsBeforeStayTimerStarts()
         {
-            yield return Show(TipsUI.ShowAsync("第一行说明\n第二行说明\n第三行说明\n第四行说明\n第五行说明\n第六行说明", CommonTipsType.Notice, .2f));
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("第一行说明\n第二行说明\n第三行说明\n第四行说明\n第五行说明\n第六行说明", CommonTipsType.Notice, .2f));
             var view = UIManager.Instance.Get<CommonTipsView>();
             var rect = view.transform as RectTransform;
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
             rect.sizeDelta = new Vector2(800, 180);
             yield return null;
-            var panel = view.gameObject.GetComponent<UITipsPanel>();
+            var panel = view.gameObject.GetComponentInChildren<UITipsPanel>();
             Assert.That(panel.ScrollDistance, Is.GreaterThan(0));
             yield return new WaitForSecondsRealtime(.3f);
             Assert.That(view.State, Is.EqualTo(ViewState.Visible), "长消息不能按短文本时长提前关闭");
@@ -270,15 +391,15 @@ namespace Tests.Module
         [UnityTest] public IEnumerator PreCanceledRequestsKeepVisibleTipsAndTheirOwners()
         {
             var target = Anchor().transform as RectTransform;
-            yield return Show(TipsUI.ShowSimpleAsync(target, "保留说明"));
-            yield return Show(TipsUI.ShowAsync("保留消息", CommonTipsType.Success, 5));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(target, "保留说明"));
+            yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("保留消息", CommonTipsType.Success, 5));
             using (var source = new CancellationTokenSource())
             {
                 source.Cancel();
                 UIOperationResult canceled = default;
-                yield return TipsUI.ShowSimpleAsync(target, "已取消", cancellationToken: source.Token).ToCoroutine(value => canceled = value);
+                yield return SingleUIManager.Instance.ShowSimpleTipsAsync(target, "已取消", cancellationToken: source.Token).ToCoroutine(value => canceled = value);
                 Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
-                yield return TipsUI.ShowAsync("已取消", CommonTipsType.Warning, cancellationToken: source.Token).ToCoroutine(value => canceled = value);
+                yield return SingleUIManager.Instance.ShowTipsMessageBarAsync("已取消", CommonTipsType.Warning, cancellationToken: source.Token).ToCoroutine(value => canceled = value);
                 Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
                 Assert.That(UIManager.Instance.Get<CommonTipsView>().State, Is.EqualTo(ViewState.Visible));
                 var simple = UIManager.Instance.Get<SimpleTipsView>();
@@ -292,14 +413,14 @@ namespace Tests.Module
         [UnityTest] public IEnumerator CanceledQueuedReplacementDoesNotLeaveOldBlocker()
         {
             var target = Anchor().transform as RectTransform;
-            yield return Show(TipsUI.ShowSimpleAsync(target, "旧说明"));
+            yield return Show(SingleUIManager.Instance.ShowSimpleTipsAsync(target, "旧说明"));
             var gate = new UniTaskCompletionSource();
             UIManager.Instance.OnBeforeOpen = async view => { if (view is CommonTipsView) await gate.Task; };
-            var blockingOperation = TipsUI.ShowAsync("另一项导航", CommonTipsType.Notice, 5);
+            var blockingOperation = SingleUIManager.Instance.ShowTipsMessageBarAsync("另一项导航", CommonTipsType.Notice, 5);
             yield return null;
             using (var source = new CancellationTokenSource())
             {
-                var replacement = TipsUI.ShowSimpleAsync(target, "排队说明", cancellationToken: source.Token);
+                var replacement = SingleUIManager.Instance.ShowSimpleTipsAsync(target, "排队说明", cancellationToken: source.Token);
                 source.Cancel();
                 gate.TrySetResult();
                 yield return Show(blockingOperation);
@@ -314,7 +435,7 @@ namespace Tests.Module
         {
             using (var source = new CancellationTokenSource())
             {
-                yield return Show(TipsUI.ShowAsync("取消后关闭", CommonTipsType.Notice, 30, source.Token));
+                yield return Show(SingleUIManager.Instance.ShowTipsMessageBarAsync("取消后关闭", CommonTipsType.Notice, 30, source.Token));
                 var view = UIManager.Instance.Get<CommonTipsView>();
                 Time.timeScale = 0;
                 source.Cancel();
@@ -323,6 +444,17 @@ namespace Tests.Module
                 yield return null;
                 Assert.That(view.State, Is.EqualTo(ViewState.LoadedHidden));
             }
+        }
+
+        [UnityTest] public IEnumerator MessageLoadFailureReturnsFailedWithoutLeavingAnUnboundView()
+        {
+            ResourceServices.RegisterDefault(new EditorPrefabService(missingMessagePrefab: true));
+            UIOperationResult result = default;
+            yield return SingleUIManager.Instance.ShowTipsMessageBarAsync("加载失败", CommonTipsType.Warning)
+                .ToCoroutine(value => result = value);
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
+            Assert.That(result.Exception, Is.Not.Null);
+            Assert.That(UIManager.Instance.Get<CommonTipsView>(), Is.Null);
         }
 
         private UICountdown Countdown(out TMP_Text text)
@@ -346,11 +478,13 @@ namespace Tests.Module
         // 只替换资源加载边界；使用正式 Prefab、真实 UIManager、Canvas 和 EventSystem。
         private sealed class EditorPrefabService : IResourceService
         {
+            private readonly bool missingMessagePrefab;
+            public EditorPrefabService(bool missingMessagePrefab = false) { this.missingMessagePrefab = missingMessagePrefab; }
             public bool IsInitialized => true;
             public string NormalizeAddress(string address) => "Assets/" + address + ".prefab";
             public UniTask InitializeAsync(ResourceInitializeOptions options) => UniTask.CompletedTask;
             public UniTask<DownloadReport> DownloadPackageAsync(int n, int retry, Action<DownloadProgress> progress = null) => throw new NotSupportedException();
-            public IResourceLoader CreateLoader() => new EditorPrefabLoader();
+            public IResourceLoader CreateLoader() => new EditorPrefabLoader(missingMessagePrefab);
             public IResourceSceneLoader CreateSceneLoader() => throw new NotSupportedException();
             public ResourceLoadResult<T> LoadAsset<T>(string address) where T : Object
                 => ResourceLoadResult<T>.SuccessResult(AssetDatabase.LoadAssetAtPath<T>(NormalizeAddress(address)), address);
@@ -361,9 +495,12 @@ namespace Tests.Module
         private sealed class EditorPrefabLoader : IResourceLoader
         {
             private readonly List<GameObject> instances = new List<GameObject>();
+            private readonly bool missingMessagePrefab;
+            public EditorPrefabLoader(bool missingMessagePrefab) { this.missingMessagePrefab = missingMessagePrefab; }
             public GameObject Instantiate(string address, Transform parent) => Instantiate(address, parent, false);
             public GameObject Instantiate(string address, Transform parent, bool stays)
             {
+                if (missingMessagePrefab && address == "LoadResources/UI/Common/CommonTips") return null;
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + address + ".prefab");
                 var instance = Object.Instantiate(prefab, parent, stays); instances.Add(instance); return instance;
             }

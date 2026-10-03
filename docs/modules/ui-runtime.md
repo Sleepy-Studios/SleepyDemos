@@ -89,6 +89,7 @@ Loading --加载失败或取消--> Faulted
 - `AccordionTab`：两级手风琴 Tab，一级负责展开/收起，回调使用扁平化叶子索引。
 - `AccordionViewTab`：通过 `AccordionTab` 叶子索引驱动多个 View 或本地 ViewRoot 子节点切换。
 - `UIImageLoader`：按 Sprite 资源路径加载图片，支持同步/异步和 `SetNativeSize`。
+- `UITipsStack`：复用隐藏消息模板，管理独立时长、悬停展开、关闭与安全区滚动；业务通过 SingleUIManager 的导航入口交付消息。
 - `UIState`：序列化状态切换组件，用于 Normal/Selected 等轻量状态；状态项使用固定枚举和强类型组件引用，不使用反射属性名或字符串解析。
 - `TMPAutoFitLayoutElement`：根据 TMP 自然尺寸在 `LayoutElement` 与 `ContentSizeFitter` 之间选择布局驱动，并处理最大宽高、换行和自动字号。
 - `TMPAutoScrollEnableBehaviour`：超宽 TMP 文本横向滚动；监听 TMP 顶点脏回调，兼容业务直接给 `.text` 赋值，默认给 viewport 补 `RectMask2D`。
@@ -186,13 +187,17 @@ Loading --加载失败或取消--> Faulted
 
 ## 通用 Tips
 
-两类正式 Prefab 为 `LoadResources/UI/Common/SimpleTips` 和 `CommonTips`，对应 Hotfix/Common 的 `SimpleTipsView`、`CommonTipsView`。统一通过 `TipsUI` 调用 `UIManager` 的数据交付与导航队列，使用 `Tip + Widget`、`EmptyUITransition` 和隐藏缓存，不占 Page/Modal 栈，也不隐藏当前页面。固定引用由 MvcBind 生成，根节点不添加 Canvas 三件套。
+两类正式 Prefab 为 `LoadResources/UI/Common/SimpleTips` 和 `CommonTips`，对应 Hotfix/Common 的 `SimpleTipsView`、`CommonTipsView`。统一通过 `SingleUIManager.Instance` 调用 `UIManager` 的数据交付与导航队列，使用 `Tip + Widget`、`EmptyUITransition` 和隐藏缓存，不占 Page/Modal 栈，也不隐藏当前页面。固定引用由 MvcBind 生成，根节点不添加 Canvas 三件套。
 
 Core 的 `UITipsPanel` 复用 TMP 尺寸适配与布局组，正文超高使用 ScrollRect，不缩小字号。`UITooltip` 跟随目标矩形，通过 `TooltipPlacementUtil` 将目标 Canvas 投影到 Tips Canvas，按安全区选择方向、收拢主体并移动箭头。只有目标、边界或内容变化才重新定位，静止时不重建布局。
 
 SimpleTips 默认用透明 Blocker 消耗外部点击，用 `UIMenuScope` 接管返回并在关闭后恢复焦点。悬停模式不启用 Blocker 和菜单作用域。`SimpleTipsTrigger` 在 Hotfix，仅绑定文本和触发规则，不另建输入底座。目标销毁、禁用或移出安全范围请求关闭，隐藏后清除目标引用。
 
-CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标直接保存于 Prefab，不依赖字体中的 emoji。新请求立即取消旧计时和待执行关闭，代次与具体 View 实例共同保护关闭目标。长正文先自动滚动，再停留指定时长；计时不受 timeScale 影响，不拦截射线或抢焦点。View 的 OnHide 只取消自身计时，不能取消正在完成的关闭事务。
+CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标直接保存于 Prefab，不依赖字体中的 emoji。Core 的 `UITipsStack` 复用隐藏 `UITipsPanel` 模板：新消息置于前面，收起显示最新消息及两层底边；鼠标进入通知区域后从新到旧展开全部有效消息，区域包含卡片间隙。超过安全区的列表使用外层 ScrollRect，单条长正文仍先自动滚动，再停留指定时长。悬停或通知内已有焦点时暂停所有阅读计时，离开后继续剩余时间，不重置时长。消息到期即移除，不维护历史通知。
+
+每条消息独立关闭、独立取消；计时和重排动画不受 timeScale 影响。只在通知区域接收射线，区域外点击透传；关闭按钮关闭原生 Navigation，显示时不抢当前页面焦点。CommonTipsView 仅连接消息堆叠与导航；新消息交付取消待执行的空列表关闭，OnHide 清空消息但不取消关闭事务自身。
+
+`SingleUIManager.Instance.ShowTipsMessageBarAsync(...)` / `HideTipsMessageBarsAsync()` 管理消息列表，`ShowSimpleTipsAsync(...)` / `HideSimpleTipsAsync()` 管理单条跟随提示。旧 `TipsUI` 门面移除，不保留双入口。显示任务完成表示导航与数据交付完成，不等待消息到期。全部关闭会取消已排队消息，但不会影响后来提交的新请求。交互参考 [Sonner 作者的堆叠与悬停说明](https://emilkowal.ski/ui/building-a-toast-component)，没有引入 Web 依赖，也不声称复刻桌面端内部实现。
 
 `Tests.Module.CommonTipsPlayModeTests` 使用正式 Prefab 和真实 UIManager/Canvas/EventSystem，替换的仅为编辑器资源加载边界；不代表 YooAsset Player 构建验收。接入步骤见[使用 Core 基础 UI 组件](../runbooks/use-core-ui-components.md)。
 

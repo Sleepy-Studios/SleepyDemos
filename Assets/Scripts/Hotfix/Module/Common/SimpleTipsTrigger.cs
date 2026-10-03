@@ -34,10 +34,10 @@ namespace Hotfix
         {
             CancelPending();
             var source = new CancellationTokenSource(); showing = source;
-            var operation = TipsUI.ShowSimpleAsync(target != null ? target : transform as RectTransform, content, title,
+            var operation = SingleUIManager.Instance.ShowSimpleTipsAsync(target != null ? target : transform as RectTransform, content, title,
                 new SimpleTipsOptions(direction, gap, maxWidth, mode == TriggerMode.Click), source.Token);
-            // ShowSimpleAsync 在排队前分配代次；即便加载尚未完成也能只取消自己的请求。
-            ownedVersion = TipsUI.CurrentSimpleVersion;
+            // ShowSimpleTipsAsync 在排队前分配代次；即便加载尚未完成也能只取消自己的请求。
+            ownedVersion = SingleUIManager.Instance.CurrentSimpleVersion;
             ObserveShowAsync(operation).Forget();
         }
 
@@ -45,7 +45,7 @@ namespace Hotfix
         public void Hide()
         {
             CancelPending();
-            if (ownedVersion != 0 && TipsUI.IsCurrentSimple(ownedVersion)) TipsUI.ObserveAsync(TipsUI.HideSimpleAsync()).Forget();
+            if (ownedVersion != 0 && SingleUIManager.Instance.IsCurrentSimple(ownedVersion)) SingleUIManager.Instance.ObserveAsync(SingleUIManager.Instance.HideSimpleTipsAsync()).Forget();
             ownedVersion = 0;
         }
 
@@ -71,7 +71,7 @@ namespace Hotfix
         private void CancelPending() { var old = showing; showing = null; old?.Cancel(); old?.Dispose(); }
         private async UniTask ObserveShowAsync(UniTask<UIOperationResult> operation)
         {
-            try { await TipsUI.ObserveAsync(operation); }
+            try { await SingleUIManager.Instance.ObserveAsync(operation); }
             catch (OperationCanceledException) { }
             // source 由下一次触发或禁用释放，保持悬停期间请求令牌有效。
         }

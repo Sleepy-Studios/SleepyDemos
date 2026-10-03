@@ -54,7 +54,7 @@ namespace Hotfix
 
         private void RequestClose()
         {
-            TipsUI.CloseSimpleAsync(request.Version, this, request.Token).Forget();
+            SingleUIManager.Instance.CloseSimpleAsync(request.Version, this, request.Token).Forget();
         }
     }
 }

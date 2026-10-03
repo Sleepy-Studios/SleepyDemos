@@ -22,6 +22,10 @@ namespace Core.Runtime
         [SerializeField] private Sprite successIcon;
         [SerializeField] private Sprite noticeIcon;
         [SerializeField] private float iconSpace = 48;
+        [SerializeField] private CanvasGroup messageDetails;
+        [SerializeField] private Button closeButton;
+        [SerializeField] private Image messageBackground;
+        [SerializeField] private Outline messageOutline;
         private float maximumWidth = 600;
         private int baseLeftPadding = -1;
         /// 主体矩形，箭头独立于其布局。
@@ -30,6 +34,7 @@ namespace Core.Runtime
         public float ScrollDistance => Mathf.Max(0, scroll.content.rect.height - scroll.viewport.rect.height);
         /// 当前滚动位置，0 为顶部，1 为末尾。
         public float ScrollProgress => 1 - scroll.verticalNormalizedPosition;
+        internal Button CloseButton => closeButton;
 
         /// <summary>更新内容；下一次 RefreshLayout 重新测量并从顶部显示。</summary>
         /// <param name="content">正文，null 视为空。</param>
@@ -64,6 +69,27 @@ namespace Core.Runtime
             // 复用单色符号，着色使用统一语义色；警告三角本身已带红色与白色叹号。
             if (icon != null) icon.color = type == CommonTipsType.Warning ? Color.white
                 : type == CommonTipsType.Success ? ColorUtil.Colors.Success : ColorUtil.Colors.Notice;
+            if (messageBackground != null)
+            {
+                Color accent = type == CommonTipsType.Warning ? ColorUtil.Colors.Warning
+                    : type == CommonTipsType.Success ? ColorUtil.Colors.Success : ColorUtil.Colors.Notice;
+                messageBackground.color = Color.Lerp(new Color(0.035f, 0.045f, 0.055f), accent, .13f);
+                if (messageOutline != null) messageOutline.effectColor = Color.Lerp(messageBackground.color, accent, .5f);
+            }
+        }
+
+        // 堆叠后层只保留背景，隐藏内容不改变用于展开的测量尺寸。
+        internal void SetMessagePresentation(float opacity, bool interactive)
+        {
+            if (messageDetails != null)
+            {
+                messageDetails.alpha = opacity;
+                messageDetails.blocksRaycasts = interactive;
+                messageDetails.interactable = interactive;
+            }
+            if (closeButton != null) closeButton.interactable = interactive;
+            // 短消息把滚轮交给外层通知列表，长消息仍可单独阅读。
+            scroll.enabled = interactive && scroll.vertical;
         }
 
         /// <summary>按可用区域刷新背景与滚动高度，返回最终主体尺寸。</summary>
@@ -110,7 +136,8 @@ namespace Core.Runtime
             contentText.GetComponent<LayoutElement>().preferredHeight = contentHeight;
             scroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, contentHeight);
             body.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Min(maxHeight, padding.vertical + titleHeight + viewHeight));
-            LayoutRebuilder.ForceRebuildLayoutImmediate(body);
+            // 消息卡片的内容组可与背景分离；重建实际布局根，不能停在没有布局控制器的背景节点。
+            LayoutRebuilder.ForceRebuildLayoutImmediate(bodyLayout.transform as RectTransform);
             scroll.vertical = contentHeight > viewHeight + .1f;
             if (!scroll.vertical) scroll.verticalNormalizedPosition = 1;
             return body.rect.size;

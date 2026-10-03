@@ -155,25 +155,29 @@ countdown.StartCountdown(nextRefresh, TimeDisplayFormat.AutoWithUnits); // UICou
 ## 两类 Tips
 
 ```csharp
-var result = await TipsUI.ShowAsync("保存成功", CommonTipsType.Success);
+var result = await SingleUIManager.Instance.ShowTipsMessageBarAsync("保存成功", CommonTipsType.Success);
 if (result.Status == UIOperationStatus.Failed) Debug.LogException(result.Exception);
-await TipsUI.ShowAsync("请检查输入", CommonTipsType.Notice, duration: 3);
-await TipsUI.ShowAsync("操作失败", CommonTipsType.Warning);
-await TipsUI.ShowSimpleAsync(button.transform as RectTransform, "这里显示规则说明", "操作规则");
-await TipsUI.ShowSimpleAsync(screenPosition, "指定屏幕点的说明",
+await SingleUIManager.Instance.ShowTipsMessageBarAsync("请检查输入", CommonTipsType.Notice, duration: 3);
+await SingleUIManager.Instance.ShowTipsMessageBarAsync("操作失败", CommonTipsType.Warning);
+// 三次调用生成三条独立通知；需要清空时调用：
+await SingleUIManager.Instance.HideTipsMessageBarsAsync();
+await SingleUIManager.Instance.ShowSimpleTipsAsync(button.transform as RectTransform, "这里显示规则说明", "操作规则");
+await SingleUIManager.Instance.ShowSimpleTipsAsync(screenPosition, "指定屏幕点的说明",
     options: new SimpleTipsOptions(TooltipDirection.Right, gap: 12, maxWidth: 480));
-await TipsUI.HideSimpleAsync();
+await SingleUIManager.Instance.HideSimpleTipsAsync();
 ```
 
-业务入口在 `Hotfix.TipsUI`；Core 使用方可复用 `UITipsPanel`、`UITooltip` 和 `TooltipPlacementUtil`，不得反向依赖 Hotfix。所有 Tips 的显隐经过 UIManager。`ShowSimpleAsync` 的 RectTransform 重载使用矩形中心与边缘，Vector2 重载只接受屏幕像素；不要传 `transform.position` 世界坐标。
+业务入口在 `Hotfix.SingleUIManager.Instance`；Core 使用方可复用 `UITipsStack`、`UITipsPanel`、`UITooltip` 和 `TooltipPlacementUtil`，不得反向依赖 Hotfix。Tips 宿主的显隐经过 UIManager。`ShowSimpleTipsAsync` 的 RectTransform 重载使用矩形中心与边缘，Vector2 重载只接受屏幕像素；不要传 `transform.position` 世界坐标。
 
 SimpleTips 默认上方、间距 12、主体最大宽度 600。短文本收缩背景，长文本换行，超高正文滚动。外部点击由 Blocker 消耗并关闭，返回关闭后恢复原焦点。连续 Show 更新缓存 View 的内容，不重复开关节点；目标移动和屏幕尺寸变化会重定位，目标无效时自动关闭。
 
 可在业务按钮挂 `SimpleTipsTrigger`，Inspector 保存目标、标题、正文与 Click/Hover 模式。Click 接收点击或公共菜单 Submit；Hover 接收悬停及菜单聚焦，离开/失焦或组件禁用时只关闭自己拥有的提示。悬停模式不接管菜单焦点、不阻挡点击。直接调用接口时也可用 `new SimpleTipsOptions(closeOnOutside: false)` 由业务控制关闭。
 
-CommonTips 顶部单条覆盖，默认停留 2 秒；长正文自动滚动到末尾后计时，更新时重置滚动与计时。不拦截点击、不抢焦点、不受 timeScale 影响。三种图标为 Prefab 中的直接 Sprite 引用，不依赖 emoji 字形。
+CommonTips 新消息叠在前面，不覆盖旧消息。收起时可见三层，悬停通知区域（包含消息间隙）展开全部尚未到期的消息；列表过高可滚动。默认每条停留 2 秒，长正文自动滚动到末尾后才开始这段停留。悬停时暂停计时和自动正文滚动，离开后从剩余时间继续；× 只关闭所在消息。区域外仍可点击，显示时不抢焦点，不受 timeScale 影响。三种图标为 Prefab 中的直接 Sprite 引用，不依赖 emoji 字形。
 
-预先取消的 Show 请求返回 Canceled，并保留当前 Tips。替换请求在排队期间取消或显示失败时，如果没有更新请求接管，会清理已失去所有权的旧提示，避免残留 Blocker 或无计时消息。CommonTips 的请求令牌在显示后取消也会关闭当前消息；SimpleTips 已显示后仍允许外部点击或返回关闭。
+预先取消的 Show 请求返回 Canceled，并保留当前 Tips。CommonTips 的令牌在显示后取消只移除本次消息；`HideTipsMessageBarsAsync()` 清空全部并取消已排队消息。SimpleTips 仍使用单条替换规则：排队期间取消或显示失败时，没有新请求接管则清理失去所有权的旧提示，避免残留 Blocker；已显示后仍允许外部点击或返回关闭。
+
+CommonTips Prefab 的 `ItemTemplate` 必须保持隐藏，直接保存 `UITipsPanel`、CanvasGroup、Details、CloseButton、三种图标与中文字体引用；`MessageRegion` 是唯一交互区域，外层 ScrollRect 与安全区适配由 `UITipsStack` 管理。根节点不添加全屏 Graphic，关闭按钮的 Navigation 使用 None。模板修改走 Prefab 与 MvcBind 流程，不在运行时拼装缺失控件。
 
 正式资源位于 `Assets/LoadResources/UI/Common`，背景、箭头和状态图标位于公共 `Sprites/Tips`。修改绑定后通过 MvcBind 重新生成，不手改 `*Component.cs`。字体使用公共 HarmonyOS_CN 及其现有回退；箭头与 Body 为同级，Pivot 位于连接边缘；定位完成后不要再次覆写主体位置。尺寸、安全边距和 gap 使用 Canvas 本地单位，不按 Screen.width 手工缩放。
 

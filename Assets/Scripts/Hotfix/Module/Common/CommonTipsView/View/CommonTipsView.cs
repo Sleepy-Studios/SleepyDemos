@@ -1,91 +1,57 @@
 namespace Hotfix
 {
     using Core.Runtime;
-    using System;
     using System.Threading;
     using Cysharp.Threading.Tasks;
-    using UnityEngine;
 
     [Module("Common")]
     [Mvc("CommonTipsView")]
     public partial class CommonTipsView : View
     {
-        private CancellationTokenSource lifetime;
-        private CancellationToken requestToken;
-        private int version;
-        private float duration;
-        private Rect previousSafe;
+        private CancellationTokenSource emptyClose;
 
-        internal void SetData(string content, CommonTipsType type, float staySeconds, int requestVersion, CancellationToken token)
+        protected override void OnGameObjectInitialize() => UITipsStack_CommonTips.Emptied += CloseWhenEmpty;
+
+        internal int AddMessage(string content, CommonTipsType type, float duration, CancellationToken token)
         {
-            StopTimer();
-            version = requestVersion;
-            requestToken = token;
-            duration = staySeconds;
-            UITipsPanel_CommonTips.SetMessage(content, type);
-            RefreshLayout();
-            if (State == ViewState.Visible) StartTimer();
+            // 新交付取消已排队的空列表关闭，不能让旧关闭事务清掉新消息。
+            emptyClose?.Cancel();
+            return UITipsStack_CommonTips.Add(content, type, duration, token);
         }
 
-        protected override void OnShow() => StartTimer();
-        protected override void OnHide() => StopTimer();
-        protected override void OnDestroy() => StopTimer();
-
-        private void StartTimer()
+        internal void RemoveMessage(int id)
         {
-            StopTimer();
-            var source = CancellationTokenSource.CreateLinkedTokenSource(requestToken);
-            lifetime = source;
-            RunAsync(version, duration, source).Forget();
+            if (gameObject != null) UITipsStack_CommonTips.Dismiss(id);
         }
 
-        private async UniTask RunAsync(int requestVersion, float staySeconds, CancellationTokenSource source)
+        protected override void OnHide() => UITipsStack_CommonTips.Clear();
+
+        protected override void OnDestroy()
         {
-            CancellationToken token = source.Token;
-            CancellationToken closeToken = requestToken;
+            emptyClose?.Cancel();
+            if (UITipsStack_CommonTips != null) UITipsStack_CommonTips.Emptied -= CloseWhenEmpty;
+        }
+
+        private void CloseWhenEmpty()
+        {
+            emptyClose?.Cancel();
+            var source = new CancellationTokenSource();
+            emptyClose = source;
+            CloseEmptyAsync(source).Forget();
+        }
+
+        private async UniTask CloseEmptyAsync(CancellationTokenSource source)
+        {
             try
             {
-                float elapsed = 0;
-                while (!token.IsCancellationRequested && TipsUI.IsCurrentMessage(requestVersion))
-                {
-                    Rect safe = TooltipPlacementUtil.GetSafeRect(transform as RectTransform);
-                    if (safe != previousSafe) RefreshLayout();
-                    float scrollSeconds = UITipsPanel_CommonTips.ScrollDistance / 48;
-                    float scrollStart = scrollSeconds > 0 ? .75f : 0;
-                    if (scrollSeconds > 0) UITipsPanel_CommonTips.SetScrollProgress((elapsed - scrollStart) / scrollSeconds);
-                    if (elapsed >= scrollStart + scrollSeconds + staySeconds) break;
-                    await UniTask.Yield(PlayerLoopTiming.Update, token);
-                    elapsed += Time.unscaledDeltaTime;
-                }
-                token.ThrowIfCancellationRequested();
-                // OnHide 会取消组件计时，关闭事务必须使用请求令牌，避免自己取消自己的导航。
-                await TipsUI.CloseMessageAsync(requestVersion, this, closeToken);
-            }
-            catch (OperationCanceledException) when (token.IsCancellationRequested)
-            {
-                if (closeToken.IsCancellationRequested && TipsUI.IsCurrentMessage(requestVersion) && State == ViewState.Visible)
-                    await TipsUI.CloseMessageAsync(requestVersion, this, default);
+                // OnHide 只清理卡片，不取消正在完成的关闭事务自身。
+                await SingleUIManager.Instance.ObserveAsync(UIManager.Instance.CloseAsync(this, false, source.Token));
             }
             finally
             {
-                if (ReferenceEquals(lifetime, source)) lifetime = null;
+                if (ReferenceEquals(emptyClose, source)) emptyClose = null;
                 source.Dispose();
             }
-        }
-
-        private void RefreshLayout()
-        {
-            var boundary = transform as RectTransform;
-            previousSafe = TooltipPlacementUtil.GetSafeRect(boundary);
-            Vector2 size = UITipsPanel_CommonTips.RefreshLayout(previousSafe.size);
-            UITipsPanel_CommonTips.Body.position = boundary.TransformPoint(new Vector2(previousSafe.center.x, previousSafe.yMax - size.y * .5f));
-        }
-
-        private void StopTimer()
-        {
-            var previous = lifetime;
-            lifetime = null;
-            previous?.Cancel();
         }
     }
 }

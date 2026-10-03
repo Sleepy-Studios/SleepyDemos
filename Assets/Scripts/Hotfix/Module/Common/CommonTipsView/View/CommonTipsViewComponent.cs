@@ -22,7 +22,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private UITipsPanel UITipsPanel_CommonTips;
+        private UITipsStack UITipsStack_CommonTips;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -34,7 +34,7 @@ namespace Hotfix
                 return;
             }
 
-            UITipsPanel_CommonTips = componentItemIndex.Get<UITipsPanel>(0);
+            UITipsStack_CommonTips = componentItemIndex.Get<UITipsStack>(0);
         }
     }
 }
