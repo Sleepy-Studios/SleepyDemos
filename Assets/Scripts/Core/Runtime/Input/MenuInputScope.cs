@@ -72,6 +72,8 @@ namespace Core.Runtime.Inputs
         {
             initialSelection = firstMenuSelection;
             Update();
+            if (context == GameplayInputContext.Menu)
+                RestoreMenuFocus();
         }
 
         /// 页面隐藏或玩法退出时恢复公共导航门闩及仍有效的原焦点，重复调用无副作用。

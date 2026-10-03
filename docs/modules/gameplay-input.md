@@ -11,7 +11,7 @@
 - `TouchInputPad`：两个触控区域分别占有指针，移动归一化，视角换算为720p参考像素；隐藏时清空输入。
 - `LocalPauseState`：失焦、后台、当前手柄断连的暂停门闩，恢复设备后仍须明确继续。
 
-公共Hub页面也直接复用MenuInputScope：显示时传入保存的首个可用Demo按钮并驱动Update，隐藏/销毁时Dispose；不需要GameplayInputRouter或另一套键位、指针模拟及输入模块。循环按具体作用域身份结束，旧页面不得驱动恢复后页面的作用域。Hub当前使用保存Button的原有选中态；卡片及更明显的焦点视觉待参考稿确认后制作。
+公共Hub页面直接复用MenuInputScope：显示时建立唯一作用域，以LoopScrollMenuNavigation.FirstSelection设置当前可用焦点，每帧调用Update(当前焦点)，隐藏/销毁时Dispose。更新默认焦点不重置松键门闩；卡片回收或刷新清焦点后，恢复当前有效目标但不提交。不需要GameplayInputRouter、业务按钮字典或指针模拟。循环按具体作用域身份结束，旧页面不得驱动恢复后页面的作用域；卡片按钮使用公共LoopScrollMenuButton的选中态。
 
 鼠标/触屏点击空白清除焦点后，MenuInputScope在后续Move、Submit或Cancel到达时恢复仍可用的初始控件；已有指针选中项保持。恢复等待旧按键释放，不选择禁用/隐藏控件，不手动执行导航或提交。Move/Point/Submit/Cancel向可选Router通知实际设备，隐藏时完整退订。
 
