@@ -482,3 +482,19 @@ UnitySkills包装任务在Domain Reload后报告句柄未恢复、计数为0；�
 小闭环均已推送：SleepyLoopScroll 06a9b12（只读LayoutLaneCount）；SleepyDemos a3d4271（普通绑定及初始化后刷新）、7ddb8fd/1b04987（焦点恢复及触屏行为修正）、5cd3124（Hub卡片）、fada0b9（两种Loading）。Mobile_RPAsset及ProjectSettings哈希保持此前记录的原字节；无关UnitySkills、vTabs与建模备份修改未暂存。协作规则无需重复修改，现有AGENTS/CLAUDE已明确临时Builder清理和有效测试保留要求；初始化契约进入UI模块与接入手册。
 
 Goal追踪器仍保留旧视觉等待条件的blocked状态，当前助手接口没有恢复active的能力。本次按用户继续授权完成上述工作，不以该历史字段重新要求视觉确认，也不把完整Goal标记完成。
+
+## 2026-10-03：具体 SetData 与初始化后数据交付
+
+本节按用户最新要求替代上一节的泛型 Item 自动刷新及页面加载前配置方案；上一节保留为历史事实，不再作为当前契约。先检查当前未提交工作和已提交实现，只调整 SleepyDemos 的公共 UI、Hub、循环列表示例及相关文档；钓鱼项目只读参考，独立 SleepyLoopScroll 包本轮没有修改。
+
+页面打开请求通过现有导航队列持有自己的数据回调，实际顺序为：实例化、MvcBind 控件绑定、一次性初始化、业务 SetData、打开回调及显示。新增 ShowAsync<T>(Action<T>) 直接调用具体业务方法；已有泛型页面因无人机、方块与赌场实际调用方仍使用而保留。缓存页面重新打开更新本次数据而不重复初始化；可见单例仍更新数据并返回 Ignored，不重复 OnShow；预加载在初始化后交付数据且保持隐藏。FIFO、取消、失败回滚及导航事务未改。核对生产初始化回调后，当前没有需要在初始化前读取本次业务数据的调用方，也没有需要新增资源加载参数的页面。
+
+MainMenuDemoItemView 现在直接继承普通 ItemView，自己声明 SetData(MainMenuDemoEntry data)，在方法中更新 MvcBind 生成的图片、标题、描述和按钮，不保存无用途的数据字段。循环列表示例采用相同的具体 SetData 写法。调用方仍只交付一次数据；经调用方核对，移除已无用途的 ItemView<T> 以及待刷新标记、初始化完成后补刷新钩子。框架桥接继续保证每个物理 Cell 仅初始化一次，再交付当前数据；复用只更新索引和数据。底层包为测量先激活 Cell，再在同一同步协调过程完成绑定和数据交付，下一次 Canvas 可见帧前已完成；不能把物理 Cell 的 OnEnable 当成业务数据已到达的回调。
+
+回收身份校验、UIImageLoader 异步过期保护、公共输入与手柄焦点导航保持原有用途。没有增加业务控件序列化字段、CellBindContext 或节点查找兜底，MvcBind 生成代码未改；原循环列表示例既有的动态创建 Text 控件方式未扩展为新框架。没有新增永久测试文件、生产程序集或临时 Builder；前一轮 Hub 临时装配脚本及 meta 已清理，本轮未重新引入。
+
+正式 Editor 编译通过，Console 的 C# 编译错误检索为 0。Unity Test Runner 最终结果：UIManagerNavigationPlayModeTests 51/51、LoopScrollItemViewBridgeTests 7/7、MainMenuNavigationPlayModeTests 3/3，共 61 个不同的直接相关用例通过。现有用例覆盖绑定与初始化早于数据、一次数据交付、缓存页面重新打开、普通具体类型页面、FIFO、取消、失败回滚、列表复用不重复初始化、回收身份和实际 Hub 鼠标／触屏／键盘／手柄输入。没有直接调用按钮监听器替代 Hub 输入验证。首次导航验证 47/51，原因是测试夹具把 Text 添加到根对象后改变其 Transform；改为子控件后完整 51/51，通过修正夹具保留全部有效断言，没有改生产逻辑规避失败。最终 XML 与首次失败证据保存在 Library/SetDataVerification/2026-10-03/，不进入源码提交。
+
+未执行全量项目或第三方测试，未重建 Windows／Android 产物，未验证 Android 真机或实物 Xbox；本次通过的手柄路径是 Editor 中真实 InputSystem 事件与 UI 导航，不代表设备实测或 S1 视觉验收。公共 UI、循环列表、Hub 模块、创建 UI 手册和赌场当前实现文档已同步；协作规则本轮没有变化，无需修改 AGENTS／CLAUDE。S1 和完整单机 Goal 仍未完成。
+
+两个代码闭环均已推送 origin：bc3c2ad（fix(ui): 初始化完成后再交付页面数据）、efaaaf3（refactor(ui): 由具体业务Item直接接收和显示数据）。本节作为独立文档提交记录最终契约与验证边界；无关 UnitySkills 配置及 vTabs 样式工作保持未暂存，不回退或重写已有提交。
