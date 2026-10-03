@@ -33,9 +33,11 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 ## View 生命周期
 
-页面数据与控件初始化是两件事：`View<T>.SetData` 只接收数据，导航在加载前应用数据，因此首次调用可能早于 `InitComponent`。业务不要在页面 `SetData` 中访问绑定控件；把控件更新放进独立的 `RefreshUI`，由 `OnShow` 消费最新数据（初始化专用逻辑放 `OnGameObjectInitialize`）。缓存页面再次显示仍需刷新，不能只依赖首次初始化。这个顺序服务加载前配置，不改成加载完再补数据。
+页面顺序为导航请求排队持有数据 → 实例化 → MvcBind 的 InitComponent → 一次性 OnGameObjectInitialize → 业务 SetData → OnShow/显示。加载失败或取消不交付数据；缓存页面再次打开不重复初始化，但交付本次请求的数据。已经可见的单实例收到新的数据请求时只交付一次 SetData，保持现有 Ignored 结果、不重复 OnShow。FIFO、取消和事务回滚仍由原导航协调器负责。
 
-普通列表由桥接先 `ItemView.Init` / `InitComponent`，再触发 RectData 回调。手动创建 Item 也允许提前配置：`ItemView<T>.SetData` 存储数据，初始化前不访问控件；`InitComponent` 成功后设 `IsInitialized` 并调用 `OnInitialized`，泛型基类随后调用 `RefreshUI`。初始化前重复配置只刷新最后一份；初始化后每次配置都刷新。子类覆盖 `RefreshUI`，不要覆盖 `SetData` 直接更新控件。MvcBind 继续只负责控件引用和事件绑定。
+业务在具体类中声明具体类型 SetData，并在其中直接更新控件；显示复杂或需要复用时再拆自己的 private RefreshUI(data)。仅点击、语言切换等后续行为需要时缓存数据。普通页面可用 ShowAsync<TView>(view => view.SetData(data))；现有 View<T> 仍服务实际使用它的页面，但不强制普通业务继承。一次性初始化回调只做绑定和初始化，不读取尚未交付的打开数据。本次受影响页面没有依赖数据决定资源地址的调用方；未来确有需求时单独定义加载参数，不恢复普通 SetData 的加载前交付。
+
+普通列表由桥接创建一次 ItemView，先 Init/InitComponent，再 RectData → 业务 SetData；复用只更新索引和当前数据。Item 自己声明 SetData(具体类型)，不依赖父类 params1、待刷新标记或初始化后补刷新。物理 Cell 的激活、测量由包管理，绑定与数据回调在同一次同步 reconcile 中完成，随后 Canvas 显示本帧数据；不能在物理 Cell 的 OnEnable 中读取业务打开数据。MvcBind 负责控件引用与一次性事件绑定，Core/包保留回收身份校验。
 
 `ViewState` 是真实单值状态，不再表示可组合标记。主链路如下：
 
@@ -114,7 +116,7 @@ Loading --加载失败或取消--> Faulted
 
 - 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
 - 跨场景或跨会话持有 View 时使用 `CloseAsync(View expectedView, ...)`。它只关闭调用方保存的具体实例；即使同类型新 View 已由下一场景显示，旧会话清理也不会误关新实例。按类型 `CloseAsync<T>()` 只用于当前所有者明确唯一的普通界面。
-- 强类型页面数据使用 `ShowAsync<TView, TData>(data, options, cancellationToken)`。数据作为同一个导航 operation 的配置载荷，在该 operation 获得执行权后、View 加载和 `OnShow` 前调用 `SetData`；不得先 Show 再通过静态 Context 或场景搜索补数据。
+- 强类型页面数据使用 `ShowAsync<TView, TData>(data, options, cancellationToken)`，普通页面使用 `ShowAsync<TView>(view => view.SetData(data), options, cancellationToken)`。同一个导航 operation 持有交付回调，加载初始化完成后、OnShow 前调用一次；不得先显示再通过外部补数据。
 - 带数据异步 Show 与普通 Show 共用 FIFO、取消、Ignored、失败回滚和缓存语义。后一次调用的数据不会提前覆盖仍在加载的前一次 View。
 - Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
 - Push / Replace / Close / Back 都按各自 entering / exiting 语义解析 World Transition；Preload 不改变表现，CloseAll 当前直接完成全量销毁，因此两者都不虚构世界过渡。业务需要相机或场景联动时在 Hotfix Provider 注册真实实现。
@@ -125,7 +127,7 @@ Loading --加载失败或取消--> Faulted
 - `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
 - 旧同步 `Show<T>()` 只在 Unity 主线程锁外准备 candidate，再由 Coordinator 原子接纳；后台线程调用不会构造 View 或访问 Unity 对象，只排队并返回 null，实际实例由 executor 回到主线程后创建。
 - 更早的同类型 Close 或任意 Back、Replace、CloseAll 处于 current/pending 时，同步 `Show<T>()` 及数据泛型重载不会接纳可能被销毁的 candidate，而是返回 null 并继续把 Show 排在 FIFO 后执行；执行时会清理 Faulted/Destroying/Destroyed 旧目标并取得可用实例。已发现 CloseAll barrier 时还会跳过 candidate 构造快速路径。
-- 数据泛型 Show/Preload 把 `SetData` 作为 operation 配置载荷，在轮到该 operation 时才应用，避免后一次调用提前覆盖前一次仍在加载的 View 数据。
+- 数据泛型 Show/Preload 把 SetData 作为 operation 载荷，在轮到该 operation 且控件初始化完成后交付，避免后一次请求覆盖仍在加载的前一次数据。Preload 交付后仍保持隐藏，不进入正式栈。
 - `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
 - Replace 收到 Modal 或 Widget 时返回 Failed；只有本次 operation 新建的目标才会销毁并移出 Cache，已显示或已预加载的既有实例、栈、Mask 和名称保持不变。
 

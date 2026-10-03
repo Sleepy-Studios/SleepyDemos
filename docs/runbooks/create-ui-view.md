@@ -148,9 +148,9 @@ ViewRoot
 
 ## 数据和控件刷新时序
 
-`ShowAsync<TView, TData>(data)` 在页面加载前调用 SetData。页面 SetData 只保存参数，把显示逻辑写成 RefreshUI 并在 OnShow 调用；首次初始化和缓存再次显示都会消费本次导航数据。不要在加载完成后再链式补数据，也不要在 SetData 中访问尚未绑定的字段。
+调用方提交一次打开请求：普通页面使用 `await UIManager.Instance.ShowAsync<DetailsView>(view => view.SetData(data))`；现有泛型页面继续使用 `ShowAsync<TView, TData>(data)`。请求在 FIFO 中持有数据，页面加载 → MvcBind 控件绑定 → OnGameObjectInitialize 完成后才调用 SetData，随后 OnShow/显示。SetData 可直接更新控件，复杂显示再拆业务自己的 private RefreshUI(data)；不要先显示再由外部补数据。缓存页面重开只交付本次数据，不重复绑定。需要打开数据的逻辑放在 SetData，不放在一次性初始化回调。
 
-列表正常顺序为 Item.Init → MvcBind InitComponent → RectData → SetData。手动创建的 `ItemView<T>` 可先 SetData 再 Init；泛型基类延迟到控件绑定成功后调用 RefreshUI，初始化后再次 SetData 会立即刷新。业务 Item 覆盖 RefreshUI 使用 params1，无需重写 SetData 或额外保存 Cell 上下文。
+列表顺序为 Item.Init → MvcBind InitComponent → RectData → 具体业务 SetData(具体类型)。手动创建 Item 时调用方同样先 Init，再 SetData；不支持普通 Item 提前设置后自动补刷新。回收复用只更新当前索引和数据。没有后续读取需求就不缓存数据，控件继续由 MvcBind 生成，业务不保存 Cell 上下文。
 
 ## 验证方式
 

@@ -559,14 +559,14 @@ namespace Tests.Module
 
             var beforeCompletion = TestViewRegistry.Events.ToArray();
             loader.Complete(new GameObject(nameof(DataPage)));
-            for (int i = 0; i < 60 && TestViewRegistry.Events.Count < 4; i++)
+            for (int i = 0; i < 60 && TestViewRegistry.Events.Count < 6; i++)
             {
                 yield return null;
             }
 
-            Assert.That(beforeCompletion, Is.EqualTo(new[] { "data:one", "DataPage.load" }));
+            Assert.That(beforeCompletion, Is.EqualTo(new[] { "DataPage.load" }));
             Assert.That(TestViewRegistry.Events,
-                Is.EqualTo(new[] { "data:one", "DataPage.load", "show:one", "data:two" }));
+                Is.EqualTo(new[] { "DataPage.load", "bind:DataPage", "init:DataPage", "data:one", "show:one", "data:two" }));
         }
 
         [UnityTest]
@@ -632,7 +632,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator TypedShowAsync_ConfiguresDataBeforeLoadAndOnShow()
+        public IEnumerator TypedShowAsync_DeliversDataAfterInitializationBeforeShowAndReusesCachedPage()
         {
             TestViewRegistry.Register<DataPage>();
 
@@ -644,8 +644,22 @@ namespace Tests.Module
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(TestViewRegistry.Events, Is.EqualTo(new[]
             {
-                "data:typed-data", "DataPage.load", "show:typed-data"
+                "DataPage.load", "bind:DataPage", "init:DataPage", "data:typed-data", "show:typed-data"
             }));
+
+            var cached = result.View;
+            TestViewRegistry.Register<SecondPage>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
+            TestViewRegistry.Events.Clear();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<DataPage>(view => view.SetData("reopened")), value => result = value);
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(result.View, Is.SameAs(cached));
+            Assert.That(TestViewRegistry.Events, Is.EqualTo(new[] { "data:reopened", "show:reopened" }));
+
+            TestViewRegistry.Register<PlainDataPage>();
+            yield return AwaitResult(UIManager.Instance.ShowAsync<PlainDataPage>(view => view.SetData("plain")), value => result = value);
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            Assert.That(((PlainDataPage)result.View).Caption, Is.EqualTo("plain"));
         }
 
         [UnityTest]
@@ -1215,6 +1229,22 @@ namespace Tests.Module
         private sealed class SlowPage : NavigationTestPage { }
         private sealed class FirstPage : NavigationTestPage { }
         private sealed class SecondPage : NavigationTestPage { }
+        private sealed class PlainDataPage : NavigationTestPage
+        {
+            private Text label;
+            public string Caption => label.text;
+            protected override void InitComponent()
+            {
+                label = new GameObject("Label", typeof(RectTransform), typeof(Text)).GetComponent<Text>();
+                label.transform.SetParent(transform, false);
+            }
+            public void SetData(string data)
+            {
+                Assert.That(label, Is.Not.Null);
+                Assert.That(gameObject.activeSelf, Is.False, "首次交付数据必须在显示前");
+                label.text = data;
+            }
+        }
         private sealed class NullPage : NavigationTestPage { }
         private sealed class SnapshotPage : NavigationTestPage
         {
@@ -1289,6 +1319,7 @@ namespace Tests.Module
         private sealed class DataPage : View<string>
         {
             private readonly List<string> events;
+            private UnityEngine.UI.Text label;
 
             public DataPage()
             {
@@ -1299,14 +1330,26 @@ namespace Tests.Module
 
             public override string Address => nameof(DataPage);
 
+            protected override void InitComponent()
+            {
+                label = new GameObject("Label", typeof(RectTransform), typeof(Text)).GetComponent<Text>();
+                label.transform.SetParent(transform, false);
+                events.Add("bind:DataPage");
+            }
+
+            protected override void OnGameObjectInitialize() { events.Add("init:DataPage"); }
+
             public override View<string> SetData(string data)
             {
+                Assert.That(label, Is.Not.Null);
+                label.text = data;
                 events.Add($"data:{data}");
                 return base.SetData(data);
             }
 
             protected override void OnShow()
             {
+                Assert.That(label.text, Is.EqualTo(params1));
                 events.Add($"show:{params1}");
             }
         }

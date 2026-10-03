@@ -87,11 +87,11 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 将带强类型数据的 View 显示操作加入 FIFO 导航队列；数据在资源加载和 OnShow 前注入。
+        /// 将带强类型数据的 View 显示操作加入 FIFO 导航队列；控件初始化后、OnShow 前交付数据。
         /// </summary>
         /// <typeparam name="T">目标强类型 View。</typeparam>
         /// <typeparam name="TData">目标 View 数据类型。</typeparam>
-        /// <param name="data">在 View 加载前写入的数据。</param>
+        /// <param name="data">由本次请求持有的数据；加载成功后调用业务 SetData。</param>
         /// <param name="options">显示选项；默认播放动画。</param>
         /// <param name="cancellationToken">调用方取消令牌。</param>
         /// <returns>导航操作结果。</returns>
@@ -107,6 +107,23 @@ namespace Core.Runtime
                 cancellationToken,
                 target => ((T)target).SetData(data),
                 hidePrevious: options.HidePrevious);
+        }
+
+        /// <summary>排队打开普通页面；控件初始化后、显示前执行一次数据交付，不要求继承泛型 View。</summary>
+        /// <typeparam name="T">具体页面类型。</typeparam>
+        /// <param name="setData">业务数据交付，例如 view => view.SetData(data)；由本次导航请求持有。</param>
+        /// <param name="options">显示选项。</param>
+        /// <param name="cancellationToken">调用方取消令牌；加载取消或失败时不交付数据。</param>
+        /// <returns>现有导航事务的完成结果。</returns>
+        public UniTask<UIOperationResult> ShowAsync<T>(
+            Action<T> setData,
+            UIShowOptions options = default,
+            CancellationToken cancellationToken = default) where T : View
+        {
+            if (setData == null) throw new ArgumentNullException(nameof(setData));
+            return navigationCoordinator.Enqueue(
+                UINavigationAction.Push, typeof(T), options.Animated, cancellationToken,
+                target => setData((T)target), hidePrevious: options.HidePrevious);
         }
 
         /// <summary>
@@ -388,10 +405,12 @@ namespace Core.Runtime
             View previous = null;
             try
             {
-                operation.Configure?.Invoke(view);
                 previous = GetPreviousView(view);
                 if (previous == view && view.State == ViewState.Visible)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    operation.Configure?.Invoke(view);
+                    cancellationToken.ThrowIfCancellationRequested();
                     RefreshMaskFromTopModal();
                     return UIOperationResult.Ignored(operation.OperationId, operation.Action, view);
                 }
@@ -405,6 +424,8 @@ namespace Core.Runtime
                     throw new InvalidOperationException($"View 加载失败: {view.Name}");
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
+                operation.Configure?.Invoke(view);
                 cancellationToken.ThrowIfCancellationRequested();
                 await InvokeBeforeOpenAsync(view, cancellationToken);
 
@@ -608,13 +629,15 @@ namespace Core.Runtime
             var view = cacheStack.GetOrCreateView(operation.TargetType);
             try
             {
-                operation.Configure?.Invoke(view);
                 if (!view.IsLoaded && !await view.LoadAsync(
                         UIRootManager.Instance.GetViewRoot(view.Level), cancellationToken))
                 {
                     throw new InvalidOperationException($"View 预加载失败: {view.Name}");
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
+                operation.Configure?.Invoke(view);
+                cancellationToken.ThrowIfCancellationRequested();
                 return UIOperationResult.Succeeded(operation.OperationId, operation.Action, view);
             }
             catch (OperationCanceledException)
