@@ -8,28 +8,45 @@
 
 ```csharp
 this.RegisterLoopScrollRect<InventoryItemView>(list, OnItemsRectData);
-this.RegisterLoopScrollClick(list, OnItemsClick);
-this.RegisterLoopScrollItemHide(list, OnItemsItemHide);
+this.RegisterLoopScrollClick<InventoryItemView>(list, OnItemsClick);
+this.RegisterLoopScrollItemHide<InventoryItemView>(list, OnItemsItemHide);
 list.SetTotalCount(items, getItemKey: item => ((ItemData)item).Id.ToString());
 list.RefreshCells();
 list.RefillCells(new RefillOptions(20, ScrollAlignment.Center));
 list.ScrollToCell(20, ScrollAlignment.Center, new ScrollAnimation(.2f));
 
-private void OnItemsRectData(ItemView cell, int index, CellBindContext context)
+private void OnItemsRectData(InventoryItemView item, int index)
 {
-    ((InventoryItemView)cell).SetData(items[index]);
+    item.SetData(items[index]);
 }
-private void OnItemsClick(ItemView cell, int index, CellBindContext context) { }
-private void OnItemsItemHide(ItemView cell, CellBindContext context) { }
+private void OnItemsClick(InventoryItemView item, int index) { }
+private void OnItemsItemHide(InventoryItemView item) { }
 ```
 
-绑定回调读取调用方集合；解绑回调释放业务资源。异步写入前检查 context.IsCurrent，动态内容改变后调用 InvalidateCellSize(context.Index)。Token 取消不保证旧任务停止。
+绑定回调读取调用方集合；解绑回调释放业务资源。普通 Item 保存自己的业务数据，通过 MvcBind 绑定控件，按钮调用 TriggerClick，图片使用已有 UIImageLoader；不保存 CellBindContext、Cell、版本号或业务按钮字典。动态内容改变后用当前索引通知列表 InvalidateCellSize。只有确实需要异步写回身份保护时才使用下文高级回调。
 
-MvcBind 只选择 RectData、Click、ItemHide，签名同上。生成的非泛型注册不推断工厂类型，提交前显式 list.ItemViews().Configure<InventoryItemView>()。View 自动持有订阅；嵌套 ItemView 使用同名方法返回的 IDisposable，回收时释放。
+MvcBind 只选择 RectData、Click、ItemHide，生成默认签名分别为 `(ItemView item, int index)`、`(ItemView item, int index)`、`(ItemView item)`；在回调中转换为业务项即可。生成的非泛型注册不推断工厂类型，提交前显式 list.ItemViews().Configure<InventoryItemView>()。手写 typed 注册不需要转换。View 自动持有订阅；嵌套 ItemView 使用同名方法返回的 IDisposable，回收时释放。
 
 SetTotalCount(null) 清空。每次提交完整重填，默认起点；贴底使用 RefillCells(new RefillOptions(ScrollAnchorPolicy.StickToEnd))。RefreshCells 只刷新当前项，结构变化先修改集合再用 ApplyChanges/Append/Prepend 或 RefillCells 通知。稳定 Key 唯一且来自业务 ID。不能修改 Content 坐标。
 
 多类型高级源使用 SetDataSource，在 BindCell 中 GetOrCreate<TItemView>(cell,context)，UnbindCell 中 TryGetItemView。每个物理 Cell 固定一种 ItemView 类型；事件仍走同一桥接。
+
+## 特殊异步绑定与菜单导航
+
+只有自定义异步操作可能晚于 Cell 换绑完成、必须检查写入身份时，才显式选择高级重载：
+
+```csharp
+this.RegisterLoopScrollRect<InventoryItemView>(list, (ItemView item, int index, CellBindContext context) =>
+{
+    // 自定义任务使用 context.CancellationToken；写入前仍检查 context.IsCurrent。
+});
+```
+
+Token 取消不保证旧任务停止。Context 不进入普通 Item 数据或 MvcBind 默认回调；多类型数据源仍使用包已有 BindCell / UnbindCell。业务不为同步 SetData 引入 Context。
+
+需要键盘/手柄跨虚拟项导航时，在 LoopScrollView 同对象添加 `LoopScrollMenuNavigation`，将隐藏模板的主操作按钮替换为 `LoopScrollMenuButton`，保持原 Button.onClick/MvcBind 绑定。每项唯一主按钮，不向公共组件塞图片、标题或描述引用。列表提交唯一稳定 Key，导航只依赖布局和当前绑定身份。
+
+页面沿用 Core.MenuInputScope，只创建一个作用域；首次 `SetContext(Menu, navigation.FirstSelection)`，之后每帧调用 `menuScope.Update(navigation.FirstSelection)`。重载仅更新当前可用默认焦点并驱动原门闩，不重置等待按键释放。上下移动按 Grid 行、左右移动按列，超出当前池范围的目标由 ScrollToCell 正式定位。组件不模拟 Submit，不触发点击监听器；回收旧焦点的物理按钮不会把后续提交转给新数据身份。Pointer 仍直接操作同一个按钮。
 
 ## 带偏移的定位与取消
 

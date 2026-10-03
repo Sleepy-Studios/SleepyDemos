@@ -192,10 +192,12 @@ namespace Tests.Module
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
             Assert.That(router.ConsumeActions(), Is.EqualTo(GameplayInputActions.Confirm)); Assert.That(submits, Is.Zero);
             router.SetContext(GameplayInputContext.Menu); navigation.SetContext(GameplayInputContext.Menu, ownedButton);
-            yield return null; navigation.Update();
+            yield return null; navigation.Update(ownedButton);
             Assert.That(system.sendNavigationEvents, Is.False, "开菜单的A保持按住时不允许Core重复提交。");
-            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; navigation.Update(); yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; navigation.Update(ownedButton); yield return null;
             Assert.That(system.sendNavigationEvents, Is.True); Assert.That(system.currentSelectedGameObject, Is.EqualTo(ownedButton));
+            navigation.Update(ownedButton);
+            Assert.That(system.sendNavigationEvents, Is.True, "刷新虚拟列表默认焦点不能重置输入释放门闩。");
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
             Assert.That(submits, Is.EqualTo(1)); Assert.That(router.ConsumeActions(), Is.EqualTo(GameplayInputActions.None));
             navigation.Dispose(); navigation = null; Assert.That(system.sendNavigationEvents, Is.EqualTo(original));

@@ -18,9 +18,30 @@ namespace Core.Runtime
         private LoopScrollView list;
         private bool initialized;
         private Type configuredViewType;
+        private sealed class SimpleCallback
+        {
+            public Delegate Adapter;
+            public int Users;
+        }
+        private readonly Dictionary<Delegate, SimpleCallback> simpleCallbacks = new Dictionary<Delegate, SimpleCallback>();
         public event Action<ItemView, int, CellBindContext> CellBound;
         public event Action<ItemView, CellBindContext> CellUnbound;
         public event Action<ItemView, int, CellBindContext> CellClicked;
+        internal TCallback GetSimpleCallback<TCallback>(Delegate callback, Func<TCallback> create) where TCallback : Delegate
+        {
+            if (!simpleCallbacks.TryGetValue(callback, out var entry))
+            {
+                entry = new SimpleCallback { Adapter = create() };
+                simpleCallbacks.Add(callback, entry);
+            }
+            entry.Users++;
+            return (TCallback)entry.Adapter;
+        }
+        internal void ReleaseSimpleCallback(Delegate callback)
+        {
+            if (simpleCallbacks.TryGetValue(callback, out var entry) && --entry.Users == 0)
+                simpleCallbacks.Remove(callback);
+        }
         private void Awake() { Initialize(); }
         private void Initialize()
         {
@@ -83,7 +104,7 @@ namespace Core.Runtime
         {
             if (list != null) { list.CellBound -= OnBound; list.CellUnbound -= OnUnbound; list.CellClicked -= OnClick; }
             foreach (var entry in entries.Values) if (entry.View != null) entry.View.onClick = null;
-            entries.Clear(); CellBound = null; CellUnbound = null; CellClicked = null;
+            entries.Clear(); simpleCallbacks.Clear(); CellBound = null; CellUnbound = null; CellClicked = null;
         }
     }
 }

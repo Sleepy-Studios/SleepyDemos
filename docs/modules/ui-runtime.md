@@ -33,6 +33,10 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 ## View 生命周期
 
+页面数据与控件初始化是两件事：`View<T>.SetData` 只接收数据，导航在加载前应用数据，因此首次调用可能早于 `InitComponent`。业务不要在页面 `SetData` 中访问绑定控件；把控件更新放进独立的 `RefreshUI`，由 `OnShow` 消费最新数据（初始化专用逻辑放 `OnGameObjectInitialize`）。缓存页面再次显示仍需刷新，不能只依赖首次初始化。这个顺序服务加载前配置，不改成加载完再补数据。
+
+普通列表由桥接先 `ItemView.Init` / `InitComponent`，再触发 RectData 回调。手动创建 Item 也允许提前配置：`ItemView<T>.SetData` 存储数据，初始化前不访问控件；`InitComponent` 成功后设 `IsInitialized` 并调用 `OnInitialized`，泛型基类随后调用 `RefreshUI`。初始化前重复配置只刷新最后一份；初始化后每次配置都刷新。子类覆盖 `RefreshUI`，不要覆盖 `SetData` 直接更新控件。MvcBind 继续只负责控件引用和事件绑定。
+
 `ViewState` 是真实单值状态，不再表示可组合标记。主链路如下：
 
 ```text
@@ -181,7 +185,7 @@ Loading --加载失败或取消--> Faulted
 - `Tests.Module.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
 - `Tests.Module.CoreUIComponentMigrationTests` 检查全局扩展、顶点翻转、金字塔布局、TMP 自动滚动裁剪装配和圆角 Shader/材质链路。
 - 默认字体选型与 TMP Settings 资源绑定在字体调整时按字体流程人工检查，不由公共 UI 测试固定为某个字体资产；圆角与 TMP 网格效果的行为回归继续保留。
-- 通用Loading沿用`HarmonyOS_CN`，新增字形由共享`HarmonyOS_CNSupplement`回退字体补充。补充字体使用同一中文源、512动态图集和多图集扩容，预填“霉”；保留原字体图集及材质GUID，不让公共UI依赖某个Demo专属字库。赌场资源装配会幂等检查该回退的持久化材质/图集及字形解析。
+- 通用Loading沿用`HarmonyOS_CN`，新增字形由共享`HarmonyOS_CNSupplement`回退字体补充。补充字体使用同一中文源、512动态图集和多图集扩容，保留原字体图集及材质GUID，不让公共UI依赖某个Demo专属字库。正式Prefab直接保存字体、材质和回退引用，不保留一次性装配脚本作为运行或维护入口。
 - `Tests.Module.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
 - `Tests.Module.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Tests.Module.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。

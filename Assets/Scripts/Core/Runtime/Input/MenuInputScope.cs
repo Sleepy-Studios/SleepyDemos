@@ -66,6 +66,14 @@ namespace Core.Runtime.Inputs
             RestoreMenuFocus();
         }
 
+        /// <summary>刷新虚拟列表当前可用焦点，再驱动原输入门闩；不重建作用域或重新等待按键释放。</summary>
+        /// <param name="firstMenuSelection">当前数据身份对应的可用菜单控件；为空时不恢复过期物理按钮。</param>
+        public void Update(GameObject firstMenuSelection)
+        {
+            initialSelection = firstMenuSelection;
+            Update();
+        }
+
         /// 页面隐藏或玩法退出时恢复公共导航门闩及仍有效的原焦点，重复调用无副作用。
         public void Dispose()
         {

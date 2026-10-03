@@ -60,8 +60,8 @@ namespace Hotfix.Demos.LoopScroll
     {
         private Text label;
         protected override void InitComponent() { label = gameObject.GetComponentInChildren<Text>(true); }
-        public override ItemView<LoopSampleItem> SetData(LoopSampleItem data)
-        { base.SetData(data); if (label != null) label.text = data.Display; return this; }
+        protected override void RefreshUI()
+        { label.text = params1.Display; }
     }
     public sealed class LoopScrollExampleView : View
     {
@@ -74,7 +74,7 @@ namespace Hotfix.Demos.LoopScroll
         protected override void InitComponent()
         {
             messages = gameObject.GetComponent<LoopScrollView>();
-            // 与钓鱼项目一样：先注册一次，再提交集合。异步业务写入前检查 context.IsCurrent。
+            // 先注册一次，再提交集合；数据回调发生在 Item 控件绑定完成之后。
             this.RegisterLoopScrollRect<LoopScrollExampleItem>(messages, OnMessagesRectData);
             this.RegisterLoopScrollItemHide(messages, OnMessagesItemHide);
             this.RegisterLoopScrollClick(messages, OnMessagesClick);
@@ -84,11 +84,11 @@ namespace Hotfix.Demos.LoopScroll
             messages.SetTotalCount(items, getItemKey: item => ((LoopSampleItem)item).Key);
             gameObject.SetActive(true);
         }
-        private void OnMessagesRectData(ItemView cell, int index, CellBindContext context) { ((LoopScrollExampleItem)cell).SetData(items[index]); }
-        private void OnMessagesItemHide(ItemView cell, CellBindContext context)
+        private void OnMessagesRectData(LoopScrollExampleItem cell, int index) { cell.SetData(items[index]); }
+        private void OnMessagesItemHide(ItemView cell)
         {
-            // 此处清理 ItemView 的业务资源；异步任务写入前仍需检查 CellBindContext.IsCurrent。
+            // 此处清理 ItemView 的业务资源；图片加载复用公共 UIImageLoader 的过期请求保护。
         }
-        private void OnMessagesClick(ItemView cell, int index, CellBindContext context) { if (context.IsCurrent) clicked(index); }
+        private void OnMessagesClick(ItemView cell, int index) { clicked(index); }
     }
 }
