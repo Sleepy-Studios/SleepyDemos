@@ -20,7 +20,8 @@ namespace Tests.Demo
 
         private static readonly string[] ForbiddenHostDependencies =
         {
-            "using Core.Runtime", "using Hotfix.SceneManagement", "using Cysharp.Threading.Tasks",
+            // 公共输入按当前项目约定依赖 Core.Runtime.Inputs；禁止的是 UI、资源与宿主导航接入。
+            "using Core.Runtime;", "using Hotfix.SceneManagement", "using Cysharp.Threading.Tasks",
             "using UnityEngine.UI", "UIManager", "UIRootManager", "ResourceServices",
             "GameSceneNavigator", "DemoIslandEditorBootstrap", "GameSceneId.Hub", "ComponentItemIndex"
         };
@@ -50,13 +51,15 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void HostDependencies_AreConfinedToSleepyDemosAdapterDirectory()
+        public void HostDependencies_AreConfinedToHostAdaptersAndPresentation()
         {
             var modulePath = Path.GetFullPath(ModuleRoot);
             var adapterPath = Path.GetFullPath(AdapterRoot);
+            var uiPath = Path.GetFullPath(ModuleRoot + "/UI") + Path.DirectorySeparatorChar;
             var violations = Directory.GetFiles(modulePath, "*.cs", SearchOption.AllDirectories)
                 .Where(path => ForbiddenHostDependencies.Any(dependency => File.ReadAllText(path).Contains(dependency)))
                 .Where(path => !path.StartsWith(adapterPath, System.StringComparison.OrdinalIgnoreCase))
+                .Where(path => !path.StartsWith(uiPath, System.StringComparison.OrdinalIgnoreCase))
                 .Select(path => Path.GetRelativePath(modulePath, path).Replace('\\', '/'))
                 .ToArray();
 

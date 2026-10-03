@@ -28,6 +28,7 @@ namespace Hotfix.DroneFlight.Adapters
         private DronePlayerInput currentInput;
         private CancellationTokenSource lifetimeCancellation;
         private bool isChangingScene;
+        private bool isStarting;
         private string sessionId;
 
         private void Awake()
@@ -51,20 +52,12 @@ namespace Hotfix.DroneFlight.Adapters
         {
             lifetimeCancellation?.Cancel();
             lifetimeCancellation?.Dispose();
-            if (currentInput != null)
-            {
-                currentInput.ReloadRequested -= HandleReloadRequested;
-                currentInput.ExitRequested -= HandleExitRequested;
-            }
             if (demoExit != null)
             {
                 demoExit.ExitRequested -= HandleExitRequested;
             }
 
-            if (currentDrone != null)
-            {
-                resourceLoader?.ReleaseInstance(currentDrone);
-            }
+            ReleaseCurrentDrone();
             resourceLoader?.Dispose();
         }
 
@@ -99,14 +92,47 @@ namespace Hotfix.DroneFlight.Adapters
                 return;
             }
 
-            var selection = await uiController.ShowVehicleSelectAsync(
-                cancellationToken);
-            if (!selection.HasValue || cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
+            await uiController.ShowVehicleSelectAsync(
+                selection => StartSelectedAsync(selection).Forget(), HandleExitRequested, cancellationToken);
+        }
 
-            await SpawnSelectedAsync(selection.Value, cancellationToken);
+        private async UniTask StartSelectedAsync(DroneVehicleKind selection)
+        {
+            if (isStarting || isChangingScene || currentDrone != null) return;
+            isStarting = true;
+            var cancellationToken = lifetimeCancellation.Token;
+            try
+            {
+                await SpawnSelectedAsync(selection, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { ReleaseCurrentDrone(); }
+            catch (Exception exception)
+            {
+                ReleaseCurrentDrone(!cancellationToken.IsCancellationRequested);
+                if (cancellationToken.IsCancellationRequested) return;
+                Debug.LogError($"[DroneFlight] 机型准备失败：{exception.Message}", this);
+                await uiController.ClearFlightViewsAsync();
+                uiController.SetSelectionFeedback("准备失败，请重试");
+            }
+            finally { isStarting = false; }
+        }
+
+        private void ReleaseCurrentDrone(bool restoreCamera = false)
+        {
+            if (currentInput != null)
+            {
+                currentInput.ReloadRequested -= HandleReloadRequested;
+                currentInput.ExitRequested -= HandleExitRequested;
+                currentInput.enabled = false;
+            }
+            currentInput = null;
+            if (currentDrone != null)
+            {
+                if (restoreCamera) currentDrone.GetComponent<DroneRemoteControllerExperience>()?.ReturnToWaiting();
+                resourceLoader?.ReleaseInstance(currentDrone);
+                currentDrone = null;
+            }
+            if (restoreCamera && demoExit != null) demoExit.ConfigureInput(null);
         }
 
         private async UniTask SpawnSelectedAsync(DroneVehicleKind selection, CancellationToken cancellationToken)
@@ -126,8 +152,7 @@ namespace Hotfix.DroneFlight.Adapters
                 cancellationToken.ThrowIfCancellationRequested();
                 if (currentDrone == null)
                 {
-                    Debug.LogError($"[DroneFlight] 无法实例化机型：{address}", this);
-                    return;
+                    throw new InvalidOperationException($"无法实例化机型：{address}");
                 }
 
                 currentDrone.name = selection switch
@@ -156,8 +181,7 @@ namespace Hotfix.DroneFlight.Adapters
                         out var runtime,
                         out var assemblyError))
                 {
-                    Debug.LogError($"[DroneFlight] {assemblyError}", currentDrone);
-                    return;
+                    throw new InvalidOperationException(assemblyError);
                 }
 
                 currentInput = runtime.Input;
@@ -167,12 +191,15 @@ namespace Hotfix.DroneFlight.Adapters
                 demoExit?.ConfigureInput(currentInput);
                 runtime.Activate();
                 await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
+                if (!await uiController.ShowFlightViewsAsync(runtime.Telemetry, runtime.DebugRenderer, sessionId))
+                    throw new InvalidOperationException("飞行界面未能准备完成。");
+                cancellationToken.ThrowIfCancellationRequested();
+                await uiController.CompleteVehicleSelectAsync();
                 if (remote != null)
                 {
                     remote.enabled = true;
                 }
                 runtime.FinalizeAfterFirstPhysicsStep();
-                await uiController.ShowFlightViewsAsync(runtime.Telemetry, runtime.DebugRenderer, sessionId);
             }
             finally
             {
@@ -190,6 +217,7 @@ namespace Hotfix.DroneFlight.Adapters
 
         private void HandleExitRequested()
         {
+            if (isStarting) return;
             ChangeSceneAsync(reload: false).Forget();
         }
 
@@ -224,6 +252,7 @@ namespace Hotfix.DroneFlight.Adapters
                     currentInput.enabled = true;
                 }
                 await uiController.RestoreFlightViewsAsync();
+                uiController.SetSelectionFeedback("返回失败，请重试");
                 Debug.LogError(
                     reload
                         ? $"[DroneFlight] 重新运行场景失败：{result.Error}"

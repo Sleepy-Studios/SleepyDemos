@@ -335,13 +335,14 @@ DroneFlight 仍通过 `DroneFlight.asmref` 归属 `Hotfix.dll`，没有新增 `D
 
 - `Control`、`Physics`、`Input`、`Camera`、`Equipment`、`Payload`、`Telemetry`、`Vehicle`、`Cruise`、`Runtime` 是可脱离 SleepyDemos 宿主理解的核心。
 - `Adapters/Scene` 负责资源加载、场景导航和 Hub 生命周期。
-- `Adapters/UI` 负责正式 UIManager View 和强类型 ViewData。
+- `UI` 放机型选择 View 与专属布局；页面表示选择和反馈，不承担资源加载或生成机体。
+- `Adapters/UI` 的 UIController 连接正式 UIManager 与场景会话，保留强类型 ViewData；HUD、调试 View 尚在旧位置，待各自页面优化时整理。
 - `Adapters/Fishing` 负责捕鱼演出。
 - `Adapters/Experience` 负责项目内遥控器接管体验。
 
-核心目录不能引用 `Core.Runtime`、`UIManager`、`ResourceServices`、`GameSceneNavigator` 或 Adapters 具体类；该边界由 `DroneFlightPortabilityBoundaryTests` 扫描锁定。
+核心目录不能依赖 `Core.Runtime` 的 UI/资源服务、`UIManager`、`ResourceServices`、`GameSceneNavigator` 或 Adapters 具体类。输入转换按项目约定复用 `Core.Runtime.Inputs`，不在 Demo 复制设备识别、死区和松键门闩。该边界由 `DroneFlightPortabilityBoundaryTests` 扫描锁定。
 
-迁移到新宿主时，应保留飞控、装备、配置和成品 Prefab，替换 `Adapters/` 中对应的资源、UI、导航与演出接入。当前边界是“降低宿主耦合”，不是承诺复制两个目录后零修改运行。
+迁移到新宿主时，应保留飞控、装备、配置和成品 Prefab，替换 `Adapters/` 中对应的资源、UI、导航与演出接入，并按宿主 UI 框架适配 `UI/` 中的表现页面。当前边界是“降低宿主耦合”，不是承诺复制两个目录后零修改运行。
 
 ## 当前能力与明确边界
 

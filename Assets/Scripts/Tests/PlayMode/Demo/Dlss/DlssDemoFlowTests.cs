@@ -60,7 +60,7 @@ namespace Tests.Demo
             yield return WaitUntil(() => travel.IsCompleted, "DroneFlight");
             Assert.That(travel.Result.Status, Is.Not.EqualTo(GameSceneSwitchStatus.Failed));
             yield return WaitUntil(() => UIManager.Instance.Get<DroneFlightVehicleSelectView>()?.State == ViewState.Visible, "Vehicle selection");
-            Click(UIManager.Instance.Get<DroneFlightVehicleSelectView>(), "PlainButton");
+            Click(UIManager.Instance.Get<DroneFlightVehicleSelectView>(), "StartButton");
             yield return WaitUntil(() => UIManager.Instance.Get<DroneFlightHudView>()?.State == ViewState.Visible, "Flight HUD");
             StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
             yield return WaitUntil(() => StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "DroneFlight Quality: " + StreamlineRuntime.Status);

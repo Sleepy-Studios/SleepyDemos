@@ -16,7 +16,7 @@ namespace Hotfix.DroneFlight.Adapters
         {
             if (actions != null) { selectionInput = new InputActionSession(actions); selectionInput.SetMap("Waiting"); }
         }
-        internal void ConfigureInput(DronePlayerInput value) { input = value; selectionInput?.SetMap(null); }
+        internal void ConfigureInput(DronePlayerInput value) { input = value; selectionInput?.SetMap(value == null ? "Waiting" : null); }
         private void Update()
         {
             if (input != null ? input.Pressed("Exit") : selectionInput?.Pressed("Exit") == true) ExitRequested?.Invoke();

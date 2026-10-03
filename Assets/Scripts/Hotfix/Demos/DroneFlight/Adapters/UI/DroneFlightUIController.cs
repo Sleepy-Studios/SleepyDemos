@@ -12,6 +12,7 @@ namespace Hotfix.DroneFlight.Adapters
     {
         private DroneFlightViewData viewData;
         private DroneFlightVehicleSelectView vehicleSelectView;
+        private DroneFlightVehicleSelectionData selectionData;
         private DroneFlightHudView hudView;
         private DroneFlightDebugView debugView;
         private DroneFlightDebugDrawRenderer debugDrawRenderer;
@@ -39,40 +40,61 @@ namespace Hotfix.DroneFlight.Adapters
             }
         }
 
-        internal async UniTask<DroneVehicleKind?> ShowVehicleSelectAsync(
-            CancellationToken cancellationToken = default)
+        internal async UniTask<bool> ShowVehicleSelectAsync(
+            Action<DroneVehicleKind> onSelected, Action onBack, CancellationToken cancellationToken)
         {
-            var completion = new UniTaskCompletionSource<DroneVehicleKind>();
-            var data = new DroneFlightVehicleSelectionData(value => completion.TrySetResult(value));
+            selectionData = new DroneFlightVehicleSelectionData(onSelected, onBack);
+            return await RestoreVehicleSelectAsync(cancellationToken);
+        }
+
+        private async UniTask<bool> RestoreVehicleSelectAsync(CancellationToken cancellationToken = default)
+        {
+            isShuttingDown = false;
             var result = await UIManager.Instance.ShowAsync<DroneFlightVehicleSelectView,
                 DroneFlightVehicleSelectionData>(
-                data,
+                selectionData,
                 new UIShowOptions(animated: true, hidePrevious: false),
                 cancellationToken);
             if (result.Status == UIOperationStatus.Canceled)
             {
-                return null;
+                return false;
             }
 
             if (result.Status is not UIOperationStatus.Succeeded and not UIOperationStatus.Ignored)
             {
                 Debug.LogError($"[DroneFlight] 无法打开机型选择：{result.Exception?.Message ?? result.Status.ToString()}", this);
-                return null;
+                return false;
             }
 
             vehicleSelectView = result.View as DroneFlightVehicleSelectView;
-            try
-            {
-                var selection = await completion.Task.AttachExternalCancellation(
-                    cancellationToken);
-                await CloseExpectedAsync(vehicleSelectView);
-                vehicleSelectView = null;
-                return selection;
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
-            }
+            return vehicleSelectView != null;
+        }
+
+        internal void SetSelectionFeedback(string message)
+        {
+            if (selectionData != null) selectionData.Feedback = message;
+            vehicleSelectView?.SetBusy(false, message);
+        }
+
+        internal async UniTask CompleteVehicleSelectAsync()
+        {
+            var result = await UIManager.Instance.CloseAsync(vehicleSelectView, false);
+            if (result.Status is not (UIOperationStatus.Succeeded or UIOperationStatus.Ignored))
+                throw result.Exception ?? new InvalidOperationException("机型选择页关闭失败。");
+            vehicleSelectView = null;
+            selectionData = null;
+        }
+
+        internal async UniTask ClearFlightViewsAsync()
+        {
+            if (debugDrawRenderer != null) debugDrawRenderer.enabled = false;
+            await CloseExpectedAsync(debugView);
+            await CloseExpectedAsync(hudView);
+            debugView = null;
+            hudView = null;
+            viewData = null;
+            debugDrawRenderer = null;
+            ConfigureInput(null);
         }
 
         internal async UniTask<bool> ShowFlightViewsAsync(
@@ -121,7 +143,7 @@ namespace Hotfix.DroneFlight.Adapters
         {
             if (viewData == null)
             {
-                return false;
+                return selectionData != null && await RestoreVehicleSelectAsync();
             }
 
             isShuttingDown = false;

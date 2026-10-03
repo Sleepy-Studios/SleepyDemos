@@ -15,7 +15,7 @@
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。核心源码与 `Adapters/{Scene,UI,Fishing,Experience}` 形成迁移边界，详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
+业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。核心源码与宿主接入、界面表现保持单向边界：机型选择 View 与专属布局位于 `UI/`，场景和 UIManager 接入仍在 `Adapters/`；HUD、调试页尚沿用原 `Adapters/UI` 位置，随对应页面维护再整理。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -25,6 +25,7 @@ Assets/LoadResources/Demos/drone_flight/
 ├── Scenes/FishingBurstMvp.unity
 ├── Art/
 │   ├── Models/DroneFlight.fbx
+│   ├── UI/VehicleSelection/  # 独立背景与三种真实 Prefab 模型图
 │   ├── Generated/Arena/*.asset
 │   └── Materials/
 │       ├── DroneGraphite.mat
@@ -82,11 +83,13 @@ Assets/LoadResources/Demos/drone_flight/
 
 1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
 2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView, DroneFlightVehicleSelectionData>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
-3. 选择后关闭 Pop，通过资源 Loader 直接实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，但不会在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
+3. 指针/触屏点击卡片只切换模型预览，点击开始飞行才确认；方向导航选择预览，确认键提交当前机型。准备期间保留选择页并禁用重复开始与返回，通过资源 Loader 实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，不在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
 4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配；抓斗先放置底座与四爪、连接 HingeJoint，最后才开放重力。它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步清零速度、保持电机锁定，并直接进入第三人称 `Active`。
-5. HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。
+5. HUD 准备成功后关闭选择页，再开放第三人称控制；失败释放部分机体、恢复等待相机和选择输入，保留所选机型并显示重试。返回大厅失败也重开同一选择会话并恢复机型。HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。
 6. 选择完成后无需再按 F；`R` 仍是唯一的电机解锁/锁定入口。F 只保留为旧 `Waiting` 状态的兼容入口，不进入常驻操作提示。
 7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
+
+机型选择以 1920×1080 为设计基准，`DroneVehicleSelectionLayout` 按宿主尺寸和安全区缩放内容，超宽屏扩展独立背景，触屏放大卡片文字。三张透明 PNG 直接由成品 Prefab 的真实网格与材质渲染，大预览与卡片共用同一 Sprite；模型图保持比例，按钮/卡片底板使用带 Border 的 Sliced Sprite。`UIMenuScope`、`UICancelRelay` 与 `InputBindingPrompt` 继续提供公共导航、返回和实际绑定提示。一次性取图、装配工具完成后删除，日常通过 Prefab 和 MvcBind 维护，不运行时重建 UI。
 
 ## 配置边界
 

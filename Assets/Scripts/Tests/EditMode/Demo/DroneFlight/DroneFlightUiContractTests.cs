@@ -20,8 +20,7 @@ namespace Tests.Demo
         private const string HudPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView.prefab";
         private const string DebugPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightDebugView.prefab";
         private const string SelectPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightVehicleSelectView.prefab";
-        private const string ViewRoot =
-            "Assets/Scripts/Hotfix/Demos/DroneFlight/Adapters/UI";
+        private const string ViewRoot = "Assets/Scripts/Hotfix/Demos/DroneFlight";
 
         private static readonly string[] ControlTextNames =
         {
@@ -62,11 +61,17 @@ namespace Tests.Demo
             Assert.That(hudIndex.Components.Length, Is.EqualTo(12));
             Assert.That(debug.GetComponent<ComponentItemIndex>().Components.Length, Is.EqualTo(1));
             var selectIndex = select.GetComponent<ComponentItemIndex>();
-            Assert.That(selectIndex.Components.Length, Is.EqualTo(3));
-            CollectionAssert.AreEqual(
-                new[] { "OnPlainButtonClick", "OnGrappleButtonClick", "OnHarpoonButtonClick" },
-                selectIndex.BindingMethods);
-            Assert.That(select.transform.Find("Panel/PlainButton"), Is.Not.Null);
+            AssertIndexArraysAreAligned(selectIndex);
+            foreach (string method in new[] { "OnPlainButtonClick", "OnGrappleButtonClick", "OnHarpoonButtonClick", "OnStartButtonClick", "OnBackButtonClick" })
+                Assert.That(selectIndex.BindingMethods.Count(value => value == method), Is.EqualTo(1), method);
+            Assert.That(selectIndex.Components, Has.None.Null);
+            Assert.That(select.GetComponent<Canvas>(), Is.Null);
+            foreach (string name in new[] { "PlainPreview", "GrapplePreview", "HarpoonPreview", "Hero" })
+            {
+                var image = selectIndex.Components.OfType<UnityEngine.UI.Image>().Single(value => value.name == name);
+                Assert.That(image.sprite, Is.Not.Null, name);
+                Assert.That(image.preserveAspect, Is.True, name + " 不得拉伸实际模型");
+            }
             // HUD 仅装配三端操作表现；飞控与体验编排仍由场景持有。
             Assert.That(hud.GetComponent<DroneControlsPresenter>(), Is.Not.Null);
             Assert.That(hud.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
