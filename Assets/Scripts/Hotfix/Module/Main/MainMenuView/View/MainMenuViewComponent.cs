@@ -7,6 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
+    using SleepyStudios.LoopScroll;
     using TMPro;
 
     [Source("LoadResources/UI/Hall/MainMenuView")]
@@ -22,11 +23,8 @@ namespace Hotfix
 
         private Image Image_Background;
         private TextMeshProUGUI TextMeshProUGUI_Title;
-        private Button Button_UIFrameworkValidationButton;
-        private Button Button_DroneFlightButton;
-        private Button Button_DlssButton;
-        private Button Button_BlockPortersButton;
-        private Button Button_JinxCasinoButton;
+        private LoopScrollView LoopScrollView_DemoList;
+        private TextMeshProUGUI TextMeshProUGUI_Status;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -40,16 +38,8 @@ namespace Hotfix
 
             Image_Background = componentItemIndex.Get<Image>(0);
             TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
-            Button_UIFrameworkValidationButton = componentItemIndex.Get<Button>(2);
-            Button_DroneFlightButton = componentItemIndex.Get<Button>(3);
-            Button_DlssButton = componentItemIndex.Get<Button>(4);
-            Button_BlockPortersButton = componentItemIndex.Get<Button>(5);
-            Button_JinxCasinoButton = componentItemIndex.Get<Button>(6);
-            this.RegisterButton(Button_UIFrameworkValidationButton, OnUIFrameworkValidationButtonClick);
-            this.RegisterButton(Button_DroneFlightButton, OnDroneFlightButtonClick);
-            this.RegisterButton(Button_DlssButton, OnDlssButtonClick);
-            this.RegisterButton(Button_BlockPortersButton, OnBlockPortersButtonClick);
-            this.RegisterButton(Button_JinxCasinoButton, OnJinxCasinoButtonClick);
+            LoopScrollView_DemoList = componentItemIndex.Get<LoopScrollView>(2);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(3);
         }
     }
 }

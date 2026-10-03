@@ -56,8 +56,8 @@ Editor 直启重载：
 - 旧场景不得在 `OnDestroy` 中发起未等待的按类型 UI 关闭；会话 UI 必须在切场景前按具体实例收口。正常取消返回 `Canceled`，只有 `Failed` 记录 Error。
 - 场景切换不支持提交后的任意取消；Unity/YooAsset 已开始的场景操作必须收口到成功或明确回滚。
 - Loading 进度单调递增；没有真实字节信息时不显示虚假大小。
-- Hub 的四个已接通 Demo 按钮统一使用 `MainMenuView.EnterDemoAsync`。进入期间禁用全部 Demo 入口，避免重复或跨入口点击；未接通的 UI 验证入口禁用并标注“未开放”。
-- MainMenuView显示时复用Core.Runtime.Inputs.MenuInputScope设置默认可用入口焦点，并等待确认/方向键释放；隐藏和销毁都幂等释放。加载失败后新页面重新建立作用域，按住Enter/A不会自动进入另一局。键鼠、触屏仍使用原Core UI指针，键盘/手柄使用原导航，不增加输入适配器或EventSystem。
+- Hub 的已接通 Demo 通过共用卡片模板和 `MainMenuView.EnterDemoAsync` 进入。进入期间禁用全部开放入口，未接通卡片标注“未开放”；正常返回后随导航事务结束恢复入口，具体展示数据与模板见 [Hotfix 主入口](hotfix-main.md#主菜单卡片)。
+- MainMenuView 使用一个公共 `LoopScrollMenuNavigation` 提供列表有效焦点，一个 `MenuInputScope` 等待确认/方向键释放并管理页面输入生命周期；每帧更新当前 `FirstSelection`，不持有已回收按钮作为永久默认焦点。指针和 Submit 仍由现有 Core UI Module 派发，不增加业务输入适配器或 EventSystem。
 - Loading 替换会销毁原 MainMenuView。失败回滚后的提示及按钮恢复必须查找当前可见的 Hub 实例，并确认导航仍为同一实例、已稳定停留 Hub，不能继续操作原页面或把已进入 Demo 的场景强行切回 Hub。
 
 ## 边界规则

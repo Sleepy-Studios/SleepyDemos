@@ -25,6 +25,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
+using SleepyStudios.LoopScroll;
 
 namespace Tests.Demo
 {
@@ -698,7 +699,13 @@ namespace Tests.Demo
             keyboard = InputSystem.AddDevice<Keyboard>(); mouse = InputSystem.AddDevice<Mouse>();
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
             var hubMenu = UIManager.Instance.Get<MainMenuView>();
-            var casinoButton = Field<Button>(hubMenu, "Button_JinxCasinoButton");
+            var hubEntries = Field<List<MainMenuDemoEntry>>(hubMenu, "entries");
+            var casinoIndex = hubEntries.FindIndex(entry => entry.SceneId == GameSceneId.JinxCasino);
+            Assert.That(casinoIndex, Is.GreaterThanOrEqualTo(0));
+            var hubList = Field<LoopScrollView>(hubMenu, "LoopScrollView_DemoList");
+            hubList.ScrollToCell(casinoIndex, ScrollAlignment.Center);
+            yield return null;
+            var casinoButton = hubList.GetVisibleCell(casinoIndex).GetComponentInChildren<LoopScrollMenuButton>(true);
             if (enterWithHeldGamepad)
             {
                 gamepad = InputSystem.AddDevice<Gamepad>();

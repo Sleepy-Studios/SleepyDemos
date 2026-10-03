@@ -18,7 +18,7 @@
 4. 按 `GameSceneSwitchStatus` 处理结果：`Succeeded` 已完成，`Ignored` 已在目标，`Busy` 稍后重试，`Failed` 展示或记录 `Error`。
 5. Demo 返回入口统一切换到 `GameSceneId.Hub`。
 
-Hub 的新增按钮应复用 `MainMenuView.EnterDemoAsync(target)`，并加入该页的入口禁用/恢复列表，不再复制单独的 `OpenXxxAsync`。失败时页面标题显示可重试提示，详细错误写入 Console；未接通入口保持不可用。加载过程会销毁旧 Hub，因此异步结束后只能更新当前恢复出来的页面。
+Hub 的新增入口在 `MainMenuView` 集合中增加一项 `MainMenuDemoEntry`，配置稳定 Key、预览地址、标题、描述和已登记的目标场景。预览放在 `Assets/LoadResources/UI/Hall/Art/`，由卡片的 `UIImageLoader` 加载；共用 `MainMenuDemoItemView` 模板和统一 `EnterDemoAsync(target)`，不新增固定按钮字段或 `OpenXxxAsync`。未接通入口的目标场景设为 null，保持不可用。失败时独立 Status 控件显示可重试提示，详细错误写入 Console；加载会销毁旧 Hub，异步结束后只能更新当前恢复出来的页面。页面与卡片维护入口见 [Hotfix 主入口](../modules/hotfix-main.md#主菜单卡片)。
 
 ## 示例
 
@@ -44,4 +44,5 @@ if (result.Status == GameSceneSwitchStatus.Failed)
 - 运行场景导航 EditMode 测试与 `GameSceneRuntimePlayModeTests`。
 - 修改 Hub 进入流程时运行 `MainMenuNavigationPlayModeTests.FailedEntryRestoresNewMenuAndAllowsRetry`：真实指针进入、重复点击、失败恢复到新页面及再次点击。成功往返使用目标 Demo 的入口回归验证，不调用按钮监听器代替操作。
 - 修改Hub焦点与菜单输入时，运行同类的`KeyboardAndGamepadNavigateEnterAndRecoverWithoutRepeatingHeldSubmit`，覆盖方向键、Enter、手柄方向键/A、失败恢复和按住确认键时不误提交；实际硬件与选中态可读性仍须另验。
+- 修改虚拟列表绑定或菜单导航时，运行同类的 `GamepadScrollsRecycledCardsAndEntersCurrentIdentity`，验证真实手柄输入越过回收边界后，卡片显示和实际进入目标仍对应当前数据；不以直接调用按钮监听器替代输入验收。
 
