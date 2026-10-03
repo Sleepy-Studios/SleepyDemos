@@ -22,11 +22,11 @@ namespace Hotfix
 
         private Image Image_Background;
         private TextMeshProUGUI TextMeshProUGUI_Title;
-        private TextMeshProUGUI TextMeshProUGUI_Description;
         private TextMeshProUGUI TextMeshProUGUI_Step;
         private TextMeshProUGUI TextMeshProUGUI_ProgressText;
-        private TextMeshProUGUI TextMeshProUGUI_SizeText;
         private Image Image_ProgressFill;
+        private TextMeshProUGUI TextMeshProUGUI_Description;
+        private TextMeshProUGUI TextMeshProUGUI_SizeText;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -40,11 +40,11 @@ namespace Hotfix
 
             Image_Background = componentItemIndex.Get<Image>(0);
             TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
-            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(2);
-            TextMeshProUGUI_Step = componentItemIndex.Get<TextMeshProUGUI>(3);
-            TextMeshProUGUI_ProgressText = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_SizeText = componentItemIndex.Get<TextMeshProUGUI>(5);
-            Image_ProgressFill = componentItemIndex.Get<Image>(6);
+            TextMeshProUGUI_Step = componentItemIndex.Get<TextMeshProUGUI>(2);
+            TextMeshProUGUI_ProgressText = componentItemIndex.Get<TextMeshProUGUI>(3);
+            Image_ProgressFill = componentItemIndex.Get<Image>(4);
+            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_SizeText = componentItemIndex.Get<TextMeshProUGUI>(6);
         }
     }
 }

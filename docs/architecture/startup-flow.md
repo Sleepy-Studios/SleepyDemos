@@ -78,6 +78,10 @@ Hotfix 入口位于：
 - 返回 Hub 只卸载当前 Demo 并恢复 Hub 相机和主菜单，不以 Single 模式重载 `AppEntrance`。
 - 启动期 `StartupLoading` 与运行期 `CommonLoadingView` 分属两条生命周期，不互相依赖。
 
+`StartupLoadingView` 属于 Core.Runtime，在资源服务及 Hotfix 就绪前展示。标题、阶段、说明、百分比与大小字段统一使用直接序列化的 `TMP_Text`；Prefab 同时直接引用公共字体、材质及必要回退字库，不能等待资源地址加载或 Hotfix/MvcBind 初始化后才补绑定。进度仍来自 `StartupStateMachine` 与各启动系统，View 不用定时器推进假进度。空阶段、说明或大小信息隐藏对应独立文本节点；后续报告非空信息时恢复显示。背景与进度条继续直接引用 `Image`。
+
+运行期 `CommonLoadingView` 保持现有 MvcBind/TMP 字段及普通 Core View 导航链，不因视觉统一改变依赖层。修改这两套加载 Prefab 的具体步骤见[接入 Core UI View](../runbooks/create-ui-view.md#维护启动与场景加载界面)。
+
 ## Unity Editor Demo 直启旁路
 
 Editor 可在 Demo 场景通过独立 `DemoIslandEditorBootstrap` 补齐最小运行时：读取正式 `HotfixConfig`，初始化 `ResourceServices`/YooAsset 和 `UIManager`，扫描 Hotfix View，幂等运行 `HotfixBootService`，注册世界过渡并建立 Editor 直启导航器。

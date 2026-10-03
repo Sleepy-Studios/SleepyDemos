@@ -27,6 +27,18 @@
 10. 固定存在且由业务代码访问的 Prefab 节点必须加入 `ComponentItemIndex`；完成组件和回调绑定后生成 View 与 Component 代码。不要直接修改自动生成的 `*Component.cs`，也不要在手写 View 中用 `Transform.Find` 补漏。
 11. 生成成功后，在窗口下方确认 View 出现在对应 `[Module]` 下，并能看到手写 View、生成 ViewComponent 和 `GameObject` 三项。自定义输出目录不会影响这里的归类。
 
+## 维护启动与场景加载界面
+
+两套加载界面共用视觉规范，但分别保存和绑定：
+
+1. `Assets/Scenes/StartupLoading.prefab` 是由 `AppEntrance` 直接引用的热更前启动 UI。其 `StartupLoadingView` 的 `titleText`、`descriptionText`、`stepText`、`progressText`、`sizeText` 均直接绑定 `TextMeshProUGUI`（字段类型 `TMP_Text`），不再支持 Legacy Text。`backgroundImage` 与 `progressFill` 仍为 `Image`，进度填充设置为水平 Filled，初始填充值为 0。
+2. 替换旧 Text 组件后逐项重新保存序列化引用，字段同名不代表原 Text 引用可自动转为 TMP。TMP 字体、材质及中文回退字体使用公共资源的直接引用，确保冷启动在 YooAsset 初始化前可显示文字。不要在 `Awake` 中搜索节点、创建字体或依赖 Hotfix 补字段。
+3. 阶段、说明和大小文本各使用独立叶节点，不能把其它控件挂到这些节点下；`SetProgress` 在空白时隐藏对应节点，非空时重新显示。默认标题使用 `SleepyDemos`、百分比 `0%`，说明与大小可以为空并初始隐藏。由真实状态机报告替换默认值，不能用示意图中的百分比初始化实际进度。
+4. `Assets/LoadResources/UI/Common/CommonLoading.prefab` 使用普通 Core View 与现有 MvcBind 引用。调整布局后保存绑定索引并重新生成组件；不要为复用启动界面直接挂 `StartupLoadingView` 或增加独立 Canvas/EventSystem。`SetTitle`、`SetProgress` 继续由场景加载 presenter 调用。
+5. 两个 Prefab 更新后分别验证冷启动进入 Hub、点击 Demo 过渡及返回。检查标题、中文阶段、进度条、空大小字段及窄横屏安全区；场景加载失败时保留实际错误与导航恢复，不能把视觉进度跑满当作成功。
+
+一次性装配脚本及 `.meta` 在资源保存并验证后清理，持续修改通过 Prefab 与现有 MvcBind 入口完成。
+
 ## 使用绑定索引
 
 - 打开 MvcBind 窗口时会自动扫描一次 `Assets/LoadResources`；只有根节点带 `ComponentItemIndex` 的 Prefab 会进入索引。
@@ -133,6 +145,12 @@ ViewRoot
 ### 点击区域跟着主体倾斜
 
 将全屏 Blocker 留在 View 根节点，只把需要倾斜的主体放进 `PerspectiveRoot`。
+
+## 数据和控件刷新时序
+
+`ShowAsync<TView, TData>(data)` 在页面加载前调用 SetData。页面 SetData 只保存参数，把显示逻辑写成 RefreshUI 并在 OnShow 调用；首次初始化和缓存再次显示都会消费本次导航数据。不要在加载完成后再链式补数据，也不要在 SetData 中访问尚未绑定的字段。
+
+列表正常顺序为 Item.Init → MvcBind InitComponent → RectData → SetData。手动创建的 `ItemView<T>` 可先 SetData 再 Init；泛型基类延迟到控件绑定成功后调用 RefreshUI，初始化后再次 SetData 会立即刷新。业务 Item 覆盖 RefreshUI 使用 params1，无需重写 SetData 或额外保存 Cell 上下文。
 
 ## 验证方式
 
