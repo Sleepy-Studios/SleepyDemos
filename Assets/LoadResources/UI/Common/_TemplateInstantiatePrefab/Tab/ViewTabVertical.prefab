@@ -55,7 +55,7 @@ MonoBehaviour:
   parent: {fileID: 7909590083832338953}
   currentIndex: 0
   uiAnimation: 1
-  isAsync: 0
+  isAsync: 1
 --- !u!1 &7261567201970890208
 GameObject:
   m_ObjectHideFlags: 0

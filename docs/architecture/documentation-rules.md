@@ -237,13 +237,17 @@ bool 命名要表达判断语义：
 
 ### 异步命名
 
-返回 `Task` / `UniTask` / 异步语义的方法使用 `Async` 后缀：
+返回 `Task` / `UniTask` 的操作入口及异步流程方法使用 `Async` 后缀：
 
 - `LoadAssetAsync`
-- `InitAsync`
+- `ShowAsync`
 - `DownloadPackageAsync`
 
 同步方法不加 `Sync` 后缀，除非同一类型中必须同时暴露同步和异步同名能力且会产生歧义。
+
+资源加载优先使用异步入口；同步入口直接返回结果，异步入口返回可等待任务。内部可以共用实现，不为减少方法数量而将两种返回契约合成 bool 开关，也不阻塞主线程等待 UniTask。
+
+`UITab.Init`、`UIImageLoader.SetImage` 等非可等待组件入口保留普通名称；其 `isAsync` 仅控制分帧初始化或资源加载，默认 true。完成范围写在接口注释中，不能解释为整个导航同步完成。Unity 回调、接口契约和第三方 API 遵循原名称；表示数据同步的 `Sync...` 不属于执行方式后缀。
 
 ### 回调与事件命名
 

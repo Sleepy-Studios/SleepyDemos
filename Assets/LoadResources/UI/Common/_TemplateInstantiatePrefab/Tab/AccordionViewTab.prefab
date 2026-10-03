@@ -252,7 +252,7 @@ MonoBehaviour:
   viewInstances: []
   parent: {fileID: 7561330132973796474}
   uiAnimation: 1
-  isAsync: 0
+  isAsync: 1
 --- !u!114 &1917702587766032831
 MonoBehaviour:
   m_ObjectHideFlags: 0

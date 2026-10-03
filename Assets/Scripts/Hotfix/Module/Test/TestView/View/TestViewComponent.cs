@@ -14,8 +14,8 @@ namespace Hotfix
     {
         public override string Address => "LoadResources/UI/Views/TestView";
         public override UILayer Level => UILayer.Base;
+        public override UIViewMode ViewMode => UIViewMode.Page;
         public override MaskType Mask => MaskType.None;
-        public override bool IsAsync => true;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
 

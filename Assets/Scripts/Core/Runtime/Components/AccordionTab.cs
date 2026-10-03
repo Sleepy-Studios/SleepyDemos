@@ -33,7 +33,7 @@ namespace Core.Runtime
         private readonly List<TabGroup> groups = new List<TabGroup>();
         private readonly List<LeafInfo> leafInfos = new List<LeafInfo>();
         private int currentIndex = -1;
-        private bool isInitializing;
+        private int initializationGeneration;
         private bool canCollapseFirstLevel;
         private TabGroup expandedGroup;
 
@@ -73,123 +73,45 @@ namespace Core.Runtime
         /// <param name="data">手风琴数据；一级有 Children 时 Children 作为叶子，否则一级本身作为叶子。</param>
         /// <param name="initLeafIndex">初始化后选中的叶子索引；非法索引不会触发回调。</param>
         /// <param name="notify">初始化选中时是否触发 <see cref="OnClick"/>。</param>
-        /// <param name="action">初始化完成回调；在项创建和初始选择后触发。</param>
+        /// <param name="action">初始化完成回调；在项创建和初始选择后触发，不等待全部图标加载。</param>
         /// <param name="canCollapseFirstLevel">点击已展开的一级页签时是否允许收起。</param>
-        /// <param name="isAsync">是否逐帧创建页签并异步加载图标。</param>
+        /// <param name="isAsync">默认 true；是否逐帧创建页签并异步加载图标。</param>
         public void Init(
             IList<AccordionTabData> data,
             int initLeafIndex = 0,
             bool notify = true,
             Action action = null,
             bool canCollapseFirstLevel = false,
-            bool isAsync = false)
+            bool isAsync = true)
         {
-            if (isAsync)
-            {
-                InitAsyncInternal(data, initLeafIndex, notify, action, canCollapseFirstLevel).Forget();
-                return;
-            }
-
-            InitImmediate(data, initLeafIndex, notify, action, canCollapseFirstLevel);
+            var content = data == null ? null : new List<AccordionTabData>(data);
+            InitItemsAsync(content, initLeafIndex, notify, action, canCollapseFirstLevel, isAsync).Forget();
         }
 
-        private void InitImmediate(
-            IList<AccordionTabData> data,
-            int initLeafIndex,
-            bool notify,
-            Action action,
-            bool canCollapseFirstLevel)
+        private async UniTask InitItemsAsync(IList<AccordionTabData> data, int initLeafIndex,
+            bool notify, Action completed, bool canCollapseFirstLevel, bool isAsync)
         {
-            if (isInitializing)
+            var generation = ++initializationGeneration;
+            this.canCollapseFirstLevel = canCollapseFirstLevel;
+            ClearGroups();
+            parent = parent != null ? parent : transform;
+            if (firstLevelPrefab == null)
             {
-                Debug.LogWarning($"[AccordionTab] {name} 正在初始化，忽略重复请求。");
+                Debug.LogError($"[AccordionTab] {name} 缺少一级 Tab 模板。");
                 return;
             }
-
-            try
+            if (data != null)
             {
-                isInitializing = true;
-                this.canCollapseFirstLevel = canCollapseFirstLevel;
-                ClearGroups();
-
-                parent = parent != null ? parent : transform;
-                if (firstLevelPrefab == null)
+                for (int i = 0; i < data.Count; i++)
                 {
-                    Debug.LogError($"[AccordionTab] {name} 缺少一级 Tab 模板。");
-                    return;
+                    if (this == null || generation != initializationGeneration) return;
+                    CreateGroup(data[i], i, isAsync);
+                    if (isAsync) await UniTask.Yield();
                 }
-
-                if (data != null)
-                {
-                    for (int i = 0; i < data.Count; i++)
-                    {
-                        CreateGroup(data[i], i, false);
-                    }
-                }
-
-                if (initLeafIndex >= 0 && initLeafIndex < leafInfos.Count)
-                {
-                    SetIndex(initLeafIndex, notify);
-                }
-
-                action?.Invoke();
             }
-            finally
-            {
-                isInitializing = false;
-            }
-        }
-
-        private async UniTaskVoid InitAsyncInternal(
-            IList<AccordionTabData> data,
-            int initLeafIndex,
-            bool notify,
-            Action action,
-            bool canCollapseFirstLevel)
-        {
-            if (isInitializing)
-            {
-                Debug.LogWarning($"[AccordionTab] {name} 正在初始化，忽略重复请求。");
-                return;
-            }
-
-            try
-            {
-                isInitializing = true;
-                this.canCollapseFirstLevel = canCollapseFirstLevel;
-                ClearGroups();
-
-                parent = parent != null ? parent : transform;
-                if (firstLevelPrefab == null)
-                {
-                    Debug.LogError($"[AccordionTab] {name} 缺少一级 Tab 模板。");
-                    return;
-                }
-
-                if (data != null)
-                {
-                    for (int i = 0; i < data.Count; i++)
-                    {
-                        CreateGroup(data[i], i, true);
-                        await UniTask.Yield();
-                        if (this == null || gameObject == null)
-                        {
-                            return;
-                        }
-                    }
-                }
-
-                if (initLeafIndex >= 0 && initLeafIndex < leafInfos.Count)
-                {
-                    SetIndex(initLeafIndex, notify);
-                }
-
-                action?.Invoke();
-            }
-            finally
-            {
-                isInitializing = false;
-            }
+            if (this == null || generation != initializationGeneration) return;
+            if (initLeafIndex >= 0 && initLeafIndex < leafInfos.Count) SetIndex(initLeafIndex, notify);
+            if (generation == initializationGeneration) completed?.Invoke();
         }
 
         /// <summary>
@@ -576,9 +498,12 @@ namespace Core.Runtime
             }
         }
 
+        private void OnDisable() { initializationGeneration++;  }
+
         private void OnDestroy()
         {
-            isInitializing = false;
+            initializationGeneration++;
+
             ClearGroups();
             OnClick = null;
             TryClick = null;

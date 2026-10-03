@@ -135,11 +135,9 @@ namespace Core.Editor.MvcBind
             bindPanel.Add(customOutputRow);
 
             var hotfixToggle = CreateToggle("HotFix", settings.isHotfix, value => settings.isHotfix = value);
-            var asyncToggle = CreateToggle("Async", settings.isAsync, value => settings.isAsync = value);
             var enableOnInitToggle = CreateToggle("EnableOnInit", settings.enableOnInit, value => settings.enableOnInit = value);
             var destroyOnHideToggle = CreateToggle("DestroyOnHide", settings.destroyOnHide, value => settings.destroyOnHide = value);
             bindPanel.Add(hotfixToggle);
-            bindPanel.Add(asyncToggle);
             bindPanel.Add(enableOnInitToggle);
             bindPanel.Add(destroyOnHideToggle);
 
@@ -600,7 +598,6 @@ namespace Core.Editor.MvcBind
                 viewMode = source.viewMode,
                 mask = source.mask,
                 isHotfix = source.isHotfix,
-                isAsync = source.isAsync,
                 enableOnInit = source.enableOnInit,
                 destroyOnHide = source.destroyOnHide,
                 uiTransitionType = source.uiTransitionType,

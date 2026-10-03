@@ -24,7 +24,6 @@ namespace Core.Editor.MvcBind
         public Core.Runtime.UIViewMode viewMode = Core.Runtime.UIViewMode.Page;
         public Core.Runtime.MaskType mask = Core.Runtime.MaskType.None;
         public bool isHotfix = true;
-        public bool isAsync = true;
         public bool enableOnInit = true;
         public bool destroyOnHide = true;
         public string uiTransitionType = "null";

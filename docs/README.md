@@ -16,6 +16,8 @@
 | 了解项目或运行方式 | [项目 README](../README.md)、[架构总览](./architecture/overview.md) |
 | 新增模块，调整职责、依赖或目录 | [代码与资源布局](./architecture/code-layout.md)、[Core / Hotfix 边界](./architecture/hotfix-boundary.md) |
 | 修改 C# 命名、注释或维护文档 | [文档维护与 C# 规范](./architecture/documentation-rules.md) |
+| 调用异步 UI 导航或配置组件初始化方式 | [UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
+| 使用时间、颜色、倒计时或通用 Tips | [Core.Runtime](./modules/core-runtime.md)、[UI 运行时](./modules/ui-runtime.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 修改启动或热更流程 | [启动与热更流程](./architecture/startup-flow.md)、[热更新模块](./modules/hotfix.md) |
 | 修改资源组织或加载 | [资源命名规范](./architecture/asset-naming.md)、[资源运行时](./modules/resource-runtime.md)、[使用资源 Loader](./runbooks/use-resource-loader.md) |
 | 新增 Demo | [新增 Demo](./runbooks/add-demo.md)，再按涉及的模块继续阅读 |

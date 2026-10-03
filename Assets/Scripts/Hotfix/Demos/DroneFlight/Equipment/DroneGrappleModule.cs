@@ -6,6 +6,8 @@ namespace Hotfix.DroneFlight
     /// <summary>单根刚性吊臂四爪抓斗；上端万向节被动摆动，闭爪包围载荷后建立临时刚性连接。</summary>
     public sealed class DroneGrappleModule : MonoBehaviour, IDroneEquipmentModule
     {
+        private static readonly Color CapturedAssistColor = new Color(1f, 0.2f, 0.15f);
+        private static readonly Color SearchingAssistColor = new Color(1f, 0.55f, 0.05f);
         [SerializeField] private DroneGrappleConfig configSource;
         [SerializeField] private Transform bellyMount;
         [SerializeField] private Transform liftCarriage;
@@ -610,8 +612,8 @@ namespace Hotfix.DroneFlight
             }
 
             var color = !hasSurface
-                ? new Color(1f, 0.2f, 0.15f)
-                : nearestCaptureCandidate != null ? Color.green : new Color(1f, 0.55f, 0.05f);
+                ? CapturedAssistColor
+                : nearestCaptureCandidate != null ? Color.green : SearchingAssistColor;
             assistRing.startColor = assistRing.endColor = color;
             assistLabel.color = color;
             SetAssistVisible(true);

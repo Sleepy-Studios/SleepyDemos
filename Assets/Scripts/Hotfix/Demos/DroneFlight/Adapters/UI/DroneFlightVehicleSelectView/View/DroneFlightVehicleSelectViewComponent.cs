@@ -15,7 +15,6 @@ namespace Hotfix
         public override UILayer Level => UILayer.Pop;
         public override UIViewMode ViewMode => UIViewMode.Modal;
         public override MaskType Mask => MaskType.ShowOnly;
-        public override bool IsAsync => true;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()

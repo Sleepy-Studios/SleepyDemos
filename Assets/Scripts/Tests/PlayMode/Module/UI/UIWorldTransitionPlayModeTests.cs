@@ -18,7 +18,7 @@ namespace Tests.Module
         [UnitySetUp]
         public IEnumerator SetUp()
         {
-            yield return UIManager.Instance.CloseAll().ToCoroutine();
+            yield return UIManager.Instance.CloseAllAsync().ToCoroutine();
             yield return UIManager.Instance.InitializeAsync().ToCoroutine();
             Scenario.Reset();
             ClearProviderIfApiExists();
@@ -33,7 +33,7 @@ namespace Tests.Module
                 onOpenHandler = null;
             }
 
-            yield return UIManager.Instance.CloseAll().ToCoroutine();
+            yield return UIManager.Instance.CloseAllAsync().ToCoroutine();
             ClearProviderIfApiExists();
             Scenario.Reset();
         }

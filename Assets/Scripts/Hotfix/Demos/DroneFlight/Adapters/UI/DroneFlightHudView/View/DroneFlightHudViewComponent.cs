@@ -16,7 +16,6 @@ namespace Hotfix
         public override UILayer Level => UILayer.Decorate;
         public override UIViewMode ViewMode => UIViewMode.Widget;
         public override MaskType Mask => MaskType.None;
-        public override bool IsAsync => true;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()

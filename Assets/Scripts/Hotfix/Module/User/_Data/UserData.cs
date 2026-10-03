@@ -63,7 +63,7 @@ namespace Hotfix
                     GraphicsDeviceName = SystemInfo.graphicsDeviceName,
                     GraphicsDeviceType = SystemInfo.graphicsDeviceType.ToString(),
                     GraphicsMemorySizeMb = SystemInfo.graphicsMemorySize,
-                    CapturedAt = DateTime.Now
+                    CapturedAt = TimeUtil.LocalNow
                 };
             }
 

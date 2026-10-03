@@ -49,7 +49,7 @@ namespace Core.Runtime
 
         public async UniTask InitializeAsync()
         {
-            await UIRootManager.Instance.BuildUIRoot();
+            await UIRootManager.Instance.BuildUIRootAsync();
             layerStack ??= new UIStack();
             ConfigureMask();
             RefreshMaskFromTopModal();
@@ -78,7 +78,7 @@ namespace Core.Runtime
             UIShowOptions options = default,
             CancellationToken cancellationToken = default) where T : View
         {
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Push,
                 typeof(T),
                 options.Animated,
@@ -100,7 +100,7 @@ namespace Core.Runtime
             UIShowOptions options = default,
             CancellationToken cancellationToken = default) where T : View<TData>
         {
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Push,
                 typeof(T),
                 options.Animated,
@@ -121,7 +121,7 @@ namespace Core.Runtime
             CancellationToken cancellationToken = default) where T : View
         {
             if (setData == null) throw new ArgumentNullException(nameof(setData));
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(T), options.Animated, cancellationToken,
                 target => setData((T)target), hidePrevious: options.HidePrevious);
         }
@@ -137,7 +137,7 @@ namespace Core.Runtime
             UIShowOptions options = default,
             CancellationToken cancellationToken = default) where T : View
         {
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Replace,
                 typeof(T),
                 options.Animated,
@@ -155,7 +155,7 @@ namespace Core.Runtime
             bool animated = true,
             CancellationToken cancellationToken = default) where T : View
         {
-            return EnqueueClose(typeof(T), animated, cancellationToken);
+            return EnqueueCloseAsync(typeof(T), animated, cancellationToken);
         }
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace Core.Runtime
                     null));
             }
 
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Close,
                 expectedView.GetType(),
                 animated,
@@ -196,7 +196,7 @@ namespace Core.Runtime
             bool animated = true,
             CancellationToken cancellationToken = default)
         {
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Back,
                 null,
                 animated,
@@ -210,62 +210,11 @@ namespace Core.Runtime
         /// <returns>清理操作结果。</returns>
         public UniTask<UIOperationResult> CloseAllAsync(CancellationToken cancellationToken = default)
         {
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.CloseAll,
                 null,
                 false,
                 cancellationToken);
-        }
-
-        public View Show(string uiName, bool hidePrevious = true)
-        {
-            var type = UITypeReflection.Get(uiName);
-            return type == null ? null : Show(type, hidePrevious);
-        }
-
-        public View Show(Type type, bool hidePrevious = true)
-        {
-            return Show(type, hidePrevious, null);
-        }
-
-        private View Show(Type type, bool hidePrevious, Action<View> configure)
-        {
-            var closeAllBarrierBeforeCreation = navigationCoordinator.HasCloseAllBarrier;
-            var created = false;
-            var candidate = PlayerLoopHelper.IsMainThread && !closeAllBarrierBeforeCreation
-                ? cacheStack.GetOrCreateView(type, out created)
-                : null;
-            var task = navigationCoordinator.EnqueueLegacyShow(
-                type,
-                true,
-                out var closeAllBarrier,
-                out var candidateAdopted,
-                configure,
-                candidate,
-                hidePrevious);
-            if (!candidateAdopted && created)
-            {
-                TryCleanupAndRemoveAsync(candidate).Forget(LogOperationFailure);
-            }
-
-            ObserveOperationAsync(task).Forget(LogOperationFailure);
-            return closeAllBarrier || !candidateAdopted ? null : candidate;
-        }
-
-        public T Show<T>(bool hidePrevious = true) where T : View
-        {
-            return Show(typeof(T), hidePrevious) as T;
-        }
-
-        public T Show<T, TData>(TData data, bool hidePrevious = true) where T : View<TData>
-        {
-            return Show(typeof(T), hidePrevious, target => ((T)target).SetData(data)) as T;
-        }
-
-        public T Show<T, TData1, TData2>(TData1 data1, TData2 data2, bool hidePrevious = true)
-            where T : View<TData1, TData2>
-        {
-            return Show(typeof(T), hidePrevious, target => ((T)target).SetData(data1, data2)) as T;
         }
 
         public T Get<T>() where T : View => cacheStack.GetView(typeof(T)) as T;
@@ -276,43 +225,16 @@ namespace Core.Runtime
             return type == null ? null : cacheStack.GetView(type);
         }
 
-        public void Close(string uiName)
-        {
-            var type = UITypeReflection.Get(uiName);
-            if (type != null)
-            {
-                Close(type);
-            }
-        }
-
-        public void Close<T>() where T : View => Close(typeof(T));
-
-        public void Close(Type type, bool animation = true)
-        {
-            ObserveOperationAsync(EnqueueClose(type, animation, CancellationToken.None))
-                .Forget(LogOperationFailure);
-        }
-
-        public void Back()
-        {
-            ObserveOperationAsync(BackAsync()).Forget(LogOperationFailure);
-        }
-
-        public async UniTask Preload<T>() where T : View
-        {
-            await PreloadAsync<T>(null);
-        }
-
-        public async UniTask Preload<T, TData>(TData data) where T : View<TData>
-        {
-            await PreloadAsync<T>(target => target.SetData(data));
-        }
-
-        internal UniTask<UIOperationResult> PreloadAsync<T>(
-            Action<T> configure,
+        /// <summary>在导航队列内预加载，初始化后交付数据，保持隐藏且不入栈。</summary>
+        /// <typeparam name="T">目标 View 类型。</typeparam>
+        /// <param name="configure">初始化完成后的配置回调；可省略。</param>
+        /// <param name="cancellationToken">取消本次预加载的令牌。</param>
+        /// <returns>预加载操作结果，失败时包含异常。</returns>
+        public UniTask<UIOperationResult> PreloadAsync<T>(
+            Action<T> configure = null,
             CancellationToken cancellationToken = default) where T : View
         {
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Preload,
                 typeof(T),
                 false,
@@ -320,21 +242,16 @@ namespace Core.Runtime
                 configure == null ? null : target => configure((T)target));
         }
 
-        public async UniTask CloseAll(bool animation = false)
-        {
-            await CloseAllAsync();
-        }
-
         public View GetStackTopView() => layerStack?.StackTopView;
         public Type GetStackTopViewType() => layerStack?.StackTopView?.GetType();
 
-        private UniTask<UIOperationResult> EnqueueClose(
+        private UniTask<UIOperationResult> EnqueueCloseAsync(
             Type type,
             bool animated,
             CancellationToken cancellationToken)
         {
             var targetView = cacheStack.GetView(type);
-            return navigationCoordinator.Enqueue(
+            return navigationCoordinator.EnqueueAsync(
                 UINavigationAction.Close,
                 type,
                 animated,
@@ -1019,6 +936,8 @@ namespace Core.Runtime
             Debug.LogException(exception);
         }
 
+        private void OnMaskClick() => ObserveOperationAsync(BackAsync()).Forget(LogOperationFailure);
+
         private void ConfigureMask()
         {
             var nextButton = UIRootManager.Instance.Mask?.GetComponent<Button>();
@@ -1029,13 +948,13 @@ namespace Core.Runtime
 
             if (maskButton != null)
             {
-                maskButton.onClick.RemoveListener(Back);
+                maskButton.onClick.RemoveListener(OnMaskClick);
             }
 
             maskButton = nextButton;
             if (maskButton != null)
             {
-                maskButton.onClick.AddListener(Back);
+                maskButton.onClick.AddListener(OnMaskClick);
             }
         }
 

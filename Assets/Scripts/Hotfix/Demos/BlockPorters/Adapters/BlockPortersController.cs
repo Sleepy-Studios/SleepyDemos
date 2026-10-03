@@ -11,6 +11,7 @@ namespace Hotfix.BlockPorters.Adapters
     /// 场景会话、对象池与集中搬运演出的唯一所有者。
     public sealed class BlockPortersController : MonoBehaviour
     {
+        private static readonly Color RippleColor = new Color(.55f, .8f, .7f, 1);
         private float cellSize = 0.2f;
         private sealed class Actor
         {
@@ -203,7 +204,7 @@ namespace Hotfix.BlockPorters.Adapters
             float t = rippleAge / .32f;
             pitRipple.localScale = Vector3.one * Mathf.Lerp(.88f, 1.16f, t);
             rippleProperties ??= new MaterialPropertyBlock();
-            rippleProperties.SetColor("_BaseColor", new Color(.55f, .8f, .7f, (1 - t) * .45f));
+            rippleProperties.SetColor("_BaseColor", ColorUtil.WithAlpha(RippleColor, (1 - t) * .45f));
             rippleRenderer.SetPropertyBlock(rippleProperties);
         }
 

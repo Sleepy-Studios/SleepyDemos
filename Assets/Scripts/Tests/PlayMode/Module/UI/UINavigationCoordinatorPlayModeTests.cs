@@ -76,11 +76,11 @@ namespace Tests.Module
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);
             }, interactionGate);
 
-            var current = coordinator.Enqueue(
+            var current = coordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None);
             yield return null;
             using var cancellation = new CancellationTokenSource();
-            var pending = coordinator.Enqueue(
+            var pending = coordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(SecondMarker), true, cancellation.Token);
             cancellation.Cancel();
             yield return null;
@@ -110,11 +110,11 @@ namespace Tests.Module
                 await UniTask.Never(token);
                 return UIOperationResult.Canceled(operation.OperationId, operation.Action, null);
             });
-            var current = coordinator.Enqueue(
+            var current = coordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None);
             yield return null;
             using var cancellation = new CancellationTokenSource();
-            var pending = coordinator.Enqueue(
+            var pending = coordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(SecondMarker), true, cancellation.Token);
 
             coordinator.Dispose();
@@ -158,10 +158,10 @@ namespace Tests.Module
                     null));
             }, gate);
 
-            yield return coordinator.Enqueue(
+            yield return coordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None).ToCoroutine();
             Assert.That(gate.Count, Is.Zero);
-            yield return coordinator.Enqueue(
+            yield return coordinator.EnqueueAsync(
                 UINavigationAction.Preload, typeof(SecondMarker), false, CancellationToken.None).ToCoroutine();
             Assert.That(gate.Count, Is.Zero);
             Assert.That(observedBlockingExecutions, Is.EqualTo(1));
@@ -189,14 +189,14 @@ namespace Tests.Module
             }, gate);
 
             UIOperationResult failed = default;
-            yield return coordinator.Enqueue(
+            yield return coordinator.EnqueueAsync(
                     UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None)
                 .ToCoroutine(value => failed = value);
             Assert.That(failed.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(gate.Count, Is.Zero);
 
             UIOperationResult canceled = default;
-            yield return coordinator.Enqueue(
+            yield return coordinator.EnqueueAsync(
                     UINavigationAction.Push, typeof(SecondMarker), true, CancellationToken.None)
                 .ToCoroutine(value => canceled = value);
             Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
@@ -222,7 +222,7 @@ namespace Tests.Module
             }, gate);
 
             UIOperationResult result = default;
-            var operationTask = coordinator.Enqueue(
+            var operationTask = coordinator.EnqueueAsync(
                 UINavigationAction.Push, typeof(FirstMarker), true, CancellationToken.None);
             yield return executorReached.Task.ToCoroutine();
             var worker = Task.Run(() => workerCompletion.TrySetResult(UIOperationResult.Canceled(
@@ -253,7 +253,7 @@ namespace Tests.Module
             var tasks = new Task<UIOperationResult>[count];
             for (int i = 0; i < count; i++)
             {
-                tasks[i] = coordinator.Enqueue(
+                tasks[i] = coordinator.EnqueueAsync(
                     UINavigationAction.Push,
                     targetType,
                     true,

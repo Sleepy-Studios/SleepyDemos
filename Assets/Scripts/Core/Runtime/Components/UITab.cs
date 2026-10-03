@@ -23,7 +23,6 @@ namespace Core.Runtime
         private Action<int> onSelected;
         private readonly Dictionary<Button, UnityAction> buttonHandlers = new Dictionary<Button, UnityAction>();
         private bool initialized;
-        private bool initializing;
         private int initializationGeneration;
 
         /// 选择前拦截回调。返回 false 时阻止本次选择和通知。
@@ -51,7 +50,6 @@ namespace Core.Runtime
         private void OnDisable()
         {
             initializationGeneration++;
-            initializing = false;
         }
 
         private void OnDestroy()
@@ -60,7 +58,6 @@ namespace Core.Runtime
             onSelected = null;
             TrySelect = null;
             initialized = false;
-            initializing = false;
         }
 
         /// <summary>
@@ -88,17 +85,17 @@ namespace Core.Runtime
         /// <param name="itemImages">每个 Tab 对应的 Sprite 资源路径；为空或越界时清空该项图片。</param>
         /// <param name="initIndex">初始化后选中的索引；非法索引不会触发回调。</param>
         /// <param name="notify">初始化选中时是否触发已注册回调。</param>
-        /// <param name="action">初始化完成回调；在项创建和初始选择后触发。</param>
-        /// <param name="isAsync">是否逐帧初始化并异步加载图片。</param>
+        /// <param name="action">初始化完成回调；在项创建和初始选择后触发，不等待全部图标加载。</param>
+        /// <param name="isAsync">默认 true；是否逐帧初始化并异步加载图片。</param>
         public void Init(
             IList<string> desc,
             IReadOnlyList<string> itemImages = null,
             int initIndex = 0,
             bool notify = true,
             Action action = null,
-            bool isAsync = false)
+            bool isAsync = true)
         {
-            if (desc == null || initializing) return;
+            if (desc == null) return;
             var content = isAsync ? new List<string>(desc) : desc;
             InitItemsAsync(content, itemImages, initIndex, notify, action, isAsync).Forget();
         }
@@ -107,7 +104,7 @@ namespace Core.Runtime
             int initIndex, bool notify, Action completed, bool isAsync)
         {
             int generation = ++initializationGeneration;
-            initializing = true;
+
             try
             {
                 EnsureItemList(desc.Count);
@@ -130,12 +127,12 @@ namespace Core.Runtime
                 if (this == null || generation != initializationGeneration) return;
                 for (int i = visibleCount; i < items.Count; i++) if (items[i] != null) items[i].SetActive(false);
                 if (initIndex >= 0 && initIndex < visibleCount) Select(initIndex, notify); else ClearSelection();
-                completed?.Invoke();
+                if (generation == initializationGeneration) completed?.Invoke();
             }
             finally
             {
-                // 旧操作的 finally 不得释放新初始化的门闩。
-                if (this != null && generation == initializationGeneration) { initialized = true; initializing = false; }
+                // 旧操作不得将新一轮初始化标记为完成。
+                if (this != null && generation == initializationGeneration) initialized = true;
             }
         }
 

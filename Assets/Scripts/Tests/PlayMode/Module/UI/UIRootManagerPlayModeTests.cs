@@ -29,7 +29,7 @@ namespace Tests.Module
         public IEnumerator SetUp()
         {
             var existingMainCamera = Camera.main;
-            yield return UIRootManager.Instance.BuildUIRoot().ToCoroutine();
+            yield return UIRootManager.Instance.BuildUIRootAsync().ToCoroutine();
             if (existingMainCamera == null && Camera.main != null)
             {
                 createdMainCamera = Camera.main.gameObject;
@@ -160,7 +160,7 @@ namespace Tests.Module
             var root = manager.Root;
             var uiCamera = manager.UICamera;
 
-            yield return manager.BuildUIRoot().ToCoroutine();
+            yield return manager.BuildUIRootAsync().ToCoroutine();
 
             Assert.That(manager.Root, Is.SameAs(root));
             Assert.That(manager.UICamera, Is.SameAs(uiCamera));
@@ -195,7 +195,7 @@ namespace Tests.Module
             yield return UIManager.Instance.InitializeAsync().ToCoroutine();
             rootManager.Mask.transform.localScale = Vector3.one;
 
-            yield return UIManager.Instance.CloseAll().ToCoroutine();
+            yield return UIManager.Instance.CloseAllAsync().ToCoroutine();
 
             Assert.That(rootManager.Mask.transform.localScale, Is.EqualTo(Vector3.zero));
         }

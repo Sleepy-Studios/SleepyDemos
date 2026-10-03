@@ -18,7 +18,7 @@ namespace Tests.Module
         [UnitySetUp]
         public IEnumerator SetUp()
         {
-            yield return UIManager.Instance.CloseAll().ToCoroutine();
+            yield return UIManager.Instance.CloseAllAsync().ToCoroutine();
             yield return UIManager.Instance.InitializeAsync().ToCoroutine();
             TestViewRegistry.Reset();
         }
@@ -26,7 +26,7 @@ namespace Tests.Module
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            yield return UIManager.Instance.CloseAll().ToCoroutine();
+            yield return UIManager.Instance.CloseAllAsync().ToCoroutine();
             TestViewRegistry.Reset();
         }
 
@@ -244,7 +244,7 @@ namespace Tests.Module
             yield return AwaitResult(
                 UIManager.Instance.ShowAsync<DefaultFadePage>(new UIShowOptions(false)),
                 _ => { });
-            yield return UIManager.Instance.Preload<DefaultFadeWidget>().ToCoroutine();
+            yield return UIManager.Instance.PreloadAsync<DefaultFadeWidget>().ToCoroutine();
             var visible = UIManager.Instance.Get<DefaultFadePage>();
             var hidden = UIManager.Instance.Get<DefaultFadeWidget>();
             hidden.UITransition.CompleteImmediately(UITransitionDirection.Enter);
@@ -366,14 +366,14 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacyShow_InvokesBeginOpenOnce()
+        public IEnumerator ShowAsync_InvokesBeginOpenOnce()
         {
             TestViewRegistry.Register<FirstPage>();
             var beginCount = 0;
             void CountBegin(View _) => beginCount++;
             UIManager.Instance.OnBeginOpen += CountBegin;
 
-            UIManager.Instance.Show<FirstPage>();
+            UIManager.Instance.ShowAsync<FirstPage>().Forget();
             for (int i = 0; i < 10 && UIManager.Instance.Get<FirstPage>()?.State != ViewState.Visible; i++)
             {
                 yield return null;
@@ -553,8 +553,8 @@ namespace Tests.Module
         public IEnumerator ConsecutiveLegacyDataShow_ConfiguresEachOperationInFifoOrder()
         {
             var loader = TestViewRegistry.Register<DataPage>(delay: true);
-            UIManager.Instance.Show<DataPage, string>("one");
-            UIManager.Instance.Show<DataPage, string>("two");
+            UIManager.Instance.ShowAsync<DataPage, string>("one").Forget();
+            UIManager.Instance.ShowAsync<DataPage, string>("two").Forget();
             yield return null;
 
             var beforeCompletion = TestViewRegistry.Events.ToArray();
@@ -575,7 +575,7 @@ namespace Tests.Module
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             TestViewRegistry.Register<DataPage>();
             var showTask = UIManager.Instance.ShowAsync<SlowPage>();
-            var preloadTask = UIManager.Instance.Preload<DataPage, string>("preload");
+            var preloadTask = UIManager.Instance.PreloadAsync<DataPage>(view => view.SetData("preload"));
             yield return null;
 
             var configuredTooEarly = TestViewRegistry.Events.Contains("data:preload");
@@ -707,7 +707,7 @@ namespace Tests.Module
         public IEnumerator CacheOnlyCloseDestroyFailure_ReturnsPrimaryAndAlwaysRemovesCache()
         {
             TestViewRegistry.Register<DestroyThrowPage>();
-            yield return UIManager.Instance.Preload<DestroyThrowPage>().ToCoroutine();
+            yield return UIManager.Instance.PreloadAsync<DestroyThrowPage>().ToCoroutine();
             var cached = UIManager.Instance.Get<DestroyThrowPage>();
 
             UIOperationResult result = default;
@@ -772,7 +772,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacyShowDuringCloseAllBarrier_ReturnsNullThenCreatesFreshVisibleView()
+        public IEnumerator ShowAsyncDuringCloseAllBarrier_CreatesFreshVisibleView()
         {
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             var firstLaterLoader = TestViewRegistry.Register<SecondPage>();
@@ -782,7 +782,7 @@ namespace Tests.Module
             var closeAllTask = UIManager.Instance.CloseAllAsync();
 
             Assert.That(UIManager.Instance.HasCloseAllBarrier, Is.True);
-            var legacyReturned = UIManager.Instance.Show<SecondPage>();
+            var legacyReturned = UIManager.Instance.ShowAsync<SecondPage>();
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
             yield return AwaitResult(showTask, _ => { });
             yield return AwaitResult(closeAllTask, _ => { });
@@ -791,7 +791,9 @@ namespace Tests.Module
                 yield return null;
             }
 
-            Assert.That(legacyReturned, Is.Null);
+            UIOperationResult laterResult = default;
+            yield return AwaitResult(legacyReturned, value => laterResult = value);
+            Assert.That(laterResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(UIManager.Instance.Get<SecondPage>()?.State, Is.EqualTo(ViewState.Visible));
             Assert.That(firstLaterLoader.InstantiateCount, Is.EqualTo(1));
             Assert.That(unusedLoader.InstantiateCount, Is.Zero);
@@ -799,7 +801,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacySingleDataShowDuringCloseAllBarrier_ReturnsNullAndConfiguresFreshView()
+        public IEnumerator SingleDataShowAsyncDuringCloseAllBarrier_ConfiguresFreshView()
         {
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             var actualLoader = TestViewRegistry.Register<DataPage>();
@@ -808,7 +810,7 @@ namespace Tests.Module
             yield return null;
             var closeAllTask = UIManager.Instance.CloseAllAsync();
 
-            var returned = UIManager.Instance.Show<DataPage, string>("one");
+            var returned = UIManager.Instance.ShowAsync<DataPage, string>("one");
             var configuredEarly = TestViewRegistry.Events.Contains("data:one");
             var loadedEarly = TestViewRegistry.Events.Contains("DataPage.load");
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
@@ -820,7 +822,9 @@ namespace Tests.Module
             }
 
             var actual = UIManager.Instance.Get<DataPage>();
-            Assert.That(returned, Is.Null);
+            UIOperationResult laterResult = default;
+            yield return AwaitResult(returned, value => laterResult = value);
+            Assert.That(laterResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(configuredEarly, Is.False);
             Assert.That(loadedEarly, Is.False);
             Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
@@ -831,7 +835,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacyDoubleDataShowDuringCloseAllBarrier_ReturnsNullAndConfiguresFreshView()
+        public IEnumerator DoubleDataShowAsyncDuringCloseAllBarrier_ConfiguresFreshView()
         {
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             var actualLoader = TestViewRegistry.Register<DoubleDataPage>();
@@ -840,7 +844,7 @@ namespace Tests.Module
             yield return null;
             var closeAllTask = UIManager.Instance.CloseAllAsync();
 
-            var returned = UIManager.Instance.Show<DoubleDataPage, string, int>("two", 2);
+            var returned = UIManager.Instance.ShowAsync<DoubleDataPage>(view => view.SetData("two", 2));
             var configuredEarly = TestViewRegistry.Events.Contains("data:two:2");
             var loadedEarly = TestViewRegistry.Events.Contains("DoubleDataPage.load");
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
@@ -852,7 +856,9 @@ namespace Tests.Module
             }
 
             var actual = UIManager.Instance.Get<DoubleDataPage>();
-            Assert.That(returned, Is.Null);
+            UIOperationResult laterResult = default;
+            yield return AwaitResult(returned, value => laterResult = value);
+            Assert.That(laterResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(configuredEarly, Is.False);
             Assert.That(loadedEarly, Is.False);
             Assert.That(actual?.State, Is.EqualTo(ViewState.Visible));
@@ -870,7 +876,7 @@ namespace Tests.Module
             yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<FirstPage>();
 
-            UIManager.Instance.Show<SecondPage>(false);
+            UIManager.Instance.ShowAsync<SecondPage>(new UIShowOptions(animated: true, hidePrevious: false)).Forget();
             for (int i = 0; i < 30 && UIManager.Instance.Get<SecondPage>()?.State != ViewState.Visible; i++)
             {
                 yield return null;
@@ -883,25 +889,25 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacySyncShow_ConstructsOutsideCoordinatorGate()
+        public IEnumerator ShowAsync_ConstructsOutsideCoordinatorGate()
         {
             LockProbePage.Reset();
             TestViewRegistry.Register<LockProbePage>();
 
-            UIManager.Instance.Show<LockProbePage>();
+            UIManager.Instance.ShowAsync<LockProbePage>().Forget();
             yield return null;
 
             Assert.That(LockProbePage.CoordinatorGateWasAvailable, Is.True);
         }
 
         [UnityTest]
-        public IEnumerator LegacySyncShowFromWorker_ReturnsNullAndConstructsOnMainThread()
+        public IEnumerator ShowAsyncFromWorker_ConstructsOnMainThread()
         {
             var mainThreadId = Thread.CurrentThread.ManagedThreadId;
             WorkerPage.Reset();
             TestViewRegistry.Register<WorkerPage>();
             var workerTask = System.Threading.Tasks.Task.Run(
-                () => UIManager.Instance.Show<WorkerPage>());
+                () => UIManager.Instance.ShowAsync<WorkerPage>());
             while (!workerTask.IsCompleted)
             {
                 yield return null;
@@ -912,12 +918,14 @@ namespace Tests.Module
                 yield return null;
             }
 
-            Assert.That(workerTask.Result, Is.Null);
+            UIOperationResult result = default;
+            yield return AwaitResult(workerTask.Result, value => result = value);
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(WorkerPage.ConstructorThreadId, Is.EqualTo(mainThreadId));
         }
 
         [UnityTest]
-        public IEnumerator LegacySyncShowDuringCurrentCacheOnlyClose_RejectsDestroyingCandidate()
+        public IEnumerator ShowAsyncDuringCurrentCacheOnlyClose_WaitsForDestroyThenCreatesFreshView()
         {
             RacePage.Reset();
             var oldLoader = TestViewRegistry.Register<RacePage>();
@@ -934,7 +942,7 @@ namespace Tests.Module
             yield return null;
             Assert.That(old.State, Is.EqualTo(ViewState.Destroying));
 
-            var returned = UIManager.Instance.Show<RacePage>();
+            var returned = UIManager.Instance.ShowAsync<RacePage>();
             childLoader.Complete(new GameObject(nameof(DelayedChildPage)));
             yield return childLoad.ToCoroutine();
             yield return AwaitResult(closeTask, _ => { });
@@ -944,7 +952,9 @@ namespace Tests.Module
             }
 
             var actual = UIManager.Instance.Get<RacePage>();
-            Assert.That(returned, Is.Null);
+            UIOperationResult laterResult = default;
+            yield return AwaitResult(returned, value => laterResult = value);
+            Assert.That(laterResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(old.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(actual, Is.Not.Null.And.Not.SameAs(old));
             Assert.That(actual.State, Is.EqualTo(ViewState.Visible));
@@ -954,7 +964,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacySyncShowBehindPendingClose_RejectsCachedCandidate()
+        public IEnumerator ShowAsyncBehindPendingClose_CreatesFreshViewAfterClose()
         {
             RacePage.Reset();
             var oldLoader = TestViewRegistry.Register<RacePage>();
@@ -965,7 +975,7 @@ namespace Tests.Module
             var closeTask = UIManager.Instance.CloseAsync<RacePage>();
             var newLoader = TestViewRegistry.Register<RacePage>();
 
-            var returned = UIManager.Instance.Show<RacePage>();
+            var returned = UIManager.Instance.ShowAsync<RacePage>();
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
             yield return AwaitResult(slowShow, _ => { });
             yield return AwaitResult(closeTask, _ => { });
@@ -975,7 +985,9 @@ namespace Tests.Module
             }
 
             var actual = UIManager.Instance.Get<RacePage>();
-            Assert.That(returned, Is.Null);
+            UIOperationResult laterResult = default;
+            yield return AwaitResult(returned, value => laterResult = value);
+            Assert.That(laterResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(old.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(actual, Is.Not.Null.And.Not.SameAs(old));
             Assert.That(actual.State, Is.EqualTo(ViewState.Visible));
@@ -985,15 +997,16 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacyShowSynchronousEnterFailure_ReturnsBoundDestroyedInstanceWithoutRecreation()
+        public IEnumerator ShowAsyncSynchronousEnterFailure_ReturnsFailureWithoutRecreation()
         {
             SyncFailPage.Reset();
             TestViewRegistry.Register<SyncFailPage>(throwEnter: true);
             TestViewRegistry.Register<SyncFailPage>();
 
-            LogAssert.Expect(LogType.Exception, "InvalidOperationException: enter failed");
-            var returned = UIManager.Instance.Show<SyncFailPage>();
-            yield return null;
+            UIOperationResult result = default;
+            yield return AwaitResult(UIManager.Instance.ShowAsync<SyncFailPage>(), value => result = value);
+            var returned = result.View;
+            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
 
             Assert.That(SyncFailPage.Instances.Count, Is.EqualTo(1));
             Assert.That(returned, Is.SameAs(SyncFailPage.Instances[0]));
@@ -1079,7 +1092,7 @@ namespace Tests.Module
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<TestWidget>();
             yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
-            yield return UIManager.Instance.Preload<TestWidget>().ToCoroutine();
+            yield return UIManager.Instance.PreloadAsync<TestWidget>().ToCoroutine();
             var page = UIManager.Instance.Get<FirstPage>();
             var widget = UIManager.Instance.Get<TestWidget>();
             var expectedCurrentName = UIManager.Instance.CurrentUIName;

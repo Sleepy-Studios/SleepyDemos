@@ -10,6 +10,7 @@ namespace Hotfix.JinxCasino.Interaction
     /// 独立实体操作点；碰撞命中和手柄焦点共用相同目标。
     public sealed class JinxCasinoTableTarget : MonoBehaviour
     {
+        private static readonly Color FocusedFeedbackColor = new Color(0.65f, 1f, 0.88f);
         [SerializeField] private string targetId;
         [SerializeField] private JinxCasinoTableAction action;
         [SerializeField] private int value;
@@ -96,7 +97,7 @@ namespace Hotfix.JinxCasino.Interaction
                 var renderer = feedbackRenderers[i];
                 if (renderer == null) continue;
                 renderer.GetPropertyBlock(feedback);
-                feedback.SetColor(BaseColor, new Color(0.65f, 1f, 0.88f));
+                feedback.SetColor(BaseColor, FocusedFeedbackColor);
                 renderer.SetPropertyBlock(feedback);
             }
         }

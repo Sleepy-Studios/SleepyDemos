@@ -4,6 +4,8 @@
 
 资源运行时维护 Core 资源抽象和当前 YooAssets 适配实现，为启动流程、热更新加载、UI 框架和 Hotfix 业务提供统一资源入口。
 
+运行时优先使用 `LoadAssetAsync` / `InstantiateAsync`，返回 `UniTask`；确需立即取得本地资源时使用直接返回结果的 `LoadAsset` / `Instantiate`。同步调用要求资源服务已经初始化，不通过阻塞 UniTask 等待自动初始化，也不保证远程或平台不支持的资源可以同步加载。两套入口保留明确完成契约，内部按需复用实现。
+
 它负责：
 
 - 注册和访问默认资源服务

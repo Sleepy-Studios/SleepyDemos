@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -11,10 +12,13 @@ namespace Core.Runtime
         [SerializeField] private GameObject[] viewInstances;
         [SerializeField] private Transform parent;
         [SerializeField] private bool uiAnimation = true;
-        [SerializeField] private bool isAsync;
+        [SerializeField] private bool isAsync = true;
 
         private List<View> currentTabList;
         private View currentClickView;
+        private CancellationTokenSource selectionCancellation;
+        private UniTask selectionTask;
+
 
         /// 驱动 View 切换的手风琴 Tab。
         public AccordionTab AccordionTab
@@ -54,10 +58,10 @@ namespace Core.Runtime
         /// <param name="localViewInstances">本地分页对象数组，不走 View 生命周期。</param>
         /// <param name="initLeafIndex">初始化后选中的叶子索引；负数表示不主动选择。</param>
         /// <param name="notify">初始化选中时是否触发回调。</param>
-        /// <param name="action">AccordionTab 初始化完成回调。</param>
+        /// <param name="action">AccordionTab 初始化完成回调，不等待图标加载或分页 View 显示。</param>
         /// <param name="canCollapseFirstLevel">点击已展开一级页签时是否允许收起。</param>
         /// <param name="enableAnimation">切换 View 时是否播放 UI 动画。</param>
-        /// <param name="isAsync">是否异步初始化 Tab 图标和 View 资源。</param>
+        /// <param name="isAsync">默认 true；是否异步初始化 Tab 图标和 View 资源。</param>
         public void Init(
             IList<AccordionTabData> data,
             List<View> views = null,
@@ -67,9 +71,9 @@ namespace Core.Runtime
             Action action = null,
             bool canCollapseFirstLevel = false,
             bool enableAnimation = true,
-            bool isAsync = false)
+            bool isAsync = true)
         {
-            ReleaseViewList().Forget();
+            ReleaseViewListAsync(views).Forget();
 
             if (accordionTab == null)
             {
@@ -121,49 +125,49 @@ namespace Core.Runtime
             }
         }
 
-        private async void OnTabClick(int index)
+        private void OnTabClick(int index)
         {
-            if (currentTabList == null)
-            {
-                RefreshLocalInstances(index);
-                return;
-            }
+            if (currentTabList == null) { RefreshLocalInstances(index); return; }
+            if (currentTabList == null || index < 0 || index >= currentTabList.Count) return;
+            var target = currentTabList[index];
+            if (target == null) return;
+            selectionCancellation?.Cancel();
+            selectionCancellation?.Dispose();
+            selectionCancellation = new CancellationTokenSource();
+            var previous = selectionTask;
+            // 下一次切换和释放都可能等待本轮，使用支持多个等待者的完成源。
+            var completion = new UniTaskCompletionSource();
+            selectionTask = completion.Task;
+            SelectViewAsync(previous, target, selectionCancellation.Token, completion).Forget();
+        }
 
-            if (index < 0 || index >= currentTabList.Count)
+        private async UniTask SelectViewAsync(UniTask previous, View target, CancellationToken token, UniTaskCompletionSource completion)
+        {
+            try
             {
-                Debug.LogError($"[AccordionViewTab] {name} 的 Tab 下标和 View 数据不匹配：{index}。");
-                return;
-            }
-
-            var clickView = currentTabList[index];
-            if (clickView == null)
-            {
-                return;
-            }
-
-            if (currentClickView != null && currentClickView != clickView)
-            {
-                await currentClickView.Hide(uiAnimation);
-            }
-
-            currentClickView = clickView;
-            var viewName = currentClickView.Name;
-            if (!currentClickView.IsLoaded)
-            {
-                if (isAsync)
+                await previous;
+                token.ThrowIfCancellationRequested();
+                if (currentClickView != null && currentClickView != target)
+                    await currentClickView.HideAsync(uiAnimation, token);
+                token.ThrowIfCancellationRequested();
+                currentClickView = target;
+                if (!target.IsLoaded)
                 {
-                    await currentClickView.InitAsync(Parent);
+                    // 切换取消只停止显示交付；缓存页的加载由 View 自身销毁负责取消。
+                    if (isAsync) { if (!await target.LoadAsync(Parent)) return; }
+                    else target.Init(Parent);
                 }
-                else
-                {
-                    currentClickView.Init(Parent);
-                }
+                token.ThrowIfCancellationRequested();
+                if (target.IsLoaded) await target.ShowAsync(uiAnimation, token);
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            catch (Exception exception) { Debug.LogException(exception); }
+            finally { completion.TrySetResult(); }
+        }
 
-            if (viewName == currentClickView.Name)
-            {
-                await currentClickView.Show(uiAnimation);
-            }
+        private void OnDisable()
+        {
+            selectionCancellation?.Cancel();
         }
 
         private void RefreshLocalInstances(int index)
@@ -182,26 +186,22 @@ namespace Core.Runtime
             }
         }
 
-        private async UniTaskVoid ReleaseViewList()
+        private async UniTask ReleaseViewListAsync(List<View> retained = null)
         {
-            if (currentClickView != null)
-            {
-                await currentClickView.Hide(uiAnimation);
-            }
-
-            if (currentTabList != null)
-            {
-                foreach (var view in currentTabList)
-                {
-                    if (view != null)
-                    {
-                        await view.Destroy();
-                    }
-                }
-            }
-
+            selectionCancellation?.Cancel();
+            selectionCancellation?.Dispose();
+            selectionCancellation = null;
+            // 等待前移交旧列表所有权，防止旧清理清空新一轮 Init 的字段。
+            var previous = selectionTask;
+            var views = currentTabList;
             currentTabList = null;
-            currentClickView = null;
+            // 复用同一列表时保留旧可见页，下一次选择仍需先隐藏它。
+            if (retained == null || !retained.Contains(currentClickView)) currentClickView = null;
+            if (views == null) return;
+            foreach (var view in views)
+                if (view != null && (retained == null || !retained.Contains(view)))
+                    await view.DestroyAsync();
+            await previous;
         }
 
         private static int CountLeaves(IList<AccordionTabData> data)
@@ -235,7 +235,7 @@ namespace Core.Runtime
                 accordionTab.Unregister(OnTabClick);
             }
 
-            ReleaseViewList().Forget();
+            ReleaseViewListAsync().Forget();
         }
     }
 }

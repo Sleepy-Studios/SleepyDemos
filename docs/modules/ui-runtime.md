@@ -60,7 +60,7 @@ Loading --加载失败或取消--> Faulted
 - 同步 `Init` / `InitWithGameObject` 失败时会启动唯一的 owned-resource cleanup operation；后续 `DestroyAsync` 等待同一 operation，不会并发重复枚举或释放资源。
 - `AddSubView()` 只接受无环的生命周期所有权关系：拒绝持有自身，也拒绝直接或间接祖先环；重复添加同一合法 child 保持幂等。
 - 地址为空、加载结果为 null 或非取消异常会进入 `Faulted` 并释放 Loader。取消会清理已返回的晚到实例并继续抛出 `OperationCanceledException`，由导航协调层决定回滚结果。
-- `Init`、`InitAsync`、`InitWithGameObject`、`Show`、`Hide`、`Destroy` 暂时保留为旧调用兼容外观，底层复用同一生命周期和清理路径，不构成第二套状态机。
+- 组件使用的 `ShowAsync` / `HideAsync` 复用 Enter/Exit 生命周期并支持取消；重复的 `InitAsync` / `Destroy` 包装已移除。
 
 ## 导航状态与表现边界
 
@@ -68,7 +68,7 @@ Loading --加载失败或取消--> Faulted
 - `UINavigationCoordinator` 在切回主线程后、调用 executor 前获取 `UIInteractionGate`，并在 `finally` 中成对释放；成功、失败和取消都不会漏锁。`Preload` 不改变正式表现，因此不获取 Gate。
 - Mask 在 Show、Replace、Close、Back、回滚和清栈边界统一从 `UIStack.TopModal` 刷新；Widget 与 Page 的进入、退出或失败不得覆盖现有 Modal Mask。刷新只调整层级、缩放、位置和 Button 交互，不修改 Mask 颜色或 alpha。
 - `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 必须由 `UIManager` 事务先移栈、等待 `DestroyAsync`，再从 Cache 移除；Cache 不持有 Stack，也不自行等待销毁。
-- Coordinator 使用单一状态锁保护 queue、current、current CTS、Pump 与 Dispose 状态；锁内只接纳已在外部准备好的同步 Show candidate，不调用 Cache、View 构造或任何外部委托。取消、TCS 完成、registration 释放和异步执行也都在锁外，executor 总是在 Unity 主线程串行运行。
+- Coordinator 使用单一状态锁保护 queue、current、current CTS、Pump 与 Dispose 状态；锁内只操作队列状态，不调用 Cache、View 构造或任何外部委托。取消、TCS 完成、registration 释放和异步执行也都在锁外，executor 总是在 Unity 主线程串行运行。
 - Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。pending 调用方取消会立即返回 Canceled，不等待队首，也不产生 View 副作用。
 - `CloseAllAsync` 会原子取消 current 和调用时的 pending，再作为后续唯一清理操作执行。单个 View 销毁异常不会中断其它 View，最终仍清空 Cache、Stack、Mask 和名称，并通过 Failed + `AggregateException` 返回清理异常。CloseAll 在执行中被调用方或后一个 CloseAll 取消时仍完成全量收口，但结果优先返回 Canceled。
 - 没有 View 可清理的 `CloseAllAsync` 是幂等成功，返回 `Succeeded` 且 `View == null`；这是成功结果允许空 View 的唯一 action。
@@ -115,26 +115,27 @@ Loading --加载失败或取消--> Faulted
 
 ## UIManager 使用规则
 
+正式入口统一为可等待的 Async 方法，返回 `UIOperationResult`；旧 Show/Close/Back/CloseAll 包装已移除。无等待需求的事件入口应在异步处理方法中检查 Failed 后再 `.Forget()`，单独 `.Forget()` 不会自动记录结果对象中的 Exception。导航不提供同步 bool；动画由现有选项控制。
+
+组件持有的 View 使用 `LoadAsync`、`ShowAsync`、`HideAsync`、`DestroyAsync`；同步 `Init` 仅供基础组件同步资源分支，`InitWithGameObject` 用于已有实例。MvcBind 不再提供未生效的 IsAsync 配置，导航统一异步加载。
+
 - 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
 - 跨场景或跨会话持有 View 时使用 `CloseAsync(View expectedView, ...)`。它只关闭调用方保存的具体实例；即使同类型新 View 已由下一场景显示，旧会话清理也不会误关新实例。按类型 `CloseAsync<T>()` 只用于当前所有者明确唯一的普通界面。
 - 强类型页面数据使用 `ShowAsync<TView, TData>(data, options, cancellationToken)`，普通页面使用 `ShowAsync<TView>(view => view.SetData(data), options, cancellationToken)`。同一个导航 operation 持有交付回调，加载初始化完成后、OnShow 前调用一次；不得先显示再通过外部补数据。
 - 带数据异步 Show 与普通 Show 共用 FIFO、取消、Ignored、失败回滚和缓存语义。后一次调用的数据不会提前覆盖仍在加载的前一次 View。
 - Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
 - Push / Replace / Close / Back 都按各自 entering / exiting 语义解析 World Transition；Preload 不改变表现，CloseAll 当前直接完成全量销毁，因此两者都不虚构世界过渡。业务需要相机或场景联动时在 Hotfix Provider 注册真实实现。
-- `ShowAsync<T>(new UIShowOptions(animated, hidePrevious: false))` 与旧同步 `Show<T>(hidePrevious: false)` 会保留同层上一 View 的 Visible 状态；关闭新 View 时不会再次 Enter 已经 Visible 的旧 View。默认 `HidePrevious` 为 true。
+- `ShowAsync<T>(new UIShowOptions(animated, hidePrevious: false))` 会保留同层上一 View 的 Visible 状态；关闭新 View 时不会再次 Enter 已经 Visible 的旧 View。默认 `HidePrevious` 为 true。
 - 进入和退出只编排当前 View 的 `IUITransition` 与由 Provider 解析的 `IUIWorldTransition`；同阶段并行等待，阶段之间严格顺序执行。失败或取消时先恢复栈和 View 表现快照，再把已尝试的世界过渡同步到事务前方向。
 - Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
 - 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
-- `Show<T>()`、`Close<T>()`、`Back()` 和 `CloseAll()` 仅为迁移期兼容包装；fire-and-forget 路径统一观察 Failed.Exception 并写入错误日志。
-- 旧同步 `Show<T>()` 只在 Unity 主线程锁外准备 candidate，再由 Coordinator 原子接纳；后台线程调用不会构造 View 或访问 Unity 对象，只排队并返回 null，实际实例由 executor 回到主线程后创建。
-- 更早的同类型 Close 或任意 Back、Replace、CloseAll 处于 current/pending 时，同步 `Show<T>()` 及数据泛型重载不会接纳可能被销毁的 candidate，而是返回 null 并继续把 Show 排在 FIFO 后执行；执行时会清理 Faulted/Destroying/Destroyed 旧目标并取得可用实例。已发现 CloseAll barrier 时还会跳过 candidate 构造快速路径。
 - 数据泛型 Show/Preload 把 SetData 作为 operation 载荷，在轮到该 operation 且控件初始化完成后交付，避免后一次请求覆盖仍在加载的前一次数据。Preload 交付后仍保持隐藏，不进入正式栈。
-- `Preload<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
+- `PreloadAsync<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
 - Replace 收到 Modal 或 Widget 时返回 Failed；只有本次 operation 新建的目标才会销毁并移出 Cache，已显示或已预加载的既有实例、栈、Mask 和名称保持不变。
 
 ## 渲染结构与生命周期
 
-启动阶段由 `UIInitializeSystem` 调用 `UIManager.InitializeAsync()`，再由 `UIRootManager.BuildUIRoot()` 动态创建持久化 UI 环境：
+启动阶段由 `UIInitializeSystem` 调用 `UIManager.InitializeAsync()`，再由 `UIRootManager.BuildUIRootAsync()` 动态创建持久化 UI 环境：
 
 1. 确认项目存在 UI Layer，并让主相机排除该层。
 2. 创建透视 `UICamera`，加入 URP 主相机的 Camera Stack。
@@ -144,7 +145,7 @@ Loading --加载失败或取消--> Faulted
 
 固定层使用 `0/100/150/200/250/300` 的 `sortingOrder`。View 初始化后挂到 `Level` 对应的层 Root；Tip View 统一挂到 Tip 层内的 `TipContent`。业务内容通过 sibling 顺序控制同层先后，不再动态添加窗口级 Canvas、Scaler 或 Raycaster。
 
-`BuildUIRoot()` 可以重复调用，但同一运行期只创建一套 Root 和 UI Camera。`CloseAll()` 只清理 View、UI 栈与缓存，不销毁持久化 Root。
+`BuildUIRootAsync()` 可以重复调用，但同一运行期只创建一套 Root 和 UI Camera。`CloseAllAsync()` 只清理 View、UI 栈与缓存，不销毁持久化 Root。
 
 完整设计取舍见 [Core UI 渲染设计原则](../architecture/ui-rendering.md)，新增 View 的制作规则见 [接入 Core UI View](../runbooks/create-ui-view.md)。
 
@@ -156,8 +157,8 @@ Loading --加载失败或取消--> Faulted
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/ViewTabVertical.prefab`：`ViewTab` 基础模板，结构为 `ViewTabVertical / Tab / ViewRoot`。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Btns/BtnSwitch.prefab`：`UIBtnSwitch` 基础模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Dropdown/Dropdown.prefab`：`UIDropdown` 基础模板。
-- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Accordion/AccordionTab.prefab`：`AccordionTab` 基础模板。
-- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Accordion/AccordionViewTab.prefab`：`AccordionViewTab` 基础模板。
+- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/AccordionTab.prefab`：`AccordionTab` 基础模板。
+- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/AccordionViewTab.prefab`：`AccordionViewTab` 基础模板。
 
 `ViewTab` 模板遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
 
@@ -167,9 +168,9 @@ Loading --加载失败或取消--> Faulted
 - `UITab`、`AccordionTab`、`ViewTab`、`AccordionViewTab`、`ViewList` 使用 `Init(...)`。
 - `UIDropdown` 使用 `SetData(...)`。
 - `UIBtnSwitch` 使用 `Set(...)` / `SetStatus(...)`，`SetAction` 为覆盖回调，`Register` 为追加回调。
-- `UIImageLoader` 使用 `SetImage(string key, bool setNativeSize = true, bool isAsync = false)`。
+- `UIImageLoader` 使用 `SetImage(string key, bool setNativeSize = true, bool isAsync = true)`。
 
-所有基础组件默认 `isAsync = false`，即同步初始化或同步资源加载；需要分帧初始化、异步图片加载或异步 View 加载时显式传 `isAsync: true`。图片参数统一为 Sprite 资源路径，不传图集名和缩放值。完整调用规则见 [使用 Core 基础 UI 组件](../runbooks/use-core-ui-components.md)。
+基础组件默认 `isAsync = true`，按组件职责分帧初始化或异步加载资源；确需立即完成时显式传 `isAsync: false`。Tab 初始化回调只表示项与初始选择已完成，不等待全部图标或分页 View 显示。图片参数统一为 Sprite 资源路径，不传图集名和缩放值。完整调用规则见 [使用 Core 基础 UI 组件](../runbooks/use-core-ui-components.md)。
 
 ## 修改注意
 
@@ -183,6 +184,18 @@ Loading --加载失败或取消--> Faulted
 - View Prefab 根节点不得携带 `Canvas`、`CanvasScaler` 或 `GraphicRaycaster`。
 - 只有 Profiler 证明有必要时才增加局部 Sub-Canvas，并保持 `overrideSorting=false`。
 
+## 通用 Tips
+
+两类正式 Prefab 为 `LoadResources/UI/Common/SimpleTips` 和 `CommonTips`，对应 Hotfix/Common 的 `SimpleTipsView`、`CommonTipsView`。统一通过 `TipsUI` 调用 `UIManager` 的数据交付与导航队列，使用 `Tip + Widget`、`EmptyUITransition` 和隐藏缓存，不占 Page/Modal 栈，也不隐藏当前页面。固定引用由 MvcBind 生成，根节点不添加 Canvas 三件套。
+
+Core 的 `UITipsPanel` 复用 TMP 尺寸适配与布局组，正文超高使用 ScrollRect，不缩小字号。`UITooltip` 跟随目标矩形，通过 `TooltipPlacementUtil` 将目标 Canvas 投影到 Tips Canvas，按安全区选择方向、收拢主体并移动箭头。只有目标、边界或内容变化才重新定位，静止时不重建布局。
+
+SimpleTips 默认用透明 Blocker 消耗外部点击，用 `UIMenuScope` 接管返回并在关闭后恢复焦点。悬停模式不启用 Blocker 和菜单作用域。`SimpleTipsTrigger` 在 Hotfix，仅绑定文本和触发规则，不另建输入底座。目标销毁、禁用或移出安全范围请求关闭，隐藏后清除目标引用。
+
+CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标直接保存于 Prefab，不依赖字体中的 emoji。新请求立即取消旧计时和待执行关闭，代次与具体 View 实例共同保护关闭目标。长正文先自动滚动，再停留指定时长；计时不受 timeScale 影响，不拦截射线或抢焦点。View 的 OnHide 只取消自身计时，不能取消正在完成的关闭事务。
+
+`Tests.Module.CommonTipsPlayModeTests` 使用正式 Prefab 和真实 UIManager/Canvas/EventSystem，替换的仅为编辑器资源加载边界；不代表 YooAsset Player 构建验收。接入步骤见[使用 Core 基础 UI 组件](../runbooks/use-core-ui-components.md)。
+
 ## 验证入口
 
 - `Tests.Module.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
@@ -194,7 +207,7 @@ Loading --加载失败或取消--> Faulted
 - `Tests.Module.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
 - `Tests.Module.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
 - `Tests.Module.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
-- `Tests.Module.UIManagerNavigationPlayModeTests` 在真实 Play Mode 中检查 FIFO、反向取消、事务提交点、错误回滚、缓存清理和兼容门面。
+- `Tests.Module.UIManagerNavigationPlayModeTests` 在真实 Play Mode 中检查 FIFO、反向取消、事务提交点、错误回滚、缓存清理和后台线程请求。
 - `Tests.Module.UITransitionPlayModeTests` 在真实 Play Mode 中检查默认 FadeScale 终态、取消、销毁、InteractionGate 引用计数以及 Gate / Mask 独立性。
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。
@@ -210,3 +223,5 @@ UIState 继续只写声明的表现属性。UIStateInteraction 消费 EventSyste
 鼠标设备识别来自真实移动或按下，不把新界面的 PointerEnter、Point 初始状态当成实际操作。这样触屏打开菜单后，静止鼠标不会隐藏触控区。Hub 保存确认提示，处于根页面时不显示无效返回；Loop Scroll 保存确认/返回提示，全部引用同一公共图标目录。
 
 UIMenuScope 保存于普通页面/弹窗资源，MenuInputScope 的顶层所有者独占导航；关闭后恢复有效旧焦点，方向导航限制在当前作用域。按钮启用或禁用时刷新邻接关系，嵌套作用域的控件不加入父级导航。虚拟列表继续使用 LoopScrollMenuNavigation 的稳定 Key 和按钮绑定身份，不重新模拟 Submit。
+
+异步组件使用最新请求覆盖旧初始化。UITab/AccordionTab 通过代次阻止旧回调；ViewList 取消旧任务并清理未完成的旧 View；ViewTab/AccordionViewTab 串行等待旧切换退出，释放时先移交旧列表所有权，避免旧清理改写新列表。UIImageLoader 丢弃迟到图片并使用原加载器释放，销毁后不创建新加载器。

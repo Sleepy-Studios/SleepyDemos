@@ -79,7 +79,7 @@ namespace Core.Runtime
         /// <param name="selectedText">默认显示文本；为空时使用 selectedIndex 对应选项文本。</param>
         /// <param name="itemImages">选项图片 Sprite 资源路径；为空时清空图片。</param>
         /// <param name="showStateChanged">展开状态变化回调；为空时不覆盖已有事件订阅。</param>
-        /// <param name="isAsync">是否异步初始化选项图片。</param>
+        /// <param name="isAsync">默认 true；是否异步初始化选项图片。</param>
         public void SetData(
             IList<string> values,
             Action<int> action,
@@ -87,7 +87,7 @@ namespace Core.Runtime
             string selectedText = null,
             IReadOnlyList<string> itemImages = null,
             Action<bool> showStateChanged = null,
-            bool isAsync = false)
+            bool isAsync = true)
         {
             if (values == null || tabView == null)
             {
@@ -97,9 +97,10 @@ namespace Core.Runtime
             options = new List<string>(values);
             onSelected = action;
             dataShowStateChanged = showStateChanged;
+            // 先隐藏旧内容，再启动新初始化，避免 OnDisable 取消刚创建的任务。
+            Collapse(false);
             tabView.Init(options, itemImages, selectedIndex, false, null, isAsync);
             SetSelectedText(GetDefaultText(selectedIndex, selectedText));
-            Collapse(false);
         }
 
         /// <summary>

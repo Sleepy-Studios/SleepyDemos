@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Core.Runtime;
 using Hotfix.JinxCasino.Persistence;
 using TMPro;
 using UnityEngine;
@@ -152,7 +153,8 @@ namespace Hotfix.JinxCasino.UI
             if (info.IsEmpty) return title + "空槽";
             if (!string.IsNullOrEmpty(info.Error)) return title + "无法恢复\n保存可替换损坏的数据";
             string mode = info.Mode == "Practice" ? "自由练习" : info.Mode == "Endless" ? "无尽旅程" : "正式冒险";
-            string date = DateTime.TryParse(info.SavedUtc, out var savedAt) ? savedAt.ToLocalTime().ToString("MM-dd HH:mm") : "时间未知";
+            string date = TimeUtil.TryParseIso8601(info.SavedUtc, out var savedAt)
+                ? TimeUtil.FormatTimestamp(savedAt.ToUnixTimeMilliseconds(), "MM-dd HH:mm") : "时间未知";
             return title + mode + "\n第 " + (info.StageIndex + 1) + (info.Mode == "Endless" ? " 轮" : " 区") + " · 筹码 " + info.Coins + " · " + date + (info.UsesBackup ? "\n将恢复上一个有效备份" : string.Empty);
         }
         private void ChooseSaveSlot1() => ChooseSaveSlot(1);

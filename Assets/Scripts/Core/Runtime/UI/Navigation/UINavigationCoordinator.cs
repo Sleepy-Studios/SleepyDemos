@@ -36,7 +36,7 @@ namespace Core.Runtime
             }
         }
 
-        internal UniTask<UIOperationResult> Enqueue(
+        internal UniTask<UIOperationResult> EnqueueAsync(
             UINavigationAction action,
             Type targetType,
             bool animated,
@@ -44,76 +44,6 @@ namespace Core.Runtime
             Action<View> configure = null,
             View targetView = null,
             bool hidePrevious = true)
-        {
-            return EnqueueCore(
-                action,
-                targetType,
-                animated,
-                callerCancellation,
-                out _,
-                out _,
-                configure,
-                targetView,
-                hidePrevious,
-                false);
-        }
-
-        internal UniTask<UIOperationResult> Enqueue(
-            UINavigationAction action,
-            Type targetType,
-            bool animated,
-            CancellationToken callerCancellation,
-            out bool closeAllBarrier,
-            Action<View> configure = null,
-            View targetView = null,
-            bool hidePrevious = true)
-        {
-            return EnqueueCore(
-                action,
-                targetType,
-                animated,
-                callerCancellation,
-                out closeAllBarrier,
-                out _,
-                configure,
-                targetView,
-                hidePrevious,
-                false);
-        }
-
-        internal UniTask<UIOperationResult> EnqueueLegacyShow(
-            Type targetType,
-            bool animated,
-            out bool closeAllBarrier,
-            out bool candidateAdopted,
-            Action<View> configure,
-            View candidate,
-            bool hidePrevious = true)
-        {
-            return EnqueueCore(
-                UINavigationAction.Push,
-                targetType,
-                animated,
-                CancellationToken.None,
-                out closeAllBarrier,
-                out candidateAdopted,
-                configure,
-                candidate,
-                hidePrevious,
-                true);
-        }
-
-        private UniTask<UIOperationResult> EnqueueCore(
-            UINavigationAction action,
-            Type targetType,
-            bool animated,
-            CancellationToken callerCancellation,
-            out bool closeAllBarrier,
-            out bool targetAdopted,
-            Action<View> configure,
-            View targetView,
-            bool hidePrevious,
-            bool requireBarrierFreeAdoption)
         {
             QueuedUIOperation operation;
             List<QueuedUIOperation> canceledPending = null;
@@ -123,12 +53,6 @@ namespace Core.Runtime
 
             lock (stateGate)
             {
-                closeAllBarrier = HasCloseAllBarrierLocked();
-                var hasEarlierDestructiveOperation = requireBarrierFreeAdoption &&
-                                                    HasDestructiveOperationLocked(targetType);
-                targetAdopted = targetView != null &&
-                                (!requireBarrierFreeAdoption ||
-                                 (!closeAllBarrier && !hasEarlierDestructiveOperation && !disposed));
                 operation = new QueuedUIOperation(
                     ++nextOperationId,
                     action,
@@ -136,7 +60,7 @@ namespace Core.Runtime
                     animated,
                     callerCancellation,
                     configure,
-                    targetAdopted ? targetView : null,
+                    targetView,
                     hidePrevious);
                 if (disposed)
                 {
@@ -201,38 +125,6 @@ namespace Core.Runtime
             }
 
             return false;
-        }
-
-        private bool HasDestructiveOperationLocked(Type targetType)
-        {
-            if (IsDestructiveOperation(current, targetType))
-            {
-                return true;
-            }
-
-            foreach (var operation in operations)
-            {
-                if (operation.State == QueuedUIOperationState.Pending &&
-                    IsDestructiveOperation(operation, targetType))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsDestructiveOperation(QueuedUIOperation operation, Type targetType)
-        {
-            if (operation == null)
-            {
-                return false;
-            }
-
-            return operation.Action == UINavigationAction.CloseAll ||
-                   operation.Action == UINavigationAction.Back ||
-                   operation.Action == UINavigationAction.Replace ||
-                   (operation.Action == UINavigationAction.Close && operation.TargetType == targetType);
         }
 
         public void Dispose()

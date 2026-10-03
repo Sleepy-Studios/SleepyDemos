@@ -22,8 +22,8 @@ namespace Core.Runtime
         /// </summary>
         /// <param name="key">Sprite 资源路径；为空时清空图片。</param>
         /// <param name="setNativeSize">加载成功后是否调用 <see cref="Image.SetNativeSize"/>。</param>
-        /// <param name="isAsync">是否使用异步加载；false 时走同步加载。</param>
-        public void SetImage(string key, bool setNativeSize = true, bool isAsync = false)
+        /// <param name="isAsync">默认 true；是否使用异步加载；false 时走同步加载。</param>
+        public void SetImage(string key, bool setNativeSize = true, bool isAsync = true)
         {
             if (isAsync)
             {
@@ -73,12 +73,13 @@ namespace Core.Runtime
             }
 
             var requestId = ++imageRequestSequence;
-            var sprite = await Loader.LoadAssetAsync<Sprite>(key);
+            var requestLoader = Loader;
+            var sprite = await requestLoader.LoadAssetAsync<Sprite>(key);
             if (this == null || image == null)
             {
                 if (sprite != null)
                 {
-                    Loader.ReleaseAsset(sprite);
+                    requestLoader.ReleaseAsset(sprite);
                 }
 
                 return;
@@ -88,7 +89,7 @@ namespace Core.Runtime
             {
                 if (sprite != null)
                 {
-                    Loader.ReleaseAsset(sprite);
+                    requestLoader.ReleaseAsset(sprite);
                 }
 
                 return;
@@ -160,6 +161,7 @@ namespace Core.Runtime
 
         private void OnDestroy()
         {
+            imageRequestSequence++;
             ReleaseCurrentSprite();
             loader?.Dispose();
             loader = null;

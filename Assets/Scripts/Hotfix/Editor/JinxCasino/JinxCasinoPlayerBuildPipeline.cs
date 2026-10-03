@@ -66,7 +66,7 @@ namespace Hotfix.Editor.JinxCasino
             if (!UnityEditor.BuildPipeline.IsBuildTargetSupported(UnityEditor.BuildPipeline.GetBuildTargetGroup(target), target))
                 throw new BuildFailedException("未安装目标平台构建模块：" + target);
 
-            string version = DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            string version = TimeUtil.FormatTimestamp(TimeUtil.UtcNowMilliseconds, "yyyyMMddHHmmss", TimeZoneInfo.Utc) + "-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             var job = new BuildJob
             {
                 Target = (int)target, OriginalTarget = (int)EditorUserBuildSettings.activeBuildTarget,
@@ -141,7 +141,7 @@ namespace Hotfix.Editor.JinxCasino
             string archive = Path.Combine(Path.GetDirectoryName(root), stem + "-Windows-Playable.zip");
             if (File.Exists(archive))
                 archive = Path.Combine(Path.GetDirectoryName(root), stem + "-Windows-Playable-" +
-                    DateTime.UtcNow.ToString("yyyyMMddHHmmss") + "-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".zip");
+                    TimeUtil.FormatTimestamp(TimeUtil.UtcNowMilliseconds, "yyyyMMddHHmmss", TimeZoneInfo.Utc) + "-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".zip");
             ZipWindowsPayload(root, archive, stem);
             Debug.Log("[JinxCasinoBuild] 已仅重打包Windows S1运行文件，原ZIP与排障目录保留：" + archive);
             return archive;

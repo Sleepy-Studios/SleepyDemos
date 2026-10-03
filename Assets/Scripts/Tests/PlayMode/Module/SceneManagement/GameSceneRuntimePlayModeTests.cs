@@ -25,7 +25,7 @@ namespace Tests.Module
             hubScene = SceneManager.CreateScene("GameSceneRuntimeHubTest");
             SceneManager.SetActiveScene(hubScene);
             hubCamera = CreatePresentationCamera(hubScene, "Hub Camera");
-            yield return UIRootManager.Instance.BuildUIRoot().ToCoroutine();
+            yield return UIRootManager.Instance.BuildUIRootAsync().ToCoroutine();
             UIRootManager.Instance.BindToBaseCamera(hubCamera);
         }
 

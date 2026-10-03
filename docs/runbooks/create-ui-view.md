@@ -8,7 +8,7 @@
 
 - View 资源位于 `Assets/LoadResources/UI` 或对应 Demo 的可加载资源目录。
 - View 代码继承 `Core.Runtime.View` 或其泛型版本。
-- 新业务通过 `await UIManager.ShowAsync<T>()`、`await CloseAsync<T>()` 管理生命周期；`Preload<T>()` 也会进入同一导航队列。
+- 新业务通过 `await UIManager.ShowAsync<T>()`、`await CloseAsync<T>()` 管理生命周期；`PreloadAsync<T>()` 也会进入同一导航队列。
 
 ## 制作 Prefab
 
@@ -69,7 +69,7 @@ protected override IUITransition CreateUITransition()
 - 不缓存第二份 Transition 引用；需要扩展时只覆写 `CreateUITransition()`。
 - 不自行创建、保存或 Kill DOTween tween；取消、立即完成和销毁统一交给 Transition 实例处理。
 - 加载或过渡收到取消时，让 `OperationCanceledException` 继续返回框架层，不在业务 View 中吞掉。
-- 旧 `Show()` / `Hide()` 调用暂时仍可使用；它们是生命周期兼容外观，不代表业务侧拥有 Transition。
+- 组件持有的 View 使用 `ShowAsync()` / `HideAsync()`，业务页面通过 UIManager 导航；不要直接操作 View 持有的 Transition。
 - 不添加自定义的 UI / Camera Animation 属性或在 Hook 中启动另一套动画；UI 与世界表现必须分别落到 `IUITransition` 和 `IUIWorldTransition`。
 
 ## 接入 World / Camera 过渡
@@ -178,9 +178,7 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 - `Failed` 表示加载、Hook 或过渡异常；框架会回滚正式栈并清理 Faulted View。
 - `OnBeforeOpen` 多个订阅者按注册顺序串行等待；前一个失败后不会调用后续订阅者。
 - UI / World Transition 是唯一过渡入口；不要在 `OnShow` / `OnHide` 中再次手动启动同一段动画。
-- `Show<T>()` / `Close<T>()` 同步外观仅用于旧代码迁移，新业务不要依赖其 fire-and-forget 完成时机。
-- CloseAll 并发窗口内同步 `Show<T>()` 及数据泛型重载会安全返回 null，但 Show operation 仍排在 CloseAll 后执行；新业务必须优先 `await ShowAsync<T>()`。
-- 数据泛型兼容入口的 `SetData` 会随导航 operation 按 FIFO 应用；不要在调用 Show/Preload 前自行修改缓存 View 的数据。
+- 带数据异步入口的 `SetData` 会随导航 operation 按 FIFO 应用；不要在调用 Show/Preload 前自行修改缓存 View 的数据。
 - `CloseAllAsync()` 即使返回 Failed 也会完成全量清理；其 `Exception` 可能是包含多个 View 销毁异常的 `AggregateException`。
 - CloseAll 在执行期间收到取消也会完成全量清理，最终返回 Canceled；不要把 Canceled 理解为“没有执行清理”。
 - 空 Cache 上的 `CloseAllAsync()` 返回 `Succeeded` 且 `View == null`，调用方应按 `Status` 判断，不要把空 View 当作失败。

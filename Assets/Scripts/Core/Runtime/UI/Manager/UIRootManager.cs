@@ -48,7 +48,7 @@ namespace Core.Runtime
         public Camera UICamera { get; private set; }
         public Transform Root { get; private set; }
 
-        public async UniTask BuildUIRoot()
+        public async UniTask BuildUIRootAsync()
         {
             if (Root != null)
             {
@@ -85,7 +85,7 @@ namespace Core.Runtime
         {
             if (Root == null)
             {
-                BuildUIRoot().Forget();
+                BuildUIRootAsync().Forget();
             }
 
             return roots.TryGetValue(layer, out var root) ? root : Root;

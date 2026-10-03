@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -18,7 +19,8 @@ namespace Core.Runtime
         private Action<int> onClick;
         private UIState lastState;
         private int currentIndex = -1;
-        private bool initializing;
+        private int initializationGeneration;
+        private CancellationTokenSource initializationCancellation;
 
         /// 点击前拦截回调。返回 false 时阻止本次选中和通知。
         public Func<int, bool> TryClick { get; set; }
@@ -37,10 +39,14 @@ namespace Core.Runtime
             RegisterStaticButtons();
         }
 
+        private void OnDisable() { initializationCancellation?.Cancel(); }
+
         private void OnDestroy()
         {
+            initializationCancellation?.Cancel();
+            initializationCancellation?.Dispose();
             ClearButtonHandlers();
-            ReleaseList().Forget();
+            ReleaseListAsync().Forget();
             onClick = null;
             TryClick = null;
             lastState = null;
@@ -75,129 +81,54 @@ namespace Core.Runtime
         /// <param name="autoShow">初始化后是否显示每一项；false 时隐藏。</param>
         /// <param name="initSelectIndex">初始化后选中的索引；负数表示不主动选择。</param>
         /// <param name="notify">初始选中时是否触发点击回调。</param>
-        /// <param name="isAsync">是否异步初始化 View 资源并逐帧处理列表项。</param>
+        /// <param name="isAsync">默认 true；是否异步初始化 View 资源并逐帧处理列表项。</param>
         public void Init<TView, TData>(
             IList<TData> data,
             Action<TView, TData, int> onInit,
             bool autoShow = true,
             int initSelectIndex = -1,
             bool notify = true,
-            bool isAsync = false)
+            bool isAsync = true)
             where TView : View, new()
         {
-            if (isAsync)
-            {
-                InitAsyncInternal(data, onInit, autoShow, initSelectIndex, notify).Forget();
-                return;
-            }
-
-            InitImmediate(data, onInit, autoShow, initSelectIndex, notify);
+            initializationCancellation?.Cancel();
+            initializationCancellation?.Dispose();
+            initializationCancellation = new CancellationTokenSource();
+            initializationGeneration++;
+            var content = data == null ? null : new List<TData>(data);
+            InitItemsAsync(content, onInit, autoShow, initSelectIndex, notify, isAsync,
+                initializationGeneration, initializationCancellation.Token).Forget();
         }
 
-        private void InitImmediate<TView, TData>(
-            IList<TData> data,
-            Action<TView, TData, int> onInit,
-            bool autoShow,
-            int initSelectIndex,
-            bool notify)
-            where TView : View, new()
+        private async UniTask InitItemsAsync<TView, TData>(IList<TData> data,
+            Action<TView, TData, int> onInit, bool autoShow, int initSelectIndex,
+            bool notify, bool isAsync, int generation, CancellationToken token) where TView : View, new()
         {
-            if (data == null || initializing)
-            {
-                return;
-            }
-
-            initializing = true;
+            if (data == null) return;
             try
             {
                 parent = parent != null ? parent : transform;
                 int i = 0;
                 for (; i < data.Count; i++)
                 {
-                    var view = GetOrCreateView<TView>(i);
-                    if (autoShow)
-                    {
-                        view.Show(false).Forget();
-                    }
-                    else
-                    {
-                        view.Hide(false).Forget();
-                    }
-
+                    token.ThrowIfCancellationRequested();
+                    var view = isAsync ? await GetOrCreateViewAsync<TView>(i, token) : GetOrCreateView<TView>(i);
+                    token.ThrowIfCancellationRequested();
+                    if (autoShow) await view.ShowAsync(false, token);
+                    else await view.HideAsync(false, token);
+                    token.ThrowIfCancellationRequested();
                     onInit?.Invoke(view, data[i], i);
+                    token.ThrowIfCancellationRequested();
                     RegisterItemClick(view.gameObject, i);
+                    if (isAsync) await UniTask.Yield(cancellationToken: token);
                 }
-
                 for (; i < currentShowList.Count; i++)
-                {
-                    currentShowList[i].Hide(false).Forget();
-                }
-
-                if (initSelectIndex >= 0 && initSelectIndex < data.Count)
-                {
+                    await currentShowList[i].HideAsync(false, token);
+                token.ThrowIfCancellationRequested();
+                if (generation == initializationGeneration && initSelectIndex >= 0 && initSelectIndex < data.Count)
                     SetIndex(initSelectIndex, notify);
-                }
             }
-            finally
-            {
-                initializing = false;
-            }
-        }
-
-        private async UniTaskVoid InitAsyncInternal<TView, TData>(
-            IList<TData> data,
-            Action<TView, TData, int> onInit,
-            bool autoShow,
-            int initSelectIndex,
-            bool notify)
-            where TView : View, new()
-        {
-            if (data == null || initializing)
-            {
-                return;
-            }
-
-            initializing = true;
-            try
-            {
-                parent = parent != null ? parent : transform;
-                int i = 0;
-                for (; i < data.Count; i++)
-                {
-                    var view = await GetOrCreateViewAsync<TView>(i);
-                    if (autoShow)
-                    {
-                        await view.Show(false);
-                    }
-                    else
-                    {
-                        await view.Hide(false);
-                    }
-
-                    onInit?.Invoke(view, data[i], i);
-                    RegisterItemClick(view.gameObject, i);
-
-                    await UniTask.Yield();
-                    if (this == null || gameObject == null)
-                    {
-                        return;
-                    }
-                }
-
-                for (; i < currentShowList.Count; i++)
-                {
-                    await currentShowList[i].Hide(false);
-                }
-
-                if (initSelectIndex >= 0 && initSelectIndex < data.Count)
-                {
-                    SetIndex(initSelectIndex, notify);
-                }
-            }
-            finally
-            {
-                initializing = false;
-            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         }
 
         /// <summary>
@@ -230,7 +161,7 @@ namespace Core.Runtime
         {
             for (int i = 0; i < currentShowList.Count; i++)
             {
-                currentShowList[i].Hide(false).Forget();
+                currentShowList[i].HideAsync(false).Forget();
             }
         }
 
@@ -249,45 +180,37 @@ namespace Core.Runtime
             }
         }
 
-        private TView GetOrCreateView<TView>(int index) where TView : View, new()
+        private TView GetItem<TView>(int index) where TView : View, new()
         {
             if (currentShowList.Count > index)
             {
-                return (TView)currentShowList[index];
+                var old = currentShowList[index];
+                if (old is TView typed && (old.IsLoaded || old.State == ViewState.Created)) return typed;
+                old.DestroyAsync().Forget();
+                var replacement = new TView();
+                currentShowList[index] = replacement;
+                return replacement;
             }
-
             var view = new TView();
             currentShowList.Add(view);
-            if (prefab != null)
-            {
-                view.InitWithGameObject(Instantiate(prefab, parent));
-            }
-            else
-            {
-                view.Init(parent);
-            }
-
             return view;
         }
 
-        private async UniTask<TView> GetOrCreateViewAsync<TView>(int index) where TView : View, new()
+        private TView GetOrCreateView<TView>(int index) where TView : View, new()
         {
-            if (currentShowList.Count > index)
-            {
-                return (TView)currentShowList[index];
-            }
+            var view = GetItem<TView>(index);
+            if (view.IsLoaded) return view;
+            if (prefab != null) view.InitWithGameObject(Instantiate(prefab, parent));
+            else view.Init(parent);
+            return view;
+        }
 
-            var view = new TView();
-            currentShowList.Add(view);
-            if (prefab != null)
-            {
-                view.InitWithGameObject(Instantiate(prefab, parent));
-            }
-            else
-            {
-                await view.InitAsync(parent);
-            }
-
+        private async UniTask<TView> GetOrCreateViewAsync<TView>(int index, CancellationToken token) where TView : View, new()
+        {
+            var view = GetItem<TView>(index);
+            if (view.IsLoaded) return view;
+            if (prefab != null) view.InitWithGameObject(Instantiate(prefab, parent));
+            else if (!await view.LoadAsync(parent, token)) throw new InvalidOperationException("ViewList item load failed.");
             return view;
         }
 
@@ -372,11 +295,11 @@ namespace Core.Runtime
             buttonHandlers.Clear();
         }
 
-        private async UniTask ReleaseList()
+        private async UniTask ReleaseListAsync()
         {
             for (int i = 0; i < currentShowList.Count; i++)
             {
-                await currentShowList[i].Destroy();
+                await currentShowList[i].DestroyAsync();
             }
 
             currentShowList.Clear();

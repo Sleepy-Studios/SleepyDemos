@@ -11,6 +11,8 @@ namespace Hotfix
     [Mvc("DlssSettingsView")]
     public partial class DlssSettingsView : View
     {
+        private static readonly Color SelectedButtonColor = new Color(0.05f, 0.42f, 0.48f, 1);
+        private static readonly Color NormalButtonColor = new Color(0.09f, 0.15f, 0.23f, 1);
         private Transform settingsPanel;
         private bool entrySuppressed;
         private bool originalOpenButton;
@@ -94,7 +96,7 @@ namespace Hotfix
         private static void SetButton(Button button, bool selected, bool enabled)
         {
             button.interactable = enabled;
-            button.image.color = selected ? new Color(0.05f, 0.42f, 0.48f, 1) : new Color(0.09f, 0.15f, 0.23f, 1);
+            button.image.color = selected ? SelectedButtonColor : NormalButtonColor;
         }
 
         private void OnOffButtonClick() => StreamlineRuntime.SetMode(null);

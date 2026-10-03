@@ -2,14 +2,14 @@
 
 ## 目标
 
-本 runbook 面向 Hotfix 页面和 Demo 入口，说明 `Core.Runtime` 中基础交互组件、通用 UGUI/TMP 表现组件和全局扩展的选型规则。交互组件默认同步初始化；需要分帧或异步资源加载时显式传 `isAsync: true`。
+本 runbook 面向 Hotfix 页面和 Demo 入口，说明 `Core.Runtime` 中基础交互组件、通用 UGUI/TMP 表现组件和全局扩展的选型规则。交互组件默认分帧初始化或异步资源加载；确需立即完成时显式传 `isAsync: false`。
 
 ## 通用规则
 
 - 每个组件只使用一个主入口：`Init(...)`、`SetData(...)` 或 `SetImage(...)`。
 - `Register` 表示追加回调，`Unregister` 表示移除回调，`SetAction` 表示覆盖回调。
 - `notify` 控制本次设置是否触发回调；静默回显或初始化默认值时传 `false`。
-- `isAsync` 控制初始化和资源加载方式；`false` 为同步，`true` 为异步。
+- `isAsync` 控制初始化和资源加载方式；`false` 为同步，默认 `true` 为异步；不控制 UIManager 导航、动画或网络。
 - 图片参数统一传 Sprite 资源路径，不传图集名、不传缩放值。
 
 ## 组件选型
@@ -135,4 +135,58 @@ autoScroll.SetText(title, shouldAutoStart: true);
 
 UIStateInteraction 绑定独立 UIState，配置 Normal/Hover/Focused/Pressed/Disabled；UITab 的 Normal/Selected 继续表示业务状态。鼠标悬停和方向导航不能修改 Tab 索引。触屏不显示交互反馈；禁用逻辑仍由 Selectable/CanvasGroup 控制。由 UIState 接管的属性关闭原生 Transition，避免同一属性被两方写入。
 
-TMPAutoFitLayoutElement 在 Inspector 保存设计字号，运行时更改使用 SetDesignFontSize(value)。TMP 自动缩小后的当前 fontSize 不再作为恢复依据；文本变短恢复设计字号，不读取 TMP 私有字段。当前保存资源没有挂载该组件，无字号资产迁移。
+TMPAutoFitLayoutElement 在 Inspector 保存设计字号，运行时更改使用 SetDesignFontSize(value)。TMP 自动缩小后的当前 fontSize 不再作为恢复依据；文本变短恢复设计字号，不读取 TMP 私有字段。SimpleTips/CommonTips 的正式资源使用该组件，正文超高由滚动区域承载，不启用超高缩字。
+
+## 时间、颜色与倒计时
+
+```csharp
+long nowMs = TimeUtil.UtcNowMilliseconds;
+string date = TimeUtil.FormatTimestamp(nowMs, "MM-dd HH:mm"); // 设备时区
+string savedUtc = TimeUtil.ToIso8601(); // 与现有存档一致的 UTC round-trip 字符串
+string duration = TimeUtil.FormatSeconds(90061, TimeDisplayFormat.HoursMinutesSeconds); // 25:01:01
+long nextRefresh = TimeUtil.GetNextDailyRefreshTime(4); // 刷新小时由业务提供
+Color textColor = ColorUtil.GetColor("#FF000080", Color.white);
+string highlighted = ColorUtil.WrapText("警告", ColorUtil.Colors.Warning);
+countdown.StartCountdown(nextRefresh, TimeDisplayFormat.AutoWithUnits); // UICountdown 的 TMP 引用在 Prefab 绑定
+```
+
+时间戳必须使用名字所标注的单位。`FromUnixSeconds` 与 `FromUnixMilliseconds` 不根据数值猜测；`ToDateTime`/`FormatTimestamp` 可以传 `TimeZoneInfo`。墙钟默认系统 UTC，服务器接入可以实现 `ITimeSource` 并调用 `SetTimeSource`，本模块不发起网络校时。测试结束必须恢复 `SetTimeSource(null)`。倒计时完成事件只在正常到期触发，`StopCountdown`、禁用和销毁不会触发；完成回调可以同步重启下一轮。
+
+## 两类 Tips
+
+```csharp
+var result = await TipsUI.ShowAsync("保存成功", CommonTipsType.Success);
+if (result.Status == UIOperationStatus.Failed) Debug.LogException(result.Exception);
+await TipsUI.ShowAsync("请检查输入", CommonTipsType.Notice, duration: 3);
+await TipsUI.ShowAsync("操作失败", CommonTipsType.Warning);
+await TipsUI.ShowSimpleAsync(button.transform as RectTransform, "这里显示规则说明", "操作规则");
+await TipsUI.ShowSimpleAsync(screenPosition, "指定屏幕点的说明",
+    options: new SimpleTipsOptions(TooltipDirection.Right, gap: 12, maxWidth: 480));
+await TipsUI.HideSimpleAsync();
+```
+
+业务入口在 `Hotfix.TipsUI`；Core 使用方可复用 `UITipsPanel`、`UITooltip` 和 `TooltipPlacementUtil`，不得反向依赖 Hotfix。所有 Tips 的显隐经过 UIManager。`ShowSimpleAsync` 的 RectTransform 重载使用矩形中心与边缘，Vector2 重载只接受屏幕像素；不要传 `transform.position` 世界坐标。
+
+SimpleTips 默认上方、间距 12、主体最大宽度 600。短文本收缩背景，长文本换行，超高正文滚动。外部点击由 Blocker 消耗并关闭，返回关闭后恢复原焦点。连续 Show 更新缓存 View 的内容，不重复开关节点；目标移动和屏幕尺寸变化会重定位，目标无效时自动关闭。
+
+可在业务按钮挂 `SimpleTipsTrigger`，Inspector 保存目标、标题、正文与 Click/Hover 模式。Click 接收点击或公共菜单 Submit；Hover 接收悬停及菜单聚焦，离开/失焦或组件禁用时只关闭自己拥有的提示。悬停模式不接管菜单焦点、不阻挡点击。直接调用接口时也可用 `new SimpleTipsOptions(closeOnOutside: false)` 由业务控制关闭。
+
+CommonTips 顶部单条覆盖，默认停留 2 秒；长正文自动滚动到末尾后计时，更新时重置滚动与计时。不拦截点击、不抢焦点、不受 timeScale 影响。三种图标为 Prefab 中的直接 Sprite 引用，不依赖 emoji 字形。
+
+预先取消的 Show 请求返回 Canceled，并保留当前 Tips。替换请求在排队期间取消或显示失败时，如果没有更新请求接管，会清理已失去所有权的旧提示，避免残留 Blocker 或无计时消息。CommonTips 的请求令牌在显示后取消也会关闭当前消息；SimpleTips 已显示后仍允许外部点击或返回关闭。
+
+正式资源位于 `Assets/LoadResources/UI/Common`，背景、箭头和状态图标位于公共 `Sprites/Tips`。修改绑定后通过 MvcBind 重新生成，不手改 `*Component.cs`。字体使用公共 HarmonyOS_CN 及其现有回退；箭头与 Body 为同级，Pivot 位于连接边缘；定位完成后不要再次覆写主体位置。尺寸、安全边距和 gap 使用 Canvas 本地单位，不按 Screen.width 手工缩放。
+
+背景、箭头、成功勾号和提醒叹号参考钓鱼项目公共资源；单色符号用 ColorUtil 的语义色着色。警告三角为本项目资源，矢量原稿保存在 `ArtSource/common_ui/WarningTriangle.svg`，对应 `WarningTriangle.png`。直接维护正式资产，临时装配、导出及预览工具不作为长期菜单保留。
+
+运行 `Tests.Module.CommonUtilityTests`（EditMode）、`Tests.Module.CommonTipsPlayModeTests`（PlayMode）和相关 Prefab 约定测试。实际观感还需检查安全区、屏幕比例、正文滚动、三种图标及返回焦点；相关测试不等于全量回归或 YooAsset Player 构建。
+
+### 初始化完成时机
+
+`UITab` / `AccordionTab` 的 action 在项创建和初始选择后触发，不保证图片或分页 View 已加载。需要读取最终选中态时放入 action；`ViewList` 的 onInit 按项交付。重复 Init 使用新请求，旧任务不能再回写数据；禁用/销毁会停止未完成的初始化或切换。`UIDropdown.SetData` 先收起旧内容，再初始化隐藏选项，避免隐藏动作取消新任务。
+
+```csharp
+tab.Init(labels, action: () => RefreshSelection(tab.Index));
+imageLoader.SetImage(spriteAddress); // 默认异步，不应在下一行读取最终 sprite
+tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
+```

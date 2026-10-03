@@ -36,6 +36,14 @@
 - 不要直接写入具体页面或具体玩法规则
 - 改启动顺序时，必须联动检查 `docs/architecture/startup-flow.md`
 
+## 公共时间与颜色
+
+`Common/TimeUtil` 统一 UTC 墙钟、秒/毫秒时间戳、日期显示、ISO 8601 存档时间、时长与每日刷新计算。默认使用系统时间，`ITimeSource` 可由服务器接入或测试替换；测试结束调用 `SetTimeSource(null)` 恢复。日期默认使用设备时区，刷新小时由调用方显式指定。玩法步进、物理与暂停时钟仍由各自宿主管理。
+
+`Common/ColorUtil` 提供十六进制转换、透明度替换与 TMP 富文本标签。公共语义色保存在 `Colors`，Demo 专属色板继续归 Demo，计算颜色不经过十六进制量化。`Components/UICountdown` 绑定 TMP 文本，按绝对结束时间刷新，禁用或销毁取消，完成事件允许重入启动下一轮。
+
+规则回归由 `Tests.Module.CommonUtilityTests` 和 `Tests.Module.CommonTipsPlayModeTests` 覆盖。接入示例见[使用 Core 基础 UI 组件](../runbooks/use-core-ui-components.md)。
+
 ## 常见任务
 
 - 补一个新的启动系统

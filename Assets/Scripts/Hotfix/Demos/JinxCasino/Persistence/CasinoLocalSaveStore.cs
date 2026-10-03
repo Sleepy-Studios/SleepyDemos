@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using Core.Runtime;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
 
@@ -31,7 +32,7 @@ namespace Hotfix.JinxCasino.Persistence
             string payload = session.ToSnapshotJson();
             var envelope = new CasinoSaveEnvelope
             {
-                Version = 1, SavedUtc = DateTime.UtcNow.ToString("o"), Payload = payload,
+                Version = 1, SavedUtc = TimeUtil.ToIso8601(), Payload = payload,
                 Checksum = Hash(payload), Mode = state.Mode.ToString(), StageIndex = state.StageIndex, Coins = state.Coins
             };
             string path = GetSlotPath(slot);

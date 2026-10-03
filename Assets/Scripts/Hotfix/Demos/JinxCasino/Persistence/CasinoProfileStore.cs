@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using Core.Runtime;
 using Hotfix.JinxCasino.Rules;
 using UnityEngine;
 
@@ -50,7 +51,7 @@ namespace Hotfix.JinxCasino.Persistence
                 }
                 catch (Exception exception) when (IsRecoverableReadError(exception)) { }
             }
-            var envelope = new ProfileEnvelope { Version = 1, SavedUtc = DateTime.UtcNow.ToString("o"), Payload = payload, Checksum = Hash(payload) };
+            var envelope = new ProfileEnvelope { Version = 1, SavedUtc = TimeUtil.ToIso8601(), Payload = payload, Checksum = Hash(payload) };
             Directory.CreateDirectory(rootDirectory);
             string temporary = path + ".new-" + Guid.NewGuid().ToString("N");
             try

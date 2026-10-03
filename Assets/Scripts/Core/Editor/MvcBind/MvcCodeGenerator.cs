@@ -92,7 +92,6 @@ namespace Core.Editor.MvcBind
                 builder.AppendLine("        public override UILayer Level => UILayer." + settings.layer + ";");
                 builder.AppendLine("        public override UIViewMode ViewMode => UIViewMode." + settings.viewMode + ";");
                 builder.AppendLine("        public override MaskType Mask => MaskType." + settings.mask + ";");
-                builder.AppendLine("        public override bool IsAsync => " + ToLiteral(settings.isAsync) + ";");
                 builder.AppendLine("        public override bool EnableOnInit => " + ToLiteral(settings.enableOnInit) + ";");
                 builder.AppendLine("        public override bool DestroyOnHide => " + ToLiteral(settings.destroyOnHide) + ";");
                 AppendTransitionSettings(builder, settings);

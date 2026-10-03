@@ -34,7 +34,6 @@ namespace Core.Runtime
         public virtual UIViewMode ViewMode => UIViewModeResolver.Resolve(Level);
         public virtual string WorldTransitionKey => string.Empty;
         public virtual bool EnableOnInit => true;
-        public virtual bool IsAsync => true;
         public virtual string Name => GetType().Name;
         public virtual MaskType Mask => MaskType.None;
         public virtual bool DestroyOnHide => true;
@@ -118,7 +117,7 @@ namespace Core.Runtime
         /// <param name="parent">View 根对象挂载父节点。</param>
         /// <param name="cancellationToken">取消令牌；取消会继续抛给导航协调层。</param>
         /// <returns>成功完成初始化时返回 true；资源无效或加载失败时返回 false。</returns>
-        public async UniTask<bool> LoadAsync(Transform parent, CancellationToken cancellationToken)
+        public async UniTask<bool> LoadAsync(Transform parent, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (IsLoaded)
@@ -144,7 +143,7 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 同步初始化 View 资源并挂载到指定父节点；兼容旧调用方，迁移方向为 LoadAsync。
+        /// 同步初始化 View 资源并挂载到指定父节点；仅供组件显式同步分支使用，导航使用 LoadAsync。
         /// </summary>
         /// <param name="parent">View 根对象挂载父节点。</param>
         public void Init(Transform parent)
@@ -185,16 +184,6 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 异步初始化 View；兼容旧调用方，底层复用可取消的 LoadAsync 生命周期。
-        /// </summary>
-        /// <param name="parent">View 根对象挂载父节点。</param>
-        /// <returns>初始化异步任务。</returns>
-        public async UniTask InitAsync(Transform parent)
-        {
-            await LoadAsync(parent, CancellationToken.None);
-        }
-
-        /// <summary>
         /// 使用已有根对象完成 View 初始化；兼容列表组件创建的本地实例。
         /// </summary>
         /// <param name="target">由调用方创建并交给 View 生命周期管理的根对象。</param>
@@ -225,31 +214,41 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 显示 View；兼容旧调用方，底层转发到 EnterAsync。
+        /// 显示组件持有的 View；受 UIManager 管理的页面应通过导航入口显示。
         /// </summary>
         /// <param name="animation">是否播放 UI Transition。</param>
+        /// <param name="cancellationToken">取消本次组件显示或隐藏操作。</param>
         /// <returns>显示异步任务。</returns>
-        public async UniTask Show(bool animation = true)
+        public async UniTask ShowAsync(bool animation = true, CancellationToken cancellationToken = default)
         {
             var context = new UITransitionContext(0, UINavigationAction.Push, this, null, animation);
-            await EnterAsync(context, CancellationToken.None);
+            var previousState = State;
+            var wasActive = gameObject != null && gameObject.activeSelf;
+            try { await EnterAsync(context, cancellationToken); }
+            catch (OperationCanceledException)
+            {
+                RestoreAfterNavigationFailure(previousState, wasActive);
+                throw;
+            }
         }
 
         /// <summary>
-        /// 隐藏 View；兼容旧调用方，底层转发到 ExitAsync。
+        /// 隐藏组件持有的 View；受 UIManager 管理的页面应通过导航入口关闭。
         /// </summary>
         /// <param name="animation">是否播放 UI Transition。</param>
+        /// <param name="cancellationToken">取消本次组件显示或隐藏操作。</param>
         /// <returns>隐藏异步任务。</returns>
-        public async UniTask Hide(bool animation = true)
+        public async UniTask HideAsync(bool animation = true, CancellationToken cancellationToken = default)
         {
             var context = new UITransitionContext(0, UINavigationAction.Close, null, this, animation);
-            await ExitAsync(context, CancellationToken.None);
-        }
-
-        /// 销毁 View；兼容旧调用方，底层复用 DestroyAsync 的同一清理任务。
-        public UniTask Destroy()
-        {
-            return DestroyAsync();
+            var previousState = State;
+            var wasActive = gameObject != null && gameObject.activeSelf;
+            try { await ExitAsync(context, cancellationToken); }
+            catch (OperationCanceledException)
+            {
+                RestoreAfterNavigationFailure(previousState, wasActive);
+                throw;
+            }
         }
 
         /// 幂等销毁 View，并释放其持有的全部生命周期资源。

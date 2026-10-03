@@ -34,7 +34,7 @@ namespace Tests.Demo
             var view = new DroneFlightHudView { Loader = new OwnedObjectLoader() };
 
             view.InitWithGameObject(instance);
-            yield return view.Show(false).ToCoroutine();
+            yield return view.ShowAsync(false).ToCoroutine();
 
             Assert.That(ReadText(header), Is.EqualTo("操作提示 · 收起"));
             StringAssert.StartsWith("<b>飞行与档位</b>", ReadText(flight));
