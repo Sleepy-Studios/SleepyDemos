@@ -27,7 +27,7 @@
 
 `MainMenuView` 持有普通 `MainMenuDemoEntry` 集合，每项包含稳定 Key、图片资源地址、标题、描述、目标场景与可进入状态。页面通过现有 Loop Scroll 展示卡片，Grid 列数由实际 Viewport 和模板尺寸决定，不维护另一套手机页面。当前登记无人机飞行、小小搬豆工、倒霉蛋俱乐部、DLSS 实验室；UI 交互展台没有目标场景，保持“未开放”。
 
-页面注册 typed 数据、点击与回收回调，再提交真实集合。数据回调只调用 `item.SetData(entries[index])`；卡片继承 `ItemView<MainMenuDemoEntry>`，在 `RefreshUI` 中更新图片、标题、描述和进入按钮，不保存物理 Cell 上下文。`SetData` 可以早于初始化：Core 先保存最后一次数据，待 `InitComponent` 完成控件绑定后才刷新；正常列表回调仍在 Item 初始化之后。
+页面注册 typed 数据、点击与回收回调，再提交真实集合。数据回调只调用 `item.SetData(entries[index])`；卡片继承普通 ItemView，在具体 `SetData(MainMenuDemoEntry data)` 中更新图片、标题、描述和进入按钮。桥接先完成控件初始化，再交付数据，复用不重复绑定；点击由页面按当前索引处理，卡片无需缓存数据或物理 Cell 上下文。
 
 模板控件引用和按钮事件由正式 MvcBind 生成。卡片使用已有 `UIImageLoader` 按地址异步加载预览，回收回调调用 `Clear` 释放当前图片并阻止旧请求写回；不再增加业务 Card/Button 子类、预览序列化组件或手写控件索引。生成文件的引用随 Prefab 重生成，不直接修改 `*Component.cs`。
 

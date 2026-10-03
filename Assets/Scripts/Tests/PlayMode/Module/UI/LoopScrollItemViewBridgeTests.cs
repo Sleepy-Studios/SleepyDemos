@@ -15,42 +15,45 @@ namespace Tests.Module
     public sealed class LoopScrollItemViewBridgeTests
     {
         public sealed class TestItem : ItemView { public static int Created; public TestItem() { Created++; } }
-        private sealed class DataItem : ItemView<string>
+        public sealed class DataItem : ItemView
         {
             private Text label;
             public int RefreshCount { get; private set; }
-            protected override void InitComponent() { label = gameObject.GetComponent<Text>(); }
-            protected override void RefreshUI()
+            public int InitializeCount { get; private set; }
+            protected override void InitComponent() { label = gameObject.GetComponent<Text>(); InitializeCount++; }
+            public void SetData(string data)
             {
-                Assert.That(IsInitialized, Is.True);
-                label.text = params1;
+                Assert.That(label, Is.Not.Null, "框架必须先绑定控件再交付数据");
+                label.text = data;
                 RefreshCount++;
             }
         }
 
-        [Test]
-        public void ItemDataRefreshesAfterBindingAndUsesLatestPendingValue()
+        [UnityTest]
+        public IEnumerator ItemDataIsDeliveredAfterBindingAndReuseDoesNotInitializeAgain()
         {
-            var root = new GameObject("DataItem", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            var root = CreateList(out var list);
+            root.GetComponentInChildren<LoopCell>(true).gameObject.AddComponent<Text>();
+            var owner = new View();
+            var data = new List<string>(); for (int i = 0; i < 100; i++) data.Add(i.ToString());
+            DataItem first = null;
+            owner.RegisterLoopScrollRect<DataItem>(list, (item, index) =>
+            {
+                item.SetData(data[index]);
+                Assert.That(item.InitializeCount, Is.EqualTo(1));
+                Assert.That(item.gameObject.GetComponent<Text>().text, Is.EqualTo(data[index]));
+                first ??= item;
+            });
             try
             {
-                var item = new DataItem();
-                item.SetData("old");
-                item.SetData("latest");
-                Assert.That(item.RefreshCount, Is.Zero, "提前接收数据不能访问尚未绑定的控件");
-                item.Init(root, 0);
-                Assert.That(root.GetComponent<Text>().text, Is.EqualTo("latest"));
-                Assert.That(item.RefreshCount, Is.EqualTo(1));
-                item.SetData("rebound");
-                Assert.That(root.GetComponent<Text>().text, Is.EqualTo("rebound"));
-                Assert.That(item.RefreshCount, Is.EqualTo(2));
-
-                var initializedFirst = new DataItem();
-                initializedFirst.Init(root, 1);
-                Assert.That(initializedFirst.RefreshCount, Is.Zero);
-                initializedFirst.SetData(null);
-                Assert.That(root.GetComponent<Text>().text, Is.Empty);
-                Assert.That(initializedFirst.RefreshCount, Is.EqualTo(1), "空值同样是一次有效的数据提交");
+                list.SetTotalCount(data, getItemKey: value => (string)value); yield return null;
+                Assert.That(first.RefreshCount, Is.EqualTo(1));
+                list.RefreshCells(); yield return null;
+                Assert.That(first.RefreshCount, Is.EqualTo(2), "一次重绑只交付一次数据");
+                list.ScrollToCell(80); yield return null;
+                list.ScrollToCell(0); yield return null;
+                Assert.That(first.InitializeCount, Is.EqualTo(1));
+                yield return owner.DestroyAsync().ToCoroutine();
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }

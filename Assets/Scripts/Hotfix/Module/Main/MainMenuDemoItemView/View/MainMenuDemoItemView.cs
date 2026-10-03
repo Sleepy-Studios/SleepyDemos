@@ -5,15 +5,17 @@ namespace Hotfix
     /// Demo 卡片使用普通数据刷新，虚拟列表身份和导航由公共组件维护。
     [Module("Main")]
     [Mvc("MainMenuDemoItemView")]
-    public sealed partial class MainMenuDemoItemView : ItemView<MainMenuDemoEntry>
+    public sealed partial class MainMenuDemoItemView : ItemView
     {
-        protected override void RefreshUI()
+        /// <summary>更新当前卡片；列表保证控件已初始化，回收复用时不重复绑定事件。</summary>
+        /// <param name="data">本次展示数据；点击由页面按当前索引处理，卡片无需另存数据。</param>
+        public void SetData(MainMenuDemoEntry data)
         {
-            UIImageLoader_Preview.SetImage(params1.PreviewAddress, setNativeSize: false, isAsync: true);
-            TextMeshProUGUI_Title.text = params1.Title;
-            TextMeshProUGUI_Description.text = params1.Description;
-            TextMeshProUGUI_Action.text = !params1.SceneId.HasValue ? "未开放" : params1.CanEnter ? "进入体验" : "加载中…";
-            LoopScrollMenuButton_Enter.interactable = params1.CanEnter && params1.SceneId.HasValue;
+            UIImageLoader_Preview.SetImage(data.PreviewAddress, setNativeSize: false, isAsync: true);
+            TextMeshProUGUI_Title.text = data.Title;
+            TextMeshProUGUI_Description.text = data.Description;
+            TextMeshProUGUI_Action.text = !data.SceneId.HasValue ? "未开放" : data.CanEnter ? "进入体验" : "加载中…";
+            LoopScrollMenuButton_Enter.interactable = data.CanEnter && data.SceneId.HasValue;
         }
 
         private void OnEnterClick() => TriggerClick();

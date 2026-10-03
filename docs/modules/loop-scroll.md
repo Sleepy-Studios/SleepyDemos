@@ -26,7 +26,7 @@ MvcBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击�
 
 注册通过 View.AddBinding 持有；重复注册同一委托不会重复触发，View 销毁解除。桥接销毁解除包事件并清理缓存。普通 ItemView 内部事件在 InitComponent 中只注册一次，回收时业务解绑负责释放其业务资源。
 
-嵌套 ItemView 同样支持三个注册入口，返回 IDisposable，宿主在嵌套 ItemView 回收时释放，列表组件销毁也会清除事件。一个物理 Cell 必须对应固定 ItemView 类型，不同类型使用不同 Prefab 类型池。`ItemView<T>` 的 SetData 可先保存数据，控件绑定完成后才进入独立 RefreshUI；列表正常回调仍在 Init 后。具体初始化契约见 [Core UI 运行时](ui-runtime.md#view-生命周期)。
+嵌套 ItemView 同样支持三个注册入口，返回 IDisposable，宿主在嵌套 ItemView 回收时释放，列表组件销毁也会清除事件。一个物理 Cell 必须对应固定 ItemView 类型，不同类型使用不同 Prefab 类型池。普通 Item 自己声明具体 SetData，桥接先初始化控件再回调数据；复用不重复初始化。Item 不缓存初始化前的数据，不使用父类自动 RefreshUI 模板。具体初始化契约见 [Core UI 运行时](ui-runtime.md#view-生命周期)。
 
 新增业务行为放 Hotfix。包公共 API 与算法在独立仓库维护；不得把宿主类型加入包。Core.Runtime/Core.Editor 单向引用包程序集，Core.Editor 不引用 Hotfix，示例构建按类型名称定位 Hotfix 示例入口。Hotfix 的本地 LoopScroll Demo 引用已导入的示例共享程序集，复用导航、字体和翻译；Core 和包运行时不依赖示例程序集。
 

@@ -56,12 +56,13 @@ namespace Hotfix.Demos.LoopScroll
         protected override void OnDestroy()
         { if (view != null) view.DestroyAsync().Forget(); base.OnDestroy(); }
     }
-    public sealed class LoopScrollExampleItem : ItemView<LoopSampleItem>
+    public sealed class LoopScrollExampleItem : ItemView
     {
         private Text label;
         protected override void InitComponent() { label = gameObject.GetComponentInChildren<Text>(true); }
-        protected override void RefreshUI()
-        { label.text = params1.Display; }
+        /// <summary>更新示例文字；桥接已完成这个动态示例的控件初始化。</summary>
+        /// <param name="data">当前示例条目。</param>
+        public void SetData(LoopSampleItem data) { label.text = data.Display; }
     }
     public sealed class LoopScrollExampleView : View
     {
