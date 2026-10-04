@@ -1,0 +1,2400 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea3c985bfa4008a4a8b1581b51a4f5fd, type: 3}
+  m_Name: Catalog
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishCatalog
+  creatures:
+  - id: BrownCrab
+    displayName: "\u68D5\u87F9"
+    island: 0
+    requiredRodId: CrabRod
+    baits:
+    - FreeLure
+    baitWeights:
+    - 5
+    weight: 1
+    value: 3
+    health: 15
+    baseWeight: 2
+    healthRestored: 18
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.38
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 1
+    prefab: {fileID: 8926376284528899197, guid: 8fa06c8f7b1f5b04fbaddbb392cc0d4f, type: 3}
+  - id: RockCrab
+    displayName: "\u5CA9\u87F9"
+    island: 0
+    requiredRodId: CrabRod
+    baits:
+    - HotDog
+    baitWeights:
+    - 10
+    weight: 1
+    value: 7
+    health: 70
+    baseWeight: 2
+    healthRestored: 25
+    fullnessRestored: 40
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.48
+    strength: 1.3
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 1
+    prefab: {fileID: 8971148336921009660, guid: 6eabc12ee35632e4fbbcd641732b0083, type: 3}
+  - id: Shrimp
+    displayName: "\u867E"
+    island: 0
+    requiredRodId: CrabRod
+    baits:
+    - FreeLure
+    baitWeights:
+    - 4
+    weight: 1
+    value: 5
+    health: 12
+    baseWeight: 0.015
+    healthRestored: 8
+    fullnessRestored: 25
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.24
+    strength: 0.8
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 691859760439679559, guid: 9c6a8b7eb62801041baef4dc78f19456, type: 3}
+  - id: Lobster
+    displayName: "\u9F99\u867E"
+    island: 0
+    requiredRodId: CrabRod
+    baits:
+    - HotDog
+    baitWeights:
+    - 3
+    weight: 1
+    value: 9
+    health: 85
+    baseWeight: 2
+    healthRestored: 26
+    fullnessRestored: 40
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.36
+    strength: 1.5
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 1
+    prefab: {fileID: 8762791196359707088, guid: 2420f508cfab1df488a4c870bf5699a0, type: 3}
+  - id: Clam
+    displayName: "\u86E4\u870A"
+    island: 0
+    requiredRodId: 
+    baits: []
+    baitWeights: []
+    weight: 1
+    value: 1
+    health: 0
+    baseWeight: 0.05
+    healthRestored: 15
+    fullnessRestored: 10
+    ignoredBySeller: 0
+    ignoredBySeagulls: 1
+    length: 0.15
+    strength: 0.5
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 1
+    isGroundPickup: 1
+    isEndangered: 0
+    motion: 0
+    prefab: {fileID: 4995602917094045122, guid: 657b8cacdbacef54587a2ec7da868ac7, type: 3}
+  - id: SpiderCrab
+    displayName: "\u8718\u86DB\u87F9"
+    island: 0
+    requiredRodId: CrabRod
+    baits:
+    - EmptyBeerCan
+    baitWeights:
+    - 1
+    weight: 1
+    value: 10000
+    health: 750
+    baseWeight: 18
+    healthRestored: 100
+    fullnessRestored: 100
+    ignoredBySeller: 1
+    ignoredBySeagulls: 1
+    length: 3
+    strength: 2.8
+    isBoss: 1
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 5
+    prefab: {fileID: 5817293354409557730, guid: aa62a4c2031c1fe468daae851dd402c7, type: 3}
+  - id: Leech
+    displayName: "\u6C34\u86ED"
+    island: 1
+    requiredRodId: 
+    baits: []
+    baitWeights: []
+    weight: 1
+    value: 4
+    health: 0
+    baseWeight: 0.05
+    healthRestored: 10
+    fullnessRestored: 15
+    ignoredBySeller: 0
+    ignoredBySeagulls: 1
+    length: 0.5
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 1
+    isGroundPickup: 1
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 6734231292992250687, guid: 74fffaea0810f494288113c018309f9b, type: 3}
+  - id: Piranha
+    displayName: "\u98DF\u4EBA\u9C7C"
+    island: 1
+    requiredRodId: 
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 4
+    health: 5
+    baseWeight: 2
+    healthRestored: 16
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.5
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 6715981377588201473, guid: ded7e8ad685cb7a4fbd65109aac2ca13, type: 3}
+  - id: GiantPiranha
+    displayName: "\u5DE8\u578B\u98DF\u4EBA\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - ModifiedLeech
+    baitWeights:
+    - 1
+    weight: 1
+    value: 11000
+    health: 2500
+    baseWeight: 4
+    healthRestored: 100
+    fullnessRestored: 100
+    ignoredBySeller: 1
+    ignoredBySeagulls: 1
+    length: 2
+    strength: 3
+    isBoss: 1
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 1973677650717900691, guid: 69979e107d353e8499db815c4cae6cb0, type: 3}
+  - id: Mackerel
+    displayName: "\u9CAD\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - FreeLure
+    baitWeights:
+    - 2
+    weight: 1
+    value: 6
+    health: 40
+    baseWeight: 3.2
+    healthRestored: 18
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.8
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 3086399615380840662, guid: 508e8904d8b77b34191e40dbbc140598, type: 3}
+  - id: Gar
+    displayName: "\u96C0\u9CDD"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - FreeLure
+    baitWeights:
+    - 2
+    weight: 1
+    value: 5
+    health: 40
+    baseWeight: 13
+    healthRestored: 18
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 1
+    length: 1
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 4243778994975571697, guid: 778022bc024f9914894226dd463e2c88, type: 3}
+  - id: Pike
+    displayName: "\u72D7\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - FreeLure
+    - BeginnerLure
+    baitWeights:
+    - 1
+    - 10
+    weight: 1
+    value: 12
+    health: 80
+    baseWeight: 20
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.9
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 7371694094195079101, guid: fe3c0347e5f07ce47968c36ecf7a7129, type: 3}
+  - id: Cod
+    displayName: "\u9CD5\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 10
+    health: 50
+    baseWeight: 4
+    healthRestored: 20
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.75
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 4630944794481383995, guid: 7eea0432c5e079d43bafb67f06ab4e6f, type: 3}
+  - id: Goldfish
+    displayName: "\u91D1\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 4
+    weight: 1
+    value: 24
+    health: 50
+    baseWeight: 0.1
+    healthRestored: 32
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.55
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 3674927504507615254, guid: 5e3d81cf0ba65d749a9b7fb66a82fabf, type: 3}
+  - id: Perch
+    displayName: "\u6CB3\u9C88"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 5
+    weight: 1
+    value: 18
+    health: 75
+    baseWeight: 4
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.65
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 6334606974305729087, guid: 468347c4f27164c40afc58b828592a82, type: 3}
+  - id: Triggerfish
+    displayName: "\u6273\u673A\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 5
+    weight: 1
+    value: 18
+    health: 100
+    baseWeight: 7
+    healthRestored: 14
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.6
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 1314326766425110857, guid: 3913e2d8d693ed649a3c60c69891cae6, type: 3}
+  - id: Goby
+    displayName: "\u867E\u864E\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 5
+    weight: 1
+    value: 12
+    health: 40
+    baseWeight: 0.1
+    healthRestored: 18
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.55
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 5503486978804635010, guid: 79d053cb33a2ac44298030441c97b626, type: 3}
+  - id: Salmon
+    displayName: "\u9C91\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    baitWeights:
+    - 7
+    weight: 1
+    value: 14
+    health: 75
+    baseWeight: 4
+    healthRestored: 22
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.9
+    strength: 1
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 728074419196352661, guid: c2ed59f5a3864294fa9052dabb625f30, type: 3}
+  - id: Needlefish
+    displayName: "\u988C\u9488\u9C7C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 8
+    weight: 1
+    value: 60
+    health: 130
+    baseWeight: 0.0001
+    healthRestored: 20
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.1
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 8027391226687152669, guid: 9021bcc75e6e13a438e0ae46b60b701f, type: 3}
+  - id: Seahorse
+    displayName: "\u6D77\u9A6C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    - ProfessionalLure
+    baitWeights:
+    - 3
+    - 1
+    weight: 1
+    value: 100
+    health: 350
+    baseWeight: 400
+    healthRestored: 100
+    fullnessRestored: 100
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.55
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 8092768937120402150, guid: d5337c7e18417c64a907b2c5eda0c95b, type: 3}
+  - id: Bowlfish
+    displayName: "\u9C7C\u7F38\u9C7C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 3
+    weight: 1
+    value: 150
+    health: 160
+    baseWeight: 12
+    healthRestored: 32
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.75
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 1488937913485085027, guid: 9ec05800feacdf940baa1299f40403dd, type: 3}
+  - id: YellowBoxfish
+    displayName: "\u9EC4\u7BB1\u9C80"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 8
+    weight: 1
+    value: 53
+    health: 160
+    baseWeight: 0.5
+    healthRestored: 18
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.45
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 2907503910523138398, guid: 6f83e777af48e4a469b857db0d022abd, type: 3}
+  - id: BlueShark
+    displayName: "\u84DD\u9CA8"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    - StandardBossLure
+    baitWeights:
+    - 1
+    - 1
+    weight: 1
+    value: 300
+    health: 2300
+    baseWeight: 70
+    healthRestored: 40
+    fullnessRestored: 100
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 3
+    strength: 3.5
+    isBoss: 1
+    isMiniBoss: 1
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 2024092919090294590, guid: 20f6b35429e04fa48914aab6f440fa65, type: 3}
+  - id: Pufferfish
+    displayName: "\u6CB3\u8C5A"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - Carrot
+    baitWeights:
+    - 1
+    weight: 1
+    value: 12000
+    health: 18000
+    baseWeight: 1
+    healthRestored: 0
+    fullnessRestored: 0
+    ignoredBySeller: 1
+    ignoredBySeagulls: 1
+    length: 2
+    strength: 3.5
+    isBoss: 1
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 1505280653419608864, guid: da16fe3c225bcf240bc932f4e8f71f95, type: 3}
+  - id: Tuna
+    displayName: "\u91D1\u67AA\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    - ProfessionalBossLure
+    baitWeights:
+    - 1
+    - 1
+    weight: 1
+    value: 2000
+    health: 5000
+    baseWeight: 70
+    healthRestored: 100
+    fullnessRestored: 100
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 2.6
+    strength: 3.5
+    isBoss: 1
+    isMiniBoss: 1
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 8
+    prefab: {fileID: 2179037914038799795, guid: b412d9f6538774e4097d4ddc80e8be39, type: 3}
+  - id: Albatross
+    displayName: "\u4FE1\u5929\u7FC1"
+    island: 3
+    requiredRodId: FishingRod
+    baits: []
+    baitWeights: []
+    weight: 1
+    value: 13000
+    health: 7800
+    baseWeight: 1.5
+    healthRestored: 100
+    fullnessRestored: 100
+    ignoredBySeller: 1
+    ignoredBySeagulls: 1
+    length: 4.4
+    strength: 3.5
+    isBoss: 1
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 1
+    isEndangered: 0
+    motion: 7
+    prefab: {fileID: 7575059903362683983, guid: 88ad5ef72d5e5c742a1545b30fef732f, type: 3}
+  - id: Bass
+    displayName: "\u9C88\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 250
+    health: 350
+    baseWeight: 4
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.14
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 5180779975074914971, guid: 60f31543471ef464e93a3d3faba34894, type: 3}
+  - id: RedSnapper
+    displayName: "\u7EA2\u9CB7"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 280
+    health: 280
+    baseWeight: 4
+    healthRestored: 28
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.08
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 7431685191096315827, guid: 28ba028ed62dd8d49b5efd1bd413349f, type: 3}
+  - id: Parrotfish
+    displayName: "\u9E66\u5634\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 350
+    health: 550
+    baseWeight: 28
+    healthRestored: 50
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.05
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 5346639693125417961, guid: 51e8f009e282c7d43aa3811f5917f58d, type: 3}
+  - id: Tigerfish
+    displayName: "\u864E\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 310
+    health: 380
+    baseWeight: 2
+    healthRestored: 34
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.3
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 4442883371454532954, guid: 119d2f9cefc917f42936e2cc1f5d6a80, type: 3}
+  - id: FlyingFish
+    displayName: "\u98DE\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 5
+    weight: 1
+    value: 320
+    health: 250
+    baseWeight: 4
+    healthRestored: 20
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.12
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 3734705388850881007, guid: 3746e361afec01941b34f846d2eb7d11, type: 3}
+  - id: Sengarat
+    displayName: Sengarat
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 280
+    health: 350
+    baseWeight: 3.2
+    healthRestored: 18
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.48
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 7470753748148169565, guid: ad06b34039bccf3459cbc92e3b145a8f, type: 3}
+  - id: Eel
+    displayName: "\u9CD7\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 5
+    weight: 1
+    value: 280
+    health: 250
+    baseWeight: 5
+    healthRestored: 26
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.8
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 3
+    prefab: {fileID: 2563268771215840176, guid: 0f7e44089e78e6f4ba5fe458e6d4f03b, type: 3}
+  - id: Halibut
+    displayName: "\u5927\u6BD4\u76EE\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 290
+    health: 500
+    baseWeight: 27
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.32
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 7013757060994376942, guid: fee36b52ce1d4e44e930640b4eeb9ab7, type: 3}
+  - id: Voxelfish
+    displayName: "\u65B9\u5757\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 3
+    weight: 1
+    value: 340
+    health: 380
+    baseWeight: 2
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.89
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 34490046123145518, guid: 0ad60fe877290674d8fbff003d8024d8, type: 3}
+  - id: Dripper
+    displayName: "\u7403\u978B\u9C7C"
+    island: 3
+    requiredRodId: FishingRod
+    baits:
+    - ProfessionalLure
+    baitWeights:
+    - 3
+    weight: 1
+    value: 380
+    health: 350
+    baseWeight: 4.5
+    healthRestored: 32
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.64
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 1195827347299415347, guid: 675bc39c93b57b14cad16c70e936bcbb, type: 3}
+  - id: Blobfish
+    displayName: "\u6C34\u6EF4\u9C7C"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - ScientificLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 1360
+    health: 1000
+    baseWeight: 80
+    healthRestored: 50
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.8
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 1276824447421308367, guid: 762b620959b9ece4e86f26bb977ae914, type: 3}
+  - id: Anglerfish
+    displayName: "\u9B9F\u9C47\u9C7C"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - ScientificLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 1500
+    health: 500
+    baseWeight: 80
+    healthRestored: 50
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.1
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 699734247988283022, guid: 8d34cc5719a89af43aeb913974bd436c, type: 3}
+  - id: Oarfish
+    displayName: "\u7687\u5E26\u9C7C"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - ScientificLure
+    baitWeights:
+    - 6
+    weight: 1
+    value: 1450
+    health: 1000
+    baseWeight: 40
+    healthRestored: 60
+    fullnessRestored: 60
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 3.2
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 7362790537885701913, guid: c88e972d7e7674f418a3506002aac514, type: 3}
+  - id: Stonefish
+    displayName: "\u77F3\u5934\u9C7C"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - ScientificLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 1500
+    health: 800
+    baseWeight: 50
+    healthRestored: 50
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.8
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 5507705743621682102, guid: 1550deae22741604cb0cff7a6cdbb79a, type: 3}
+  - id: SuperdwarfFish
+    displayName: "\u8D85\u7EA7\u4F8F\u5112\u9C7C"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - ScientificLure
+    baitWeights:
+    - 4
+    weight: 1
+    value: 2200
+    health: 120
+    baseWeight: 0.0001
+    healthRestored: 30
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.22
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 2
+    prefab: {fileID: 3246697029975459533, guid: 39268b2d96c1f22499f8049264dc49d2, type: 3}
+  - id: FootSnail
+    displayName: "\u811A\u8717\u725B"
+    island: 4
+    requiredRodId: 
+    baits: []
+    baitWeights: []
+    weight: 1
+    value: 12
+    health: 0
+    baseWeight: 0.05
+    healthRestored: 25
+    fullnessRestored: 20
+    ignoredBySeller: 0
+    ignoredBySeagulls: 1
+    length: 0.4
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 1
+    isGroundPickup: 1
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 5510662764194272570, guid: 86bfc331dd52d7948a72ae5140620a45, type: 3}
+  - id: BowheadWhale
+    displayName: "\u5F13\u5934\u9CB8"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - FishBucket
+    baitWeights:
+    - 1
+    weight: 1
+    value: 8000
+    health: 20000
+    baseWeight: 12000
+    healthRestored: 1000
+    fullnessRestored: 1000
+    ignoredBySeller: 1
+    ignoredBySeagulls: 1
+    length: 6
+    strength: 4
+    isBoss: 1
+    isMiniBoss: 1
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 9
+    prefab: {fileID: 4629473910932657777, guid: fc11ab121bc937b46a2bd35022d5f479, type: 3}
+  - id: MutatedBowheadWhale
+    displayName: "\u53D8\u5F02\u5F13\u5934\u9CB8"
+    island: 4
+    requiredRodId: 
+    baits: []
+    baitWeights: []
+    weight: 1
+    value: 15000
+    health: 38000
+    baseWeight: 500
+    healthRestored: 1000
+    fullnessRestored: 1000
+    ignoredBySeller: 1
+    ignoredBySeagulls: 1
+    length: 8.1
+    strength: 4
+    isBoss: 1
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 1
+    isEndangered: 0
+    motion: 10
+    prefab: {fileID: 945902892803957980, guid: 6533b1ffd866b514fa387f2d2f30a2e0, type: 3}
+  - id: Angelfish
+    displayName: "\u795E\u4ED9\u9C7C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 8
+    weight: 1
+    value: 62
+    health: 160
+    baseWeight: 0.1
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.9
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 1187926315139581741, guid: eb01eea794127444c9755e4d93e0ffe0, type: 3}
+  - id: Catfish
+    displayName: "\u9CB6\u9C7C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 12
+    weight: 1
+    value: 46
+    health: 200
+    baseWeight: 5
+    healthRestored: 24
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.3
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 9041825401062931238, guid: 7ea96b959a019d849badbfadbe838cc5, type: 3}
+  - id: SeaUrchin
+    displayName: "\u6D77\u80C6"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 52
+    health: 100
+    baseWeight: 2
+    healthRestored: 16
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.55
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 7408804457509633707, guid: 915d8a205cd4a1c4a80ba00a9b701a20, type: 3}
+  - id: Clownfish
+    displayName: "\u5C0F\u4E11\u9C7C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 6
+    weight: 1
+    value: 46
+    health: 140
+    baseWeight: 0.1
+    healthRestored: 20
+    fullnessRestored: 30
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.7
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 4650353085377692510, guid: 3868e97c6ec296a46be87f9130084658, type: 3}
+  - id: Bluegill
+    displayName: "\u84DD\u9CC3\u592A\u9633\u9C7C"
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - StandardLure
+    baitWeights:
+    - 10
+    weight: 1
+    value: 62
+    health: 150
+    baseWeight: 0.4
+    healthRestored: 32
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 0.8
+    strength: 1.4
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 2
+    prefab: {fileID: 9192569944168514658, guid: 3718044badc6b824fa2288b7f25b2d60, type: 3}
+  - id: Sunfish
+    displayName: "\u7FFB\u8F66\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerLure
+    - BeginnerBossLure
+    baitWeights:
+    - 1
+    - 1
+    weight: 10
+    value: 50
+    health: 1500
+    baseWeight: 84
+    healthRestored: 100
+    fullnessRestored: 100
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 3.4
+    strength: 2.5
+    isBoss: 1
+    isMiniBoss: 1
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 8
+    prefab: {fileID: 1371047977311196994, guid: d2f6d7c2c620e4b459541ad1ff270d84, type: 3}
+  - id: OldPike
+    displayName: "\u8001\u72D7\u9C7C"
+    island: 1
+    requiredRodId: FishingRod
+    baits:
+    - BeginnerBossLure
+    baitWeights:
+    - 1
+    weight: 10
+    value: 80
+    health: 1000
+    baseWeight: 70
+    healthRestored: 25
+    fullnessRestored: 60
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 3.7
+    strength: 2.5
+    isBoss: 1
+    isMiniBoss: 1
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 8
+    prefab: {fileID: 6207215057991815011, guid: 250adc0a00ccf57419e04660a000ada4, type: 3}
+  - id: GoblinShark
+    displayName: "\u54E5\u5E03\u6797\u9CA8"
+    island: 4
+    requiredRodId: FishingRod
+    baits:
+    - ScientificBossLure
+    baitWeights:
+    - 1
+    weight: 10
+    value: 6200
+    health: 7500
+    baseWeight: 70
+    healthRestored: 40
+    fullnessRestored: 100
+    ignoredBySeller: 0
+    ignoredBySeagulls: 1
+    length: 4.2
+    strength: 4
+    isBoss: 1
+    isMiniBoss: 1
+    excludeFromJournal: 0
+    isGroundPickup: 0
+    isEndangered: 0
+    motion: 8
+    prefab: {fileID: 4391224546583104452, guid: 3a9dbd80562d78d40ace4f3c5efe2453, type: 3}
+  - id: BingBong
+    displayName: Bing Bong
+    island: 2
+    requiredRodId: FishingRod
+    baits:
+    - Coconut
+    baitWeights:
+    - 1
+    weight: 1
+    value: 300
+    health: 2000
+    baseWeight: 5
+    healthRestored: 20
+    fullnessRestored: 50
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 1
+    isGroundPickup: 0
+    isEndangered: 1
+    motion: 8
+    prefab: {fileID: 426273035296276188, guid: d41d5cd9356e41042b642a2cd161237b, type: 3}
+  - id: Seagull
+    displayName: "\u6D77\u9E25"
+    island: 0
+    requiredRodId: 
+    baits: []
+    baitWeights: []
+    weight: 1
+    value: 5
+    health: 30
+    baseWeight: 1.5
+    healthRestored: 10
+    fullnessRestored: 10
+    ignoredBySeller: 0
+    ignoredBySeagulls: 0
+    length: 1.6
+    strength: 2
+    isBoss: 0
+    isMiniBoss: 0
+    excludeFromJournal: 1
+    isGroundPickup: 1
+    isEndangered: 0
+    motion: 7
+    prefab: {fileID: 8097007600030198013, guid: 2e1b9977e08a2914b9628958b6fd41ba, type: 3}
+  items:
+  - id: CrabRod
+    displayName: "\u9493\u7AFF"
+    kind: 0
+    island: 0
+    price: 3
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 3397085443099293313, guid: 34b50ae99c56f0443b44c6b2148f837e, type: 3}
+    viewPrefab: {fileID: 4198712385999365885, guid: 0178fc6352357804895e249307d58cdb, type: 3}
+  - id: Knife
+    displayName: "\u5C0F\u5200"
+    kind: 1
+    island: 0
+    price: 45
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 16
+    upgradedDamage:
+    - 18
+    - 20
+    - 22
+    - 24
+    - 26
+    - 28
+    - 32
+    - 36
+    - 40
+    - 46
+    - 54
+    - 62
+    - 80
+    - 100
+    - 120
+    upgradeCosts: 0e0000001c0000002400000054000000be00000022010000e00100002a0300004c040000080700001c0c00003818000008390000324b00004e700000
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 9108014362951990453, guid: 103c6eea49d503245b0c1da0d935f21a, type: 3}
+    viewPrefab: {fileID: 5879879401531947147, guid: 46262161987d0a54c973735342b05428, type: 3}
+  - id: FreeLure
+    displayName: "\u57FA\u7840\u9C7C\u9975"
+    kind: 3
+    island: 0
+    price: 0
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 4
+    baitLossChance: 0
+    baitRequiresMovement: 0
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 0}
+    viewPrefab: {fileID: 0}
+  - id: HotDog
+    displayName: "\u70ED\u72D7"
+    kind: 3
+    island: 0
+    price: 1
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 3
+    baitLossChance: 0.4
+    baitRequiresMovement: 0
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 4139579211766471116, guid: a30c1899c0352ed42b8c7a1d6cccc72d, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: Beer
+    displayName: "\u5564\u9152"
+    kind: 4
+    island: 0
+    price: 12
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 218529158133582757, guid: 57e61f2d8dcfe5c4e86f5b9d904f063c, type: 3}
+    viewPrefab: {fileID: 6747494171201378592, guid: 3c8e281610313324caea228582ac2679, type: 3}
+  - id: EmptyBeerCan
+    displayName: "\u7A7A\u5564\u9152\u7F50"
+    kind: 6
+    island: 0
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 4
+    baitLossChance: 1
+    baitRequiresMovement: 0
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 0}
+    viewPrefab: {fileID: 0}
+  - id: Radar
+    displayName: "\u96F7\u8FBE"
+    kind: 5
+    island: 0
+    price: 10
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 3229719109416508561, guid: 8ef54dde88302c348af2cfb6e56ab05a, type: 3}
+    viewPrefab: {fileID: 7296632268576252394, guid: 91245307e1004b8469a966487ee6525e, type: 3}
+  - id: CrabMeat
+    displayName: "\u8718\u86DB\u87F9\u58F3"
+    kind: 6
+    island: 0
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.6
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 4700260942435169828, guid: d7087ce4e46e209449e262c2e2eed9d2, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: ModifiedLeech
+    displayName: "\u6539\u9020\u6C34\u86ED"
+    kind: 3
+    island: 1
+    price: 0
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 3
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 0}
+    viewPrefab: {fileID: 0}
+  - id: PiranhaSkeleton
+    displayName: "\u5DE8\u578B\u98DF\u4EBA\u9C7C\u9AA8\u67B6"
+    kind: 6
+    island: 1
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.42
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 3958329413427829614, guid: 754688d69b9538c43abf4c6030b440cb, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: Pistol
+    displayName: "\u624B\u67AA"
+    kind: 2
+    island: 1
+    price: 50
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 25
+    upgradedDamage:
+    - 28
+    - 30
+    - 33
+    - 35
+    - 40
+    - 45
+    - 50
+    - 55
+    - 60
+    - 100
+    - 130
+    - 160
+    upgradeCosts: 0f000000190000002300000096000000fa0000002c010000dc05000080070000000a00005c1200009c1800008c230000
+    useInterval: 0.15
+    magazineSize: 10
+    extendedMagazineSize: 17
+    attachmentPrices: 36010000ac03000090010000c4090000640000005a000000
+    recoilAngle: 0.8
+    reloadSeconds: 1.4
+    range: 60
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 1240083303027513763, guid: 1ffdf35bd9c520c4db10cd74afbb24f4, type: 3}
+    viewPrefab: {fileID: 3010219007051089729, guid: f79a9767754e18340bbaf1494e57bc7f, type: 3}
+  - id: Shotgun
+    displayName: "\u9730\u5F39\u67AA"
+    kind: 2
+    island: 1
+    price: 150
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 3
+    upgradedDamage:
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 11
+    - 13
+    - 15
+    - 20
+    - 24
+    - 28
+    upgradeCosts: 140000001e00000028000000c8000000fa0000002c010000dc050000c4090000b80b000090100000e817000094200000
+    useInterval: 0.22
+    magazineSize: 2
+    extendedMagazineSize: 0
+    attachmentPrices: 180100008a020000dc000000080700008c00000000000000
+    recoilAngle: 2
+    reloadSeconds: 1.8
+    range: 35
+    nourishment: 20
+    pellets: 25
+    spread: 6
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 286587880390719487, guid: 71572f3dbecc74c4d8068dcb83dc10c8, type: 3}
+    viewPrefab: {fileID: 8230299052341169078, guid: 65c2305549771cd44b22551c0571629d, type: 3}
+  - id: FishingRod
+    displayName: "\u666E\u901A\u9C7C\u7AFF"
+    kind: 0
+    island: 1
+    price: 3
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 8318319195070272564, guid: 3cd1b68b32d547146b35b532a525bcae, type: 3}
+    viewPrefab: {fileID: 8784879424235363162, guid: b46ef560ca0b0194ca6a8fe4bc93e3e2, type: 3}
+  - id: BeginnerLure
+    displayName: "\u521D\u7EA7\u9C7C\u9975"
+    kind: 3
+    island: 1
+    price: 3
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 3
+    baitLossChance: 0.35
+    baitRequiresMovement: 1
+    damage: 2
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 5661609288203933281, guid: be47c37a7a652954e9ead0fba2013740, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: StandardLure
+    displayName: "\u6807\u51C6\u9C7C\u9975"
+    kind: 3
+    island: 2
+    price: 15
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 2.5
+    baitLossChance: 0.3
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 30
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 2125087796029679700, guid: 282c43d1034b1bb42a4ee547cc3718ab, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: StandardBossLure
+    displayName: "\u6807\u51C6\u9996\u9886\u9C7C\u9975"
+    kind: 3
+    island: 2
+    price: 280
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 2.5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 30
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 2125087796029679700, guid: 282c43d1034b1bb42a4ee547cc3718ab, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: Carrot
+    displayName: "\u80E1\u841D\u535C"
+    kind: 3
+    island: 2
+    price: 0
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 2.5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 30
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 3934125703141687247, guid: 460ff7e61f68cd64191bce7acf34404e, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: PufferfishFin
+    displayName: "\u6CB3\u8C5A\u9C7C\u9CCD"
+    kind: 6
+    island: 2
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 30
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 2892104544928008303, guid: 1be37d61370a7614c9b9dbf96080833a, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: FishMeat
+    displayName: "\u9C7C\u8089\u5757"
+    kind: 4
+    island: 2
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 30
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 1
+    automatic: 0
+    prefab: {fileID: 2737683971079323038, guid: 28f3f11e0df021248adad91e5199df7a, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: Lighter
+    displayName: "\u6253\u706B\u673A"
+    kind: 6
+    island: 2
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 30
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 2857562030074704997, guid: b100ad2c62903194f9ab863b32b272d8, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: SMG
+    displayName: "\u51B2\u950B\u67AA"
+    kind: 2
+    island: 2
+    price: 650
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 24
+    upgradedDamage:
+    - 25
+    - 26
+    - 27
+    - 28
+    - 29
+    - 30
+    - 32
+    - 35
+    - 36
+    - 45
+    - 60
+    - 70
+    upgradeCosts: 200000004000000080000000b4000000f000000077010000dc0500000807000098080000480d0000f21200002c1a0000
+    useInterval: 0.05
+    magazineSize: 30
+    extendedMagazineSize: 40
+    attachmentPrices: cc010000ac03000058020000c40900001801000040010000
+    recoilAngle: 0.3
+    reloadSeconds: 1.8
+    range: 55
+    nourishment: 30
+    pellets: 1
+    spread: 1.2
+    isConsumable: 0
+    isCookable: 0
+    automatic: 1
+    prefab: {fileID: 3947458233960089102, guid: afca5d32e2e338c46b9abd9e01aa3bcf, type: 3}
+    viewPrefab: {fileID: 4038059881176716393, guid: bda44fe4ee466514ca4aef0a717bb993, type: 3}
+  - id: ProfessionalLure
+    displayName: "\u4E13\u4E1A\u9C7C\u9975"
+    kind: 3
+    island: 3
+    price: 50
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 2
+    baitLossChance: 0.25
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 2.2
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 4458182570416047023, guid: c8f35c1ea32ade844a3096e52440905b, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: ProfessionalBossLure
+    displayName: "\u4E13\u4E1A\u9996\u9886\u9C7C\u9975"
+    kind: 3
+    island: 3
+    price: 1200
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 2
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 2.2
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 4458182570416047023, guid: c8f35c1ea32ade844a3096e52440905b, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: AlbatrossHead
+    displayName: "\u4FE1\u5929\u7FC1\u5934"
+    kind: 6
+    island: 3
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 2.2
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 7709217383159007133, guid: 28e01ed7e9e908b4ab8dc431d19ca95a, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: SniperRifle
+    displayName: "\u72D9\u51FB\u6B65\u67AA"
+    kind: 2
+    island: 3
+    price: 3800
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 200
+    upgradedDamage:
+    - 210
+    - 220
+    - 230
+    - 240
+    - 250
+    - 260
+    - 270
+    - 280
+    - 300
+    - 350
+    - 400
+    - 500
+    upgradeCosts: 8c000000dc0000005d010000b20200008403000078050000d00700005a0a0000e40c0000e01500003421000010270000
+    useInterval: 1
+    magazineSize: 5
+    extendedMagazineSize: 8
+    attachmentPrices: 80020000b0040000f4010000c409000040060000b0040000
+    recoilAngle: 2
+    reloadSeconds: 2.2
+    range: 180
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 8246847047218349372, guid: d36a02c2bf10e9848bf3908299da950b, type: 3}
+    viewPrefab: {fileID: 1214438132679899093, guid: 6fee01320b347de49a4c01ea6501cf7e, type: 3}
+  - id: ScientificLure
+    displayName: "\u79D1\u5B66\u9C7C\u9975"
+    kind: 3
+    island: 4
+    price: 500
+    minimumBiteSeconds: 0.75
+    maximumBiteSeconds: 1.5
+    baitLossChance: 0.2
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 1689850826570612198, guid: ce2161da2eab5e34caf202ec1d7fa743, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: FishBucket
+    displayName: "\u9C7C\u6876"
+    kind: 3
+    island: 4
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 3
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 6523331179910601022, guid: ca9c4a8e95d4f304384093898384291c, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: WhaleFin
+    displayName: "\u9CB8\u9C7C\u9CCD"
+    kind: 6
+    island: 4
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 194728003699807576, guid: 61d2d02d537ffd240b49127fe1f17b15, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: MilitaryBoatKey
+    displayName: "\u519B\u7528\u8239\u94A5\u5319"
+    kind: 6
+    island: 4
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1.8
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 7119573580973519269, guid: 1ca5bfa9d64d98049b95cbd88a133635, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: AssaultRifle
+    displayName: "\u7A81\u51FB\u6B65\u67AA"
+    kind: 2
+    island: 4
+    price: 20000
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 40
+    upgradedDamage:
+    - 45
+    - 50
+    - 55
+    - 60
+    - 65
+    - 70
+    - 75
+    - 80
+    - 85
+    - 90
+    - 95
+    - 100
+    upgradeCosts: 2c010000e0010000bc020000980300005005000062070000b00900001c0c0000230f0000a811000005140000a8160000
+    useInterval: 0.07
+    magazineSize: 30
+    extendedMagazineSize: 40
+    attachmentPrices: 7c150000cc100000b80b0000401f0000c012000018150000
+    recoilAngle: 0.6
+    reloadSeconds: 1.8
+    range: 90
+    nourishment: 20
+    pellets: 1
+    spread: 0.7
+    isConsumable: 0
+    isCookable: 0
+    automatic: 1
+    prefab: {fileID: 4125600596919566614, guid: 22401b6251f7f5a459a9545ebb4e29f2, type: 3}
+    viewPrefab: {fileID: 1314457448760828104, guid: fd27c4ec8ca000e43b3840663d26c7d7, type: 3}
+  - id: BeginnerBossLure
+    displayName: "\u521D\u7EA7\u9996\u9886\u9C7C\u9975"
+    kind: 3
+    island: 1
+    price: 40
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 3
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 7236977995257034367, guid: 4b486e8786c74574894dbdbda1915271, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: ScientificBossLure
+    displayName: "\u79D1\u5B66\u9996\u9886\u9C7C\u9975"
+    kind: 3
+    island: 4
+    price: 5800
+    minimumBiteSeconds: 0.75
+    maximumBiteSeconds: 1.5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 4692406860035521120, guid: b54df17af278e6144b938c84ef33681f, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: Coconut
+    displayName: "\u6930\u5B50"
+    kind: 3
+    island: 2
+    price: 350
+    minimumBiteSeconds: 1
+    maximumBiteSeconds: 2.5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 6393699593901722734, guid: 158932686bc6ff248a30bde539fb044b, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: PlayerRemains
+    displayName: "\u4F60\u7684\u9057\u4F53"
+    kind: 6
+    island: 0
+    price: 0
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 0
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 3
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 7141755490640817661, guid: 6cc17ae49e7b9584589aac6661e3ab40, type: 3}
+    viewPrefab: {fileID: 0}
+  - id: BrassKnuckles
+    displayName: "\u6307\u864E"
+    kind: 1
+    island: 0
+    price: 24
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 5
+    upgradedDamage:
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 12
+    - 14
+    - 16
+    - 20
+    - 25
+    - 30
+    - 35
+    - 42
+    - 50
+    - 60
+    upgradeCosts: 0800000010000000220000003c0000005a000000a0000000dc000000e0010000c602000040060000f00a000038180000903300003c410000f0550000
+    useInterval: 0.25
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 2.4
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 0
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 5832897189187095842, guid: 9bd34726ba24bf04daac5ecbe4270b4e, type: 3}
+    viewPrefab: {fileID: 4176576655551904315, guid: c4daa51b1ddc9fd448132d7fe10b02e9, type: 3}
+  dripChance: 0.1

@@ -7,7 +7,8 @@ namespace Hotfix.SceneManagement
         DroneFlight = 1,
         Dlss = 2,
         BlockPorters = 3,
-        JinxCasino = 4
+        JinxCasino = 4,
+        HowToFish = 5
     }
 
     /// 场景切换结果状态。
@@ -74,6 +75,8 @@ namespace Hotfix.SceneManagement
         internal const string BlockPortersAddress = "Assets/LoadResources/Demos/block_porters/Scenes/Main.unity";
         internal const string JinxCasinoAddress = "Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity";
 
+        internal const string HowToFishAddress = "Assets/LoadResources/Demos/how_to_fish/Scenes/Main.unity";
+
         internal static bool TryGet(GameSceneId sceneId, out GameSceneDefinition definition)
         {
             switch (sceneId)
@@ -95,6 +98,9 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.JinxCasino:
                     definition = new GameSceneDefinition(GameSceneId.JinxCasino, "倒霉蛋俱乐部", JinxCasinoAddress);
+                    return true;
+                case GameSceneId.HowToFish:
+                    definition = new GameSceneDefinition(GameSceneId.HowToFish, "渔力全开 · 单人", HowToFishAddress);
                     return true;
                 default:
                     definition = default;

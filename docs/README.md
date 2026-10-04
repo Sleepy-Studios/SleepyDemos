@@ -84,6 +84,7 @@
 | DLSS 实验室 | [dlss](demos/dlss/README.md) |
 | Loop Scroll 示例 | [loop_scroll](demos/loop_scroll/README.md) |
 | 倒霉蛋俱乐部 | [jinx_casino](demos/jinx_casino/README.md) |
+| 渔力全开单人复刻（开发中） | [how_to_fish](demos/how_to_fish/README.md) |
 
 每个入口包含模块维护、设计及操作手册导航；公共框架文档继续在上面的三层目录维护。
 

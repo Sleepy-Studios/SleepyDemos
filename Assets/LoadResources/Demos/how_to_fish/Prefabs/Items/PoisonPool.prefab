@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5235604551336715630
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8312878214983025794}
+  - component: {fileID: 7301926458527367740}
+  m_Layer: 0
+  m_Name: PoisonPool
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8312878214983025794
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5235604551336715630}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 9006448154362771083}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7301926458527367740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5235604551336715630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27c51dbdf7eb1d14b9163effe681ac00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishPoison
+  radius: 0.75
+  duration: 4
+  damagePerSecond: 8
+  burning: 0
+  statusSeconds: 3
+--- !u!1001 &8896840850386882912
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 8312878214983025794}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -6911017333476500835, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: -6576351620619888082, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: -5847457622448616017, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: -2197119496416821674, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: -1425040033576847684, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: 919132149155446097, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: m_Name
+      value: PoisonPool
+      objectReference: {fileID: 0}
+    - target: {fileID: 1927342485228958816, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: 3015358159795639932, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: 6314354297734610177, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: 6347345048883236764, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    - target: {fileID: 7040447990005775915, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: ac733d7df63c5854db7ff818fe6e42f0, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+--- !u!4 &9006448154362771083 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 72d9fd217bc93b3428932468e7a52970, type: 3}
+  m_PrefabInstance: {fileID: 8896840850386882912}
+  m_PrefabAsset: {fileID: 0}

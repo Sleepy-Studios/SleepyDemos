@@ -1,0 +1,32 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "6042d65f3ff5cbe4240f0f34cca1828059f938250ec9eb98801e0494fc556a81",
+  "unity_import_verified": false,
+  "expected_marker_world_positions": {
+    "Forward": [
+      0,
+      0,
+      1
+    ],
+    "Right": [
+      1,
+      0,
+      0
+    ],
+    "Up": [
+      0,
+      1,
+      0
+    ]
+  }
+}

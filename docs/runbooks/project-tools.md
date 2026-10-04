@@ -1,5 +1,9 @@
 # 项目工具与 Agent 技能总览
 
+渔力全开 Demo 的模型导入入口：`Tools/SleepyDemos/HowToFish/配置模型导入`，实现位于 `Assets/Scripts/Hotfix/Editor/HowToFish/HowToFishAssetBuilder.cs`。只处理该 Demo 的 FBX；源文件、导出参数与验证范围见[模型契约](../demos/how_to_fish/model-contract.md)。
+
+同组菜单 `生成首岛资源` 保存物品/装备/输入配置，`装配群岛场景和HUD` 维护灯塔/森林场景、雷达 HUD、MvcBind 和 Hub 入口；已有岛屿不整体重建，灯塔商品陈列由工具重建。操作与当前限制见[运行原型](../demos/how_to_fish/runbooks/play-prototype.md)。
+
 本文档汇总 SleepyDemos 仓库内**可直接使用**的 Unity 编辑器工具、第三方插件入口，以及供 Codex / Claude / Cursor 等 Agent 使用的**仓库内** Skill 与 Rule。新增菜单或 Skill 时请同步更新本页。
 
 ## 如何判断工具归属

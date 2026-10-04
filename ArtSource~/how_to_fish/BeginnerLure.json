@@ -1,0 +1,29 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "d7b4f0afe4c8ad2647c6d71f297b5a3cd24b4dea7457dee4f683f5d6bf0eb930",
+  "unity_import_verified": false,
+  "objects": [
+    "BeginnerLure",
+    "Feather-1",
+    "Feather1",
+    "Forward",
+    "Grip",
+    "Hook-1",
+    "Hook1",
+    "HookStem",
+    "HookTip-1",
+    "HookTip1",
+    "LureBody"
+  ]
+}

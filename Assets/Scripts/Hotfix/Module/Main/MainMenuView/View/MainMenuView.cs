@@ -33,6 +33,7 @@ namespace Hotfix
             entries.Add(new MainMenuDemoEntry("jinx_casino", "倒霉蛋俱乐部", "走进复古俱乐部，直接操作机台。\n选择你的玩法，挑战自己的运气。", art + "JinxCasino", GameSceneId.JinxCasino, "下一次，会有好运吗？"));
             entries.Add(new MainMenuDemoEntry("dlss", "DLSS 实验室", "切换画质模式，比较画面与性能。\n体验实时渲染技术带来的差异。", art + "Dlss", GameSceneId.Dlss, "探索画质与性能的平衡"));
             entries.Add(new MainMenuDemoEntry("ui_validation", "UI 交互展台", "界面与导航的交互体验。\n展台正在准备中，敬请期待。", art + "UiValidation", null, "新的体验，即将开放"));
+            entries.Add(new MainMenuDemoEntry("how_to_fish", "渔力全开", "驾船探索群岛，钓起奇异生物。\n单人冒险开发中。", "LoadResources/Demos/how_to_fish/Art/UI/HubPreview", GameSceneId.HowToFish, "出海垂钓，探索未知"));
             this.RegisterLoopScrollRect<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoRectData);
             this.RegisterLoopScrollClick<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoClick);
             this.RegisterLoopScrollItemHide<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoItemHide);

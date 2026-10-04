@@ -1,0 +1,55 @@
+id	slug	drip	_maxHp	_worth	_weight	_hpToRestore	_fullnessToRestore	_bossType	_bossTimeInSeconds	_onHitDamage	_meleeDamage	_timeBetweenDamage	_jumpForce	_towardsPlayerForce	_airTowardsPlayerForce	_attackInAir	_towardsWaterForce	_minTime	_maxTime	_groundCheckDist	_headPos	_isEndangered	_ignoredByMoneyNPC	_ignoredBySeagulls	_skipRandomizedWeight	_hasCustomMovement	_jumpOnWater	_jumpToLandOnWater	_ignoreDeathByWater	_motorTime	_modelHeight	_buoyancy
+Albatross	albatross	0	7800	13000	1.5	100	100	2	300		45									0.25	0.1	0	1	1	0	1			0		0.24	1
+Angelfish	angelfish	1	160	62	0.1	24	50	0	300				4				3	0.5	0.7	0.25	-0.04	0	0	0	0	0	0	0	0	0.1	0.05	1
+Anglerfish	anglerfish	1	500	1500	80	50	50	0	300	40		0.5	0	15	15	1	0	0.4	0.6	0.25	-0.06	0	0	0	0	0	1	0	0	0.1	0.21	1
+Bass	bass	1	350	250	4	24	50	0	300				7				4	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.07	1
+Blobfish	blobfish	1	1000	1360	80	50	50	0	300	14		0.5	5	22	1	1	0	0.3	0.75	0.25	-0.12	0	0	0	0	0	1	0	0	0.1	0.18	1
+BlueShark	blue-shark	0	2300	300	70	40	100	1	180	36		1	0	24	2	1	0	0.2	0.3	0.6	-0.15	0	0	0	0	0	1	0	0	0.1	0.15	1
+Bluegill	bluegill	1	150	62	0.4	32	50	0	300				5				3	0.5	0.7	0.25	-0.1	0	0	0	0	0	0	0	0	0.1	0.11	1
+BowheadWhale	bowhead-whale	0	20000	8000	12000	1000	1000	1	180	28		1	12	12	3	0	0	0.2	0.6	1.5	1.5	0	1	1	0	0	0	0	1	0.2	0.84	1
+Bowlfish	bowlfish	1	160	150	12	32	50	0	300				0				2	0.5	1	0.25	-0.04	1	0	0	0	0	0	0	0	0.1	0.44	1
+BrownCrab	brown-crab	1	15	3	2	18	30	0	300											0.15	-0.01	0	0	0	0	0			0		0.035	1
+Catfish	catfish	1	200	46	5	24	50	0	300				5				2	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.36	1
+Clownfish	clownfish	1	140	46	0.1	20	30	0	300				2				3	0.5	0.7	0.25	-0.04	0	0	0	0	0	0	0	0	0.1	0.05	1
+Cod	cod	1	50	10	4	20	50	0	300				5				2	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.07	1
+Dripper	dripper	1	350	380	4.5	32	50	0	300				0				4	3	1.5	0.75	-0.04	1	0	0	0	0	0	0	0	0.1	0.5	1
+Eel	eel	1	250	280	5	26	50	0	300	18		0.5	4	18	6	1	0	0.3	0.6	0.25	-0.14	0	0	0	0	0	0	0	0	0.5	0.07	1
+FlyingFish	flying-fish	1	250	320	4	20	50	0	300				25				3	0.25	0.5	0.25	-0.12	0	0	0	0	0	0	0	0	0.1	0.08	1
+Gar	gar	1	40	5	13	18	50	0	300	8		1	3	5	2	0	2	0.25	0.5	0.25	-0.4	0	0	1	0	0	0	0	0	0.1	0.05	1
+GiantPiranha	giant-piranha	0	2500	11000	4	100	100	2	300	32		1	9	18	2	0	0	0.3	0.5	0.35	-0.15	0	1	1	0	1	1	0	0	0.1	0.07	1
+GoblinShark	goblin-shark	0	7500	6200	70	40	100	1	180	25		0.5	15	10	15	1	0	0.3	0.4	0.6	-0.15	0	0	1	0	0	1	0	0	0.1	0.15	1
+Goby	goby	1	40	12	0.1	18	30	0	300				3				1.5	0.25	0.5	0.25	-0.04	0	0	0	0	0	0	0	0	0.1	0.02	1
+Goldfish	goldfish	1	50	24	0.1	32	30	0	300				3				1.5	0.4	0.5	0.25	-0.04	0	0	0	0	0	0	0	0	0.1	0.05	1
+Halibut	halibut	1	500	290	27	24	50	0	300				5				3	0.1	0.3	0.25	-0.25	0	0	0	0	0	0	0	0	0.15	0.06	1
+Lobster	lobster	1	85	9	2	26	40	0	300											0.15	-0.03	0	0	0	0	0			0		0.035	1
+Mackerel	mackerel	1	40	6	3.2	18	50	0	300				4				3	0.3	0.5	0.25	-0.12	0	0	0	0	0	0	0	0	0.1	0.07	1
+MutatedBowheadWhale	mutated-bowhead-whale	0	38000	15000	500	1000	1000	2	300	36		1	26	14	3	0	0	0.2	0.6	2	2.6	0	1	1	0	1	0	0	1	0.2	1.6	1
+Needlefish	needlefish	1	130	60	0.0001	20	30	0	300				10				1	2	3	0.25	-0.025	1	0	0	0	0	0	0	0	0.1	0.03	1
+Oarfish	oarfish	1	1000	1450	40	60	60	0	300				3				7	0.4	0.6	0.25	-0.14	1	0	0	0	0	0	0	0	0.1	0.06	1
+Parrotfish	parrotfish	1	550	350	28	50	50	0	300	22		1	5	14	4	1	0	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.56	1
+Perch	perch	1	75	18	4	24	50	0	300				4				2	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.07	1
+Pike	pike	1	80	12	20	24	50	0	300				5				2	0.25	0.5	0.25	-0.03	0	0	0	0	0	0	0	0	0.1	0.1	1
+Piranha	piranha	1	5	4	2	16	50	0	300	15		0.5	7	7	0.5	0	0	0.75	1.25	0.25	-0.1	0	0	0	0	0	1	0	1	0.1	0.15	1
+Pufferfish	pufferfish	0	18000	12000	1	0	0	2	300	34		0.5	0				4	0	0	0.25	0.2	1	1	1	0	1	0	0	0	0	0.3	1
+RedSnapper	red-snapper	1	280	280	4	28	50	0	300	14		1	6	14	3	1	0	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.13	1
+RockCrab	rock-crab	1	70	7	2	25	40	0	300											0.15	-0.01	0	0	0	0	0			0		0.035	1
+Salmon	salmon	1	75	14	4	22	50	0	300				5				2	0.25	0.5	0.25	-0.1	0	0	0	0	0	0	0	0	0.1	0.07	1
+SeaUrchin	sea-urchin	1	100	52	2	16	30	0	300	16		0.5	0	5	0.5	0	0	0.4	0.7	0.25	0.04	0	0	0	0	0	0	0	1	0.1	0.15	1
+Seahorse	seahorse	1	350	100	400	100	100	0	300				10				0	0.3	1.5	0.25	-0.31	1	0	0	0	0	0	0	0	0.1	1.4	1
+Sengarat	sengarat	1	350	280	3.2	18	50	0	300				4				3	0.25	0.5	0.25	-0.15	0	0	0	0	0	0	0	0	0.1	0.07	1
+Shrimp	shrimp	1	12	5	0.015	8	25	0	300				3				1.5	0.5	1	0.25	-0.025	0	0	0	0	0	0	0	0	0.1	0.03	1
+SpiderCrab	spider-crab	0	750	10000	18	100	100	2	180											0.8	0.25	0	1	1	0	1			0		0.37	1
+Stonefish	stonefish	1	800	1500	50	50	50	0	300	30		0.5	5	20	1	0	0	0.2	0.3	0.25	-0.12	0	0	0	0	0	1	0	0	0.1	0.15	1
+Sunfish	sunfish	0	1500	50	84	100	100	1	180				5				3	0.2	0.4	0.5	-0.35	0	0	0	0	0	1	1	1	0.3	0.42	1
+SuperdwarfFish	superdwarf-fish	1	120	2200	0.0001	30	30	0	300				2				1	0.5	1	0.25	-0.025	1	0	0	0	0	0	0	0	0.1	0.03	1
+OldPike	the-old-pike	0	1000	80	70	25	60	1	180	25		1	3	15	2	1	0	0.3	0.6	0.25	-0.25	0	0	0	0	0	1	0	0	0.1	0.15	1
+Tigerfish	tigerfish	1	380	310	2	34	50	0	300	24		1	3	22	0.5	0	0	0.25	0.5	0.25	-0.1	0	0	0	0	0	0	0	1	0.1	0.15	1
+Triggerfish	triggerfish	1	100	18	7	14	50	0	300				5				2	0.25	0.5	0.25	-0.225	0	0	0	0	0	0	0	0	0.1	0.15	1
+Tuna	tuna	0	5000	2000	70	100	100	1	180	30		1	30	0	20	1	0	0.3	0.5	0.6	-0.15	0	0	0	0	0	1	0	0	0.1	0.15	1
+Voxelfish	voxelfish	1	380	340	2	24	50	0	300				5				4	0.25	0.5	0.25	-0.15	1	0	0	0	0	0	0	0	0.1	0.15	1
+YellowBoxfish	yellow-boxfish	1	160	53	0.5	18	50	0	300				4				3	0.5	0.7	0.25	-0.04	0	0	0	0	0	0	0	0	0.1	0.09	1
+Clam	items/clam	0	0	1	0.05	15	10	0	300											0.25	0	0	0	1	1	0			0		0.015	0.5
+Leech	items/leech	0	0	4	0.05	10	15	0	300											0.25	0	0	0	1	1	0			0		0.015	0.5
+FootSnail	items/footsnail	0	0	12	0.05	25	20	0	300											0.25	0	0	0	1	1	0			0		0.015	0.5
+Seagull	items/seagull	0	30	5	1.5	10	10	0	300											0.25	0.06	0	0	0	0	0			0		0.26	1
+BingBong	items/bing-bong	1	2000	300	5	20	50	0	300	75		1	10	15	2	0	0	0.01	0.01	0.25	0.06	1	0	0	0	0	1	0	1	0.1	0.1	1

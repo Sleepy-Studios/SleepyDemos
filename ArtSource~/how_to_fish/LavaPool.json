@@ -1,0 +1,31 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "735103eaf623c9a98f0ab25ec05879c7a990cb4b069765ca62b808070f47c87f",
+  "unity_import_verified": false,
+  "objects": [
+    "Forward",
+    "Grip",
+    "LavaPool",
+    "LavaSurface",
+    "MoltenPatch0",
+    "MoltenPatch1",
+    "MoltenPatch2",
+    "MoltenPatch3",
+    "MoltenPatch4",
+    "MoltenPatch5",
+    "MoltenPatch6",
+    "MoltenPatch7",
+    "MoltenPatch8"
+  ]
+}
