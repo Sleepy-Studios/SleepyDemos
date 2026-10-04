@@ -9,12 +9,12 @@ namespace Hotfix
     using UnityEngine.UI;
     using Hotfix.HowToFish;
 
-    [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishHudView")]
-    public partial class HowToFishHudView
+    [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishPauseView")]
+    public partial class HowToFishPauseView
     {
-        public override string Address => "LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishHudView";
-        public override UILayer Level => UILayer.Decorate;
-        public override UIViewMode ViewMode => UIViewMode.Widget;
+        public override string Address => "LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishPauseView";
+        public override UILayer Level => UILayer.Tip;
+        public override UIViewMode ViewMode => UIViewMode.Modal;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
@@ -23,7 +23,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishHudPresenter HowToFishHudPresenter_HowToFishHudView;
+        private HowToFishPausePresenter HowToFishPausePresenter_HowToFishPauseView;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +35,7 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishHudPresenter_HowToFishHudView = componentItemIndex.Get<HowToFishHudPresenter>(0);
+            HowToFishPausePresenter_HowToFishPauseView = componentItemIndex.Get<HowToFishPausePresenter>(0);
         }
     }
 }

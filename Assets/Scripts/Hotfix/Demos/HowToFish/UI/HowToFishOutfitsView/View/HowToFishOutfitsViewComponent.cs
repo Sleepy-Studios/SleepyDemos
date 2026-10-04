@@ -9,12 +9,12 @@ namespace Hotfix
     using UnityEngine.UI;
     using Hotfix.HowToFish;
 
-    [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishHudView")]
-    public partial class HowToFishHudView
+    [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishOutfitsView")]
+    public partial class HowToFishOutfitsView
     {
-        public override string Address => "LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishHudView";
-        public override UILayer Level => UILayer.Decorate;
-        public override UIViewMode ViewMode => UIViewMode.Widget;
+        public override string Address => "LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishOutfitsView";
+        public override UILayer Level => UILayer.Tip;
+        public override UIViewMode ViewMode => UIViewMode.Modal;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
@@ -23,7 +23,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishHudPresenter HowToFishHudPresenter_HowToFishHudView;
+        private HowToFishOutfitsPresenter HowToFishOutfitsPresenter_HowToFishOutfitsView;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +35,7 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishHudPresenter_HowToFishHudView = componentItemIndex.Get<HowToFishHudPresenter>(0);
+            HowToFishOutfitsPresenter_HowToFishOutfitsView = componentItemIndex.Get<HowToFishOutfitsPresenter>(0);
         }
     }
 }

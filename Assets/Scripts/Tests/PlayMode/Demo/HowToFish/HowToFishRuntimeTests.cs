@@ -135,6 +135,38 @@ namespace Tests.Demo
         }
 
 
+        [UnityTest]
+        public IEnumerator FishingHud_SavedRegionRendersModelProgressAndResetsAcrossPause()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            var model = world.Player.Fishing.State;
+            Assert.That(model.BeginCharge(), Is.True);
+            model.Tick(.55f, false);
+            var region = UIManager.Instance.Get<HowToFishHudView>().gameObject.GetComponentInChildren<HowToFishFishingHudPresenter>(true);
+            Assert.That(region, Is.Not.Null);
+            yield return WaitFor(() => region.gameObject.activeInHierarchy, "钓鱼区域未显示。");
+            var image = region.GetComponentInChildren<UIProgressBar>(true).GetComponent<UnityEngine.UI.Image>();
+            Assert.That(image.GetComponent<UIProgressBar>().Value, Is.EqualTo(.5f).Within(.001));
+            Assert.That(region.GetComponentInChildren<TextMeshProUGUI>().text, Is.EqualTo("松手抛竿"));
+            Canvas.ForceUpdateCanvases();
+            var mesh = image.canvasRenderer.GetMesh();
+            Assert.That(mesh.vertexCount, Is.GreaterThan(0));
+            Assert.That(mesh.bounds.size.x, Is.EqualTo(image.rectTransform.rect.width * .5f).Within(.01));
+            world.SetPaused(true); yield return null;
+            Assert.That(region.gameObject.activeInHierarchy, Is.False);
+            world.SetPaused(false);
+            model.Cast(); model.EnterWater(.1f, .3f); model.Tick(.11f, false);
+            Assert.That(model.Hook(), Is.True); model.Tick(.5f, true);
+            yield return WaitFor(() => region.gameObject.activeInHierarchy, "恢复后钓鱼区域未显示。");
+            yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(image.fillAmount, Is.EqualTo(model.Tension).Within(.001));
+            model.Reset(); yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(region.gameObject.activeInHierarchy, Is.False);
+            world.ReturnToHub();
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishHudView>() == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub, "钓鱼区域未随HUD释放。");
+        }
+
         [UnityTest, Timeout(240000)]
         public IEnumerator Environment_CasinoWalkInFacilitiesPierAndFiveIslandViews()
         {
@@ -642,6 +674,18 @@ namespace Tests.Demo
             float finishedAt = world.Session.State.playedSeconds;
             yield return new WaitForSecondsRealtime(.2f);
             Assert.That(world.Session.State.playedSeconds, Is.EqualTo(finishedAt));
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishEndingView>()?.State == ViewState.Visible, "独立结局页未显示。");
+            Assert.That(UIManager.Instance.Get<HowToFishEndingView>().gameObject.GetComponentsInChildren<TextMeshProUGUI>(true)
+                .Any(text => text.text.Contains("航程完成")), Is.True);
+            yield return SubmitInputSettingsControl("Resume", true);
+            yield return WaitFor(() => !world.ShowEnding && !world.IsPaused && UIManager.Instance.Get<HowToFishEndingView>() == null, "结局继续未释放页面。");
+            yield return PressKey(Key.Tab);
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishJournalView>()?.State == ViewState.Visible, "独立图鉴页未显示。");
+            Assert.That(UIManager.Instance.Get<HowToFishPauseView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<HowToFishJournalView>().gameObject.GetComponentsInChildren<TextMeshProUGUI>(true)
+                .Any(text => text.text == "鱼类图鉴"), Is.True);
+            yield return PressKey(Key.Tab);
+            yield return WaitFor(() => !world.IsPaused && UIManager.Instance.Get<HowToFishJournalView>() == null, "图鉴关闭未释放页面。");
         }
 
         [UnityTest, Timeout(240000)]
@@ -1554,6 +1598,7 @@ namespace Tests.Demo
                 .SetValue(world, new HowToFishSaveStore(saveDirectory));
             world.Input.Asset.devices = new InputDevice[] { keyboard, gamepad, mouse };
             yield return null;
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishMainMenuView>()?.State == ViewState.Visible, "三槽页面未显示。");
             ObjectFind<Button>("Slot0").onClick.Invoke();
             yield return WaitFor(() => world.HasSession && !world.IsPaused, "保存的航程无法继续。");
             Assert.That(world.Session.Count("CrabRod"), Is.EqualTo(1));
@@ -3784,6 +3829,7 @@ namespace Tests.Demo
             typeof(HowToFishWorld).GetField("saves", BindingFlags.Instance | BindingFlags.NonPublic)
                 .SetValue(testWorld, new HowToFishSaveStore(saveDirectory));
             yield return null;
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishMainMenuView>()?.State == ViewState.Visible, "三槽页面未显示。");
             ObjectFind<Button>("Slot0").onClick.Invoke();
             yield return WaitFor(() => testWorld.HasSession && !testWorld.IsPaused, "无法开始新航程。");
         }

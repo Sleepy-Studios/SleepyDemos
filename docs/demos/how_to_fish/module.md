@@ -14,7 +14,7 @@
 - `HowToFishBoat`：多点浮力与驾驶，依靠船体碰撞承载物品；深水浮力、双输入驾驶、暂停和离舵已通过定向测试，木船候选已装配，灯塔至森林水域的实际航行已有测试。ExitPoint 必须落在甲板内，不能放在船舷外。
 - `HowToFishSpiderCrab`：实体上岸后进入预警、定向冲撞/远距跳跃、硬直循环；活动首领不能抓取，死亡恢复原始刚体约束，逃脱销毁实例。伤害和时长为 Inspector 可调推定参数。
 - `HowToFishWorld`：会话、世界实体、输入、存档与导航的所有者；当前看守人链路是首岛任务初版，活动首领阻止保存。
-- `UI/HowToFishHudPresenter` 与 `UI/HowToFishHudView/View/HowToFishHudView`：复用 Core UI/MvcBind 的 HUD、三槽存档、暂停和图鉴初版。
+- `UI/`：独立页面、HUD子区域和本世界UI协调器；复用Core UI/MvcBind，页面清单与生命周期见下文。
 
 ## 接入与生命周期
 
@@ -48,7 +48,7 @@ Hub 入口在 MainMenuView 的共享卡片数据中登记；场景编号为 HowT
 
 `scripts/how_to_fish/build_first_island_models.py` 在独立 Blender 后台生成首批候选源模型；共享 `fbx_export.py` 负责源文件保留与坐标转换。`HowToFishAssetBuilder.ConfigureModels` 对本 Demo FBX 设置米制及轴转换，菜单为 `Tools/SleepyDemos/HowToFish/配置模型导入`。该工具只配置资产，不代替 Unity Test Runner 验证。
 
-`Tools/SleepyDemos/HowToFish/生成首岛资源` 保存物品/装备 Prefab、输入模板和目录；已有数值不覆盖。`装配群岛场景和HUD` 创建首岛原型并维护 MvcBind 绑定，已存在的场景不重建，避免丢失手工调整。手写 View 与自动生成 Component 分离，生成物只通过 MvcBind 更新。
+`Tools/SleepyDemos/HowToFish/生成首岛资源` 保存物品/装备 Prefab、输入模板和目录；已有数值不覆盖。`装配群岛场景和HUD` 创建首岛原型并维护已保存HUD的MvcBind绑定；独立页面和子区域从版本库维护，不重建混合UI。已存在的场景不重建，避免丢失手工调整。手写 View 与自动生成 Component 分离，生成物只通过 MvcBind 更新。
 
 现有场景装配会增量加入船、灯塔和看守人视觉模型，隐藏相应占位 Renderer，保留物理代理与交互组件；首岛表面改用灰色岩石材质。已有模型节点不会重复创建。装备装配增量加入右手模型，武器挂点保持原位置。`build_first_island_models.py` 与 `render_model_sheet.py` 可在项目路径后传入模型名，只导出或预览指定项；源模型/视觉候选不是最终还原验收。
 
@@ -191,3 +191,13 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 初始三槽菜单和暂停菜单共用操作设置入口。鼠标灵敏度、手柄转向速度、摇杆死区、垂直视角反转与绑定覆盖保存到独立 PlayerPrefs 键 HowToFish.LocalPreferences，不混入航程槽或收藏档案。进入时保留快照，调整即时预览，取消及界面解绑恢复快照，只有保存才写盘；损坏/未来版本记录使用默认值并提示，但不自动覆盖原串。
 
 按陆地/驾驶与键鼠/手柄分四组分页显示真实绑定，通用暂停和图鉴出现在每组。交互捕获仅接受目标设备按钮，键盘移动复合绑定只修改分量；连续摇杆/鼠标移动不作为按钮。15秒超时，Esc或手柄取消键取消，冲突保留旧绑定。陆地和驾驶互斥，暂停/图鉴常驻；常驻快捷键还检查菜单确认与导航冲突。复用Core的MenuInputScope暂停真实EventSystem导航，所有完成/取消/异常/解绑路径释放；结束捕获和关闭面板等待松键，避免取消/确认键穿透。
+
+## 独立UI页面与HUD区域
+
+UI资源位于 `Prefabs/UI/`，主菜单（三槽）、暂停、设置、图鉴、服装、结局分别维护 `HowToFishMainMenuView`、`HowToFishPauseView`、`HowToFishSettingsView`、`HowToFishJournalView`、`HowToFishOutfitsView`、`HowToFishEndingView`。各自通过MvcBind生成索引，普通业务数据随UIManager导航操作交付。暂停和结局复用一份动作Presenter，分别保存View和Prefab；不重复维护相同的继续、返回与设置动作。
+
+`HowToFishHudView`仅维护常驻显示，钓鱼、首领和雷达分别保存于 `Prefabs/UI/Parts/`，由自己的显示组件维护。普通填充复用白色Sprite与UIProgressBar。页面保留原配色、中文字体与布局；设置分组、服装卡片复用UITab，业务Selected与交互五态分开。
+
+`HowToFishUIController`随World会话创建，串行管理主页面与一个覆盖页。设置/服装通过正式导航隐藏底页，关闭后恢复原按钮焦点；返回Hub先关闭本世界所有页面，再关闭HUD。设置草稿、重绑、订阅和输入作用域随隐藏/销毁释放，未保存的预览回滚。主菜单业务重开确认在覆盖页隐藏期间保留。
+
+场景装配工具只更新已保存HUD字体和绑定，不重新创建混合菜单或区域。删除UI资源后应从版本库恢复相应Prefab，再使用MvcBind维护，不能用旧装配代码生成第二套页面。

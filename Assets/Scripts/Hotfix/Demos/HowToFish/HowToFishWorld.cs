@@ -30,6 +30,8 @@ namespace Hotfix.HowToFish
         private readonly List<Light> suspendedLights = new List<Light>();
         private readonly List<HowToFishStation> deliveryStations = new List<HowToFishStation>();
         private HowToFishInput input;
+        private HowToFishUIController ui;
+        internal HowToFishUIController UI => ui;
         private HowToFishSession session;
         private HowToFishSaveStore saves;
         private HowToFishLocalPreferencesStore preferencesStore;
@@ -128,6 +130,7 @@ namespace Hotfix.HowToFish
                 saves = new HowToFishSaveStore(Path.Combine(Application.persistentDataPath, "HowToFish"));
                 foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
                     if (light.enabled && light.gameObject.scene != gameObject.scene) { suspendedLights.Add(light); light.enabled = false; }
+                ui = new HowToFishUIController(this, lifetime.Token);
                 var shown = await UIManager.Instance.ShowAsync<HowToFishHudView, HowToFishWorld>(this,
                     new UIShowOptions(animated: false), lifetime.Token);
                 if (shown.Status == UIOperationStatus.Failed) throw shown.Exception;
@@ -527,13 +530,14 @@ namespace Hotfix.HowToFish
             SetPaused(true);
             try
             {
+                await ui.CloseAsync();
                 await UIManager.Instance.CloseAsync<HowToFishHudView>();
                 Time.timeScale = previousTimeScale;
                 var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status == GameSceneSwitchStatus.Failed || result.Status == GameSceneSwitchStatus.Busy)
                 {
                     await UIManager.Instance.ShowAsync<HowToFishHudView, HowToFishWorld>(this, new UIShowOptions(animated: false));
-                    exiting = false; SetPaused(true); Notify("返回失败：" + result.Error);
+                    exiting = false; ui.Restore(); SetPaused(true); Notify("返回失败：" + result.Error);
                 }
             }
             catch (Exception exception) { exiting = false; Notify(exception.Message); Debug.LogException(exception, this); }
@@ -989,6 +993,7 @@ namespace Hotfix.HowToFish
 
         private void OnDestroy()
         {
+            ui?.Dispose();
             lifetime?.Cancel(); lifetime?.Dispose();
             if (crater != null) crater.WhaleOffered -= OfferWhale;
             if (session != null) session.Changed -= OnStateChanged;
