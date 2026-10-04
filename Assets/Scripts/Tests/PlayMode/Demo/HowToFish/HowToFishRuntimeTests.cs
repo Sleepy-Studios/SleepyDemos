@@ -30,6 +30,111 @@ namespace Tests.Demo
         private string saveDirectory;
         private HowToFishWorld testWorld;
 
+        [UnityTest, Timeout(360000)]
+        public IEnumerator SaveSlots_AllThreeMenusContinueRestartAndRecoverIndependently()
+        {
+            saveDirectory = Path.Combine(Path.GetTempPath(), "HowToFishRuntimeTests", Guid.NewGuid().ToString("N"));
+            keyboard = InputSystem.AddDevice<Keyboard>();
+            gamepad = InputSystem.AddDevice<Gamepad>();
+            mouse = InputSystem.AddDevice<Mouse>();
+            var positions = new Vector3[3];
+            var records = new string[3];
+            yield return EnterThreeSlotMenu();
+            for (int index = 0; index < 3; index++)
+            {
+                Assert.That(testWorld.InspectSlot(index).Status, Is.EqualTo(HowToFishLoadStatus.Empty));
+                bool pad = index == 1;
+                yield return SubmitInputSettingsControl("Slot" + index, pad);
+                yield return WaitFor(() => testWorld.HasSession && !testWorld.IsPaused, "空槽没有通过菜单开始新航程。");
+                yield return WaitFor(() => testWorld.Player.GetComponent<CharacterController>().isGrounded, "新航程角色未落地。");
+                // 用真实短距离步行区分槽快照，不赋予金钱、物品或任务。
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                yield return new WaitForSeconds(.35f + index * .25f);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null; yield return null;
+                if (pad) yield return PressInputSettingsPad(GamepadButton.Start); else yield return PressKey(Key.Escape);
+                yield return SubmitInputSettingsControl("Save", pad);
+                var saved = testWorld.InspectSlot(index);
+                Assert.That(saved.Status, Is.EqualTo(HowToFishLoadStatus.Ready));
+                positions[index] = saved.Data.safePosition;
+                records[index] = File.ReadAllText(Path.Combine(saveDirectory, "Slot" + (index + 1) + ".json"));
+                for (int previous = 0; previous < index; previous++)
+                    Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "Slot" + (previous + 1) + ".json")), Is.EqualTo(records[previous]), "保存当前槽改写了另一个槽。");
+                yield return SubmitInputSettingsControl("ReturnHub", pad);
+                yield return EnterThreeSlotMenu();
+                records[index] = File.ReadAllText(Path.Combine(saveDirectory, "Slot" + (index + 1) + ".json"));
+            }
+            Assert.That(Vector3.Distance(positions[0], positions[1]), Is.GreaterThan(.3f));
+            Assert.That(Vector3.Distance(positions[1], positions[2]), Is.GreaterThan(.3f));
+            for (int index = 0; index < 3; index++)
+            {
+                bool pad = index != 1;
+                Assert.That(ObjectFind<Button>("Slot" + index).GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("继续"));
+                yield return SubmitInputSettingsControl("Slot" + index, pad);
+                yield return WaitFor(() => testWorld.HasSession, "继续按钮没有载入槽位。");
+                Assert.That(testWorld.Session.State.safePosition, Is.EqualTo(positions[index]), "菜单继续到了错误槽位。");
+                if (pad) yield return PressInputSettingsPad(GamepadButton.Start); else yield return PressKey(Key.Escape);
+                yield return SubmitInputSettingsControl("ReturnHub", pad);
+                yield return EnterThreeSlotMenu();
+                records[index] = File.ReadAllText(Path.Combine(saveDirectory, "Slot" + (index + 1) + ".json"));
+            }
+
+            // 重开只在第二次确认后覆盖目标槽，其它槽原始字节保持不变。
+            yield return SubmitInputSettingsControl("New1");
+            Assert.That(testWorld.HasSession, Is.False);
+            Assert.That(testWorld.Notice, Does.Contain("再次点击"));
+            Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "Slot2.json")), Is.EqualTo(records[1]));
+            yield return SubmitInputSettingsControl("New1", true);
+            yield return WaitFor(() => testWorld.HasSession, "重开确认没有建立新航程。");
+            Assert.That(Vector3.Distance(testWorld.Session.State.safePosition, positions[1]), Is.GreaterThan(.3f));
+            Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "Slot1.json")), Is.EqualTo(records[0]));
+            Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "Slot3.json")), Is.EqualTo(records[2]));
+            Assert.That(File.Exists(Path.Combine(saveDirectory, "Slot2.json.bak")), Is.True);
+            yield return PressKey(Key.Escape);
+            yield return SubmitInputSettingsControl("ReturnHub");
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "重开后未返回Hub。");
+
+            // 仅损坏此次测试临时目录的文件，随后必须通过恢复按钮使用已有备份。
+            File.WriteAllText(Path.Combine(saveDirectory, "Slot2.json"), "broken-primary-for-ui-test");
+            yield return EnterThreeSlotMenu();
+            Assert.That(testWorld.InspectSlot(1).Status, Is.EqualTo(HowToFishLoadStatus.RecoveryAvailable));
+            Vector3 recoveryPosition = testWorld.InspectSlot(1).Data.safePosition;
+            Assert.That(ObjectFind<Button>("Slot1").GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("恢复备份"));
+            Assert.That(ObjectFind<Button>("New1").interactable, Is.False, "待恢复槽不能被重开按钮静默覆盖。");
+            yield return SubmitInputSettingsControl("Slot1", true);
+            yield return WaitFor(() => testWorld.HasSession, "恢复按钮没有载入备份。");
+            Assert.That(testWorld.Session.State.safePosition, Is.EqualTo(recoveryPosition));
+            Assert.That(testWorld.InspectSlot(1).Status, Is.EqualTo(HowToFishLoadStatus.Ready));
+            yield return PressInputSettingsPad(GamepadButton.Start);
+            yield return SubmitInputSettingsControl("ReturnHub", true);
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "恢复后未返回Hub。");
+            File.WriteAllText(Path.Combine(saveDirectory, "Slot3.json"), "broken-primary-for-ui-test");
+            File.WriteAllText(Path.Combine(saveDirectory, "Slot3.json.bak"), "broken-backup-for-ui-test");
+            yield return EnterThreeSlotMenu();
+            Assert.That(ObjectFind<Button>("Slot2").GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("数据损坏"));
+            Assert.That(ObjectFind<Button>("Slot2").interactable, Is.False);
+            Assert.That(ObjectFind<Button>("New2").interactable, Is.False);
+            Assert.That(ObjectFind<Button>("Slot0").interactable && ObjectFind<Button>("Slot1").interactable, Is.True);
+            Assert.That(testWorld.HasSession, Is.False);
+        }
+
+        private IEnumerator EnterThreeSlotMenu()
+        {
+            yield return EnterHub();
+            yield return EnterHowToFish();
+            yield return WaitFor(() => UnityEngine.Object.FindAnyObjectByType<HowToFishHudPresenter>() != null &&
+                !GameSceneNavigator.Instance.IsTransitioning, "三槽菜单未出现。");
+            testWorld = UnityEngine.Object.FindAnyObjectByType<HowToFishWorld>();
+            testWorld.Input.Asset.devices = new InputDevice[] { keyboard, gamepad, mouse };
+            typeof(HowToFishWorld).GetField("saves", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(testWorld, new HowToFishSaveStore(saveDirectory));
+            testWorld.ApplyPreferences(new HowToFishLocalPreferences());
+            testWorld.Notify("三槽菜单测试使用独立临时存档。");
+            yield return null; yield return null;
+            Assert.That(testWorld.HasSession, Is.False);
+        }
+
+
         [UnityTest, Timeout(240000)]
         public IEnumerator Environment_CasinoWalkInFacilitiesPierAndFiveIslandViews()
         {
@@ -3691,6 +3796,10 @@ namespace Tests.Demo
             list.ScrollToCell(index, ScrollAlignment.End);
             yield return WaitFor(() => list.GetVisibleCell(index)?.Context.IsCurrent == true, "目标卡片未显示。");
             var button = list.GetVisibleCell(index).GetComponentInChildren<LoopScrollMenuButton>();
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            InputSystem.QueueStateEvent(gamepad, new GamepadState());
+            yield return WaitFor(() => EventSystem.current.sendNavigationEvents && button.IsInteractable(),
+                "Hub导航门闩尚未释放或入口仍不可交互。");
             EventSystem.current.SetSelectedGameObject(button.gameObject);
             yield return null; yield return null;
             yield return PressKey(Key.Enter);

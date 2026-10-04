@@ -42,6 +42,8 @@ Hub 入口在 MainMenuView 的共享卡片数据中登记；场景编号为 HowT
 
 测试执行范围、结果和剩余项以 [验证记录](validation.md) 为准。EditMode 覆盖规则、存档和资源，PlayMode 覆盖首岛至岩石岛的定向流程；单独通过与同轮联跑结果分别记录，不把历史通过视为新修改已验证。完整玩法、独立双输入通关和视觉验收尚未完成。
 
+`HowToFishRuntimeTests.SaveSlots_AllThreeMenusContinueRestartAndRecoverIndependently` 使用真实菜单与独立测试存档目录验证三槽继续、二次重开确认、损坏备份恢复和槽间隔离；61105534定向1/1通过。Hub入口等待导航门闩释放后才提交，未执行全量测试。
+
 ## 模型制作入口
 
 `scripts/how_to_fish/build_first_island_models.py` 在独立 Blender 后台生成首批候选源模型；共享 `fbx_export.py` 负责源文件保留与坐标转换。`HowToFishAssetBuilder.ConfigureModels` 对本 Demo FBX 设置米制及轴转换，菜单为 `Tools/SleepyDemos/HowToFish/配置模型导入`。该工具只配置资产，不代替 Unity Test Runner 验证。
