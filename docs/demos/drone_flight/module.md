@@ -191,3 +191,12 @@ DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什�
 Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使用公共 InputActionSession，键鼠保留原操作和键盘平滑；手柄左摇杆升降/偏航、右摇杆平移，触屏两个 TouchInputPad 同为摇杆模式。确认键短按解锁/锁定、长按按配置重载；Switch A 确认。返回键 Active → Waiting，再次返回退出 Hub；触屏有进入遥控入口。
 
 左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由保存的 DroneControlsPresenter 管理，UIController 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
+
+
+## HUD 子资源（2026-10-05）
+
+保留已有 HUD、机型选择、帮助、调试四个独立 View。HUD 的 `TelemetryRoot`、`TouchControls`、`OperationPanel` 保存于 `Prefabs/UI/Parts/`，通过嵌套 Prefab 维护；根 View 的 MvcBind、DroneHudLayout 和 DroneControlsPresenter 引用仍指向实际子资源实例。遥测与控制生命周期沿用既有绑定/解除绑定，不新增窗口或飞行控制器。
+
+按钮使用公共五状态反馈，机型业务选中态独立使用 UIState，保留橙色选中与原字体、布局；复位进度继续使用 UIProgressBar。子资源变更后检查 HUD 绑定与触控双指针释放，禁止重新合并为巨型页面。
+
+本次定向验证：HUD 绑定 243750f4（1/1）、保存 HUD 双指针与面板释放 fd80c957（1/1）、机型选择类 735e93a1（3/3）。覆盖真实鼠标/键盘/手柄/合成触控、失败重试及返回恢复；不执行飞控全量回归，也不代表实体设备验收。

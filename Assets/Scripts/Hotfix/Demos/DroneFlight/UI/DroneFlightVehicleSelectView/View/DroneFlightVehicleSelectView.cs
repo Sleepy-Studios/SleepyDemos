@@ -38,7 +38,6 @@ namespace Hotfix
             ("渔叉无人机", "发射、命中与绳索回收", "渔叉模块", "发射 · 回收", "目标牵引")
         };
         private Button[] cards;
-        private Image[] frames;
         private Image[] previews;
         private RectTransform[] badges;
         private bool isBusy;
@@ -47,7 +46,6 @@ namespace Hotfix
         protected override void OnGameObjectInitialize()
         {
             cards = new[] { Button_PlainButton, Button_GrappleButton, Button_HarpoonButton };
-            frames = new[] { Image_PlainButton, Image_GrappleButton, Image_HarpoonButton };
             previews = new[] { Image_PlainPreview, Image_GrapplePreview, Image_HarpoonPreview };
             badges = new[] { RectTransform_PlainSelected, RectTransform_GrappleSelected, RectTransform_HarpoonSelected };
             UIMenuScope_DroneFlightVehicleSelectView.Canceled += OnBackButtonClick;
@@ -136,7 +134,7 @@ namespace Hotfix
             Image_Hero.sprite = previews[index].sprite;
             for (int i = 0; i < cards.Length; i++)
             {
-                frames[i].color = i == index ? new Color(1f, .54f, .19f) : new Color(.34f, .41f, .46f);
+                cards[i].GetComponent<UIState>().SetState(i == index ? "Selected" : "Normal");
                 badges[i].gameObject.SetActive(i == index);
             }
         }
