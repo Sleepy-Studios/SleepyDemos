@@ -1,10 +1,12 @@
 # PrototypeV2 四张简化参考稿
 
+原稿已迁至独立美术目录；查看与恢复步骤见 [维护独立美术源稿](../../../runbooks/maintain-art-sources.md)。
+
 2026-10-02形成图稿，2026-10-03**用户已确认视觉方向，继续正式制作**。这是制作依据，不是当前游戏截图、已完成资源或体验验收结果。当前执行范围见[实施计划](../implementation.md)。
 
 ## 赌场大厅
 
-![简化复古俱乐部大厅](../../../../ArtSource/jinx_casino/concepts/prototype-v2/hall-v2.png)
+简化复古俱乐部大厅原稿：美术目录中的 `ArtSource/jinx_casino/concepts/prototype-v2/hall-v2.png`。
 
 构图为入口站立视角：左侧水果机、中央二十一点、右侧协作拉杆和发条助手。柜体用简单圆角块体，桌面用深绿毛毡，边框与墙裙用木质；黄铜只点缀拉杆、按钮底座、灯具。深灰蓝墙面、暖色台面照明、柔和阴影形成层次，不依赖镜面和复杂装饰。
 
@@ -12,7 +14,7 @@
 
 ## 共享二十一点桌面
 
-![共享二十一点桌面](../../../../ArtSource/jinx_casino/concepts/prototype-v2/blackjack-v2.png)
+共享二十一点桌面原稿：美术目录中的 `ArtSource/jinx_casino/concepts/prototype-v2/blackjack-v2.png`。
 
 固定聚焦后，牌面与两枚实体操作按钮占主要区域。玩家牌为红桃 10 和黑桃 6，总点数 16；庄家梅花 7 与背面暗牌。牌值只在左上角显示，中央大花色用于辨认，取消容易误读的倒置角标。正式牌面由真实牌值生成，背面不泄露暗牌。
 
@@ -22,7 +24,7 @@
 
 ## Hub 主页面
 
-![Hub卡片主页面](../../../../ArtSource/jinx_casino/concepts/prototype-v2/hub-v2.png)
+Hub卡片主页面原稿：美术目录中的 `ArtSource/jinx_casino/concepts/prototype-v2/hub-v2.png`。
 
 Hub 保持独立清爽风格：深蓝灰背景、清晰浅色文字、少量青绿色选中状态，避免将赌场大厅作为公共入口皮肤。卡片表达预览、标题、简介和进入按钮；使用现有无限循环列表展示全部 Demo，横向或 Grid 由实现按窗口构图与导航确定。窗口变窄时使用同一布局调整，保证所有入口可达，不另做 Android 页面。
 
@@ -32,7 +34,7 @@ Hub 保持独立清爽风格：深蓝灰背景、清晰浅色文字、少量青�
 
 ## 两种加载界面
 
-![统一加载样式](../../../../ArtSource/jinx_casino/concepts/prototype-v2/loading-v2.png)
+统一加载样式原稿：美术目录中的 `ArtSource/jinx_casino/concepts/prototype-v2/loading-v2.png`。
 
 沿用 Hub 配色与字级，通过背景、简洁入口图标、标题、阶段说明和进度条完成画面。68% 为示意值，不引入随机或定时假进度；进度与阶段继续来自现有 SetTitle / SetProgress 调用。无资源体积时不显示空数字字段。
 
@@ -45,4 +47,4 @@ StartupLoading 在热更前通过入口直接引用，不能依赖 Hotfix 或热
 - 图稿不证明碰撞、指针命中、触区、安全区、手柄导航与手机性能；在真实场景逐项验证，并保留同视角对照。
 - 不依赖视觉稿的赌场职责清理、输入回归和双端样板构建已执行；本次视觉方向已获确认，先制作 Hub / 两种 Loading，再还原三机台及大厅正式资源。S1 体验确认前不扩展其余 14 款。
 
-图片使用内置 imagegen 生成；文件与完整初稿/修图提示词保存在[生成记录](../../../../ArtSource/jinx_casino/concepts/prototype-v2/generation-notes.md)。确认后的参考稿用于模型、材质和布局还原，不把这些大图贴成正式场景背景代替模型制作。
+图片使用内置 imagegen 生成；文件与完整初稿/修图提示词保存在美术目录中的生成记录 `ArtSource/jinx_casino/concepts/prototype-v2/generation-notes.md`。确认后的参考稿用于模型、材质和布局还原，不把这些大图贴成正式场景背景代替模型制作。

@@ -1,5 +1,7 @@
 # 维护小小搬豆工视觉
 
+可编辑源稿现位于独立美术目录，本文中的源路径相对此目录。恢复与导出步骤见 [维护独立美术源稿](../../../runbooks/maintain-art-sources.md)。
+
 ## 入口与资源
 
 从 AppEntrance 运行，经 Hub 进入 Demo。界面直接编辑 `Assets/LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersHudView.prefab`；场景、美术、网格均在同 Demo 目录中。原图、概念图和本轮生成提示词在 `Assets/Settings/BlockPorters/ArtSource/`，不进入 YooAsset 运行资源。

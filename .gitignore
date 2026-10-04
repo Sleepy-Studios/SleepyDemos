@@ -66,3 +66,10 @@ Desktop.ini
 
 # Local Unity verification reports and temporary refactor artifacts
 ValidationArtifacts~/
+
+# Editable art sources live in the independent art directory
+/ArtSource/
+/ArtSource~/
+/Assets/Settings/BlockPorters/ArtSource/
+/Assets/Settings/BlockPorters/ArtSource.meta
+**/__pycache__/

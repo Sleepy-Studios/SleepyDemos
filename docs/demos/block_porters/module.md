@@ -71,7 +71,7 @@ HUD 沿用 Core Decorate/Widget 的宿主，不新增 Canvas。五列四排卡�
 
 Hub 的相机关闭后，其灯光仍会影响 Additive 内容场景。Controller 在导航稳定后记录并临时停用其他场景当前启用的灯光，Disable/Destroy 时恢复；只记录启用项，原来关闭的灯光不变。此隔离仅属于本 Demo 适配器，不修改公共场景导航或项目渲染管线。
 
-生成原图与提示词位于 `Assets/Settings/BlockPorters/ArtSource/`，运行 Sprite 位于 Demo 的 `Art/UI/`。只保留已生成资产，不保留本次一次性装配脚本。直接修改 Prefab 或 Sprite Editor 元数据的步骤见 [视觉维护](runbooks/visuals.md)。
+生成原图与提示词位于独立美术目录的 `Assets/Settings/BlockPorters/ArtSource/`，运行 Sprite 位于 Demo 的 `Art/UI/`。只保留已生成资产，不保留本次一次性装配脚本。直接修改 Prefab 或 Sprite Editor 元数据的步骤见 [视觉维护](runbooks/visuals.md)。
 
 控制器等待全局场景导航稳定后显示带强类型会话数据的 HUD。暂停只停止本 Demo 的调度与动画，不修改全局 `Time.timeScale`。重开回收全部角色与方块、清空特效、取消旧奖励结果的生效资格；不卸载重建启动壳。
 
