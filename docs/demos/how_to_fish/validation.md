@@ -394,3 +394,10 @@ BingBong-b6465464：PlayMode 1/1 通过（78秒）。真实购买椰子、普通
 - 资源精确用例 `Outfits_AllModelsIconsAndHandsAreReadyForSavedUi`：513b237e，1/1通过，原生07:41:00Z；核对18套Prefab、图标、手臂材质、无物理组件和衣柜绑定，证据 `OutfitAssets-513b237e.xml`。
 - `Outfits_MenuInputsSharedSelectionAndIndependentRemains`：380aa053，同轮原生XML为1/1通过，07:43:12Z至07:43:45Z；验证暂停仍计时、键盘换装、手柄浏览锁定条件和返回焦点、第一人称手臂材质、写盘失败保持旧选择、遗体独立服装与Hub续档。证据 `OutfitMenuRuntime-380aa053.xml`；REST域重载未恢复原任务，不能把零用例状态作为断言结果。实际查看 `Outfits-Menu.png`，18张卡片、当前服装、锁定提示与底部条件可见。
 - `Outfits_ConsumeGreenWinAndEndingPersistOnlyEarnedRewards`：b4b2253e，同轮原生XML为1/1通过，07:45:19Z至07:45:47Z，证据 `OutfitRewardsRuntime-b4b2253e.xml`。实际长按进食烧焦生物解锁售货亭女士、轮盘保存受阻时撤回奖励、成功绿区结算解锁安德烈、重复传奇仍解锁雅各布、离岛结局解锁科学家及可信新档一小时成就均通过，结局停止计时。余额/鱼和最终钥匙为隔离准备，不代表连续新档通关。Console为26日志/0警告/0错误；未执行全项目测试。
+
+## 2026-10-04：Drip外观与水下炸鱼
+
+- `Drip_ColorSurvivesCookingAndRestoreWithoutChangingSharedMaterials`：12d57ad7，同轮原生XML为1/1通过，07:50:52Z至07:51:18Z，证据 `DripVisual-12d57ad7.xml`；Cod/Eel珍稀颜色可见、原始/半熟/焦化/恢复原始颜色、共享材质不变均通过。实际查看 `Drip-Cod.png`，持握鳕鱼呈浅白淡粉且HUD显示Drip；这不是逐物种或原作材质完全一致证明。未执行全项目测试。
+- 首轮 `Dynamite_UnderwaterFuseSpawnsOnlyUnlockedOrdinaryCatch`：dcec89de，原生07:53:11Z至07:53:55Z为1/1通过，证据 `UnderwaterDynamite-dcec89de.xml`。但同轮原生output含地形非凸碰撞体ClosestPoint警告，退出后Console统计为0并不能证明测试期间无警告；已修正为仅对伤害目标测距，CharacterController采用包围盒近似，后续需重跑水下与自伤回归。
+- 修正后重跑0e4ab35e，同轮原生07:57:49Z至07:58:34Z为1/1通过，证据 `UnderwaterClean-0e4ab35e.xml`；目标方法匹配，原生输出无ClosestPoint不支持、异常或断言诊断。覆盖水上/水面/岸内无生成、岸外水下一次生成、解锁0/1岛切换、非Drip满血普通鱼、鱼饵不变和后续帧不重复。启动请求响应超时但原生任务实际执行，以同轮报告计入。原有链爆与自伤回归待完成。
+- 原有炸药完整定向回归 `Dynamite_BuyThrowPauseResumeChainAndSelfDamage`：ecfb1537，同轮原生08:03:06Z至08:03:36Z为1/1通过，证据 `DynamiteDistanceRegression-ecfb1537.xml`；购买、投掷、暂停、Hub引信恢复、去重伤害、链爆、自伤和消耗仍通过，原生输出无测距不支持/异常/断言诊断，Console26日志/0警告/0错误。未执行全项目测试。

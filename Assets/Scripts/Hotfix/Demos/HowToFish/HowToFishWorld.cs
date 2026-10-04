@@ -177,7 +177,7 @@ namespace Hotfix.HowToFish
             var item = Instantiate(prefab, position, Quaternion.identity).GetComponent<HowToFishWorldItem>();
             item.Initialize(session, catalog, id, drip);
             var dynamite = item.GetComponent<HowToFishDynamite>();
-            if (dynamite != null) dynamite.Initialize(player);
+            if (dynamite != null) dynamite.Initialize(player, SpawnUnderwaterExplosionCatch);
             var fishMotion = item.GetComponent<HowToFishFishMotion>();
             if (fishMotion != null) fishMotion.Initialize(player);
             var crab = item.GetComponent<HowToFishSpiderCrab>();
@@ -217,6 +217,27 @@ namespace Hotfix.HowToFish
             if (id == "SpiderCrab" || id == "GiantPiranha" || id == "Pufferfish" || id == "Albatross" || id == "MutatedBowheadWhale")
                 item.Defeated += SaveAfterOutfitBoss;
             return item;
+        }
+
+        private void SpawnUnderwaterExplosionCatch(Vector3 center)
+        {
+            if (session == null || exiting || center.y >= 0 || islands == null ||
+                islands.Any(value => value.DistanceToShore(center) <= 0)) return;
+            var island = islands.Where(value => value.Index <= session.State.unlockedIsland)
+                .OrderBy(value => value.DistanceToShore(center)).FirstOrDefault();
+            if (island == null) return;
+            // 原作生成表未知：按最近已解锁岛，自制等概率普通鱼池；不沿用杆钓权重、Drip 或耗饵。
+            var pool = catalog.Creatures.Where(creature => creature.Island == island.Index &&
+                !creature.IsBoss && !creature.IsGroundPickup && creature.Health > 0 &&
+                creature.Baits.Any(bait => bait == "FreeLure" || bait == "HotDog" || bait == "BeginnerLure" ||
+                    bait == "StandardLure" || bait == "ProfessionalLure" || bait == "ScientificLure")).ToArray();
+            if (pool.Length == 0) return;
+            // 一条活体、水平两米内和水下 0.3 米均为项目推定；近岸偏移落入岛内时回退到爆心水平位置。
+            Vector2 offset = UnityEngine.Random.insideUnitCircle * 2;
+            var position = new Vector3(center.x + offset.x, -.3f, center.z + offset.y);
+            if (islands.Any(value => value.DistanceToShore(position) <= 0))
+                position = new Vector3(center.x, -.3f, center.z);
+            Spawn(pool[UnityEngine.Random.Range(0, pool.Length)].Id, position, false);
         }
 
         /// 保存最近安全点和全部非活动首领实体。

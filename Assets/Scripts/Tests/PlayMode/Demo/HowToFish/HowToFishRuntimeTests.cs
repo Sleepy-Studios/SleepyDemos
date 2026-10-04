@@ -31,6 +31,56 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator Drip_ColorSurvivesCookingAndRestoreWithoutChangingSharedMaterials()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            foreach (string id in new[] { "Cod", "Eel" })
+            {
+                var fish = world.Spawn(id, world.Player.transform.position + Vector3.up * 2, true);
+                fish.Body.isKinematic = true;
+                var surfaces = fish.VisualRoot.GetComponentsInChildren<MeshRenderer>(true);
+                var originals = surfaces.Select(value => value.sharedMaterials.Select(material => material.GetColor("_BaseColor")).ToArray()).ToArray();
+                var block = new MaterialPropertyBlock();
+                bool changed = false;
+                for (int i = 0; i < surfaces.Length; i++)
+                    for (int slot = 0; slot < originals[i].Length; slot++)
+                    {
+                        surfaces[i].GetPropertyBlock(block, slot);
+                        changed |= Vector4.Distance(block.GetColor("_BaseColor"), originals[i][slot]) > .1f;
+                    }
+                Assert.That(changed, Is.True, id + "的Drip外观不能仅有数据标志。");
+                fish.Hit(100000, Vector3.zero);
+                var snapshot = fish.Snapshot();
+                foreach (float cooking in new[] { 0f, .5f, 1f, 0f })
+                {
+                    snapshot.cooking = cooking; snapshot.isCooked = cooking >= .5f;
+                    fish.Restore(snapshot);
+                    for (int i = 0; i < surfaces.Length; i++)
+                        for (int slot = 0; slot < originals[i].Length; slot++)
+                        {
+                            Assert.That(surfaces[i].sharedMaterials[slot].GetColor("_BaseColor"), Is.EqualTo(originals[i][slot]), "不能染色共享材质。");
+                            surfaces[i].GetPropertyBlock(block, slot);
+                            var color = block.GetColor("_BaseColor");
+                            if (cooking == 0) Assert.That(color.r, Is.GreaterThanOrEqualTo(.59f), id);
+                            if (cooking == 1) Assert.That(Mathf.Max(color.r, color.g, color.b), Is.LessThan(.03f), "焦化必须覆盖珍稀颜色。");
+                        }
+                }
+                if (id == "Cod")
+                {
+                    PlaceForPickup(world.Player, fish); Assert.That(world.Player.PickUp(fish), Is.True);
+                    yield return WaitFor(() => !UnityEditor.ShaderUtil.anythingCompiling, "Drip材质仍在编译。");
+                    yield return null; yield return null;
+                    ScreenCapture.CaptureScreenshot(Path.GetFullPath("Library/HowToFish/Evidence/Drip-Cod.png"));
+                    yield return null; yield return null;
+                    world.Player.Drop(false);
+                }
+                Assert.That(fish.TryConsume(() => { }), Is.True);
+                yield return null;
+            }
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator Outfits_MenuInputsSharedSelectionAndIndependentRemains()
         {
             yield return StartNewGame();
@@ -405,6 +455,88 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.RightStick)); yield return null; yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
             Assert.That(UnityEngine.Object.FindAnyObjectByType<HowToFishBoat>().SkinId, Is.Null.Or.Empty);
+        }
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator Dynamite_UnderwaterFuseSpawnsOnlyUnlockedOrdinaryCatch()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            var forest = world.Islands.Single(value => value.Index == 1);
+            bool unsupportedDistanceQuery = false;
+            Application.LogCallback captureDistanceWarning = (message, stack, type) =>
+            {
+                if (message.Contains("Physics.ClosestPoint can only")) unsupportedDistanceQuery = true;
+            };
+            Application.logMessageReceived += captureDistanceWarning;
+            // 暂停环境定时补生，不替换 Spawn、炸药回调或引信 Update。
+            world.enabled = false;
+            try
+            {
+                var offshore = Enumerable.Range(0, 16)
+                    .Select(index => forest.Position + Quaternion.Euler(0, index * 22.5f, 0) * Vector3.forward * (forest.Radius + 12))
+                    .First(position => world.Islands.All(value => value.DistanceToShore(position) > 0) &&
+                        world.Islands.OrderBy(value => value.DistanceToShore(position)).First() == forest);
+                offshore.y = -.3f;
+                var above = offshore; above.y = 1;
+                var surface = offshore; surface.y = 0;
+                var inland = forest.Position; inland.y = -.3f;
+                world.Session.State.unlockedIsland = 0;
+                yield return CheckExplosion(above, -1);
+                yield return CheckExplosion(surface, -1);
+                yield return CheckExplosion(inland, -1);
+                // 相同的森林岸外爆点：森林未解锁时只取灯塔普通池，解锁后才切换森林池。
+                yield return CheckExplosion(offshore, 0);
+                world.Session.State.unlockedIsland = 1;
+                yield return CheckExplosion(offshore, 1);
+                Assert.That(unsupportedDistanceQuery, Is.False, "不能对岸内非凸地形调用ClosestPoint。");
+            }
+            finally
+            {
+                Application.logMessageReceived -= captureDistanceWarning;
+                world.enabled = true; world.SetPaused(true);
+            }
+
+            IEnumerator CheckExplosion(Vector3 center, int expectedIsland)
+            {
+                var before = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None)
+                    .Select(value => value.InstanceId).ToArray();
+                var baitCounts = world.Catalog.Items.Where(value => value.Kind == HowToFishItemKind.Bait)
+                    .ToDictionary(value => value.Id, value => world.Session.Count(value.Id));
+                var explosive = world.Spawn("Dynamite", center, false);
+                // 只固定爆心，阻止浮力改变水上/水下边界；真实 Dynamite 组件继续更新。
+                explosive.enabled = false;
+                explosive.Body.isKinematic = true;
+                Physics.SyncTransforms();
+                var fuse = explosive.GetComponent<HowToFishDynamite>();
+                fuse.Ignite();
+                Assert.That(fuse.RemainingFuse, Is.EqualTo(3));
+                yield return WaitFor(() => explosive == null, "真实炸药引信到期未消费实体。");
+                var spawned = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None)
+                    .Where(value => !before.Contains(value.InstanceId)).ToArray();
+                Assert.That(spawned.Length, Is.EqualTo(expectedIsland < 0 ? 0 : 1),
+                    "水上/岸内不能产鱼，岸外水下每枚只能产一条。");
+                foreach (var entry in baitCounts)
+                    Assert.That(world.Session.Count(entry.Key), Is.EqualTo(entry.Value), "炸鱼不能消耗当前鱼饵。");
+                if (expectedIsland >= 0)
+                {
+                    var fish = spawned.Single();
+                    Assert.That(fish.Creature, Is.Not.Null);
+                    Assert.That(fish.Creature.Island, Is.EqualTo(expectedIsland));
+                    Assert.That(fish.Creature.IsBoss, Is.False);
+                    Assert.That(fish.Creature.IsGroundPickup, Is.False);
+                    Assert.That(fish.Creature.Baits.Intersect(new[] { "FreeLure", "HotDog", "BeginnerLure", "StandardLure", "ProfessionalLure", "ScientificLure" }), Is.Not.Empty);
+                    Assert.That(new[] { "Leech", "Seagull", "BingBong" }, Does.Not.Contain(fish.DefinitionId));
+                    Assert.That(fish.IsDrip, Is.False);
+                    Assert.That(fish.IsAlive, Is.True, "新鱼不能被同一枚炸药的已缓存范围伤害击杀。");
+                    Assert.That(fish.Health, Is.EqualTo(fish.Creature.Health));
+                }
+                yield return new WaitForSeconds(.1f);
+                Assert.That(UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None)
+                    .Count(value => !before.Contains(value.InstanceId)), Is.EqualTo(spawned.Length), "后续帧不能重复生成。");
+                foreach (var item in spawned) Assert.That(item.TryConsume(() => { }), Is.True);
+                yield return null;
+            }
         }
 
         [UnityTest, Timeout(240000)]

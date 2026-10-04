@@ -114,6 +114,7 @@ namespace Hotfix.HowToFish
             if (creature == null && definition == null) throw new ArgumentException("世界物品定义不存在：" + id);
             health = creature?.Health ?? 0;
             isDrip = drip;
+            if (creature != null && isDrip) HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, true);
             // 个体随机范围暂无来源公式：均匀0.8至1.2为本项目推定，与Drip独立。
             ApplyWeightMultiplier(creature != null && !creature.SkipRandomizedWeight ? UnityEngine.Random.Range(.8f, 1.2f) : 1);
             if (definition?.IsEquipment == true) SetEquipmentState(new HowToFishOwnedItem { id = id, count = 1 });
@@ -139,7 +140,7 @@ namespace Hotfix.HowToFish
             hasBeenHitByPlayer = data.hasBeenHitByPlayer;
             isDrip = data.isDrip;
             if (data.HasEquipment) SetEquipmentState(data.equipment);
-            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             transform.SetPositionAndRotation(data.position, Quaternion.Euler(data.eulerAngles));
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
@@ -175,7 +176,7 @@ namespace Hotfix.HowToFish
             visualRoot = next;
             hookPoint = next.Find("Grip");
             outfitId = id;
-            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
         }
 
         /// <summary>将背包装备状态转入这个物理实体。</summary>
@@ -187,7 +188,7 @@ namespace Hotfix.HowToFish
             equipmentState = state.Copy();
             cooking = state.cooking;
             visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
-            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             var view = visualRoot.GetComponent<HowToFishEquipmentView>();
             if (view != null) view.SetAttachments(equipmentState);
         }
@@ -197,7 +198,7 @@ namespace Hotfix.HowToFish
             if (consumed || equipmentState == null || !HowToFishSkinCatalog.Supports(definitionId)) return false;
             equipmentState.skinId = session.NextUnlockedSkin(definitionId, equipmentState.skinId);
             visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
-            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             return true;
         }
 
@@ -305,7 +306,7 @@ namespace Hotfix.HowToFish
             lastHeatStep = Time.fixedTime;
             cooking = Mathf.Min(1, cooking + amount);
             if (equipmentState != null) equipmentState.cooking = cooking;
-            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             return true;
         }
 
@@ -344,7 +345,7 @@ namespace Hotfix.HowToFish
             if (equipmentState != null && cooking > 0 && body.worldCenterOfMass.y < 0)
             {
                 cooking = equipmentState.cooking = 0;
-                HowToFishEquipmentView.ApplyCookingTint(visualRoot, 0);
+                HowToFishEquipmentView.ApplyCookingTint(visualRoot, 0, creature != null && isDrip);
             }
             if (holdTarget != null)
             {

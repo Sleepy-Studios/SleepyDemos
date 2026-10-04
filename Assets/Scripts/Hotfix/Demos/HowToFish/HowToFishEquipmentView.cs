@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -34,6 +35,9 @@ namespace Hotfix.HowToFish
         private bool hasLaser;
         private float appliedCooking = -1;
         private string appliedSkin;
+        private static MaterialPropertyBlock cookingBlock;
+        private static readonly List<MeshRenderer> cookingRenderers = new List<MeshRenderer>();
+        private static readonly List<Material> cookingMaterials = new List<Material>();
 
         /// <summary>使用服装模型的手臂材质更新现有持握模型，不修改共享材质或武器外观。</summary>
         /// <param name="outfit">已装配的服装模型；裸臂与短袖不显示袖口。</param>
@@ -84,25 +88,34 @@ namespace Hotfix.HowToFish
             ApplyCookingTint(transform, cooking);
         }
 
-        internal static void ApplyCookingTint(Transform root, float cooking)
+        internal static void ApplyCookingTint(Transform root, float cooking, bool drip = false)
         {
-            var block = new MaterialPropertyBlock();
+            // 同步主线程调用复用缓冲，持续受热时不逐帧创建属性块或材质/渲染器数组。
+            cookingBlock ??= new MaterialPropertyBlock();
+            cookingBlock.Clear();
+            root.GetComponentsInChildren(true, cookingRenderers);
             var hand = root.Find("HandVisual");
-            foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>(true))
+            foreach (var renderer in cookingRenderers)
             {
                 if (hand != null && renderer.transform.IsChildOf(hand)) continue;
-                var materials = renderer.sharedMaterials;
-                for (int i = 0; i < materials.Length; i++)
+                renderer.GetSharedMaterials(cookingMaterials);
+                for (int i = 0; i < cookingMaterials.Count; i++)
                 {
-                    if (materials[i] == null || !materials[i].HasProperty("_BaseColor")) continue;
-                    var color = materials[i].GetColor("_BaseColor");
+                    var material = cookingMaterials[i];
+                    if (material == null || !material.HasProperty("_BaseColor")) continue;
+                    var color = material.GetColor("_BaseColor");
+                    // Cod/Eel 对照支持浅白淡粉方向；统一 60% 混色是项目推定，不代表逐物种原作材质。
+                    // 只调整基础色，保留纹理和部位色差，再叠加原有熟成与焦化曲线。
+                    if (drip) color = Color.Lerp(color, new Color(1, .88f, .94f, color.a), .6f);
                     var cooked = Color.Lerp(color, new Color(.43f, .22f, .075f, color.a), Mathf.Clamp01(cooking * 2) * .65f);
-                    renderer.GetPropertyBlock(block, i);
-                    block.SetColor("_BaseColor", Color.Lerp(cooked, new Color(.025f, .018f, .012f, color.a), Mathf.Clamp01((cooking - .5f) * 2)));
-                    renderer.SetPropertyBlock(block, i);
-                    block.Clear();
+                    renderer.GetPropertyBlock(cookingBlock, i);
+                    cookingBlock.SetColor("_BaseColor", Color.Lerp(cooked, new Color(.025f, .018f, .012f, color.a), Mathf.Clamp01((cooking - .5f) * 2)));
+                    renderer.SetPropertyBlock(cookingBlock, i);
+                    cookingBlock.Clear();
                 }
             }
+            cookingRenderers.Clear();
+            cookingMaterials.Clear();
         }
 
         private void Awake()
