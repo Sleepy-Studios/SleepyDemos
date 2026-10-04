@@ -364,3 +364,11 @@ BingBong-b6465464：PlayMode 1/1 通过（78秒）。真实购买椰子、普通
 模型法线修正17f9b73e为1/1通过（24秒），证据SlotModelNormals-17f9b73e.xml。再次运行23f8cea7为1/1通过（125秒），证据SkinVisualFirstFrame-23f8cea7.xml；截图确认六个正面符号可见，滚轮复位有效。但首次绘制的手枪仍为青色，不能据此确定此前材质缓冲就是青色原因。Unity官方异步Shader文档明确这种纯青色为编译中的占位呈现；测试已增加等待ShaderUtil.anythingCompiling结束及ShaderHasError检查，随后重新截图验收。
 
 最终皮肤运行aa0b4617的同轮原生XML为1/1通过（结束06:22:59Z），证据SkinRenderedRuntime-aa0b4617.xml；REST报告域重载任务未恢复、零用例，按新生成的同方法原生XML计入，不把REST零用例当断言失败。实际查看14:22:58的Skin-GoldPistol.png：Gold显示金色，手部/瞄具保留原材质，六个机台正面符号可见；等待异步变体编译后青色消失，确认早期截图取帧过早。Console26日志/0警告/0错误。此结果覆盖投料、暂停、双输入换肤、烹饪、物品转移、船体与Hub续档；仍不是无准备的新档通关，也没有逐一截图全部127条外观。原作配色、环境美术、人物服装、轮盘仍按内容清单继续，未执行全项目测试。
+
+## 2026-10-04：实物轮盘
+
+- 模型精确用例 `FirstIslandModel_PreservesForwardMountAndAppliedTransforms("RouletteTable","RedBet")`：8087d6ea，1/1通过，29秒。检查实际导入挂点、单位变换、37格朝上法线及白球独立根节点；证据 `RouletteModel-8087d6ea.xml`。
+- 倍率精确用例 `RouletteValue_MultipliesExistingFactorsAndRejectsOverflowWithoutPaying`：1774ef1e，1/1通过，11秒。覆盖红黑2倍、绿35倍、连乘、烹饪/Drip/击杀组合、非法值及溢出不改余额；证据 `RouletteValue-1774ef1e.xml`。
+- 存档精确用例 `RouletteMultiplier_RoundTripsAndOldSnapshotsDefaultToOne`：239715fe，1/1通过，18秒；旧字段缺失按1恢复、累计70倍往返、非法倍率不覆盖有效存档，证据 `RouletteSave-239715fe.xml`。
+- 运行用例 `Roulette_PhysicalBetsPausePayoutAndReload`：d0ca839c同轮新生成原生XML为1/1通过，测试时段06:36:29Z至06:36:56Z，证据 `RouletteRuntime-d0ca839c.xml`。REST为域重载后原任务未恢复、零用例，未将该状态冒充成功；原生报告确认实际目标通过。覆盖三色实体押物、先保存后演出、输掉销毁、实际售价、暂停、首领战斗拒绝保存时整组保留、Hub读档出售与键鼠/手柄各自启动。
+- 实际查看14:36:52的 `Roulette-InGame.png`，三色区域、37格轮盘、结果提示可见；测试押物使用关闭重力的定位夹具，因此悬浮姿态不作为自然落桌效果证明。Console 26日志/0警告/0错误。使用解锁岩石岛的隔离存档，不代表从零通关；未执行全项目测试。

@@ -133,6 +133,8 @@ namespace Hotfix.HowToFish
                 player.ChangeSkinRequested += ChangeSkin;
                 foreach (var machine in FindObjectsByType<HowToFishSlotMachine>(FindObjectsSortMode.None))
                     if (machine.gameObject.scene == gameObject.scene) machine.Initialize(this);
+                foreach (var roulette in FindObjectsByType<HowToFishRoulette>(FindObjectsSortMode.None))
+                    if (roulette.gameObject.scene == gameObject.scene) roulette.Initialize(this);
                 foreach (var station in FindObjectsByType<HowToFishStation>(FindObjectsSortMode.None))
                     if (station.gameObject.scene == gameObject.scene &&
                         (station.Kind == HowToFishStationKind.GrillMaster || station.Kind == HowToFishStationKind.Keeper || station.Kind == HowToFishStationKind.ForestLady ||
@@ -270,7 +272,43 @@ namespace Hotfix.HowToFish
             Notify("当前外观：" + (HowToFishSkinCatalog.Find(skinId)?.Name ?? "Default"));
         }
 
-        private bool TrySave()
+        /// <summary>预检整组潜在中奖金额，先保存本轮未来快照，再兑现物品倍率和销毁输掉的实体。</summary>
+        /// <param name="roulette">本世界中已开放的轮盘台。</param>
+        /// <param name="bets">开局时各实体的下注颜色，同一实体只允许一个颜色。</param>
+        /// <param name="result">本轮结果；轮盘先抽签，保存成功才开始演出。</param>
+        /// <param name="announcement">动画结束后显示的结果。</param>
+        public bool TrySettleRoulette(HowToFishRoulette roulette, IReadOnlyDictionary<HowToFishWorldItem, HowToFishRouletteColor> bets,
+            HowToFishRouletteColor result, out string announcement)
+        {
+            announcement = null;
+            if (session == null || IsPaused || exiting || roulette == null || roulette.gameObject.scene != gameObject.scene ||
+                roulette.Island < 0 || roulette.Island > session.State.unlockedIsland || bets == null || bets.Count == 0 || (uint)result > 2) return false;
+            var settled = new Dictionary<HowToFishWorldItem, float>();
+            int winners = 0;
+            try
+            {
+                foreach (var bet in bets)
+                {
+                    if (bet.Key == null || !bet.Key.CanBet || !items.Contains(bet.Key) || (uint)bet.Value > 2)
+                    { Notify("押注物品状态已变化，请重新放置。"); return false; }
+                    float multiplier = bet.Key.BettingMultiplier * (bet.Value == HowToFishRouletteColor.Green ? 35 : 2);
+                    // 每件物品按它所押颜色的最高可得值检查，不能靠抽到输局避开溢出检查。
+                    bet.Key.ValueAfterRoulette(multiplier);
+                    bool won = bet.Value == result;
+                    settled.Add(bet.Key, won ? multiplier : 0);
+                    if (won) winners++;
+                }
+            }
+            catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is InvalidOperationException)
+            { Notify("本轮潜在中奖价值超出当前金额数值范围，未扣物品；请取回高倍率鱼获。"); return false; }
+            if (!TrySave(settled)) return false;
+            foreach (var entry in settled) entry.Key.ApplyRouletteResult(entry.Value);
+            string color = result == HowToFishRouletteColor.Green ? "绿" : result == HowToFishRouletteColor.Red ? "红" : "黑";
+            announcement = $"轮盘落在{color}色：{winners}件获胜，{settled.Count - winners}件失去。取回获胜鱼获后出售兑现。";
+            return true;
+        }
+
+        private bool TrySave(IReadOnlyDictionary<HowToFishWorldItem, float> rouletteResults = null)
         {
             if (session == null) return false;
             if (items.Any(item => item != null && !item.IsConsumed && item.Creature?.IsBoss == true && item.IsAlive))
@@ -288,7 +326,16 @@ namespace Hotfix.HowToFish
                 { state.safePosition = player.transform.position; state.safeYaw = player.transform.eulerAngles.y; state.safeIsland = player.Island; }
                 state.worldItems.Clear();
                 foreach (var item in items)
-                    if (item != null && !item.IsConsumed) state.worldItems.Add(item.Snapshot());
+                    if (item != null && !item.IsConsumed)
+                    {
+                        var snapshot = item.Snapshot();
+                        if (rouletteResults != null && rouletteResults.TryGetValue(item, out float multiplier))
+                        {
+                            if (multiplier == 0) continue;
+                            snapshot.bettingMultiplier = multiplier;
+                        }
+                        state.worldItems.Add(snapshot);
+                    }
                 saves.Save(slot, state);
                 Notify("已保存到存档 " + (slot + 1) +
                     (string.IsNullOrEmpty(saves.SkinProfileNotice) ? "" : "\n" + saves.SkinProfileNotice));
@@ -337,6 +384,9 @@ namespace Hotfix.HowToFish
             if (player.IsDriving) return "[" + input.BindingLabel("Interact") + "] 离开驾驶位";
             var focus = player.Focus;
             if (focus == null) return "";
+            var roulette = focus.GetComponentInParent<HowToFishRoulette>();
+            if (roulette != null && focus.GetComponentInParent<HowToFishWorldItem>() == null)
+                return "[" + input.BindingLabel("Interact") + "] 开始轮盘\n" + roulette.StakeText();
             var station = focus.GetComponentInParent<HowToFishStation>();
             if (station != null)
             {
@@ -426,6 +476,8 @@ namespace Hotfix.HowToFish
         {
             if (player.IsDriving) { boat.SetDriver(null); player.Teleport(boat.ExitPosition, boat.transform.eulerAngles.y); return; }
             if (collider == null) return;
+            var roulette = collider.GetComponentInParent<HowToFishRoulette>();
+            if (roulette != null && collider.GetComponentInParent<HowToFishWorldItem>() == null) { roulette.TrySpin(); return; }
             var station = collider.GetComponentInParent<HowToFishStation>();
             if (station == null) { player.PickUp(collider.GetComponentInParent<HowToFishWorldItem>()); return; }
             switch (station.Kind)

@@ -149,3 +149,9 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 皮肤目录、解锁规则和持久化字段见[外观预设表](skin-catalog.md)。运行入口为 `World.ChangeSkin`，输入在Gameplay/Boat两种映射中共享默认C/右摇杆按下；玩家发请求，World按持有对象选择装备或船，不设适配层。五岛保存实体老虎机，投料触发区在模型Intake挂点；死Drip消费、奖励解锁和保存同次完成，重复奖励不退款。
 
 此模块只影响本Demo的Hotfix代码、专属Editor装配和Demo资源，不扩展Core。场景重装配会补齐旧输入模板动作及SkinView Shader引用，保留已有绑定ID；三槽保存的皮肤字段向后兼容。自制纹理、两秒滚轮节奏及同稀有度内等权仍需原作外观和权重对照。
+
+## 实物轮盘
+
+`HowToFishRoulette` 挂在岩石岛的自制 `RouletteTable` 上，三色 `BoxCollider` 只负责划定实物下注区。玩家通过现有 Interact 键/手柄启动；先检查物品资格、跨区重复和全部潜在中奖价值，再抽取37格结果。倍率写入地面物品快照，失败则保留原物品，写盘成功后才改内存倍率、销毁输掉的物品并播放轮球演出；暂停通过既有时间缩放冻结。
+
+`HowToFishWorldItemData.bettingMultiplier` 默认1，随地面物品保存和恢复。`HowToFishSession.CatchValue` 统一计算烹饪、Drip、击杀及轮盘倍率，拾取提示与实际出售使用同一个结果。下注不会直接增加现金；须拿回中奖物再出售。位置、白名单及概率近似见参考清单；双输入启动、暂停、保存失败保留和续档出售已通过定向运行验证，见验证记录。

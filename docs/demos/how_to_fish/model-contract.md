@@ -87,3 +87,6 @@ Bowlfish 根据 S14 实机图改为透明开口鱼缸、内部小鱼与侧鳍；
 `build_slot_machine_model.py` 自制SlotMachine，保留.blend/.json/FBX。宽1.164×深0.845×高1.8米，Intake/Display/Lever与三个独立Reel0~2；造型及尺寸为推定。Review-SlotMachine.png已实际查看。Intake源坐标(0,-.405,.58)，预期Unity(0,.58,.405)；Display预期(0,1.665,.36)。场景以Intake为触发区，身体用简单碰撞体，动画仅驱动真实滚轮和操纵杆。导入、运行验证结果见validation.md。
 
 Unity正面截图发现顶屏/滚轮符号消失：原脚本符号面法线朝源+Y，Blender默认双面预览掩盖了背面剔除问题。现已反转六个面的绕序，源导出前断言normal.y<-.99，并在Unity导入门禁检查符号法线朝+Z；滚轮停转复位让符号朝前，不停在随机空白面。
+
+## 轮盘桌候选（2026-10-04）
+`build_roulette_model.py` 自制 `RouletteTable`，保留 `.blend/.json/FBX`。宽2.8、深1.8、高1.185米，桌面高1米；木制台体、金边、三色放物面和37格轮盘。轮心Unity(0,1.05,-.35)，白球直接挂台根，初始Unity(0,1.095,.05)；RedBet/BlackBet/GreenBet分别为(-.65/0/.65,1.005,.3)，Grip为原点。格0朝轮局部+Z，编号沿+Y正旋转，0绿/奇红/偶黑。脚本断言37格、颜色数量、上表面法线及应用变换；自制预览已查看并修正一次共面闪烁，实际导入精确用例8087d6ea为1/1通过，运行截图Roulette-InGame.png已查看；规则与运行证据见validation.md。

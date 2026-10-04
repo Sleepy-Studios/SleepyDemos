@@ -71,6 +71,7 @@ namespace Tests.Demo
         [TestCase("BigMotor", "Forward")]
         [TestCase("BoatRadar", "Forward")]
         [TestCase("SlotMachine", "Intake")]
+        [TestCase("RouletteTable", "RedBet")]
         [TestCase("CrabMeat", "Hook")]
         [TestCase("FishingBoat", "Bow")]
         [TestCase("Lighthouse", "DoorFront")]
@@ -188,6 +189,18 @@ namespace Tests.Demo
                 }
                 Assert.That(instance.GetComponentsInChildren<MeshFilter>().Sum(filter => filter.sharedMesh.vertexCount), Is.GreaterThan(30));
                 if (name == "CrabRod") Assert.That(front.position.z, Is.InRange(1.7f, 1.9f));
+                if (name == "RouletteTable")
+                {
+                    var wheel = transforms.Single(node => node.name == "Wheel");
+                    var ball = transforms.Single(node => node.name == "Ball");
+                    Assert.That(Vector3.Distance(wheel.position, new Vector3(0, 1.05f, -.35f)), Is.LessThan(.002f));
+                    Assert.That(ball.parent, Is.SameAs(instance.transform), "白球需要独立于旋转轮。");
+                    var pockets = instance.GetComponentsInChildren<MeshFilter>().Where(node => node.name.StartsWith("Pocket")).ToArray();
+                    Assert.That(pockets.Length, Is.EqualTo(37));
+                    foreach (var pocket in pockets)
+                        foreach (var normal in pocket.sharedMesh.normals)
+                            Assert.That(Vector3.Dot(pocket.transform.TransformDirection(normal), Vector3.up), Is.GreaterThan(.99f));
+                }
                 if (name == "SlotMachine")
                     foreach (var symbol in instance.GetComponentsInChildren<MeshFilter>().Where(value =>
                         value.name.StartsWith("RewardJewel") || value.name.StartsWith("ReelDiamond")))

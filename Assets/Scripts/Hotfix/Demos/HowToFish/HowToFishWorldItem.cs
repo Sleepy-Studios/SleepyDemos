@@ -31,6 +31,7 @@ namespace Hotfix.HowToFish
         private bool hasBeenHeld;
         private HowToFishOwnedItem equipmentState;
         private float styleMultiplier = 1;
+        private float bettingMultiplier = 1;
         private bool hasBeenHitByPlayer;
         private HowToFishBossTransition bossTransition;
         private HowToFishDynamite dynamite;
@@ -57,7 +58,10 @@ namespace Hotfix.HowToFish
         public bool HasBeenHeld => hasBeenHeld;
         public bool HasBeenHitByPlayer => hasBeenHitByPlayer;
         public float KillMultiplier => styleMultiplier;
-        public int SaleValue => creature == null ? 0 : session.CatchValue(definitionId, cooking, isDrip, styleMultiplier);
+        public float BettingMultiplier => bettingMultiplier;
+        /// 当前轮盘仅接受曾被玩家持握、已放手且可出售的死生物。
+        public bool CanBet => !consumed && !IsHeld && !IsAlive && creature != null && !creature.IgnoredBySeller && hasBeenHeld;
+        public int SaleValue => creature == null ? 0 : session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier);
         /// 珍稀变体标记。
         public bool IsDrip => isDrip;
         public HowToFishOwnedItem EquipmentState => equipmentState?.Copy();
@@ -115,6 +119,7 @@ namespace Hotfix.HowToFish
             cooking = data.cooking > 0 ? data.cooking : data.isCooked ? .5f : 0;
             hasBeenHeld = data.hasBeenHeld;
             styleMultiplier = data.styleMultiplier;
+            bettingMultiplier = data.bettingMultiplier;
             hasBeenHitByPlayer = data.hasBeenHitByPlayer;
             isDrip = data.isDrip;
             if (data.HasEquipment) SetEquipmentState(data.equipment);
@@ -130,6 +135,7 @@ namespace Hotfix.HowToFish
             instanceId = instanceId, definitionId = definitionId, health = health,
             position = transform.position, eulerAngles = transform.eulerAngles,
             isCooked = IsCooked, cooking = cooking, hasBeenHeld = hasBeenHeld, styleMultiplier = styleMultiplier,
+            bettingMultiplier = bettingMultiplier,
             isDrip = isDrip, hasBeenHitByPlayer = hasBeenHitByPlayer, equipment = equipmentState?.Copy(),
             dynamiteFuseSeconds = dynamite != null ? dynamite.RemainingFuse : 0
         };
@@ -155,6 +161,15 @@ namespace Hotfix.HowToFish
             visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
             HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
             return true;
+        }
+
+        internal int ValueAfterRoulette(float multiplier) => session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, multiplier);
+
+        internal void ApplyRouletteResult(float multiplier)
+        {
+            // 世界已预检并原子保存整组结果；此处只兑现提交后的实体状态。
+            if (multiplier == 0) { consumed = true; FinishConsume(); }
+            else bettingMultiplier = multiplier;
         }
 
         /// <summary>从相机方向物理抓取，忽略与持有者自身的碰撞。</summary>
@@ -255,7 +270,7 @@ namespace Hotfix.HowToFish
             money = 0;
             if (consumed || creature == null || creature.IgnoredBySeller || IsAlive || !hasBeenHeld) return false;
             consumed = true;
-            try { money = session.SellCatch(definitionId, cooking, isDrip, styleMultiplier); }
+            try { money = session.SellCatch(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier); }
             catch { consumed = false; throw; }
             FinishConsume();
             return true;

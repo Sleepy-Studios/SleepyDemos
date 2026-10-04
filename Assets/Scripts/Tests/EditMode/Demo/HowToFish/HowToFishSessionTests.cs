@@ -9,6 +9,34 @@ namespace Tests.Demo
     {
         private HowToFishCatalog catalog;
 
+        [Test]
+        public void RouletteValue_MultipliesExistingFactorsAndRejectsOverflowWithoutPaying()
+        {
+            var state = new HowToFishSaveData { money = 10 };
+            var session = new HowToFishSession(catalog, state);
+            Assert.That(session.CatchValue("Shrimp", 0, false, 1, 2), Is.EqualTo(10));
+            Assert.That(session.CatchValue("Shrimp", 0, false, 1, 35), Is.EqualTo(175));
+            Assert.That(session.CatchValue("Shrimp", .5f, true, 2, 35 * 2), Is.EqualTo(3150));
+            Assert.That(state.money, Is.EqualTo(10), "轮盘倍率估价不能直接发现金。");
+            Assert.That(session.SellCatch("Shrimp", .5f, true, 2, 35 * 2), Is.EqualTo(3150));
+            Assert.That(state.money, Is.EqualTo(3160));
+            foreach (float invalid in new[] { 0, -1, float.NaN, float.PositiveInfinity })
+                Assert.Throws<ArgumentOutOfRangeException>(() => session.SellCatch("Shrimp", 0, false, 1, invalid));
+            Assert.Throws<InvalidOperationException>(() => session.SellCatch("Shrimp", 0, false, 1, float.MaxValue));
+            Assert.That(state.money, Is.EqualTo(3160), "非法值或溢出失败不能改变余额。");
+            int red = 0, black = 0, green = 0;
+            for (int pocket = 0; pocket < 37; pocket++)
+                switch (HowToFishRoulette.ColorForPocket(pocket))
+                {
+                    case HowToFishRouletteColor.Red: red++; break;
+                    case HowToFishRouletteColor.Black: black++; break;
+                    case HowToFishRouletteColor.Green: green++; break;
+                }
+            Assert.That(new[] { red, black, green }, Is.EqualTo(new[] { 18, 18, 1 }));
+            Assert.That(HowToFishRoulette.ColorForPocket(0), Is.EqualTo(HowToFishRouletteColor.Green));
+            Assert.Throws<ArgumentOutOfRangeException>(() => HowToFishRoulette.ColorForPocket(37));
+        }
+
         [SetUp]
         public void SetUp()
         {

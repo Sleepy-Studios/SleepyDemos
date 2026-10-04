@@ -31,6 +31,89 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator Roulette_PhysicalBetsPausePayoutAndReload()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            // 隔离轮盘与存档边界；五岛新档推进由独立全程验收覆盖。
+            world.Session.State.unlockedIsland = 3;
+            world.Player.Island = 3;
+            var table = UnityEngine.Object.FindAnyObjectByType<HowToFishRoulette>();
+            Assert.That(table, Is.Not.Null);
+            world.Player.Teleport(table.transform.position + new Vector3(0, .1f, 2.6f), 180);
+            yield return new WaitForSeconds(.2f);
+            var colors = new[] { "Red", "Black", "Green" };
+            var fish = new HowToFishWorldItem[3];
+            var ids = new string[3];
+            var values = new int[3];
+            for (int i = 0; i < fish.Length; i++)
+            {
+                fish[i] = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, false);
+                fish[i].Hit(1000, Vector3.zero);
+                PlaceForPickup(world.Player, fish[i]); Assert.That(world.Player.PickUp(fish[i]), Is.True); world.Player.Drop(false);
+                var zone = table.GetComponentsInChildren<Transform>().Single(node => node.name == colors[i] + "Bet");
+                fish[i].Body.useGravity = false; fish[i].Body.linearVelocity = Vector3.zero;
+                fish[i].Body.position = zone.position + Vector3.up * .2f;
+                ids[i] = fish[i].InstanceId; values[i] = fish[i].SaleValue;
+            }
+            Physics.SyncTransforms(); yield return new WaitForFixedUpdate();
+            var target = table.transform.TransformPoint(new Vector3(1.15f, .8f, .85f));
+            yield return AimAt(world.Player, target);
+            Assert.That(world.Player.Focus?.GetComponentInParent<HowToFishRoulette>(), Is.SameAs(table));
+            int money = world.Session.State.money;
+            var activeBoss = world.Spawn("Tuna", table.transform.position + new Vector3(20, 5, 0), false);
+            Assert.That(table.TrySpin(), Is.False, "首领战斗不能保存，因此不能消费下注物。");
+            Assert.That(fish.All(item => !item.IsConsumed && item.BettingMultiplier == 1), Is.True, "保存拒绝必须保留整组原物品。");
+            Assert.That(activeBoss.TryConsume(() => { }), Is.True);
+            yield return PressKey(Key.E);
+            Assert.That(table.IsSpinning, Is.True, "键盘交互没有启动轮盘。");
+            int winner = table.LastPocket == 0 ? 2 : table.LastPocket % 2 == 1 ? 0 : 1;
+            int multiplier = winner == 2 ? 35 : 2;
+            var saved = world.InspectSlot(0).Data;
+            Assert.That(saved.worldItems.Single(item => item.instanceId == ids[winner]).bettingMultiplier, Is.EqualTo(multiplier));
+            Assert.That(saved.worldItems.Count(item => ids.Contains(item.instanceId)), Is.EqualTo(1), "开奖动画前应只保存中奖实体。");
+            for (int i = 0; i < fish.Length; i++)
+                if (i != winner) Assert.That(fish[i] == null || fish[i].IsConsumed, Is.True);
+            Assert.That(fish[winner].SaleValue, Is.EqualTo(values[winner] * multiplier));
+            Assert.That(world.Session.State.money, Is.EqualTo(money), "轮盘应改变物品价值，不直接发钱。");
+            world.SetPaused(true);
+            var wheel = table.GetComponentsInChildren<Transform>().Single(node => node.name == "Wheel");
+            var rotation = wheel.localRotation;
+            yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(table.IsSpinning, Is.True); Assert.That(Quaternion.Angle(wheel.localRotation, rotation), Is.LessThan(.001f));
+            world.SetPaused(false); yield return WaitFor(() => !table.IsSpinning, "轮盘没有结束。");
+            yield return AimAt(world.Player, table.transform.position + new Vector3(0, 1.05f, -.1f));
+            yield return WaitFor(() => !UnityEditor.ShaderUtil.anythingCompiling, "轮盘材质仍在编译。"); yield return null; yield return null;
+            ScreenCapture.CaptureScreenshot(Path.GetFullPath("Library/HowToFish/Evidence/Roulette-InGame.png")); yield return null; yield return null;
+            // 把唯一中奖物移出台面，手柄交互应拒绝空桌，不能再次结算。
+            fish[winner].Body.position = table.transform.position + new Vector3(2.2f, 1, 0);
+            fish[winner].Body.isKinematic = true; Physics.SyncTransforms();
+            yield return AimAt(world.Player, target);
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.West)); yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+            Assert.That(table.IsSpinning, Is.False); Assert.That(fish[winner].BettingMultiplier, Is.EqualTo(multiplier));
+            world.Save(); world.ReturnToHub();
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "轮盘保存未返回Hub。");
+            yield return EnterWorld(); world = testWorld;
+            var restored = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(item => item.InstanceId == ids[winner]);
+            Assert.That(restored.BettingMultiplier, Is.EqualTo(multiplier)); Assert.That(restored.SaleValue, Is.EqualTo(values[winner] * multiplier));
+            Assert.That(restored.TrySell(out int amount), Is.True); Assert.That(amount, Is.EqualTo(values[winner] * multiplier));
+            Assert.That(world.Session.State.money, Is.EqualTo(money + amount));
+            table = UnityEngine.Object.FindAnyObjectByType<HowToFishRoulette>();
+            world.Player.Teleport(table.transform.position + new Vector3(0, .1f, 2.6f), 180);
+            var second = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, false); second.Hit(1000, Vector3.zero);
+            PlaceForPickup(world.Player, second); Assert.That(world.Player.PickUp(second), Is.True); world.Player.Drop(false);
+            second.Body.useGravity = false; second.Body.linearVelocity = Vector3.zero;
+            second.Body.position = table.GetComponentsInChildren<Transform>().Single(node => node.name == "RedBet").position + Vector3.up * .2f;
+            Physics.SyncTransforms(); yield return new WaitForFixedUpdate();
+            yield return AimAt(world.Player, table.transform.TransformPoint(new Vector3(1.15f, .8f, .85f)));
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.West)); yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+            Assert.That(table.IsSpinning, Is.True, "手柄交互没有启动轮盘。");
+            yield return WaitFor(() => !table.IsSpinning, "手柄轮盘没有结束。");
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator Skins_PhysicalIntakePauseDuplicateEquipmentBoatAndReload()
         {
             yield return StartNewGame();

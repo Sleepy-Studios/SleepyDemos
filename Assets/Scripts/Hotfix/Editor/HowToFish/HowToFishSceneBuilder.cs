@@ -134,6 +134,7 @@ namespace Hotfix.Editor.HowToFish
                 UpdateBaitSupplyShops(scene);
                 UpdateCookingStations(scene);
                 UpdateSlotMachines(scene);
+                UpdateRoulette(scene);
                 if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("群岛内容保存失败。");
             }
             finally
@@ -523,6 +524,36 @@ namespace Hotfix.Editor.HowToFish
                 rect.localScale = Vector3.one * .003f; rect.localPosition = new Vector3(0, 2.05f, .38f); rect.localRotation = Quaternion.Euler(0, 180, 0);
                 Text("Label", rect, "皮肤老虎机\n拿起死 Drip，再放入投料口", new Vector2(450, 100), Vector2.zero, 25);
             }
+        }
+
+        private static void UpdateRoulette(Scene scene)
+        {
+            var island = scene.GetRootGameObjects().Single(root => root.name == "RocksIsland");
+            if (island.transform.Find("RouletteTable") != null) return;
+            Physics.SyncTransforms();
+            var terrain = island.GetComponent<MeshCollider>();
+            if (!terrain.Raycast(new Ray(island.transform.position + new Vector3(-13, 90, -30), Vector3.down), out var floor, 120))
+                throw new InvalidOperationException("轮盘桌落点不在岩石岛地形上。");
+            var table = Model("RouletteTable", scene); table.name = "RouletteTable";
+            table.transform.SetParent(island.transform, true); table.transform.position = floor.point;
+            var body = table.AddComponent<BoxCollider>(); body.center = new Vector3(0, .5f, 0); body.size = new Vector3(2.8f, 1, 1.8f);
+            var roulette = table.AddComponent<HowToFishRoulette>();
+            var settings = new SerializedObject(roulette);
+            foreach (string color in new[] { "Red", "Black", "Green" })
+            {
+                var mount = table.GetComponentsInChildren<Transform>().Single(node => node.name == color + "Bet");
+                var area = mount.gameObject.AddComponent<BoxCollider>(); area.isTrigger = true;
+                area.center = Vector3.up * .3f; area.size = new Vector3(.58f, .65f, .55f);
+                Bind(settings, char.ToLowerInvariant(color[0]) + color.Substring(1) + "Zone", area);
+            }
+            foreach (string part in new[] { "Wheel", "Ball" })
+                Bind(settings, part.ToLowerInvariant(), table.GetComponentsInChildren<Transform>().Single(node => node.name == part));
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            var label = new GameObject("Instructions", typeof(RectTransform), typeof(Canvas)); label.transform.SetParent(table.transform, false);
+            label.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            var rect = label.GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(700, 110);
+            rect.localScale = Vector3.one * .003f; rect.localPosition = new Vector3(0, 1.8f, -.8f); rect.localRotation = Quaternion.Euler(0, 180, 0);
+            Text("Label", rect, "实物轮盘\n放下鱼获后启动 · 红/黑 ×2 · 绿 ×35", new Vector2(700, 110), Vector2.zero, 25);
         }
 
         private static void UpdateCookingStations(Scene scene)

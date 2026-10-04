@@ -26,6 +26,27 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void RouletteMultiplier_RoundTripsAndOldSnapshotsDefaultToOne()
+        {
+            var state = new HowToFishSaveData();
+            var item = new HowToFishWorldItemData
+            {
+                instanceId = "WonShrimp", definitionId = "Shrimp", health = 0,
+                bettingMultiplier = 35 * 2, styleMultiplier = 2, hasBeenHeld = true
+            };
+            state.worldItems.Add(item);
+            store.Save(0, state);
+            Assert.That(store.Load(0).Data.worldItems[0].bettingMultiplier, Is.EqualTo(70));
+            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"instanceId\":\"OldShrimp\",\"definitionId\":\"Shrimp\"}").bettingMultiplier, Is.EqualTo(1));
+            foreach (float invalid in new[] { 0, -1, float.NaN, float.PositiveInfinity })
+            {
+                item.bettingMultiplier = invalid;
+                Assert.Throws<FormatException>(() => store.Save(0, state));
+            }
+            Assert.That(store.Load(0).Data.worldItems[0].bettingMultiplier, Is.EqualTo(70));
+        }
+
+        [Test]
         public void SharedSkins_MigrateAcrossWorldsRecoverBackupAndRejectInvalidProfile()
         {
             var first = new HowToFishSaveData { boatSkinId = "Boat/Gold" };
