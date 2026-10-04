@@ -61,6 +61,8 @@ namespace Hotfix.HowToFish
         /// 珍稀变体标记。
         public bool IsDrip => isDrip;
         public HowToFishOwnedItem EquipmentState => equipmentState?.Copy();
+        /// 当前实体装备皮肤；通过已有装备快照保存和拾回。
+        public string SkinId => equipmentState?.skinId;
         /// 物理刚体。
         public Rigidbody Body => body;
         /// 渲染与关节的根节点。
@@ -140,9 +142,19 @@ namespace Hotfix.HowToFish
                 throw new ArgumentException("落地装备状态无效或定义不匹配。");
             equipmentState = state.Copy();
             cooking = state.cooking;
+            visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
             HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
             var view = visualRoot.GetComponent<HowToFishEquipmentView>();
             if (view != null) view.SetAttachments(equipmentState);
+        }
+
+        internal bool ChangeSkin()
+        {
+            if (consumed || equipmentState == null || !HowToFishSkinCatalog.Supports(definitionId)) return false;
+            equipmentState.skinId = session.NextUnlockedSkin(definitionId, equipmentState.skinId);
+            visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+            return true;
         }
 
         /// <summary>从相机方向物理抓取，忽略与持有者自身的碰撞。</summary>

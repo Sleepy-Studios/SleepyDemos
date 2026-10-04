@@ -485,6 +485,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7559871395667140117}
   - component: {fileID: 3724952249638967214}
+  - component: {fileID: 8907421195221676095}
   m_Layer: 0
   m_Name: Shotgun
   m_TagString: Untagged
@@ -547,6 +548,19 @@ MonoBehaviour:
   scopeFov: 20
   compensatorRecoil: 0.65
   suppressorRecoil: 0.3
+--- !u!114 &8907421195221676095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8230299052341169078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}
 --- !u!1001 &774869376311819716
 PrefabInstance:
   m_ObjectHideFlags: 0

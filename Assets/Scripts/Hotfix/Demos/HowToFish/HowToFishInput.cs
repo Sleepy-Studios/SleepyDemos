@@ -81,6 +81,9 @@ namespace Hotfix.HowToFish
         public static void AddEquipmentBindings(InputActionAsset template)
         {
             var map = template.FindActionMap("Gameplay", true);
+            foreach (var actionMap in new[] { map, template.FindActionMap("Boat", true) })
+                if (actionMap.FindAction("ChangeSkin", false) == null)
+                    AddButton(actionMap, "ChangeSkin", "<Keyboard>/c", "<Gamepad>/rightStickPress");
             if (map.FindAction("Holster", false) == null) AddButton(map, "Holster", "<Keyboard>/h", "<Gamepad>/dpad/down");
             for (int i = 1; i <= 8; i++)
                 if (map.FindAction("Slot" + i, false) == null)

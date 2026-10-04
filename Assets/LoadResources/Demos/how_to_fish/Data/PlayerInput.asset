@@ -193,6 +193,14 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+    - m_Name: ChangeSkin
+      m_Type: 1
+      m_ExpectedControlType: 
+      m_Id: 00521f68-706d-4711-8812-1732f2a0e8d2
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
     m_Bindings:
     - m_Name: 2DVector
       m_Id: f6b0a295-c5a6-40bd-96af-0009832b013c
@@ -514,6 +522,22 @@ MonoBehaviour:
       m_Groups: KeyboardMouse
       m_Action: Slot8
       m_Flags: 0
+    - m_Name: 
+      m_Id: 5d19cded-0c01-4686-befd-b8b764d595f9
+      m_Path: <Keyboard>/c
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: KeyboardMouse
+      m_Action: ChangeSkin
+      m_Flags: 0
+    - m_Name: 
+      m_Id: bbcbc46d-118a-45b0-bd21-102af63bf74e
+      m_Path: <Gamepad>/rightStickPress
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: Gamepad
+      m_Action: ChangeSkin
+      m_Flags: 0
   - m_Name: Boat
     m_Id: fd08ee35-8775-4f3c-b8b6-f3bd08a174cf
     m_Asset: {fileID: 11400000}
@@ -538,6 +562,14 @@ MonoBehaviour:
       m_Type: 1
       m_ExpectedControlType: 
       m_Id: 382fad5e-2ce0-48ab-bfca-d297dd3fce29
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: ChangeSkin
+      m_Type: 1
+      m_ExpectedControlType: 
+      m_Id: e9c0ee8c-b010-412b-817b-1c92edab1764
       m_Processors: 
       m_Interactions: 
       m_SingletonActionBindings: []
@@ -622,6 +654,22 @@ MonoBehaviour:
       m_Processors: 
       m_Groups: Gamepad
       m_Action: Interact
+      m_Flags: 0
+    - m_Name: 
+      m_Id: df56fb4e-51c1-423e-9977-73113c3600b5
+      m_Path: <Keyboard>/c
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: KeyboardMouse
+      m_Action: ChangeSkin
+      m_Flags: 0
+    - m_Name: 
+      m_Id: a11abcc1-0724-485c-af22-0f99a909034c
+      m_Path: <Gamepad>/rightStickPress
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: Gamepad
+      m_Action: ChangeSkin
       m_Flags: 0
   - m_Name: UI
     m_Id: 63be64e3-8a6d-413b-a625-53f36762d7ff

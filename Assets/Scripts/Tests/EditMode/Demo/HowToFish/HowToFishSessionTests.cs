@@ -33,6 +33,37 @@ namespace Tests.Demo
         public void TearDown() => UnityEngine.Object.DestroyImmediate(catalog);
 
         [Test]
+        public void Skins_CycleOnlyMatchingUnlocksAndPreserveDuplicateRewards()
+        {
+            var session = new HowToFishSession(catalog, new HowToFishSaveData());
+            session.GrantItem("Knife");
+            Assert.That(session.UnlockSkin("Knife/Chess"), Is.True);
+            Assert.That(session.UnlockSkin("Knife/Chess"), Is.False);
+            Assert.That(session.UnlockSkin("Boat/Gold"), Is.True);
+            Assert.That(session.NextUnlockedSkin("Knife", null), Is.EqualTo("Knife/Chess"));
+            Assert.That(session.NextUnlockedSkin("Knife", "Knife/Chess"), Is.Null.Or.Empty);
+            Assert.That(session.ChangeEquipmentSkin("Knife"), Is.True);
+            Assert.That(session.State.inventory.Find(item => item.id == "Knife").skinId, Is.EqualTo("Knife/Chess"));
+            Assert.That(session.NextUnlockedSkin("Pistol", "Pistol/Gold"), Is.Null.Or.Empty, "实例带来的未解锁皮肤不能加入可选序列。");
+            Assert.Throws<ArgumentException>(() => session.UnlockSkin("Boat/Fire"));
+            Assert.That(session.State.money, Is.Zero);
+            foreach (var rarity in new[] { HowToFishSkinRarity.Common, HowToFishSkinRarity.Rare, HowToFishSkinRarity.Legendary })
+                for (int island = 0; island < 5; island++)
+                {
+                    var pool = HowToFishSkinCatalog.Rewards(island, rarity);
+                    Assert.That(pool, Is.Not.Empty);
+                    foreach (var skin in pool)
+                    {
+                        Assert.That(skin.Rarity, Is.EqualTo(rarity));
+                        if (island == 0) Assert.That(skin.ItemId, Is.EqualTo("Knife").Or.EqualTo("BrassKnuckles"));
+                        if (island == 4) Assert.That(skin.ItemId, Is.EqualTo("FishingRod").Or.EqualTo("AssaultRifle").Or.EqualTo("SniperRifle").Or.EqualTo("Boat"));
+                    }
+                }
+            Assert.That(HowToFishSkinCatalog.Find("Pistol/Galaxy").Effect, Is.EqualTo(HowToFishSkinEffect.Standard));
+            Assert.That(HowToFishSkinCatalog.Find("FishingRod/Galaxy").Effect, Is.EqualTo(HowToFishSkinEffect.Rainbow));
+        }
+
+        [Test]
         public void CookingValue_PeaksBeforeBurningAndRejectsInvalidState()
         {
             var session = new HowToFishSession(catalog, new HowToFishSaveData());

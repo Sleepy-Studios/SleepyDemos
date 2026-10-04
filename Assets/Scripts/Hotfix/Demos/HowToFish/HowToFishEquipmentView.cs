@@ -31,6 +31,18 @@ namespace Hotfix.HowToFish
         private HowToFishAttachment barrel;
         private bool hasLaser;
         private float appliedCooking = -1;
+        private string appliedSkin;
+
+        /// <summary>切换本件装备的外观，并在新材质上重新应用受热程度。</summary>
+        /// <param name="skinId">已验证的类型与皮肤标识；空值使用默认材质。</param>
+        public void SetSkin(string skinId)
+        {
+            skinId = skinId ?? "";
+            if (appliedSkin == skinId) return;
+            appliedSkin = skinId;
+            GetComponent<HowToFishSkinView>()?.SetSkin(skinId);
+            appliedCooking = -1;
+        }
 
         /// 鱼竿尖或枪口的真实模型挂点。
         public Transform Tip => tip;

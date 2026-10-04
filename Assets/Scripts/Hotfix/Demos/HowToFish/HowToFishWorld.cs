@@ -119,6 +119,8 @@ namespace Hotfix.HowToFish
                     safePosition = startPoint.position, safeYaw = startPoint.eulerAngles.y,
                     boatPosition = boat.transform.position, boatYaw = boat.transform.eulerAngles.y
                 } : loaded.Data;
+                saves.LoadSharedSkins(state);
+                string profileNotice = saves.SkinProfileNotice;
                 slot = index;
                 session = new HowToFishSession(catalog, state);
                 boat.BindIslands(islands);
@@ -128,6 +130,9 @@ namespace Hotfix.HowToFish
                 player.Message += Notify;
                 player.InteractRequested += Interact;
                 player.Died += Respawn;
+                player.ChangeSkinRequested += ChangeSkin;
+                foreach (var machine in FindObjectsByType<HowToFishSlotMachine>(FindObjectsSortMode.None))
+                    if (machine.gameObject.scene == gameObject.scene) machine.Initialize(this);
                 foreach (var station in FindObjectsByType<HowToFishStation>(FindObjectsSortMode.None))
                     if (station.gameObject.scene == gameObject.scene &&
                         (station.Kind == HowToFishStationKind.GrillMaster || station.Kind == HowToFishStationKind.Keeper || station.Kind == HowToFishStationKind.ForestLady ||
@@ -145,7 +150,8 @@ namespace Hotfix.HowToFish
                 clamRegrowAt = Time.time + clamRegrowSeconds;
                 SetPaused(false);
                 if (newGame) Save();
-                Notify(newGame ? "拾起岸边的蛤蜊，交给看守人换钱，再到灯塔木门购买钓竿。" : "已恢复到最近的安全位置。");
+                Notify((newGame ? "拾起岸边的蛤蜊，交给看守人换钱，再到灯塔木门购买钓竿。" : "已恢复到最近的安全位置。") +
+                    (string.IsNullOrEmpty(profileNotice) ? "" : "\n" + profileNotice));
             }
             catch (Exception exception) { Notify("无法开始游戏：" + exception.Message); Debug.LogException(exception, this); }
         }
@@ -204,6 +210,66 @@ namespace Hotfix.HowToFish
         /// 保存最近安全点和全部非活动首领实体。
         public void Save() => TrySave();
 
+        /// <summary>消费一个已由玩家持握后放手的死 Drip 生物，开奖并保存；重复奖励不退款。</summary>
+        /// <param name="island">实际老虎机所在岛屿，0至4。</param>
+        /// <param name="item">本世界登记的交付实体。</param>
+        /// <param name="result">已经保存的中奖公告，供机台动画结束时显示。</param>
+        public bool TryPlaySlotMachine(int island, HowToFishWorldItem item, out string result)
+        {
+            result = null;
+            if (session == null || IsPaused || exiting || island < 0 || island > 4 || island > session.State.unlockedIsland ||
+                item == null || item.IsConsumed || item.IsHeld || item.IsAlive || item.Creature == null ||
+                !item.IsDrip || !item.HasBeenHeld || !items.Contains(item)) return false;
+            if (items.Any(value => value != null && !value.IsConsumed && value.Creature?.IsBoss == true && value.IsAlive))
+            { Notify("首领战斗结束后才能投入老虎机。"); return false; }
+            HowToFishSkinDefinition reward = null;
+            bool isNew = false;
+            try
+            {
+                if (!item.TryConsume(() =>
+                {
+                    int roll = UnityEngine.Random.Range(0, 100);
+                    var rarity = roll < 70 ? HowToFishSkinRarity.Common : roll < 90 ? HowToFishSkinRarity.Rare : HowToFishSkinRarity.Legendary;
+                    var pool = HowToFishSkinCatalog.Rewards(island, rarity);
+                    reward = pool[UnityEngine.Random.Range(0, pool.Length)];
+                    isNew = session.UnlockSkin(reward.Id);
+                    if (TrySave()) return;
+                    if (isNew) session.State.unlockedSkins.Remove(reward.Id);
+                    throw new IOException("老虎机进度未能保存，鱼获已保留。");
+                })) return false;
+            }
+            catch (IOException exception) { Notify(exception.Message); return false; }
+            result = $"老虎机：{reward.ItemId} · {reward.Name}（{reward.Rarity}）" +
+                (isNew ? "，已解锁。" : "，重复中奖，鱼获已消耗。") +
+                (string.IsNullOrEmpty(saves.SkinProfileNotice) ? "" : "\n" + saves.SkinProfileNotice);
+            Notify("老虎机转动中……");
+            return true;
+        }
+
+        /// 驾驶时切换船皮肤，否则优先切换物理手持装备，再切换当前背包装备。
+        public void ChangeSkin()
+        {
+            if (session == null || IsPaused || exiting) return;
+            string skinId;
+            if (player.IsDriving)
+            {
+                session.ChangeBoatSkin();
+                skinId = session.State.boatSkinId;
+            }
+            else if (player.HeldItem != null)
+            {
+                if (!player.HeldItem.ChangeSkin()) { Notify("手持物品没有可切换的皮肤。"); return; }
+                skinId = player.HeldItem.SkinId;
+            }
+            else
+            {
+                if (player.Equipment == null || !session.ChangeEquipmentSkin(player.Equipment.Id))
+                { Notify("请先手持有皮肤的装备或驾驶船只。"); return; }
+                skinId = session.State.inventory.Find(item => item.id == player.Equipment.Id).skinId;
+            }
+            Notify("当前外观：" + (HowToFishSkinCatalog.Find(skinId)?.Name ?? "Default"));
+        }
+
         private bool TrySave()
         {
             if (session == null) return false;
@@ -224,7 +290,8 @@ namespace Hotfix.HowToFish
                 foreach (var item in items)
                     if (item != null && !item.IsConsumed) state.worldItems.Add(item.Snapshot());
                 saves.Save(slot, state);
-                Notify("已保存到存档 " + (slot + 1));
+                Notify("已保存到存档 " + (slot + 1) +
+                    (string.IsNullOrEmpty(saves.SkinProfileNotice) ? "" : "\n" + saves.SkinProfileNotice));
                 return true;
             }
             catch (Exception exception) { Notify("保存失败，原存档已保留：" + exception.Message); Debug.LogException(exception, this); return false; }
@@ -305,6 +372,7 @@ namespace Hotfix.HowToFish
             if (item != null && item.Creature?.IsMainBoss == true) return item.Creature.DisplayName + " · 领取掉落的战利品继续任务";
             if (item != null && item.Creature?.IsBoss == true && item.IsAlive && item.DefinitionId != "Tuna") return item.Creature.DisplayName + " · 击败后才能拾取";
             return item == null ? "" : "[" + input.BindingLabel("Interact") + "] 拾取 " + (item.Creature?.DisplayName ?? catalog.FindItem(item.DefinitionId)?.DisplayName) +
+                (item.IsDrip ? " · <color=#FF7777>D</color><color=#FFDD66>r</color><color=#77EE99>i</color><color=#77BBFF>p</color>" : "") +
                 (item.Creature != null && !item.IsAlive ? $"  ${item.SaleValue} · 受热 {item.Cooking:P0}" : "");
         }
 
@@ -693,6 +761,7 @@ namespace Hotfix.HowToFish
             if (session != null) session.Changed -= OnStateChanged;
             foreach (var station in deliveryStations) if (station != null) station.DeliveryRequested -= DeliverToStation;
             if (player != null) { player.Message -= Notify; player.InteractRequested -= Interact; player.Died -= Respawn; player.Drop(false); }
+            if (player != null) player.ChangeSkinRequested -= ChangeSkin;
             input?.Dispose();
             Time.timeScale = previousTimeScale;
             Cursor.lockState = previousCursor; Cursor.visible = previousCursorVisible;

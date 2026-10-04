@@ -142,6 +142,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1988413451722180656}
   - component: {fileID: 5390693917260256089}
+  - component: {fileID: 3119696124105612199}
   m_Layer: 0
   m_Name: Pistol
   m_TagString: Untagged
@@ -206,6 +207,19 @@ MonoBehaviour:
   scopeFov: 20
   compensatorRecoil: 0.65
   suppressorRecoil: 0.3
+--- !u!114 &3119696124105612199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3010219007051089729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}
 --- !u!1 &3229420154865486629
 GameObject:
   m_ObjectHideFlags: 0

@@ -35,6 +35,8 @@ namespace Hotfix.HowToFish
         public float StartupRemaining => startupRemaining;
         public int MotorTier => motorTier;
         public bool HasRadar => radar != null && radar.activeSelf;
+        /// 当前船体外观；空值为默认，独立于玩家的皮肤解锁记录。
+        public string SkinId => state?.boatSkinId;
 
         /// <summary>应用船只升级和对应的持久视觉。</summary>
         /// <param name="state">当前会话存档。</param>
@@ -45,6 +47,8 @@ namespace Hotfix.HowToFish
             if (motors != null)
                 for (int i = 0; i < motors.Length; i++) motors[i].SetActive(i == motorTier);
             if (radar != null) radar.SetActive(state.hasBoatRadar);
+            var visual = transform.Find("Visual");
+            if (visual != null) visual.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
         }
 
         /// <summary>绑定船载雷达使用的实际岛屿坐标。</summary>

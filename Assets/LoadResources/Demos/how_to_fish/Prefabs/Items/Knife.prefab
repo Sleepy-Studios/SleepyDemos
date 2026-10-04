@@ -99,6 +99,7 @@ MonoBehaviour:
   visualRoot: {fileID: 1645472314532681136}
   hookPoint: {fileID: 0}
   holdingDistance: 1.9
+  headThreshold: 0.6
 --- !u!1001 &1251821645225046619
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -174,10 +175,31 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e79b9631392377045a9b03f036b617e5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7422000142224600400}
   m_SourcePrefab: {fileID: 100100000, guid: e79b9631392377045a9b03f036b617e5, type: 3}
 --- !u!4 &1645472314532681136 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e79b9631392377045a9b03f036b617e5, type: 3}
   m_PrefabInstance: {fileID: 1251821645225046619}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2134201506764001034 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e79b9631392377045a9b03f036b617e5, type: 3}
+  m_PrefabInstance: {fileID: 1251821645225046619}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7422000142224600400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2134201506764001034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}

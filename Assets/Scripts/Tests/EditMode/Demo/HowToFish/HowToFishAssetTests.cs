@@ -13,6 +13,35 @@ namespace Tests.Demo
     public sealed class HowToFishAssetTests
     {
         [Test]
+        public void Skins_HaveShaderBindingsAndFiveIntakes()
+        {
+            const string root = "Assets/LoadResources/Demos/how_to_fish";
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(root + "/Art/Shaders/HowToFishSkin.shader");
+            Assert.That(shader, Is.Not.Null); Assert.That(ShaderUtil.ShaderHasError(shader), Is.False);
+            var catalog = AssetDatabase.LoadAssetAtPath<HowToFishCatalog>(root + "/Data/Catalog.asset");
+            foreach (var item in catalog.Items.Where(item => HowToFishSkinCatalog.Supports(item.Id)))
+                foreach (var prefab in new[] { item.ViewPrefab, item.Prefab })
+                {
+                    var view = prefab.GetComponentInChildren<HowToFishSkinView>(true);
+                    Assert.That(view, Is.Not.Null, item.Id);
+                    Assert.That(new SerializedObject(view).FindProperty("skinShader").objectReferenceValue, Is.SameAs(shader));
+                }
+            var scene = EditorSceneManager.OpenPreviewScene(root + "/Scenes/Main.unity");
+            try
+            {
+                var machines = scene.GetRootGameObjects().SelectMany(value => value.GetComponentsInChildren<HowToFishSlotMachine>()).ToArray();
+                Assert.That(machines.Select(value => value.Island), Is.EquivalentTo(new[] { 0, 1, 2, 3, 4 }));
+                foreach (var machine in machines)
+                {
+                    Assert.That(machine.name, Is.EqualTo("Intake")); Assert.That(machine.GetComponent<BoxCollider>().isTrigger, Is.True);
+                    Assert.That(machine.transform.parent.GetComponentsInChildren<Transform>().Count(value => value.name.StartsWith("Reel") && value.name.Length == 5), Is.EqualTo(3));
+                }
+                Assert.That(scene.GetRootGameObjects().Single(value => value.name == "FishingBoat").transform.Find("Visual").GetComponent<HowToFishSkinView>(), Is.Not.Null);
+            }
+            finally { EditorSceneManager.ClosePreviewScene(scene); }
+        }
+
+        [Test]
         public void SavedShops_RestockVerifiedBaitsRodsAndRadarOnLaterIslands()
         {
             var scene = EditorSceneManager.OpenPreviewScene("Assets/LoadResources/Demos/how_to_fish/Scenes/Main.unity");

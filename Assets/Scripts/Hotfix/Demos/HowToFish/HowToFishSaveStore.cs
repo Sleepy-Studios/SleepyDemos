@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +12,8 @@ namespace Hotfix.HowToFish
     {
         private const int MaximumFileBytes = 4 * 1024 * 1024;
         private readonly string directory;
+        /// 最近一次共享皮肤恢复或待同步说明；供世界入口显示，不隐藏备份恢复。
+        public string SkinProfileNotice { get; private set; }
 
         /// <summary>创建本地存档仓库。</summary>
         /// <param name="directory">专属于此 Demo 的存档目录；调用方使用 persistentDataPath 下的子目录。</param>
@@ -56,7 +59,79 @@ namespace Hotfix.HowToFish
             var current = Load(slot);
             if (current.Status != HowToFishLoadStatus.Empty && current.Status != HowToFishLoadStatus.Ready)
                 throw new IOException("目标存档需要恢复或处理，拒绝自动覆盖。");
-            var payload = JsonUtility.ToJson(data);
+            var profile = MergeSkinUnlocks(data);
+            // 槽快照是此次玩法操作的提交点；共享档案失败可从它重新合并，不能回滚已经消费的鱼获。
+            WritePayload(path, JsonUtility.ToJson(data));
+            try { SaveSkinProfile(profile); }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
+            { SkinProfileNotice = "皮肤奖励已随航程保存，共享档案待下次进入时同步：" + exception.Message; }
+        }
+
+        /// <summary>新世界与继续世界共用：合并玩家档案和三槽有效解锁，补齐未完成的共享写入。</summary>
+        /// <param name="data">即将建立会话的槽快照；不修改该槽的装备与船体选择。</param>
+        public void LoadSharedSkins(HowToFishSaveData data)
+        {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            data.Validate();
+            SaveSkinProfile(MergeSkinUnlocks(data));
+        }
+
+        private HowToFishSkinProfile MergeSkinUnlocks(HowToFishSaveData data)
+        {
+            var profile = LoadSkinProfile(out bool recovered);
+            SkinProfileNotice = recovered ? "共享皮肤档案已从备份恢复，损坏原件已保留。" : null;
+            var merged = new HashSet<string>(profile.unlockedSkins, StringComparer.Ordinal);
+            merged.UnionWith(data.unlockedSkins);
+            for (int slot = 0; slot < 3; slot++)
+            {
+                var saved = Load(slot);
+                if (saved.Data != null) merged.UnionWith(saved.Data.unlockedSkins);
+            }
+            profile.unlockedSkins = new List<string>(merged);
+            profile.unlockedSkins.Sort(StringComparer.Ordinal);
+            data.unlockedSkins = new List<string>(profile.unlockedSkins);
+            return profile;
+        }
+
+        /// <summary>读取三槽共享皮肤；损坏主档只从有效备份恢复，保留损坏原件并报告恢复。</summary>
+        /// <param name="recovered">是否执行了备份恢复；调用方须显示此状态。</param>
+        public HowToFishSkinProfile LoadSkinProfile(out bool recovered)
+        {
+            recovered = false;
+            string path = Path.Combine(directory, "PlayerSkins.json");
+            if (TryReadProfile(path, out var profile, out var error)) return profile;
+            if (error is NotSupportedException) throw error;
+            if (TryReadProfile(path + ".bak", out profile, out var backupError))
+            {
+                RestoreFileFromBackup(path);
+                recovered = true;
+                return profile;
+            }
+            if (error != null || backupError != null || File.Exists(path) || File.Exists(path + ".bak"))
+                throw new IOException("共享皮肤主档与备份不可读取，拒绝覆盖。", error ?? backupError);
+            return new HowToFishSkinProfile();
+        }
+
+        /// <summary>原子保存共享解锁并保留备份；损坏档案必须先通过读取入口恢复，不能被新数据覆盖。</summary>
+        /// <param name="profile">完整的有效解锁列表，不含物品当前选择。</param>
+        public void SaveSkinProfile(HowToFishSkinProfile profile)
+        {
+            if (profile == null) throw new ArgumentNullException(nameof(profile));
+            profile.Validate();
+            string path = Path.Combine(directory, "PlayerSkins.json");
+            if (File.Exists(path))
+            {
+                if (!TryReadProfile(path, out var current, out var error)) throw new IOException("共享皮肤档案需要恢复，拒绝覆盖。", error);
+                foreach (string skin in current.unlockedSkins)
+                    if (!profile.unlockedSkins.Contains(skin)) throw new InvalidOperationException("共享皮肤保存不能删除已有解锁。");
+                if (current.unlockedSkins.Count == profile.unlockedSkins.Count) return;
+            }
+            else if (File.Exists(path + ".bak")) throw new IOException("共享皮肤主档缺失，须先恢复备份。");
+            WritePayload(path, JsonUtility.ToJson(profile));
+        }
+
+        private void WritePayload(string path, string payload)
+        {
             var envelope = new SaveEnvelope { format = 1, payload = payload, checksum = Checksum(payload) };
             var bytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(envelope));
             if (bytes.Length > MaximumFileBytes) throw new IOException("存档超过允许大小。");
@@ -87,6 +162,12 @@ namespace Hotfix.HowToFish
                 throw new InvalidOperationException("此存档没有待恢复的有效备份。");
             var backupPath = path + ".bak";
             if (!TryRead(backupPath, out _, out var error)) throw new IOException("备份已不可读。", error);
+            RestoreFileFromBackup(path);
+        }
+
+        private static void RestoreFileFromBackup(string path)
+        {
+            var backupPath = path + ".bak";
             var temporary = path + ".restore";
             try
             {
@@ -114,13 +195,7 @@ namespace Hotfix.HowToFish
             if (!File.Exists(path)) return false;
             try
             {
-                if (new FileInfo(path).Length > MaximumFileBytes) throw new FormatException("存档大小异常。");
-                var envelope = JsonUtility.FromJson<SaveEnvelope>(File.ReadAllText(path, Encoding.UTF8));
-                if (envelope == null || envelope.format < 1) throw new FormatException("存档头无效。");
-                if (envelope.format != 1) throw new NotSupportedException("存档由较新版本创建。");
-                if (string.IsNullOrEmpty(envelope.payload) || !string.Equals(envelope.checksum, Checksum(envelope.payload), StringComparison.Ordinal))
-                    throw new FormatException("存档校验失败。");
-                data = JsonUtility.FromJson<HowToFishSaveData>(envelope.payload);
+                data = JsonUtility.FromJson<HowToFishSaveData>(ReadPayload(path));
                 if (data == null) throw new FormatException("存档内容为空。");
                 data.Validate();
                 return true;
@@ -134,6 +209,34 @@ namespace Hotfix.HowToFish
             }
         }
 
+        private static bool TryReadProfile(string path, out HowToFishSkinProfile profile, out Exception error)
+        {
+            profile = null;
+            error = null;
+            if (!File.Exists(path)) return false;
+            try
+            {
+                profile = JsonUtility.FromJson<HowToFishSkinProfile>(ReadPayload(path));
+                if (profile == null) throw new FormatException("共享皮肤档案内容为空。");
+                profile.Validate();
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException ||
+                                              exception is ArgumentException || exception is FormatException || exception is NotSupportedException)
+            { profile = null; error = exception; return false; }
+        }
+
+        private static string ReadPayload(string path)
+        {
+            if (new FileInfo(path).Length > MaximumFileBytes) throw new FormatException("存档大小异常。");
+            var envelope = JsonUtility.FromJson<SaveEnvelope>(File.ReadAllText(path, Encoding.UTF8));
+            if (envelope == null || envelope.format < 1) throw new FormatException("存档头无效。");
+            if (envelope.format != 1) throw new NotSupportedException("存档由较新版本创建。");
+            if (string.IsNullOrEmpty(envelope.payload) || !string.Equals(envelope.checksum, Checksum(envelope.payload), StringComparison.Ordinal))
+                throw new FormatException("存档校验失败。");
+            return envelope.payload;
+        }
+
         private static string Checksum(string payload)
         {
             using (var sha = SHA256.Create()) return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(payload)));
@@ -145,6 +248,21 @@ namespace Hotfix.HowToFish
             public int format;
             public string payload;
             public string checksum;
+        }
+    }
+
+    /// 本机玩家跨世界共享的皮肤解锁；槽快照保留镜像供中断恢复，不保存当前装备选择。
+    [Serializable]
+    public sealed class HowToFishSkinProfile
+    {
+        public int version = 1;
+        public List<string> unlockedSkins = new List<string>();
+
+        /// 拒绝未知版本、非法外观与重复解锁。
+        public void Validate()
+        {
+            if (version != 1) throw new NotSupportedException("不支持的共享皮肤档案版本。");
+            HowToFishSaveData.ValidateUnlockedSkins(unlockedSkins);
         }
     }
 

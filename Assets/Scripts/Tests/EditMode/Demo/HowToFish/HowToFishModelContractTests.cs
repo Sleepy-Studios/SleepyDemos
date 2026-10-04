@@ -70,6 +70,7 @@ namespace Tests.Demo
         [TestCase("MediumMotor", "Forward")]
         [TestCase("BigMotor", "Forward")]
         [TestCase("BoatRadar", "Forward")]
+        [TestCase("SlotMachine", "Intake")]
         [TestCase("CrabMeat", "Hook")]
         [TestCase("FishingBoat", "Bow")]
         [TestCase("Lighthouse", "DoorFront")]
@@ -187,6 +188,12 @@ namespace Tests.Demo
                 }
                 Assert.That(instance.GetComponentsInChildren<MeshFilter>().Sum(filter => filter.sharedMesh.vertexCount), Is.GreaterThan(30));
                 if (name == "CrabRod") Assert.That(front.position.z, Is.InRange(1.7f, 1.9f));
+                if (name == "SlotMachine")
+                    foreach (var symbol in instance.GetComponentsInChildren<MeshFilter>().Where(value =>
+                        value.name.StartsWith("RewardJewel") || value.name.StartsWith("ReelDiamond")))
+                        foreach (var normal in symbol.sharedMesh.normals)
+                            Assert.That(Vector3.Dot(symbol.transform.TransformDirection(normal), Vector3.forward), Is.GreaterThan(.99f),
+                                symbol.name + " 正面符号法线必须朝外，避免被背面剔除。");
                 if (name == "RightHand") Assert.That(transforms.Single(node => node.name == "Sleeve").GetComponent<Renderer>().bounds.center.x,
                     Is.GreaterThan(.03f), "右手袖口应位于握持轴右侧。");
             }

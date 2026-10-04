@@ -75,6 +75,7 @@ namespace Hotfix.Editor.HowToFish
                 }
                 boat.transform.Find("WheelBlockout").localPosition = new Vector3(-.4f, 1, -.14f);
                 UpdateBoatUpgrades(boat, scene);
+                HowToFishAssetBuilder.EnsureSkinView(boat.transform.Find("Visual").gameObject);
                 if (!scene.GetRootGameObjects().Any(root => root.name == "Lighthouse"))
                 {
                     foreach (var root in scene.GetRootGameObjects().Where(root => root.name == "LighthouseBlockout" || root.name == "LighthouseRoofBlockout"))
@@ -132,6 +133,7 @@ namespace Hotfix.Editor.HowToFish
                 UpdateWeaponShops(scene);
                 UpdateBaitSupplyShops(scene);
                 UpdateCookingStations(scene);
+                UpdateSlotMachines(scene);
                 if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("群岛内容保存失败。");
             }
             finally
@@ -492,6 +494,34 @@ namespace Hotfix.Editor.HowToFish
                     float bottom = product.GetComponentsInChildren<Renderer>().Min(renderer => renderer.bounds.min.y);
                     product.transform.position += Vector3.up * (top - bottom + .025f);
                 }
+            }
+        }
+
+        private static void UpdateSlotMachines(Scene scene)
+        {
+            var names = new[] { "LighthouseIsland", "ForestIsland", "DesertIsland", "RocksIsland", "VolcanoIsland" };
+            var points = new[] { new Vector2(6, -5), new Vector2(-7, -30), new Vector2(-12, -30), new Vector2(-8, -30), new Vector2(11, -66) };
+            Physics.SyncTransforms();
+            for (int i = 0; i < names.Length; i++)
+            {
+                var island = scene.GetRootGameObjects().Single(root => root.name == names[i]);
+                if (island.transform.Find("SlotMachine") != null) continue;
+                var ground = island.GetComponent<MeshCollider>();
+                if (ground == null) ground = island.GetComponentsInChildren<MeshCollider>().Single(value => value.name == "Terrain");
+                if (!ground.Raycast(new Ray(island.transform.position + new Vector3(points[i].x, 90, points[i].y), Vector3.down), out var floor, 120))
+                    throw new InvalidOperationException("老虎机落点不在地形上：" + names[i]);
+                var model = Model("SlotMachine", scene); model.name = "SlotMachine";
+                model.transform.SetParent(island.transform, true); model.transform.position = floor.point;
+                var body = model.AddComponent<BoxCollider>(); body.center = new Vector3(0, .9f, -.1f); body.size = new Vector3(1.05f, 1.8f, .55f);
+                var intake = model.GetComponentsInChildren<Transform>().Single(node => node.name == "Intake");
+                var area = intake.gameObject.AddComponent<BoxCollider>(); area.isTrigger = true; area.size = new Vector3(.8f, .7f, .7f);
+                var machine = intake.gameObject.AddComponent<HowToFishSlotMachine>();
+                var settings = new SerializedObject(machine); settings.FindProperty("island").intValue = i; settings.ApplyModifiedPropertiesWithoutUndo();
+                var label = new GameObject("Instructions", typeof(RectTransform), typeof(Canvas)); label.transform.SetParent(model.transform, false);
+                label.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                var rect = label.GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(450, 100);
+                rect.localScale = Vector3.one * .003f; rect.localPosition = new Vector3(0, 2.05f, .38f); rect.localRotation = Quaternion.Euler(0, 180, 0);
+                Text("Label", rect, "皮肤老虎机\n拿起死 Drip，再放入投料口", new Vector2(450, 100), Vector2.zero, 25);
             }
         }
 

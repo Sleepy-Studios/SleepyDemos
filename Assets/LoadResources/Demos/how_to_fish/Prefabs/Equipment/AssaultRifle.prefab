@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2976953584057250096}
   - component: {fileID: 7489102694330353709}
+  - component: {fileID: 1603135083078233443}
   m_Layer: 0
   m_Name: AssaultRifle
   m_TagString: Untagged
@@ -74,6 +75,19 @@ MonoBehaviour:
   scopeFov: 20
   compensatorRecoil: 0.65
   suppressorRecoil: 0.3
+--- !u!114 &1603135083078233443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1314457448760828104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}
 --- !u!1 &1390050623127592420
 GameObject:
   m_ObjectHideFlags: 0

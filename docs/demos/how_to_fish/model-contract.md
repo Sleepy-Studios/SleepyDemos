@@ -82,3 +82,8 @@ Bowlfish 根据 S14 实机图改为透明开口鱼缸、内部小鱼与侧鳍；
 
 ## 炸药候选（2026-10-04）
 `build_dynamite_model.py` 新增Dynamite，独立.blend/.json/FBX保留。七根红色棱柱、两道深色箍带、多引线汇聚，Grip与Fuse分别用于握持与引信定位；尺寸约0.166×0.200×0.427米为自制校准。已实际查看Review-Dynamite.png，精确导入测试7b67a6d8为1/1通过，保持统一轴向、单位缩放和应用变换。当前总登记123项（122模型加轴向），未为单项新增重跑全部模型。
+
+## 皮肤老虎机候选（2026-10-04）
+`build_slot_machine_model.py` 自制SlotMachine，保留.blend/.json/FBX。宽1.164×深0.845×高1.8米，Intake/Display/Lever与三个独立Reel0~2；造型及尺寸为推定。Review-SlotMachine.png已实际查看。Intake源坐标(0,-.405,.58)，预期Unity(0,.58,.405)；Display预期(0,1.665,.36)。场景以Intake为触发区，身体用简单碰撞体，动画仅驱动真实滚轮和操纵杆。导入、运行验证结果见validation.md。
+
+Unity正面截图发现顶屏/滚轮符号消失：原脚本符号面法线朝源+Y，Blender默认双面预览掩盖了背面剔除问题。现已反转六个面的绕序，源导出前断言normal.y<-.99，并在Unity导入门禁检查符号法线朝+Z；滚轮停转复位让符号朝前，不停在随机空白面。

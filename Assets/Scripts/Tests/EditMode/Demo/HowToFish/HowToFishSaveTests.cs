@@ -26,6 +26,89 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void SharedSkins_MigrateAcrossWorldsRecoverBackupAndRejectInvalidProfile()
+        {
+            var first = new HowToFishSaveData { boatSkinId = "Boat/Gold" };
+            first.unlockedSkins.Add("Knife/Chess");
+            store.Save(0, first);
+            string profilePath = Path.Combine(directory, "PlayerSkins.json");
+            // 模拟只有旧槽记录、尚无共享档案的版本，进入新世界时完成幂等迁移。
+            File.Delete(profilePath);
+            var fresh = new HowToFishSaveData();
+            store.LoadSharedSkins(fresh);
+            Assert.That(fresh.unlockedSkins, Is.EquivalentTo(new[] { "Knife/Chess" }));
+            Assert.That(fresh.boatSkinId, Is.Null, "共享解锁不能复制另一个世界的当前船皮肤。");
+            fresh.unlockedSkins.Add("Pistol/Wood");
+            store.Save(1, fresh);
+            var third = new HowToFishSaveData();
+            store.LoadSharedSkins(third);
+            Assert.That(third.unlockedSkins, Is.EquivalentTo(new[] { "Knife/Chess", "Pistol/Wood" }));
+            var reloaded = store.Load(0).Data;
+            store.LoadSharedSkins(reloaded);
+            Assert.That(reloaded.unlockedSkins, Is.EquivalentTo(third.unlockedSkins));
+            Assert.That(reloaded.boatSkinId, Is.EqualTo("Boat/Gold"));
+
+            File.WriteAllText(profilePath, "interrupted");
+            Assert.Throws<IOException>(() => store.SaveSkinProfile(new HowToFishSkinProfile()));
+            Assert.That(File.ReadAllText(profilePath), Is.EqualTo("interrupted"));
+            var recovered = store.LoadSkinProfile(out bool restored);
+            Assert.That(restored, Is.True);
+            Assert.That(recovered.unlockedSkins, Does.Contain("Knife/Chess"));
+            Assert.That(Directory.GetFiles(directory, "PlayerSkins.json.corrupt-*").Length, Is.EqualTo(1));
+            store.LoadSharedSkins(third);
+            Assert.That(third.unlockedSkins, Does.Contain("Pistol/Wood"), "有效槽镜像补回备份较旧的解锁。");
+
+            string validProfile = File.ReadAllText(profilePath);
+            var invalid = new HowToFishSkinProfile(); invalid.unlockedSkins.Add("Knife/Unknown");
+            Assert.Throws<FormatException>(() => store.SaveSkinProfile(invalid));
+            Assert.That(File.ReadAllText(profilePath), Is.EqualTo(validProfile));
+            // 共享文件写入中断发生在槽提交之后，不能向调用者报告整个保存失败、让已消费物品被回滚。
+            third.unlockedSkins.Add("Boat/Gold");
+            using (var locked = new FileStream(profilePath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                Assert.DoesNotThrow(() => store.Save(2, third));
+                Assert.That(store.SkinProfileNotice, Does.Contain("待下次进入"));
+                Assert.That(store.Load(2).Data.unlockedSkins, Does.Contain("Boat/Gold"));
+            }
+            var nextWorld = new HowToFishSaveData();
+            store.LoadSharedSkins(nextWorld);
+            Assert.That(nextWorld.unlockedSkins, Does.Contain("Boat/Gold"));
+            File.WriteAllText(profilePath, "broken-primary");
+            File.WriteAllText(profilePath + ".bak", "broken-backup");
+            Assert.Throws<IOException>(() => store.LoadSharedSkins(new HowToFishSaveData()));
+            Assert.That(File.ReadAllText(profilePath), Is.EqualTo("broken-primary"));
+        }
+
+        [Test]
+        public void Skins_PreserveOwnershipAndInstanceSelectionsAndRejectInvalidIds()
+        {
+            var data = new HowToFishSaveData { boatSkinId = "Boat/Gold" };
+            data.unlockedSkins.Add("Knife/Chess");
+            data.inventory.Add(new HowToFishOwnedItem { id = "Knife", count = 1, skinId = "Knife/Chess", cooking = .6f });
+            // 拾回实例的外观不等同于解锁，因此允许保存未解锁的合法外观。
+            data.worldItems.Add(new HowToFishWorldItemData { instanceId = "DroppedGun", definitionId = "Pistol",
+                equipment = new HowToFishOwnedItem { id = "Pistol", count = 1, skinId = "Pistol/Black and White", ammo = 3 } });
+            store.Save(0, data);
+            var loaded = store.Load(0);
+            Assert.That(loaded.Status, Is.EqualTo(HowToFishLoadStatus.Ready), loaded.Error);
+            Assert.That(loaded.Data.boatSkinId, Is.EqualTo("Boat/Gold"));
+            Assert.That(loaded.Data.unlockedSkins, Is.EqualTo(new[] { "Knife/Chess" }));
+            Assert.That(loaded.Data.inventory[0].skinId, Is.EqualTo("Knife/Chess"));
+            Assert.That(loaded.Data.inventory[0].cooking, Is.EqualTo(.6f));
+            Assert.That(loaded.Data.worldItems[0].equipment.skinId, Is.EqualTo("Pistol/Black and White"));
+            var legacy = new HowToFishSaveData { unlockedSkins = null };
+            legacy.Validate(); Assert.That(legacy.unlockedSkins, Is.Empty);
+            foreach (string invalid in new[] { "Missing/Gold", "Boat/Default", "" })
+            {
+                var corrupt = new HowToFishSaveData(); corrupt.unlockedSkins.Add(invalid);
+                Assert.Throws<FormatException>(() => corrupt.Validate());
+            }
+            data.unlockedSkins.Add("Knife/Chess"); Assert.Throws<FormatException>(() => data.Validate()); data.unlockedSkins.RemoveAt(1);
+            data.boatSkinId = "Knife/Chess"; Assert.Throws<FormatException>(() => data.Validate()); data.boatSkinId = null;
+            data.inventory[0].skinId = "Boat/Gold"; Assert.Throws<FormatException>(() => data.Validate());
+        }
+
+        [Test]
         public void SaveAndLoad_PreservesProgressAndSeparatesSlots()
         {
             var data = new HowToFishSaveData

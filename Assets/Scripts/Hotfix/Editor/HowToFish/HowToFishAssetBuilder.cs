@@ -931,6 +931,7 @@ namespace Hotfix.Editor.HowToFish
                 try
                 {
                     EnsureHand(existing, name);
+                    if (HowToFishSkinCatalog.Supports(name)) EnsureSkinView(existing);
                     PrefabUtility.SaveAsPrefabAsset(existing, path);
                 }
                 finally { PrefabUtility.UnloadPrefabContents(existing); }
@@ -958,6 +959,7 @@ namespace Hotfix.Editor.HowToFish
                 root.transform.localPosition = new Vector3(0.29f, -0.25f, 0.42f);
                 root.transform.localRotation = Quaternion.Euler(-8, -12, -12);
                 EnsureHand(root, name);
+                if (HowToFishSkinCatalog.Supports(name)) EnsureSkinView(root);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
             }
             finally { UnityEngine.Object.DestroyImmediate(root); }
@@ -1116,11 +1118,28 @@ namespace Hotfix.Editor.HowToFish
             foreach (var renderer in hand.GetComponentsInChildren<Renderer>()) renderer.sharedMaterials = renderer.sharedMaterials.Select(MaterialFor).ToArray();
         }
 
+        internal static void EnsureSkinView(GameObject root)
+        {
+            var view = root.GetComponent<HowToFishSkinView>();
+            if (view == null) view = root.AddComponent<HowToFishSkinView>();
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>(Root + "/Art/Shaders/HowToFishSkin.shader");
+            if (shader == null) throw new InvalidOperationException("缺少外观着色器。");
+            var settings = new SerializedObject(view);
+            settings.FindProperty("skinShader").objectReferenceValue = shader;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static void BuildWorldItem(string name)
         {
             var prefabPath = Root + "/Prefabs/Items/" + name + ".prefab";
             if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) != null)
             {
+                if (HowToFishSkinCatalog.Supports(name))
+                {
+                    var existing = PrefabUtility.LoadPrefabContents(prefabPath);
+                    try { EnsureSkinView(existing.transform.Find("Visual").gameObject); PrefabUtility.SaveAsPrefabAsset(existing, prefabPath); }
+                    finally { PrefabUtility.UnloadPrefabContents(existing); }
+                }
                 if (name == "SpiderCrab" || name == "Albatross")
                 {
                     var existing = PrefabUtility.LoadPrefabContents(prefabPath);
@@ -1145,6 +1164,7 @@ namespace Hotfix.Editor.HowToFish
                 var visual = (GameObject)PrefabUtility.InstantiatePrefab(model);
                 visual.transform.SetParent(root.transform, false);
                 visual.name = "Visual";
+                if (HowToFishSkinCatalog.Supports(name)) EnsureSkinView(visual);
                 foreach (var renderer in visual.GetComponentsInChildren<Renderer>())
                     renderer.sharedMaterials = renderer.sharedMaterials.Select(MaterialFor).ToArray();
                 var rigidbody = root.AddComponent<Rigidbody>();

@@ -42,6 +42,7 @@ GameObject:
   m_Component:
   - component: {fileID: 341498703889484762}
   - component: {fileID: 5503562751316291375}
+  - component: {fileID: 2041290231143557104}
   m_Layer: 0
   m_Name: SniperRifle
   m_TagString: Untagged
@@ -107,6 +108,19 @@ MonoBehaviour:
   scopeFov: 20
   compensatorRecoil: 0.65
   suppressorRecoil: 0.3
+--- !u!114 &2041290231143557104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1214438132679899093}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}
 --- !u!1 &2722418973245128241
 GameObject:
   m_ObjectHideFlags: 0

@@ -56,6 +56,50 @@ namespace Hotfix.HowToFish
         /// <param name="id">装备 ID。</param>
         public int UpgradeLevel(string id) => state.inventory.Find(item => item.id == id)?.upgrade ?? 0;
 
+        /// <summary>登记本地解锁，不改变任何现有装备外观；重复中奖返回 false。</summary>
+        /// <param name="skinId">Common、Rare 或 Legendary 外观的稳定 ID。</param>
+        public bool UnlockSkin(string skinId)
+        {
+            var skin = HowToFishSkinCatalog.Find(skinId);
+            if (skin == null || skin.Rarity == HowToFishSkinRarity.Default) throw new ArgumentException("不是可解锁的奖励皮肤。", nameof(skinId));
+            if (state.unlockedSkins.Contains(skinId)) return false;
+            state.unlockedSkins.Add(skinId);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>在默认和本地已解锁外观中循环；实例自带但未解锁的皮肤切换后回到默认。</summary>
+        /// <param name="itemId">皮肤类型，例如 Boat 或 Pistol。</param>
+        /// <param name="currentSkinId">当前实例选择；空值为默认。</param>
+        public string NextUnlockedSkin(string itemId, string currentSkinId)
+        {
+            if (!HowToFishSkinCatalog.Supports(itemId) || !HowToFishSkinCatalog.IsValidSelection(itemId, currentSkinId))
+                throw new ArgumentException("当前物品或皮肤类型无效。");
+            var options = new List<string> { null };
+            foreach (var skin in HowToFishSkinCatalog.All)
+                if (skin.ItemId == itemId && state.unlockedSkins.Contains(skin.Id)) options.Add(skin.Id);
+            int index = options.IndexOf(string.IsNullOrEmpty(currentSkinId) || currentSkinId == itemId + "/Default" ? null : currentSkinId);
+            return options[(index + 1) % options.Count];
+        }
+
+        /// <summary>切换背包中该装备的已解锁皮肤，保留升级和配件。</summary>
+        /// <param name="id">已拥有的装备 ID。</param>
+        public bool ChangeEquipmentSkin(string id)
+        {
+            var owned = state.inventory.Find(item => item.id == id);
+            if (owned == null || !HowToFishSkinCatalog.Supports(id)) return false;
+            owned.skinId = NextUnlockedSkin(id, owned.skinId);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// 循环船只的默认和本地已解锁外观。
+        public void ChangeBoatSkin()
+        {
+            state.boatSkinId = NextUnlockedSkin("Boat", state.boatSkinId);
+            Changed?.Invoke();
+        }
+
         /// <summary>购买更高级马达，允许从初始马达直接升级到双机。</summary>
         /// <param name="tier">中型为1，大型双机为2。</param>
         /// <param name="shopIsland">实际商店所在区域。</param>

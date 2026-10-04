@@ -31,6 +31,98 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator Skins_PhysicalIntakePauseDuplicateEquipmentBoatAndReload()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            foreach (string map in new[] { "Gameplay", "Boat" })
+                Assert.That(world.Input.Asset.FindActionMap(map, true).FindAction("ChangeSkin", true).bindings.Select(binding => binding.path),
+                    Is.EquivalentTo(new[] { "<Keyboard>/c", "<Gamepad>/rightStickPress" }));
+            var machine = UnityEngine.Object.FindObjectsByType<HowToFishSlotMachine>(FindObjectsSortMode.None).Single(value => value.Island == 0);
+            var fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, true);
+            Assert.That(world.TryPlaySlotMachine(0, fish, out _), Is.False, "活物不可投入。");
+            fish.Hit(1000, Vector3.zero);
+            Assert.That(world.TryPlaySlotMachine(0, fish, out _), Is.False, "没有拿过的尸体不可投入。");
+            PlaceForPickup(world.Player, fish); Assert.That(world.Player.PickUp(fish), Is.True);
+            Assert.That(world.TryPlaySlotMachine(0, fish, out _), Is.False, "仍在手中的尸体不可投入。");
+            world.Player.Drop(false);
+            fish.Body.useGravity = false; fish.Body.position = machine.transform.position; fish.Body.linearVelocity = Vector3.zero;
+            Physics.SyncTransforms();
+            yield return WaitFor(() => machine.Busy, "实体投入没有触发老虎机。");
+            Assert.That(fish == null || fish.IsConsumed, Is.True);
+            Assert.That(world.Session.State.unlockedSkins.Count, Is.EqualTo(1));
+            string won = world.Session.State.unlockedSkins[0];
+            Assert.That(HowToFishSkinCatalog.Find(won).ItemId, Is.EqualTo("Knife").Or.EqualTo("BrassKnuckles"));
+            Assert.That(world.InspectSlot(0).Data.unlockedSkins, Does.Contain(won), "滚动结束前应保存奖励。");
+            world.SetPaused(true);
+            var reel = machine.transform.parent.GetComponentsInChildren<Transform>().Single(value => value.name == "Reel0");
+            var pausedRotation = reel.localRotation;
+            yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(machine.Busy, Is.True); Assert.That(Quaternion.Angle(reel.localRotation, pausedRotation), Is.LessThan(.001f));
+            world.SetPaused(false); yield return WaitFor(() => !machine.Busy, "开奖动画没有结束。");
+            Assert.That(Quaternion.Angle(reel.localRotation, Quaternion.identity), Is.LessThan(.001f), "停转应让中奖符号朝前显示。");
+            var ordinary = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, false); ordinary.Hit(1000, Vector3.zero);
+            PlaceForPickup(world.Player, ordinary); Assert.That(world.Player.PickUp(ordinary), Is.True); world.Player.Drop(false);
+            Assert.That(world.TryPlaySlotMachine(0, ordinary, out _), Is.False); Assert.That(ordinary.IsConsumed, Is.False);
+            // 全解锁首岛奖池以确定性覆盖重复中奖，不操纵生产随机数。
+            foreach (var skin in HowToFishSkinCatalog.All.Where(value => value.Rarity != HowToFishSkinRarity.Default &&
+                (value.ItemId == "Knife" || value.ItemId == "BrassKnuckles"))) world.Session.UnlockSkin(skin.Id);
+            int unlocked = world.Session.State.unlockedSkins.Count; int money = world.Session.State.money;
+            fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, true); fish.Hit(1000, Vector3.zero);
+            PlaceForPickup(world.Player, fish); Assert.That(world.Player.PickUp(fish), Is.True); world.Player.Drop(false);
+            Assert.That(world.TryPlaySlotMachine(0, fish, out var duplicate), Is.True); Assert.That(duplicate, Does.Contain("重复"));
+            Assert.That(world.Session.State.unlockedSkins.Count, Is.EqualTo(unlocked)); Assert.That(world.Session.State.money, Is.EqualTo(money));
+            Assert.That(world.TryPlaySlotMachine(0, fish, out _), Is.False, "同一实体不得再次开奖。");
+            world.Player.Teleport(machine.transform.parent.position + Vector3.forward * 3, 180);
+            yield return AimAt(world.Player, machine.transform.parent.position + Vector3.up * 1.2f);
+            ScreenCapture.CaptureScreenshot(Path.GetFullPath("Library/HowToFish/Evidence/SlotMachine-InGame.png")); yield return null; yield return null;
+            world.Session.GrantItem("Pistol"); world.Session.UnlockSkin("Pistol/Gold"); world.Session.UnlockSkin("Boat/Gold");
+            yield return PressKey(Key.C);
+            var owned = world.Session.State.inventory.Single(value => value.id == "Pistol");
+            Assert.That(owned.skinId, Is.EqualTo("Pistol/Gold"));
+            var view = world.Player.GetComponentInChildren<HowToFishEquipmentView>();
+            var surface = view.GetComponentsInChildren<MeshRenderer>().First(renderer => renderer.sharedMaterial.shader.name == "HowToFish/SelfAuthoredSkin");
+            Assert.That(surface.sharedMaterial.GetColor("_ColorA").r, Is.GreaterThan(.5f));
+            var hand = view.transform.Find("HandVisual");
+            Assert.That(hand.GetComponentsInChildren<Renderer>().All(renderer => renderer.sharedMaterial.shader.name != "HowToFish/SelfAuthoredSkin"), Is.True);
+            // 首次变体编译期间Editor会临时绘制青色，须等待真正Shader出图再做视觉验收。
+            yield return WaitFor(() => !UnityEditor.ShaderUtil.anythingCompiling, "外观Shader异步编译未完成。");
+            yield return null; yield return null;
+            Assert.That(UnityEditor.ShaderUtil.ShaderHasError(surface.sharedMaterial.shader), Is.False);
+            ScreenCapture.CaptureScreenshot(Path.GetFullPath("Library/HowToFish/Evidence/Skin-GoldPistol.png")); yield return null; yield return null;
+            owned.cooking = .6f; yield return null; yield return null;
+            var tint = new MaterialPropertyBlock(); surface.GetPropertyBlock(tint, 0);
+            Assert.That(tint.GetColor("_BaseColor").r, Is.LessThan(.8f), "换肤后仍需显示烹饪叠色。");
+            yield return PressKey(Key.G);
+            var dropped = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.DefinitionId == "Pistol");
+            Assert.That(dropped.SkinId, Is.EqualTo("Pistol/Gold"));
+            Assert.That(dropped.Cooking, Is.EqualTo(.6f));
+            PlaceForPickup(world.Player, dropped); Assert.That(world.Player.PickUp(dropped), Is.True); yield return null;
+            Assert.That(world.Session.State.inventory.Single(value => value.id == "Pistol").skinId, Is.EqualTo("Pistol/Gold"));
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.RightStick)); yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+            Assert.That(world.Session.State.inventory.Single(value => value.id == "Pistol").skinId, Is.Null.Or.Empty);
+            yield return PressKey(Key.C); yield return PressKey(Key.G);
+            dropped = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.DefinitionId == "Pistol");
+            string droppedId = dropped.InstanceId; dropped.Body.isKinematic = true;
+            world.Session.State.hasBoatKey = true;
+            var boat = UnityEngine.Object.FindAnyObjectByType<HowToFishBoat>(); world.Player.Board(boat.Seat); boat.SetDriver(world.Input);
+            yield return PressKey(Key.C);
+            Assert.That(boat.SkinId, Is.EqualTo("Boat/Gold"));
+            world.Save(); world.ReturnToHub();
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "皮肤保存未返回Hub。");
+            yield return EnterWorld(); world = testWorld;
+            Assert.That(world.Session.State.unlockedSkins, Does.Contain(won));
+            Assert.That(world.Player.IsDriving, Is.True);
+            Assert.That(UnityEngine.Object.FindAnyObjectByType<HowToFishBoat>().SkinId, Is.EqualTo("Boat/Gold"));
+            dropped = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.InstanceId == droppedId);
+            Assert.That(dropped.SkinId, Is.EqualTo("Pistol/Gold"));
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.RightStick)); yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+            Assert.That(UnityEngine.Object.FindAnyObjectByType<HowToFishBoat>().SkinId, Is.Null.Or.Empty);
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator Dynamite_BuyThrowPauseResumeChainAndSelfDamage()
         {
             yield return StartNewGame();

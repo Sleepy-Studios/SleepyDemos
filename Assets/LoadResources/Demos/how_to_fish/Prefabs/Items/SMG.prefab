@@ -908,6 +908,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6abb141bdf5019c468e8988534545ea1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5780445704273012924}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6abb141bdf5019c468e8988534545ea1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6327033739242143739}
   m_SourcePrefab: {fileID: 100100000, guid: 6abb141bdf5019c468e8988534545ea1, type: 3}
 --- !u!4 &637820215353589055 stripped
 Transform:
@@ -954,6 +957,19 @@ MonoBehaviour:
   scopeFov: 20
   compensatorRecoil: 0.65
   suppressorRecoil: 0.3
+--- !u!114 &6327033739242143739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4702104206270757158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}
 --- !u!4 &5335334476489892764 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 6abb141bdf5019c468e8988534545ea1, type: 3}

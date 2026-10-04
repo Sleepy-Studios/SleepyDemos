@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6917455066739860170}
   - component: {fileID: 741316720509468857}
+  - component: {fileID: 25506227828653777}
   m_Layer: 0
   m_Name: FishingRod
   m_TagString: Untagged
@@ -69,6 +70,19 @@ MonoBehaviour:
   scopeFov: 20
   compensatorRecoil: 0.65
   suppressorRecoil: 0.3
+--- !u!114 &25506227828653777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8784879424235363162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2827e9f212818fc4ab1046c8d5ec5487, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSkinView
+  skinShader: {fileID: 4800000, guid: 8421eed578f4e684e91b51bc9b6097f8, type: 3}
 --- !u!1001 &503809241909366374
 PrefabInstance:
   m_ObjectHideFlags: 0

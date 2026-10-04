@@ -56,6 +56,8 @@ namespace Hotfix.HowToFish
         public Vector3 EquipmentCenter => equipmentView == null ? transform.position : equipmentView.CookingCenter;
         private HowToFishOwnedItem GunState => session.State.inventory.Find(item => item.id == equipment.Id);
         public event Action<Collider> InteractRequested;
+        /// 将当前手持装备或驾驶船的换肤请求交给世界会话。
+        public event Action ChangeSkinRequested;
         public event Action<string> Message;
         public event Action Died;
 
@@ -300,6 +302,7 @@ namespace Hotfix.HowToFish
             }
             Focus = FindFocus();
             if (input.Pressed("Interact")) InteractRequested?.Invoke(Focus);
+            if (input.Pressed("ChangeSkin")) ChangeSkinRequested?.Invoke();
             if (IsDriving) return;
             if (IsReloading)
             {
@@ -328,6 +331,7 @@ namespace Hotfix.HowToFish
                 if (owned != null)
                 {
                     if (owned.cooking > 0 && equipmentView.CookingCenter.y < 0) owned.cooking = 0;
+                    equipmentView.SetSkin(owned.skinId);
                     equipmentView.SetCooking(owned.cooking);
                 }
                 equipmentView.Animate(movement.magnitude, IsReloading ? 1 - reloadRemaining / equipment.ReloadSeconds : 0, IsAiming);
