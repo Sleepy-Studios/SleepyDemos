@@ -19,11 +19,11 @@
 
 实体补给柜台已保存在Immersion场景中，维护三件商品、报价牌、购买与库存目标、商品缩放及聚焦挂点。新局商品范围由ImmersionSettings限制为双人扳手、重抽牌、止损券，当前版本存档保留自身配置。柜台复用唯一游戏相机，不创建资金或库存服务。
 
-互动教学入口、非模态提示、暂停中的跳过/重来/结果入口及共用确认卡均维护于JinxCasinoImmersionHudView。保留原MVC绑定和Prefab GUID，编辑后通过既有MvcBind更新组件引用并核查真实输入回归。当前Presenter绑定全名为Hotfix.JinxCasino.UI.JinxCasinoImmersionHudPresenter，生成代码在UI/JinxCasinoImmersionHudView/View。
+非模态教学提示维护于 JinxCasinoImmersionHudView；教学选择与确认维护于 JinxCasinoTutorialView，暂停入口维护于 JinxCasinoPauseView。每个页面均有独立 Presenter、MvcBind View 和同名 Prefab，生成代码位于 UI/<View名>/View；使用既有 MvcBind 更新绑定，不手改生成字段。
 
 开发样板从主菜单选择“互动教学”，按实际动作依次体验水果机、二十一点、柜台扳手和协作拉杆；普通练习入口保持自由游玩。教学最后离开桌面再选择完成，稍后也可从暂停菜单回到教学结果。此练习不推进标准冒险区域，标准局阶段推进和结局仍需单独实玩验证。
 
-主菜单“继续存档”、暂停“保存旅程/读取存档”及三槽确认界面也维护于保存HUD；保留四按钮布局、有效控件导航及独立确认引用。游戏内保存后按选定槽自动保存；未主动选择槽的新局仍不写入任意旧槽。
+主菜单“继续存档”维护于 JinxCasinoMainMenuView，暂停“保存旅程/读取存档”维护于 JinxCasinoPauseView，三槽与二次确认维护于 JinxCasinoSaveView；保留四按钮布局、有效控件导航及独立确认引用。游戏内保存后按选定槽自动保存；未主动选择槽的新局仍不写入任意旧槽。
 
 键鼠、触屏、Xbox通用路由使用`Core.Runtime.Inputs`的GameplayInputRouter/Contracts、MenuInputScope、LocalPauseState、TouchInputPad，维护原则见[玩法输入模块](../../../modules/gameplay-input.md)。Demo仍保存`Data/JinxCasinoImmersion.inputactions`及玩法命令映射；编辑输入资产时保留Map/动作ID和人工键位，不另建EventSystem或菜单提交链。
 
@@ -62,12 +62,21 @@ Windows构建会校验本机System32的chcp.com签名和哈希，再临时提供
 三台独立规则夹板、正文引用与聚焦挂点维护于保存场景及对应机台组件，按S1Layout同步源与运行合同。调整后实际进入三台机台，检查不同屏幕比例下规则文字、操作物件和结果是否完整可读、有无遮挡；不重新添加已清理的固定布局快照测试。
 
 
-入口两侧验票口、离场口的文字/操作件高度及前后关系维护于保存场景。标准结局卡及保存/返回控件维护于保存HUD，保持与三槽确认卡独立的引用和取消路径。
+入口两侧验票口、离场口的文字/操作件高度及前后关系维护于保存场景。标准结局卡及保存/返回控件维护于 JinxCasinoEndingView，保持与三槽确认卡独立的引用和取消路径。
 
 标准样板目标达成后按提示前往验票口，再到离场口领取票券；未达标可在离场口两次交互确认撤离。若超时仍有已投入牌局，先回原桌完成；暂停不会耗尽撤离确认窗口。结局可保存在三槽中，再明确返回Hub。此流程的Editor真实输入证据记录于immersion-progress，不替代Player或真机实玩。
 
 当前旅程在Application.persistentDataPath/JinxCasino/PrototypeV2/save-1.json至save-3.json，成长在PrototypeV2/Profile/profile.json。只接受冒险版本4，旧目录不读取、旧快照不迁移；不要搬旧档进新目录或手改版本号/机台ID。当前有效数据也须匹配样板实际开放内容，拒绝恢复时保留当前旅程和文件；四区/无尽等恢复等待对应场景接入。普通.bak用于当前版本损坏恢复，不是旧档迁移。
 
-沉浸入口的设置可从主菜单或暂停菜单打开，分为键鼠/触控、手柄和声音。修改立即预览，保存才持久化；B/Esc/Menu或返回撤销未保存改动并回原菜单。恢复默认也是预览，仍须保存。手柄上下选控件、左右调滑条；真实设备的震动与Android后台恢复仍需单独验证。
+JinxCasinoSettingsView 是独立设置页，可从主菜单或暂停菜单打开，分为键鼠/触控、手柄和声音。修改立即预览，保存才持久化；B/Esc/Menu或返回撤销未保存改动并回原菜单。恢复默认也是预览，仍须保存。手柄上下选控件、左右调滑条；真实设备的震动与Android后台恢复仍需单独验证。
 
 新原型偏好键为JinxCasino.PrototypeV2.LocalPreferences，不读取旧原型的JinxCasino.LocalPreferences.v1；首次进入使用完整默认值。当前记录缺失版本或数值时显示回退提示，明确保存才替换新键的内容，不修改旧键。公共输入设置仍由Core负责读取参数和设备操作，赌场只保存本机偏好。
+
+
+## 页面生命周期维护
+
+页面资源统一位于 `Prefabs/UI/`。HUD 仅承担场地信息、输入提示与触控；JinxCasinoUIController 串行切换一个当前窗口。存档及教学的跨窗口待确认状态由各自 WindowState 保存，Presenter 不持有其它页面控件。
+
+数据经 `ShowAsync<View, JinxCasinoController>` 在显示前交付，View 在 OnShow 绑定、OnHide/OnDestroy 解除。所有可导航控件配置公共 UICancelRelay，将 Cancel 转交给页面根；不新增 EventSystem 或重复输入作用域。关闭设置撤销未保存预览，关闭窗口恢复来源控件焦点，返回 Hub 先关闭当前窗口再释放 HUD 和场景。
+
+修改静态页面直接编辑其 Prefab，维持已有字体与配色；按钮使用公共 UIStateInteraction 的独立反馈层，设置分页使用 UITab。正式界面不依赖一次性拆分工具。

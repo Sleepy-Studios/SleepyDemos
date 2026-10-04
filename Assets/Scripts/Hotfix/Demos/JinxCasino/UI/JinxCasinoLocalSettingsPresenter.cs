@@ -1,5 +1,6 @@
 using Hotfix.JinxCasino;
 using Hotfix.JinxCasino.Presentation;
+using Core.Runtime;
 using Core.Runtime.Inputs;
 using System;
 using System.Collections.Generic;
@@ -49,17 +50,13 @@ namespace Hotfix.JinxCasino.UI
         [SerializeField] private Button saveButton;
         [SerializeField] private Button defaultsButton;
         [SerializeField] private Button settingsCloseButton;
-        [SerializeField] private TouchInputPad movePad;
-        [SerializeField] private TouchInputPad lookPad;
         private readonly List<Action> removeListeners = new List<Action>();
         private JinxCasinoController owner;
         private CasinoLocalPreferences saved;
         private CasinoLocalPreferences draft;
         private bool previewing;
-        private bool positionsCaptured;
-        private PadLayout originalMove;
-        private PadLayout originalLook;
         private Action closeSettings;
+        [SerializeField] private UITab settingsTabs;
         private int settingsPage;
         private bool HasPages => pointerPage != null && gamepadPage != null && audioPage != null;
 
@@ -75,15 +72,6 @@ namespace Hotfix.JinxCasino.UI
             }
         }
 
-        private struct PadLayout
-        {
-            internal Vector2 Minimum, Maximum, Pivot, Position, Size;
-            internal static PadLayout Capture(RectTransform rect) => new PadLayout { Minimum = rect.anchorMin, Maximum = rect.anchorMax,
-                Pivot = rect.pivot, Position = rect.anchoredPosition, Size = rect.sizeDelta };
-            internal void Apply(RectTransform rect)
-            { rect.anchorMin = Minimum; rect.anchorMax = Maximum; rect.pivot = Pivot; rect.sizeDelta = Size; rect.anchoredPosition = Position; }
-        }
-
         /// <summary>绑定本机场景；测试可注入独立偏好键。</summary>
         /// <param name="controller">音频和输入的宿主。</param>
         /// <param name="close">关闭后恢复原场地/菜单的模态导航。</param>
@@ -92,13 +80,9 @@ namespace Hotfix.JinxCasino.UI
         {
             Unbind(); owner = controller; closeSettings = close;
             if (owner == null) return;
-            if (!positionsCaptured && movePad != null && lookPad != null)
-            {
-                originalMove = PadLayout.Capture((RectTransform)movePad.transform); originalLook = PadLayout.Capture((RectTransform)lookPad.transform);
-                positionsCaptured = true;
-            }
-            owner.Settings.Load(store); saved = owner.Settings.Value;
-            owner.Settings.Changed += ApplyPadLayout; ApplyPadLayout();
+            if (store != null) owner.Settings.Load(store);
+            saved = owner.Settings.Value;
+            settingsTabs.Register(OnTabSelected);
             Listen(pcSensitivity, _ => Preview()); Listen(touchSensitivity, _ => Preview()); Listen(volume, _ => Preview());
             Listen(muted, _ => Preview()); Listen(leftHanded, _ => Preview());
             Listen(gamepadLookMultiplier, _ => Preview()); Listen(gamepadDeadzone, _ => Preview());
@@ -106,18 +90,16 @@ namespace Hotfix.JinxCasino.UI
             Listen(gamepadInvertY, _ => Preview()); Listen(rumbleEnabled, _ => Preview()); Listen(rumbleStrength, _ => Preview());
             Listen(saveButton, Save); Listen(defaultsButton, Defaults);
             Listen(settingsCloseButton, CloseSettings);
-            Listen(pointerTabButton, () => SetPage(0, true)); Listen(gamepadTabButton, () => SetPage(1, true)); Listen(audioTabButton, () => SetPage(2, true));
         }
 
         /// 释放订阅并撤销未保存预览，不写用户偏好或成长档案。
         public void Unbind()
         {
             CancelPreview();
-            if (owner != null) { owner.Settings.Changed -= ApplyPadLayout; }
+            if (settingsTabs != null) settingsTabs.Unregister(OnTabSelected);
             foreach (var remove in removeListeners) remove(); removeListeners.Clear();
             owner = null; draft = saved = null; closeSettings = null;
-            if (positionsCaptured && movePad != null && lookPad != null)
-            { originalMove.Apply((RectTransform)movePad.transform); originalLook.Apply((RectTransform)lookPad.transform); }
+
         }
 
         /// 展示进入面板时的偏好副本；修改只预览，必须明确保存。
@@ -141,8 +123,10 @@ namespace Hotfix.JinxCasino.UI
             closeSettings?.Invoke();
         }
 
+        private void OnTabSelected(int page) => SetPage(page, true);
         private void SetPage(int page, bool select)
         {
+            settingsTabs.SetIndex(page, false);
             settingsPage = page;
             if (HasPages)
             {
@@ -222,14 +206,6 @@ namespace Hotfix.JinxCasino.UI
         {
             if (!previewing) return;
             previewing = false; if (owner != null && saved != null) owner.Settings.Apply(saved);
-        }
-        private void ApplyPadLayout()
-        {
-            if (!positionsCaptured || owner == null || movePad == null || lookPad == null) return;
-            movePad.ResetInput(); lookPad.ResetInput();
-            bool left = owner.Settings.Value.LeftHanded;
-            (left ? originalLook : originalMove).Apply((RectTransform)movePad.transform);
-            (left ? originalMove : originalLook).Apply((RectTransform)lookPad.transform);
         }
         private void Listen(Slider slider, UnityAction<float> callback)
         { if (slider == null) return; slider.onValueChanged.AddListener(callback); removeListeners.Add(() => { if (slider != null) slider.onValueChanged.RemoveListener(callback); }); }

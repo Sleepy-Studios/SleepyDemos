@@ -141,3 +141,12 @@ LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对�
 沉浸HUD复用JinxCasinoLocalSettingsPresenter及原CasinoLocalPreferencesStore。主菜单与暂停菜单均有设置入口，设置状态优先于其它菜单；关闭时回原菜单，不隐式恢复暂停。首次绑定加载原本机键，预览通过宿主立即应用到Core公共输入与场景音源，明确保存才写盘；取消、关闭和View释放撤销未保存预览。
 
 保存Prefab将键鼠/触控、手柄、声音分为三页。手柄页暴露倍率、角速度、死区、最大半径、反转Y、震动开关与强度；设置页面通过保存的控件预览本机偏好。菜单焦点复用Core EventSystem，每页使用保存控件，不创建运行时UI。场景音乐与SFX接入既有AudioDirector，不新增AudioListener。此处不代表画质/分辨率与真机体验已经完成。
+
+
+## 独立 UI 页面（2026-10-05）
+
+`JinxCasinoImmersionHudView` 只保留 HUD 和触控区。主菜单、暂停、设置、三槽存档、教学窗口、结局分别由 `JinxCasinoMainMenuView`、`JinxCasinoPauseView`、`JinxCasinoSettingsView`、`JinxCasinoSaveView`、`JinxCasinoTutorialView`、`JinxCasinoEndingView` 及同名 Prefab 维护。
+
+`JinxCasinoUIController` 负责串行导航、跨页状态和来源焦点恢复。`JinxCasinoSaveWindowState`、`JinxCasinoTutorialWindowState` 仅保存原业务确认状态；各 Presenter 自己持有页面控件，解除绑定后停止刷新。原 HUD 的 Settings/Save/Tutorial/Ending partial 和专用取消 Relay 已删除。输入仍由 Player 的公共 MenuInputScope 管理，不复制路由器。
+
+设置页通过 UITab 管理三页，普通 Slider 使用白 Sprite 和 Image.color。触控左右手布局属于 HUD 的长期订阅，关闭设置页后仍保持保存的布局；OnHide 释放并恢复原布局。

@@ -9,12 +9,12 @@ namespace Hotfix
     using UnityEngine.UI;
     using Hotfix.JinxCasino.UI;
 
-    [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView")]
-    public partial class JinxCasinoImmersionHudView
+    [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoSaveView")]
+    public partial class JinxCasinoSaveView
     {
-        public override string Address => "LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView";
-        public override UILayer Level => UILayer.Decorate;
-        public override UIViewMode ViewMode => UIViewMode.Widget;
+        public override string Address => "LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoSaveView";
+        public override UILayer Level => UILayer.Tip;
+        public override UIViewMode ViewMode => UIViewMode.Modal;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
@@ -23,7 +23,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoImmersionHudPresenter JinxCasinoImmersionHudPresenter_JinxCasinoImmersionHudView;
+        private JinxCasinoSavePresenter JinxCasinoSavePresenter_JinxCasinoSaveView;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +35,7 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoImmersionHudPresenter_JinxCasinoImmersionHudView = componentItemIndex.Get<JinxCasinoImmersionHudPresenter>(0);
+            JinxCasinoSavePresenter_JinxCasinoSaveView = componentItemIndex.Get<JinxCasinoSavePresenter>(0);
         }
     }
 }

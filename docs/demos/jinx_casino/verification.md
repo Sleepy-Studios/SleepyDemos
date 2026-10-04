@@ -48,3 +48,12 @@ Android P4 ARM64 IL2CPP构建成功：`Builds/JinxCasino/P4/Android/202610020323
 - [Android构建后恢复](evidence/2026-10-02/P4Build-Android-2a4f64cd-restore.json)：与Windows相同四项SHA一致，原编辑器平台已恢复；Android构建后Windows分享ZIP的SHA仍一致。
 
 ADB无设备，Fusion SDK未导入、App ID为空；没有Android真机或互联网联机证据。当前离线包沿用既有Hub资源采集与实验性原生插件排除配置；最终包体收敛及Windows渲染扩展属于后续打磨。完整长期Goal仍须实际跨平台互联网、两台Android真机、多人数和目标硬件性能验收。
+
+
+## 独立页面整理验收（2026-10-05）
+
+- `SettingsPreviewSaveAndCancelUseRealControlsAndKeepPause`：d0ec33f5，1/1；真实鼠标打开主菜单/暂停设置、手柄修改/取消、重复打开、独立页面销毁、来源焦点恢复、保存与未保存预览回滚、暂停时钟保持、返回 Hub。截图已检查。
+- `IndependentWindows_CancelConfirmPreserveRunSlotsAndReleaseAtHub`：141edc5c，1/1；独立主菜单、空槽、教学重来确认/取消、跳过后选择正式局、槽覆盖取消不改文件、结局保存与返回、七个 UI 实例全部释放。结局数据用领域命令夹具，页面操作使用真实鼠标/手柄，不能替代现场离场流程。
+- 旧广域入口方法 `SavedEntryStartsByRealInputFocusesSlotsAndRestoresCameraAfterBackAndPause`：dfd147df，在补给柜台附近的实际 A 移动断言超时；不标记通过。本次不修改场地碰撞或移动玩法。
+
+运行范围仅上述定向 UI 方法及直接资源契约，无全量测试/构建。XML 位于本机 `Library/UIRefactor/Evidence`，仍需实体手柄、Android 触控与正式机台/教学全流程体验验收。

@@ -1,3 +1,4 @@
+using Core.Runtime;
 using Core.Runtime.Inputs;
 using Hotfix.JinxCasino;
 using Hotfix.JinxCasino.Interaction;
@@ -8,110 +9,70 @@ using UnityEngine.UI;
 
 namespace Hotfix.JinxCasino.UI
 {
-    /// 样板薄HUD与菜单；桌面主操作仍在实体物件，所有控件由Prefab保存。
-    public sealed partial class JinxCasinoImmersionHudPresenter : MonoBehaviour
+    /// 常驻HUD只维护场地提示、触控区域与教学提示条。
+    public sealed class JinxCasinoImmersionHudPresenter : MonoBehaviour
     {
-        [SerializeField] private GameObject mainMenu;
-        [SerializeField] private GameObject pauseMenu;
         [SerializeField] private GameObject fieldHud;
         [SerializeField] private TMP_Text wallet;
         [SerializeField] private TMP_Text objective;
         [SerializeField] private TMP_Text prompt;
         [SerializeField] private TMP_Text feedback;
-        [SerializeField] private Button quitGameButton;
-        private Vector2 mainMenuSize;
-        private bool mainMenuSizeCaptured;
-        private TMP_Text pauseLabel;
-        private TMP_Text exitTableLabel;
-        private string tableInputLabel;
-        [SerializeField] private Button start;
-        [SerializeField] private Button practice;
-        [SerializeField] private Button resume;
         [SerializeField] private Button pause;
-        [SerializeField] private Button leave;
         [SerializeField] private Button interact;
         [SerializeField] private Button exitTable;
         [SerializeField] private TouchInputPad movePad;
         [SerializeField] private TouchInputPad lookPad;
+        [SerializeField] private GameObject tutorialStrip;
+        [SerializeField] private TMP_Text tutorialHintText;
+        [SerializeField] private TMP_Text tutorialDirectionText;
+        [SerializeField] private TMP_Text tutorialFeedbackText;
         private JinxCasinoController owner;
-        private int menuState = -1;
+        private TMP_Text pauseLabel, exitTableLabel;
+        private string tableInputLabel;
+        private bool positionsCaptured;
+        private PadLayout originalMove, originalLook;
+        private struct PadLayout
+        {
+            internal Vector2 Minimum, Maximum, Pivot, Position, Size;
+            internal static PadLayout Capture(RectTransform rect) => new PadLayout { Minimum = rect.anchorMin, Maximum = rect.anchorMax,
+                Pivot = rect.pivot, Position = rect.anchoredPosition, Size = rect.sizeDelta };
+            internal void Apply(RectTransform rect)
+            { rect.anchorMin = Minimum; rect.anchorMax = Maximum; rect.pivot = Pivot; rect.sizeDelta = Size; rect.anchoredPosition = Position; }
+        }
 
-        /// <summary>绑定当前样板宿主，退出后释放具体订阅和触屏指针。</summary>
-        /// <param name="controller">所属本地场景。</param>
+        /// <summary>显示前绑定场地与触控输入。</summary>
+        /// <param name="controller">当前场景宿主。</param>
         public void Bind(JinxCasinoController controller)
         {
-            Unbind(); owner = controller; menuState = -1; tableInputLabel = null;
-            pauseLabel = pause.GetComponentInChildren<TMP_Text>(true);
-            exitTableLabel = exitTable.GetComponentInChildren<TMP_Text>(true);
-            if (!mainMenuSizeCaptured) { mainMenuSize = ((RectTransform)mainMenu.transform).sizeDelta; mainMenuSizeCaptured = true; }
-            if (quitGameButton != null) quitGameButton.onClick.AddListener(QuitGame);
+            Unbind(); owner = controller; tableInputLabel = null;
+            pauseLabel = pause.GetComponentInChildren<TMP_Text>(true); exitTableLabel = exitTable.GetComponentInChildren<TMP_Text>(true);
+            if (!positionsCaptured)
+            { originalMove = PadLayout.Capture((RectTransform)movePad.transform); originalLook = PadLayout.Capture((RectTransform)lookPad.transform); positionsCaptured = true; }
             owner.Changed += Refresh; owner.Player.Changed += OnPlayerChanged;
+            owner.Settings.Changed += ApplyPadLayout; ApplyPadLayout();
             owner.Player.BindTouchPads(movePad, lookPad);
-            start.onClick.AddListener(StartAdventure); practice.onClick.AddListener(StartPractice);
-            resume.onClick.AddListener(Resume); pause.onClick.AddListener(Pause);
-            leave.onClick.AddListener(Leave); interact.onClick.AddListener(Interact); exitTable.onClick.AddListener(ExitTable);
-            BindTutorialControls();
-            BindSaveControls();
-            BindStandardEndingControls();
-            BindSettingsControls();
-            var mainButtons = new System.Collections.Generic.List<Button> { start, practice, tutorialStartButton, saveMainLoadButton, settingsMainButton };
-            if (owner.IsStandalonePlayer) mainButtons.Add(quitGameButton);
-            mainButtons.RemoveAll(button => button == null); SaveNavigation(mainButtons);
+            pause.onClick.AddListener(Pause); interact.onClick.AddListener(Interact); exitTable.onClick.AddListener(ExitTable);
             Refresh();
         }
-
-        /// 释放所有本实例事件，不清空其它控件的监听器。
+        /// 隐藏时释放订阅、触控指针与布局引用。
         public void Unbind()
         {
-            UnbindSettingsControls();
             if (owner == null) return;
-            UnbindStandardEndingControls();
-            UnbindSaveControls();
-            UnbindTutorialControls();
-            owner.Changed -= Refresh; owner.Player.Changed -= OnPlayerChanged;
-            owner.Player.BindTouchPads(null, null); owner.Player.SetMenuState(false, false, null);
-            start.onClick.RemoveListener(StartAdventure); practice.onClick.RemoveListener(StartPractice);
-            resume.onClick.RemoveListener(Resume); pause.onClick.RemoveListener(Pause);
-            leave.onClick.RemoveListener(Leave); interact.onClick.RemoveListener(Interact); exitTable.onClick.RemoveListener(ExitTable);
-            if (quitGameButton != null) quitGameButton.onClick.RemoveListener(QuitGame);
-            ((RectTransform)mainMenu.transform).sizeDelta = mainMenuSize;
+            owner.Changed -= Refresh; owner.Player.Changed -= OnPlayerChanged; owner.Settings.Changed -= ApplyPadLayout;
+            owner.Player.BindTouchPads(null, null);
+            pause.onClick.RemoveListener(Pause); interact.onClick.RemoveListener(Interact); exitTable.onClick.RemoveListener(ExitTable);
+            if (positionsCaptured) { originalMove.Apply((RectTransform)movePad.transform); originalLook.Apply((RectTransform)lookPad.transform); }
             owner = null;
         }
-        private void QuitGame() => owner.QuitStandaloneApplication();
-        private void StartAdventure() { owner.StartAdventure(CasinoAdventureMode.Standard); Refresh(); }
-        private void StartPractice() { owner.StartAdventure(CasinoAdventureMode.Practice); Refresh(); }
-        private void Pause() { owner.Player.Pause(); Refresh(); }
-        private void Resume() { owner.Player.Resume(); Refresh(); }
-        private void Leave() => owner.RequestExit();
-        private void Interact() { owner.Player.Interact(); Refresh(); }
-        private void ExitTable() { owner.Player.CloseTable(true); Refresh(); }
+        private void Pause() => owner?.Player.Pause();
+        private void Interact() => owner?.Player.Interact();
+        private void ExitTable() => owner?.Player.CloseTable(true);
         private void Update() { if (owner != null) Refresh(); }
-
         private void Refresh()
         {
             if (owner == null) return;
-            int state = ResolveSettingsHudState(ResolveSaveHudState(ResolveEndingHudState(ResolveTutorialHudState())));
-            if (menuState != state)
-            {
-                menuState = state;
-                mainMenu.SetActive(state == 0); pauseMenu.SetActive(state == 1); fieldHud.SetActive(state == 2);
-                RefreshSettingsControls(state);
-                RefreshTutorialControls(state);
-                RefreshSaveControls(state);
-                RefreshStandardEndingControls(state);
-                owner.Player.SetMenuState(state != 2, state == 9, SettingsFirstSelection(state), HasSettingsUi || HasStandardEndingUi || HasSaveUi || HasTutorialUi ? CancelImmersionHudWindow : null);
-            }
-            if (quitGameButton != null)
-            {
-                quitGameButton.gameObject.SetActive(state == 0 && owner.IsStandalonePlayer);
-                ((RectTransform)mainMenu.transform).sizeDelta = new Vector2(mainMenuSize.x, owner.IsStandalonePlayer ? mainMenuSize.y + 84 : mainMenuSize.y);
-            }
-            var leaveLabel = leave.GetComponentInChildren<TMP_Text>(true);
-            if (leaveLabel != null) leaveLabel.text = owner.IsStandalonePlayer ? "返回主菜单" : "返回大厅";
-            RefreshSettingsControls(state);
-            RefreshTutorialControls(state);
-            RefreshSaveControls(state);
-            RefreshStandardEndingControls(state);
+            int state = owner.UI.State;
+            fieldHud.SetActive(state == 2);
             var adventure = owner.Game.State;
             wallet.text = "筹码  " + (owner.Game.State?.Coins ?? 0);
             objective.text = AdventureObjective(adventure);
@@ -138,6 +99,13 @@ namespace Hotfix.JinxCasino.UI
                 : nearby != null ? action + " 进入机台" : "走近一张机台，试试今天的运气";
             if (state == 2 && !exploring && table == null && !owner.Player.HasShopFocus) prompt.text = "正在回到探索视角…";
             feedback.text = InteractionFeedback(table);
+            tutorialStrip.SetActive(state == 2 && owner.Player.Tutorial.Status == Hotfix.JinxCasino.Rules.CasinoTutorialStatus.Active);
+            tutorialHintText.text = owner.Player.Tutorial.Hint;
+            tutorialDirectionText.text = owner.Player.Tutorial.Direction;
+            tutorialFeedbackText.text = !string.IsNullOrEmpty(owner.Player.Tutorial.Feedback) ? owner.Player.Tutorial.Feedback : owner.UI.Tutorial.Feedback ?? string.Empty;
+            var stripRect = (RectTransform)tutorialStrip.transform;
+            float stripHeight = !string.IsNullOrEmpty(tutorialFeedbackText.text) ? 156 : !string.IsNullOrEmpty(tutorialDirectionText.text) ? 112 : 82;
+            stripRect.sizeDelta = new Vector2(stripRect.sizeDelta.x, stripHeight);
         }
         private string AdventureObjective(CasinoAdventureState state)
         {
@@ -174,7 +142,15 @@ namespace Hotfix.JinxCasino.UI
             if (table.DraftStake > 0) return "检查桌面筹码与规则，再确认投入。";
             return table.Presentation?.IsComplete == true ? "结果已显示在机台上，可继续投入或离开。" : "选择筹码，确认后开始游玩。";
         }
-        private void OnDestroy() => Unbind();
+        private void ApplyPadLayout()
+        {
+            if (!positionsCaptured || owner == null || movePad == null || lookPad == null) return;
+            movePad.ResetInput(); lookPad.ResetInput();
+            bool left = owner.Settings.Value.LeftHanded;
+            (left ? originalLook : originalMove).Apply((RectTransform)movePad.transform);
+            (left ? originalMove : originalLook).Apply((RectTransform)lookPad.transform);
+        }
         private void OnPlayerChanged() { tableInputLabel = null; Refresh(); }
+        private void OnDestroy() => Unbind();
     }
 }

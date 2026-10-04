@@ -32,6 +32,8 @@ namespace Hotfix.JinxCasino
         public JinxCasinoLocalSettings Settings { get; } = new JinxCasinoLocalSettings();
         public bool HasInputConfiguration => immersionInputAsset != null;
         private View hud;
+        private JinxCasinoUIController ui;
+        internal JinxCasinoUIController UI => ui;
         private CancellationTokenSource lifetime;
         private bool isExiting;
 
@@ -50,8 +52,11 @@ namespace Hotfix.JinxCasino
                 var navigator = GameSceneNavigator.Instance;
                 if (navigator == null) throw new InvalidOperationException("请从 AppEntrance → Hub 进入倒霉蛋俱乐部。");
                 await navigator.WaitUntilStableAsync(GameSceneId.JinxCasino, lifetime.Token);
+                Settings.Load();
+                ui = new JinxCasinoUIController(this, lifetime.Token);
                 Player.Activate();
                 hud = await ShowLocalHudAsync();
+                ui.Begin();
                 Changed?.Invoke();
             }
             catch (OperationCanceledException) { }
@@ -70,6 +75,7 @@ namespace Hotfix.JinxCasino
         {
             Game.CommandInputEnabled = !IsBusy;
             Player.Tick();
+            ui?.Refresh();
         }
 
         private void OnApplicationFocus(bool focused) => Player.SetApplicationFocus(focused);
@@ -88,6 +94,7 @@ namespace Hotfix.JinxCasino
             SaveAdventureBeforeExit();
             try
             {
+                await ui.CloseAsync();
                 if (hud != null) { await UIManager.Instance.CloseAsync(hud); hud = null; }
                 var result = IsStandalonePlayer
                     ? await GameSceneNavigator.Instance.ReloadCurrentAsync()
@@ -108,7 +115,7 @@ namespace Hotfix.JinxCasino
                 if (this != null && lifetime != null && !lifetime.IsCancellationRequested &&
                     GameSceneNavigator.Instance?.CurrentScene == GameSceneId.JinxCasino)
                 {
-                    isExiting = false;
+                    isExiting = false; ui.Restore();
                     if (hud == null)
                     {
                         try
@@ -128,6 +135,7 @@ namespace Hotfix.JinxCasino
 
         private void OnDestroy()
         {
+            ui?.Dispose();
             isExiting = true;
             SaveAdventureBeforeExit();
             Player.Dispose();
