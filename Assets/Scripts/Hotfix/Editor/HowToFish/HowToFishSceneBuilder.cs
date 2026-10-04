@@ -1218,7 +1218,8 @@ namespace Hotfix.Editor.HowToFish
                 var tension = Panel("Tension", fishingPanel, new Vector2(310, 12), new Vector2(0, -15), Color.yellow);
                 tension.type = Image.Type.Filled;
                 tension.fillMethod = Image.FillMethod.Horizontal;
-                tension.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+                tension.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/LoadResources/UI/Common/Sprites/White.png");
+                tension.gameObject.AddComponent<UIProgressBar>();
                 Bind(serialized, "tension", tension);
                 var menu = Panel("Menu", root.transform, new Vector2(660, 720), Vector2.zero, new Color(.065f, .09f, .11f, .97f)).transform;
                 Bind(serialized, "menu", menu.gameObject);
@@ -1415,7 +1416,8 @@ namespace Hotfix.Editor.HowToFish
                 var fill = Panel(bar.Item2, panel, new Vector2(580, 10), new Vector2(0, bar.Item3), bar.Item4);
                 fill.type = Image.Type.Filled;
                 fill.fillMethod = Image.FillMethod.Horizontal;
-                fill.sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+                fill.sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/LoadResources/UI/Common/Sprites/White.png");
+                fill.gameObject.AddComponent<UIProgressBar>();
                 Bind(settings, bar.Item1, fill);
             }
             settings.ApplyModifiedPropertiesWithoutUndo();

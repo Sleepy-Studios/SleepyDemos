@@ -16422,6 +16422,7 @@ GameObject:
   - component: {fileID: 6977986794349090815}
   - component: {fileID: 4856451865137818801}
   - component: {fileID: 8395505842338681301}
+  - component: {fileID: 4863515245382226593}
   m_Layer: 5
   m_Name: ResetProgressFill
   m_TagString: Untagged
@@ -16476,7 +16477,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -16486,6 +16487,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &4863515245382226593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6121936258998394631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f77eab99ab2774499977a884d99e989, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIProgressBar
 --- !u!1 &6126481621764051176
 GameObject:
   m_ObjectHideFlags: 0

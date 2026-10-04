@@ -56,6 +56,7 @@ MonoBehaviour:
   label: {fileID: 2084844460609809958}
   caption: "\u8FD4\u56DE"
   uiAction: Cancel
+  captionOnly: 0
 --- !u!1 &76824529061372319
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,6 +351,7 @@ GameObject:
   - component: {fileID: 2327331974091585974}
   - component: {fileID: 7182238188891878347}
   - component: {fileID: 2876432260852760612}
+  - component: {fileID: 3464854948034604771}
   m_Layer: 5
   m_Name: ProgressFill
   m_TagString: Untagged
@@ -404,7 +406,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 0d88901f7f6e3d942baf0d6071ac4fbd, type: 3}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -414,6 +416,18 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3464854948034604771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471889270226843637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f77eab99ab2774499977a884d99e989, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIProgressBar
 --- !u!1 &501939348919374726
 GameObject:
   m_ObjectHideFlags: 0
@@ -1718,6 +1732,7 @@ MonoBehaviour:
   label: {fileID: 855934164980757185}
   caption: "\u786E\u8BA4"
   uiAction: Submit
+  captionOnly: 0
 --- !u!1 &1256057181138510953
 GameObject:
   m_ObjectHideFlags: 0
@@ -7760,6 +7775,7 @@ MonoBehaviour:
   label: {fileID: 6324926065810692675}
   caption: "\u8FD4\u56DE"
   uiAction: Cancel
+  captionOnly: 0
 --- !u!1 &4573088039013322002
 GameObject:
   m_ObjectHideFlags: 0
@@ -8215,6 +8231,7 @@ MonoBehaviour:
   label: {fileID: 47472115282094869}
   caption: "\u8FD4\u56DE"
   uiAction: Cancel
+  captionOnly: 0
 --- !u!1 &4844273289793896238
 GameObject:
   m_ObjectHideFlags: 0
@@ -12901,6 +12918,7 @@ MonoBehaviour:
   label: {fileID: 2257482100879071055}
   caption: "\u786E\u8BA4"
   uiAction: Submit
+  captionOnly: 0
 --- !u!1 &6571413530581560807
 GameObject:
   m_ObjectHideFlags: 0
@@ -14027,6 +14045,7 @@ MonoBehaviour:
   label: {fileID: 4902629140605191933}
   caption: "\u786E\u8BA4"
   uiAction: Submit
+  captionOnly: 0
 --- !u!1 &7715459239724703911
 GameObject:
   m_ObjectHideFlags: 0

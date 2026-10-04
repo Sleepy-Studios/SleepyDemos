@@ -12,6 +12,24 @@ namespace Tests.Module
     public sealed class UIFoundationAssetTests
     {
         [Test]
+        public void LinearProgress_UsesWhiteSpriteAndSharedComponent()
+        {
+            var white = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/LoadResources/UI/Common/Sprites/White.png");
+            foreach (var path in Directory.GetFiles("Assets/LoadResources", "*.prefab", SearchOption.AllDirectories))
+            {
+                var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                foreach (var image in root.GetComponentsInChildren<Image>(true))
+                {
+                    if (image.type != Image.Type.Filled || image.fillMethod != Image.FillMethod.Horizontal && image.fillMethod != Image.FillMethod.Vertical) continue;
+                    if (!new[] { "ProgressFill", "ResetProgressFill", "Tension", "BossHealth", "BossEscape" }.Contains(image.name)) continue;
+                    Assert.That(image.sprite, Is.SameAs(white), path + "/" + image.name);
+                    Assert.That(image.GetComponent<UIProgressBar>(), Is.Not.Null, path + "/" + image.name);
+                    Assert.That(image.raycastTarget, Is.False, path + "/" + image.name);
+                }
+            }
+        }
+
+        [Test]
         public void State_InspectorRenameInvalidatesCachedLookup()
         {
             var obj = new GameObject("StateInspection", typeof(UIState));

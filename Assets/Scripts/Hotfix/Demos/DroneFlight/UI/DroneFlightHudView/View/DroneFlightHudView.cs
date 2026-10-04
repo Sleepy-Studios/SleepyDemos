@@ -8,7 +8,14 @@ namespace Hotfix
     [Mvc("DroneFlightHudView")]
     public partial class DroneFlightHudView : View<DroneFlightViewData>
     {
+        private UIProgressBar resetProgressBar;
         private DroneFlightUiTelemetrySource telemetrySource;
+
+        protected override void OnGameObjectInitialize()
+        {
+            base.OnGameObjectInitialize();
+            resetProgressBar = Image_ResetProgressFill.GetComponent<UIProgressBar>();
+        }
 
         /// <summary>交付会话数据；已显示的 HUD 立即切换遥测订阅。</summary>
         /// <param name="data">当前机体与输入会话。</param>
@@ -70,7 +77,7 @@ namespace Hotfix
                 ? new UnityEngine.Color32(240, 77, 65, 255) : new UnityEngine.Color32(244, 162, 58, 255);
             RectTransform_WarningPanel.gameObject.SetActive(!string.IsNullOrEmpty(snapshot.WarningText));
             RectTransform_ResetPanel.gameObject.SetActive(snapshot.ResetProgress > 0);
-            Image_ResetProgressFill.fillAmount = snapshot.ResetProgress;
+            resetProgressBar.SetValue(snapshot.ResetProgress);
             TextMeshProUGUI_ResetProgressText.text = $"{Key("ArmOrReset")}  重新运行场景  {snapshot.ResetProgress * snapshot.ResetHoldSeconds:F1} / {snapshot.ResetHoldSeconds:F1} s  · 松开取消";
             DroneControlsPresenter_DroneFlightHudView.SetEquipment(snapshot.Equipment.Kind);
         }

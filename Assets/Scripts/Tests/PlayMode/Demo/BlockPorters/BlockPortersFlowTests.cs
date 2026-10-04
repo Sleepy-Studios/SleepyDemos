@@ -163,38 +163,46 @@ namespace Tests.Demo
             yield return Capture("Progress0");
             var scheduler = (BlockPortersScheduler)typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
             bool quarter = false, half = false;
-            foreach (int column in controller.CurrentLevel.Solution)
+            // 手动逐事件推进时暂停自动Update，避免同一帧再次推进跳过采样点。
+            var automaticPause = typeof(BlockPortersController).GetField("isApplicationPaused", BindingFlags.Instance | BindingFlags.NonPublic);
+            bool wasApplicationPaused = (bool)automaticPause.GetValue(controller);
+            automaticPause.SetValue(controller, true);
+            try
             {
-                controller.Dispatch(column);
-                while (!scheduler.IsStable)
+                foreach (int column in controller.CurrentLevel.Solution)
                 {
-                    // 尾队人数不同，队末未必恰好落在 25%/50%；按真实交付事件取样。
-                    double at = scheduler.Transports.Min(t => t.Job.IsPickedUp ? t.Delivered : t.Pickup);
-                    scheduler.AdvanceTo(at);
-                    int delivered = controller.Session.Delivered;
-                    if ((delivered == 64 && !quarter) || (delivered == 128 && !half))
+                    controller.Dispatch(column);
+                    while (!scheduler.IsStable)
                     {
-                        controller.TogglePause();
-                        yield return new WaitForSecondsRealtime(.3f);
-                        Assert.That(fill.fillAmount, Is.EqualTo(delivered / 256f).Within(.001));
-                        Assert.That(fill.rectTransform.rect.width, Is.LessThan(fill.transform.parent.parent.GetComponent<RectTransform>().rect.width));
-                        yield return Capture(delivered == 64 ? "Progress25" : "Progress50");
-                        if (delivered == 64)
+                        // 同刻交付会成批处理；跨过四分之一和半程时按实际交付数验收。
+                        double at = scheduler.Transports.Min(t => t.Job.IsPickedUp ? t.Delivered : t.Pickup);
+                        scheduler.AdvanceTo(at);
+                        int delivered = controller.Session.Delivered;
+                        if ((delivered >= 64 && !quarter) || (delivered >= 128 && !half))
                         {
-                            quarter = true;
-                            resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
-                            yield return WaitUntil(() => Screen.height == 1200, "长屏进度验收");
-                            yield return Capture("Progress25Tall");
-                            resolution.Dispose(); resolution = new GameViewResolution(540, 960);
-                            yield return WaitUntil(() => Screen.height == 960, "恢复进度竖屏");
+                            controller.TogglePause();
+                            yield return new WaitForSecondsRealtime(.3f);
+                            Assert.That(fill.fillAmount, Is.EqualTo(delivered / 256f).Within(.001));
+                            Assert.That(fill.rectTransform.rect.width, Is.LessThan(fill.transform.parent.parent.GetComponent<RectTransform>().rect.width));
+                            yield return Capture(!quarter ? "Progress25" : "Progress50");
+                            if (!quarter)
+                            {
+                                quarter = true;
+                                resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
+                                yield return WaitUntil(() => Screen.height == 1200, "长屏进度验收");
+                                yield return Capture("Progress25Tall");
+                                resolution.Dispose(); resolution = new GameViewResolution(540, 960);
+                                yield return WaitUntil(() => Screen.height == 960, "恢复进度竖屏");
+                            }
+                            else half = true;
+                            controller.TogglePause();
                         }
-                        else half = true;
-                        controller.TogglePause();
+                        yield return null;
                     }
-                    yield return null;
                 }
             }
-            Assert.That(quarter && half, Is.True, "回放必须实际经过 64 和 128 个已交付方块");
+            finally { if (controller != null) automaticPause.SetValue(controller, wasApplicationPaused); }
+            Assert.That(quarter && half, Is.True, "回放必须实际覆盖四分之一和半程的交付进度：" + $"delivered={controller.Session.Delivered},status={controller.Session.Status},quarter={quarter},half={half},solution={controller.CurrentLevel.Solution.Length}");
             Assert.That(controller.Session.Status, Is.EqualTo(BlockPortersStatus.Won));
             yield return null; yield return null;
             Assert.That(fill.fillAmount, Is.EqualTo(1), "通关立即满格");

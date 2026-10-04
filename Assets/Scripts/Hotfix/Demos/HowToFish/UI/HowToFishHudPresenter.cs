@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using System.Text;
 using System.Collections.Generic;
@@ -75,6 +76,9 @@ namespace Hotfix.HowToFish
         private bool waitSettingsCancelRelease;
         private int settingsCancelFrame;
         private HowToFishWorld world;
+        private UIProgressBar tensionBar;
+        private UIProgressBar bossHealthBar;
+        private UIProgressBar bossEscapeBar;
         private float refreshAt;
         private int confirmNewSlot = -1;
         private bool menuWasVisible;
@@ -86,6 +90,9 @@ namespace Hotfix.HowToFish
 
         private void Awake()
         {
+            tensionBar = tension.GetComponent<UIProgressBar>();
+            bossHealthBar = bossHealth.GetComponent<UIProgressBar>();
+            bossEscapeBar = bossEscape.GetComponent<UIProgressBar>();
             // 注册一次，晚绑定 world；既支持鼠标也支持手柄 Submit，不轮询界面选择。
             foreach (var button in GetComponentsInChildren<Button>(true)) button.onClick.AddListener(PlayUiSound);
             for (int i = 0; i < slots.Length; i++)
@@ -578,8 +585,8 @@ namespace Hotfix.HowToFish
             if (fighting)
             {
                 var creature = boss.Item;
-                bossHealth.fillAmount = creature.Health / creature.Creature.Health;
-                bossEscape.fillAmount = boss.EscapeFraction;
+                bossHealthBar.SetValue(creature.Health / creature.Creature.Health);
+                bossEscapeBar.SetValue(boss.EscapeFraction);
                 bossStatus.text = $"{creature.Creature.DisplayName}  {creature.Health:0} / {creature.Creature.Health:0} · {boss.Hint}";
             }
             if (!world.HasSession)
@@ -634,8 +641,8 @@ namespace Hotfix.HowToFish
             var fishing = world.Player.Fishing.State;
             fishingPanel.SetActive(!world.IsPaused && fishing.IsActive);
             bool pullBack = world.Player.Equipment?.Id == "FishingRod";
-            tension.fillAmount = fishing.Phase == HowToFishFishingPhase.Charging ? fishing.Charge : pullBack ? fishing.Progress : fishing.Tension;
-            tension.color = fishing.Tension > 0.75f ? new Color(0.95f, 0.24f, 0.12f) : new Color(0.94f, 0.76f, 0.24f);
+            tensionBar.SetValue(fishing.Phase == HowToFishFishingPhase.Charging ? fishing.Charge : pullBack ? fishing.Progress : fishing.Tension);
+            tensionBar.SetColor(fishing.Tension > 0.75f ? new Color(0.95f, 0.24f, 0.12f) : new Color(0.94f, 0.76f, 0.24f));
             fishingStatus.text = fishing.Phase switch
             {
                 HowToFishFishingPhase.Charging => "松手抛竿",

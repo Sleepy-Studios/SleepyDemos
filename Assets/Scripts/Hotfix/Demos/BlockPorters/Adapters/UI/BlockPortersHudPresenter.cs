@@ -1,3 +1,4 @@
+using Core.Runtime;
 using Core.Runtime.Inputs;
 using TMPro;
 using UnityEngine;
@@ -67,6 +68,7 @@ namespace Hotfix.BlockPorters.Adapters
         private bool hadResult;
         private float settingsAge;
         private float resultAge;
+        private UIProgressBar progressBar;
         private float displayedProgress;
         private float targetProgress;
         private bool refreshPending;
@@ -74,6 +76,7 @@ namespace Hotfix.BlockPorters.Adapters
 
         private void Awake()
         {
+            progressBar = progressFill.GetComponent<UIProgressBar>();
             ApplyTileStyle();
             for (int i = 0; i < columns.Length; i++)
             {
@@ -249,7 +252,7 @@ namespace Hotfix.BlockPorters.Adapters
             }
             if (advanceFinished) Refresh();
             displayedProgress = Mathf.MoveTowards(displayedProgress, targetProgress, delta * .9f);
-            progressFill.fillAmount = displayedProgress;
+            progressBar.SetValue(displayedProgress);
             if (settingsOpen) { settingsAge += delta; AnimateCard(settingsCard, settingsAge); }
             if (hadResult) { resultAge += delta; AnimateCard(resultCard, resultAge); }
             Vector2 size = ((RectTransform)transform).rect.size;
@@ -298,7 +301,7 @@ namespace Hotfix.BlockPorters.Adapters
             progress.text = $"{session.Delivered} / {session.Total}";
             targetProgress = (float)session.Delivered / session.Total;
             if (targetProgress < displayedProgress || session.Status == BlockPortersStatus.Won) displayedProgress = targetProgress;
-            progressFill.fillAmount = displayedProgress;
+            progressBar.SetValue(displayedProgress);
             slots.text = $"搬运队伍  {session.Teams.Count} / {session.Capacity}";
             bool waiting = false;
             foreach (var team in session.Teams) waiting |= team.Waiting > 0;

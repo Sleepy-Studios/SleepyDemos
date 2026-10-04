@@ -7,10 +7,12 @@ namespace Hotfix
     [Mvc("CommonLoadingView")]
     public partial class CommonLoadingView : View
     {
+        private UIProgressBar progressBar;
         private float currentProgress;
 
         protected override void OnGameObjectInitialize()
         {
+            progressBar = Image_ProgressFill.GetComponent<UIProgressBar>();
             ResetProgress();
         }
 
@@ -38,7 +40,7 @@ namespace Hotfix
             currentProgress = Mathf.Max(currentProgress, Mathf.Clamp01(progress));
             if (Image_ProgressFill != null)
             {
-                Image_ProgressFill.fillAmount = currentProgress;
+                progressBar.SetValue(currentProgress);
             }
 
             if (TextMeshProUGUI_ProgressText != null)
@@ -70,7 +72,7 @@ namespace Hotfix
             currentProgress = 0f;
             if (Image_ProgressFill != null)
             {
-                Image_ProgressFill.fillAmount = 0f;
+                progressBar.SetValue(0f);
             }
 
             if (TextMeshProUGUI_ProgressText != null)
