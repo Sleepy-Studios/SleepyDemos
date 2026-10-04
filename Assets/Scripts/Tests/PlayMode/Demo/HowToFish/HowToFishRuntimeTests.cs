@@ -31,6 +31,211 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator InputSettings_MenuPreviewCancelRebindAndHubPersistence()
+        {
+            const string key = HowToFishLocalPreferencesStore.DefaultKey;
+            bool hadPreferences = PlayerPrefs.HasKey(key);
+            string originalPreferences = hadPreferences ? PlayerPrefs.GetString(key) : null;
+            try
+            {
+                // World 启动固定读取正式键；完整保存原字节串，finally 原样恢复，不改变生产注入接口。
+                PlayerPrefs.DeleteKey(key); PlayerPrefs.Save();
+                yield return StartNewGame();
+                var world = testWorld;
+                var original = world.GetPreferences();
+                var eventSystem = EventSystem.current;
+                yield return PressKey(Key.Escape);
+                yield return SubmitInputSettingsControl("OpenSettings");
+                Assert.That(world.IsEditingSettings, Is.True);
+                yield return ChangeInputSettingsControls();
+                Assert.That(world.Player.MouseSensitivity, Is.GreaterThan(original.MouseSensitivity));
+                Assert.That(world.Player.GamepadSensitivity, Is.GreaterThan(original.GamepadSensitivity));
+                Assert.That(world.Player.DeadZone, Is.GreaterThan(original.DeadZone));
+                Assert.That(world.Player.InvertY, Is.Not.EqualTo(original.InvertY));
+
+                // 键鼠候选不能被手柄夺走；冲突不能覆盖旧绑定或触发背景菜单。
+                string baselineBindings = world.Input.SaveBindings();
+                yield return BeginInputSettingsBinding(0, "陆地 · 交互");
+                Assert.That(eventSystem.sendNavigationEvents, Is.False);
+                Assert.That(ObjectFind<CanvasGroup>("SettingsContent").interactable, Is.False);
+                yield return PressInputSettingsPad(GamepadButton.West);
+                yield return new WaitForSecondsRealtime(.15f);
+                Assert.That(world.Input.IsRebinding, Is.True, "键鼠绑定错误地接受了手柄输入。");
+                yield return PressKey(Key.Space);
+                yield return WaitInputSettingsCaptureEnd(world);
+                Assert.That(world.Input.SaveBindings(), Is.EqualTo(baselineBindings), "冲突污染了原绑定。");
+                Assert.That(ObjectFind<TextMeshProUGUI>("SettingsStatus").text, Does.Contain("其他操作"));
+                Assert.That(world.IsEditingSettings && world.IsPaused, Is.True);
+
+                // 常驻快捷键不能抢占菜单确认键，否则确认菜单时会同时切换暂停。
+                yield return BeginInputSettingsBinding(0, "通用 · 暂停");
+                yield return PressKey(Key.Enter);
+                yield return WaitInputSettingsCaptureEnd(world);
+                Assert.That(world.Input.SaveBindings(), Is.EqualTo(baselineBindings));
+                Assert.That(ObjectFind<TextMeshProUGUI>("SettingsStatus").text, Does.Contain("其他操作"));
+
+                yield return BeginInputSettingsBinding(0, "陆地 · 交互");
+                yield return PressKey(Key.K);
+                yield return WaitInputSettingsCaptureEnd(world);
+                Assert.That(InputSettingsBinding(world, "Gameplay/Interact", "KeyboardMouse"), Is.EqualTo("<Keyboard>/k"));
+                // 长按退出键跨过多个 Update：关闭设置后必须等松键，不能穿透为取消暂停。
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
+                yield return null; yield return null;
+                yield return new WaitForSecondsRealtime(.15f);
+                Assert.That(world.Input.Held("Pause"), Is.True, "暂停状态也必须读取 UI Map 的按住状态。");
+                Assert.That(world.IsPaused, Is.True, "退出键尚未松开就取消了暂停。");
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null; yield return null;
+                Assert.That(world.IsEditingSettings, Is.False);
+                Assert.That(world.IsPaused, Is.True, "关闭设置不应穿透为恢复游戏。");
+                Assert.That(world.Player.MouseSensitivity, Is.EqualTo(original.MouseSensitivity));
+                Assert.That(world.Player.GamepadSensitivity, Is.EqualTo(original.GamepadSensitivity));
+                Assert.That(world.Player.DeadZone, Is.EqualTo(original.DeadZone));
+                Assert.That(world.Player.InvertY, Is.EqualTo(original.InvertY));
+                Assert.That(world.Input.SaveBindings(), Is.EqualTo(baselineBindings), "取消必须清除原本不存在的绑定覆盖。");
+                Assert.That(PlayerPrefs.HasKey(key), Is.False, "预览或取消不应写盘。");
+
+                // 使用真实手柄 Submit 再进设置，证明前次捕获恢复了同一个 Core UI。
+                yield return SubmitInputSettingsControl("OpenSettings", true);
+                Assert.That(EventSystem.current, Is.SameAs(eventSystem));
+                Assert.That(world.IsEditingSettings, Is.True);
+                yield return ChangeInputSettingsControls();
+                yield return BeginInputSettingsBinding(0, "陆地 · 交互");
+                yield return PressKey(Key.K);
+                yield return WaitInputSettingsCaptureEnd(world);
+
+                // 驾驶组与陆地组独立；只接受手柄按钮，连续摇杆和键盘均不能结束捕获。
+                string beforePad = world.Input.SaveBindings();
+                yield return BeginInputSettingsBinding(3, "驾驶 · 交互");
+                yield return PressKey(Key.L);
+                InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.right });
+                yield return null; yield return null;
+                InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                yield return new WaitForSecondsRealtime(.15f);
+                Assert.That(world.Input.IsRebinding, Is.True,
+                    "手柄按钮捕获接受了错误设备或连续轴，绑定=" + InputSettingsBinding(world, "Boat/Interact", "Gamepad") +
+                    "，提示=" + ObjectFind<TextMeshProUGUI>("SettingsStatus").text);
+                yield return PressInputSettingsPad(GamepadButton.East);
+                yield return WaitInputSettingsCaptureEnd(world);
+                Assert.That(world.Input.SaveBindings(), Is.EqualTo(beforePad));
+                Assert.That(world.IsEditingSettings && world.IsPaused, Is.True, "取消捕获不能同时关闭设置。");
+                yield return BeginInputSettingsBinding(3, "驾驶 · 交互");
+                yield return PressInputSettingsPad(GamepadButton.South);
+                yield return WaitInputSettingsCaptureEnd(world);
+                Assert.That(InputSettingsBinding(world, "Boat/Interact", "Gamepad"), Is.EqualTo("<Gamepad>/buttonSouth"));
+                Assert.That(InputSettingsBinding(world, "Gameplay/Interact", "Gamepad"), Is.EqualTo("<Gamepad>/buttonWest"));
+
+                var expected = world.GetPreferences();
+                yield return null; yield return null;
+                ScreenCapture.CaptureScreenshot(Path.GetFullPath("Library/HowToFish/Evidence/InputSettings-Menu.png"));
+                yield return null; yield return null;
+                yield return SubmitInputSettingsControl("SettingsSave", true);
+                Assert.That(world.IsEditingSettings, Is.False);
+                var stored = new HowToFishLocalPreferencesStore().Load();
+                Assert.That(stored.MouseSensitivity, Is.EqualTo(expected.MouseSensitivity).Within(.0001f));
+                Assert.That(stored.GamepadSensitivity, Is.EqualTo(expected.GamepadSensitivity));
+                Assert.That(stored.DeadZone, Is.EqualTo(expected.DeadZone).Within(.0001f));
+                Assert.That(stored.InvertY, Is.EqualTo(expected.InvertY));
+                Assert.That(stored.Bindings, Is.EqualTo(expected.Bindings));
+
+                yield return SubmitInputSettingsControl("ReturnHub");
+                yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub &&
+                    !GameSceneNavigator.Instance.IsTransitioning, "设置验证未返回 Hub。");
+                Assert.That(EventSystem.current, Is.SameAs(eventSystem));
+                // Hub 的 OnShow 在导航事务结束前创建松键门闩，后续帧才恢复菜单输入。
+                yield return WaitFor(() => eventSystem.sendNavigationEvents, "退出后遗留了菜单输入锁。");
+                yield return EnterWorld(); world = testWorld;
+                Assert.That(world.Player.MouseSensitivity, Is.EqualTo(expected.MouseSensitivity).Within(.0001f));
+                Assert.That(world.Player.GamepadSensitivity, Is.EqualTo(expected.GamepadSensitivity));
+                Assert.That(world.Player.DeadZone, Is.EqualTo(expected.DeadZone).Within(.0001f));
+                Assert.That(world.Player.InvertY, Is.EqualTo(expected.InvertY));
+                Assert.That(InputSettingsBinding(world, "Gameplay/Interact", "KeyboardMouse"), Is.EqualTo("<Keyboard>/k"));
+                Assert.That(InputSettingsBinding(world, "Boat/Interact", "Gamepad"), Is.EqualTo("<Gamepad>/buttonSouth"));
+                world.SetPaused(true);
+            }
+            finally
+            {
+                try { if (testWorld != null) testWorld.Input.CancelRebind(); }
+                finally
+                {
+                    if (hadPreferences) PlayerPrefs.SetString(key, originalPreferences); else PlayerPrefs.DeleteKey(key);
+                    PlayerPrefs.Save();
+                }
+            }
+        }
+
+        private IEnumerator SubmitInputSettingsControl(string name, bool useGamepad = false)
+        {
+            yield return WaitFor(() => EventSystem.current != null && EventSystem.current.sendNavigationEvents,
+                "Core 菜单导航没有恢复：" + name);
+            var control = ObjectFind<Selectable>(name);
+            Assert.That(control, Is.Not.Null, "设置控件未显示：" + name);
+            Assert.That(control.IsInteractable(), Is.True, "设置控件被锁定：" + name);
+            EventSystem.current.SetSelectedGameObject(control.gameObject);
+            yield return null;
+            if (useGamepad) yield return PressInputSettingsPad(GamepadButton.South);
+            else yield return PressKey(Key.Enter);
+        }
+
+        private IEnumerator ChangeInputSettingsControls()
+        {
+            yield return WaitFor(() => EventSystem.current.sendNavigationEvents, "设置参数的方向键导航未恢复。");
+            foreach (string name in new[] { "MouseSensitivity", "GamepadSensitivity", "InputDeadZone" })
+            {
+                var slider = ObjectFind<Slider>(name);
+                Assert.That(slider, Is.Not.Null);
+                float before = slider.value;
+                EventSystem.current.SetSelectedGameObject(slider.gameObject);
+                yield return PressKey(Key.RightArrow);
+                Assert.That(slider.value, Is.GreaterThan(before), "方向键未改变真实 Slider：" + name);
+            }
+            yield return SubmitInputSettingsControl("InvertLook");
+        }
+
+        private IEnumerator BeginInputSettingsBinding(int group, string labelPrefix)
+        {
+            yield return SubmitInputSettingsControl("SettingsGroup" + group);
+            for (int page = 0; page < 10; page++)
+            {
+                var row = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
+                    .FirstOrDefault(button => button.gameObject.activeInHierarchy && button.name.StartsWith("BindingRow", StringComparison.Ordinal) &&
+                        button.GetComponentInChildren<TextMeshProUGUI>().text.StartsWith(labelPrefix + " ", StringComparison.Ordinal));
+                if (row != null)
+                {
+                    yield return SubmitInputSettingsControl(row.name);
+                    Assert.That(testWorld.Input.IsRebinding, Is.True, "菜单没有开始捕获：" + labelPrefix);
+                    yield break;
+                }
+                var next = ObjectFind<Button>("SettingsNext");
+                Assert.That(next != null && next.interactable, Is.True, "按键列表缺少：" + labelPrefix);
+                yield return SubmitInputSettingsControl("SettingsNext");
+            }
+            Assert.Fail("按键列表翻页未找到：" + labelPrefix);
+        }
+
+        private IEnumerator PressInputSettingsPad(GamepadButton button)
+        {
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(button));
+            yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState());
+            yield return null; yield return null;
+        }
+
+        private static IEnumerator WaitInputSettingsCaptureEnd(HowToFishWorld world)
+        {
+            yield return WaitFor(() => !world.Input.IsRebinding && EventSystem.current.sendNavigationEvents &&
+                ObjectFind<CanvasGroup>("SettingsContent")?.interactable == true, "捕获结束后没有恢复设置菜单输入。");
+            yield return null; yield return null;
+        }
+
+        private static string InputSettingsBinding(HowToFishWorld world, string actionPath, string group)
+        {
+            var action = world.Input.Asset.FindAction(actionPath, true);
+            return action.bindings.First(binding => !binding.isComposite &&
+                (binding.groups ?? "").Split(';').Contains(group)).effectivePath;
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator Drip_ColorSurvivesCookingAndRestoreWithoutChangingSharedMaterials()
         {
             yield return StartNewGame();

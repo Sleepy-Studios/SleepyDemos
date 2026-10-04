@@ -30,6 +30,9 @@ namespace Hotfix.HowToFish
         private HowToFishInput input;
         private HowToFishSession session;
         private HowToFishSaveStore saves;
+        private HowToFishLocalPreferencesStore preferencesStore;
+        private bool settingsPauseGate;
+        private int settingsClosedFrame;
         private CancellationTokenSource lifetime;
         private float previousTimeScale;
         private CursorLockMode previousCursor;
@@ -56,6 +59,8 @@ namespace Hotfix.HowToFish
         public bool ShowJournal { get; private set; }
         public bool ShowEnding { get; private set; }
         public bool HasSession => session != null;
+        /// 设置草稿占用菜单时，世界不处理暂停与图鉴快捷键。
+        public bool IsEditingSettings { get; private set; }
         public string Notice { get; private set; }
         /// 当前有效首领遭遇；兼容首领死亡和 Unity 对象已销毁的状态。
         public IHowToFishBoss ActiveBoss => currentBoss?.Item != null && currentBoss.IsFighting ? currentBoss : null;
@@ -85,6 +90,14 @@ namespace Hotfix.HowToFish
                 islands = FindObjectsByType<HowToFishIsland>(FindObjectsSortMode.None)
                     .Where(island => island.gameObject.scene == gameObject.scene).OrderBy(island => island.Index).ToArray();
                 input = new HowToFishInput(inputTemplate);
+                preferencesStore = new HowToFishLocalPreferencesStore();
+                try { ApplyPreferences(preferencesStore.Load()); }
+                catch (ArgumentException)
+                {
+                    ApplyPreferences(new HowToFishLocalPreferences());
+                    Notify("输入绑定无法加载，已使用默认值；原设置保留，请在设置中重新确认。");
+                }
+                if (!string.IsNullOrEmpty(preferencesStore.LastLoadWarning)) Notify(preferencesStore.LastLoadWarning);
                 saves = new HowToFishSaveStore(Path.Combine(Application.persistentDataPath, "HowToFish"));
                 foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
                     if (light.enabled && light.gameObject.scene != gameObject.scene) { suspendedLights.Add(light); light.enabled = false; }
@@ -242,6 +255,40 @@ namespace Hotfix.HowToFish
 
         /// 保存最近安全点和全部非活动首领实体。
         public void Save() => TrySave();
+
+        /// 创建当前实际参数与绑定副本，包含交互式重绑刚刚应用的覆盖。
+        public HowToFishLocalPreferences GetPreferences() => new HowToFishLocalPreferences
+        {
+            MouseSensitivity = player.MouseSensitivity, GamepadSensitivity = player.GamepadSensitivity,
+            DeadZone = player.DeadZone, InvertY = player.InvertY, Bindings = input.SaveBindings()
+        };
+
+        /// <summary>预览完整输入配置；非法参数或绑定不改变原设置，不写盘。</summary>
+        /// <param name="value">经过校验的草稿或取消时的原快照。</param>
+        public void ApplyPreferences(HowToFishLocalPreferences value)
+        {
+            if (value == null || !value.IsValid) throw new ArgumentException("输入设置无效。", nameof(value));
+            input.LoadBindings(value.Bindings);
+            player.MouseSensitivity = value.MouseSensitivity;
+            player.GamepadSensitivity = value.GamepadSensitivity;
+            player.DeadZone = value.DeadZone;
+            player.InvertY = value.InvertY;
+        }
+
+        /// 保存当前实际输入配置；失败保留草稿供设置面板处理。
+        public bool SavePreferences()
+        {
+            try { preferencesStore.Save(GetPreferences()); Notify("输入设置已保存。"); return true; }
+            catch (Exception exception) { Notify("输入设置未保存：" + exception.Message); return false; }
+        }
+
+        /// <summary>进入或退出设置编辑；关闭帧与尚未松开的退出键不能穿透为游戏暂停。</summary>
+        /// <param name="editing">是否由设置面板接管快捷键。</param>
+        public void SetEditingSettings(bool editing)
+        {
+            IsEditingSettings = editing;
+            if (!editing) { settingsPauseGate = true; settingsClosedFrame = Time.frameCount; }
+        }
 
         /// <summary>验证已解锁服装，先原子保存共享选择，再更新当前人物表现。</summary>
         /// <param name="id">服装目录ID；未知、锁定或缺资源时保留原选择。</param>
@@ -518,8 +565,9 @@ namespace Hotfix.HowToFish
         private void Update()
         {
             if (!initialized || exiting) return;
-            if (!ShowEnding && session != null && input.Pressed("Pause")) SetPaused(!IsPaused);
-            if (!ShowEnding && session != null && input.Pressed("Journal")) { ShowJournal = !ShowJournal; SetPaused(ShowJournal); }
+            if (settingsPauseGate && Time.frameCount > settingsClosedFrame && !input.Held("Pause") && !input.Held("Journal")) settingsPauseGate = false;
+            if (!ShowEnding && session != null && !IsEditingSettings && !settingsPauseGate && input.Pressed("Pause")) SetPaused(!IsPaused);
+            if (!ShowEnding && session != null && !IsEditingSettings && !settingsPauseGate && input.Pressed("Journal")) { ShowJournal = !ShowJournal; SetPaused(ShowJournal); }
             if (Notice != null && Time.unscaledTime > messageUntil) { Notice = null; Changed?.Invoke(); }
             if (session == null) return;
             if (!ShowEnding) session.State.playedSeconds += Time.unscaledDeltaTime;

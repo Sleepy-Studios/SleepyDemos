@@ -2,9 +2,13 @@ using System;
 using Core.Runtime.Inputs;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace Hotfix.HowToFish
 {
+    /// 一次重绑定的结果；冲突或失败均保留原绑定。
+    public enum HowToFishRebindResult { Completed, Cancelled, Conflict, Failed }
+
     /// 键鼠和手柄共用的动作入口；每个 Demo 会话独占并释放其 ActionAsset。
     public sealed class HowToFishInput : IDisposable
     {
@@ -16,6 +20,10 @@ namespace Hotfix.HowToFish
         private InputActionMap activeMap;
         private InputActionRebindingExtensions.RebindingOperation rebind;
         private bool disposed;
+        private Action rebindEnd;
+        private Action<HowToFishRebindResult> rebindFinished;
+        /// 最近一次重绑定的失败或冲突说明；成功与取消时为空。
+        public string RebindMessage { get; private set; }
 
         /// 当前是否由手柄操作，用于 HUD 提示。
         public bool IsGamepad => InputDeviceState.PromptKind == InputDeviceKind.Gamepad;
@@ -127,8 +135,18 @@ namespace Hotfix.HowToFish
             ? session.Pressed(name) : ui.FindAction(name, false)?.WasPressedThisFrame() == true);
 
         /// <summary>读取动作是否持续按住。</summary>
-        /// <param name="name">当前玩法动作名。</param>
-        public bool Held(string name) => !IsRebinding && session.Held(name);
+        /// <param name="name">当前玩法或 UI 动作名。</param>
+        public bool Held(string name)
+        {
+            if (IsRebinding) return false;
+            if (activeMap.FindAction(name, false) != null) return session.Held(name);
+            var action = ui.FindAction(name, false);
+            if (action == null || !action.enabled) return false;
+            // 绑定回滚会重置动作状态；与 Core 菜单相同，松键门闩读取实际按钮。
+            foreach (var control in action.controls)
+                if (control is ButtonControl button && button.isPressed) return true;
+            return false;
+        }
 
         /// <summary>按当前设备取得绑定提示。</summary>
         /// <param name="name">玩法或 UI 动作名。</param>
@@ -145,7 +163,21 @@ namespace Hotfix.HowToFish
         /// <param name="json">Input System 生成的绑定覆盖 JSON。</param>
         public void LoadBindings(string json)
         {
-            if (!string.IsNullOrWhiteSpace(json)) asset.LoadBindingOverridesFromJson(json);
+            if (disposed) throw new ObjectDisposedException(nameof(HowToFishInput));
+            if (IsRebinding) throw new InvalidOperationException("请先取消正在进行的重绑定。");
+            if (!HowToFishLocalPreferences.AreBindingsValid(json)) throw new ArgumentException("绑定覆盖数据无效。", nameof(json));
+            string previous = SaveBindings();
+            try
+            {
+                asset.RemoveAllBindingOverrides();
+                if (!string.IsNullOrWhiteSpace(json)) asset.LoadBindingOverridesFromJson(json);
+            }
+            catch
+            {
+                asset.RemoveAllBindingOverrides();
+                if (!string.IsNullOrWhiteSpace(previous)) asset.LoadBindingOverridesFromJson(previous);
+                throw;
+            }
         }
 
         /// <summary>重新绑定指定动作的一个绑定，结束后由菜单恢复输入模式。</summary>
@@ -153,39 +185,140 @@ namespace Hotfix.HowToFish
         /// <param name="bindingIndex">目标绑定索引，复合绑定应传具体分量。</param>
         /// <param name="finished">完成或取消后的回调。</param>
         public void Rebind(string actionPath, int bindingIndex, Action finished)
+            => Rebind(actionPath, bindingIndex, _ => finished?.Invoke(), null, null);
+
+        /// <summary>只捕获目标设备组的按钮；Esc 或手柄 B 取消。调用方负责真实菜单门闩与结束后的模式恢复。</summary>
+        /// <param name="actionPath">Gameplay、Boat 或 UI/Pause、UI/Journal 动作路径。</param>
+        /// <param name="bindingIndex">具体按钮或键盘移动分量索引，不接受复合根节点或连续轴。</param>
+        /// <param name="finished">资源释放后报告结果；冲突及失败详情见 RebindMessage。</param>
+        /// <param name="begin">开始捕获前关闭真实菜单导航及交互；不应创建新的 EventSystem。</param>
+        /// <param name="end">所有结束路径恢复菜单门闩；应等松键再接受确认，随后由 finished 恢复输入模式。</param>
+        public void Rebind(string actionPath, int bindingIndex, Action<HowToFishRebindResult> finished, Action begin, Action end)
         {
+            if (disposed) throw new ObjectDisposedException(nameof(HowToFishInput));
             if (rebind != null) throw new InvalidOperationException("已有按键重绑定正在进行。");
             var action = asset.FindAction(actionPath, true);
             if (bindingIndex < 0 || bindingIndex >= action.bindings.Count || action.bindings[bindingIndex].isComposite)
                 throw new ArgumentOutOfRangeException(nameof(bindingIndex));
-            session.SetMap(null);
-            rebind = action.PerformInteractiveRebinding(bindingIndex)
-                .WithControlsExcluding("<Mouse>/position")
-                .WithControlsExcluding("<Mouse>/delta")
-                .WithCancelingThrough("<Keyboard>/escape")
-                .OnCancel(_ => FinishRebind(finished))
-                .OnComplete(_ => FinishRebind(finished));
-            rebind.Start();
+            var binding = action.bindings[bindingIndex];
+            bool keyboard = HasGroup(binding.groups, "KeyboardMouse");
+            bool gamepad = HasGroup(binding.groups, "Gamepad");
+            if (keyboard == gamepad || action.actionMap == ui && action.name != "Pause" && action.name != "Journal" ||
+                action.type != InputActionType.Button && !(keyboard && action.name == "Move" && binding.isPartOfComposite))
+                throw new ArgumentException("此绑定不支持按钮重绑定。", nameof(bindingIndex));
+            RebindMessage = null;
+            rebindEnd = end;
+            rebindFinished = finished;
+            var outcome = HowToFishRebindResult.Completed;
+            try
+            {
+                begin?.Invoke();
+                session.SetMap(null);
+                rebind = action.PerformInteractiveRebinding(bindingIndex)
+                    .WithExpectedControlType("Button")
+                    .WithControlsExcluding("<Mouse>/position")
+                    .WithControlsExcluding("<Mouse>/delta")
+                    .WithControlsExcluding("<Mouse>/scroll")
+                    .WithControlsExcluding("<Mouse>/scroll/*")
+                    // MatchesPrefix 不支持局部名称通配；具体摇杆路径也排除其方向子控件。
+                    .WithControlsExcluding("<Gamepad>/leftStick")
+                    .WithControlsExcluding("<Gamepad>/rightStick")
+                    .WithCancelingThrough("*/{Cancel}")
+                    .WithTimeout(15)
+                    .OnApplyBinding((operation, path) =>
+                    {
+                        try
+                        {
+                            string conflict = FindConflict(action, bindingIndex, operation.selectedControl, path);
+                            if (conflict != null)
+                            {
+                                outcome = HowToFishRebindResult.Conflict;
+                                RebindMessage = "该按键已用于 " + conflict + "，原绑定已保留。";
+                                return;
+                            }
+                            action.ApplyBindingOverride(bindingIndex, path);
+                        }
+                        catch (Exception exception)
+                        {
+                            action.ApplyBindingOverride(bindingIndex, binding);
+                            outcome = HowToFishRebindResult.Failed;
+                            RebindMessage = "重绑定失败：" + exception.Message;
+                        }
+                    })
+                    .OnCancel(_ => FinishRebind(HowToFishRebindResult.Cancelled))
+                    .OnComplete(_ => FinishRebind(outcome));
+                if (gamepad) rebind.WithControlsHavingToMatchPath("<Gamepad>");
+                else
+                {
+                    rebind.WithControlsHavingToMatchPath("<Keyboard>");
+                    if (!binding.isPartOfComposite) rebind.WithControlsHavingToMatchPath("<Mouse>");
+                }
+                rebind.Start();
+            }
+            catch (Exception exception)
+            {
+                RebindMessage = "无法开始重绑定：" + exception.Message;
+                FinishRebind(HowToFishRebindResult.Failed);
+            }
         }
 
-        /// 取消未完成绑定并释放本会话输入。
+        /// 取消未完成捕获；完成回调会收到 Cancelled，已完成的重绑定不受影响。
+        public void CancelRebind() => rebind?.Cancel();
+
+        /// 取消未完成绑定并释放本会话输入和菜单门闩。
         public void Dispose()
         {
             if (disposed) return;
             disposed = true;
-            rebind?.Dispose();
-            rebind = null;
-            InputDeviceState.Changed -= OnDeviceChanged;
-            session.Dispose();
+            try { if (rebind != null) FinishRebind(HowToFishRebindResult.Cancelled); }
+            finally
+            {
+                InputDeviceState.Changed -= OnDeviceChanged;
+                session.Dispose();
+            }
         }
 
-        private void FinishRebind(Action finished)
+        private void FinishRebind(HowToFishRebindResult result)
         {
-            rebind.Dispose();
-            rebind = null;
-            ui.Enable();
-            finished?.Invoke();
+            var operation = rebind;
+            var ended = rebindEnd;
+            var finished = rebindFinished;
+            rebind = null; rebindEnd = null; rebindFinished = null;
+            try { operation?.Dispose(); }
+            finally
+            {
+                if (!disposed) ui.Enable();
+                try { ended?.Invoke(); }
+                finally { finished?.Invoke(result); }
+            }
         }
+
+        private string FindConflict(InputAction target, int bindingIndex, InputControl control, string path)
+        {
+            string group = HasGroup(target.bindings[bindingIndex].groups, "Gamepad") ? "Gamepad" : "KeyboardMouse";
+            foreach (var map in asset.actionMaps)
+            {
+                // 陆地与驾驶互斥；Pause/Journal 则与两者同时生效。
+                if (target.actionMap != ui && map != target.actionMap && map != ui) continue;
+                foreach (var action in map.actions)
+                {
+                    if (map == ui && target.actionMap != ui && action.name != "Pause" && action.name != "Journal") continue;
+                    for (int i = 0; i < action.bindings.Count; i++)
+                    {
+                        var other = action.bindings[i];
+                        if (action == target && i == bindingIndex || other.isComposite || !HasGroup(other.groups, group) ||
+                            string.IsNullOrEmpty(other.effectivePath)) continue;
+                        if (string.Equals(other.effectivePath, path, StringComparison.OrdinalIgnoreCase) ||
+                            control != null && InputControlPath.Matches(other.effectivePath, control))
+                            return map.name + "/" + action.name + (other.isPartOfComposite ? "/" + other.name : "");
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static bool HasGroup(string groups, string group)
+            => Array.Exists((groups ?? "").Split(';'), value => string.Equals(value, group, StringComparison.OrdinalIgnoreCase));
 
         private void OnDeviceChanged() => DeviceChanged?.Invoke();
 

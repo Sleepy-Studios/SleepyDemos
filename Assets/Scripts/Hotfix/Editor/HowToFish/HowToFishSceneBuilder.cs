@@ -801,6 +801,7 @@ namespace Hotfix.Editor.HowToFish
                     EnsureRadarHud(existing);
                     EnsureInventoryHud(existing);
                     EnsureOutfitHud(existing);
+                    EnsureInputSettingsHud(existing);
                     GenerateHudBinding(existing);
                 }
                 finally { PrefabUtility.UnloadPrefabContents(existing); }
@@ -850,10 +851,72 @@ namespace Hotfix.Editor.HowToFish
                 EnsureRadarHud(root);
                 EnsureInventoryHud(root);
                 EnsureOutfitHud(root);
+                EnsureInputSettingsHud(root);
                 PrefabUtility.SaveAsPrefabAsset(root, HudPath);
                 GenerateHudBinding(root);
             }
             finally { Object.DestroyImmediate(root); }
+        }
+
+        private static void EnsureInputSettingsHud(GameObject root)
+        {
+            if (root.transform.Find("InputSettingsPanel") != null) return;
+            var menu = root.transform.Find("Menu");
+            menu.GetComponent<RectTransform>().sizeDelta = new Vector2(660, 840);
+            var settings = new SerializedObject(root.GetComponent<HowToFishHudPresenter>());
+            Bind(settings, "settingsButton", Button("OpenSettings", menu, "操作设置", new Vector2(300, 52), new Vector2(0, -355), out _));
+            var panel = Panel("InputSettingsPanel", root.transform, new Vector2(1160, 920), Vector2.zero, new Color(.045f, .07f, .09f, .99f)).transform;
+            Bind(settings, "settingsPanel", panel.gameObject);
+            Text("SettingsTitle", panel, "操作设置", new Vector2(1000, 50), new Vector2(0, 413), 32);
+            var content = Rect("SettingsContent", panel, new Vector2(1120, 840), Vector2.zero);
+            Bind(settings, "settingsContent", content.gameObject.AddComponent<CanvasGroup>());
+            var values = settings.FindProperty("settingsValues"); values.arraySize = 3;
+            string[] sliderNames = { "MouseSensitivity", "GamepadSensitivity", "InputDeadZone" };
+            string[] sliderFields = { "mouseSensitivity", "gamepadSensitivity", "inputDeadZone" };
+            string[] sliderLabels = { "鼠标灵敏度", "手柄转向速度", "摇杆死区" };
+            float[] minimum = { .01f, 15, 0 };
+            float[] maximum = { 1, 360, .9f };
+            for (int i = 0; i < 3; i++)
+            {
+                float y = 340 - i * 53;
+                values.GetArrayElementAtIndex(i).objectReferenceValue = Text(sliderNames[i] + "Value", content, sliderLabels[i], new Vector2(400, 42), new Vector2(-325, y), 22);
+                var sliderRoot = Rect(sliderNames[i], content, new Vector2(570, 32), new Vector2(215, y));
+                var track = Panel("Track", sliderRoot, new Vector2(560, 10), Vector2.zero, new Color(.14f, .2f, .24f));
+                var handle = Panel("Handle", sliderRoot, new Vector2(25, 32), Vector2.zero, new Color(.6f, .86f, .86f));
+                var slider = sliderRoot.gameObject.AddComponent<Slider>();
+                slider.targetGraphic = handle; slider.handleRect = handle.rectTransform;
+                slider.minValue = minimum[i]; slider.maxValue = maximum[i];
+                slider.wholeNumbers = i == 1;
+                Bind(settings, sliderFields[i], slider);
+            }
+            var toggleRoot = Rect("InvertLook", content, new Vector2(350, 42), new Vector2(0, 182));
+            var box = Panel("Box", toggleRoot, new Vector2(30, 30), new Vector2(-145, 0), new Color(.16f, .25f, .28f));
+            var check = Panel("Check", box.transform, new Vector2(20, 20), Vector2.zero, new Color(.6f, .86f, .86f));
+            Text("InvertLabel", toggleRoot, "反转垂直视角", new Vector2(290, 40), new Vector2(30, 0), 23);
+            var toggle = toggleRoot.gameObject.AddComponent<Toggle>(); toggle.targetGraphic = box; toggle.graphic = check;
+            Bind(settings, "invertLook", toggle);
+            string[] groupNames = { "陆地 · 键鼠", "陆地 · 手柄", "驾驶 · 键鼠", "驾驶 · 手柄" };
+            var groups = settings.FindProperty("settingsGroups"); groups.arraySize = 4;
+            for (int i = 0; i < 4; i++)
+                groups.GetArrayElementAtIndex(i).objectReferenceValue = Button("SettingsGroup" + i, content, groupNames[i], new Vector2(245, 43), new Vector2(-390 + i * 260, 127), out _);
+            var buttons = settings.FindProperty("bindingButtons"); var labels = settings.FindProperty("bindingLabels");
+            buttons.arraySize = labels.arraySize = 6;
+            for (int i = 0; i < 6; i++)
+            {
+                buttons.GetArrayElementAtIndex(i).objectReferenceValue = Button("BindingRow" + i, content, "", new Vector2(1000, 43), new Vector2(0, 70 - i * 54), out var label);
+                labels.GetArrayElementAtIndex(i).objectReferenceValue = label;
+            }
+            Bind(settings, "settingsPrevious", Button("SettingsPrevious", content, "上一页", new Vector2(190, 43), new Vector2(-310, -259), out _));
+            Bind(settings, "settingsNext", Button("SettingsNext", content, "下一页", new Vector2(190, 43), new Vector2(310, -259), out _));
+            Bind(settings, "settingsPage", Text("SettingsPage", content, "", new Vector2(350, 43), new Vector2(0, -259), 22));
+            Bind(settings, "settingsStatus", Text("SettingsStatus", panel, "", new Vector2(1060, 72), new Vector2(0, -326), 22));
+            Bind(settings, "settingsDefaults", Button("SettingsDefaults", content, "恢复默认", new Vector2(265, 48), new Vector2(-320, -400), out _));
+            Bind(settings, "settingsSave", Button("SettingsSave", content, "保存设置", new Vector2(265, 48), new Vector2(0, -400), out _));
+            Bind(settings, "settingsCancel", Button("SettingsCancel", content, "取消并返回", new Vector2(265, 48), new Vector2(320, -400), out _));
+            var cancel = Button("SettingsCaptureCancel", panel, "取消按键修改", new Vector2(280, 48), new Vector2(0, -400), out _);
+            Bind(settings, "settingsCaptureCancel", cancel); cancel.gameObject.SetActive(false);
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            panel.gameObject.SetActive(false);
         }
 
         private static void EnsureOutfitHud(GameObject root)

@@ -401,3 +401,12 @@ BingBong-b6465464：PlayMode 1/1 通过（78秒）。真实购买椰子、普通
 - 首轮 `Dynamite_UnderwaterFuseSpawnsOnlyUnlockedOrdinaryCatch`：dcec89de，原生07:53:11Z至07:53:55Z为1/1通过，证据 `UnderwaterDynamite-dcec89de.xml`。但同轮原生output含地形非凸碰撞体ClosestPoint警告，退出后Console统计为0并不能证明测试期间无警告；已修正为仅对伤害目标测距，CharacterController采用包围盒近似，后续需重跑水下与自伤回归。
 - 修正后重跑0e4ab35e，同轮原生07:57:49Z至07:58:34Z为1/1通过，证据 `UnderwaterClean-0e4ab35e.xml`；目标方法匹配，原生输出无ClosestPoint不支持、异常或断言诊断。覆盖水上/水面/岸内无生成、岸外水下一次生成、解锁0/1岛切换、非Drip满血普通鱼、鱼饵不变和后续帧不重复。启动请求响应超时但原生任务实际执行，以同轮报告计入。原有链爆与自伤回归待完成。
 - 原有炸药完整定向回归 `Dynamite_BuyThrowPauseResumeChainAndSelfDamage`：ecfb1537，同轮原生08:03:06Z至08:03:36Z为1/1通过，证据 `DynamiteDistanceRegression-ecfb1537.xml`；购买、投掷、暂停、Hub引信恢复、去重伤害、链爆、自伤和消耗仍通过，原生输出无测距不支持/异常/断言诊断，Console26日志/0警告/0错误。未执行全项目测试。
+
+## 2026-10-04：本机操作设置
+
+- `InputPreferences_RoundTripRejectsInvalidWritesAndPreservesCorruptRecord`：e49ac516，1/1通过，原生08:11:23Z至08:11:26Z，证据 `InputPreferences-e49ac516.xml`。独立键完整往返、无记录不隐式保存、非有限/越界/版本/破损绑定拒绝且不改旧记录、损坏加载保留原串与提示、明确保存清除警告均通过。测试键已在finally清理。
+- 原生操作设置面板已装配；最终实际双设备菜单、保存和Hub续档结果见下，未执行全项目测试。
+- 首轮真实菜单5ce8f30f为0/1通过，原生08:13:25Z至08:13:51Z，证据 `InputSettingsFailure-5ce8f30f.xml`。参数预览、设备筛选、冲突及常驻暂停键不能抢占确认键已走过；取消恢复绑定后，长按Esc的UI Action.IsPressed变为false。已将UI Held与Core菜单模式对齐，读取实际ButtonControl，不改变玩法按住门闩；同一用例待重跑。
+- 第二轮b76eaf6a为0/1通过，原生08:18:50Z至08:19:17Z，证据 `InputSettingsRetry-b76eaf6a.xml`。退出松键、取消回滚及重新进入已通过，失败移至手柄连续摇杆被当按钮候选；已从当前Input System源码确认MatchesPrefix只支持整段通配，不支持*Stick局部名称。改为明确排除leftStick/rightStick前缀及子控件，保留摇杆按下按钮；同一用例待重跑。
+- 第三轮8c4213ce为0/1通过，原生08:24:56Z至08:25:24Z，证据 `InputSettingsSaveFailure-8c4213ce.xml`。参数/绑定保存、取消捕获、设备与轴筛选全部通过；返回Hub后在同一帧断言导航开启，早于MainMenuView的后续帧松键恢复。已核对公共生命周期，仅改测试为等待既有导航恢复条件，仍保留40秒失败期限和实际Enter重新进入。实际查看 `InputSettings-Menu.png`，四组、参数和底部操作均可读；最终Hub恢复待重跑。
+- 最终b6c981e6原生08:33:13Z至08:33:42Z为1/1通过，证据 `InputSettingsRuntime-b6c981e6.xml`：三项参数/反转预览、取消回滚、键鼠与手柄设备筛选、同场景及菜单确认冲突保护、拒绝连续摇杆、取消捕获恢复Core导航、长按退出不穿透、实际保存以及Hub重新进入恢复配置全部通过；使用同一EventSystem。原生输出无异常或断言诊断，Console26日志/0警告/0错误。实际查看设置截图，布局和按键提示可读。未执行全项目测试。

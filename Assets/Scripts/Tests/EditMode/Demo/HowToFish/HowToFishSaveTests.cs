@@ -12,6 +12,66 @@ namespace Tests.Demo
         private string directory;
         private HowToFishSaveStore store;
 
+        [Test]
+        public void InputPreferences_RoundTripRejectsInvalidWritesAndPreservesCorruptRecord()
+        {
+            string key = "HowToFish.Tests.Preferences." + Guid.NewGuid().ToString("N");
+            var preferences = new HowToFishLocalPreferencesStore(key);
+            try
+            {
+                var defaults = preferences.Load();
+                Assert.That(defaults.Bindings, Is.Empty, "默认绑定无需任何覆盖 JSON。");
+                Assert.That(preferences.LastLoadWarning, Is.Null);
+                Assert.That(PlayerPrefs.HasKey(key), Is.False, "读取缺失记录不能隐式写入默认值。");
+                var saved = new HowToFishLocalPreferences
+                {
+                    MouseSensitivity = .25f, GamepadSensitivity = 180, DeadZone = .3f,
+                    InvertY = true, Bindings = ""
+                };
+                preferences.Save(saved);
+                string validRecord = PlayerPrefs.GetString(key);
+                var restored = new HowToFishLocalPreferencesStore(key).Load();
+                Assert.That(restored.MouseSensitivity, Is.EqualTo(saved.MouseSensitivity));
+                Assert.That(restored.GamepadSensitivity, Is.EqualTo(saved.GamepadSensitivity));
+                Assert.That(restored.DeadZone, Is.EqualTo(saved.DeadZone));
+                Assert.That(restored.InvertY, Is.True);
+                Assert.That(restored.Bindings, Is.Empty);
+
+                // 验证写入事务边界：几种真实坏输入都不能覆盖上一份合法记录。
+                foreach (var invalid in new[]
+                {
+                    new HowToFishLocalPreferences { MouseSensitivity = float.NaN },
+                    new HowToFishLocalPreferences { GamepadSensitivity = float.PositiveInfinity },
+                    new HowToFishLocalPreferences { DeadZone = 2 },
+                    new HowToFishLocalPreferences { Version = HowToFishLocalPreferences.CurrentVersion + 1 },
+                    new HowToFishLocalPreferences { Bindings = "{broken" }
+                })
+                {
+                    Assert.Throws<ArgumentException>(() => preferences.Save(invalid));
+                    Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(validRecord), "拒绝无效设置后原记录被修改。");
+                }
+
+                var future = saved.Copy(); future.Version++;
+                var brokenBindings = saved.Copy(); brokenBindings.Bindings = "{broken";
+                foreach (string corrupt in new[] { "{broken", "{}", JsonUtility.ToJson(future), JsonUtility.ToJson(brokenBindings) })
+                {
+                    PlayerPrefs.SetString(key, corrupt);
+                    restored = preferences.Load();
+                    Assert.That(JsonUtility.ToJson(restored), Is.EqualTo(JsonUtility.ToJson(defaults)), "损坏记录应退回完整默认设置。");
+                    Assert.That(preferences.LastLoadWarning, Is.Not.Null.And.Not.Empty, "回退默认值必须向用户提供提示。");
+                    Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(corrupt), "加载不能偷偷覆盖损坏或未来版本的原始记录。");
+                }
+                preferences.Save(saved);
+                Assert.That(preferences.LastLoadWarning, Is.Null, "明确保存成功后应清除旧警告。");
+                Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(validRecord));
+            }
+            finally
+            {
+                PlayerPrefs.DeleteKey(key);
+                PlayerPrefs.Save();
+            }
+        }
+
         [SetUp]
         public void SetUp()
         {
