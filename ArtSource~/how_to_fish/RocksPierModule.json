@@ -1,0 +1,61 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "4695d211770a73e2fc37bf042cbf2e1a8a80d6b96570d19ae671fa1840d336da",
+  "unity_import_verified": false,
+  "objects": [
+    "DeckSurface",
+    "EntryFront",
+    "ExitBack",
+    "Forward",
+    "GroundAnchor",
+    "PileStructure",
+    "Right",
+    "RocksPierModule",
+    "RopeRails",
+    "Up",
+    "WalkwayCenter",
+    "Waterline"
+  ],
+  "bounds_blender_min_m": [
+    -1.899999976158142,
+    -5.142499923706055,
+    -2.200000047683716
+  ],
+  "bounds_blender_max_m": [
+    1.899999976158142,
+    5.099999904632568,
+    1.100000023841858
+  ],
+  "size_blender_m": [
+    3.799999952316284,
+    10.242499828338623,
+    3.3000000715255737
+  ],
+  "triangles": 2160,
+  "source": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\ArtSource~\\how_to_fish\\RocksPierModule.blend",
+  "candidate_fbx": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\Library\\HowToFish\\Staging\\EnvironmentModels\\FBX\\RocksPierModule.fbx",
+  "authorship": "Original procedural meshes; no source-game geometry copied.",
+  "placement": "Visual only. GroundAnchor at origin. Keep paths and interaction positions clear. Unity import pending.",
+  "source_sha256": "365856bd287eb315138b0c9976af3f4262a2d27e3cc51ebd94548223d08bbfdc",
+  "mesh_count": 3,
+  "materials": [
+    "DockEndGrain",
+    "DockIron",
+    "DockWeatheredWood",
+    "RocksWood"
+  ],
+  "source_static_checks": [
+    "positive scales, axis markers, nonnegative mesh volumes and FBX hash checked"
+  ]
+}

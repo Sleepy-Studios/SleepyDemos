@@ -33,6 +33,10 @@ namespace Hotfix.HowToFish
         public Vector3 ExitPosition => exitPoint.position;
         public float Speed => new Vector2(body.linearVelocity.x, body.linearVelocity.z).magnitude;
         public float StartupRemaining => startupRemaining;
+        /// 发动机完成启动后才播放怠速，离舵立即关闭。
+        public bool IsMotorRunning => driving && startupRemaining <= 0;
+        /// 本物理步实际油门绝对值，用于表现音高。
+        public float MotorThrottle { get; private set; }
         public int MotorTier => motorTier;
         public bool HasRadar => radar != null && radar.activeSelf;
         /// 当前船体外观；空值为默认，独立于玩家的皮肤解锁记录。
@@ -81,6 +85,7 @@ namespace Hotfix.HowToFish
         {
             input = controls;
             driving = controls != null;
+            MotorThrottle = 0;
             startupRemaining = driving ? motorTier == 0 ? 1.6f : .7f : 0;
         }
 
@@ -99,6 +104,7 @@ namespace Hotfix.HowToFish
             startupRemaining = Mathf.Max(0, startupRemaining - Time.fixedDeltaTime);
             if (startupRemaining > 0) return;
             var movement = input.ReadMove(0.15f);
+            MotorThrottle = Mathf.Abs(movement.y);
             var forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
             var lateral = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up);
             // 源推力不是实测速率；以平方根换算并保留初始船速作为手感校准参数。

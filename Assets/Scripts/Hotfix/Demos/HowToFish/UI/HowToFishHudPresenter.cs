@@ -86,6 +86,8 @@ namespace Hotfix.HowToFish
 
         private void Awake()
         {
+            // 注册一次，晚绑定 world；既支持鼠标也支持手柄 Submit，不轮询界面选择。
+            foreach (var button in GetComponentsInChildren<Button>(true)) button.onClick.AddListener(PlayUiSound);
             for (int i = 0; i < slots.Length; i++)
             {
                 int index = i;
@@ -190,6 +192,8 @@ namespace Hotfix.HowToFish
             }
             RefreshGameplay();
         }
+
+        private void PlayUiSound() => world?.PlayUiSound();
 
         private void OnChanged() => Refresh();
 

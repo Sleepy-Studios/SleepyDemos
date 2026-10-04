@@ -8,6 +8,14 @@ namespace Tests.Demo
     public sealed class HowToFishModelContractTests
     {
         [Test]
+        public void Environment_NineModelsKeepGroundPivotMetersAxesAndAppliedTransforms()
+        {
+            foreach (string name in new[] { "ShoreRockCluster", "BasaltRockCluster", "ShorePebbleScatter", "PineBranchedA", "PineBranchedB",
+                "ForestShrub", "ForestGrass", "RocksPierModule", "LuckyBaitCasinoShell" })
+                AssertModelContract(name, "Forward", "GroundAnchor");
+        }
+
+        [Test]
         public void Outfits_AllEighteenKeepMetersFrontAndAppliedTransforms()
         {
             foreach (var outfit in Hotfix.HowToFish.HowToFishOutfitCatalog.All)
@@ -179,6 +187,9 @@ namespace Tests.Demo
         [TestCase("PlayerRemains", "Forward")]
         [TestCase("Dynamite", "Fuse")]
         public void FirstIslandModel_PreservesForwardMountAndAppliedTransforms(string name, string mount)
+            => AssertModelContract(name, mount, "Grip");
+
+        private static void AssertModelContract(string name, string mount, string originName)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/how_to_fish/Art/Models/" + name + ".fbx");
             Assert.That(prefab, Is.Not.Null);
@@ -187,8 +198,15 @@ namespace Tests.Demo
             {
                 var transforms = instance.GetComponentsInChildren<Transform>(true);
                 var front = transforms.Single(node => node.name == mount);
-                var grip = transforms.Single(node => node.name == "Grip");
+                var grip = transforms.Single(node => node.name == originName);
                 Assert.That(front.position.z, Is.GreaterThan(grip.position.z), "前方挂点不能反向。");
+                if (originName == "GroundAnchor")
+                {
+                    AssertMarker(transforms, "GroundAnchor", Vector3.zero);
+                    AssertMarker(transforms, "Forward", Vector3.forward);
+                    AssertMarker(transforms, "Right", Vector3.right);
+                    AssertMarker(transforms, "Up", Vector3.up);
+                }
                 foreach (var node in transforms)
                 {
                     Assert.That(Quaternion.Angle(node.localRotation, Quaternion.identity), Is.LessThan(0.1f), node.name);

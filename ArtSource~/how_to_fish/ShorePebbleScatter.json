@@ -1,0 +1,54 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "0bbf7b45a8e97a764513ac56ff0d195a820c0a4c59ed72a3d84abf7ef04d285d",
+  "unity_import_verified": false,
+  "objects": [
+    "Forward",
+    "GroundAnchor",
+    "Right",
+    "ShorePebbleScatter",
+    "ShorePebbleScatterVisual",
+    "Up"
+  ],
+  "bounds_blender_min_m": [
+    -1.0151020288467407,
+    -0.6142645478248596,
+    0.0
+  ],
+  "bounds_blender_max_m": [
+    0.9600023031234741,
+    0.7226542234420776,
+    0.16473504900932312
+  ],
+  "size_blender_m": [
+    1.9751043319702148,
+    1.3369187712669373,
+    0.16473504900932312
+  ],
+  "triangles": 612,
+  "source": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\ArtSource~\\how_to_fish\\ShorePebbleScatter.blend",
+  "candidate_fbx": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\Library\\HowToFish\\Staging\\EnvironmentModels\\FBX\\ShorePebbleScatter.fbx",
+  "authorship": "Original procedural meshes; no source-game geometry copied.",
+  "placement": "Visual only. GroundAnchor at origin. Keep paths and interaction positions clear. Unity import pending.",
+  "source_sha256": "c248bf8b2f571aa882dabe481b93c22047c6d8298a1e627ece9ae8831e71fdb0",
+  "mesh_count": 1,
+  "materials": [
+    "ShoreStone",
+    "ShoreStoneLight",
+    "ShoreStoneWet"
+  ],
+  "source_static_checks": [
+    "positive scales, axis markers, nonnegative mesh volumes and FBX hash checked"
+  ]
+}

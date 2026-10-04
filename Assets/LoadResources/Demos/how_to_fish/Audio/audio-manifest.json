@@ -1,0 +1,222 @@
+[
+  {
+    "id": "SeaLoop",
+    "seconds": 8.0,
+    "loop": true,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.12018459953741047,
+    "peak": 0.58,
+    "sha256": "916adb423a2b5bcb749183471b9a6e3f74af7d7bc2b65458431c8e018f8243aa",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "WindLoop",
+    "seconds": 8.0,
+    "loop": true,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.1184838797885185,
+    "peak": 0.58,
+    "sha256": "ab98e3b6d00317ef8c265ad704a2454db4fd5cb16a73f81b015b29376d0ade50",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "MotorLoop",
+    "seconds": 2.0,
+    "loop": true,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.32516086941587613,
+    "peak": 0.58,
+    "sha256": "acdc800e7c82fafe5beba1bca4c5d06b3cd5fdaeda29f95d607c735ce0c257a6",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "ReelLoop",
+    "seconds": 2.0,
+    "loop": true,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.10948183249787309,
+    "peak": 0.58,
+    "sha256": "7eb2313b5d48352543d2ff44b207a2b0d94f1881b243b50719b6f4205f1d356a",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "FishStruggleLoop",
+    "seconds": 2.0,
+    "loop": true,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.07871450292330506,
+    "peak": 0.58,
+    "sha256": "3d5d48578281d266287cad25d222fc6f5759608fbe956eee506373054e618d92",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Footstep",
+    "seconds": 0.16,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.07609639515490418,
+    "peak": 0.58,
+    "sha256": "94996f5c042d843292263ccd92f4a523440e8b8d669bec4e88f7f5253e94f8a9",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Splash",
+    "seconds": 0.6,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.07999543909253025,
+    "peak": 0.58,
+    "sha256": "f1e7aac1768fa23edd8132b504cac91ac7680dacb801b50eec77893c3175b7ef",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Cast",
+    "seconds": 0.28,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.07992277304123592,
+    "peak": 0.58,
+    "sha256": "8eb26161192090c9f454480fc6842b626a0eac0b318cae55ea08d96f5a61f57c",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "MeleeSwing",
+    "seconds": 0.2,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.08036210929510249,
+    "peak": 0.58,
+    "sha256": "d759efdcd6911922cb9d63652de2523b458b1b7e6c5b64018c1ab3cb54ac3159",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "GunShot",
+    "seconds": 0.24,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.06149515060075302,
+    "peak": 0.58,
+    "sha256": "feb272d529e8d4fd57e5b5a74d0543f777ee16ed7dff688d55c9f2a936128ad4",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "ShotgunShot",
+    "seconds": 0.46,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.057841502804916504,
+    "peak": 0.58,
+    "sha256": "2fcf9402c26d7e4c17b332b7139c712e4c59ca7923f51d73398717f48fe6eb1a",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "RifleShot",
+    "seconds": 0.19,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.048501551814710026,
+    "peak": 0.58,
+    "sha256": "3eecd030287325261fb4d21245cde76f11e5e8369ced71b5ea2e7fd830c10a7d",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Reload",
+    "seconds": 0.48,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.07029136350690159,
+    "peak": 0.58,
+    "sha256": "5d50b5413c2f461b6173f57a56762cdc6a114c7d399328fd9df6379931762551",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Explosion",
+    "seconds": 1.2,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.05879826941564603,
+    "peak": 0.58,
+    "sha256": "a8a24c8f8e23e50f6fc79c8b54447f9a85bb4b409d92fcf3b798ef8160c1f9b0",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Hit",
+    "seconds": 0.18,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.08050482027824321,
+    "peak": 0.58,
+    "sha256": "4ac399a5974475c4acc4aef8702177b273e0905395f5d5fd303a39035e59c73c",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Trade",
+    "seconds": 0.54,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.12713639641831814,
+    "peak": 0.58,
+    "sha256": "94b3bfd741018e498c8209ec179c66dbfeeded7fc1fa711e3ab761aea65a10a5",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "UiClick",
+    "seconds": 0.435,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.13755089597537182,
+    "peak": 0.58,
+    "sha256": "d6db39c2d9e955eebd3622bb589ea0ae6e17f18ed468757be4f89532ded7294f",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "BossEncounter",
+    "seconds": 1.12,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.14854735785841613,
+    "peak": 0.58,
+    "sha256": "c5c634b5a3f699bf390979c7b7266dd3661cf71b9608f417357b294f482994d2",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "BossDefeated",
+    "seconds": 1.04,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.15115690734199724,
+    "peak": 0.58,
+    "sha256": "bc386b78a736e8250a6dae76ea2c7b658a3c0cb6f672146c0a994cf08f43f706",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  },
+  {
+    "id": "Ending",
+    "seconds": 2.24,
+    "loop": false,
+    "rate": 24000,
+    "channels": 1,
+    "rms": 0.1616031673459624,
+    "peak": 0.58,
+    "sha256": "8a035fa11f41d92225f0ee8d96473ea61c0acee004df576ec999b93ef1817936",
+    "source": "original stdlib synthesis; unreviewed project estimate"
+  }
+]

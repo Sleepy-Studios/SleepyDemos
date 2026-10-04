@@ -1,0 +1,54 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "66b9dfffa33497cedb3bc44c4efd5146360cba1c3b14cf725455feba74250da0",
+  "unity_import_verified": false,
+  "objects": [
+    "BasaltRockCluster",
+    "BasaltRockClusterVisual",
+    "Forward",
+    "GroundAnchor",
+    "Right",
+    "Up"
+  ],
+  "bounds_blender_min_m": [
+    -1.2381186485290527,
+    -1.0044974088668823,
+    0.0
+  ],
+  "bounds_blender_max_m": [
+    1.2532540559768677,
+    1.0209312438964844,
+    1.3778730630874634
+  ],
+  "size_blender_m": [
+    2.4913727045059204,
+    2.0254286527633667,
+    1.3778730630874634
+  ],
+  "triangles": 264,
+  "source": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\ArtSource~\\how_to_fish\\BasaltRockCluster.blend",
+  "candidate_fbx": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\Library\\HowToFish\\Staging\\EnvironmentModels\\FBX\\BasaltRockCluster.fbx",
+  "authorship": "Original procedural meshes; no source-game geometry copied.",
+  "placement": "Visual only. GroundAnchor at origin. Keep paths and interaction positions clear. Unity import pending.",
+  "source_sha256": "eb43618cce1d603bf8afeb3396773f76165306e38cb110a332d53bf2fcc2197d",
+  "mesh_count": 1,
+  "materials": [
+    "BasaltFracture",
+    "VolcanoAsh",
+    "VolcanoBasalt"
+  ],
+  "source_static_checks": [
+    "positive scales, axis markers, nonnegative mesh volumes and FBX hash checked"
+  ]
+}

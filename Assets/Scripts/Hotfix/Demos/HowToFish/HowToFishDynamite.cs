@@ -22,6 +22,8 @@ namespace Hotfix.HowToFish
         public float RemainingFuse => remainingFuse;
         /// 点燃的炸药不能收回库存。
         public bool IsArmed => remainingFuse > 0;
+        /// 实体消费成功后的真实爆炸通知；连爆的每枚炸药也只通知一次。
+        public event Action<Vector3> Exploded;
 
         private void Awake() => item = GetComponent<HowToFishWorldItem>();
 
@@ -64,6 +66,7 @@ namespace Hotfix.HowToFish
         private void Explode()
         {
             var center = transform.position;
+            Exploded?.Invoke(center);
             var targets = new Dictionary<HowToFishWorldItem, float>();
             var bodies = new HashSet<Rigidbody>();
             bool hitsPlayer = false;

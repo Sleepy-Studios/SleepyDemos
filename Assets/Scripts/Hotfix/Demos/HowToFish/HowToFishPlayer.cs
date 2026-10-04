@@ -29,6 +29,7 @@ namespace Hotfix.HowToFish
         private float reloadRemaining;
         private float normalFieldOfView;
         private float eatingElapsed;
+        private float footstepDistance;
         private bool eatingNeedsRelease;
         private bool controlsEnabled;
         private Transform drivingSeat;
@@ -61,6 +62,8 @@ namespace Hotfix.HowToFish
         public event Action ChangeSkinRequested;
         public event Action<string> Message;
         public event Action Died;
+        /// 已发生的玩法动作；声音只消费此通知，不反向影响规则。
+        public event Action<HowToFishSound, Vector3> SoundRequested;
         /// 已消费的生物仍可读取其烧焦状态；消费回调期间实体已从保存快照排除。
         public event Action<HowToFishWorldItem> CreatureEaten;
 
@@ -307,8 +310,18 @@ namespace Hotfix.HowToFish
                 if (motor.isGrounded && verticalVelocity < 0) verticalVelocity = -2;
                 if (motor.isGrounded && input.Pressed("Jump")) verticalVelocity = 5.5f;
                 verticalVelocity -= 18 * Time.deltaTime;
+                var beforeMove = transform.position;
                 motor.Move(((transform.right * movement.x + transform.forward * movement.y) *
                     (input.Held("Sprint") ? sprintSpeed : walkSpeed) + Vector3.up * verticalVelocity) * Time.deltaTime);
+                if (beforeMove.y >= 0 && transform.position.y < 0)
+                    SoundRequested?.Invoke(HowToFishSound.Splash, transform.position);
+                if (motor.isGrounded)
+                {
+                    footstepDistance += Vector3.ProjectOnPlane(transform.position - beforeMove, Vector3.up).magnitude;
+                    // 步距 1.6 米为音效节奏推定；撞墙和原地转向不会积累距离。
+                    if (footstepDistance >= 1.6f) { footstepDistance = 0; SoundRequested?.Invoke(HowToFishSound.Footstep, transform.position); }
+                }
+                else footstepDistance = 0;
                 if (transform.position.y < -2.5f) Damage(100);
             }
             Focus = FindFocus();
@@ -328,6 +341,7 @@ namespace Hotfix.HowToFish
             if (input.Pressed("Reload") && equipment?.Kind == HowToFishItemKind.Gun && !IsReloading && Ammo < AmmoCapacity)
             {
                 reloadRemaining = equipment.ReloadSeconds;
+                SoundRequested?.Invoke(HowToFishSound.Reload, eye.transform.position);
                 Message?.Invoke("换弹中……");
             }
             if (input.Pressed("Style") && equipmentView != null && !equipmentView.IsSpinning)
@@ -407,6 +421,8 @@ namespace Hotfix.HowToFish
             {
                 if (Ammo <= 0) { attackReadyTime = Time.time + .25f; Message?.Invoke("弹匣已空，按 " + input.BindingLabel("Reload") + " 换弹。"); return; }
                 GunState.ammo--;
+                SoundRequested?.Invoke(equipment.Id == "Shotgun" ? HowToFishSound.ShotgunShot :
+                    equipment.Id == "Pistol" ? HowToFishSound.GunShot : HowToFishSound.RifleShot, eye.transform.position);
                 killScore.RecordAttack(equipment.UseInterval, Time.time);
                 attackReadyTime = Time.time + equipment.UseInterval;
                 equipmentView?.Strike();
@@ -422,6 +438,7 @@ namespace Hotfix.HowToFish
                 return;
             }
             attackReadyTime = Time.time + (equipment?.UseInterval ?? 0.5f);
+            SoundRequested?.Invoke(HowToFishSound.MeleeSwing, eye.transform.position);
             killScore.RecordAttack(equipment?.UseInterval ?? .5f, Time.time);
             equipmentView?.Strike();
             float range = equipment?.Range ?? 2.4f;

@@ -19,6 +19,8 @@ namespace Hotfix.HowToFish
         [SerializeField] private HowToFishPlayer player;
         [SerializeField] private HowToFishBoat boat;
         [SerializeField] private HowToFishVolcanoCrater crater;
+        [SerializeField] private ParticleSystem explosionFire;
+        [SerializeField] private ParticleSystem explosionSmoke;
         [SerializeField] private Transform startPoint;
         [SerializeField] private Transform[] clamPoints;
         [SerializeField] private Transform[] leechPoints = Array.Empty<Transform>();
@@ -65,6 +67,31 @@ namespace Hotfix.HowToFish
         /// 当前有效首领遭遇；兼容首领死亡和 Unity 对象已销毁的状态。
         public IHowToFishBoss ActiveBoss => currentBoss?.Item != null && currentBoss.IsFighting ? currentBoss : null;
         public event Action Changed;
+        /// 已提交的世界动作音效，由本场景音源协调器播放。
+        public event Action<HowToFishSound, Vector3> SoundRequested;
+
+        /// 已保存 HUD 按钮使用的界面确认音，暂停时仍可播放。
+        public void PlayUiSound() => SoundRequested?.Invoke(HowToFishSound.UiClick, player.transform.position);
+
+        private void OnExplosion(Vector3 position)
+        {
+            // 发射数量和外观尺度为自制反馈，不代表精确伤害范围；静音不阻止视觉。
+            EmitExplosion(explosionFire, position, 10);
+            EmitExplosion(explosionSmoke, position, 14);
+            SoundRequested?.Invoke(HowToFishSound.Explosion, position);
+        }
+
+        private static void EmitExplosion(ParticleSystem source, Vector3 position, int count)
+        {
+            if (source == null) return;
+            source.transform.position = position;
+            // 保存为世界空间，复用发射器时已发出的粒子不会被移到下一处爆点。
+            source.Play(false);
+            source.Emit(count);
+        }
+        private void OnBossDefeatedSound(HowToFishWorldItem item) => SoundRequested?.Invoke(HowToFishSound.BossDefeated, item.transform.position);
+        private void OnCreatureHurtSound(HowToFishWorldItem item, float damage)
+        { if (damage > 0) SoundRequested?.Invoke(HowToFishSound.Hit, item.transform.position); }
 
         private void Awake()
         {
@@ -190,7 +217,13 @@ namespace Hotfix.HowToFish
             var item = Instantiate(prefab, position, Quaternion.identity).GetComponent<HowToFishWorldItem>();
             item.Initialize(session, catalog, id, drip);
             var dynamite = item.GetComponent<HowToFishDynamite>();
-            if (dynamite != null) dynamite.Initialize(player, SpawnUnderwaterExplosionCatch);
+            if (dynamite != null) { dynamite.Initialize(player, SpawnUnderwaterExplosionCatch); dynamite.Exploded += OnExplosion; }
+            if (item.Creature != null) item.Damaged += OnCreatureHurtSound;
+            if (item.Creature?.IsBoss == true)
+            {
+                item.Defeated += OnBossDefeatedSound;
+                if (!IsPaused) SoundRequested?.Invoke(HowToFishSound.BossEncounter, position);
+            }
             var fishMotion = item.GetComponent<HowToFishFishMotion>();
             if (fishMotion != null) fishMotion.Initialize(player);
             var crab = item.GetComponent<HowToFishSpiderCrab>();
@@ -612,6 +645,7 @@ namespace Hotfix.HowToFish
             var station = collider.GetComponentInParent<HowToFishStation>();
             if (station == null) { player.PickUp(collider.GetComponentInParent<HowToFishWorldItem>()); return; }
             int outfitsBefore = session.State.unlockedOutfits.Count;
+            int moneyBefore = session.State.money;
             switch (station.Kind)
             {
                 case HowToFishStationKind.Product:
@@ -670,7 +704,7 @@ namespace Hotfix.HowToFish
                     bool newScientist = session.UnlockOutfit("Scientist");
                     // 旧档未统计暂停时间，不能据不完整时钟补授限时奖励；小于一小时的边界为推定。
                     bool newBean = !wasFinished && session.State.tracksPausedPlaytime && session.State.playedSeconds < 3600 && session.UnlockOutfit("Bean");
-                    if (TrySave()) { ShowEnding = true; ShowJournal = false; SetPaused(true); Notify("你乘军用船回到了大陆。航程已保存，可以继续探索群岛。"); }
+                    if (TrySave()) { ShowEnding = true; ShowJournal = false; SetPaused(true); if (!wasFinished) SoundRequested?.Invoke(HowToFishSound.Ending, player.transform.position); Notify("你乘军用船回到了大陆。航程已保存，可以继续探索群岛。"); }
                     else
                     {
                         session.State.hasFinished = wasFinished;
@@ -684,6 +718,7 @@ namespace Hotfix.HowToFish
                             "岛民：用专业首领饵钓金枪鱼，打倒后把完整生鱼放在岸上引鸟。屋顶能挡落物，请把鸟头带回来。");
                     break;
             }
+            if (session.State.money != moneyBefore) SoundRequested?.Invoke(HowToFishSound.Trade, station.transform.position);
             if (session.State.unlockedOutfits.Count > outfitsBefore &&
                 (station.Kind == HowToFishStationKind.MotorUpgrade || station.Kind == HowToFishStationKind.Attachment ||
                  station.Kind == HowToFishStationKind.AmmoUpgrade || station.Kind == HowToFishStationKind.Anvil)) SaveOutfitProgress();

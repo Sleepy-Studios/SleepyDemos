@@ -31,6 +31,137 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator Environment_CasinoWalkInFacilitiesPierAndFiveIslandViews()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            var water = world.gameObject.scene.GetRootGameObjects().Single(root => root.name == "Ocean").GetComponent<Renderer>();
+            Assert.That(water.sharedMaterial.shader.name, Is.EqualTo("HowToFish/CoastalWater"));
+            Assert.That(UnityEditor.ShaderUtil.ShaderHasError(water.sharedMaterial.shader), Is.False);
+            Assert.That(world.Player.Eye.clearFlags, Is.EqualTo(CameraClearFlags.Skybox));
+            Assert.That(RenderSettings.skybox, Is.Not.Null);
+            // 环境夹具：解锁区域并传送到各验证起点；不是五岛新档通关，也不保存输入偏好。
+            world.Session.State.unlockedIsland = 4;
+            world.ApplyPreferences(new HowToFishLocalPreferences());
+            if (world.Player.Equipment != null) yield return PressKey(Key.H);
+            var rocks = world.Islands.Single(island => island.Index == 3);
+            var casino = rocks.transform.Find("EnvironmentArchitecture/LuckyBaitCasinoShell");
+            var pier = rocks.transform.Find("EnvironmentArchitecture/RocksPierModule");
+            Assert.That(casino, Is.Not.Null, "赌场环境尚未装配。");
+            Assert.That(pier, Is.Not.Null, "栈桥环境尚未装配。");
+            var table = rocks.GetComponentInChildren<HowToFishRoulette>();
+            var machine = rocks.GetComponentsInChildren<HowToFishSlotMachine>().Single(value => value.Island == 3);
+            Assert.That(Vector3.ProjectOnPlane(table.transform.localPosition - new Vector3(-13, 0, -30), Vector3.up).magnitude, Is.LessThan(.01f));
+            Assert.That(Vector3.ProjectOnPlane(machine.transform.parent.localPosition - new Vector3(-8, 0, -30), Vector3.up).magnitude, Is.LessThan(.01f));
+            var marker = casino.GetComponentsInChildren<Transform>().Single(node => node.name == "DoorFront");
+            var destination = casino.GetComponentsInChildren<Transform>().Single(node => node.name == "InteriorCenter").position;
+            var approach = marker.position + casino.forward * 2;
+            var ground = EnvironmentTestGround(rocks.gameObject);
+            Assert.That(ground.Raycast(new Ray(approach + Vector3.up * 20, Vector3.down), out var entrance, 40), Is.True);
+            world.Player.Teleport(entrance.point + Vector3.up * .08f, 0);
+            yield return new WaitForSeconds(.25f);
+            Assert.That(Vector3.Dot(world.Player.transform.position - marker.position, casino.forward), Is.GreaterThan(1), "夹具必须从门外开始。");
+            yield return WalkEnvironmentRoute(world, destination);
+            Assert.That(Vector3.Distance(Vector3.ProjectOnPlane(world.Player.transform.position, Vector3.up),
+                Vector3.ProjectOnPlane(destination, Vector3.up)), Is.LessThan(.65f), "角色没有真正穿过门廊与门框。");
+
+            // 轮盘通过既有真实焦点与 E 路径响应；空押提示证明门框没有截断交互射线。
+            yield return WalkEnvironmentRoute(world, table.transform.position + Vector3.forward * 2.2f);
+            yield return AimAt(world.Player, table.transform.TransformPoint(new Vector3(1.15f, .8f, .85f)));
+            Assert.That(world.Player.Focus?.GetComponentInParent<HowToFishRoulette>(), Is.SameAs(table));
+            world.Notify("环境交互检测");
+            yield return PressKey(Key.E);
+            Assert.That(world.Notice, Does.Contain("可卖死鱼"), "轮盘未收到真实交互。");
+            Assert.That(table.IsSpinning, Is.False, "本用例不替代轮盘开奖回归。");
+
+            // 走到机台正面，手持鱼作为夹具；瞄准和 G 投料触发现有老虎机，不替代门口移动。
+            yield return WalkEnvironmentRoute(world, machine.transform.parent.position + Vector3.forward * 2.2f);
+            yield return AimAt(world.Player, machine.transform.position);
+            Assert.That(world.Player.Focus, Is.Not.Null);
+            Assert.That(world.Player.Focus.transform == machine.transform.parent || world.Player.Focus.transform.IsChildOf(machine.transform.parent),
+                Is.True, "门框或其他结构挡住机台正面。");
+            var fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, true);
+            fish.Hit(1000, Vector3.zero);
+            PlaceForPickup(world.Player, fish);
+            Assert.That(world.Player.PickUp(fish), Is.True);
+            Assert.That(world.Player.HeldItem, Is.SameAs(fish));
+            yield return AimAt(world.Player, machine.transform.position);
+            yield return new WaitForSeconds(.35f);
+            yield return PressKey(Key.G);
+            yield return WaitFor(() => fish == null || fish.IsConsumed, "真实投料没有触发老虎机。");
+            yield return WaitFor(() => !machine.Busy, "老虎机演出未结束。");
+
+            // 第二个独立起点在岸上，剩余距离由真实移动越过接岸边缘；不传送到甲板上。
+            var shoreStart = rocks.transform.position + new Vector3(26, 30, -49.5f);
+            Assert.That(ground.Raycast(new Ray(shoreStart, Vector3.down), out var shore, 60), Is.True);
+            world.Player.Teleport(shore.point + Vector3.up * .08f, 180);
+            yield return new WaitForSeconds(.25f);
+            yield return WalkEnvironmentRoute(world, pier.position);
+            yield return new WaitForSeconds(.5f);
+            // 甲板保留1.5厘米板缝；用脚底宽度取支撑，单根射线会从缝隙穿到地形。
+            var support = Physics.SphereCastAll(world.Player.transform.position + Vector3.up * .5f, .12f, Vector3.down, 1,
+                    ~0, QueryTriggerInteraction.Ignore).Where(hit => hit.collider.GetComponentInParent<HowToFishPlayer>() == null)
+                .OrderBy(hit => hit.distance).FirstOrDefault();
+            Assert.That(support.collider, Is.Not.Null, "甲板下没有支撑碰撞。");
+            Assert.That(support.collider.transform.IsChildOf(pier), Is.True,
+                $"支撑不是栈桥：player={world.Player.transform.position}, support={support.collider.name}, hit={support.point}");
+            Assert.That(support.collider, Is.TypeOf<MeshCollider>());
+            Assert.That(world.Player.GetComponent<CharacterController>().isGrounded, Is.True);
+            Assert.That(world.Player.transform.position.y, Is.EqualTo(pier.position.y).Within(.15f));
+            float deckY = world.Player.transform.position.y;
+            yield return new WaitForSeconds(.75f);
+            Assert.That(world.Player.transform.position.y, Is.EqualTo(deckY).Within(.12f), "静止后穿过甲板下坠。");
+
+            // 固定机位复用玩家相机，逐岛拍环境；这些传送仅用于截图，不构成主线推进证据。
+            string evidence = Path.GetFullPath("Library/HowToFish/Evidence"); Directory.CreateDirectory(evidence);
+            var views = new[]
+            {
+                (0, "Lighthouse", new Vector2(0, -16), new Vector3(-5, 6, 2)),
+                (1, "Forest", new Vector2(0, -47), new Vector3(0, 3, -23)),
+                (2, "Desert", new Vector2(0, -52), new Vector3(0, 3.5f, -32)),
+                (3, "Rocks", new Vector2(-10.5f, -42), new Vector3(-10.5f, 7, -26)),
+                (4, "Volcano", new Vector2(23, -80), new Vector3(0, 11, -35))
+            };
+            foreach (var view in views)
+            {
+                var island = world.Islands.Single(value => value.Index == view.Item1);
+                var terrain = EnvironmentTestGround(island.gameObject);
+                var origin = island.transform.position + new Vector3(view.Item3.x, 90, view.Item3.y);
+                Assert.That(terrain.Raycast(new Ray(origin, Vector3.down), out var floor, 120), Is.True, view.Item2 + " 截图起点不在地形上。");
+                world.Player.Teleport(floor.point + Vector3.up * .08f, 0);
+                yield return new WaitForSeconds(.25f);
+                yield return AimAt(world.Player, island.transform.position + view.Item4);
+                yield return WaitFor(() => !UnityEditor.ShaderUtil.anythingCompiling, view.Item2 + " 材质仍在编译。");
+                yield return null; yield return null;
+                ScreenCapture.CaptureScreenshot(Path.Combine(evidence, "G5-Environment-" + view.Item2 + ".png"));
+                yield return null; yield return null;
+            }
+            world.SetPaused(true);
+        }
+
+        private IEnumerator WalkEnvironmentRoute(HowToFishWorld world, Vector3 destination)
+        {
+            float deadline = Time.realtimeSinceStartup + 15;
+            float distance = Vector3.ProjectOnPlane(destination - world.Player.transform.position, Vector3.up).magnitude;
+            while (distance > .55f && Time.realtimeSinceStartup < deadline)
+            {
+                PointMouseAt(world.Player, new Vector3(destination.x, world.Player.Eye.transform.position.y, destination.z));
+                InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.up * Mathf.Clamp(distance / 2, .3f, 1) });
+                yield return null;
+                distance = Vector3.ProjectOnPlane(destination - world.Player.transform.position, Vector3.up).magnitude;
+            }
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+            Assert.That(distance, Is.LessThanOrEqualTo(.55f), $"真实移动路线被碰撞挡住：player={world.Player.transform.position}, destination={destination}");
+        }
+
+        private static MeshCollider EnvironmentTestGround(GameObject island)
+        {
+            var terrain = island.GetComponent<MeshCollider>();
+            if (terrain != null) return terrain;
+            return island.GetComponentsInChildren<MeshCollider>().Single(value => value.name == "Terrain");
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator InputSettings_MenuPreviewCancelRebindAndHubPersistence()
         {
             const string key = HowToFishLocalPreferencesStore.DefaultKey;
@@ -749,6 +880,28 @@ namespace Tests.Demo
         {
             yield return StartNewGame();
             var world = testWorld;
+            var initialEffects = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)
+                .Where(value => value.gameObject.scene == world.gameObject.scene).ToArray();
+            var craterSmoke = initialEffects.Single(value => value.name == "CraterSmoke");
+            Assert.That(craterSmoke.main.loop, Is.True);
+            Assert.That(craterSmoke.main.useUnscaledTime, Is.False);
+            yield return WaitFor(() => craterSmoke.isPlaying && craterSmoke.particleCount > 0, "火山烟未通过原生模拟发射。");
+            yield return new WaitForSeconds(4.5f);
+            var craterParticles = new ParticleSystem.Particle[craterSmoke.main.maxParticles];
+            int craterCount = craterSmoke.GetParticles(craterParticles);
+            Assert.That(craterSmoke.isPlaying, Is.True);
+            Assert.That(craterCount, Is.GreaterThan(0));
+            float highestSmoke = craterParticles.Take(craterCount).Max(value => value.position.y);
+            float volcanoY = world.Islands.Single(value => value.Index == 4).Position.y;
+            Assert.That(highestSmoke, Is.GreaterThan(volcanoY + 36), "循环烟必须越过岸边机位的山口遮挡线；粒子存在不足证明可见。");
+            Debug.Log($"[HowToFish] CraterSmoke native count={craterCount}, maxY={highestSmoke:0.00}");
+            var volcano = world.Islands.Single(value => value.Index == 4);
+            Assert.That(EnvironmentTestGround(volcano.gameObject).Raycast(new Ray(volcano.Position + new Vector3(23, 90, -80),
+                Vector3.down), out var volcanoFloor, 120), Is.True);
+            world.SetPaused(true);
+            yield return CapturePausedEffectsView(world, volcanoFloor.point + Vector3.up * (world.Player.Eye.transform.localPosition.y + .08f),
+                volcano.Position + new Vector3(0, 11, -35), "G5-Volcano-Smoke-Visible.png");
+            world.SetPaused(false);
             // 隔离炸药购买和爆炸规则；不是从零赚钱的新档流程。
             world.Session.State.unlockedIsland = 1; world.Session.State.money = 100;
             yield return AimAtProduct(world, "Dynamite", 1);
@@ -790,8 +943,13 @@ namespace Tests.Demo
             Assert.That(saved.dynamiteFuseSeconds, Is.EqualTo(pausedFuse));
             world.ReturnToHub();
             yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "炸药保存后未返回Hub。");
+            Assert.That(initialEffects.All(value => value == null), Is.True, "第一次返回Hub应释放全部原场景粒子源。");
             yield return EnterWorld();
             world = testWorld; world.SetPaused(true);
+            var audio = UnityEngine.Object.FindObjectsByType<HowToFishAudioDirector>(FindObjectsSortMode.None)
+                .Single(value => value.gameObject.scene == world.gameObject.scene);
+            audio.SetVolume(audio.Volume, true);
+
             item = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.InstanceId == savedId);
             thrown = item.GetComponent<HowToFishDynamite>();
             Assert.That(thrown.RemainingFuse, Is.GreaterThan(0).And.LessThanOrEqualTo(pausedFuse));
@@ -806,23 +964,69 @@ namespace Tests.Demo
             fish.Body.isKinematic = true;
             var outside = world.Spawn("Mackerel", center + Vector3.right * 12, false);
             outside.Body.isKinematic = true;
+            var chainFuse = chain.GetComponent<HowToFishDynamite>();
+            float firstAt = -1, chainAt = -1, chainFrameDelta = 0;
+            int firstBlasts = 0, chainBlasts = 0;
+            var healthSequence = new System.Collections.Generic.List<float>();
+            thrown.Exploded += _ => { firstBlasts++; firstAt = Time.time; };
+            chainFuse.Exploded += _ => { chainBlasts++; chainAt = Time.time; chainFrameDelta = Time.deltaTime; };
+            tuna.Damaged += (target, damage) => healthSequence.Add(target.Health);
             Physics.SyncTransforms();
             world.SetPaused(false);
-            yield return WaitFor(() => thrown == null, "读档引信没有继续并引爆。");
-            var chainFuse = chain.GetComponent<HowToFishDynamite>();
-            Assert.That(chainFuse.RemainingFuse, Is.GreaterThan(0).And.LessThanOrEqualTo(.2f));
-            float shorter = chainFuse.RemainingFuse;
-            chainFuse.Ignite(); chainFuse.TriggerChainReaction();
-            Assert.That(chainFuse.RemainingFuse, Is.LessThanOrEqualTo(shorter));
-            Assert.That(tuna.Health, Is.EqualTo(4550), "多个碰撞体不能重复结算450伤害。");
+            // 记录同步事件与伤害序列，不要求协程恢复时0.2秒链爆实体仍存活。
+            yield return WaitFor(() => thrown == null && chain == null, "读档引信或相邻真实链爆没有完成。");
+            Assert.That(firstBlasts, Is.EqualTo(1));
+            Assert.That(chainBlasts, Is.EqualTo(1));
+            Assert.That(chainAt, Is.GreaterThanOrEqualTo(firstAt).And.LessThanOrEqualTo(firstAt + .2f + chainFrameDelta + .01f));
+            Assert.That(healthSequence, Is.EqualTo(new[] { 4550f, 4100f }), "每枚炸药只能对多碰撞体目标结算一次450伤害。");
+            Assert.That(tuna.Health, Is.EqualTo(4100));
             Assert.That(fish.IsAlive, Is.False);
             Assert.That(fish.KillMultiplier, Is.EqualTo(1.25f));
-            yield return WaitFor(() => chain == null, "相邻未点燃炸药未在短引信后爆炸。");
-            Assert.That(tuna.Health, Is.EqualTo(4100));
             Assert.That(outside.Health, Is.EqualTo(outside.Creature.Health));
             UnityEngine.Object.Destroy(tuna.gameObject);
             UnityEngine.Object.Destroy(fish.gameObject);
             UnityEngine.Object.Destroy(outside.gameObject);
+            yield return new WaitForSeconds(2.3f);
+
+            // 用独立真实引信验证静音视觉和暂停，避免截图与短链爆中间态相互干扰。
+            var smoke = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)
+                .Single(value => value.name == "ExplosionSmoke" && value.gameObject.scene == world.gameObject.scene);
+            var fire = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)
+                .Single(value => value.name == "ExplosionFire" && value.gameObject.scene == world.gameObject.scene);
+            Assert.That(smoke.particleCount + fire.particleCount, Is.Zero, "前一次爆炸未消散。");
+            world.SetPaused(true);
+            var visualBomb = world.Spawn("Dynamite", center, false);
+            visualBomb.Body.isKinematic = true;
+            var visualFuse = visualBomb.GetComponent<HowToFishDynamite>();
+            int emittedFire = 0, emittedSmoke = 0;
+            visualFuse.Exploded += _ =>
+            {
+                emittedFire = fire.particleCount; emittedSmoke = smoke.particleCount;
+                world.SetPaused(true);
+            };
+            visualFuse.Ignite(); visualFuse.TriggerChainReaction();
+            float shorter = visualFuse.RemainingFuse;
+            Assert.That(shorter, Is.GreaterThan(0).And.LessThanOrEqualTo(.2f));
+            visualFuse.Ignite(); visualFuse.TriggerChainReaction();
+            Assert.That(visualFuse.RemainingFuse, Is.EqualTo(shorter), "重复点燃或链触发不能延长短引信。");
+            world.SetPaused(false);
+            yield return WaitFor(() => visualBomb == null, "独立视觉炸药引信没有到期。");
+            Assert.That(audio.Muted, Is.True);
+            Assert.That(emittedFire, Is.GreaterThan(0), "静音不能阻止真实引信爆炸的火团。");
+            Assert.That(emittedSmoke, Is.GreaterThan(0), "静音不能阻止真实引信爆炸的烟。");
+            Assert.That(smoke.particleCount, Is.GreaterThan(0));
+            Assert.That(smoke.main.simulationSpace, Is.EqualTo(ParticleSystemSimulationSpace.World));
+            // 本帧粒子模拟可能已取得旧deltaTime；从暂停后的完整帧开始检查冻结。
+            yield return null;
+            Assert.That(Time.timeScale, Is.Zero);
+            var particles = new ParticleSystem.Particle[smoke.main.maxParticles];
+            int particleCount = smoke.GetParticles(particles);
+            float lifetime = particles[0].remainingLifetime;
+            yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(smoke.GetParticles(particles), Is.EqualTo(particleCount));
+            Assert.That(particles[0].remainingLifetime, Is.EqualTo(lifetime).Within(.001f), "暂停不能继续消耗粒子寿命。");
+            yield return CapturePausedEffectsView(world, center + new Vector3(0, 1.5f, -7), center, "G5-Explosion-Muted-Closeup.png");
+            world.SetPaused(false);
             var danger = world.Spawn("Dynamite", world.Player.transform.position + Vector3.up, false);
             danger.Body.isKinematic = true;
             int deaths = 0;
@@ -843,6 +1047,40 @@ namespace Tests.Demo
             Assert.That(world.Session.Count("Dynamite"), Is.Zero);
             Assert.That(world.Player.Equipment, Is.Null, "最后一枚耗尽后应正常空手。");
             Assert.That(UnityEngine.Object.FindObjectsByType<HowToFishDynamite>(FindObjectsSortMode.None).Single().IsArmed, Is.True);
+            var finalEffects = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)
+                .Where(value => value.gameObject.scene == world.gameObject.scene).ToArray();
+            world.ReturnToHub();
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "效果验证后未返回Hub。");
+            Assert.That(finalEffects.All(value => value == null), Is.True, "第二次返回Hub不能留下爆炸或火山烟源。");
+        }
+
+        private static IEnumerator CapturePausedEffectsView(HowToFishWorld world, Vector3 cameraPosition, Vector3 target, string filename)
+        {
+            Assert.That(world.IsPaused, Is.True, "截图不能推进连爆/粒子时钟。");
+            var eye = world.Player.Eye.transform;
+            Vector3 localPosition = eye.localPosition;
+            Quaternion localRotation = eye.localRotation;
+            var hud = UnityEngine.Object.FindAnyObjectByType<HowToFishHudPresenter>();
+            var canvas = hud == null ? null : hud.GetComponentInParent<Canvas>();
+            bool visible = canvas != null && canvas.enabled;
+            try
+            {
+                // 只临时改变相机取景并关闭HUD渲染，不移动玩家/爆点、不直接制造粒子。
+                eye.position = cameraPosition;
+                eye.LookAt(target);
+                if (canvas != null) canvas.enabled = false;
+                yield return null; yield return null;
+                string folder = Path.GetFullPath("Library/HowToFish/Evidence"); Directory.CreateDirectory(folder);
+                ScreenCapture.CaptureScreenshot(Path.Combine(folder, filename));
+                yield return null; yield return null;
+                Assert.That(world.IsPaused, Is.True, "效果取景期间暂停状态改变。");
+                Assert.That(Time.timeScale, Is.Zero, "效果取景期间世界时钟恢复。");
+            }
+            finally
+            {
+                eye.localPosition = localPosition; eye.localRotation = localRotation;
+                if (canvas != null) canvas.enabled = visible;
+            }
         }
 
         [UnityTest]
@@ -1718,6 +1956,105 @@ namespace Tests.Demo
             Assert.That(restored.KillMultiplier, Is.EqualTo(multiplier));
             Assert.That(restored.SaleValue, Is.EqualTo(value));
             Assert.That(restored.HasBeenHitByPlayer, Is.True);
+        }
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator Audio_RealActionsPauseResumeAndHubRelease()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            var player = world.Player;
+            var fishing = player.Fishing;
+            var director = UnityEngine.Object.FindObjectsByType<HowToFishAudioDirector>(FindObjectsSortMode.None)
+                .Single(value => value.gameObject.scene == world.gameObject.scene);
+            var audio = new UnityEditor.SerializedObject(director);
+            var clips = audio.FindProperty("clips");
+            Assert.That(clips.arraySize, Is.EqualTo(20));
+            foreach (HowToFishSound sound in Enum.GetValues(typeof(HowToFishSound)))
+            {
+                var clip = clips.GetArrayElementAtIndex((int)sound).objectReferenceValue as AudioClip;
+                Assert.That(clip, Is.Not.Null, sound.ToString());
+                Assert.That(clip.name, Is.EqualTo(sound.ToString()));
+                Assert.That(clip.length, Is.GreaterThan(0));
+            }
+            var sources = UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None)
+                .Where(value => value.gameObject.scene == world.gameObject.scene).ToArray();
+            Assert.That(sources.Length, Is.EqualTo(10), "必须使用装配好的10个源，不在动作时临时创建。");
+            Assert.That(sources.Count(value => value.loop), Is.EqualTo(5));
+            var sea = (AudioSource)audio.FindProperty("sea").objectReferenceValue;
+            var wind = (AudioSource)audio.FindProperty("wind").objectReferenceValue;
+            var ui = (AudioSource)audio.FindProperty("ui").objectReferenceValue;
+            var effects = sources.Where(value => value.name.StartsWith("Effect", StringComparison.Ordinal)).ToArray();
+            Assert.That(effects.Length, Is.EqualTo(4));
+            var counts = new int[20];
+            var sourcePlayed = new bool[20];
+            void CountSound(HowToFishSound sound, Vector3 position)
+            {
+                counts[(int)sound]++;
+                // 同步观察真实事件后的音源状态，不调用Director.Play。
+                sourcePlayed[(int)sound] |= sound == HowToFishSound.UiClick ? ui.isPlaying : effects.Any(value => value.isPlaying);
+            }
+            player.SoundRequested += CountSound; fishing.SoundRequested += CountSound; world.SoundRequested += CountSound;
+            try
+            {
+                yield return WaitFor(() => sea.isPlaying && wind.isPlaying, "开始游戏后海风循环未播放。");
+                var island = world.Islands.Single(value => value.Index == 0);
+                var ground = island.GetComponent<MeshCollider>();
+                Assert.That(ground.Raycast(new Ray(island.Position + new Vector3(10, 30, 8), Vector3.down), out var hit, 60), Is.True);
+                player.Teleport(hit.point + Vector3.up * .1f, 0);
+                yield return new WaitForSeconds(.3f);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                yield return new WaitForSeconds(.65f);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
+                Assert.That(counts[(int)HowToFishSound.Footstep], Is.GreaterThan(0));
+                Assert.That(sourcePlayed[(int)HowToFishSound.Footstep], Is.True);
+                // 仅准备交易资格/资金；购买、射击、换弹仍走真实输入。
+                world.Session.State.unlockedIsland = 1; world.Session.State.money = 1000;
+                yield return AimAtProduct(world, "Pistol", 1); yield return PressKey(Key.E);
+                Assert.That(player.Equipment.Id, Is.EqualTo("Pistol"));
+                Assert.That(counts[(int)HowToFishSound.Trade], Is.EqualTo(1));
+                int ammo = player.Ammo;
+                InputSystem.QueueStateEvent(mouse, new MouseState { buttons = 1 });
+                yield return null; yield return null;
+                InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
+                Assert.That(player.Ammo, Is.EqualTo(ammo - 1));
+                Assert.That(counts[(int)HowToFishSound.GunShot], Is.EqualTo(1));
+                Assert.That(sourcePlayed[(int)HowToFishSound.GunShot], Is.True);
+                yield return PressKey(Key.R);
+                Assert.That(counts[(int)HowToFishSound.Reload], Is.EqualTo(1));
+                Assert.That(sourcePlayed[(int)HowToFishSound.Reload], Is.True);
+                yield return WaitFor(() => !player.IsReloading, "有效换弹未结束。");
+                Assert.That(player.Ammo, Is.EqualTo(player.AmmoCapacity));
+                yield return PressKey(Key.R);
+                Assert.That(counts[(int)HowToFishSound.Reload], Is.EqualTo(1), "满弹匣不能重复发换弹音。");
+                world.SetPaused(true); yield return null;
+                Assert.That(sources.Where(value => value != ui).All(value => !value.isPlaying), Is.True,
+                    "暂停后所有玩法循环和单次音源必须停止。");
+                EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("Resume").gameObject);
+                InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South));
+                yield return null; yield return null;
+                InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+                Assert.That(world.IsPaused, Is.False);
+                Assert.That(counts[(int)HowToFishSound.UiClick], Is.EqualTo(1), "真实手柄Submit应触发一次UI音。");
+                Assert.That(sourcePlayed[(int)HowToFishSound.UiClick], Is.True);
+                yield return WaitFor(() => sea.isPlaying && wind.isPlaying, "恢复后海风循环未继续。");
+                Assert.That(UnityEngine.Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None)
+                    .Count(value => value.gameObject.scene == world.gameObject.scene), Is.EqualTo(10));
+                world.ReturnToHub();
+                yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub &&
+                    !GameSceneNavigator.Instance.IsTransitioning, "声音验收未返回Hub。");
+                Assert.That(director == null, Is.True);
+                Assert.That(sources.All(value => value == null), Is.True, "返回Hub后不能残留场景音源。");
+            }
+            finally
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                InputSystem.QueueStateEvent(mouse, new MouseState());
+                InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                if (player != null) player.SoundRequested -= CountSound;
+                if (fishing != null) fishing.SoundRequested -= CountSound;
+                if (world != null) world.SoundRequested -= CountSound;
+            }
         }
 
         [UnityTest]

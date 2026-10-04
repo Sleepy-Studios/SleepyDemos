@@ -1,0 +1,73 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "sha256": "9ff571d833dc734d8dbb327f572b5ae1abc330e5aac721c2393a1dec9c1b351b",
+  "unity_import_verified": false,
+  "objects": [
+    "BackWall",
+    "DoorFront",
+    "DoorThreshold",
+    "Forward",
+    "FoundationPiles",
+    "FrontWallLeft",
+    "FrontWallRight",
+    "GableWalls",
+    "GroundAnchor",
+    "InteriorCenter",
+    "InteriorFloor",
+    "LuckyBaitCasinoShell",
+    "Marquee",
+    "Porch",
+    "Right",
+    "RoofLeft",
+    "RoofPeak",
+    "RoofRight",
+    "SideWallLeft",
+    "SideWallRight",
+    "TrimAndWindowFrames",
+    "Up"
+  ],
+  "bounds_blender_min_m": [
+    -7.449999809265137,
+    -6.474999904632568,
+    -1.399999976158142
+  ],
+  "bounds_blender_max_m": [
+    7.449999809265137,
+    4.985000133514404,
+    5.349999904632568
+  ],
+  "size_blender_m": [
+    14.899999618530273,
+    11.460000038146973,
+    6.7499998807907104
+  ],
+  "triangles": 7516,
+  "source": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\ArtSource~\\how_to_fish\\LuckyBaitCasinoShell.blend",
+  "candidate_fbx": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\Library\\HowToFish\\Staging\\EnvironmentModels\\FBX\\LuckyBaitCasinoShell.fbx",
+  "authorship": "Original procedural meshes; no source-game geometry copied.",
+  "placement": "Visual only. GroundAnchor at origin. Keep paths and interaction positions clear. Unity import pending.",
+  "source_sha256": "fbc0584db50030d193e7a27a5dce85db402d8c081ff642df7e777a944dc573ac",
+  "mesh_count": 13,
+  "materials": [
+    "CasinoRoofShadow",
+    "CasinoSignWarm",
+    "RocksRedSiding",
+    "RocksRoofTile",
+    "RocksWindowTrim",
+    "RocksWood"
+  ],
+  "source_static_checks": [
+    "positive scales, axis markers, nonnegative mesh volumes and FBX hash checked"
+  ]
+}

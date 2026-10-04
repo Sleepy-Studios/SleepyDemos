@@ -96,3 +96,24 @@ Unity正面截图发现顶屏/滚轮符号消失：原脚本符号面法线朝�
 `build_character_outfits.py` 生成18套 `Outfit<Id>`，保留独立 `.blend/.json/FBX`；图标通过 `--icons` 分支读取源模型渲染，384×512 RGBA，无文字和地面。前17套参考公开角色图的衣帽轮廓和配色，Bean的绿色防水服及豆形徽记为资料缺口下的自制主题。源预览及透明边界已检查，Unity装配与运行视觉结果另记在validation.md。
 
 统一米制、前方+Z、原点Grip和FaceFront；各节点局部旋转归零、缩放为1。`ForearmSleeveRight`或`ForearmSkinRight`以及`PalmRight`提供第一人称材质，完整模型只用于服装资源和遗体视觉。Prefab不带Collider/Rigidbody，死亡遗体继续使用已有物理根；图标位于 `Art/Icons`，模型位于 `Art/Models`，服装Prefab位于 `Prefabs/Outfits`。
+
+## G5 环境与表现源（2026-10-04）
+
+九个环境FBX和下述源码已合入并原生装配。Unity编译、九模型契约、赌场/码头实际交互、音效与粒子生命周期已分别验证；五岛1080p画面与爆炸近景已查看。听觉及整体正式表现仍未验收，具体证据见validation.md。
+
+| 来源脚本 | 自制资源 | 运行资产/保存方式 |
+|---|---|---|
+| `scripts/how_to_fish/build_environment_candidates.py` | ShoreRockCluster、BasaltRockCluster、ShorePebbleScatter、PineBranchedA/B、ForestShrub、ForestGrass | 九模型中的七个，FBX位于本Demo `Art/Models`；独立 `.blend/.json` 位于 `ArtSource~/how_to_fish` |
+| `scripts/how_to_fish/build_rocks_environment_candidates.py` | RocksPierModule、LuckyBaitCasinoShell | 另两个环境FBX及独立 `.blend/.json`，保持门框/门廊/甲板等实际网格分件 |
+| `scripts/how_to_fish/render_environment_candidates.py`、`render_environment_architecture.py` | 环境/建筑候选预览 | 仅辅助源模型审阅，不是Unity场景验收 |
+| `ArtSource~/how_to_fish/build_audio.py` | 20段原创标准库合成音频 | `Assets/LoadResources/Demos/how_to_fish/Audio/*.wav` 与 `audio-manifest.json`，24kHz/16-bit/mono；无原作录音/下载采样 |
+| `Assets/LoadResources/Demos/how_to_fish/Art/Shaders/HowToFishWater.shader` | 深度浅深水、程序波纹、岸边泡沫及近似天空反射 | 编辑器更新现有Ocean材质；`IslandSky.mat`由场景装配使用内置Skybox/Procedural保存 |
+| `HowToFishSceneBuilder.EffectMesh/EffectMaterial/SetupEffects` | 八面体火团/烟尘/火山烟 | 菜单保存 `Art/Meshes/EffectOctahedron.asset`、`Art/Materials/FacetedParticles.mat` 和场景ParticleSystem；无需额外贴图或新Shader |
+
+环境脚本沿用 `fbx_export.py` 的轴向和米制契约，增加原点 `GroundAnchor` 与 Forward/Right/Up标记。两脚本先输出到 `Library/HowToFish/Staging/EnvironmentModels` 的候选工作区/FBX，源 `.blend/.json` 保存到 `ArtSource~`，不会直接改生产Assets。可在项目路径后指定模型名；已有源默认拒绝覆盖，`--refresh-candidates` 是明确更新这些自制源的开关，不应无差别重跑。新导出后必须重新导入并验证受影响资源，旧JSON中的待导入文字不代表当前验证结论。
+
+SS00/S9支持分层针叶树与草丛，SS07支持灰岩首岛/白灯塔，S15–S17支持红木临水商店、栈桥与赌场方向；九模型的尺寸、切面细节、密度、精确建筑布局及装配位置仍为自制推定。枝叶替换保留树根及碰撞；装饰岩草不承担关键物理，赌场/栈桥使用保存的实际静态MeshCollider保留通道。原代理即使名称含Blockout，只要渲染已关闭并保留交互/碰撞，就不能以改名或删除它代替美术工作。
+
+音频生成必须显式传 `--output`；维护时先输出Library候选目录，再按审核范围同步生产WAV与哈希清单。声源包括海浪/风、脚步/入水、抛竿/收线/活鱼挣扎、挥击/三类枪声/换弹/爆炸、马达、交易/UI、首领与结局。默认PCM峰值约.58、Director整体音量.5及分组增益是保守初值，所有音色/节奏/空间衰减待试听校准；不声称逐枪、逐首领动作或原作混音已还原。
+
+粒子使用原生URP Particles/Unlit白色默认贴图与Mesh渲染。爆炸每次10颗火团/14颗烟，火山口约3颗/秒、最多48颗；循环烟上升速度3至4米/秒，以越过岸边视角的山口遮挡。这些参数均为自制推定，视觉范围不能等同伤害半径。源场景保存World simulation和useUnscaledTime=false；静音下真实引信、暂停完整帧冻结、连爆及Hub清理已定向通过。

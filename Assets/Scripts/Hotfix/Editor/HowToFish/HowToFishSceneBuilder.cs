@@ -48,7 +48,206 @@ namespace Hotfix.Editor.HowToFish
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(Root + "/Scenes/Main.unity") == null) BuildScene();
             UpdateEnvironmentModels();
             AssetDatabase.SaveAssets();
+            SetupAudio();
+            SetupEffects();
             Debug.Log("[HowToFish] 群岛场景及 HUD 已保存；区域内容进度见 Demo 实施计划。");
+        }
+
+        /// 只装配原创音频与保存音源，不重建 HUD、地形或其它模型。
+        [MenuItem("Tools/SleepyDemos/HowToFish/装配原创音效")]
+        public static void SetupAudio()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("请退出 Play Mode 后装配音效。");
+            string path = Root + "/Scenes/Main.unity";
+            var scene = SceneManager.GetSceneByPath(path);
+            bool opened = !scene.IsValid() || !scene.isLoaded;
+            if (!opened && scene.isDirty) throw new InvalidOperationException("请先保存当前 Demo 场景，再装配音效。");
+            var soundIds = (HowToFishSound[])Enum.GetValues(typeof(HowToFishSound));
+            var audioClips = new AudioClip[soundIds.Length];
+            for (int i = 0; i < soundIds.Length; i++)
+            {
+                string audioPath = Root + "/Audio/" + soundIds[i] + ".wav";
+                audioClips[i] = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath);
+                if (audioClips[i] == null) throw new InvalidOperationException("请先导入原创 WAV：" + audioPath);
+                var importer = (AudioImporter)AssetImporter.GetAtPath(audioPath);
+                importer.forceToMono = true; importer.loadInBackground = false;
+                var sample = importer.defaultSampleSettings;
+                sample.loadType = AudioClipLoadType.DecompressOnLoad;
+                sample.compressionFormat = AudioCompressionFormat.PCM;
+                sample.sampleRateSetting = AudioSampleRateSetting.PreserveSampleRate;
+                importer.defaultSampleSettings = sample;
+                importer.SaveAndReimport();
+                audioClips[i] = AssetDatabase.LoadAssetAtPath<AudioClip>(audioPath);
+            }
+            if (opened) scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var world = roots.SelectMany(value => value.GetComponentsInChildren<HowToFishWorld>(true)).Single();
+                var boat = roots.SelectMany(value => value.GetComponentsInChildren<HowToFishBoat>(true)).Single();
+                var audioRoot = roots.SingleOrDefault(value => value.name == "HowToFishAudio");
+                if (audioRoot == null)
+                {
+                    audioRoot = new GameObject("HowToFishAudio");
+                    SceneManager.MoveGameObjectToScene(audioRoot, scene);
+                }
+                var director = audioRoot.GetComponent<HowToFishAudioDirector>(); if (director == null) director = audioRoot.AddComponent<HowToFishAudioDirector>();
+                var settings = new SerializedObject(director);
+                Bind(settings, "owner", world); Bind(settings, "boat", boat);
+                var clips = settings.FindProperty("clips"); clips.arraySize = audioClips.Length;
+                for (int i = 0; i < audioClips.Length; i++) clips.GetArrayElementAtIndex(i).objectReferenceValue = audioClips[i];
+                Bind(settings, "sea", Source("Sea", audioRoot.transform, true, false));
+                Bind(settings, "wind", Source("Wind", audioRoot.transform, true, false));
+                Bind(settings, "motor", Source("HowToFishMotorAudio", boat.transform, true, true));
+                Bind(settings, "reel", Source("Reel", audioRoot.transform, true, false));
+                Bind(settings, "struggle", Source("Struggle", audioRoot.transform, true, false));
+                Bind(settings, "ui", Source("UI", audioRoot.transform, false, false));
+                var effects = settings.FindProperty("effects"); effects.arraySize = 4;
+                for (int i = 0; i < effects.arraySize; i++)
+                    effects.GetArrayElementAtIndex(i).objectReferenceValue = Source("Effect" + i, audioRoot.transform, false, true);
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                EditorSceneManager.MarkSceneDirty(scene);
+                if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("原创音效场景保存失败。");
+                Debug.Log("[HowToFish] 原创音效候选和保存音源已装配，仍需暂停/Hub释放与听觉验收。");
+            }
+            finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
+
+            AudioSource Source(string name, Transform parent, bool loop, bool spatial)
+            {
+                var node = parent.Find(name);
+                if (node == null) { node = new GameObject(name).transform; node.SetParent(parent, false); }
+                var source = node.GetComponent<AudioSource>(); if (source == null) source = node.gameObject.AddComponent<AudioSource>();
+                source.playOnAwake = false; source.loop = loop; source.volume = .5f; source.dopplerLevel = 0;
+                source.spatialBlend = spatial ? 1 : 0; source.rolloffMode = AudioRolloffMode.Linear;
+                source.minDistance = 2; source.maxDistance = 60;
+                return source;
+            }
+        }
+
+        /// 保存低多边形爆炸反馈和火山口烟，不改变伤害、音量或其它环境资源。
+        [MenuItem("Tools/SleepyDemos/HowToFish/装配爆炸与火山烟")]
+        public static void SetupEffects()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("请退出 Play Mode 后装配粒子。");
+            string path = Root + "/Scenes/Main.unity";
+            var scene = SceneManager.GetSceneByPath(path);
+            bool opened = !scene.IsValid() || !scene.isLoaded;
+            if (!opened && scene.isDirty) throw new InvalidOperationException("请先保存 Demo 场景，再装配粒子。");
+            if (opened) scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            bool saved = false;
+            try
+            {
+                var roots = scene.GetRootGameObjects();
+                var world = roots.SelectMany(value => value.GetComponentsInChildren<HowToFishWorld>(true)).Single();
+                var crater = roots.SelectMany(value => value.GetComponentsInChildren<HowToFishVolcanoCrater>(true)).Single();
+                var effectRoot = roots.SingleOrDefault(value => value.name == "HowToFishEffects");
+                if (effectRoot == null)
+                {
+                    effectRoot = new GameObject("HowToFishEffects");
+                    SceneManager.MoveGameObjectToScene(effectRoot, scene);
+                }
+                var mesh = EffectMesh();
+                var material = EffectMaterial();
+                var fire = Effect("ExplosionFire", effectRoot.transform, false, false);
+                var dust = Effect("ExplosionSmoke", effectRoot.transform, true, false);
+                var smoke = Effect("CraterSmoke", crater.transform, true, true);
+                smoke.transform.localPosition = Vector3.up;
+                smoke.transform.localRotation = Quaternion.Euler(-90, 0, 0);
+                var settings = new SerializedObject(world);
+                Bind(settings, "explosionFire", fire); Bind(settings, "explosionSmoke", dust);
+                settings.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.SaveAssets();
+                EditorSceneManager.MarkSceneDirty(scene);
+                if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("爆炸与火山烟场景保存失败。");
+                saved = true;
+                Debug.Log("[HowToFish] 自制爆炸与火山烟候选已保存，仍需暂停、静音与实际画面验收。");
+
+                ParticleSystem Effect(string name, Transform parent, bool isSmoke, bool loop)
+                {
+                    var node = parent.Find(name);
+                    if (node == null) { node = new GameObject(name).transform; node.SetParent(parent, false); }
+                    var particles = node.GetComponent<ParticleSystem>();
+                    if (particles == null) particles = node.gameObject.AddComponent<ParticleSystem>();
+                    particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    var main = particles.main;
+                    // 以下粒子数量、寿命、尺寸、速度和颜色全部为自制推定，不复刻来源参数。
+                    main.loop = loop; main.playOnAwake = loop; main.useUnscaledTime = false;
+                    main.simulationSpace = ParticleSystemSimulationSpace.World;
+                    main.cullingMode = ParticleSystemCullingMode.AlwaysSimulate;
+                    main.duration = loop ? 8 : 1; main.maxParticles = loop ? 48 : 128;
+                    main.startLifetime = loop ? new ParticleSystem.MinMaxCurve(5, 7) :
+                        isSmoke ? new ParticleSystem.MinMaxCurve(1.3f, 2.2f) : new ParticleSystem.MinMaxCurve(.25f, .45f);
+                    main.startSize = loop ? new ParticleSystem.MinMaxCurve(1.2f, 2.4f) :
+                        isSmoke ? new ParticleSystem.MinMaxCurve(.45f, .85f) : new ParticleSystem.MinMaxCurve(.35f, .65f);
+                    main.startSpeed = loop ? new ParticleSystem.MinMaxCurve(.3f, .6f) :
+                        isSmoke ? new ParticleSystem.MinMaxCurve(.5f, 1.1f) : new ParticleSystem.MinMaxCurve(1.5f, 2.8f);
+                    main.startColor = isSmoke ? new ParticleSystem.MinMaxGradient(new Color(.22f, .20f, .19f, .55f), new Color(.4f, .36f, .3f, .45f)) :
+                        new ParticleSystem.MinMaxGradient(new Color(1, .25f, .035f), new Color(1, .75f, .16f));
+                    main.startRotation3D = true;
+                    main.startRotationX = main.startRotationY = main.startRotationZ = new ParticleSystem.MinMaxCurve(0, Mathf.PI * 2);
+                    var emission = particles.emission; emission.enabled = loop; emission.rateOverTime = loop ? 3 : 0;
+                    var shape = particles.shape; shape.enabled = true;
+                    shape.shapeType = loop ? ParticleSystemShapeType.Circle : ParticleSystemShapeType.Sphere;
+                    shape.radius = loop ? 5 : isSmoke ? .3f : .12f;
+                    var velocity = particles.velocityOverLifetime; velocity.enabled = isSmoke;
+                    velocity.space = ParticleSystemSimulationSpace.World;
+                    velocity.x = velocity.z = new ParticleSystem.MinMaxCurve(0, 0);
+                    // 火口23米、前缘约27米；岸边视角需要烟升至约36米，循环烟上升速度为自制可视性校准。
+                    velocity.y = loop ? new ParticleSystem.MinMaxCurve(3, 4) : new ParticleSystem.MinMaxCurve(.5f, 1);
+                    var color = particles.colorOverLifetime; color.enabled = true;
+                    var fade = new Gradient();
+                    fade.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
+                        new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(.7f, .55f), new GradientAlphaKey(0, 1) });
+                    color.color = fade;
+                    var size = particles.sizeOverLifetime; size.enabled = true;
+                    size.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, .45f, 1, isSmoke ? 1.8f : 1.2f));
+                    var collision = particles.collision; collision.enabled = false;
+                    var renderer = particles.GetComponent<ParticleSystemRenderer>();
+                    renderer.renderMode = ParticleSystemRenderMode.Mesh; renderer.mesh = mesh; renderer.sharedMaterial = material;
+                    renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
+                    return particles;
+                }
+            }
+            finally { if (opened && saved) EditorSceneManager.CloseScene(scene, true); }
+        }
+
+        private static Mesh EffectMesh()
+        {
+            string path = Root + "/Art/Meshes/EffectOctahedron.asset";
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (mesh != null) return mesh;
+            HowToFishAssetBuilder.EnsureFolder(Root + "/Art/Meshes");
+            var points = new[] { Vector3.up, Vector3.down, Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+            int[] faces = { 0, 2, 4, 0, 4, 3, 0, 3, 5, 0, 5, 2, 1, 4, 2, 1, 3, 4, 1, 5, 3, 1, 2, 5 };
+            var vertices = new Vector3[faces.Length]; var triangles = new int[faces.Length];
+            for (int i = 0; i < faces.Length; i += 3)
+            {
+                var a = points[faces[i]] * .5f; var b = points[faces[i + 1]] * .5f; var c = points[faces[i + 2]] * .5f;
+                if (Vector3.Dot(Vector3.Cross(b - a, c - a), a + b + c) < 0) { var swap = b; b = c; c = swap; }
+                vertices[i] = a; vertices[i + 1] = b; vertices[i + 2] = c;
+                triangles[i] = i; triangles[i + 1] = i + 1; triangles[i + 2] = i + 2;
+            }
+            mesh = new Mesh { name = "EffectOctahedron", vertices = vertices, triangles = triangles };
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            AssetDatabase.CreateAsset(mesh, path);
+            return mesh;
+        }
+
+        private static Material EffectMaterial()
+        {
+            string path = Root + "/Art/Materials/FacetedParticles.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material != null) return material;
+            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (shader == null) throw new InvalidOperationException("缺少 URP 原生粒子 Unlit Shader。");
+            material = new Material(shader) { name = "FacetedParticles" };
+            material.SetColor("_BaseColor", Color.white); material.SetFloat("_Surface", 1); material.SetFloat("_Blend", 0);
+            material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha); material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_SrcBlendAlpha", (float)BlendMode.One); material.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
+            material.SetFloat("_ZWrite", 0); material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.SetOverrideTag("RenderType", "Transparent"); material.renderQueue = (int)RenderQueue.Transparent;
+            AssetDatabase.CreateAsset(material, path);
+            return material;
         }
 
         private static void UpdateEnvironmentModels()
@@ -136,12 +335,204 @@ namespace Hotfix.Editor.HowToFish
                 UpdateCookingStations(scene);
                 UpdateSlotMachines(scene);
                 UpdateRoulette(scene);
+                UpdateEnvironmentDetails(scene);
+                UpdateWaterAndSky(scene);
                 if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("群岛内容保存失败。");
             }
             finally
             {
                 if (previous.IsValid() && previous.isLoaded) SceneManager.SetActiveScene(previous);
                 if (opened) EditorSceneManager.CloseScene(scene, true);
+            }
+        }
+
+        private static void UpdateWaterAndSky(Scene scene)
+        {
+            var ocean = scene.GetRootGameObjects().Single(root => root.name == "Ocean").GetComponent<Renderer>();
+            var waterShader = AssetDatabase.LoadAssetAtPath<Shader>(Root + "/Art/Shaders/HowToFishWater.shader");
+            if (waterShader == null || ShaderUtil.ShaderHasError(waterShader))
+                throw new InvalidOperationException("群岛水面 Shader 缺失或编译失败。");
+            var water = ocean.sharedMaterial;
+            water.shader = waterShader;
+            water.SetColor("_ShallowColor", new Color(.12f, .43f, .49f, .9f));
+            water.SetColor("_DeepColor", new Color(.025f, .16f, .27f, .97f));
+            water.SetColor("_FoamColor", new Color(.78f, .87f, .84f));
+            water.SetColor("_ReflectionColor", new Color(.55f, .68f, .76f));
+            water.SetFloat("_WaveScale", .4f); water.SetFloat("_WaveSpeed", .85f);
+            water.SetFloat("_NormalStrength", .12f); water.SetFloat("_FoamWidth", .65f);
+            water.renderQueue = (int)RenderQueue.Transparent;
+            EditorUtility.SetDirty(water);
+            var skyShader = Shader.Find("Skybox/Procedural");
+            if (skyShader == null) throw new InvalidOperationException("缺少内置程序天空 Shader。");
+            string skyPath = Root + "/Art/Materials/IslandSky.mat";
+            var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
+            if (sky == null) { sky = new Material(skyShader); AssetDatabase.CreateAsset(sky, skyPath); }
+            sky.SetColor("_SkyTint", new Color(.45f, .61f, .76f));
+            sky.SetColor("_GroundColor", new Color(.39f, .44f, .48f));
+            sky.SetFloat("_Exposure", 1); sky.SetFloat("_AtmosphereThickness", .8f);
+            sky.SetFloat("_SunSize", .025f);
+            EditorUtility.SetDirty(sky);
+            var sun = scene.GetRootGameObjects().Single(root => root.name == "Sun").GetComponent<Light>();
+            sun.intensity = 1.35f; sun.shadowStrength = .85f;
+            RenderSettings.sun = sun; RenderSettings.skybox = sky;
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(.57f, .69f, .77f);
+            RenderSettings.ambientEquatorColor = new Color(.43f, .48f, .49f);
+            RenderSettings.ambientGroundColor = new Color(.25f, .27f, .25f);
+            RenderSettings.fogColor = new Color(.55f, .68f, .76f);
+            foreach (var camera in scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<Camera>(true)))
+            {
+                camera.clearFlags = CameraClearFlags.Skybox;
+                camera.GetUniversalAdditionalCameraData().requiresDepthTexture = true;
+            }
+        }
+
+
+        private static void UpdateEnvironmentDetails(Scene scene)
+        {
+            string[] required = { "ShoreRockCluster", "BasaltRockCluster", "ShorePebbleScatter", "PineBranchedA", "PineBranchedB",
+                "ForestShrub", "ForestGrass", "RocksPierModule", "LuckyBaitCasinoShell" };
+            foreach (string id in required)
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Art/Models/" + id + ".fbx") == null)
+                    throw new InvalidOperationException("环境候选尚未导入：" + id);
+            var roots = scene.GetRootGameObjects();
+            var lighthouse = roots.Single(root => root.name == "LighthouseIsland");
+            var forest = roots.Single(root => root.name == "ForestIsland");
+            var volcano = roots.Single(root => root.name == "VolcanoIsland");
+            var rocks = roots.Single(root => root.name == "RocksIsland");
+            ValidateCasinoPlacement(rocks);
+            Physics.SyncTransforms();
+            var stations = roots.SelectMany(root => root.GetComponentsInChildren<HowToFishStation>()).ToArray();
+            var spawnPoints = roots.SelectMany(root => root.GetComponentsInChildren<Transform>()).Where(value =>
+                value.name.StartsWith("ClamSpawn", StringComparison.Ordinal) || value.name.StartsWith("LeechSpawn", StringComparison.Ordinal) ||
+                value.name.StartsWith("SnailSpawn", StringComparison.Ordinal) || value.name == "StartPoint").ToArray();
+            bool Clear(Vector3 position, float margin) => !stations.Any(station =>
+                    Vector3.ProjectOnPlane(station.transform.position - position, Vector3.up).sqrMagnitude < margin * margin) &&
+                !spawnPoints.Any(point => Vector3.ProjectOnPlane(point.position - position, Vector3.up).sqrMagnitude < 6.25f);
+
+            foreach (var island in new[] { lighthouse, volcano })
+            {
+                var detailRoot = ResetEnvironmentRoot(island, "EnvironmentRocks");
+                var ground = EnvironmentGround(island);
+                bool volcanic = island == volcano;
+                var path = volcanic ? island.transform.Find("WoodenAscent") : null;
+                int count = volcanic ? 28 : 20;
+                for (int i = 0; i < count; i++)
+                {
+                    float angle = i * 2.399963f;
+                    float radius = volcanic ? 52 + i % 7 * 4 : 21 + i % 4 * 1.5f;
+                    var local = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * radius;
+                    if (volcanic ? local.y < -35 : local.y < -5 && Mathf.Abs(local.x) < 18) continue;
+                    if (!ground.Raycast(new Ray(island.transform.position + new Vector3(local.x, 90, local.y), Vector3.down), out var hit, 120) || hit.point.y < .12f) continue;
+                    if (!Clear(hit.point, 4) || path != null && path.Cast<Transform>().Any(plank =>
+                        Vector3.ProjectOnPlane(plank.position - hit.point, Vector3.up).sqrMagnitude < 16)) continue;
+                    string model = i % 3 == 0 ? "ShorePebbleScatter" : volcanic ? "BasaltRockCluster" : "ShoreRockCluster";
+                    var detail = Model(model, scene); detail.name = model + i;
+                    detail.transform.SetParent(detailRoot, true);
+                    detail.transform.position = hit.point - hit.normal * .035f;
+                    detail.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(0, i * 53, 0);
+                    detail.transform.localScale = Vector3.one * (.75f + i % 4 * .1f);
+                }
+            }
+
+            // 保留原树根/树干碰撞和位置，只换视觉；不改变已有森林绕行与任务通道。
+            var oldTrees = forest.transform.Cast<Transform>().Where(tree => tree.name.StartsWith("Pine", StringComparison.Ordinal) &&
+                int.TryParse(tree.name.Substring(4), out _)).ToArray();
+            foreach (var tree in oldTrees)
+            {
+                var previousVisual = tree.Find("BranchedVisual");
+                if (previousVisual != null) Object.DestroyImmediate(previousVisual.gameObject);
+                foreach (var renderer in tree.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+                int index = int.Parse(tree.name.Substring(4));
+                var visual = Model(index % 2 == 0 ? "PineBranchedA" : "PineBranchedB", scene);
+                visual.name = "BranchedVisual"; visual.transform.SetParent(tree, false);
+                visual.transform.localPosition = Vector3.zero; visual.transform.localRotation = Quaternion.identity;
+                visual.transform.localScale = Vector3.one * .85f;
+            }
+            var understory = ResetEnvironmentRoot(forest, "EnvironmentUnderstory");
+            var forestGround = EnvironmentGround(forest);
+            for (int i = 0; i < 100; i++)
+            {
+                float angle = i * 2.399963f + .37f;
+                var local = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * (26 + i % 13 * 1.55f);
+                if (local.y < -21 && Mathf.Abs(local.x) < 20) continue;
+                if (!forestGround.Raycast(new Ray(forest.transform.position + new Vector3(local.x, 50, local.y), Vector3.down), out var hit, 80) || hit.point.y < .35f || !Clear(hit.point, 3.5f)) continue;
+                string id = i % 5 == 0 ? "ForestShrub" : "ForestGrass";
+                var plant = Model(id, scene); plant.name = id + i; plant.transform.SetParent(understory, true);
+                plant.transform.position = hit.point - Vector3.up * .015f;
+                plant.transform.rotation = Quaternion.Euler(0, i * 67, 0);
+                plant.transform.localScale = Vector3.one * (.55f + i % 5 * .1f);
+            }
+
+            var architecture = ResetEnvironmentRoot(rocks, "EnvironmentArchitecture");
+            var rocksGround = EnvironmentGround(rocks);
+            rocksGround.Raycast(new Ray(rocks.transform.position + new Vector3(-10.5f, 90, -27), Vector3.down), out var casinoFloor, 120);
+            var casino = Model("LuckyBaitCasinoShell", scene); casino.transform.SetParent(architecture, true);
+            casino.transform.position = casinoFloor.point + Vector3.up * .02f; casino.transform.rotation = Quaternion.Euler(0, 180, 0);
+            casino.transform.localScale = Vector3.one * .9f;
+            AddEnvironmentMeshColliders(casino);
+            foreach (var material in casino.GetComponentsInChildren<Renderer>().SelectMany(renderer => renderer.sharedMaterials).Distinct())
+                if (material.name == "CasinoSignWarm" && material.HasProperty("_EmissionColor"))
+                {
+                    material.EnableKeyword("_EMISSION"); material.SetColor("_EmissionColor", new Color(1, .42f, .08f) * 1.5f);
+                    EditorUtility.SetDirty(material);
+                }
+            // 栈桥在南岸东侧，避开商店、赌博区与主任务线；甲板接岸端只有约0.12米高差。
+            if (!rocksGround.Raycast(new Ray(rocks.transform.position + new Vector3(26, 90, -51.86f), Vector3.down), out var shore, 120))
+                throw new InvalidOperationException("岩石岛栈桥接岸点不在地形上。");
+            var pier = Model("RocksPierModule", scene); pier.transform.SetParent(architecture, true);
+            pier.transform.position = rocks.transform.position + new Vector3(26, shore.point.y - rocks.transform.position.y + .12f, -57);
+            pier.transform.rotation = Quaternion.Euler(0, 180, 0);
+            AddEnvironmentMeshColliders(pier);
+        }
+
+        private static void ValidateCasinoPlacement(GameObject island)
+        {
+            var ground = EnvironmentGround(island);
+            Physics.SyncTransforms();
+            var roulette = island.transform.Find("RouletteTable");
+            var slot = island.transform.Find("SlotMachine");
+            if (roulette == null || slot == null) throw new InvalidOperationException("装配赌场外壳前需要已有轮盘与老虎机。");
+            foreach (var pair in new[] { (roulette, new Vector3(-13, 0, -30)), (slot, new Vector3(-8, 0, -30)) })
+                if (Vector3.ProjectOnPlane(pair.Item1.localPosition - pair.Item2, Vector3.up).sqrMagnitude > .01f)
+                    throw new InvalidOperationException("赌博设施位置已改变，停止外壳装配以保护现有交互；不要自动迁移设施。");
+            if (!ground.Raycast(new Ray(island.transform.position + new Vector3(-10.5f, 90, -27), Vector3.down), out var center, 120))
+                throw new InvalidOperationException("赌场中心不在岩石岛地形上。");
+            foreach (var sample in new[] { new Vector2(-10.5f, -31.05f), new Vector2(-10.5f, -32.8275f) })
+            {
+                if (!ground.Raycast(new Ray(island.transform.position + new Vector3(sample.x, 90, sample.y), Vector3.down), out var entry, 120) ||
+                    Mathf.Abs(entry.point.y - center.point.y - .02f) > .25f)
+                    throw new InvalidOperationException("赌场入口高差超过0.25米，停止装配；需重新检查地形而不是搬动桌子。");
+            }
+            var shop = island.transform.Find("RocksShop");
+            if (shop == null) throw new InvalidOperationException("岩石岛原商店缺失。");
+            float shopLeft = shop.GetComponentsInChildren<Renderer>().Min(renderer => renderer.bounds.min.x);
+            float casinoRight = island.transform.position.x - 10.5f + 7.45f * .9f;
+            if (shopLeft - casinoRight < .7f)
+                throw new InvalidOperationException("赌场与原商店间距不足0.7米，停止外壳装配以保留通路。");
+        }
+
+        private static MeshCollider EnvironmentGround(GameObject island)
+        {
+            var ground = island.GetComponent<MeshCollider>();
+            if (ground != null) return ground;
+            return island.GetComponentsInChildren<MeshCollider>().Single(collider => collider.name == "Terrain");
+        }
+
+        private static Transform ResetEnvironmentRoot(GameObject island, string name)
+        {
+            var previous = island.transform.Find(name);
+            if (previous != null) Object.DestroyImmediate(previous.gameObject);
+            var root = new GameObject(name).transform; root.SetParent(island.transform, false); return root;
+        }
+
+        private static void AddEnvironmentMeshColliders(GameObject model)
+        {
+            // 逐个实际静态网格生成非凸碰撞；合并门框/门廊仍保留空洞，绝不退回总包围盒。
+            foreach (var part in model.GetComponentsInChildren<MeshFilter>())
+            {
+                var collider = part.GetComponent<MeshCollider>(); if (collider == null) collider = part.gameObject.AddComponent<MeshCollider>();
+                collider.sharedMesh = part.sharedMesh; collider.convex = false;
             }
         }
 

@@ -31,6 +31,10 @@ namespace Hotfix.HowToFish
         public string BaitName => selectedBait == "FreeLure" ? selectedRod == "CrabRod" ? "火腿" : "薯条" : catalog.FindItem(selectedBait)?.DisplayName;
         /// 对玩家显示的鱼讯或失败原因。
         public event Action<string> Message;
+        /// 真实抛竿和浮漂入水事件；由场景音源消费。
+        public event Action<HowToFishSound, Vector3> SoundRequested;
+        /// 收线音跟随有效收线阶段与输入，不使用界面提示文字推断。
+        public bool IsReelingSoundActive => state.Phase == HowToFishFishingPhase.Reeling && wasUseHeld;
 
         /// <summary>绑定当前会话和世界生成入口。</summary>
         /// <param name="owner">单人会话。</param>
@@ -107,6 +111,7 @@ namespace Hotfix.HowToFish
                 float minimum = selectedBait == "FreeLure" ? selectedRod == "CrabRod" ? 1 : 2 : bait.MinimumBiteSeconds;
                 float maximum = selectedBait == "FreeLure" ? selectedRod == "CrabRod" ? 4 : 3 : bait.MaximumBiteSeconds;
                 state.EnterWater(UnityEngine.Random.Range(minimum, maximum), catchDefinition.Strength);
+                SoundRequested?.Invoke(HowToFishSound.Splash, bobber.position);
             }
             if (state.Phase == HowToFishFishingPhase.Bite && previous != state.Phase)
             {
@@ -161,6 +166,7 @@ namespace Hotfix.HowToFish
                 else { Message?.Invoke("先结束当前首领战斗。"); state.Reset(); return; }
             }
             float distance = state.Cast();
+            SoundRequested?.Invoke(HowToFishSound.Cast, tip.position);
             catchSpawned = false;
             bobber = Instantiate(bobberPrefab, tip.position, Quaternion.identity);
             var forward = Vector3.ProjectOnPlane(eye.forward, Vector3.up).normalized;
