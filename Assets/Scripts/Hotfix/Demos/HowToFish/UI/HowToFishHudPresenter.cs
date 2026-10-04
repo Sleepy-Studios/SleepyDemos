@@ -169,6 +169,11 @@ namespace Hotfix.HowToFish
             if (state.burningSeconds > 0) stats.text += $"  <color=#FFA45B>燃烧 {state.burningSeconds:0.0}s</color>";
             if (world.Player.Equipment?.Kind == HowToFishItemKind.Rod) stats.text += "\n鱼饵：" + world.Player.Fishing.BaitName;
             var heldFood = world.Player.HeldItem;
+            var heldDynamite = heldFood != null ? heldFood.GetComponent<HowToFishDynamite>() : null;
+            if (heldDynamite != null && heldDynamite.IsArmed)
+                stats.text += $"\n<color=#FF815B>炸药引信 {heldDynamite.RemainingFuse:0.0}s · 立即投掷</color>";
+            else if (world.Player.Equipment?.Kind == HowToFishItemKind.Explosive)
+                stats.text += $"\n炸药 ×{world.Session.Count(world.Player.Equipment.Id)}";
             if (heldFood != null && world.Player.CanEat)
                 stats.text += $"\n{heldFood.Creature?.DisplayName ?? world.Catalog.FindItem(heldFood.DefinitionId)?.DisplayName} · " +
                     (heldFood.IsBurnt ? "烧焦" : heldFood.Cooking >= .45f ? "熟成" : heldFood.IsCooked ? "加热中" : "生") +
@@ -200,6 +205,8 @@ namespace Hotfix.HowToFish
             if (!world.IsPaused && !world.Player.IsDriving) controls.text += "   " + world.Input.BindingLabel("Holster") + " 收纳/空手";
             if (!world.IsPaused && !world.Player.IsDriving && world.Player.CanEat)
                 controls.text = "按住 " + world.Input.BindingLabel("Use") + " 进食   " + controls.text;
+            if (!world.IsPaused && !world.Player.IsDriving && world.Player.HeldItem == null && world.Player.Equipment?.Kind == HowToFishItemKind.Explosive)
+                controls.text = world.Input.BindingLabel("Use") + " 点燃投出（3秒）   " + controls.text;
             var fishing = world.Player.Fishing.State;
             fishingPanel.SetActive(!world.IsPaused && fishing.IsActive);
             bool pullBack = world.Player.Equipment?.Id == "FishingRod";

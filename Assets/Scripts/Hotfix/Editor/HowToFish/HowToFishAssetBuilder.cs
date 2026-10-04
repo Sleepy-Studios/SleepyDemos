@@ -173,6 +173,41 @@ namespace Hotfix.Editor.HowToFish
             settings.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(catalog);
         }
 
+        internal static void BuildDynamite()
+        {
+            BuildWorldItem("Dynamite");
+            BuildEquipment("Dynamite", "Fuse");
+            string path = Root + "/Prefabs/Items/Dynamite.prefab";
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                if (root.GetComponent<HowToFishDynamite>() == null) root.AddComponent<HowToFishDynamite>();
+                root.GetComponent<Rigidbody>().mass = 1;
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+            var catalog = AssetDatabase.LoadAssetAtPath<HowToFishCatalog>(Root + "/Data/Catalog.asset");
+            var data = new SerializedObject(catalog);
+            var items = data.FindProperty("items");
+            var entry = catalog.FindItem("Dynamite") == null ? items.GetArrayElementAtIndex(items.arraySize++) : FindEntry(items, "Dynamite");
+            entry.FindPropertyRelative("id").stringValue = "Dynamite";
+            entry.FindPropertyRelative("displayName").stringValue = "炸药";
+            entry.FindPropertyRelative("kind").enumValueIndex = (int)HowToFishItemKind.Explosive;
+            entry.FindPropertyRelative("island").intValue = 1;
+            entry.FindPropertyRelative("price").intValue = 25;
+            entry.FindPropertyRelative("damage").floatValue = 200;
+            entry.FindPropertyRelative("useInterval").floatValue = .5f;
+            entry.FindPropertyRelative("isConsumable").boolValue = true;
+            entry.FindPropertyRelative("isCookable").boolValue = false;
+            entry.FindPropertyRelative("automatic").boolValue = false;
+            foreach (string field in new[] { "upgradedDamage", "upgradeCosts", "attachmentPrices" }) entry.FindPropertyRelative(field).arraySize = 0;
+            foreach (string field in new[] { "magazineSize", "extendedMagazineSize" }) entry.FindPropertyRelative(field).intValue = 0;
+            entry.FindPropertyRelative("prefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            entry.FindPropertyRelative("viewPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/Equipment/Dynamite.prefab");
+            data.ApplyModifiedPropertiesWithoutUndo();
+            catalog.Validate(); EditorUtility.SetDirty(catalog);
+        }
+
         internal static void ConfigureWeaponUpgrades()
         {
             BuildWorldItem("BrassKnuckles");

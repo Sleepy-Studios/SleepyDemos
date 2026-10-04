@@ -160,6 +160,8 @@ namespace Hotfix.HowToFish
             if (prefab == null) throw new InvalidOperationException("缺少实体 Prefab：" + id);
             var item = Instantiate(prefab, position, Quaternion.identity).GetComponent<HowToFishWorldItem>();
             item.Initialize(session, catalog, id, drip);
+            var dynamite = item.GetComponent<HowToFishDynamite>();
+            if (dynamite != null) dynamite.Initialize(player);
             var fishMotion = item.GetComponent<HowToFishFishMotion>();
             if (fishMotion != null) fishMotion.Initialize(player);
             var crab = item.GetComponent<HowToFishSpiderCrab>();

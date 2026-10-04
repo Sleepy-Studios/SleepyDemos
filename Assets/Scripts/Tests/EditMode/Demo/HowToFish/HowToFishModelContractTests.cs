@@ -168,6 +168,7 @@ namespace Tests.Demo
         [TestCase("Seagull", "Hook")]
         [TestCase("Coconut", "Forward")]
         [TestCase("PlayerRemains", "Forward")]
+        [TestCase("Dynamite", "Fuse")]
         public void FirstIslandModel_PreservesForwardMountAndAppliedTransforms(string name, string mount)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/how_to_fish/Art/Models/" + name + ".fbx");

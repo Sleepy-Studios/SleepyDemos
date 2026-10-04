@@ -30,6 +30,107 @@ namespace Tests.Demo
         private string saveDirectory;
         private HowToFishWorld testWorld;
 
+        [UnityTest, Timeout(240000)]
+        public IEnumerator Dynamite_BuyThrowPauseResumeChainAndSelfDamage()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            // 隔离炸药购买和爆炸规则；不是从零赚钱的新档流程。
+            world.Session.State.unlockedIsland = 1; world.Session.State.money = 100;
+            yield return AimAtProduct(world, "Dynamite", 1);
+            for (int i = 0; i < 4; i++) yield return PressKey(Key.E);
+            Assert.That(world.Session.Count("Dynamite"), Is.EqualTo(4));
+            Assert.That(world.Session.State.money, Is.Zero);
+            Assert.That(world.Player.Equipment.Id, Is.EqualTo("Dynamite"));
+            yield return PressKey(Key.G);
+            var thrown = UnityEngine.Object.FindObjectsByType<HowToFishDynamite>(FindObjectsSortMode.None).Single();
+            Assert.That(thrown.IsArmed, Is.False, "普通丢弃不点燃。");
+            Assert.That(world.Session.Count("Dynamite"), Is.EqualTo(3));
+            var item = thrown.GetComponent<HowToFishWorldItem>();
+            PlaceForPickup(world.Player, item);
+            Assert.That(world.Player.PickUp(item), Is.True);
+            yield return null;
+            Assert.That(world.Session.Count("Dynamite"), Is.EqualTo(4));
+            InputSystem.QueueStateEvent(gamepad, new GamepadState { rightTrigger = 1 });
+            yield return new WaitForSeconds(.1f);
+            InputSystem.QueueStateEvent(gamepad, new GamepadState());
+            world.SetPaused(true);
+            thrown = UnityEngine.Object.FindObjectsByType<HowToFishDynamite>(FindObjectsSortMode.None).Single();
+            item = thrown.GetComponent<HowToFishWorldItem>();
+            Assert.That(world.Session.Count("Dynamite"), Is.EqualTo(3));
+            Assert.That(thrown.RemainingFuse, Is.InRange(2.7f, 3));
+            float pausedFuse = thrown.RemainingFuse;
+            yield return new WaitForSecondsRealtime(.25f);
+            Assert.That(thrown.RemainingFuse, Is.EqualTo(pausedFuse));
+            PlaceForPickup(world.Player, item);
+            Assert.That(world.Player.PickUp(item), Is.True);
+            Assert.That(item.IsHeld, Is.True);
+            Assert.That(world.Session.Count("Dynamite"), Is.EqualTo(3), "点燃后不能回库存重置引信。");
+            world.Player.Drop(true);
+            item.Body.isKinematic = true;
+            item.transform.position = world.Player.transform.position + Vector3.right * 15 + Vector3.up;
+            Physics.SyncTransforms();
+            world.Save();
+            string savedId = item.InstanceId;
+            var saved = world.InspectSlot(0).Data.worldItems.Single(value => value.instanceId == savedId);
+            Assert.That(saved.dynamiteFuseSeconds, Is.EqualTo(pausedFuse));
+            world.ReturnToHub();
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "炸药保存后未返回Hub。");
+            yield return EnterWorld();
+            world = testWorld; world.SetPaused(true);
+            item = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.InstanceId == savedId);
+            thrown = item.GetComponent<HowToFishDynamite>();
+            Assert.That(thrown.RemainingFuse, Is.GreaterThan(0).And.LessThanOrEqualTo(pausedFuse));
+            var center = new Vector3(3000, 3, 3000);
+            item.Body.isKinematic = true; item.transform.position = center;
+            var chain = world.Spawn("Dynamite", center + Vector3.right, false);
+            chain.Body.isKinematic = true;
+            var tuna = world.Spawn("Tuna", center + Vector3.forward, false);
+            tuna.GetComponent<HowToFishTuna>().enabled = false; tuna.Body.isKinematic = true;
+            tuna.gameObject.AddComponent<BoxCollider>();
+            var fish = world.Spawn("Mackerel", center + Vector3.back, false);
+            fish.Body.isKinematic = true;
+            var outside = world.Spawn("Mackerel", center + Vector3.right * 12, false);
+            outside.Body.isKinematic = true;
+            Physics.SyncTransforms();
+            world.SetPaused(false);
+            yield return WaitFor(() => thrown == null, "读档引信没有继续并引爆。");
+            var chainFuse = chain.GetComponent<HowToFishDynamite>();
+            Assert.That(chainFuse.RemainingFuse, Is.GreaterThan(0).And.LessThanOrEqualTo(.2f));
+            float shorter = chainFuse.RemainingFuse;
+            chainFuse.Ignite(); chainFuse.TriggerChainReaction();
+            Assert.That(chainFuse.RemainingFuse, Is.LessThanOrEqualTo(shorter));
+            Assert.That(tuna.Health, Is.EqualTo(4550), "多个碰撞体不能重复结算450伤害。");
+            Assert.That(fish.IsAlive, Is.False);
+            Assert.That(fish.KillMultiplier, Is.EqualTo(1.25f));
+            yield return WaitFor(() => chain == null, "相邻未点燃炸药未在短引信后爆炸。");
+            Assert.That(tuna.Health, Is.EqualTo(4100));
+            Assert.That(outside.Health, Is.EqualTo(outside.Creature.Health));
+            UnityEngine.Object.Destroy(tuna.gameObject);
+            UnityEngine.Object.Destroy(fish.gameObject);
+            UnityEngine.Object.Destroy(outside.gameObject);
+            var danger = world.Spawn("Dynamite", world.Player.transform.position + Vector3.up, false);
+            danger.Body.isKinematic = true;
+            int deaths = 0;
+            void CountDeath() => deaths++;
+            world.Player.Died += CountDeath;
+            try
+            {
+                danger.GetComponent<HowToFishDynamite>().TriggerChainReaction();
+                yield return new WaitForSeconds(.3f);
+                Assert.That(deaths, Is.EqualTo(1), "玩家自己的炸药必须能致死且只结算一次。");
+                Assert.That(world.Session.State.health, Is.EqualTo(100));
+            }
+            finally { world.Player.Died -= CountDeath; }
+            while (world.Session.Count("Dynamite") > 1) Assert.That(world.Session.TryConsume("Dynamite"), Is.True);
+            InputSystem.QueueStateEvent(gamepad, new GamepadState { rightTrigger = 1 });
+            yield return new WaitForSeconds(.1f);
+            InputSystem.QueueStateEvent(gamepad, new GamepadState());
+            Assert.That(world.Session.Count("Dynamite"), Is.Zero);
+            Assert.That(world.Player.Equipment, Is.Null, "最后一枚耗尽后应正常空手。");
+            Assert.That(UnityEngine.Object.FindObjectsByType<HowToFishDynamite>(FindObjectsSortMode.None).Single().IsArmed, Is.True);
+        }
+
         [UnityTest]
         public IEnumerator Albatross_FiveShotVolleyAndTerrainBlockedPursuit()
         {

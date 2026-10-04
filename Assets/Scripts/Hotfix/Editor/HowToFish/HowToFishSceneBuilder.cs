@@ -39,6 +39,7 @@ namespace Hotfix.Editor.HowToFish
             HowToFishAssetBuilder.ConfigureVerifiedBaitPools();
             HowToFishAssetBuilder.ConfigureWeaponUpgrades();
             HowToFishAssetBuilder.ConfigureGunAttachments();
+            HowToFishAssetBuilder.BuildDynamite();
             HowToFishAssetBuilder.EnsureFont();
             HowToFishAssetBuilder.EnsureFolder(Root + "/Prefabs/UI");
             HowToFishAssetBuilder.EnsureFolder(Root + "/Scenes");
@@ -466,7 +467,7 @@ namespace Hotfix.Editor.HowToFish
             var positions = new[] { new Vector2(-7, -2), new Vector2(9, -36), new Vector2(4, -32), new Vector2(5, -25), new Vector2(-8, -67) };
             var stock = new[] { ("CrabRod", 0), ("Radar", 0), ("HotDog", 0), ("FishingRod", 1),
                 ("BeginnerLure", 1), ("BeginnerBossLure", 1), ("StandardLure", 2), ("StandardBossLure", 2),
-                ("ProfessionalLure", 3), ("ProfessionalBossLure", 3), ("ScientificLure", 4), ("ScientificBossLure", 4) };
+                ("ProfessionalLure", 3), ("ProfessionalBossLure", 3), ("ScientificLure", 4), ("ScientificBossLure", 4), ("Dynamite", 1) };
             for (int i = 0; i < names.Length; i++)
             {
                 var island = scene.GetRootGameObjects().Single(root => root.name == names[i]);

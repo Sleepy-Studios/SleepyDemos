@@ -33,6 +33,7 @@ namespace Hotfix.HowToFish
         private float styleMultiplier = 1;
         private bool hasBeenHitByPlayer;
         private HowToFishBossTransition bossTransition;
+        private HowToFishDynamite dynamite;
 
         /// 定义标识，关联目录中的物品或生物。
         public string DefinitionId => definitionId;
@@ -75,6 +76,7 @@ namespace Hotfix.HowToFish
         {
             body = GetComponent<Rigidbody>();
             bossTransition = GetComponent<HowToFishBossTransition>();
+            dynamite = GetComponent<HowToFishDynamite>();
             colliders = GetComponentsInChildren<Collider>();
             instanceId = Guid.NewGuid().ToString("N");
             originalGravity = body.useGravity;
@@ -104,6 +106,8 @@ namespace Hotfix.HowToFish
         public void Restore(HowToFishWorldItemData data)
         {
             if (data == null || data.definitionId != definitionId) throw new ArgumentException("存档物品定义不匹配。");
+            if (data.dynamiteFuseSeconds > 0 && dynamite == null) throw new ArgumentException("存档炸药缺少引信组件。");
+            if (dynamite != null) dynamite.RestoreFuse(data.dynamiteFuseSeconds);
             instanceId = data.instanceId;
             health = creature == null ? 0 : Mathf.Clamp(data.health, 0, creature.Health);
             cooking = data.cooking > 0 ? data.cooking : data.isCooked ? .5f : 0;
@@ -124,7 +128,8 @@ namespace Hotfix.HowToFish
             instanceId = instanceId, definitionId = definitionId, health = health,
             position = transform.position, eulerAngles = transform.eulerAngles,
             isCooked = IsCooked, cooking = cooking, hasBeenHeld = hasBeenHeld, styleMultiplier = styleMultiplier,
-            isDrip = isDrip, hasBeenHitByPlayer = hasBeenHitByPlayer, equipment = equipmentState?.Copy()
+            isDrip = isDrip, hasBeenHitByPlayer = hasBeenHitByPlayer, equipment = equipmentState?.Copy(),
+            dynamiteFuseSeconds = dynamite != null ? dynamite.RemainingFuse : 0
         };
 
         /// <summary>将背包装备状态转入这个物理实体。</summary>

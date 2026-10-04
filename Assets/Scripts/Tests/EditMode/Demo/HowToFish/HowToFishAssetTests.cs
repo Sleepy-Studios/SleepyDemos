@@ -22,7 +22,7 @@ namespace Tests.Demo
                     .Where(station => station.Kind == HowToFishStationKind.Product).ToArray();
                 foreach (var row in new[] { ("CrabRod", 0), ("Radar", 0), ("HotDog", 0), ("FishingRod", 1),
                     ("BeginnerLure", 1), ("BeginnerBossLure", 1), ("StandardLure", 2), ("StandardBossLure", 2),
-                    ("ProfessionalLure", 3), ("ProfessionalBossLure", 3), ("ScientificLure", 4), ("ScientificBossLure", 4) })
+                    ("ProfessionalLure", 3), ("ProfessionalBossLure", 3), ("ScientificLure", 4), ("ScientificBossLure", 4), ("Dynamite", 1) })
                     for (int island = 0; island < 5; island++)
                         Assert.That(products.Count(product => product.ItemId == row.Item1 && product.Island == island),
                             Is.EqualTo(island >= row.Item2 ? 1 : 0), row.Item1 + "/" + island);
@@ -65,6 +65,12 @@ namespace Tests.Demo
             Assert.That(catalog.FindItem("EmptyBeerCan").BaitRequiresMovement, Is.False);
             Assert.That(catalog.FindItem("StandardLure").MinimumBiteSeconds, Is.EqualTo(1));
             Assert.That(catalog.FindItem("StandardLure").MaximumBiteSeconds, Is.EqualTo(2.5f));
+            var dynamite = catalog.FindItem("Dynamite");
+            Assert.That(dynamite.Kind, Is.EqualTo(HowToFishItemKind.Explosive));
+            Assert.That(dynamite.Price, Is.EqualTo(25));
+            Assert.That(dynamite.IsEquipment && dynamite.IsConsumable, Is.True);
+            Assert.That(dynamite.Prefab.GetComponent<HowToFishDynamite>(), Is.Not.Null);
+            Assert.That(dynamite.Prefab.GetComponent<Rigidbody>().mass, Is.EqualTo(1));
         }
 
         [Test]
@@ -134,7 +140,7 @@ namespace Tests.Demo
             }
             foreach (var item in catalog.Items)
             {
-                if (item.Kind != HowToFishItemKind.Rod && item.Kind != HowToFishItemKind.Melee && item.Kind != HowToFishItemKind.Gun) continue;
+                if (!item.IsEquipment) continue;
                 Assert.That(item.ViewPrefab, Is.Not.Null, item.Id);
                 Assert.That(item.ViewPrefab.GetComponent<HowToFishEquipmentView>(), Is.Not.Null, item.Id);
                 Assert.That(item.ViewPrefab.GetComponentInChildren<Rigidbody>(), Is.Null, "第一人称模型不应复用动态物品刚体。");

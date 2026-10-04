@@ -176,6 +176,14 @@ namespace Hotfix.HowToFish
         public bool PickUp(HowToFishWorldItem item)
         {
             if (item == null || item.IsConsumed) return false;
+            var dynamite = item.GetComponent<HowToFishDynamite>();
+            if (dynamite != null && dynamite.IsArmed)
+            {
+                Drop(false);
+                if (!item.TryHold(eye.transform, motor)) return false;
+                heldItem = item;
+                return true;
+            }
             var definition = catalog.FindItem(item.DefinitionId);
             if (definition?.IsEquipment == true)
             {
@@ -220,16 +228,22 @@ namespace Hotfix.HowToFish
             heldItem = null;
         }
 
-        private void DropEquipment(string id, bool throwForward)
+        private HowToFishWorldItem DropEquipment(string id, bool throwForward)
         {
             var snapshot = session.State.inventory.Find(item => item.id == id)?.Copy();
-            if (snapshot == null) return;
+            if (snapshot == null) return null;
             snapshot.count = 1;
             var dropped = spawnItem(id, eye.transform.position + eye.transform.forward, false);
-            try { dropped.SetEquipmentState(snapshot); }
+            try
+            {
+                if (catalog.FindItem(id)?.Kind == HowToFishItemKind.Explosive && dropped.GetComponent<HowToFishDynamite>() == null)
+                    throw new InvalidOperationException("炸药 Prefab 缺少 HowToFishDynamite。");
+                dropped.SetEquipmentState(snapshot);
+            }
             catch { Destroy(dropped.gameObject); throw; }
-            if (session.TryConsume(id)) dropped.Body.linearVelocity = throwForward ? eye.transform.forward * 9 + Vector3.up * 1.5f : Vector3.zero;
-            else Destroy(dropped.gameObject);
+            if (!session.TryConsume(id)) { Destroy(dropped.gameObject); return null; }
+            dropped.Body.linearVelocity = throwForward ? eye.transform.forward * 9 + Vector3.up * 1.5f : Vector3.zero;
+            return dropped;
         }
 
         /// <summary>选择一个装备栏；未收纳装备先尝试放入空栏，满栏则落地。</summary>
@@ -361,6 +375,18 @@ namespace Hotfix.HowToFish
         private void Attack()
         {
             if (Time.time < attackReadyTime || IsReloading) return;
+            if (equipment?.Kind == HowToFishItemKind.Explosive)
+            {
+                if (HeldItem != null) return;
+                float interval = equipment.UseInterval;
+                var thrown = DropEquipment(equipment.Id, true);
+                if (thrown != null)
+                {
+                    thrown.GetComponent<HowToFishDynamite>().Ignite();
+                    attackReadyTime = Time.time + interval;
+                }
+                return;
+            }
             if (equipment?.Kind == HowToFishItemKind.Gun)
             {
                 if (Ammo <= 0) { attackReadyTime = Time.time + .25f; Message?.Invoke("弹匣已空，按 " + input.BindingLabel("Reload") + " 换弹。"); return; }
@@ -412,6 +438,20 @@ namespace Hotfix.HowToFish
             }
             item.Hit(damage, impulse, multiplier, true);
             if (bonuses != null && !item.IsAlive) Message?.Invoke($"击杀奖励 ×{multiplier:0.##}：{bonuses}");
+        }
+
+        internal void HitByExplosion(HowToFishWorldItem item, float damage)
+        {
+            if (item == null || !item.IsAlive) return;
+            float multiplier = 1;
+            if (item.DamageToApply(damage) >= item.Health)
+                multiplier = killScore.Score(new HowToFishKillHit
+                {
+                    Method = HowToFishKillMethod.Explosion, Health = item.Health,
+                    MaximumHealth = item.Creature.Health, Damage = damage
+                }, Time.time).Multiplier;
+            item.Hit(damage, Vector3.zero, multiplier, true);
+            if (!item.IsAlive) Message?.Invoke("击杀奖励 ×1.25：爆炸");
         }
 
         private Collider FindFocus()

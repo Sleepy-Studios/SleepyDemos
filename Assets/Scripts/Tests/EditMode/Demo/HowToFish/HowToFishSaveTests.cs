@@ -83,6 +83,25 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void DynamiteFuse_RoundTripsAndRejectsInvalidOrUnrelatedItems()
+        {
+            var data = new HowToFishSaveData();
+            var item = new HowToFishWorldItemData { instanceId = "LitDynamite", definitionId = "Dynamite", dynamiteFuseSeconds = 1.25f };
+            data.worldItems.Add(item);
+            store.Save(0, data);
+            Assert.That(store.Load(0).Data.worldItems[0].dynamiteFuseSeconds, Is.EqualTo(1.25f));
+            foreach (float invalid in new[] { -1, 3.01f, float.NaN, float.PositiveInfinity })
+            {
+                item.dynamiteFuseSeconds = invalid;
+                Assert.Throws<FormatException>(() => store.Save(0, data));
+            }
+            item.dynamiteFuseSeconds = 1; item.definitionId = "Shrimp";
+            Assert.Throws<FormatException>(() => data.Validate());
+            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"definitionId\":\"Dynamite\"}").dynamiteFuseSeconds, Is.Zero);
+            Assert.That(store.Load(0).Data.worldItems[0].dynamiteFuseSeconds, Is.EqualTo(1.25f));
+        }
+
+        [Test]
         public void VolcanoProgressAndEnding_SurviveSaveAndRejectImpossibleStates()
         {
             var data = new HowToFishSaveData { unlockedIsland = 4, volcanoFish = 3 };

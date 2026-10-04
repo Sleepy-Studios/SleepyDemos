@@ -2397,4 +2397,31 @@ MonoBehaviour:
     automatic: 0
     prefab: {fileID: 5832897189187095842, guid: 9bd34726ba24bf04daac5ecbe4270b4e, type: 3}
     viewPrefab: {fileID: 4176576655551904315, guid: c4daa51b1ddc9fd448132d7fe10b02e9, type: 3}
+  - id: Dynamite
+    displayName: "\u70B8\u836F"
+    kind: 7
+    island: 1
+    price: 25
+    minimumBiteSeconds: 2
+    maximumBiteSeconds: 5
+    baitLossChance: 1
+    baitRequiresMovement: 1
+    damage: 200
+    upgradedDamage: []
+    upgradeCosts: 
+    useInterval: 0.5
+    magazineSize: 0
+    extendedMagazineSize: 0
+    attachmentPrices: 
+    recoilAngle: 0
+    reloadSeconds: 1
+    range: 2.4
+    nourishment: 20
+    pellets: 1
+    spread: 0
+    isConsumable: 1
+    isCookable: 0
+    automatic: 0
+    prefab: {fileID: 8457194301530474339, guid: 3644a9dfc6e41744494c32b19522f259, type: 3}
+    viewPrefab: {fileID: 2828911681872833632, guid: 2ef0112bf8b8f8d4ebcd1a59d0135d72, type: 3}
   dripChance: 0.1

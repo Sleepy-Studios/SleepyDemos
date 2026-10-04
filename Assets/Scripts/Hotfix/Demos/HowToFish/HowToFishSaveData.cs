@@ -96,6 +96,8 @@ namespace Hotfix.HowToFish
                     !IsFinite(item.position) || !IsFinite(item.eulerAngles) || !IsFinite(item.health) || item.health < 0f ||
                     !IsFinite(item.cooking) || item.cooking < 0 || item.cooking > 1 ||
                     !IsFinite(item.styleMultiplier) || item.styleMultiplier < 1 ||
+                    !(item.dynamiteFuseSeconds >= 0 && item.dynamiteFuseSeconds <= 3) ||
+                    item.dynamiteFuseSeconds > 0 && item.definitionId != "Dynamite" ||
                     item.HasEquipment && (!item.equipment.IsValid || item.equipment.id != item.definitionId || item.equipment.count != 1))
                     throw new FormatException("存档世界物品无效或重复。");
             }
@@ -166,6 +168,8 @@ namespace Hotfix.HowToFish
         public bool hasBeenHitByPlayer;
         public bool isDrip;
         public HowToFishOwnedItem equipment;
+        /// 剩余引信游戏秒数；旧档缺失或零表示未点燃。
+        public float dynamiteFuseSeconds;
         // JsonUtility 会把空的内联对象恢复成默认实例，以物品 ID 区分实际装备快照。
         public bool HasEquipment => equipment != null && !string.IsNullOrEmpty(equipment.id);
     }
