@@ -6,6 +6,8 @@ namespace Core.Runtime.Inputs
     /// EventSystem只向选中控件发Cancel；转给页面作用域或宿主页面的取消处理。
     public sealed class UICancelRelay : MonoBehaviour, ICancelHandler
     {
+        /// <summary>将选中控件的取消事件交给最近页面；不创建或接管输入作用域。</summary>
+        /// <param name="value">原生UI模块的取消事件，由页面处理并决定是否消费。</param>
         public void OnCancel(BaseEventData value)
         {
             var scope = GetComponentInParent<UIMenuScope>();

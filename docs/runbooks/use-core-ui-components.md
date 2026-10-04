@@ -206,3 +206,8 @@ tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 `UIProgressBar` 只包装同节点 Image 的 `fillAmount` 与颜色，不实现交互或业务缓动。普通填充使用项目公共 `Sprites/White.png`、Filled 和 Image.color；需固定圆角的背景或遮罩使用有 Border 的 Sliced，填充在遮罩内变化。Filled 必须保存非空 Sprite：没有 Sprite 时 UGUI 会绘制普通矩形，忽略填充逻辑。特殊形状和径向填充保留相应 Sprite 与 FillMethod，不强制使用白块。
 
 修改基础模板后运行 `UIFoundationAssetTests` 与 `UIFoundationPlayModeTests`，检查真实鼠标悬停/点击/移出、键鼠与手柄提交、禁用及反复开关；检查 0%、1%、50%、100% 的实际填充网格和不同尺寸下的边框。自动断言不代替视觉检查，必须查看目标 Canvas 的状态截图。
+
+
+`UICancelRelay` 配置在按钮、Slider 等可导航控件上；优先转交最近的 UIMenuScope，宿主已经持有 MenuInputScope 的页面则转交最近的父级 ICancelHandler。只有选中控件接收原生 Cancel，不依赖事件自动向上冒泡，不为转发再创建一个输入作用域。
+
+新增普通水平/竖直 Filled 填充须通过 `UIFoundationAssetTests.LinearProgress_UsesWhiteSpriteAndSharedComponent`；检查覆盖全部 LoadResources Prefab，不按节点名称放行。页面拆分同时检查本地绑定、缺失脚本和 HUD 子 Prefab 引用，视觉验收仍须查看实际输入与填充网格。

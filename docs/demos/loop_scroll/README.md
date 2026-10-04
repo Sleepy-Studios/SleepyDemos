@@ -16,3 +16,10 @@
 此前 API 收口阶段于 2026-10-01 完成 Unity 6 宿主正式编译及相关 Test Runner 验收：MvcBind 2/2、桥接 5/5、Showcase 6/6、程序集边界 5/5，Console 无错误；未执行全量测试。按钮/拖拽为事件模拟，实际触摸和独立 Player 构建仍按包发布检查表验收。
 
 本轮定位完成/取消/偏移验收：最终代码双版本包 PlayMode 各 40/40、EditMode 各 2/2；Unity 6 宿主 LoopScrollShowcaseTests 7/7，Console Error 为 0。已检查中英完成/拖动取消截图；无宿主全量测试、真实鼠标/触摸或 Player 构建验证。原始证据与当前完整契约见包验收记录和 APIReference。
+
+
+## 动态 UI 与公共组件（2026-10-05）
+
+独立 SleepyLoopScroll 包的 Showcase 继续动态建页；这是包示例已有入口，不复制其列表实现，也不改包源码。项目 LoopScrollInputHost 给动态 Selectable 配置公共 UIState/UIStateInteraction 和 UIMenuScope。Hover 提亮、Focused 显示青色边框、Pressed 按钮缩小、Disabled 降低强调；边框不接收射线，Slider 不缩放几何。页面销毁解除返回订阅并释放仅由本页面创建的 EventSystem。Mvc 示例继续使用公共 ItemView 桥接与现有列表数据生命周期。
+
+动态按钮定向测试 5dbcfacf（1/1）通过：实际鼠标 Hover/Pressed/Click、键盘提交、焦点边框、禁用清反馈及重复开关后缩放复位；未运行包内全量列表回归。

@@ -24,6 +24,46 @@ namespace Tests.Demo
     public sealed class DlssDemoFlowTests
     {
         [UnityTest]
+        public IEnumerator Controls_RebindingKeepsOneSubscriptionAndDisableReleasesHold()
+        {
+            var host = new GameObject("DlssControlsOwner"); host.SetActive(false);
+            var owner = host.AddComponent<DlssDemoController>();
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/LoadResources/Demos/dlss/Data/Dlss.inputactions");
+            var session = new Core.Runtime.Inputs.InputActionSession(asset);
+            typeof(DlssDemoController).GetField("input", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(owner, session);
+            var controls = Object.Instantiate(UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/dlss/Prefabs/UI/DlssControls.prefab"));
+            var presenter = controls.GetComponent<DlssControlsPresenter>();
+            var buttons = controls.GetComponentsInChildren<Core.Runtime.Inputs.InputCommandButton>(true);
+            try
+            {
+                presenter.Bind(owner); presenter.Bind(owner);
+                foreach (var button in buttons)
+                    foreach (var name in new[] { "Clicked", "HoldChanged" })
+                    {
+                        var callbacks = typeof(Core.Runtime.Inputs.InputCommandButton).GetField(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(button) as Delegate;
+                        Assert.That(callbacks?.GetInvocationList().Length, Is.EqualTo(1), button.name + "/" + name);
+                    }
+                Core.Runtime.Inputs.InputDeviceState.NotifyTouch(); yield return null;
+                var sprint = System.Array.Find(buttons, button => button.Command == "Sprint");
+                Assert.That(sprint, Is.Not.Null);
+                sprint.OnPointerDown(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current) { pointerId = 15 });
+                Assert.That(presenter.Sprint, Is.True);
+                controls.SetActive(false); yield return null;
+                Assert.That(presenter.Sprint, Is.False);
+                controls.SetActive(true); yield return null;
+                Assert.That(presenter.Sprint, Is.False);
+                Object.Destroy(controls); yield return null;
+                foreach (var button in buttons)
+                {
+                    var callbacks = typeof(Core.Runtime.Inputs.InputCommandButton).GetField("Clicked", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(button) as Delegate;
+                    Assert.That(callbacks, Is.Null, "销毁配对解除订阅");
+                }
+            }
+            finally { if (controls != null) Object.Destroy(controls); Object.Destroy(host); }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator EditorDirectStartupUsesSharedSettings()
         {
             if (!StreamlineRuntime.IsBackendSupported) Assert.Ignore("Windows Editor DX12/Vulkan required.");

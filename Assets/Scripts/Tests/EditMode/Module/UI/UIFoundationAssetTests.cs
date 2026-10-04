@@ -21,12 +21,41 @@ namespace Tests.Module
                 foreach (var image in root.GetComponentsInChildren<Image>(true))
                 {
                     if (image.type != Image.Type.Filled || image.fillMethod != Image.FillMethod.Horizontal && image.fillMethod != Image.FillMethod.Vertical) continue;
-                    if (!new[] { "ProgressFill", "ResetProgressFill", "Tension", "BossHealth", "BossEscape" }.Contains(image.name)) continue;
                     Assert.That(image.sprite, Is.SameAs(white), path + "/" + image.name);
                     Assert.That(image.GetComponent<UIProgressBar>(), Is.Not.Null, path + "/" + image.name);
                     Assert.That(image.raycastTarget, Is.False, path + "/" + image.name);
                 }
             }
+        }
+
+        [Test]
+        public void DemoPages_HaveLocalBindingsAndSeparateHudParts()
+        {
+            foreach (var demo in new[] { "how_to_fish", "jinx_casino", "block_porters", "drone_flight" })
+                foreach (var path in Directory.GetFiles("Assets/LoadResources/Demos/" + demo + "/Prefabs/UI", "*.prefab", SearchOption.AllDirectories))
+                {
+                    var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    foreach (var node in root.GetComponentsInChildren<Transform>(true))
+                        Assert.That(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject), Is.Zero, path + "/" + node.name);
+                    foreach (var index in root.GetComponentsInChildren<ComponentItemIndex>(true))
+                        foreach (var component in index.Components)
+                        {
+                            Assert.That(component, Is.Not.Null, path);
+                            Assert.That(component.transform == root.transform || component.transform.IsChildOf(root.transform), Is.True, path);
+                        }
+                    foreach (var state in root.GetComponentsInChildren<UIState>(true))
+                        foreach (var definition in state.States)
+                            Assert.That(definition.properties.All(property => property.target != null), Is.True, path + "/" + definition.stateName);
+                }
+            var drone = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView.prefab");
+            foreach (var name in new[] { "TelemetryRoot", "TouchControls", "OperationPanel" })
+            {
+                var region = drone.GetComponentsInChildren<Transform>(true).Single(node => node.name == name);
+                Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(region), Is.Not.Null, name);
+            }
+            var casinoHud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView.prefab");
+            foreach (var name in new[] { "MainMenu", "PauseMenu", "SaveSlotsPanel", "StandardEndingPanel", "LocalSettings" })
+                Assert.That(casinoHud.GetComponentsInChildren<Transform>(true).Any(node => node.name == name), Is.False, name);
         }
 
         [Test]

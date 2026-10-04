@@ -85,6 +85,57 @@ namespace Tests.Demo
             Assert.That(UnityEngine.Object.FindObjectsOfType<Camera>().Length, Is.EqualTo(1));
         }
         [UnityTest]
+        public IEnumerator DynamicControls_RealPointerSubmitDisableAndReopenRestoreStates()
+        {
+            var original = UnityEngine.InputSystem.InputSystem.settings;
+            var settings = UnityEngine.Object.Instantiate(original);
+            settings.backgroundBehavior = UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = UnityEngine.InputSystem.InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            UnityEngine.InputSystem.InputSystem.settings = settings;
+            var mouse = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Mouse>();
+            var keyboard = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Keyboard>();
+            try
+            {
+                yield return null; yield return null;
+                var button = Button("language"); var interaction = button.GetComponent<Core.Runtime.UIStateInteraction>();
+                Assert.That(interaction, Is.Not.Null);
+                var rect = (RectTransform)button.transform;
+                Vector2 point = RectTransformUtility.WorldToScreenPoint(button.GetComponentInParent<Canvas>().worldCamera, rect.TransformPoint(rect.rect.center));
+                Core.Runtime.Inputs.InputDeviceState.Notify(mouse);
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point });
+                yield return null; yield return null;
+                Assert.That(interaction.InteractionState, Is.EqualTo("Hover"));
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point }.WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Left));
+                yield return null; yield return null;
+                Assert.That(interaction.InteractionState, Is.EqualTo("Pressed")); Assert.That(rect.localScale.x, Is.EqualTo(.96f).Within(.001f));
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point });
+                yield return null; yield return null;
+                Assert.That(LoopSampleLanguage.IsEnglish, Is.True);
+                EventSystem.current.SetSelectedGameObject(button.gameObject); Core.Runtime.Inputs.InputDeviceState.Notify(keyboard);
+                yield return null; yield return null;
+                Assert.That(interaction.InteractionState, Is.EqualTo("Focused"));
+                Assert.That(button.transform.Find("InteractionFeedback").GetComponent<CanvasGroup>().alpha, Is.EqualTo(1));
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard, new UnityEngine.InputSystem.LowLevel.KeyboardState(UnityEngine.InputSystem.Key.Enter));
+                yield return null; yield return null;
+                UnityEngine.InputSystem.InputSystem.QueueStateEvent(keyboard, new UnityEngine.InputSystem.LowLevel.KeyboardState());
+                yield return new WaitForSecondsRealtime(.2f);
+                Assert.That(LoopSampleLanguage.IsEnglish, Is.False);
+                button.interactable = false; yield return null;
+                Assert.That(interaction.InteractionState, Is.EqualTo("Disabled"));
+                Assert.That(button.transform.Find("InteractionFeedback").GetComponent<CanvasGroup>().alpha, Is.Zero);
+                button.gameObject.SetActive(false); button.gameObject.SetActive(true); button.interactable = true;
+                yield return null; yield return null;
+                Assert.That(rect.localScale, Is.EqualTo(Vector3.one));
+                yield return Capture("shared-ui-states");
+            }
+            finally
+            {
+                UnityEngine.InputSystem.InputSystem.RemoveDevice(mouse); UnityEngine.InputSystem.InputSystem.RemoveDevice(keyboard);
+                UnityEngine.InputSystem.InputSystem.settings = original; UnityEngine.Object.Destroy(settings);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator MainMenuTraversesEveryEntryAndReturns()
         {
             Assert.That(LoopSampleLanguage.IsEnglish, Is.False);

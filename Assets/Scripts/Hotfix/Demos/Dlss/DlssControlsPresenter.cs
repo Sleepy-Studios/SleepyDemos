@@ -17,17 +17,21 @@ namespace Hotfix.Dlss
         internal bool Sprint { get; private set; }
         internal void Bind(DlssDemoController controller)
         {
+            Unbind();
             owner = controller;
             foreach (var button in buttons) { button.Clicked += OnCommand; button.HoldChanged += OnHold; }
             foreach (var prompt in prompts)
                 if (prompt.Action != null) prompt.Bind(owner.Actions.Asset.FindAction(prompt.Action.id));
             InputDeviceState.Changed += Refresh; Refresh();
         }
-        private void OnDestroy()
+        private void Unbind()
         {
             foreach (var button in buttons) { button.Clicked -= OnCommand; button.HoldChanged -= OnHold; }
             InputDeviceState.Changed -= Refresh;
+            owner = null;
+            movePad.ResetInput(); lookPad.ResetInput(); Sprint = false;
         }
+        private void OnDestroy() => Unbind();
         private void OnDisable() { movePad.ResetInput(); lookPad.ResetInput(); Sprint = false; }
         private void OnCommand(string name)
         {

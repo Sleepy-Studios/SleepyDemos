@@ -29,3 +29,12 @@
 截图和原始报告只放临时目录；用户体验重点是画面差异、相机控制和 UI 手感。
 
 观察输入使用 Core InputActionSession；设置打开时停止 Observe，关闭后经过中立门闩恢复。DLSS 功能仍受 GPU/平台限制，移动端使用已有不支持时的原生渲染回退；三端输入接入不表示 Android 支持 DLSS。
+
+
+## 公共 UI 复用（2026-10-05）
+
+观察控件继续保存于 DlssControls.prefab，按钮复用 InputCommandButton、UIStateInteraction；DlssControlsPresenter 重复 Bind 先解除旧订阅，销毁时配对释放并清除保持输入。关闭公共设置只隐藏观察控件，重新显示继续使用原观察会话。
+
+画质设置继续复用公共 DlssSettingsView，不另建 Demo 设置页。画质模式的 Normal/Selected 由各按钮 UIState 持有，独立反馈层只处理焦点边框、按压缩放等交互属性，避免 RefreshState 与交互反馈覆盖同一底色。
+
+本次定向生命周期测试 fb10ffa1（1/1）验证重复绑定只有一份按钮订阅、隐藏释放保持输入、再次显示不延续 Sprint、销毁配对解除。此次不运行 GPU 模式/图像质量全量测试；模式底色与交互反馈分离属于公共画质界面修改。
