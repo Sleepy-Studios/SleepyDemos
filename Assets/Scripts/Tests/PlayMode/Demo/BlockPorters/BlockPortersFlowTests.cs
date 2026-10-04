@@ -147,9 +147,9 @@ namespace Tests.Demo
             Assert.That(controller.Session.Teams.Count, Is.EqualTo(1), "同帧重复事件只派出一队");
             Assert.That(queue.interactable, Is.False, "递补时锁住同列");
             Assert.That(queueRect.anchoredPosition.y, Is.LessThan(rest.y));
-            Click(hud, "Pause"); yield return null; yield return null;
+            Click(hud, "Pause"); yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersSettingsView>()?.State == ViewState.Visible, "设置页显示");
             Assert.That(Vector2.Distance(queueRect.anchoredPosition, rest), Is.LessThan(.001f), "暂停清理递补动画");
-            Click(hud, "SettingsContinue"); yield return null;
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "SettingsContinue"); yield return null;
             Click(hud, "Queue0"); controller.Restart(); yield return null; yield return null;
             Assert.That(Vector2.Distance(queueRect.anchoredPosition, rest), Is.LessThan(.001f), "重开清理移动卡片");
             Assert.That(queue.interactable, Is.True);
@@ -234,17 +234,18 @@ namespace Tests.Demo
             var hud = UIManager.Instance.Get<BlockPortersHudView>();
             resolution = new GameViewResolution(540, 960);
             yield return WaitUntil(() => Screen.width == 540 && Screen.height == 960, "竖屏");
-            Click(hud, "Pause"); yield return null;
+            Click(hud, "Pause"); yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersSettingsView>()?.State == ViewState.Visible, "设置页显示");
             Assert.That(controller.IsPaused, Is.True);
-            var settings = hud.gameObject.GetComponentsInChildren<Transform>(true).Single(t => t.name == "SettingsPanel");
+            var settings = UIManager.Instance.Get<BlockPortersSettingsView>().gameObject.GetComponentsInChildren<Transform>(true).Single(t => t.name == "SettingsPanel");
             Assert.That(settings.gameObject.activeInHierarchy, Is.True);
             var queue = hud.gameObject.GetComponentsInChildren<Button>(true).Single(b => b.name == "Queue0");
             Assert.That(queue.interactable, Is.False);
+            yield return Capture("Settings");
             var canvas = queue.GetComponentInParent<Canvas>().rootCanvas;
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
             { position = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, queue.transform.position) }, hits);
-            Assert.That(hits.First().gameObject.name, Is.EqualTo("SettingsPanel"), "设置遮罩拦截前排点击");
+            Assert.That(hits.First().gameObject.transform.IsChildOf(settings), Is.True, "设置页拦截前排点击");
             yield return Capture("Settings");
             resolution.Dispose(); resolution = new GameViewResolution(540, 1200);
             yield return WaitUntil(() => Screen.height == 1200, "长屏设置"); yield return null; yield return null;
@@ -253,16 +254,16 @@ namespace Tests.Demo
             { position = new Vector2(Screen.width - 40, Screen.height - 24) }, hits);
             Assert.That(hits.First().gameObject.name, Is.EqualTo("SettingsPanel"), "遮罩覆盖长屏留白和公共画质入口");
             yield return Capture("SettingsTall");
-            Click(hud, "Sound"); Assert.That(controller.IsMuted, Is.True);
-            Click(hud, "Sound"); Assert.That(controller.IsMuted, Is.False);
-            Click(hud, "SettingsContinue"); yield return null;
-            Assert.That(controller.IsPaused, Is.False); Assert.That(settings.gameObject.activeSelf, Is.False);
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "Sound"); Assert.That(controller.IsMuted, Is.True);
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "Sound"); Assert.That(controller.IsMuted, Is.False);
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "SettingsContinue"); yield return null;
+            Assert.That(controller.IsPaused, Is.False); yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersSettingsView>() == null, "设置页释放");
             controller.TogglePause();
 
             resolution.Dispose(); resolution = new GameViewResolution(540, 960);
             yield return WaitUntil(() => Screen.height == 960, "恢复竖屏");
-            Click(hud, "Pause"); yield return null;
-            Click(hud, "SettingsClose"); yield return null;
+            Click(hud, "Pause"); yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersSettingsView>()?.State == ViewState.Visible, "设置页显示");
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "SettingsClose"); yield return null;
             Assert.That(controller.IsPaused, Is.True, "关闭设置不能撤销之前已有的暂停");
             controller.TogglePause();
 
@@ -367,14 +368,16 @@ namespace Tests.Demo
             yield return new WaitForSeconds(0.25f);
             Assert.That(controller.Session.Delivered, Is.EqualTo(delivered));
             Assert.That(Object.FindObjectsByType<PorterAvatar>(FindObjectsSortMode.None).First().transform.position, Is.EqualTo(position));
-            Click(hud, "Pause");
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "SettingsContinue");
             yield return WaitUntil(() => Object.FindObjectsByType<PorterAvatar>(FindObjectsSortMode.None)
                 .Any(avatar => avatar.CarryAnchor.childCount > 0), "抬砖姿态");
             yield return Capture("Carrying");
             yield return WaitUntil(() => controller.Session.Delivered == expected, "第一队全部跳坑", 30);
             Assert.That(controller.ActorCount, Is.Zero);
             Assert.That(controller.Session.Teams, Is.Empty);
-            Click(hud, "Restart");
+            Click(hud, "Pause");
+            yield return WaitUntil(() => UIManager.Instance.Get<BlockPortersSettingsView>()?.State == ViewState.Visible, "重开设置页");
+            Click(UIManager.Instance.Get<BlockPortersSettingsView>(), "Restart");
             Assert.That(controller.Session.Delivered, Is.Zero);
             Assert.That(controller.ActorCount, Is.Zero);
             Assert.That(controller.Session.Peek(0).Value.Count, Is.EqualTo(expected));
@@ -408,7 +411,7 @@ namespace Tests.Demo
             yield return WaitUntil(() => controller.Session.Status == BlockPortersStatus.Won, "最后一块入坑后通关", 30);
             Assert.That(controller.ActorCount, Is.Zero);
             yield return Capture("Win");
-            Click(hud, "Next");
+            Click(UIManager.Instance.Get<BlockPortersResultView>(), "Next");
             Assert.That(controller.LevelIndex, Is.EqualTo(1));
             Assert.That(controller.CurrentLevel, Is.SameAs(authoredLevels[1]));
             Assert.That(controller.Session.Delivered, Is.Zero);
@@ -484,6 +487,8 @@ namespace Tests.Demo
             Assert.That(Object.FindFirstObjectByType<BlockPortersController>(), Is.Null);
             Assert.That(Object.FindObjectsByType<PorterAvatar>(FindObjectsSortMode.None), Is.Empty);
             Assert.That(UIManager.Instance.Get<BlockPortersHudView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<BlockPortersSettingsView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<BlockPortersResultView>(), Is.Null);
             Assert.That(Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None).Count(listener => listener.enabled), Is.EqualTo(1));
             yield return Capture("HubReturn");
         }
@@ -496,7 +501,7 @@ namespace Tests.Demo
             if (controller != null)
             {
                 controller.ReturnToHub();
-                yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "清理 Demo");
+                yield return WaitUntil(() => Object.FindFirstObjectByType<BlockPortersController>() == null, "清理 Demo", 45);
             }
             foreach (var catalog in testCatalogs) Object.Destroy(catalog);
             testCatalogs.Clear();

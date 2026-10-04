@@ -52,6 +52,8 @@ namespace Hotfix.BlockPorters.Adapters
         private readonly List<Light> suspendedLights = new();
         private Transform[] boardBricks;
         private BlockPortersHudView hud;
+        private BlockPortersUIController ui;
+        internal BlockPortersUIController UI => ui;
         private CancellationTokenSource lifetime;
         private CancellationTokenSource rewardLifetime;
         private IBlockPortersReward reward = new SimulatedBlockPortersReward();
@@ -97,6 +99,7 @@ namespace Hotfix.BlockPorters.Adapters
                     if (light.enabled && light.gameObject.scene != gameObject.scene)
                     { suspendedLights.Add(light); light.enabled = false; }
                 LoadLevel(0);
+                ui = new BlockPortersUIController(this, lifetime.Token);
                 var result = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(
                     this, new UIShowOptions(animated: false), lifetime.Token);
                 if (result.Status == UIOperationStatus.Failed) throw result.Exception;
@@ -257,6 +260,7 @@ namespace Hotfix.BlockPorters.Adapters
             isExiting = true; sessionVersion++; themeLoader?.Invalidate(); rewardLifetime?.Cancel(); Changed?.Invoke();
             try
             {
+                await ui.CloseAsync();
                 if (hud != null)
                 {
                     var closed = await UIManager.Instance.CloseAsync(hud, animated: false);
@@ -265,7 +269,7 @@ namespace Hotfix.BlockPorters.Adapters
                 var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status != GameSceneSwitchStatus.Succeeded)
                 {
-                    isExiting = false; isRewardPending = false;
+                    isExiting = false; isRewardPending = false; ui.Restore();
                     var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(this, new UIShowOptions(animated: false), lifetime.Token);
                     if (restored.Status == UIOperationStatus.Failed) throw restored.Exception;
                     hud = UIManager.Instance.Get<BlockPortersHudView>();
@@ -276,7 +280,7 @@ namespace Hotfix.BlockPorters.Adapters
             }
             catch (Exception exception)
             {
-                isExiting = false; isRewardPending = false; ResetRewardLifetime();
+                isExiting = false; isRewardPending = false; ui.Restore(); ResetRewardLifetime();
                 Debug.LogException(exception, this);
                 var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(this, new UIShowOptions(animated: false), lifetime.Token);
                 if (restored.Status == UIOperationStatus.Failed) Debug.LogException(restored.Exception, this);
@@ -404,6 +408,7 @@ namespace Hotfix.BlockPorters.Adapters
         private void OnDisable() { isReady = false; themeLoader?.Invalidate(); RestoreLighting(); }
         private void OnDestroy()
         {
+            ui?.Dispose();
             RestoreLighting();
             themeLoader?.Dispose();
             if (levelMaterials != null) foreach (var material in levelMaterials) Destroy(material);

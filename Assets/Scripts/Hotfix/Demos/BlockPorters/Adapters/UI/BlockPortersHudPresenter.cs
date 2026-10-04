@@ -26,25 +26,9 @@ namespace Hotfix.BlockPorters.Adapters
         [SerializeField] private Image[] taskSlots;
         [SerializeField] private TextMeshProUGUI[] taskLabels;
         [SerializeField] private Button pause;
-        [SerializeField] private Button sound;
-        [SerializeField] private Button restart;
-        [SerializeField] private Button exit;
-        [SerializeField] private GameObject resultPanel;
-        [SerializeField] private TextMeshProUGUI resultTitle;
-        [SerializeField] private TextMeshProUGUI resultDescription;
         [SerializeField] private Button[] extraButtons;
-        [SerializeField] private Button[] resultExtraButtons;
         [SerializeField] private TextMeshProUGUI[] extraLabels;
         [SerializeField] private Image[] extraIcons;
-                [SerializeField] private Button next;
-        [SerializeField] private Button resultRestart;
-        [SerializeField] private Button resultExit;
-        [SerializeField] private TextMeshProUGUI[] controlLabels;
-        [SerializeField] private GameObject settingsPanel;
-        [SerializeField] private RectTransform settingsCard;
-        [SerializeField] private RectTransform resultCard;
-        [SerializeField] private Button settingsContinue;
-        [SerializeField] private Button settingsClose;
         [SerializeField] private TextMeshProUGUI levelName;
         [SerializeField] private TextMeshProUGUI[] queueColorLabels;
         [SerializeField] private Image[] taskBadges;
@@ -63,11 +47,6 @@ namespace Hotfix.BlockPorters.Adapters
         private bool layoutReady;
         private BlockPortersSession shownSession;
         private float AdvanceDuration => style.AdvanceDuration;
-        private bool settingsOpen;
-        private bool wasPaused;
-        private bool hadResult;
-        private float settingsAge;
-        private float resultAge;
         private UIProgressBar progressBar;
         private float displayedProgress;
         private float targetProgress;
@@ -93,23 +72,14 @@ namespace Hotfix.BlockPorters.Adapters
             layoutReady = true;
             feedback = GetComponentsInChildren<BlockPortersButtonFeedback>(true);
             pause.onClick.AddListener(ToggleSettings);
-            settingsContinue.onClick.AddListener(CloseSettings);
-            settingsClose.onClick.AddListener(CloseSettings);
-            sound.onClick.AddListener(() => owner?.ToggleSound());
-            restart.onClick.AddListener(() => owner?.Restart());
-            resultRestart.onClick.AddListener(() => owner?.Restart());
-            exit.onClick.AddListener(() => owner?.ReturnToHub());
-            resultExit.onClick.AddListener(() => owner?.ReturnToHub());
             for (int side = 0; side < 2; side++)
             {
                 int index = side;
                 // 开放后仍使用完整的凹槽颜色；按压由统一反馈组件处理。
                 extraButtons[side].transition = Selectable.Transition.None;
                 extraButtons[side].onClick.AddListener(() => owner?.RequestUnlockSlot(index));
-                resultExtraButtons[side].onClick.AddListener(() => owner?.RequestUnlockSlot(index));
             }
             for (int i = 0; i < previews.Length; i++) previewPositions[i] = previews[i].rectTransform.anchoredPosition;
-            next.onClick.AddListener(() => owner?.NextLevel());
         }
 
         private void ApplyTileStyle()
@@ -149,13 +119,11 @@ namespace Hotfix.BlockPorters.Adapters
         /// <param name="controller">Core UI ShowAsync 数据载荷传入的场景所有者。</param>
         public void Bind(BlockPortersController controller)
         {
-            Unbind(); owner = controller; settingsOpen = false; hadResult = false;
+            Unbind(); owner = controller;
             displayedProgress = targetProgress = 0;
             for (int i = 0; i < queueKeys.Length; i++) queueKeys[i] = -1;
             var menu = GetComponent<UIMenuScope>();
             if (menu != null) menu.Canceled += ToggleSettings;
-            var settingsMenu = settingsPanel.GetComponent<UIMenuScope>();
-            if (settingsMenu != null) settingsMenu.Canceled += CloseSettings;
             owner.Changed += RequestRefresh; Refresh();
         }
         /// 解除订阅并移除对场景会话的引用。
@@ -164,10 +132,8 @@ namespace Hotfix.BlockPorters.Adapters
             if (owner != null) owner.Changed -= RequestRefresh;
             var menu = GetComponent<UIMenuScope>();
             if (menu != null) menu.Canceled -= ToggleSettings;
-            var settingsMenu = settingsPanel != null ? settingsPanel.GetComponent<UIMenuScope>() : null;
-            if (settingsMenu != null) settingsMenu.Canceled -= CloseSettings;
             ClearAdvances(); shownSession = null; refreshPending = false;
-            owner = null; settingsOpen = false;
+            owner = null;
         }
         private void OnDestroy() => Unbind();
         private void RequestRefresh() => refreshPending = true;
@@ -215,27 +181,7 @@ namespace Hotfix.BlockPorters.Adapters
             for (int row = 0; row < 3; row++) previews[column * 3 + row].rectTransform.anchoredPosition = previewPositions[column * 3 + row];
         }
 
-        /// 打开设置时记录原暂停状态；关闭只恢复本面板产生的暂停。
-        private void ToggleSettings()
-        {
-            if (owner == null || owner.IsExiting) return;
-            if (settingsOpen) { CloseSettings(); return; }
-            ClearAdvances();
-            wasPaused = owner.IsPaused; settingsOpen = true; settingsAge = 0;
-            settingsPanel.SetActive(true);
-            settingsCard.localScale = Vector3.one * .94f;
-            if (!wasPaused) owner.TogglePause();
-            else Refresh();
-        }
-
-        private void CloseSettings()
-        {
-            if (owner == null || !settingsOpen) return;
-            settingsOpen = false;
-            settingsPanel.SetActive(false);
-            if (!wasPaused && owner.IsPaused) owner.TogglePause();
-            else Refresh();
-        }
+        private void ToggleSettings() { ClearAdvances(); owner?.UI.OpenSettings(); }
 
         private void LateUpdate()
         {
@@ -253,8 +199,6 @@ namespace Hotfix.BlockPorters.Adapters
             if (advanceFinished) Refresh();
             displayedProgress = Mathf.MoveTowards(displayedProgress, targetProgress, delta * .9f);
             progressBar.SetValue(displayedProgress);
-            if (settingsOpen) { settingsAge += delta; AnimateCard(settingsCard, settingsAge); }
-            if (hadResult) { resultAge += delta; AnimateCard(resultCard, resultAge); }
             Vector2 size = ((RectTransform)transform).rect.size;
             if (size == lastSize && lastSafeArea == Screen.safeArea) return;
             lastSize = size; lastSafeArea = Screen.safeArea;
@@ -264,24 +208,6 @@ namespace Hotfix.BlockPorters.Adapters
             content.anchoredPosition = new Vector2(
                 (Screen.safeArea.center.x / Mathf.Max(1, Screen.width) - 0.5f) * size.x,
                 (Screen.safeArea.center.y / Mathf.Max(1, Screen.height) - 0.5f) * size.y);
-            FitOverlay(settingsPanel, settingsCard, size, scale);
-            FitOverlay(resultPanel, resultCard, size, scale);
-        }
-
-        private void FitOverlay(GameObject overlay, RectTransform card, Vector2 size, float scale)
-        {
-            float inverse = 1 / Mathf.Max(.0001f, scale);
-            var rect = (RectTransform)overlay.transform;
-            rect.sizeDelta = size * inverse;
-            rect.anchoredPosition = -content.anchoredPosition * inverse;
-            // 遮罩覆盖整个宿主，卡片仍居中于安全区；长屏留白也不能穿透到其他 Widget。
-            card.anchoredPosition = content.anchoredPosition * inverse;
-        }
-
-        private static void AnimateCard(RectTransform card, float age)
-        {
-            float t = Mathf.Clamp01(age / .18f);
-            card.localScale = Vector3.one * Mathf.Lerp(.94f, 1, 1 - Mathf.Pow(1 - t, 3));
         }
 
         private void Refresh()
@@ -354,24 +280,8 @@ namespace Hotfix.BlockPorters.Adapters
                 extraIcons[side].gameObject.SetActive(!unlocked);
                 extraLabels[side].gameObject.SetActive(!unlocked);
                 extraLabels[side].text = owner.IsRewardPending ? "模拟奖励中" : "模拟广告\n解锁 +1";
-                resultExtraButtons[side].gameObject.SetActive(session.Status == BlockPortersStatus.Failed && !unlocked);
-                resultExtraButtons[side].interactable = extraButtons[side].interactable;
             }
-            if (settingsOpen && !owner.IsPaused) settingsOpen = false;
-            settingsPanel.SetActive(settingsOpen);
-            controlLabels[0].text = "";
-            controlLabels[1].text = owner.IsMuted ? "声音已关闭" : "声音已开启";
             pause.interactable = !owner.IsExiting && session.Status == BlockPortersStatus.Playing;
-            restart.interactable = exit.interactable = !owner.IsExiting;
-            bool failed = session.Status == BlockPortersStatus.Failed;
-            bool showResult = session.Status != BlockPortersStatus.Playing;
-            if (showResult && !hadResult) resultAge = 0;
-            hadResult = showResult; resultPanel.SetActive(showResult);
-            resultTitle.text = failed ? "队伍堵住啦" : "搬得真漂亮！";
-            resultDescription.text = failed ? session.UnlockedExtraSlots == 3 ? "任务位都已开放。\n重新挑战，先搬开外层吧！" : "解锁额外任务位继续搬运，\n或者重新挑战，先搬开外层。" : "这一幅图案已经全部搬空。\n下一幅，也一起轻松完成吧！";
-            next.gameObject.SetActive(!failed);
-            controlLabels[2].text = owner.LevelIndex == owner.LevelCount - 1 ? "再玩一轮" : "下一关";
-            resultRestart.interactable = resultExit.interactable = next.interactable = !owner.IsExiting;
         }
 
     }
