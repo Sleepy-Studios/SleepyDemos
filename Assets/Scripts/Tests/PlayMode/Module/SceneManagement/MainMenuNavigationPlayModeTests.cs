@@ -238,21 +238,48 @@ namespace Tests.Module
         }
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator SettingsEntryRestoresAfterClosingPanelAndLeavingHall()
+        public IEnumerator SettingsEntryOpensNormalPopupAndClosesWithoutFloatingEntry()
         {
             yield return PrepareHub();
             var menu = UIManager.Instance.Get<MainMenuView>();
-            var settings = UIManager.Instance.Get<DlssSettingsView>();
-            Assert.That(settings, Is.Not.Null);
-            var originalEntry = Field<Button>(settings, "Button_OpenButton");
-            Assert.That(originalEntry.gameObject.activeSelf, Is.False, "大厅只显示自己的画质入口。");
-            yield return Click(ButtonPosition(Field<Button>(menu, "Button_Settings")));
-            yield return Wait(() => settings.IsSettingsPanelOpen, "打开已有画质面板", 5);
-            yield return Click(ButtonPosition(Field<Button>(settings, "Button_CloseButton")));
-            yield return Wait(() => !settings.IsSettingsPanelOpen && !originalEntry.gameObject.activeSelf,
-                "关闭设置后恢复大厅入口作用域", 5);
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "启动不创建常驻画面设置。");
+            int count = UIManager.Instance.StackCount;
+            var mode = Core.Runtime.Rendering.Streamline.StreamlineRuntime.RequestedMode;
+            for (int close = 0; close < 3; close++)
+            {
+                var entry = Field<Button>(menu, "Button_Settings");
+                Assert.That(ButtonPosition(entry).x, Is.LessThan(Screen.width * .33f), "画面设置归入左侧操作区。");
+                Assert.That(ButtonPosition(entry).y, Is.LessThan(Screen.height * .65f), "不在右上角悬浮。");
+                yield return Click(ButtonPosition(entry));
+                yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "按需打开Pop", 5);
+                var settings = UIManager.Instance.Get<DlssSettingsView>();
+                Assert.That(settings.Level, Is.EqualTo(UILayer.Pop));
+                Assert.That(settings.ViewMode, Is.EqualTo(UIViewMode.Modal));
+                Assert.That(settings.Mask, Is.EqualTo(MaskType.CloseRaycast));
+                Assert.That(settings.transform.Find("OpenButton"), Is.Null, "Prefab不再保存悬浮入口。");
+                Assert.That(UIManager.Instance.StackCount, Is.EqualTo(count + 1));
+                yield return Wait(() => EventSystem.current.sendNavigationEvents, "弹窗导航松键", 3);
+                if (close == 0)
+                {
+                    System.IO.Directory.CreateDirectory("Library/GraphicsSettings");
+                    ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Popup.png"); yield return null; yield return null;
+                    yield return Click(ButtonPosition(Field<Button>(settings, "Button_CloseButton")));
+                }
+                else if (close == 1)
+                {
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape)); yield return null; yield return null;
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
+                }
+                else yield return Click(new Vector2(Screen.width * .05f, Screen.height * .05f));
+                yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>() == null, "关闭销毁普通弹窗", 5);
+                Assert.That(settings.State, Is.EqualTo(ViewState.Destroyed));
+                Assert.That(UIManager.Instance.StackCount, Is.EqualTo(count));
+                Assert.That(Core.Runtime.Rendering.Streamline.StreamlineRuntime.RequestedMode, Is.EqualTo(mode), "关闭弹窗保留画质偏好。");
+                yield return Wait(() => EventSystem.current.currentSelectedGameObject == entry.gameObject, "恢复原设置入口焦点", 3);
+            }
+            ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Hall.png"); yield return null; yield return null;
             yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine();
-            Assert.That(originalEntry.gameObject.activeSelf, Is.True, "离开大厅应释放入口抑制，不影响其他 Demo。");
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "离开大厅不出现全局悬浮按钮。");
             yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
         }
 

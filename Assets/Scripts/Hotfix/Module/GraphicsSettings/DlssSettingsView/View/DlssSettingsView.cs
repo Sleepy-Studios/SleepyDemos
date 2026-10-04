@@ -1,5 +1,4 @@
 using Core.Runtime;
-using Core.Runtime.Inputs;
 using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -11,64 +10,24 @@ namespace Hotfix
     [Mvc("DlssSettingsView")]
     public partial class DlssSettingsView : View
     {
-        private Transform settingsPanel;
-        private bool entrySuppressed;
-        private bool originalOpenButton;
-        private bool originalPanel;
-        public bool IsSettingsPanelOpen => State == ViewState.Visible && settingsPanel != null && settingsPanel.gameObject.activeSelf;
-
-        /// <summary>显示或关闭本View拥有的面板；抑制期间不会重开已隐藏的控件。</summary>
-        /// <param name="open">所需面板开闭状态。</param>
-        public void SetSettingsPanelOpen(bool open)
-        {
-            if (State != ViewState.Visible || entrySuppressed || settingsPanel == null) return;
-            if (open) { transform.SetAsLastSibling(); RefreshState(); }
-            settingsPanel.gameObject.SetActive(open);
-        }
-
-        private void ApplyEntrySuppression(bool suppressed)
-        {
-            if (entrySuppressed == suppressed) return;
-            entrySuppressed = suppressed;
-            if (suppressed)
-            {
-                originalOpenButton = Button_OpenButton.gameObject.activeSelf;
-                originalPanel = settingsPanel.gameObject.activeSelf;
-                Button_OpenButton.gameObject.SetActive(false); settingsPanel.gameObject.SetActive(false);
-            }
-            else
-            {
-                if (Button_OpenButton != null) Button_OpenButton.gameObject.SetActive(originalOpenButton);
-                if (settingsPanel != null) settingsPanel.gameObject.SetActive(originalPanel);
-            }
-        }
         protected override void OnGameObjectInitialize()
         {
-            var panelScope = transform.Find("SettingsPanel")?.GetComponent<UIMenuScope>();
-            if (panelScope != null) panelScope.Canceled += CloseSettingsPanel;
+            UIMenuScope_SettingsPanel.Canceled += OnCloseButtonClick;
         }
-        private void CloseSettingsPanel() => SetSettingsPanelOpen(false);
         protected override void OnShow()
         {
             base.OnShow();
-            settingsPanel = transform.Find("SettingsPanel");
-            settingsPanel.gameObject.SetActive(false);
-            GraphicsSettingsUI.EntrySuppressionChanged += ApplyEntrySuppression;
-            ApplyEntrySuppression(GraphicsSettingsUI.IsEntrySuppressed);
             StreamlineRuntime.Changed += RefreshState;
             RefreshState();
         }
         protected override void OnHide()
         {
-            GraphicsSettingsUI.EntrySuppressionChanged -= ApplyEntrySuppression;
-            ApplyEntrySuppression(false);
             StreamlineRuntime.Changed -= RefreshState;
             base.OnHide();
         }
         protected override void OnDestroy()
         {
-            GraphicsSettingsUI.EntrySuppressionChanged -= ApplyEntrySuppression;
-            ApplyEntrySuppression(false);
+            UIMenuScope_SettingsPanel.Canceled -= OnCloseButtonClick;
             StreamlineRuntime.Changed -= RefreshState;
             base.OnDestroy();
         }
@@ -103,7 +62,6 @@ namespace Hotfix
         private void OnPerformanceButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.Performance);
         private void OnUltraPerformanceButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.UltraPerformance);
         private void OnDlaaButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.Dlaa);
-        private void OnOpenButtonClick() => SetSettingsPanelOpen(true);
-        private void OnCloseButtonClick() => SetSettingsPanelOpen(false);
+        private void OnCloseButtonClick() => UIManager.Instance.CloseAsync<DlssSettingsView>().Forget();
     }
 }

@@ -171,8 +171,7 @@ namespace Tests.Demo
             yield return MouseClick(Field<Button>(presenter, "leave"));
             yield return Wait(() => owner == null && IsStableHub(), "实际返回按钮卸载样板并回Hub", 45);
             Assert.That(UIManager.Instance.Get<JinxCasinoImmersionHudView>(), Is.Null); Assert.That(hud.State, Is.EqualTo(ViewState.Destroyed));
-            Assert.That(GraphicsSettingsUI.IsEntrySuppressed, Is.False);
-            Assert.That(UIManager.Instance.Get<DlssSettingsView>().transform.Find("OpenButton").gameObject.activeInHierarchy, Is.True);
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "返回Hub不自动显示画面设置。");
             AssertSingleListener();
         }
 
@@ -817,9 +816,7 @@ namespace Tests.Demo
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoMainMenuView>()?.State == ViewState.Visible, "独立主菜单", 10);
             owner = Object.FindFirstObjectByType<JinxCasinoController>();
             Assert.That(owner, Is.Not.Null); Assert.That(owner.HasInputConfiguration, Is.True);
-            yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "公共画质Widget已初始化", 5);
-            Assert.That(GraphicsSettingsUI.IsEntrySuppressed, Is.True);
-            Assert.That(UIManager.Instance.Get<DlssSettingsView>().transform.Find("OpenButton").gameObject.activeInHierarchy, Is.False);
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "赌场入场不创建公共画面设置或悬浮入口。");
             saveDirectory = Path.GetFullPath(Path.Combine("Library/JinxCasino/TestSaves", "S1Entry-" + Guid.NewGuid().ToString("N")));
             ValidateSavePath();
             owner.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory));

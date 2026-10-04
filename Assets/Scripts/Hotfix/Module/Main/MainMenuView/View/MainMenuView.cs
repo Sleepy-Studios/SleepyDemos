@@ -22,8 +22,6 @@ namespace Hotfix
         private MenuInputScope menuInput;
         private LoopScrollMenuNavigation navigation;
         private int selectedIndex = -1;
-        private IDisposable graphicsEntryLease;
-        private bool settingsBorrowed;
 
         protected override void OnGameObjectInitialize()
         {
@@ -51,7 +49,6 @@ namespace Hotfix
             ReleaseMenuInput();
             menuInput = new MenuInputScope(EventSystem.current, selectionRoot: transform);
             menuInput.SetContext(GameplayInputContext.Menu, navigation.FirstSelection);
-            graphicsEntryLease = GraphicsSettingsUI.SuppressEntry();
             InputDeviceState.Changed += RefreshInputHints;
             RefreshInputHints();
             UpdateMenuInputAsync(menuInput).Forget();
@@ -83,11 +80,6 @@ namespace Hotfix
             {
                 // OnShow 可能早于返回 Hub 的事务收尾，导航完成后自动恢复入口。
                 if (lastCanEnter != CanEnterDemo) RefreshAvailability();
-                if (settingsBorrowed && UIManager.Instance.Get<DlssSettingsView>()?.IsSettingsPanelOpen != true)
-                {
-                    settingsBorrowed = false;
-                    graphicsEntryLease = GraphicsSettingsUI.SuppressEntry();
-                }
                 if (InputDeviceState.ActiveKind == InputDeviceKind.Touch) scope.Update();
                 else scope.Update(!string.IsNullOrEmpty(entryFeedback) && Button_Start.interactable
                     ? Button_Start.gameObject : navigation.FirstSelection);
@@ -215,15 +207,7 @@ namespace Hotfix
             if (entry.CanEnter && entry.SceneId.HasValue && CanEnterDemo) EnterDemoAsync(entry.SceneId.Value).Forget();
         }
 
-        private void OnSettingsClick()
-        {
-            var settings = UIManager.Instance.Get<DlssSettingsView>();
-            if (settings == null || settings.State != ViewState.Visible) return;
-            graphicsEntryLease?.Dispose();
-            graphicsEntryLease = null;
-            settingsBorrowed = true;
-            settings.SetSettingsPanelOpen(true);
-        }
+        private void OnSettingsClick() => UIManager.Instance.ShowAsync<DlssSettingsView>().Forget();
 
         private void RefreshPrimaryAction()
         {
@@ -250,9 +234,6 @@ namespace Hotfix
         private void ReleasePresentation()
         {
             InputDeviceState.Changed -= RefreshInputHints;
-            graphicsEntryLease?.Dispose();
-            graphicsEntryLease = null;
-            settingsBorrowed = false;
         }
 
         private void RefreshInputHints()

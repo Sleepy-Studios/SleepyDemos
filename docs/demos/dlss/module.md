@@ -2,7 +2,7 @@
 
 ## 体验方式
 
-在 Editor 运行 `Assets/Scenes/AppEntrance.unity`，从 Hub 进入「DLSS 实验室」。右上角「画质设置」是所有 Demo 共用的入口，可选择关闭、Quality、Balanced、Performance、Ultra Performance 或 DLAA。首次默认关闭，之后记住选择；关闭面板不关闭效果。
+在 Editor 运行 `Assets/Scenes/AppEntrance.unity`，从 Hub 进入「DLSS 实验室」。在 Hub 的画面设置入口或实验室已有操作控件中按需打开公共 Pop，可选择关闭、Quality、Balanced、Performance、Ultra Performance 或 DLAA。没有全局右上角悬浮按钮。首次默认关闭，之后记住选择；关闭面板不关闭效果。
 
 键鼠维持右键转向、WASD 移动、Shift 加速、R 重置、Backspace 返回；手柄左摇杆移动、右摇杆转向、左肩加速、西侧键重置、返回键退出、Menu 打开设置；触屏使用移动区/视角拖动区及按钮。观察动作保存在 Data/Dlss.inputactions，触控界面保存在 Prefabs/UI/DlssControls.prefab。场景包含移动物体、细线和透明面，用于观察静态细节和运动表现。
 
@@ -33,7 +33,7 @@
 
 ## 公共 UI 复用（2026-10-05）
 
-观察控件继续保存于 DlssControls.prefab，按钮复用 InputCommandButton、UIStateInteraction；DlssControlsPresenter 重复 Bind 先解除旧订阅，销毁时配对释放并清除保持输入。关闭公共设置只隐藏观察控件，重新显示继续使用原观察会话。
+观察控件继续保存于 DlssControls.prefab，按钮复用 InputCommandButton、UIStateInteraction；DlssControlsPresenter 重复 Bind 先解除旧订阅，销毁时配对释放并清除保持输入。公共设置以普通 Pop 打开期间，观察动作切换到 Menu 并隐藏观察控件；关闭销毁 Pop 后恢复 Observe 和原观察会话。
 
 画质设置继续复用公共 DlssSettingsView，不另建 Demo 设置页。画质模式的 Normal/Selected 由各按钮 UIState 持有，独立反馈层只处理焦点边框、按压缩放等交互属性，避免 RefreshState 与交互反馈覆盖同一底色。
 

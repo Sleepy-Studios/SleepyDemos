@@ -20,7 +20,7 @@ namespace Hotfix.Dlss
         private DlssControlsPresenter controls;
         internal InputActionSession Actions => input;
         internal bool AcceptsControls => !exiting && !SettingsOpen;
-        private bool SettingsOpen => UIManager.Instance.Get<DlssSettingsView>()?.IsSettingsPanelOpen == true;
+        private bool SettingsOpen => UIManager.Instance.Get<DlssSettingsView>()?.IsEnable == true;
         [SerializeField] private Camera worldCamera;
         [SerializeField] private Transform movingObject;
         [SerializeField] private Transform spinningObject;
@@ -91,7 +91,7 @@ namespace Hotfix.Dlss
         /// 打开公共设置并马上退出观察动作；关闭后等松键再恢复。
         public void OpenSettings()
         {
-            UIManager.Instance.Get<DlssSettingsView>()?.SetSettingsPanelOpen(true);
+            UIManager.Instance.ShowAsync<DlssSettingsView>().Forget();
             input?.SetMap("Menu"); controls?.gameObject.SetActive(false);
         }
         private void OnDestroy()

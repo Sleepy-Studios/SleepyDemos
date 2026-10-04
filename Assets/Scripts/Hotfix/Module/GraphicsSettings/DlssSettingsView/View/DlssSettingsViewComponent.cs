@@ -7,22 +7,24 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
+    using Core.Runtime.Inputs;
     using TMPro;
 
     [Source("LoadResources/UI/GraphicsSettings/DlssSettingsView")]
     public partial class DlssSettingsView
     {
         public override string Address => "LoadResources/UI/GraphicsSettings/DlssSettingsView";
-        public override UILayer Level => UILayer.Decorate;
-        public override UIViewMode ViewMode => UIViewMode.Widget;
-        public override MaskType Mask => MaskType.None;
+        public override UILayer Level => UILayer.Pop;
+        public override UIViewMode ViewMode => UIViewMode.Modal;
+        public override MaskType Mask => MaskType.CloseRaycast;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
-            return new Core.Runtime.EmptyUITransition();
+            return new Core.Runtime.FadeScaleUITransition();
         }
 
+        private UIMenuScope UIMenuScope_SettingsPanel;
         private TextMeshProUGUI TextMeshProUGUI_DeviceText;
         private TextMeshProUGUI TextMeshProUGUI_ModeText;
         private Button Button_OffButton;
@@ -34,7 +36,6 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_ResolutionText;
         private TextMeshProUGUI TextMeshProUGUI_StatusText;
         private Button Button_CloseButton;
-        private Button Button_OpenButton;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -46,18 +47,18 @@ namespace Hotfix
                 return;
             }
 
-            TextMeshProUGUI_DeviceText = componentItemIndex.Get<TextMeshProUGUI>(0);
-            TextMeshProUGUI_ModeText = componentItemIndex.Get<TextMeshProUGUI>(1);
-            Button_OffButton = componentItemIndex.Get<Button>(2);
-            Button_QualityButton = componentItemIndex.Get<Button>(3);
-            Button_BalancedButton = componentItemIndex.Get<Button>(4);
-            Button_PerformanceButton = componentItemIndex.Get<Button>(5);
-            Button_UltraPerformanceButton = componentItemIndex.Get<Button>(6);
-            Button_DlaaButton = componentItemIndex.Get<Button>(7);
-            TextMeshProUGUI_ResolutionText = componentItemIndex.Get<TextMeshProUGUI>(8);
-            TextMeshProUGUI_StatusText = componentItemIndex.Get<TextMeshProUGUI>(9);
-            Button_CloseButton = componentItemIndex.Get<Button>(10);
-            Button_OpenButton = componentItemIndex.Get<Button>(11);
+            UIMenuScope_SettingsPanel = componentItemIndex.Get<UIMenuScope>(0);
+            TextMeshProUGUI_DeviceText = componentItemIndex.Get<TextMeshProUGUI>(1);
+            TextMeshProUGUI_ModeText = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_OffButton = componentItemIndex.Get<Button>(3);
+            Button_QualityButton = componentItemIndex.Get<Button>(4);
+            Button_BalancedButton = componentItemIndex.Get<Button>(5);
+            Button_PerformanceButton = componentItemIndex.Get<Button>(6);
+            Button_UltraPerformanceButton = componentItemIndex.Get<Button>(7);
+            Button_DlaaButton = componentItemIndex.Get<Button>(8);
+            TextMeshProUGUI_ResolutionText = componentItemIndex.Get<TextMeshProUGUI>(9);
+            TextMeshProUGUI_StatusText = componentItemIndex.Get<TextMeshProUGUI>(10);
+            Button_CloseButton = componentItemIndex.Get<Button>(11);
             this.RegisterButton(Button_OffButton, OnOffButtonClick);
             this.RegisterButton(Button_QualityButton, OnQualityButtonClick);
             this.RegisterButton(Button_BalancedButton, OnBalancedButtonClick);
@@ -65,7 +66,6 @@ namespace Hotfix
             this.RegisterButton(Button_UltraPerformanceButton, OnUltraPerformanceButtonClick);
             this.RegisterButton(Button_DlaaButton, OnDlaaButtonClick);
             this.RegisterButton(Button_CloseButton, OnCloseButtonClick);
-            this.RegisterButton(Button_OpenButton, OnOpenButtonClick);
         }
     }
 }

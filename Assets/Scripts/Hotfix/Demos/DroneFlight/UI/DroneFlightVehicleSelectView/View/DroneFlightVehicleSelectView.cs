@@ -41,7 +41,6 @@ namespace Hotfix
         private Image[] previews;
         private RectTransform[] badges;
         private bool isBusy;
-        private IDisposable graphicsEntryLease;
 
         protected override void OnGameObjectInitialize()
         {
@@ -67,7 +66,6 @@ namespace Hotfix
         protected override void OnShow()
         {
             base.OnShow();
-            graphicsEntryLease = GraphicsSettingsUI.SuppressEntry();
             InputDeviceState.Changed += RefreshHints;
             RefreshHints();
             EventSystem.current?.SetSelectedGameObject(string.IsNullOrEmpty(params1.Feedback)
@@ -175,8 +173,6 @@ namespace Hotfix
         private void ReleasePresentation()
         {
             InputDeviceState.Changed -= RefreshHints;
-            graphicsEntryLease?.Dispose();
-            graphicsEntryLease = null;
         }
     }
 }

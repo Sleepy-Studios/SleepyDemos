@@ -64,8 +64,8 @@ namespace Hotfix
             Place(subtitle, 68, useTouchLayout ? 320 : 294, width * .32f, 62);
             Place(description, 68, 382, width * .30f, 102);
             description.gameObject.SetActive(!useTouchLayout);
-            Place(startButton, 68, useTouchLayout ? 432 : 520, 420, useTouchLayout ? 104 : 88);
-            Place(settingsButton, width - 254, 28, 190, useTouchLayout ? 76 : 62);
+            Place(startButton, 68, useTouchLayout ? 432 : 520, 280, useTouchLayout ? 104 : 88);
+            Place(settingsButton, 360, useTouchLayout ? 432 : 520, 128, useTouchLayout ? 104 : 88);
 
             float cardScale = useTouchLayout ? 1.4f : 1f;
             float galleryHeight = useTouchLayout ? 330 : 306;

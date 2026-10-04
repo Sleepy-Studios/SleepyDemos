@@ -49,9 +49,9 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 启用期间克隆当前 URP 配置，保留 Renderer 和 Volume 设置，不写回项目资产；只在世界相机渲染时使用 SDK 比例。目标纹理维持全输出尺寸，以保留玩法相机的屏幕坐标语义。DLSS 在后处理之前输出，公共呈现相机随后以比例 1 合成 UI。原来未启用后处理的相机临时使用空 Volume 层，以获取时域抖动且不引入额外场景效果。关闭恢复目标、抗锯齿、后处理、深度、动态分辨率及原管线。
 
-公共面板位于 `Hotfix/Module/GraphicsSettings`，使用既有 UIManager Widget，打开和关闭面板不改变效果。资源位于 `LoadResources/UI/GraphicsSettings`；实验室只包含场景与观察交互。Renderer 配置工具属于 Core.Editor，公共面板生成工具属于 Hotfix.Editor。
+公共面板位于 `Hotfix/Module/GraphicsSettings`，使用既有 UIManager 的普通 Pop/Modal，按需加载，关闭后销毁；打开和关闭不改变已保存画质。资源位于 `LoadResources/UI/GraphicsSettings`，直接维护保存的 Prefab 并用 MvcBind 更新绑定；实验室只包含场景与观察交互，Renderer 配置工具属于 Core.Editor。
 
-沉浸页面可在Unity主线程通过`GraphicsSettingsUI.SuppressEntry()`借用控件显隐作用域，并在View隐藏/销毁时释放。作用域计数只在首个进入和最后一个退出时通知`DlssSettingsView`；该View自行隐藏拥有的OpenButton与SettingsPanel子树，保留根View状态、缓存和UI栈，释放后恢复原开闭状态。初始化晚于作用域时同样隐藏，重复Dispose无副作用。当前Widget根无Graphic、MaskNone且不轮询键盘，隐藏两子树后不占用输入区域；若以后改变此结构须同步相关回归。此机制不改变已选画质或渲染服务。
+通过 `UIManager.Instance.ShowAsync<DlssSettingsView>()` 打开，关闭按钮与 UIMenuScope 的 Cancel 调用 `CloseAsync<DlssSettingsView>()`。Pop 使用公共遮罩与淡入缩放过渡，点击遮罩可关闭；UIManager 和公共菜单作用域恢复原入口焦点。启动和 Demo 直启均不预加载设置 UI，不再提供全局右上角 OpenButton；GraphicsSettingsUI 和各页面入口抑制作用域已删除。
 
 ## 验证矩阵
 
@@ -86,3 +86,6 @@ G2 的双后端图像测试各 13 项通过，相机历史 EditMode 测试 7 项
 - [DLSS Demo 体验与维护](../demos/dlss/module.md)
 - [接入设计与路线](../architecture/streamline-integration.md)
 - [构建与验证手册](../runbooks/use-streamline.md)
+
+
+公共画面设置改为 Pop 后的定向验收：大厅 73859ebe（1/1）通过真实指针关闭、Esc、点击遮罩、重复打开、销毁与来源焦点恢复，并检查大厅入口位于左侧操作区；DLSS d1ad0526（1/1）通过菜单/观察输入切换及返回 Hub，无自动悬浮入口。最终截图已检查，Unity 编译及 Console 无错误。本次不运行 GPU 图像质量或全量测试。

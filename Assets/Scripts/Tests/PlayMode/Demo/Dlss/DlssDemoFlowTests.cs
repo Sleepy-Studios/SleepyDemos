@@ -23,9 +23,11 @@ namespace Tests.Demo
 {
     public sealed class DlssDemoFlowTests
     {
+        private bool isUiTest;
         [UnityTest]
         public IEnumerator Controls_RebindingKeepsOneSubscriptionAndDisableReleasesHold()
         {
+            isUiTest = true;
             var host = new GameObject("DlssControlsOwner"); host.SetActive(false);
             var owner = host.AddComponent<DlssDemoController>();
             var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/LoadResources/Demos/dlss/Data/Dlss.inputactions");
@@ -63,6 +65,35 @@ namespace Tests.Demo
             yield return null;
         }
 
+        [UnityTest, Timeout(180000)]
+        public IEnumerator SettingsPopupBlocksObservationAndReturnsToHubWithoutEntry()
+        {
+            isUiTest = true;
+            if (GameSceneNavigator.Instance == null)
+            {
+                var startup = SceneManager.LoadSceneAsync("AppEntrance", LoadSceneMode.Single);
+                while (!startup.isDone) yield return null;
+            }
+            yield return WaitUntil(() => UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning, "Hub");
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null);
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Dlss).ToCoroutine();
+            DlssDemoController owner = null;
+            yield return WaitUntil(() => (owner = Object.FindFirstObjectByType<DlssDemoController>()) != null && owner.Actions != null && Object.FindFirstObjectByType<DlssControlsPresenter>() != null, "观察控件");
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "实验室不自动加载悬浮入口。");
+            var controls = Object.FindFirstObjectByType<DlssControlsPresenter>();
+            var mode = StreamlineRuntime.RequestedMode;
+            owner.OpenSettings();
+            yield return WaitUntil(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "普通Pop");
+            Assert.That(owner.Actions.Map.name, Is.EqualTo("Menu"));
+            Assert.That(owner.AcceptsControls, Is.False); Assert.That(controls.gameObject.activeSelf, Is.False);
+            Click(UIManager.Instance.Get<DlssSettingsView>(), "CloseButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<DlssSettingsView>() == null && controls.gameObject.activeSelf && owner.Actions.Map.name == "Observe", "关闭后恢复观察");
+            Assert.That(StreamlineRuntime.RequestedMode, Is.EqualTo(mode));
+            owner.RequestExit();
+            yield return WaitUntil(() => owner == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "正常返回Hub");
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null);
+        }
+
         [UnityTest]
         public IEnumerator EditorDirectStartupUsesSharedSettings()
         {
@@ -70,8 +101,8 @@ namespace Tests.Demo
             var load = UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(
                 "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity", new LoadSceneParameters(LoadSceneMode.Single));
             while (!load.isDone) yield return null;
-            yield return WaitUntil(() => GameSceneNavigator.Instance?.IsEditorDirect == true &&
-                UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "Editor direct public settings");
+            yield return WaitUntil(() => GameSceneNavigator.Instance?.IsEditorDirect == true, "Editor direct rendering service");
+            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "直启不自动加载画面设置。");
             StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
             yield return WaitUntil(() => StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "Editor direct Quality");
             Assert.AreSame(UIRootManager.Instance.BaseCamera, StreamlineRuntime.BoundCamera);
@@ -146,14 +177,15 @@ namespace Tests.Demo
                 Assert.Greater(maximum - minimum, 0.1f, "Blank world: " + StreamlineRuntime.Status);
                 Object.Destroy(screenshot);
             }
+            yield return UIManager.Instance.ShowAsync<DlssSettingsView>().ToCoroutine();
             var view = UIManager.Instance.Get<DlssSettingsView>();
             Assert.IsNotNull(view);
-            Click(view, "OpenButton");
             yield return new WaitForEndOfFrame();
             var panelScreenshot = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(Path.Combine(folder, "Panel.png"), panelScreenshot.EncodeToPNG());
             Object.Destroy(panelScreenshot);
             Click(view, "CloseButton");
+            yield return WaitUntil(() => UIManager.Instance.Get<DlssSettingsView>() == null, "Close ordinary graphics popup");
             Assert.That(StreamlineRuntime.RequestedMode, Is.EqualTo(StreamlineDlssMode.Quality));
             var main = StreamlineRuntime.BoundCamera;
             Vector3 screen = main.WorldToScreenPoint(main.transform.position + main.transform.forward * 10);
@@ -200,6 +232,7 @@ namespace Tests.Demo
         [UnityTearDown]
         public IEnumerator CloseDemoIfNeeded()
         {
+            if (isUiTest) { isUiTest = false; yield break; }
             StreamlineRuntime.SetMode(null);
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Cleanup");
         }

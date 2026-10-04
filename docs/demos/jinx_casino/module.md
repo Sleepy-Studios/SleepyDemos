@@ -97,7 +97,7 @@ Interaction/JinxCasinoTableSession管理具体机台的本地筹码草稿，直�
 GetView按ActiveStationId/LastStationId过滤公开投影，同一视图给各物件查询可用性和原因。金额、阶段、事件修正变化使已准备的水果机草稿失效，须重新确认。相同帧/相同动作不重复提交，领域重试保留requestId，较早存档不能重放已成功的旧操作。
 
 此层已使用真实领域规则验证；相机、InputRouter、场景实体及UI接入需另做PlayMode和实玩验证，不能用纯适配测试代替。
-沉浸HUD在OnShow借用GraphicsSettingsUI的控件显隐作用域，在OnHide/OnDestroy释放，避免公共画质入口遮挡暂停；具体恢复与多使用者语义见公共Streamline模块文档。新入口回归使用真实InputSystem鼠标操作桌面暂停按钮，并检查回Hub后的公共入口恢复。
+公共画面设置是按需打开的普通 Pop；赌场入场与返回 Hub 均不自动加载该页面，不创建全局悬浮入口。HUD 无需再持有画质入口抑制作用域。
 
 ## S1实体补给柜台
 
