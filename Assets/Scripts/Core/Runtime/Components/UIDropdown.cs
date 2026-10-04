@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,7 @@ namespace Core.Runtime
     [RequireComponent(typeof(Button))]
     public sealed class UIDropdown : MonoBehaviour
     {
-        [SerializeField] private Text defaultText;
+        [SerializeField] private TMP_Text defaultText;
         [SerializeField] private Transform arrow;
         [SerializeField] private UITab tabView;
         [SerializeField] private bool rotateArrow = true;

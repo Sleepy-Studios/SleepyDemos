@@ -46,7 +46,7 @@ namespace Core.Runtime
             bool focus = EventSystem.current != null && EventSystem.current.currentSelectedGameObject == gameObject;
             bool touch = InputDeviceState.ActiveKind == InputDeviceKind.Touch;
             bool keyboardFocus = InputDeviceState.ActiveKind == InputDeviceKind.Gamepad || InputDeviceState.ActiveDevice is Keyboard;
-            string next = touch ? "Normal" : !selectable.IsInteractable() ? "Disabled"
+            string next = !selectable.IsInteractable() ? "Disabled" : touch ? "Normal"
                 : pressed || Time.unscaledTime < submitUntil ? "Pressed"
                 : focus && keyboardFocus ? "Focused" : hovered && InputDeviceState.ActiveKind == InputDeviceKind.KeyboardMouse ? "Hover" : "Normal";
             if (next == applied) return;

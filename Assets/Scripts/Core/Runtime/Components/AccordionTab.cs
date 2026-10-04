@@ -366,7 +366,7 @@ namespace Core.Runtime
         {
             if (!string.IsNullOrEmpty(data.Desc))
             {
-                var text = item.GetComponentInChildren<Text>(true);
+                var text = item.GetComponentInChildren<TMPro.TMP_Text>(true);
                 if (text != null)
                 {
                     text.text = data.Desc;

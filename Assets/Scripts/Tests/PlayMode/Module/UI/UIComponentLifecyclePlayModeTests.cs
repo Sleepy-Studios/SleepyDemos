@@ -195,6 +195,9 @@ namespace Tests.Module
                 var tab = root.GetComponentInChildren<UITab>(true);
                 Assert.That(tab.Index, Is.EqualTo(2));
                 Assert.That(tab.Items[2].activeSelf, Is.True);
+                Assert.That(root.transform.Find("DefaultText").GetComponent<TMP_Text>().text, Is.EqualTo("C"));
+                dropdown.SetSelectedIndex(1);
+                Assert.That(root.transform.Find("DefaultText").GetComponent<TMP_Text>().text, Is.EqualTo("B"));
             }
             finally { Object.Destroy(root); }
         }

@@ -80,6 +80,7 @@ namespace Core.Runtime
 
         private void OnValidate()
         {
+            stateMap.Clear();
             if (states != null && states.Count > 0)
             {
                 return;

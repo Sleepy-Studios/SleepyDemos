@@ -28,6 +28,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2562313330045062310, guid: 260036025267c9646829ceccf53781da, type: 3}
+      propertyPath: interactionState
+      value: 
+      objectReference: {fileID: 2252117929644268131}
     - target: {fileID: 3506211622472989858, guid: 260036025267c9646829ceccf53781da, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -133,7 +137,19 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 6036858480331812015, guid: 260036025267c9646829ceccf53781da, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 260036025267c9646829ceccf53781da, type: 3}
+--- !u!114 &2252117929644268131 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5578269683416408738, guid: 260036025267c9646829ceccf53781da, type: 3}
+  m_PrefabInstance: {fileID: 5920227914781145281}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState

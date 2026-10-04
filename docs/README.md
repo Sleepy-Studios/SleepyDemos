@@ -66,6 +66,7 @@
   - [接入公共玩法输入](./runbooks/use-gameplay-input.md)
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)
+  - [基础 UI 预制体检查范围](./modules/ui-foundation-assets.md)
   - [维护独立美术源稿](./runbooks/maintain-art-sources.md)
   - [接入 Sleepy Loop Scroll](./runbooks/use-loop-scroll.md)
   - [使用资源 Loader](./runbooks/use-resource-loader.md)

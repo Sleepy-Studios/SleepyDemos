@@ -21,7 +21,7 @@
 | `ViewTab` | 用 `UITab` 驱动多个 View 或本地分页对象 |
 | `AccordionViewTab` | 用 `AccordionTab` 叶子索引驱动多个 View 或本地分页对象 |
 | `ViewList` | 有限 View 列表，不承担循环滚动 |
-| `UIDropdown` | 基于 `UITab` 的基础下拉选择 |
+| `UIDropdown` | 基于 `UITab` 的基础下拉选择，默认文案绑定 TMP_Text |
 | `UIBtnSwitch` | 二态按钮开关 |
 | `UIImageLoader` | 按资源路径给 `Image` 加载 Sprite |
 | `TMPAutoFitLayoutElement` | TMP 文本按最大宽高自适应 LayoutElement 或自身尺寸 |
@@ -194,3 +194,15 @@ tab.Init(labels, action: () => RefreshSelection(tab.Index));
 imageLoader.SetImage(spriteAddress); // 默认异步，不应在下一行读取最终 sprite
 tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 ```
+
+## 基础预制体与交互表现
+
+接入 Demo 前先验收公共模板，逐项检查组件绑定、中文字体、Sprite 与 Border、布局、遮罩、射线和导航。通用按钮模板为 `Common/_TemplateInstantiatePrefab/Btns/CommonButton.prefab`；Tab、下拉和开关继续使用各自模板。
+
+`UIStateInteraction` 消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。背景与文字在常态清晰可读；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深并轻微收缩，Disabled 降低强调且不可操作。触屏没有悬停和焦点反馈，但仍显示禁用状态。
+
+交互 UIState 与 Tab 的 Normal/Selected 或开关 On/Off 分开；不要同时用原生 Transition 修改同一颜色或缩放。全部状态必须恢复自己修改的属性，关闭、失焦及禁用不能留下按压缩放。纯背景和装饰不挂交互组件或参与导航，反馈 Graphic 不拦截射线。
+
+`UIProgressBar` 只包装同节点 Image 的 `fillAmount` 与颜色，不实现交互或业务缓动。普通填充使用项目公共 `Sprites/White.png`、Filled 和 Image.color；需固定圆角的背景或遮罩使用有 Border 的 Sliced，填充在遮罩内变化。Filled 必须保存非空 Sprite：没有 Sprite 时 UGUI 会绘制普通矩形，忽略填充逻辑。特殊形状和径向填充保留相应 Sprite 与 FillMethod，不强制使用白块。
+
+修改基础模板后运行 `UIFoundationAssetTests` 与 `UIFoundationPlayModeTests`，检查真实鼠标悬停/点击/移出、键鼠与手柄提交、禁用及反复开关；检查 0%、1%、50%、100% 的实际填充网格和不同尺寸下的边框。自动断言不代替视觉检查，必须查看目标 Canvas 的状态截图。

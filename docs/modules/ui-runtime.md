@@ -230,3 +230,5 @@ UIState 继续只写声明的表现属性。UIStateInteraction 消费 EventSyste
 UIMenuScope 保存于普通页面/弹窗资源，MenuInputScope 的顶层所有者独占导航；关闭后恢复有效旧焦点，方向导航限制在当前作用域。按钮启用或禁用时刷新邻接关系，嵌套作用域的控件不加入父级导航。虚拟列表继续使用 LoopScrollMenuNavigation 的稳定 Key 和按钮绑定身份，不重新模拟 Submit。
 
 异步组件使用最新请求覆盖旧初始化。UITab/AccordionTab 通过代次阻止旧回调；ViewList 取消旧任务并清理未完成的旧 View；ViewTab/AccordionViewTab 串行等待旧切换退出，释放时先移交旧列表所有权，避免旧清理改写新列表。UIImageLoader 丢弃迟到图片并使用原加载器释放，销毁后不创建新加载器。
+
+基础模板的职责、逐项检查范围及验证边界见 [基础 UI 预制体维护](ui-foundation-assets.md)。
