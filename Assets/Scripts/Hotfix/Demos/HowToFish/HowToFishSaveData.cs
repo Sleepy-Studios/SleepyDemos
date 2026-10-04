@@ -103,6 +103,7 @@ namespace Hotfix.HowToFish
                     !IsFinite(item.cooking) || item.cooking < 0 || item.cooking > 1 ||
                     !IsFinite(item.styleMultiplier) || item.styleMultiplier < 1 ||
                     !IsFinite(item.bettingMultiplier) || item.bettingMultiplier < 1 ||
+                    !IsFinite(item.weightMultiplier) || item.weightMultiplier < .8f || item.weightMultiplier > 1.2f ||
                     !(item.dynamiteFuseSeconds >= 0 && item.dynamiteFuseSeconds <= 3) ||
                     item.dynamiteFuseSeconds > 0 && item.definitionId != "Dynamite" ||
                     item.HasEquipment && (!item.equipment.IsValid || item.equipment.id != item.definitionId || item.equipment.count != 1))
@@ -187,6 +188,8 @@ namespace Hotfix.HowToFish
         public float styleMultiplier = 1;
         /// 累计轮盘倍率；旧档缺失时按1读取。
         public float bettingMultiplier = 1;
+        /// 个体重量倍率；旧档缺失字段按1读取。
+        public float weightMultiplier = 1;
         public bool hasBeenHitByPlayer;
         public bool isDrip;
         public HowToFishOwnedItem equipment;

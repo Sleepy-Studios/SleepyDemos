@@ -26,6 +26,23 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void IndividualWeight_RoundTripsAndLegacyDefaultsToOne()
+        {
+            var state = new HowToFishSaveData();
+            var item = new HowToFishWorldItemData { instanceId = "WeightedFish", definitionId = "Shrimp", weightMultiplier = 1.125f };
+            state.worldItems.Add(item);
+            store.Save(0, state);
+            Assert.That(store.Load(0).Data.worldItems[0].weightMultiplier, Is.EqualTo(1.125f));
+            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"definitionId\":\"Shrimp\"}").weightMultiplier, Is.EqualTo(1));
+            foreach (float invalid in new[] { 0, -1, .79f, 1.21f, float.NaN, float.PositiveInfinity })
+            {
+                item.weightMultiplier = invalid;
+                Assert.Throws<FormatException>(() => store.Save(0, state));
+            }
+            Assert.That(store.Load(0).Data.worldItems[0].weightMultiplier, Is.EqualTo(1.125f));
+        }
+
+        [Test]
         public void RouletteMultiplier_RoundTripsAndOldSnapshotsDefaultToOne()
         {
             var state = new HowToFishSaveData();

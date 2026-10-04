@@ -109,6 +109,7 @@ namespace Hotfix.HowToFish
         [SerializeField] private int value = 3;
         [SerializeField] private float health = 10;
         [SerializeField] private float baseWeight = 1;
+        [SerializeField] private bool skipRandomizedWeight;
         [SerializeField] private float healthRestored = 12;
         [SerializeField] private float fullnessRestored = 20;
         [SerializeField] private bool ignoredBySeller;
@@ -132,6 +133,8 @@ namespace Hotfix.HowToFish
         public int Value => value;
         public float Health => health;
         public float BaseWeight => baseWeight;
+        /// 来源明确跳过个体随机重量的生物使用基础重量。
+        public bool SkipRandomizedWeight => skipRandomizedWeight;
         public float HealthRestored => healthRestored;
         public float FullnessRestored => fullnessRestored;
         public bool IgnoredBySeller => ignoredBySeller;

@@ -10,6 +10,20 @@ namespace Tests.Demo
         private HowToFishCatalog catalog;
 
         [Test]
+        public void IndividualWeight_ValueCombinesFactorsAndRejectsInvalidWeight()
+        {
+            var state = new HowToFishSaveData();
+            var session = new HowToFishSession(catalog, state);
+            Assert.That(session.CatchValue("Shrimp", .5f, true, 2, 35, .8f), Is.EqualTo(1260));
+            Assert.That(session.CatchValue("Shrimp", .5f, true, 2, 35), Is.EqualTo(1575), "旧调用默认重量倍率为1。");
+            Assert.That(session.SellCatch("Shrimp", 0, false, 1, 1, 1.2f), Is.EqualTo(6));
+            foreach (float invalid in new[] { 0, -1, float.NaN, float.PositiveInfinity })
+                Assert.Throws<ArgumentOutOfRangeException>(() => session.SellCatch("Shrimp", 0, false, 1, 1, invalid));
+            Assert.Throws<InvalidOperationException>(() => session.SellCatch("Shrimp", 0, false, 1, 1, float.MaxValue));
+            Assert.That(state.money, Is.EqualTo(6));
+        }
+
+        [Test]
         public void RouletteValue_MultipliesExistingFactorsAndRejectsOverflowWithoutPaying()
         {
             var state = new HowToFishSaveData { money = 10 };

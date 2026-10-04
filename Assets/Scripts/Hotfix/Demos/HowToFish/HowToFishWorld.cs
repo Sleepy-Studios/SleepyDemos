@@ -423,6 +423,7 @@ namespace Hotfix.HowToFish
             if (item != null && item.Creature?.IsBoss == true && item.IsAlive && item.DefinitionId != "Tuna") return item.Creature.DisplayName + " · 击败后才能拾取";
             return item == null ? "" : "[" + input.BindingLabel("Interact") + "] 拾取 " + (item.Creature?.DisplayName ?? catalog.FindItem(item.DefinitionId)?.DisplayName) +
                 (item.IsDrip ? " · <color=#FF7777>D</color><color=#FFDD66>r</color><color=#77EE99>i</color><color=#77BBFF>p</color>" : "") +
+                (item.Creature != null ? $" · {item.Weight:0.##} kg" : "") +
                 (item.Creature != null && !item.IsAlive ? $"  ${item.SaleValue} · 受热 {item.Cooking:P0}" : "");
         }
 

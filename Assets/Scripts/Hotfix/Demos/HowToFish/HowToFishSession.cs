@@ -312,9 +312,10 @@ namespace Hotfix.HowToFish
         /// <param name="drip">是否珍稀变体。</param>
         /// <param name="styleMultiplier">本次击杀的奖励乘积，至少为1。</param>
         /// <param name="bettingMultiplier">此实体累计轮盘倍率，至少为1。</param>
-        public int SellCatch(string creatureId, float cooking, bool drip, float styleMultiplier = 1, float bettingMultiplier = 1)
+        /// <param name="weightMultiplier">当前个体相对基础重量的正倍率；旧调用默认1。</param>
+        public int SellCatch(string creatureId, float cooking, bool drip, float styleMultiplier = 1, float bettingMultiplier = 1, float weightMultiplier = 1)
         {
-            int amount = CatchValue(creatureId, cooking, drip, styleMultiplier, bettingMultiplier);
+            int amount = CatchValue(creatureId, cooking, drip, styleMultiplier, bettingMultiplier, weightMultiplier);
             if (amount > int.MaxValue - state.money) throw new InvalidOperationException("金钱已达到上限。");
             state.money += (int)amount;
             Changed?.Invoke();
@@ -327,12 +328,14 @@ namespace Hotfix.HowToFish
         /// <param name="drip">是否为珍稀变体。</param>
         /// <param name="styleMultiplier">击杀奖励倍率。</param>
         /// <param name="bettingMultiplier">累计轮盘倍率，与其它售价因素相乘后统一取整。</param>
-        public int CatchValue(string creatureId, float cooking, bool drip, float styleMultiplier = 1, float bettingMultiplier = 1)
+        /// <param name="weightMultiplier">有限正数个体重量倍率；来源未公开换算，线性影响售价为当前推定。</param>
+        public int CatchValue(string creatureId, float cooking, bool drip, float styleMultiplier = 1, float bettingMultiplier = 1, float weightMultiplier = 1)
         {
             var creature = catalog.FindCreature(creatureId) ?? throw new ArgumentException("生物不存在。", nameof(creatureId));
             if (!(styleMultiplier >= 1) || float.IsInfinity(styleMultiplier)) throw new ArgumentOutOfRangeException(nameof(styleMultiplier));
             if (!(bettingMultiplier >= 1) || float.IsInfinity(bettingMultiplier)) throw new ArgumentOutOfRangeException(nameof(bettingMultiplier));
-            double amount = Math.Round((double)creature.Value * styleMultiplier * bettingMultiplier * (drip ? 3 : 1) * CookingMultiplier(cooking));
+            if (!(weightMultiplier > 0) || float.IsInfinity(weightMultiplier)) throw new ArgumentOutOfRangeException(nameof(weightMultiplier));
+            double amount = Math.Round((double)creature.Value * styleMultiplier * bettingMultiplier * weightMultiplier * (drip ? 3 : 1) * CookingMultiplier(cooking));
             if (amount > int.MaxValue) throw new InvalidOperationException("鱼获价值超出上限。");
             return (int)amount;
         }

@@ -178,7 +178,7 @@ namespace Hotfix.HowToFish
                 stats.text += $"\n{heldFood.Creature?.DisplayName ?? world.Catalog.FindItem(heldFood.DefinitionId)?.DisplayName} · " +
                     (heldFood.IsDrip ? "<color=#FF7777>D</color><color=#FFDD66>r</color><color=#77EE99>i</color><color=#77BBFF>p</color> · " : "") +
                     (heldFood.IsBurnt ? "烧焦" : heldFood.Cooking >= .45f ? "熟成" : heldFood.IsCooked ? "加热中" : "生") +
-                    (heldFood.Creature == null ? "" : $"  ${heldFood.SaleValue}");
+                    (heldFood.Creature == null ? "" : $" · {heldFood.Weight:0.##} kg  ${heldFood.SaleValue}");
             if (world.Player.EatingProgress > 0) stats.text += $"\n进食 {world.Player.EatingProgress:P0}";
             if (world.Player.Equipment?.Kind == HowToFishItemKind.Gun)
                 stats.text += $"\n{world.Player.Equipment.DisplayName}  {world.Player.Ammo}/{world.Player.AmmoCapacity}" +

@@ -25,6 +25,7 @@ MonoBehaviour:
     value: 3
     health: 15
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 18
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -50,6 +51,7 @@ MonoBehaviour:
     value: 7
     health: 70
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 25
     fullnessRestored: 40
     ignoredBySeller: 0
@@ -75,6 +77,7 @@ MonoBehaviour:
     value: 5
     health: 12
     baseWeight: 0.015
+    skipRandomizedWeight: 0
     healthRestored: 8
     fullnessRestored: 25
     ignoredBySeller: 0
@@ -100,6 +103,7 @@ MonoBehaviour:
     value: 9
     health: 85
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 26
     fullnessRestored: 40
     ignoredBySeller: 0
@@ -123,6 +127,7 @@ MonoBehaviour:
     value: 1
     health: 0
     baseWeight: 0.05
+    skipRandomizedWeight: 1
     healthRestored: 15
     fullnessRestored: 10
     ignoredBySeller: 0
@@ -148,6 +153,7 @@ MonoBehaviour:
     value: 10000
     health: 750
     baseWeight: 18
+    skipRandomizedWeight: 0
     healthRestored: 100
     fullnessRestored: 100
     ignoredBySeller: 1
@@ -171,6 +177,7 @@ MonoBehaviour:
     value: 4
     health: 0
     baseWeight: 0.05
+    skipRandomizedWeight: 1
     healthRestored: 10
     fullnessRestored: 15
     ignoredBySeller: 0
@@ -196,6 +203,7 @@ MonoBehaviour:
     value: 4
     health: 5
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 16
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -221,6 +229,7 @@ MonoBehaviour:
     value: 11000
     health: 2500
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 100
     fullnessRestored: 100
     ignoredBySeller: 1
@@ -246,6 +255,7 @@ MonoBehaviour:
     value: 6
     health: 40
     baseWeight: 3.2
+    skipRandomizedWeight: 0
     healthRestored: 18
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -271,6 +281,7 @@ MonoBehaviour:
     value: 5
     health: 40
     baseWeight: 13
+    skipRandomizedWeight: 0
     healthRestored: 18
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -298,6 +309,7 @@ MonoBehaviour:
     value: 12
     health: 80
     baseWeight: 20
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -323,6 +335,7 @@ MonoBehaviour:
     value: 10
     health: 50
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 20
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -348,6 +361,7 @@ MonoBehaviour:
     value: 24
     health: 50
     baseWeight: 0.1
+    skipRandomizedWeight: 0
     healthRestored: 32
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -373,6 +387,7 @@ MonoBehaviour:
     value: 18
     health: 75
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -398,6 +413,7 @@ MonoBehaviour:
     value: 18
     health: 100
     baseWeight: 7
+    skipRandomizedWeight: 0
     healthRestored: 14
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -423,6 +439,7 @@ MonoBehaviour:
     value: 12
     health: 40
     baseWeight: 0.1
+    skipRandomizedWeight: 0
     healthRestored: 18
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -448,6 +465,7 @@ MonoBehaviour:
     value: 14
     health: 75
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 22
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -473,6 +491,7 @@ MonoBehaviour:
     value: 60
     health: 130
     baseWeight: 0.0001
+    skipRandomizedWeight: 0
     healthRestored: 20
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -500,6 +519,7 @@ MonoBehaviour:
     value: 100
     health: 350
     baseWeight: 400
+    skipRandomizedWeight: 0
     healthRestored: 100
     fullnessRestored: 100
     ignoredBySeller: 0
@@ -525,6 +545,7 @@ MonoBehaviour:
     value: 150
     health: 160
     baseWeight: 12
+    skipRandomizedWeight: 0
     healthRestored: 32
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -550,6 +571,7 @@ MonoBehaviour:
     value: 53
     health: 160
     baseWeight: 0.5
+    skipRandomizedWeight: 0
     healthRestored: 18
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -577,6 +599,7 @@ MonoBehaviour:
     value: 300
     health: 2300
     baseWeight: 70
+    skipRandomizedWeight: 0
     healthRestored: 40
     fullnessRestored: 100
     ignoredBySeller: 0
@@ -602,6 +625,7 @@ MonoBehaviour:
     value: 12000
     health: 18000
     baseWeight: 1
+    skipRandomizedWeight: 0
     healthRestored: 0
     fullnessRestored: 0
     ignoredBySeller: 1
@@ -629,6 +653,7 @@ MonoBehaviour:
     value: 2000
     health: 5000
     baseWeight: 70
+    skipRandomizedWeight: 0
     healthRestored: 100
     fullnessRestored: 100
     ignoredBySeller: 0
@@ -652,6 +677,7 @@ MonoBehaviour:
     value: 13000
     health: 7800
     baseWeight: 1.5
+    skipRandomizedWeight: 0
     healthRestored: 100
     fullnessRestored: 100
     ignoredBySeller: 1
@@ -677,6 +703,7 @@ MonoBehaviour:
     value: 250
     health: 350
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -702,6 +729,7 @@ MonoBehaviour:
     value: 280
     health: 280
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 28
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -727,6 +755,7 @@ MonoBehaviour:
     value: 350
     health: 550
     baseWeight: 28
+    skipRandomizedWeight: 0
     healthRestored: 50
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -752,6 +781,7 @@ MonoBehaviour:
     value: 310
     health: 380
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 34
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -777,6 +807,7 @@ MonoBehaviour:
     value: 320
     health: 250
     baseWeight: 4
+    skipRandomizedWeight: 0
     healthRestored: 20
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -802,6 +833,7 @@ MonoBehaviour:
     value: 280
     health: 350
     baseWeight: 3.2
+    skipRandomizedWeight: 0
     healthRestored: 18
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -827,6 +859,7 @@ MonoBehaviour:
     value: 280
     health: 250
     baseWeight: 5
+    skipRandomizedWeight: 0
     healthRestored: 26
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -852,6 +885,7 @@ MonoBehaviour:
     value: 290
     health: 500
     baseWeight: 27
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -877,6 +911,7 @@ MonoBehaviour:
     value: 340
     health: 380
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -902,6 +937,7 @@ MonoBehaviour:
     value: 380
     health: 350
     baseWeight: 4.5
+    skipRandomizedWeight: 0
     healthRestored: 32
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -927,6 +963,7 @@ MonoBehaviour:
     value: 1360
     health: 1000
     baseWeight: 80
+    skipRandomizedWeight: 0
     healthRestored: 50
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -952,6 +989,7 @@ MonoBehaviour:
     value: 1500
     health: 500
     baseWeight: 80
+    skipRandomizedWeight: 0
     healthRestored: 50
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -977,6 +1015,7 @@ MonoBehaviour:
     value: 1450
     health: 1000
     baseWeight: 40
+    skipRandomizedWeight: 0
     healthRestored: 60
     fullnessRestored: 60
     ignoredBySeller: 0
@@ -1002,6 +1041,7 @@ MonoBehaviour:
     value: 1500
     health: 800
     baseWeight: 50
+    skipRandomizedWeight: 0
     healthRestored: 50
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -1027,6 +1067,7 @@ MonoBehaviour:
     value: 2200
     health: 120
     baseWeight: 0.0001
+    skipRandomizedWeight: 0
     healthRestored: 30
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -1050,6 +1091,7 @@ MonoBehaviour:
     value: 12
     health: 0
     baseWeight: 0.05
+    skipRandomizedWeight: 1
     healthRestored: 25
     fullnessRestored: 20
     ignoredBySeller: 0
@@ -1075,6 +1117,7 @@ MonoBehaviour:
     value: 8000
     health: 20000
     baseWeight: 12000
+    skipRandomizedWeight: 0
     healthRestored: 1000
     fullnessRestored: 1000
     ignoredBySeller: 1
@@ -1098,6 +1141,7 @@ MonoBehaviour:
     value: 15000
     health: 38000
     baseWeight: 500
+    skipRandomizedWeight: 0
     healthRestored: 1000
     fullnessRestored: 1000
     ignoredBySeller: 1
@@ -1123,6 +1167,7 @@ MonoBehaviour:
     value: 62
     health: 160
     baseWeight: 0.1
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -1148,6 +1193,7 @@ MonoBehaviour:
     value: 46
     health: 200
     baseWeight: 5
+    skipRandomizedWeight: 0
     healthRestored: 24
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -1173,6 +1219,7 @@ MonoBehaviour:
     value: 52
     health: 100
     baseWeight: 2
+    skipRandomizedWeight: 0
     healthRestored: 16
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -1198,6 +1245,7 @@ MonoBehaviour:
     value: 46
     health: 140
     baseWeight: 0.1
+    skipRandomizedWeight: 0
     healthRestored: 20
     fullnessRestored: 30
     ignoredBySeller: 0
@@ -1223,6 +1271,7 @@ MonoBehaviour:
     value: 62
     health: 150
     baseWeight: 0.4
+    skipRandomizedWeight: 0
     healthRestored: 32
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -1250,6 +1299,7 @@ MonoBehaviour:
     value: 50
     health: 1500
     baseWeight: 84
+    skipRandomizedWeight: 0
     healthRestored: 100
     fullnessRestored: 100
     ignoredBySeller: 0
@@ -1275,6 +1325,7 @@ MonoBehaviour:
     value: 80
     health: 1000
     baseWeight: 70
+    skipRandomizedWeight: 0
     healthRestored: 25
     fullnessRestored: 60
     ignoredBySeller: 0
@@ -1300,6 +1351,7 @@ MonoBehaviour:
     value: 6200
     health: 7500
     baseWeight: 70
+    skipRandomizedWeight: 0
     healthRestored: 40
     fullnessRestored: 100
     ignoredBySeller: 0
@@ -1325,6 +1377,7 @@ MonoBehaviour:
     value: 300
     health: 2000
     baseWeight: 5
+    skipRandomizedWeight: 0
     healthRestored: 20
     fullnessRestored: 50
     ignoredBySeller: 0
@@ -1348,6 +1401,7 @@ MonoBehaviour:
     value: 5
     health: 30
     baseWeight: 1.5
+    skipRandomizedWeight: 0
     healthRestored: 10
     fullnessRestored: 10
     ignoredBySeller: 0

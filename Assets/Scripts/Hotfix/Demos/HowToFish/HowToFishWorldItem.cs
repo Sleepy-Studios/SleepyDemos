@@ -32,6 +32,8 @@ namespace Hotfix.HowToFish
         private HowToFishOwnedItem equipmentState;
         private float styleMultiplier = 1;
         private float bettingMultiplier = 1;
+        private float weightMultiplier = 1;
+        private Vector3 originalScale;
         private bool hasBeenHitByPlayer;
         private HowToFishBossTransition bossTransition;
         private HowToFishDynamite dynamite;
@@ -59,9 +61,12 @@ namespace Hotfix.HowToFish
         public bool HasBeenHitByPlayer => hasBeenHitByPlayer;
         public float KillMultiplier => styleMultiplier;
         public float BettingMultiplier => bettingMultiplier;
+        public float WeightMultiplier => weightMultiplier;
+        /// 该实例当前的实际物理重量，单位kg。
+        public float Weight => body.mass;
         /// 当前轮盘仅接受曾被玩家持握、已放手且可出售的死生物。
         public bool CanBet => !consumed && !IsHeld && !IsAlive && creature != null && !creature.IgnoredBySeller && hasBeenHeld;
-        public int SaleValue => creature == null ? 0 : session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier);
+        public int SaleValue => creature == null ? 0 : session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier);
         /// 珍稀变体标记。
         public bool IsDrip => isDrip;
         public HowToFishOwnedItem EquipmentState => equipmentState?.Copy();
@@ -86,6 +91,7 @@ namespace Hotfix.HowToFish
             colliders = GetComponentsInChildren<Collider>();
             instanceId = Guid.NewGuid().ToString("N");
             originalGravity = body.useGravity;
+            originalScale = transform.localScale;
         }
 
         /// <summary>绑定会话和定义；每个新实例只调用一次。</summary>
@@ -103,6 +109,8 @@ namespace Hotfix.HowToFish
             if (creature == null && definition == null) throw new ArgumentException("世界物品定义不存在：" + id);
             health = creature?.Health ?? 0;
             isDrip = drip;
+            // 个体随机范围暂无来源公式：均匀0.8至1.2为本项目推定，与Drip独立。
+            ApplyWeightMultiplier(creature != null && !creature.SkipRandomizedWeight ? UnityEngine.Random.Range(.8f, 1.2f) : 1);
             if (definition?.IsEquipment == true) SetEquipmentState(new HowToFishOwnedItem { id = id, count = 1 });
             if (creature != null) session.RegisterCreature(id, false, drip);
         }
@@ -112,6 +120,7 @@ namespace Hotfix.HowToFish
         public void Restore(HowToFishWorldItemData data)
         {
             if (data == null || data.definitionId != definitionId) throw new ArgumentException("存档物品定义不匹配。");
+            ApplyWeightMultiplier(data.weightMultiplier);
             if (data.dynamiteFuseSeconds > 0 && dynamite == null) throw new ArgumentException("存档炸药缺少引信组件。");
             if (dynamite != null) dynamite.RestoreFuse(data.dynamiteFuseSeconds);
             instanceId = data.instanceId;
@@ -136,6 +145,7 @@ namespace Hotfix.HowToFish
             position = transform.position, eulerAngles = transform.eulerAngles,
             isCooked = IsCooked, cooking = cooking, hasBeenHeld = hasBeenHeld, styleMultiplier = styleMultiplier,
             bettingMultiplier = bettingMultiplier,
+            weightMultiplier = weightMultiplier,
             isDrip = isDrip, hasBeenHitByPlayer = hasBeenHitByPlayer, equipment = equipmentState?.Copy(),
             dynamiteFuseSeconds = dynamite != null ? dynamite.RemainingFuse : 0
         };
@@ -163,7 +173,19 @@ namespace Hotfix.HowToFish
             return true;
         }
 
-        internal int ValueAfterRoulette(float multiplier) => session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, multiplier);
+        private void ApplyWeightMultiplier(float multiplier)
+        {
+            if (!(multiplier >= .8f && multiplier <= 1.2f)) throw new ArgumentOutOfRangeException(nameof(multiplier));
+            if (creature == null) return;
+            float mass = creature.BaseWeight * multiplier;
+            if (!(mass > 0) || float.IsInfinity(mass)) throw new ArgumentOutOfRangeException(nameof(multiplier), "个体重量超出物理数值范围。");
+            weightMultiplier = multiplier;
+            body.mass = mass;
+            // 重量按倍率、整体尺寸按立方根换算为当前推定；始终基于Prefab初始尺寸，读档不会重复累乘。
+            transform.localScale = originalScale * Mathf.Pow(multiplier, 1f / 3f);
+        }
+
+        internal int ValueAfterRoulette(float multiplier) => session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, multiplier, weightMultiplier);
 
         internal void ApplyRouletteResult(float multiplier)
         {
@@ -270,7 +292,7 @@ namespace Hotfix.HowToFish
             money = 0;
             if (consumed || creature == null || creature.IgnoredBySeller || IsAlive || !hasBeenHeld) return false;
             consumed = true;
-            try { money = session.SellCatch(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier); }
+            try { money = session.SellCatch(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier); }
             catch { consumed = false; throw; }
             FinishConsume();
             return true;

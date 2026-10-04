@@ -31,6 +31,85 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator IndividualWeight_HeavyWhaleCarryAndCraterOffer()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            world.Session.State.unlockedIsland = 4;
+            var island = world.Islands.Single(value => value.Index == 4);
+            var ascent = island.transform.Find("WoodenAscent");
+            var crater = island.GetComponentInChildren<HowToFishVolcanoCrater>();
+            // 隔离最大个体重量与坡道投掷：尸体和登山进度为夹具，移动/抓持/投掷仍走真实物理。
+            int first = ascent.childCount - 8;
+            world.Player.Teleport(ascent.GetChild(first).position + Vector3.up * .2f, 0);
+            yield return new WaitForSeconds(.4f);
+            var whale = world.Spawn("BowheadWhale", world.Player.Eye.transform.position + Vector3.forward * 2, false);
+            var data = whale.Snapshot(); data.health = 0; data.weightMultiplier = 1.2f;
+            whale.Restore(data);
+            Assert.That(whale.Body.mass, Is.EqualTo(whale.Creature.BaseWeight * 1.2f).Within(.01f));
+            Assert.That(whale.Body.mass, Is.GreaterThan(12000));
+            PlaceForPickup(world.Player, whale);
+            Assert.That(world.Player.PickUp(whale), Is.True);
+            for (int i = first + 1; i < ascent.childCount; i++)
+            {
+                var target = ascent.GetChild(i).position;
+                float deadline = Time.realtimeSinceStartup + 10;
+                while (Vector3.ProjectOnPlane(target - world.Player.transform.position, Vector3.up).magnitude > .65f &&
+                    Time.realtimeSinceStartup < deadline)
+                {
+                    PointMouseAt(world.Player, new Vector3(target.x, world.Player.Eye.transform.position.y, target.z));
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.up });
+                    yield return null;
+                }
+                InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
+                Assert.That(Vector3.ProjectOnPlane(target - world.Player.transform.position, Vector3.up).magnitude, Is.LessThan(.9f));
+                Assert.That(whale.IsHeld, Is.True, "最大重量鲸尸在木板路上脱手。");
+            }
+            yield return AimAt(world.Player, crater.transform.position + Vector3.up * 2.5f);
+            yield return PressKey(Key.G);
+            yield return WaitFor(() => world.ActiveBoss?.Item.DefinitionId == "MutatedBowheadWhale", "最大重量鲸尸投掷未触发变异阶段。");
+            Assert.That(whale == null || whale.IsConsumed, Is.True);
+        }
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator IndividualWeight_ScalesMassValueAndSurvivesReloadWithoutCompounding()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            var fish = world.Spawn("Mackerel", world.Player.transform.position + Vector3.forward * 2 + Vector3.up, true);
+            Assert.That(fish.WeightMultiplier, Is.InRange(.8f, 1.2f));
+            Assert.That(fish.Health, Is.EqualTo(fish.Creature.Health), "体型不改变基础生命。");
+            Assert.That(fish.Weight, Is.EqualTo(fish.Creature.BaseWeight * fish.WeightMultiplier).Within(.0001f));
+            Assert.That(fish.Body.mass, Is.EqualTo(fish.Weight).Within(.0001f));
+            var prefabScale = fish.Creature.Prefab.transform.localScale;
+            var snapshot = fish.Snapshot(); snapshot.weightMultiplier = .8f;
+            fish.Restore(snapshot); fish.Restore(snapshot);
+            Assert.That(Vector3.Distance(fish.transform.localScale, prefabScale * Mathf.Pow(.8f, 1f / 3)), Is.LessThan(.0001f), "反复恢复不能累乘体型。");
+            fish.Hit(1000, Vector3.zero, 2); Assert.That(fish.Heat(.5f), Is.True);
+            int expectedValue = (int)Math.Round(fish.Creature.Value * 2d * 3 * 1.5 * .8f);
+            Assert.That(fish.SaleValue, Is.EqualTo(expectedValue));
+            PlaceForPickup(world.Player, fish); Assert.That(world.Player.PickUp(fish), Is.True); world.Player.Drop(false);
+            fish.Body.isKinematic = true;
+            string id = fish.InstanceId; float weight = fish.Weight;
+            foreach (string fixedId in new[] { "Clam", "Leech", "FootSnail" })
+            {
+                var fixedItem = world.Spawn(fixedId, world.Player.transform.position + Vector3.up * 2, false);
+                Assert.That(fixedItem.WeightMultiplier, Is.EqualTo(1), fixedId);
+                Assert.That(fixedItem.Body.mass, Is.EqualTo(fixedItem.Creature.BaseWeight).Within(.0001f));
+            }
+            world.Save();
+            Assert.That(world.InspectSlot(0).Data.worldItems.Single(item => item.instanceId == id).weightMultiplier, Is.EqualTo(.8f));
+            world.ReturnToHub();
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "重量存档未返回Hub。");
+            yield return EnterWorld(); world = testWorld;
+            fish = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(item => item.InstanceId == id);
+            Assert.That(fish.Weight, Is.EqualTo(weight).Within(.0001f)); Assert.That(fish.Body.mass, Is.EqualTo(weight).Within(.0001f));
+            Assert.That(fish.SaleValue, Is.EqualTo(expectedValue));
+            Assert.That(Vector3.Distance(fish.transform.localScale, prefabScale * Mathf.Pow(.8f, 1f / 3)), Is.LessThan(.0001f));
+            Assert.That(fish.TrySell(out int amount), Is.True); Assert.That(amount, Is.EqualTo(expectedValue));
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator Roulette_PhysicalBetsPausePayoutAndReload()
         {
             yield return StartNewGame();
@@ -54,7 +133,7 @@ namespace Tests.Demo
                 var zone = table.GetComponentsInChildren<Transform>().Single(node => node.name == colors[i] + "Bet");
                 fish[i].Body.useGravity = false; fish[i].Body.linearVelocity = Vector3.zero;
                 fish[i].Body.position = zone.position + Vector3.up * .2f;
-                ids[i] = fish[i].InstanceId; values[i] = fish[i].SaleValue;
+                ids[i] = fish[i].InstanceId; values[i] = world.Session.CatchValue("Shrimp", 0, false, 1, i == 2 ? 35 : 2, fish[i].WeightMultiplier);
             }
             Physics.SyncTransforms(); yield return new WaitForFixedUpdate();
             var target = table.transform.TransformPoint(new Vector3(1.15f, .8f, .85f));
@@ -74,7 +153,7 @@ namespace Tests.Demo
             Assert.That(saved.worldItems.Count(item => ids.Contains(item.instanceId)), Is.EqualTo(1), "开奖动画前应只保存中奖实体。");
             for (int i = 0; i < fish.Length; i++)
                 if (i != winner) Assert.That(fish[i] == null || fish[i].IsConsumed, Is.True);
-            Assert.That(fish[winner].SaleValue, Is.EqualTo(values[winner] * multiplier));
+            Assert.That(fish[winner].SaleValue, Is.EqualTo(values[winner]));
             Assert.That(world.Session.State.money, Is.EqualTo(money), "轮盘应改变物品价值，不直接发钱。");
             world.SetPaused(true);
             var wheel = table.GetComponentsInChildren<Transform>().Single(node => node.name == "Wheel");
@@ -96,8 +175,8 @@ namespace Tests.Demo
             yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "轮盘保存未返回Hub。");
             yield return EnterWorld(); world = testWorld;
             var restored = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(item => item.InstanceId == ids[winner]);
-            Assert.That(restored.BettingMultiplier, Is.EqualTo(multiplier)); Assert.That(restored.SaleValue, Is.EqualTo(values[winner] * multiplier));
-            Assert.That(restored.TrySell(out int amount), Is.True); Assert.That(amount, Is.EqualTo(values[winner] * multiplier));
+            Assert.That(restored.BettingMultiplier, Is.EqualTo(multiplier)); Assert.That(restored.SaleValue, Is.EqualTo(values[winner]));
+            Assert.That(restored.TrySell(out int amount), Is.True); Assert.That(amount, Is.EqualTo(values[winner]));
             Assert.That(world.Session.State.money, Is.EqualTo(money + amount));
             table = UnityEngine.Object.FindAnyObjectByType<HowToFishRoulette>();
             world.Player.Teleport(table.transform.position + new Vector3(0, .1f, 2.6f), 180);
@@ -1546,7 +1625,7 @@ namespace Tests.Demo
             Assert.That(fish.Cooking, Is.EqualTo(cooking)); world.SetPaused(false);
             yield return new WaitForSeconds(6.2f);
             Assert.That(fish.Cooking, Is.InRange(.48f, .56f));
-            Assert.That(fish.SaleValue, Is.EqualTo(world.Session.CatchValue("Mackerel", fish.Cooking, false, 2)));
+            Assert.That(fish.SaleValue, Is.EqualTo(world.Session.CatchValue("Mackerel", fish.Cooking, false, 2, 1, fish.WeightMultiplier)));
             int cookedValue = fish.SaleValue;
             fish.Body.position = grill.CookingPosition + Vector3.back * 3; fish.Body.linearVelocity = Vector3.zero;
             yield return new WaitForFixedUpdate(); cooking = fish.Cooking;
@@ -2635,7 +2714,7 @@ namespace Tests.Demo
             Assert.That(world.InspectSlot(0).Data.inventory.Single(value => value.id == "FishBucket").count, Is.EqualTo(1));
         }
 
-        [UnityTest, Timeout(360000)]
+        [UnityTest, Timeout(720000)]
         public IEnumerator Volcano_ReelShootCarryWhaleAndDefeatMutation()
         {
             yield return StartNewGame();
@@ -2643,6 +2722,10 @@ namespace Tests.Demo
             // 预置到达第五岛所需装备；钓获、射击、搬运和投掷均走实际输入和物理。
             world.Session.State.unlockedIsland = 4; world.Session.State.hasBoatKey = true;
             world.Session.GrantItem("FishingRod"); world.Session.GrantItem("AssaultRifle"); world.Session.GrantItem("FishBucket");
+            // 来源数值更新后两阶段为20000/38000生命；使用火山可购买的满级步枪验证实战与搬运。
+            world.Session.State.money = 100000;
+            for (int upgrade = 0; upgrade < world.Catalog.FindItem("AssaultRifle").MaxUpgrade; upgrade++)
+                Assert.That(world.Session.TryUpgrade("AssaultRifle", 4, out var upgradeReason), Is.True, upgradeReason);
             var island = world.Islands.Single(value => value.Index == 4);
             var crater = island.GetComponentInChildren<HowToFishVolcanoCrater>();
             world.Player.Teleport(island.Position + new Vector3(33, 2, -82), 180);
@@ -2671,7 +2754,7 @@ namespace Tests.Demo
             IEnumerator Fight(HowToFishWorldItem target, Vector3 arena, float inner, float outer)
             {
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.LeftShift));
-                float deadline = Time.realtimeSinceStartup + 130;
+                float deadline = Time.realtimeSinceStartup + 330;
                 while (target != null && target.IsAlive && !died && Time.realtimeSinceStartup < deadline)
                 {
                     var radial = Vector3.ProjectOnPlane(world.Player.transform.position - arena, Vector3.up);
@@ -2695,12 +2778,22 @@ namespace Tests.Demo
             IEnumerator WalkTo(Vector3 destination, float stopDistance = .8f)
             {
                 float deadline = Time.realtimeSinceStartup + 35;
+                float sampleAt = Time.realtimeSinceStartup + .75f;
+                var samplePosition = world.Player.transform.position;
                 while (Vector3.ProjectOnPlane(destination - world.Player.transform.position, Vector3.up).magnitude > stopDistance &&
                     !died && Time.realtimeSinceStartup < deadline)
                 {
                     PointMouseAt(world.Player, new Vector3(destination.x, world.Player.Eye.transform.position.y, destination.z));
                     InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.up });
                     yield return null;
+                    if (Time.realtimeSinceStartup >= sampleAt)
+                    {
+                        // 木板入口与地形边缘可能高于自动迈步；使用玩家已有跳跃，不瞬移穿过障碍。
+                        bool blocked = Vector3.ProjectOnPlane(world.Player.transform.position - samplePosition, Vector3.up).sqrMagnitude < .04f;
+                        samplePosition = world.Player.transform.position;
+                        sampleAt = Time.realtimeSinceStartup + .75f;
+                        if (blocked) yield return PressKey(Key.Space);
+                    }
                 }
                 InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
                 Assert.That(died, Is.False);

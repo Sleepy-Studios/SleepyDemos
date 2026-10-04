@@ -34,6 +34,7 @@ namespace Hotfix.Editor.HowToFish
                 entry.FindPropertyRelative("health").floatValue = Number("_maxHp");
                 entry.FindPropertyRelative("value").intValue = (int)Number("_worth");
                 entry.FindPropertyRelative("baseWeight").floatValue = Number("_weight");
+                entry.FindPropertyRelative("skipRandomizedWeight").boolValue = values[columns["_skipRandomizedWeight"]] == "1";
                 entry.FindPropertyRelative("healthRestored").floatValue = Number("_hpToRestore");
                 entry.FindPropertyRelative("fullnessRestored").floatValue = Number("_fullnessToRestore");
                 entry.FindPropertyRelative("isBoss").boolValue = Number("_bossType") > 0;

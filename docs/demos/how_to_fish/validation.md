@@ -372,3 +372,16 @@ BingBong-b6465464：PlayMode 1/1 通过（78秒）。真实购买椰子、普通
 - 存档精确用例 `RouletteMultiplier_RoundTripsAndOldSnapshotsDefaultToOne`：239715fe，1/1通过，18秒；旧字段缺失按1恢复、累计70倍往返、非法倍率不覆盖有效存档，证据 `RouletteSave-239715fe.xml`。
 - 运行用例 `Roulette_PhysicalBetsPausePayoutAndReload`：d0ca839c同轮新生成原生XML为1/1通过，测试时段06:36:29Z至06:36:56Z，证据 `RouletteRuntime-d0ca839c.xml`。REST为域重载后原任务未恢复、零用例，未将该状态冒充成功；原生报告确认实际目标通过。覆盖三色实体押物、先保存后演出、输掉销毁、实际售价、暂停、首领战斗拒绝保存时整组保留、Hub读档出售与键鼠/手柄各自启动。
 - 实际查看14:36:52的 `Roulette-InGame.png`，三色区域、37格轮盘、结果提示可见；测试押物使用关闭重力的定位夹具，因此悬浮姿态不作为自然落桌效果证明。Console 26日志/0警告/0错误。使用解锁岩石岛的隔离存档，不代表从零通关；未执行全项目测试。
+
+## 2026-10-04：个体重量
+
+- `IndividualWeight_ValueCombinesFactorsAndRejectsInvalidWeight`：d1682838，1/1通过，24秒；覆盖重量与Drip/烹饪/击杀/轮盘合并估价、旧调用默认值和非法值/溢出不改余额，证据 `WeightValue-d1682838.xml`。
+- `IndividualWeight_RoundTripsAndLegacyDefaultsToOne`：f28d2eee，1/1通过，51秒；覆盖保存恢复、旧字段缺失为1、0.8至1.2范围外及非有限值拒绝而保留有效旧档，证据 `WeightSave-f28d2eee.xml`。
+- `VerifiedCreatureFacts_ApplyAll54BaseStatsAndNutrition`：ca07595b，1/1通过；核对54种生物来源基础数据及禁止随机重量标志，证据 `WeightAssets-ca07595b.xml`。
+- `IndividualWeight_ScalesMassValueAndSurvivesReloadWithoutCompounding`：c47f09c0同轮原生XML为1/1通过，06:49:32Z至06:49:52Z；验证随机范围、刚体质量、体型、重复恢复不累乘、固定重量三种生物、组合售价、Hub续档和实际出售，证据 `WeightRuntime-c47f09c0.xml`。REST域重载恢复失败、零用例，以同轮原生目标结果计入。
+- 轮盘定向回归fa11cc23同轮原生XML为1/1通过，06:51:31Z至06:51:57Z；确认重量加入后，中奖售价只在合并全部因素后取整，证据 `WeightRoulette-fa11cc23.xml`。同样存在REST任务恢复失败，未将其记为测试成功依据。
+- `IndividualWeight_HeavyWhaleCarryAndCraterOffer`：a56a858f同轮原生XML为1/1通过，07:27:30Z至07:27:58Z，证据 `WeightHeavyCarry-a56a858f.xml`。最大1.2倍个体重量鲸尸的实际刚体超过12000kg，完成末段木板路持握移动、真实投掷、消费与变异阶段触发。此用例预置尸体与登山进度；不是完整战斗或连续新档。REST仍报告域重载未恢复，按同轮新生成原生目标结果计入。Console为0警告/0错误；未执行全项目测试。
+- 鲸鱼首轮5f1a07aa为0/1通过，证据 `WeightWhaleFailure-5f1a07aa.xml`：130秒射击期限内普通鲸剩余11560生命，尚未进入搬运。该旧夹具仍使用基础步枪40伤害，而来源数据现为20000/38000两阶段生命；已改用当前商店可购买的满级步枪配置重试，未降低生产生命、伤害或搬运断言。误写命名空间的15a3abe7没有选中用例，不计为验证结果。
+- 满级步枪重试cd25d95f为0/1通过，证据 `WeightWhaleRetry-cd25d95f.xml`：已实际击杀并拿起普通鲸，但角色在木板入口距目标1.74米处停住。夹具原先只有前进输入，现增加连续受阻时按真实跳跃键，保留所有搬运断言；单阶段等待上限改为330秒，覆盖来源300秒逃脱窗口，整体允许720秒，未修改生产逃脱计时。下一轮仍待验证。
+- 113207ed仍为0/1通过，170秒后普通鲸剩余900生命，证据 `WeightWhaleJump-113207ed.xml`；该轮原生XML的Timeout仍为360000，未覆盖后写入的720000配置，不能当作最新等待范围的验证。全部源修改完成后已重新刷新，再启动同一精确用例。
+- 最新等待范围的8ab4f9ec为0/1通过，07:16:09Z至07:20:33Z，证据 `WeightWhaleRoute-8ab4f9ec.xml`，原生Timeout=720000。本轮普通鲸钓获、真实击杀、整条木板路搬运和投掷触发变异阶段均已执行，但变异鲸剩余34900生命时角色被燃烧及攻击杀死，不能据此前半段通过宣称完整战斗成功。`WeightWhaleRoute.png`记录12356.94kg鲸尸持握状态；已实际查看。补充最大个体重量的精确搬运/投掷用例，完整变异战斗仍保留为G3/G6未通过项。

@@ -155,3 +155,7 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 `HowToFishRoulette` 挂在岩石岛的自制 `RouletteTable` 上，三色 `BoxCollider` 只负责划定实物下注区。玩家通过现有 Interact 键/手柄启动；先检查物品资格、跨区重复和全部潜在中奖价值，再抽取37格结果。倍率写入地面物品快照，失败则保留原物品，写盘成功后才改内存倍率、销毁输掉的物品并播放轮球演出；暂停通过既有时间缩放冻结。
 
 `HowToFishWorldItemData.bettingMultiplier` 默认1，随地面物品保存和恢复。`HowToFishSession.CatchValue` 统一计算烹饪、Drip、击杀及轮盘倍率，拾取提示与实际出售使用同一个结果。下注不会直接增加现金；须拿回中奖物再出售。位置、白名单及概率近似见参考清单；双输入启动、暂停、保存失败保留和续档出售已通过定向运行验证，见验证记录。
+
+## 个体重量
+
+`WorldItem.Initialize` 按物种的 `SkipRandomizedWeight` 决定是否生成重量倍率，统一设置刚体质量和根节点尺寸。原始尺寸在Awake缓存，恢复时以原始尺寸重算，保证连续加载不会缩放累积。`Weight`供焦点和手持HUD显示kg；售价计算及轮盘潜在中奖检查使用同一重量倍率，避免先取整再连乘导致预览与出售不一致。旧档默认倍率1，具体推定公式和物理质量变化见参考清单。当前新增定向测试待运行。

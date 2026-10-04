@@ -76,6 +76,7 @@ namespace Tests.Demo
                 Assert.That(creature.Health, Is.EqualTo(Number("_maxHp")), values[0]);
                 Assert.That(creature.Value, Is.EqualTo(Number("_worth")), values[0]);
                 Assert.That(creature.BaseWeight, Is.EqualTo(Number("_weight")), values[0]);
+                Assert.That(creature.SkipRandomizedWeight, Is.EqualTo(Number("_skipRandomizedWeight") != 0), values[0]);
                 Assert.That(creature.HealthRestored, Is.EqualTo(Number("_hpToRestore")), values[0]);
                 Assert.That(creature.FullnessRestored, Is.EqualTo(Number("_fullnessToRestore")), values[0]);
                 Assert.That(creature.IsMainBoss, Is.EqualTo(Number("_bossType") == 2), values[0]);
