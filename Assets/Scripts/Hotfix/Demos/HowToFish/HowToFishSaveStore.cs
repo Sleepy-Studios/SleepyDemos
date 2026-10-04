@@ -69,11 +69,14 @@ namespace Hotfix.HowToFish
 
         /// <summary>新世界与继续世界共用：合并玩家档案和三槽有效解锁，补齐未完成的共享写入。</summary>
         /// <param name="data">即将建立会话的槽快照；不修改该槽的装备与船体选择。</param>
-        public void LoadSharedSkins(HowToFishSaveData data)
+        /// <returns>已经完成合并与保存的共享档案，包含全局服装选择。</returns>
+        public HowToFishSkinProfile LoadSharedSkins(HowToFishSaveData data)
         {
             if (data == null) throw new ArgumentNullException(nameof(data));
             data.Validate();
-            SaveSkinProfile(MergeSkinUnlocks(data));
+            var profile = MergeSkinUnlocks(data);
+            SaveSkinProfile(profile);
+            return profile;
         }
 
         private HowToFishSkinProfile MergeSkinUnlocks(HowToFishSaveData data)
@@ -81,15 +84,24 @@ namespace Hotfix.HowToFish
             var profile = LoadSkinProfile(out bool recovered);
             SkinProfileNotice = recovered ? "共享皮肤档案已从备份恢复，损坏原件已保留。" : null;
             var merged = new HashSet<string>(profile.unlockedSkins, StringComparer.Ordinal);
+            var outfits = new HashSet<string>(profile.unlockedOutfits, StringComparer.Ordinal);
             merged.UnionWith(data.unlockedSkins);
+            outfits.UnionWith(data.unlockedOutfits);
             for (int slot = 0; slot < 3; slot++)
             {
                 var saved = Load(slot);
-                if (saved.Data != null) merged.UnionWith(saved.Data.unlockedSkins);
+                if (saved.Data != null)
+                {
+                    merged.UnionWith(saved.Data.unlockedSkins);
+                    outfits.UnionWith(saved.Data.unlockedOutfits);
+                }
             }
             profile.unlockedSkins = new List<string>(merged);
             profile.unlockedSkins.Sort(StringComparer.Ordinal);
             data.unlockedSkins = new List<string>(profile.unlockedSkins);
+            profile.unlockedOutfits = new List<string>(outfits);
+            profile.unlockedOutfits.Sort(StringComparer.Ordinal);
+            data.unlockedOutfits = new List<string>(profile.unlockedOutfits);
             return profile;
         }
 
@@ -113,7 +125,7 @@ namespace Hotfix.HowToFish
         }
 
         /// <summary>原子保存共享解锁并保留备份；损坏档案必须先通过读取入口恢复，不能被新数据覆盖。</summary>
-        /// <param name="profile">完整的有效解锁列表，不含物品当前选择。</param>
+        /// <param name="profile">完整解锁与全局服装选择；装备和船的当前皮肤仍保存在各槽。</param>
         public void SaveSkinProfile(HowToFishSkinProfile profile)
         {
             if (profile == null) throw new ArgumentNullException(nameof(profile));
@@ -124,7 +136,11 @@ namespace Hotfix.HowToFish
                 if (!TryReadProfile(path, out var current, out var error)) throw new IOException("共享皮肤档案需要恢复，拒绝覆盖。", error);
                 foreach (string skin in current.unlockedSkins)
                     if (!profile.unlockedSkins.Contains(skin)) throw new InvalidOperationException("共享皮肤保存不能删除已有解锁。");
-                if (current.unlockedSkins.Count == profile.unlockedSkins.Count) return;
+                foreach (string outfit in current.unlockedOutfits)
+                    if (!profile.unlockedOutfits.Contains(outfit)) throw new InvalidOperationException("共享服装保存不能删除已有解锁。");
+                if (current.unlockedSkins.Count == profile.unlockedSkins.Count &&
+                    current.unlockedOutfits.Count == profile.unlockedOutfits.Count &&
+                    current.selectedOutfitId == profile.selectedOutfitId) return;
             }
             else if (File.Exists(path + ".bak")) throw new IOException("共享皮肤主档缺失，须先恢复备份。");
             WritePayload(path, JsonUtility.ToJson(profile));
@@ -251,18 +267,24 @@ namespace Hotfix.HowToFish
         }
     }
 
-    /// 本机玩家跨世界共享的皮肤解锁；槽快照保留镜像供中断恢复，不保存当前装备选择。
+    /// 本机玩家跨世界共享的外观解锁与服装选择；槽快照镜像解锁，不覆盖全局所选服装。
     [Serializable]
     public sealed class HowToFishSkinProfile
     {
         public int version = 1;
         public List<string> unlockedSkins = new List<string>();
+        public List<string> unlockedOutfits = new List<string>();
+        public string selectedOutfitId = HowToFishOutfitCatalog.DefaultId;
 
         /// 拒绝未知版本、非法外观与重复解锁。
         public void Validate()
         {
             if (version != 1) throw new NotSupportedException("不支持的共享皮肤档案版本。");
             HowToFishSaveData.ValidateUnlockedSkins(unlockedSkins);
+            unlockedOutfits ??= new List<string>();
+            HowToFishSaveData.ValidateUnlockedOutfits(unlockedOutfits);
+            if (string.IsNullOrEmpty(selectedOutfitId)) selectedOutfitId = HowToFishOutfitCatalog.DefaultId;
+            if (!HowToFishOutfitCatalog.IsUnlocked(selectedOutfitId, unlockedOutfits)) throw new FormatException("所选服装无效或尚未解锁。");
         }
     }
 

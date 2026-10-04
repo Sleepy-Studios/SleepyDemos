@@ -16,6 +16,56 @@ namespace Hotfix.Editor.HowToFish
         internal const string Root = "Assets/LoadResources/Demos/how_to_fish";
         internal const string FontPath = "Assets/LoadResources/Fonts/TMP_FontAssets/CN/HarmonyOS_CNHowToFish.asset";
 
+        /// 装配目录中的自制服装与图标，服装 Prefab 仅保留视觉，不增加角色物理。
+        internal static void BuildOutfits()
+        {
+            EnsureFolder(Root + "/Prefabs/Outfits");
+            var catalog = AssetDatabase.LoadAssetAtPath<HowToFishCatalog>(Root + "/Data/Catalog.asset");
+            if (catalog == null) throw new InvalidOperationException("请先生成 HowToFish 内容目录。");
+            var settings = new SerializedObject(catalog);
+            var entries = settings.FindProperty("outfits");
+            entries.arraySize = HowToFishOutfitCatalog.All.Count;
+            for (int i = 0; i < entries.arraySize; i++)
+            {
+                string id = HowToFishOutfitCatalog.All[i].Id;
+                string modelPath = Root + "/Art/Models/Outfit" + id + ".fbx";
+                string iconPath = Root + "/Art/Icons/Outfit" + id + ".png";
+                string prefabPath = Root + "/Prefabs/Outfits/" + id + ".prefab";
+                var model = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
+                if (model == null || !(AssetImporter.GetAtPath(iconPath) is TextureImporter importer))
+                    throw new InvalidOperationException("服装模型或图标未导入：" + id);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.alphaIsTransparency = true;
+                importer.mipmapEnabled = false;
+                importer.spritePixelsPerUnit = 100;
+                importer.SaveAndReimport();
+                if (AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath) == null)
+                {
+                    var root = (GameObject)PrefabUtility.InstantiatePrefab(model);
+                    try
+                    {
+                        root.name = id;
+                        foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+                            renderer.sharedMaterials = renderer.sharedMaterials.Select(MaterialFor).ToArray();
+                        foreach (var collider in root.GetComponentsInChildren<Collider>(true)) UnityEngine.Object.DestroyImmediate(collider);
+                        foreach (var body in root.GetComponentsInChildren<Rigidbody>(true)) UnityEngine.Object.DestroyImmediate(body);
+                        PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                    }
+                    finally { UnityEngine.Object.DestroyImmediate(root); }
+                }
+                var entry = entries.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("id").stringValue = id;
+                entry.FindPropertyRelative("prefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                var icon = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath);
+                if (icon == null) throw new InvalidOperationException("服装图标未生成 Sprite：" + id);
+                entry.FindPropertyRelative("icon").objectReferenceValue = icon;
+            }
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            catalog.Validate();
+            EditorUtility.SetDirty(catalog);
+        }
+
         internal static void ConfigureVerifiedCreatures()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<HowToFishCatalog>(Root + "/Data/Catalog.asset");

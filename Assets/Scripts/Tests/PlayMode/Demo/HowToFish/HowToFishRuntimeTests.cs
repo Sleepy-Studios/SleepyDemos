@@ -31,6 +31,129 @@ namespace Tests.Demo
         private HowToFishWorld testWorld;
 
         [UnityTest, Timeout(240000)]
+        public IEnumerator Outfits_MenuInputsSharedSelectionAndIndependentRemains()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            Assert.That(world.SelectedOutfitId, Is.EqualTo("Fisherman"));
+            Assert.That(world.Session.State.tracksPausedPlaytime, Is.True);
+            world.Session.GrantItem("Knife");
+            world.Player.SelectEquipmentSlot(world.Session.State.equipmentSlots.IndexOf("Knife"));
+            yield return PressKey(Key.Escape);
+            Assert.That(world.IsPaused, Is.True);
+            float before = world.Session.State.playedSeconds;
+            yield return new WaitForSecondsRealtime(.3f);
+            Assert.That(world.Session.State.playedSeconds, Is.GreaterThan(before + .2f), "限时成就包含暂停时间。");
+            EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("OpenOutfits").gameObject);
+            yield return PressKey(Key.Enter);
+            EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("OutfitSailor").gameObject);
+            yield return PressKey(Key.Enter);
+            EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("WearOutfit").gameObject);
+            yield return PressKey(Key.Enter);
+            Assert.That(world.SelectedOutfitId, Is.EqualTo("Sailor"));
+            var view = world.Player.GetComponentInChildren<HowToFishEquipmentView>();
+            var source = world.Catalog.FindOutfit("Sailor").Prefab.GetComponentsInChildren<MeshRenderer>()
+                .Single(value => value.name == "ForearmSkinRight" || value.name == "ForearmSleeveRight");
+            Assert.That(view.transform.Find("HandVisual").GetComponentsInChildren<MeshRenderer>(true).Single(value => value.name == "Sleeve").sharedMaterial,
+                Is.SameAs(source.sharedMaterial));
+            // 手柄导航可选中锁定卡并读取条件，但不能穿戴。
+            EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("OutfitScientist").gameObject);
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.DpadRight)); yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return new WaitForSecondsRealtime(.1f);
+            Assert.That(EventSystem.current.currentSelectedGameObject.name, Is.EqualTo("OutfitBean"));
+            Assert.That(ObjectFind<TextMeshProUGUI>("OutfitDetails").text, Does.Contain("新航程"));
+            Assert.That(ObjectFind<Button>("WearOutfit").interactable, Is.False);
+            Assert.That(world.TrySelectOutfit("Bean"), Is.False);
+            yield return WaitFor(() => !UnityEditor.ShaderUtil.anythingCompiling, "服装材质仍在编译。"); yield return null; yield return null;
+            ScreenCapture.CaptureScreenshot(Path.GetFullPath("Library/HowToFish/Evidence/Outfits-Menu.png")); yield return null; yield return null;
+            EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("CloseOutfits").gameObject);
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null; yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
+            Assert.That(EventSystem.current.currentSelectedGameObject.name, Is.EqualTo("OpenOutfits"));
+            using (var blocked = new FileStream(Path.Combine(saveDirectory, "PlayerSkins.json.tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
+                Assert.That(world.TrySelectOutfit("Badman"), Is.False, "选择写入失败不能先换外观。");
+            Assert.That(world.SelectedOutfitId, Is.EqualTo("Sailor"));
+            world.SetPaused(false);
+            world.Player.Damage(200);
+            yield return null;
+            var remains = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.DefinitionId == "PlayerRemains");
+            string remainsId = remains.InstanceId;
+            Assert.That(remains.OutfitId, Is.EqualTo("Sailor"));
+            Assert.That(world.TrySelectOutfit("Badman"), Is.True);
+            Assert.That(remains.OutfitId, Is.EqualTo("Sailor"), "新服装不能改写旧遗体。");
+            Assert.That(remains.VisualRoot.GetComponentsInChildren<MeshRenderer>().Any(value => value.name == "PalmRight"), Is.True);
+            world.Save(); world.ReturnToHub();
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "换装未返回Hub。");
+            yield return EnterWorld(); world = testWorld;
+            Assert.That(world.SelectedOutfitId, Is.EqualTo("Badman"));
+            remains = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None).Single(value => value.InstanceId == remainsId);
+            Assert.That(remains.OutfitId, Is.EqualTo("Sailor"));
+            world.SetPaused(true);
+        }
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator Outfits_ConsumeGreenWinAndEndingPersistOnlyEarnedRewards()
+        {
+            yield return StartNewGame();
+            var world = testWorld;
+            var fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, false);
+            fish.Hit(1000, Vector3.zero); Assert.That(fish.Heat(1), Is.True);
+            PlaceForPickup(world.Player, fish); Assert.That(world.Player.PickUp(fish), Is.True);
+            InputSystem.QueueStateEvent(mouse, new MouseState { buttons = 1 });
+            yield return WaitFor(() => fish == null || fish.IsConsumed, "烧焦生物未通过长按进食消费。");
+            InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
+            var store = new HowToFishSaveStore(saveDirectory);
+            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("KioskLady"));
+            world.Session.State.unlockedIsland = 4;
+            var roulette = UnityEngine.Object.FindAnyObjectByType<HowToFishRoulette>();
+            fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, false);
+            fish.Hit(1000, Vector3.zero); PlaceForPickup(world.Player, fish);
+            Assert.That(world.Player.PickUp(fish), Is.True); world.Player.Drop(false);
+            var bets = new System.Collections.Generic.Dictionary<HowToFishWorldItem, HowToFishRouletteColor> { [fish] = HowToFishRouletteColor.Green };
+            var boss = world.Spawn("Tuna", world.Player.transform.position + Vector3.one * 25, false);
+            Assert.That(world.TrySettleRoulette(roulette, bets, HowToFishRouletteColor.Green, out _), Is.False);
+            Assert.That(world.Session.State.unlockedOutfits, Does.Not.Contain("Andrei"));
+            Assert.That(fish.IsConsumed, Is.False); Assert.That(fish.BettingMultiplier, Is.EqualTo(1));
+            Assert.That(boss.TryConsume(() => { }), Is.True);
+            Assert.That(world.TrySettleRoulette(roulette, bets, HowToFishRouletteColor.Green, out _), Is.True);
+            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("Andrei"));
+            Assert.That(fish.BettingMultiplier, Is.EqualTo(35));
+            foreach (var reward in HowToFishSkinCatalog.Rewards(0, HowToFishSkinRarity.Legendary)) world.Session.UnlockSkin(reward.Id);
+            fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, true);
+            fish.Hit(1000, Vector3.zero); PlaceForPickup(world.Player, fish);
+            Assert.That(world.Player.PickUp(fish), Is.True); world.Player.Drop(false);
+            var randomState = UnityEngine.Random.state;
+            try
+            {
+                int seed = 0;
+                for (; seed < 1000; seed++)
+                {
+                    UnityEngine.Random.InitState(seed);
+                    if (UnityEngine.Random.Range(0, 100) >= 90) break;
+                }
+                Assert.That(seed, Is.LessThan(1000));
+                UnityEngine.Random.InitState(seed);
+                Assert.That(world.TryPlaySlotMachine(0, fish, out var rewardText), Is.True);
+                Assert.That(rewardText, Does.Contain("重复"));
+            }
+            finally { UnityEngine.Random.state = randomState; }
+            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("Jacob"), "重复传奇奖励也解锁人物服装。");
+            var departure = UnityEngine.Object.FindObjectsByType<HowToFishStation>(FindObjectsSortMode.None)
+                .Single(value => value.Kind == HowToFishStationKind.MilitaryDeparture);
+            world.Session.State.hasMilitaryBoatKey = true;
+            world.Session.State.playedSeconds = 3590;
+            // 隔离最终互动；新航程的时钟可信，仍必须通过实际 Interact 入口完成离岛。
+            typeof(HowToFishWorld).GetMethod("Interact", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(world, new object[] { departure.GetComponent<Collider>() });
+            Assert.That(world.ShowEnding, Is.True);
+            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("Scientist").And.Contain("Bean"));
+            Assert.That(world.InspectSlot(0).Data.hasFinished, Is.True);
+            float finishedAt = world.Session.State.playedSeconds;
+            yield return new WaitForSecondsRealtime(.2f);
+            Assert.That(world.Session.State.playedSeconds, Is.EqualTo(finishedAt));
+        }
+
+        [UnityTest, Timeout(240000)]
         public IEnumerator IndividualWeight_HeavyWhaleCarryAndCraterOffer()
         {
             yield return StartNewGame();

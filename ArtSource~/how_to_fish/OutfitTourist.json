@@ -1,0 +1,107 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "source_bounds_m": {
+    "min": [
+      -0.23902684450149536,
+      -0.14475920796394348,
+      3.725290298461914e-09
+    ],
+    "max": [
+      0.24213218688964844,
+      0.12790368497371674,
+      1.75
+    ]
+  },
+  "source_mounts_m": {
+    "RightHand": [
+      -0.2131728082895279,
+      -0.026770539581775665,
+      0.9548158645629883
+    ],
+    "LeftHand": [
+      0.2131728082895279,
+      -0.026770539581775665,
+      0.9548158645629883
+    ],
+    "Grip": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "FaceFront": [
+      0.0,
+      -0.0991501435637474,
+      1.564589262008667
+    ]
+  },
+  "sha256": "3e57d094a9e08a08c1e7cb7e803435b44eb2da2f2d21153c2d26c7723e069296",
+  "unity_import_verified": false,
+  "candidate_fbx": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\Library\\HowToFish\\OutfitExports\\OutfitTourist.fbx",
+  "objects": [
+    "ArmFloat",
+    "ArmFloat.001",
+    "CalfLeft",
+    "CalfRight",
+    "EyeLeft",
+    "EyeRight",
+    "Face",
+    "FaceFront",
+    "FingerLeft0",
+    "FingerLeft1",
+    "FingerLeft2",
+    "FingerLeft3",
+    "FingerRight0",
+    "FingerRight1",
+    "FingerRight2",
+    "FingerRight3",
+    "FootLeft",
+    "FootRight",
+    "ForearmSkinLeft",
+    "ForearmSkinRight",
+    "Grip",
+    "HatBand",
+    "HatBrim",
+    "HatCrown",
+    "Head",
+    "LeftArm",
+    "LeftForearm",
+    "LeftHand",
+    "LifeVestPad",
+    "LifeVestPad.001",
+    "Neck",
+    "Nose",
+    "OutfitTourist",
+    "PalmLeft",
+    "PalmRight",
+    "PupilLeft",
+    "PupilRight",
+    "RightArm",
+    "RightForearm",
+    "RightHand",
+    "ShoulderLeft",
+    "ShoulderRight",
+    "SwimBrief",
+    "ThighLeft",
+    "ThighRight",
+    "ThumbLeft",
+    "ThumbRight",
+    "Torso",
+    "UpperArmSkinLeft",
+    "UpperArmSkinRight",
+    "VestBelt",
+    "VestZip",
+    "Waist"
+  ],
+  "design_note": "Self-authored from visible front reference; unseen back, neutral face and standing pose inferred. No animation rig."
+}

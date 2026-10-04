@@ -10,12 +10,15 @@ namespace Hotfix.HowToFish
     {
         [SerializeField] private HowToFishCreatureDefinition[] creatures = Array.Empty<HowToFishCreatureDefinition>();
         [SerializeField] private HowToFishItemDefinition[] items = Array.Empty<HowToFishItemDefinition>();
+        [SerializeField] private HowToFishOutfitVisual[] outfits = Array.Empty<HowToFishOutfitVisual>();
         [SerializeField] private float dripChance = 0.1f;
 
         /// 生物定义；名称和稳定 ID 与参考清单保持一致。
         public IReadOnlyList<HowToFishCreatureDefinition> Creatures => creatures;
         /// 商店与背包的物品定义。
         public IReadOnlyList<HowToFishItemDefinition> Items => items;
+        /// 服装的自制模型和图标；名称与解锁规则由 OutfitCatalog 维护。
+        public IReadOnlyList<HowToFishOutfitVisual> Outfits => outfits;
         /// 普通钓获独立进行的珍稀判定，不用于首领。
         public float DripChance => dripChance;
 
@@ -26,6 +29,10 @@ namespace Hotfix.HowToFish
         /// <summary>查找物品定义。</summary>
         /// <param name="id">稳定的物品 ID。</param>
         public HowToFishItemDefinition FindItem(string id) => Array.Find(items, entry => entry.Id == id);
+
+        /// <summary>查找已装配的服装模型和图标。</summary>
+        /// <param name="id">OutfitCatalog 中的稳定服装 ID。</param>
+        public HowToFishOutfitVisual FindOutfit(string id) => Array.Find(outfits, entry => entry.Id == id);
 
         /// <summary>根据区域、鱼饵和随机抽样选择鱼获；无匹配时返回 null。</summary>
         /// <param name="island">区域索引。</param>
@@ -56,9 +63,13 @@ namespace Hotfix.HowToFish
         /// 检查配置 ID、价格与鱼池参数，避免运行期间出现不可推进的配置。
         public void Validate()
         {
-            if (creatures == null || items == null || float.IsNaN(dripChance) || dripChance < 0 || dripChance > 1)
+            if (creatures == null || items == null || outfits == null || float.IsNaN(dripChance) || dripChance < 0 || dripChance > 1)
                 throw new InvalidOperationException("渔力全开配置不完整。");
             var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var outfit in outfits)
+                if (outfit == null || HowToFishOutfitCatalog.Find(outfit.Id) == null || !ids.Add(outfit.Id) || outfit.Prefab == null || outfit.Icon == null)
+                    throw new InvalidOperationException("渔力全开服装资源缺失或 ID 重复。");
+            ids.Clear();
             foreach (var item in items)
             {
                 if (item == null || string.IsNullOrWhiteSpace(item.Id) || !ids.Add(item.Id) || item.Price < 0 ||
@@ -85,6 +96,19 @@ namespace Hotfix.HowToFish
                     throw new InvalidOperationException(creature.Id + " 的鱼竿未登记：" + creature.RequiredRodId);
             }
         }
+    }
+
+    /// 服装资源引用；不重复声明名称、稀有度或解锁条件。
+    [Serializable]
+    public sealed class HowToFishOutfitVisual
+    {
+        [SerializeField] private string id;
+        [SerializeField] private GameObject prefab;
+        [SerializeField] private Sprite icon;
+
+        public string Id => id;
+        public GameObject Prefab => prefab;
+        public Sprite Icon => icon;
     }
 
     /// 生物移动与攻击的表现类型，同类鱼仍由尺寸、速度和数值区分。

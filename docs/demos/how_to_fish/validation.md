@@ -385,3 +385,12 @@ BingBong-b6465464：PlayMode 1/1 通过（78秒）。真实购买椰子、普通
 - 满级步枪重试cd25d95f为0/1通过，证据 `WeightWhaleRetry-cd25d95f.xml`：已实际击杀并拿起普通鲸，但角色在木板入口距目标1.74米处停住。夹具原先只有前进输入，现增加连续受阻时按真实跳跃键，保留所有搬运断言；单阶段等待上限改为330秒，覆盖来源300秒逃脱窗口，整体允许720秒，未修改生产逃脱计时。下一轮仍待验证。
 - 113207ed仍为0/1通过，170秒后普通鲸剩余900生命，证据 `WeightWhaleJump-113207ed.xml`；该轮原生XML的Timeout仍为360000，未覆盖后写入的720000配置，不能当作最新等待范围的验证。全部源修改完成后已重新刷新，再启动同一精确用例。
 - 最新等待范围的8ab4f9ec为0/1通过，07:16:09Z至07:20:33Z，证据 `WeightWhaleRoute-8ab4f9ec.xml`，原生Timeout=720000。本轮普通鲸钓获、真实击杀、整条木板路搬运和投掷触发变异阶段均已执行，但变异鲸剩余34900生命时角色被燃烧及攻击杀死，不能据此前半段通过宣称完整战斗成功。`WeightWhaleRoute.png`记录12356.94kg鲸尸持握状态；已实际查看。补充最大个体重量的精确搬运/投掷用例，完整变异战斗仍保留为G3/G6未通过项。
+
+## 2026-10-04：人物服装
+
+- `HowToFishSessionTests`：0072dbc4，16/16通过，原生07:34:39Z至07:34:40Z；包含默认服装、幂等奖励、持久进度补授、同枪完整配件、首领发现/死亡区别及既有交易规则。证据 `OutfitSession-0072dbc4.xml`。
+- `HowToFishSaveTests`：67a323d7，15/15通过，原生07:35:56Z；包含解锁数量不变时仍保存选择、跨槽不覆盖全局服装、遗体独立服装、旧档默认、非法记录拒绝、共享写入失败与镜像补同步/备份恢复。证据 `OutfitSave-67a323d7.xml`。
+- 模型精确用例 `Outfits_AllEighteenKeepMetersFrontAndAppliedTransforms`：7b8fc6b6，1/1通过，原生07:40:11Z至07:40:12Z；循环核对18套模型尺度、正面和应用变换，证据 `OutfitModels-7b8fc6b6.xml`。
+- 资源精确用例 `Outfits_AllModelsIconsAndHandsAreReadyForSavedUi`：513b237e，1/1通过，原生07:41:00Z；核对18套Prefab、图标、手臂材质、无物理组件和衣柜绑定，证据 `OutfitAssets-513b237e.xml`。
+- `Outfits_MenuInputsSharedSelectionAndIndependentRemains`：380aa053，同轮原生XML为1/1通过，07:43:12Z至07:43:45Z；验证暂停仍计时、键盘换装、手柄浏览锁定条件和返回焦点、第一人称手臂材质、写盘失败保持旧选择、遗体独立服装与Hub续档。证据 `OutfitMenuRuntime-380aa053.xml`；REST域重载未恢复原任务，不能把零用例状态作为断言结果。实际查看 `Outfits-Menu.png`，18张卡片、当前服装、锁定提示与底部条件可见。
+- `Outfits_ConsumeGreenWinAndEndingPersistOnlyEarnedRewards`：b4b2253e，同轮原生XML为1/1通过，07:45:19Z至07:45:47Z，证据 `OutfitRewardsRuntime-b4b2253e.xml`。实际长按进食烧焦生物解锁售货亭女士、轮盘保存受阻时撤回奖励、成功绿区结算解锁安德烈、重复传奇仍解锁雅各布、离岛结局解锁科学家及可信新档一小时成就均通过，结局停止计时。余额/鱼和最终钥匙为隔离准备，不代表连续新档通关。Console为26日志/0警告/0错误；未执行全项目测试。

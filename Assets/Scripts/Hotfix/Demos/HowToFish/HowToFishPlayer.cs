@@ -21,6 +21,7 @@ namespace Hotfix.HowToFish
         private HowToFishWorldItem heldItem;
         private HowToFishEquipmentView equipmentView;
         private HowToFishItemDefinition equipment;
+        private HowToFishOutfitVisual outfit;
         private float verticalVelocity;
         private float pitch;
         private float attackReadyTime;
@@ -60,6 +61,16 @@ namespace Hotfix.HowToFish
         public event Action ChangeSkinRequested;
         public event Action<string> Message;
         public event Action Died;
+        /// 已消费的生物仍可读取其烧焦状态；消费回调期间实体已从保存快照排除。
+        public event Action<HowToFishWorldItem> CreatureEaten;
+
+        /// <summary>设置后续装备也会继承的服装，并立即更新当前手袖。</summary>
+        /// <param name="value">已成功保存的全局服装对应资源。</param>
+        public void SetOutfit(HowToFishOutfitVisual value)
+        {
+            outfit = value ?? throw new ArgumentNullException(nameof(value));
+            equipmentView?.SetOutfit(outfit);
+        }
 
         private void Awake() { motor = GetComponent<CharacterController>(); normalFieldOfView = eye == null ? 75 : eye.fieldOfView; }
 
@@ -369,6 +380,7 @@ namespace Hotfix.HowToFish
                 session.State.hunger = Mathf.Min(100, session.State.hunger + (food?.Creature?.FullnessRestored ?? definition?.Nourishment ?? 20) * nutrition);
                 session.State.health = Mathf.Min(100, session.State.health + (food?.Creature?.HealthRestored ?? 12) * nutrition);
                 Message?.Invoke("进食完成，恢复了一些体力。");
+                if (food?.Creature != null) CreatureEaten?.Invoke(food);
             }
             if (food != null) food.TryConsume(RestoreFood);
             else if (session.TryConsume(definition.Id)) RestoreFood();
@@ -517,6 +529,7 @@ namespace Hotfix.HowToFish
             if (next == null) return;
             equipmentView = Instantiate(next.ViewPrefab, equipmentRoot).GetComponent<HowToFishEquipmentView>();
             if (equipmentView == null) throw new InvalidOperationException("装备 Prefab 缺少 HowToFishEquipmentView。");
+            if (outfit != null) equipmentView.SetOutfit(outfit);
             if (next.Kind == HowToFishItemKind.Gun) equipmentView.SetAttachments(GunState);
             fishing.SetRod(next.Kind == HowToFishItemKind.Rod ? equipmentView.Tip : null, next.Id);
         }

@@ -90,3 +90,9 @@ Unity正面截图发现顶屏/滚轮符号消失：原脚本符号面法线朝�
 
 ## 轮盘桌候选（2026-10-04）
 `build_roulette_model.py` 自制 `RouletteTable`，保留 `.blend/.json/FBX`。宽2.8、深1.8、高1.185米，桌面高1米；木制台体、金边、三色放物面和37格轮盘。轮心Unity(0,1.05,-.35)，白球直接挂台根，初始Unity(0,1.095,.05)；RedBet/BlackBet/GreenBet分别为(-.65/0/.65,1.005,.3)，Grip为原点。格0朝轮局部+Z，编号沿+Y正旋转，0绿/奇红/偶黑。脚本断言37格、颜色数量、上表面法线及应用变换；自制预览已查看并修正一次共面闪烁，实际导入精确用例8087d6ea为1/1通过，运行截图Roulette-InGame.png已查看；规则与运行证据见validation.md。
+
+## 人物服装候选（2026-10-04）
+
+`build_character_outfits.py` 生成18套 `Outfit<Id>`，保留独立 `.blend/.json/FBX`；图标通过 `--icons` 分支读取源模型渲染，384×512 RGBA，无文字和地面。前17套参考公开角色图的衣帽轮廓和配色，Bean的绿色防水服及豆形徽记为资料缺口下的自制主题。源预览及透明边界已检查，Unity装配与运行视觉结果另记在validation.md。
+
+统一米制、前方+Z、原点Grip和FaceFront；各节点局部旋转归零、缩放为1。`ForearmSleeveRight`或`ForearmSkinRight`以及`PalmRight`提供第一人称材质，完整模型只用于服装资源和遗体视觉。Prefab不带Collider/Rigidbody，死亡遗体继续使用已有物理根；图标位于 `Art/Icons`，模型位于 `Art/Models`，服装Prefab位于 `Prefabs/Outfits`。

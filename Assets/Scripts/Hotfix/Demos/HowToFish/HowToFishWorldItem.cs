@@ -21,6 +21,8 @@ namespace Hotfix.HowToFish
         private bool originalGravity;
         private bool consumed;
         private HowToFishSession session;
+        private HowToFishCatalog catalog;
+        private string outfitId;
         private HowToFishCreatureDefinition creature;
         private HowToFishItemDefinition definition;
         private float health;
@@ -72,6 +74,8 @@ namespace Hotfix.HowToFish
         public HowToFishOwnedItem EquipmentState => equipmentState?.Copy();
         /// 当前实体装备皮肤；通过已有装备快照保存和拾回。
         public string SkinId => equipmentState?.skinId;
+        /// 遗体生成时记录的服装；之后玩家换装不影响此值。
+        public string OutfitId => outfitId;
         /// 物理刚体。
         public Rigidbody Body => body;
         /// 渲染与关节的根节点。
@@ -103,6 +107,7 @@ namespace Hotfix.HowToFish
         {
             if (session != null) throw new InvalidOperationException("世界物品不能重复初始化。");
             session = owner ?? throw new ArgumentNullException(nameof(owner));
+            this.catalog = catalog;
             definitionId = id;
             creature = catalog.FindCreature(id);
             definition = catalog.FindItem(id);
@@ -113,6 +118,7 @@ namespace Hotfix.HowToFish
             ApplyWeightMultiplier(creature != null && !creature.SkipRandomizedWeight ? UnityEngine.Random.Range(.8f, 1.2f) : 1);
             if (definition?.IsEquipment == true) SetEquipmentState(new HowToFishOwnedItem { id = id, count = 1 });
             if (creature != null) session.RegisterCreature(id, false, drip);
+            if (id == "PlayerRemains") SetOutfit(HowToFishOutfitCatalog.DefaultId);
         }
 
         /// <summary>恢复安全快照；不得用于活动首领。</summary>
@@ -120,6 +126,7 @@ namespace Hotfix.HowToFish
         public void Restore(HowToFishWorldItemData data)
         {
             if (data == null || data.definitionId != definitionId) throw new ArgumentException("存档物品定义不匹配。");
+            if (definitionId == "PlayerRemains") SetOutfit(string.IsNullOrEmpty(data.outfitId) ? HowToFishOutfitCatalog.DefaultId : data.outfitId);
             ApplyWeightMultiplier(data.weightMultiplier);
             if (data.dynamiteFuseSeconds > 0 && dynamite == null) throw new ArgumentException("存档炸药缺少引信组件。");
             if (dynamite != null) dynamite.RestoreFuse(data.dynamiteFuseSeconds);
@@ -146,9 +153,30 @@ namespace Hotfix.HowToFish
             isCooked = IsCooked, cooking = cooking, hasBeenHeld = hasBeenHeld, styleMultiplier = styleMultiplier,
             bettingMultiplier = bettingMultiplier,
             weightMultiplier = weightMultiplier,
+            outfitId = outfitId,
             isDrip = isDrip, hasBeenHitByPlayer = hasBeenHitByPlayer, equipment = equipmentState?.Copy(),
             dynamiteFuseSeconds = dynamite != null ? dynamite.RemainingFuse : 0
         };
+
+        /// <summary>为遗体保存独立服装并替换可见模型，保留物理根、碰撞体和持握契约。</summary>
+        /// <param name="id">目录中的服装ID；不随全局后续选择改变。</param>
+        public void SetOutfit(string id)
+        {
+            if (definitionId != "PlayerRemains") throw new InvalidOperationException("只有玩家遗体可以记录服装。");
+            var outfit = catalog.FindOutfit(id);
+            if (outfit?.Prefab == null) throw new ArgumentException("遗体服装未配置。", nameof(id));
+            if (outfitId == id) return;
+            var next = Instantiate(outfit.Prefab, transform).transform;
+            next.name = "Visual";
+            next.localPosition = visualRoot.localPosition;
+            next.localRotation = visualRoot.localRotation;
+            visualRoot.gameObject.SetActive(false);
+            Destroy(visualRoot.gameObject);
+            visualRoot = next;
+            hookPoint = next.Find("Grip");
+            outfitId = id;
+            HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking);
+        }
 
         /// <summary>将背包装备状态转入这个物理实体。</summary>
         /// <param name="state">同一物品定义的一件装备快照。</param>

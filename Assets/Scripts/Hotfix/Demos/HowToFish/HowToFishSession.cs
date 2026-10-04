@@ -46,6 +46,48 @@ namespace Hotfix.HowToFish
             // 旧进度中已击败的首领同样满足普通与 Drip 两种登记。
             foreach (string id in state.defeatedCreatures)
                 if (catalog.FindCreature(id)?.IsBoss == true && !state.defeatedDripCreatures.Contains(id)) state.defeatedDripCreatures.Add(id);
+            ReconcileOutfitUnlocks();
+        }
+
+        /// <summary>登记人物服装奖励；默认款与重复奖励返回 false。</summary>
+        /// <param name="id">目录中的稳定服装 ID。</param>
+        public bool UnlockOutfit(string id)
+        {
+            var outfit = HowToFishOutfitCatalog.Find(id) ?? throw new ArgumentException("未知人物服装。", nameof(id));
+            if (outfit.IsDefault || state.unlockedOutfits.Contains(id)) return false;
+            state.unlockedOutfits.Add(id);
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// 根据已保存的持久进度补授服装，不推断轮盘、传奇中奖、烧焦进食或旧航程限时完成。
+        public void ReconcileOutfits()
+        {
+            if (ReconcileOutfitUnlocks()) Changed?.Invoke();
+        }
+
+        private bool ReconcileOutfitUnlocks()
+        {
+            bool changed = false;
+            void Add(bool condition, string id)
+            {
+                if (!condition || state.unlockedOutfits.Contains(id)) return;
+                state.unlockedOutfits.Add(id);
+                changed = true;
+            }
+            Add(state.defeatedCreatures.Contains("SpiderCrab"), "LighthouseKeeper");
+            Add(state.defeatedCreatures.Contains("GiantPiranha"), "SwampLady");
+            Add(state.defeatedCreatures.Contains("Pufferfish"), "Tourist");
+            Add(state.defeatedCreatures.Contains("Albatross"), "ScaredGuyInShorts");
+            Add(state.defeatedCreatures.Contains("MutatedBowheadWhale"), "Military");
+            Add(state.boatMotorTier >= 1, "SwampMan");
+            Add(state.boatMotorTier == 2, "StoreGrandma");
+            Add(state.hasGrill, "GrillMaster");
+            Add(state.hasFinished, "Scientist");
+            Add(state.inventory.Exists(item => catalog.FindItem(item.id)?.Kind == HowToFishItemKind.Gun &&
+                item.upgrade > 0 && item.sight != HowToFishAttachment.None && item.barrel != HowToFishAttachment.None &&
+                item.hasLaser && item.hasExtendedMag), "GunstoreClerc");
+            return changed;
         }
 
         /// <summary>读取某物品的持有数量。</summary>
@@ -114,6 +156,7 @@ namespace Hotfix.HowToFish
             if (state.money < cost) return Fail("升级马达的费用不足。", out reason);
             state.money -= cost;
             state.boatMotorTier = tier;
+            ReconcileOutfitUnlocks();
             reason = null;
             Changed?.Invoke();
             return true;
@@ -176,6 +219,7 @@ namespace Hotfix.HowToFish
             if (state.money < cost) return Fail("升级费用不足。", out reason);
             state.money -= cost;
             owned.upgrade++;
+            ReconcileOutfitUnlocks();
             reason = null;
             Changed?.Invoke();
             return true;
@@ -228,6 +272,7 @@ namespace Hotfix.HowToFish
                 case HowToFishAttachment.LaserSight: owned.hasLaser = true; break;
                 case HowToFishAttachment.ExtendedMag: owned.hasExtendedMag = true; break;
             }
+            ReconcileOutfitUnlocks();
             Changed?.Invoke();
             return true;
         }
@@ -270,6 +315,7 @@ namespace Hotfix.HowToFish
                 throw new ArgumentException("待拾取装备状态无效或已经拥有。");
             if (UnstoredEquipment != null) throw new InvalidOperationException("请先收纳或放下手中未收纳的装备。");
             AddEquipment(equipment.Copy());
+            ReconcileOutfitUnlocks();
             Changed?.Invoke();
         }
 
@@ -361,6 +407,7 @@ namespace Hotfix.HowToFish
             if (!state.discoveredCreatures.Contains(creatureId)) state.discoveredCreatures.Add(creatureId);
             if (defeated && !state.defeatedCreatures.Contains(creatureId)) state.defeatedCreatures.Add(creatureId);
             if (defeated && (drip || creature.IsBoss) && !state.defeatedDripCreatures.Contains(creatureId)) state.defeatedDripCreatures.Add(creatureId);
+            if (defeated) ReconcileOutfitUnlocks();
             Changed?.Invoke();
         }
 

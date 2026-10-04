@@ -20,11 +20,14 @@ namespace Hotfix.HowToFish
         public float burningSeconds;
         public float burningDamagePerSecond;
         public float playedSeconds;
+        // 只有新航程才记录包含暂停的完整计时；旧档默认 false，不回推 Bean 资格。
+        public bool tracksPausedPlaytime;
         public bool hasBoatKey;
         public int boatMotorTier;
         public bool hasBoatRadar;
         public string boatSkinId;
         public List<string> unlockedSkins = new List<string>();
+        public List<string> unlockedOutfits = new List<string>();
         public bool hasGrill;
         public bool hasFinished;
         public bool hasMilitaryBoatKey;
@@ -69,6 +72,8 @@ namespace Hotfix.HowToFish
             // 旧档没有皮肤解锁字段，视为尚未解锁；实例选择与玩家解锁记录分别验证。
             unlockedSkins ??= new List<string>();
             ValidateUnlockedSkins(unlockedSkins);
+            unlockedOutfits ??= new List<string>();
+            ValidateUnlockedOutfits(unlockedOutfits);
             if (volcanoFish < 0 || volcanoFish > 5 || (hasFinished && !hasMilitaryBoatKey) || (hasMilitaryBoatKey && unlockedIsland < 4))
                 throw new FormatException("火山任务或返航状态无效。");
             if (forestLeeches < 0 || forestLeeches > 2) throw new FormatException("森林水蛭交付数量无效。");
@@ -106,6 +111,7 @@ namespace Hotfix.HowToFish
                     !IsFinite(item.weightMultiplier) || item.weightMultiplier < .8f || item.weightMultiplier > 1.2f ||
                     !(item.dynamiteFuseSeconds >= 0 && item.dynamiteFuseSeconds <= 3) ||
                     item.dynamiteFuseSeconds > 0 && item.definitionId != "Dynamite" ||
+                    !string.IsNullOrEmpty(item.outfitId) && (item.definitionId != "PlayerRemains" || HowToFishOutfitCatalog.Find(item.outfitId) == null) ||
                     item.HasEquipment && (!item.equipment.IsValid || item.equipment.id != item.definitionId || item.equipment.count != 1))
                     throw new FormatException("存档世界物品无效或重复。");
             }
@@ -128,6 +134,17 @@ namespace Hotfix.HowToFish
                 var skin = HowToFishSkinCatalog.Find(skinId);
                 if (skin == null || skin.Rarity == HowToFishSkinRarity.Default || !skinIds.Add(skinId))
                     throw new FormatException("皮肤解锁记录无效或重复。");
+            }
+        }
+
+        internal static void ValidateUnlockedOutfits(List<string> outfits)
+        {
+            if (outfits == null || outfits.Count > HowToFishOutfitCatalog.All.Count) throw new FormatException("服装解锁列表无效。");
+            var unique = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string id in outfits)
+            {
+                var outfit = HowToFishOutfitCatalog.Find(id);
+                if (outfit == null || outfit.IsDefault || !unique.Add(id)) throw new FormatException("服装解锁记录无效或重复。");
             }
         }
 
@@ -179,6 +196,8 @@ namespace Hotfix.HowToFish
     {
         public string instanceId;
         public string definitionId;
+        /// 遗体创建时的服装；旧档空值由表现层使用 Fisherman，不跟随后续全局换装。
+        public string outfitId;
         public Vector3 position;
         public Vector3 eulerAngles;
         public float health;

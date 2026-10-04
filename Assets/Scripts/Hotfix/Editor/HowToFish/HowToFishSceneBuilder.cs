@@ -40,6 +40,7 @@ namespace Hotfix.Editor.HowToFish
             HowToFishAssetBuilder.ConfigureWeaponUpgrades();
             HowToFishAssetBuilder.ConfigureGunAttachments();
             HowToFishAssetBuilder.BuildDynamite();
+            HowToFishAssetBuilder.BuildOutfits();
             HowToFishAssetBuilder.EnsureFont();
             HowToFishAssetBuilder.EnsureFolder(Root + "/Prefabs/UI");
             HowToFishAssetBuilder.EnsureFolder(Root + "/Scenes");
@@ -799,6 +800,7 @@ namespace Hotfix.Editor.HowToFish
                     EnsureBossHud(existing);
                     EnsureRadarHud(existing);
                     EnsureInventoryHud(existing);
+                    EnsureOutfitHud(existing);
                     GenerateHudBinding(existing);
                 }
                 finally { PrefabUtility.UnloadPrefabContents(existing); }
@@ -847,10 +849,67 @@ namespace Hotfix.Editor.HowToFish
                 EnsureBossHud(root);
                 EnsureRadarHud(root);
                 EnsureInventoryHud(root);
+                EnsureOutfitHud(root);
                 PrefabUtility.SaveAsPrefabAsset(root, HudPath);
                 GenerateHudBinding(root);
             }
             finally { Object.DestroyImmediate(root); }
+        }
+
+        private static void EnsureOutfitHud(GameObject root)
+        {
+            if (root.transform.Find("OutfitPanel") != null) return;
+            var menu = root.transform.Find("Menu");
+            var settings = new SerializedObject(root.GetComponent<HowToFishHudPresenter>());
+            Bind(settings, "outfitButton", Button("OpenOutfits", menu, "衣柜", new Vector2(300, 52), new Vector2(0, -65), out _));
+            var panel = Panel("OutfitPanel", root.transform, new Vector2(1080, 790), Vector2.zero, new Color(.045f, .07f, .09f, .99f)).transform;
+            Bind(settings, "outfitPanel", panel.gameObject);
+            Text("OutfitTitle", panel, "衣柜 · 选择服装查看解锁条件", new Vector2(950, 48), new Vector2(0, 350), 30);
+            var cards = settings.FindProperty("outfitCards");
+            var icons = settings.FindProperty("outfitIcons");
+            var labels = settings.FindProperty("outfitLabels");
+            cards.arraySize = icons.arraySize = labels.arraySize = HowToFishOutfitCatalog.All.Count;
+            var buttons = new Button[cards.arraySize];
+            var catalog = AssetDatabase.LoadAssetAtPath<HowToFishCatalog>(Root + "/Data/Catalog.asset");
+            for (int i = 0; i < cards.arraySize; i++)
+            {
+                var outfit = HowToFishOutfitCatalog.All[i];
+                var resource = catalog.FindOutfit(outfit.Id);
+                if (resource == null) throw new InvalidOperationException("服装资源未装配：" + outfit.Id);
+                var position = new Vector2(-405 + i % 6 * 162, 215 - i / 6 * 180);
+                var button = Button("Outfit" + outfit.Id, panel, outfit.Name, new Vector2(148, 156), position, out var label);
+                label.rectTransform.sizeDelta = new Vector2(142, 34);
+                label.rectTransform.anchoredPosition = new Vector2(0, -58);
+                label.enableAutoSizing = true; label.fontSizeMin = 12; label.fontSizeMax = 20;
+                var icon = Panel("Icon", button.transform, new Vector2(126, 110), new Vector2(0, 17), Color.white);
+                icon.sprite = resource.Icon; icon.preserveAspect = true; icon.raycastTarget = false;
+                buttons[i] = button;
+                cards.GetArrayElementAtIndex(i).objectReferenceValue = button;
+                icons.GetArrayElementAtIndex(i).objectReferenceValue = icon;
+                labels.GetArrayElementAtIndex(i).objectReferenceValue = label;
+            }
+            Bind(settings, "outfitDetails", Text("OutfitDetails", panel, "", new Vector2(980, 82), new Vector2(0, -272), 21));
+            var wear = Button("WearOutfit", panel, "穿戴", new Vector2(250, 52), new Vector2(-145, -348), out _);
+            var back = Button("CloseOutfits", panel, "返回暂停菜单", new Vector2(250, 52), new Vector2(145, -348), out _);
+            Bind(settings, "outfitWear", wear);
+            Bind(settings, "outfitBack", back);
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                int column = i % 6;
+                buttons[i].navigation = new Navigation
+                {
+                    mode = Navigation.Mode.Explicit,
+                    selectOnLeft = buttons[column == 0 ? i + 5 : i - 1],
+                    selectOnRight = buttons[column == 5 ? i - 5 : i + 1],
+                    selectOnUp = i >= 6 ? buttons[i - 6] : back,
+                    selectOnDown = i + 6 < buttons.Length ? buttons[i + 6] : back
+                };
+            }
+            // 底排始终能到“返回”，不能因穿戴按钮被禁用而困住手柄焦点。
+            wear.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = back, selectOnRight = back, selectOnUp = buttons[12] };
+            back.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = wear, selectOnRight = wear, selectOnUp = buttons[15] };
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            panel.gameObject.SetActive(false);
         }
 
         private static void EnsureInventoryHud(GameObject root)

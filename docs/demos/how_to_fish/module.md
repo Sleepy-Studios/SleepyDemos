@@ -158,4 +158,12 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 
 ## 个体重量
 
-`WorldItem.Initialize` 按物种的 `SkipRandomizedWeight` 决定是否生成重量倍率，统一设置刚体质量和根节点尺寸。原始尺寸在Awake缓存，恢复时以原始尺寸重算，保证连续加载不会缩放累积。`Weight`供焦点和手持HUD显示kg；售价计算及轮盘潜在中奖检查使用同一重量倍率，避免先取整再连乘导致预览与出售不一致。旧档默认倍率1，具体推定公式和物理质量变化见参考清单。当前新增定向测试待运行。
+`WorldItem.Initialize` 按物种的 `SkipRandomizedWeight` 决定是否生成重量倍率，统一设置刚体质量和根节点尺寸。原始尺寸在Awake缓存，恢复时以原始尺寸重算，保证连续加载不会缩放累积。`Weight`供焦点和手持HUD显示kg；售价计算及轮盘潜在中奖检查使用同一重量倍率，避免先取整再连乘导致预览与出售不一致。旧档默认倍率1，具体推定公式和物理质量变化见参考清单。六项精确检查已分次通过，完整变异鲸战斗未通过，见验证记录。
+
+## 人物服装
+
+`HowToFishOutfitCatalog` 保存18套稳定ID、名称、默认标记和解锁提示，`HowToFishCatalog.Outfits` 只引用保存好的模型Prefab和透明图标。`AssetBuilder.BuildOutfits`由现有场景装配入口调用，HUD仍由MvcBind生成和绑定；暂停衣柜复用现有Presenter，不新增Core导航或适配层。
+
+选装入口统一为 `World.TrySelectOutfit`，先原子保存共享档案，再更新 `Player.SetOutfit`。第一人称装备实例重新创建时继承当前手袖材质；已有遗体保存自己的服装ID，恢复时不读取后来变化的全局选择。渲染只更换共享材质引用或已有视觉子树，不复制或改写共享材质内容。
+
+持久进度补授由 `Session.ReconcileOutfits` 负责；瞬时奖励分别接到烧焦进食、绿轮盘、传奇中奖和最终离岛。轮盘及老虎机在原交易提交点一起保存服装奖励，失败只回滚本次新增奖励。普通成就直接保存共享档案，避免死亡事件内的世界清理时序问题。旧档计时兼容、来源层级与推定边界见[人物服装目录](outfit-catalog.md)。

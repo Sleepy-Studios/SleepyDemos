@@ -13,6 +13,36 @@ namespace Tests.Demo
     public sealed class HowToFishAssetTests
     {
         [Test]
+        public void Outfits_AllModelsIconsAndHandsAreReadyForSavedUi()
+        {
+            const string root = "Assets/LoadResources/Demos/how_to_fish";
+            var catalog = AssetDatabase.LoadAssetAtPath<HowToFishCatalog>(root + "/Data/Catalog.asset");
+            Assert.That(catalog.Outfits.Select(value => value.Id), Is.EquivalentTo(HowToFishOutfitCatalog.All.Select(value => value.Id)));
+            foreach (var outfit in catalog.Outfits)
+            {
+                Assert.That(outfit.Icon, Is.Not.Null, outfit.Id);
+                Assert.That(outfit.Prefab, Is.Not.Null, outfit.Id);
+                Assert.That(outfit.Prefab.GetComponentsInChildren<Collider>(true), Is.Empty);
+                Assert.That(outfit.Prefab.GetComponentsInChildren<Rigidbody>(true), Is.Empty);
+                var renderers = outfit.Prefab.GetComponentsInChildren<MeshRenderer>(true);
+                Assert.That(renderers.Any(value => value.name == "ForearmSleeveRight" || value.name == "ForearmSkinRight"), Is.True, outfit.Id);
+                Assert.That(renderers.Any(value => value.name == "PalmRight"), Is.True, outfit.Id);
+                foreach (var renderer in renderers)
+                    foreach (var material in renderer.sharedMaterials)
+                    {
+                        Assert.That(material, Is.Not.Null, outfit.Id + "/" + renderer.name);
+                        Assert.That(AssetDatabase.GetAssetPath(material), Does.StartWith(root + "/Art/Materials/"));
+                        Assert.That(material.HasProperty("_BaseColor"), Is.True);
+                    }
+            }
+            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(root + "/Prefabs/UI/HowToFishHudView.prefab");
+            var panel = hud.transform.Find("OutfitPanel");
+            Assert.That(panel, Is.Not.Null);
+            foreach (var outfit in HowToFishOutfitCatalog.All)
+                Assert.That(panel.Find("Outfit" + outfit.Id).GetComponent<UnityEngine.UI.Button>(), Is.Not.Null);
+        }
+
+        [Test]
         public void Skins_HaveShaderBindingsAndFiveIntakes()
         {
             const string root = "Assets/LoadResources/Demos/how_to_fish";

@@ -2478,4 +2478,59 @@ MonoBehaviour:
     automatic: 0
     prefab: {fileID: 8457194301530474339, guid: 3644a9dfc6e41744494c32b19522f259, type: 3}
     viewPrefab: {fileID: 2828911681872833632, guid: 2ef0112bf8b8f8d4ebcd1a59d0135d72, type: 3}
+  outfits:
+  - id: Badman
+    prefab: {fileID: 8049123843858157001, guid: 429b02914c15add4eb2a2a5b8b56daf4, type: 3}
+    icon: {fileID: 21300000, guid: 29d969450abb56d47b53a0ba28d75c23, type: 3}
+  - id: Bikini
+    prefab: {fileID: 3441825273024218520, guid: 9c2735ef88a70a04bbba445e2e307397, type: 3}
+    icon: {fileID: 21300000, guid: 0523172f45dfaf84094676021cbd8210, type: 3}
+  - id: Fisherman
+    prefab: {fileID: 6695101614032438941, guid: a3e5a222d15054c43865628331ae54c9, type: 3}
+    icon: {fileID: 21300000, guid: c72fdfb389c2ad94f91f043c930fa0b7, type: 3}
+  - id: Sailor
+    prefab: {fileID: 4517689519616462776, guid: ba34637ddd328044b9dfbb35ad7b580f, type: 3}
+    icon: {fileID: 21300000, guid: 13bfb4d073b294248b5fd50a16394176, type: 3}
+  - id: LighthouseKeeper
+    prefab: {fileID: 6807620297865467073, guid: e2883fdd60883d6449e72811c3c78533, type: 3}
+    icon: {fileID: 21300000, guid: 8cf6d96a321dfd64094e99a7444a308a, type: 3}
+  - id: SwampMan
+    prefab: {fileID: 4116197819890173099, guid: 4a1a24c2f05ed354583f7c112677d853, type: 3}
+    icon: {fileID: 21300000, guid: 72a1b099e2a65b049b21eb1b785e5270, type: 3}
+  - id: SwampLady
+    prefab: {fileID: 2602416316896096142, guid: aea6d2e63673a8649aa02188566274ff, type: 3}
+    icon: {fileID: 21300000, guid: c3016dd0dea557743b3b8f44743561c9, type: 3}
+  - id: KioskLady
+    prefab: {fileID: 8953937882316140102, guid: 63c96b47fe0dfc447974c127b715fe33, type: 3}
+    icon: {fileID: 21300000, guid: ce48e4fc77088a8418935672dda5d8da, type: 3}
+  - id: Tourist
+    prefab: {fileID: 5872705588776004965, guid: 9e03f48d14f8f5f43b462c311b8a750e, type: 3}
+    icon: {fileID: 21300000, guid: e58d4ed559a6c224fa0419e044a83104, type: 3}
+  - id: GrillMaster
+    prefab: {fileID: 1523219764016209527, guid: 9d547813d19e3e240b010733dea6e8e6, type: 3}
+    icon: {fileID: 21300000, guid: 511977087ccaf9f44ad9d56b834a5f35, type: 3}
+  - id: Andrei
+    prefab: {fileID: 1539946828716296213, guid: b62a4524421cd8245b146af9dbb939ce, type: 3}
+    icon: {fileID: 21300000, guid: 29fd2b7e08f675a4680bdd723a0159ac, type: 3}
+  - id: Jacob
+    prefab: {fileID: 4240352081325805958, guid: 6ac6c9bbc023a94418b2b41b910cdca6, type: 3}
+    icon: {fileID: 21300000, guid: 3bb126f7e8a96874e8b1bf2358d488e4, type: 3}
+  - id: GunstoreClerc
+    prefab: {fileID: 8319359698125285996, guid: bf1485c973bcb4349add4e4139a556ab, type: 3}
+    icon: {fileID: 21300000, guid: 039188ee0e913904d838847aee05d095, type: 3}
+  - id: ScaredGuyInShorts
+    prefab: {fileID: 3819807469477614697, guid: a8fd565ed90a9864a85fafdc62c448aa, type: 3}
+    icon: {fileID: 21300000, guid: e3cf4d90b87882e4daa325f4e51d2740, type: 3}
+  - id: StoreGrandma
+    prefab: {fileID: 8509486059740478237, guid: 0d39cadfa80910843939376a90ab9716, type: 3}
+    icon: {fileID: 21300000, guid: 0906a6fc1663cf7419f6c04de819de7e, type: 3}
+  - id: Military
+    prefab: {fileID: 8888874840657465364, guid: a5815a50dacda1d4893f2aa30b8ff756, type: 3}
+    icon: {fileID: 21300000, guid: 49fae643dd701f1448840aa6056673e1, type: 3}
+  - id: Scientist
+    prefab: {fileID: 9195991291179312135, guid: 58edb13c2f1b98047b610a1ef0519a36, type: 3}
+    icon: {fileID: 21300000, guid: d4127617b126c6741a10b14ee1501b31, type: 3}
+  - id: Bean
+    prefab: {fileID: 9219475149070952803, guid: 5c83ccc1bba9fce44945bf1233e5b6e0, type: 3}
+    icon: {fileID: 21300000, guid: ff8e51a1af48da548ba5143a5ec343fb, type: 3}
   dripChance: 0.1

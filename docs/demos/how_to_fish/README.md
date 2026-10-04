@@ -7,6 +7,7 @@
 - [参考与内容清单](reference-catalog.md)
 - [逐项内容与验收清单](content-checklist.md)
 - [装备外观预设核对表](skin-catalog.md)
+- [人物服装与解锁依据](outfit-catalog.md)
 - [生物公开数据快照](creature-source-data.tsv)
 - [模型契约](model-contract.md)
 - [实际验证记录](validation.md)

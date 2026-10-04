@@ -34,10 +34,21 @@ namespace Hotfix.HowToFish
         [SerializeField] private Button save;
         [SerializeField] private Button back;
         [SerializeField] private TextMeshProUGUI journal;
+        [SerializeField] private Button outfitButton;
+        [SerializeField] private GameObject outfitPanel;
+        [SerializeField] private Button[] outfitCards;
+        [SerializeField] private Image[] outfitIcons;
+        [SerializeField] private TextMeshProUGUI[] outfitLabels;
+        [SerializeField] private TextMeshProUGUI outfitDetails;
+        [SerializeField] private Button outfitWear;
+        [SerializeField] private Button outfitBack;
         private HowToFishWorld world;
         private float refreshAt;
         private int confirmNewSlot = -1;
         private bool menuWasVisible;
+        private bool outfitOpen;
+        private int selectedOutfit;
+        private GameObject outfitReturnFocus;
         private readonly StringBuilder journalText = new StringBuilder();
         private readonly StringBuilder equipmentText = new StringBuilder();
 
@@ -52,6 +63,14 @@ namespace Hotfix.HowToFish
             resume.onClick.AddListener(() => { if (world?.ShowEnding == true) world.ContinueAfterEnding(); else world?.SetPaused(false); });
             save.onClick.AddListener(() => world?.Save());
             back.onClick.AddListener(() => world?.ReturnToHub());
+            outfitButton.onClick.AddListener(OpenOutfits);
+            outfitBack.onClick.AddListener(CloseOutfits);
+            outfitWear.onClick.AddListener(WearOutfit);
+            for (int i = 0; i < outfitCards.Length; i++)
+            {
+                int index = i;
+                outfitCards[i].onClick.AddListener(() => SelectOutfit(index));
+            }
         }
 
         /// <summary>绑定当前世界，重复显示不重复注册监听。</summary>
@@ -63,6 +82,9 @@ namespace Hotfix.HowToFish
             world.Changed += OnChanged;
             menuWasVisible = false;
             confirmNewSlot = -1;
+            outfitOpen = false;
+            for (int i = 0; i < outfitIcons.Length; i++)
+                outfitIcons[i].sprite = world.Catalog.FindOutfit(HowToFishOutfitCatalog.All[i].Id).Icon;
             Refresh();
         }
 
@@ -71,12 +93,21 @@ namespace Hotfix.HowToFish
         {
             if (world != null) world.Changed -= OnChanged;
             world = null;
+            outfitOpen = false;
+            if (outfitPanel != null) outfitPanel.SetActive(false);
         }
 
         private void Update()
         {
             if (world == null || Time.unscaledTime < refreshAt) return;
             refreshAt = Time.unscaledTime + 0.05f;
+            if (outfitOpen)
+            {
+                var selected = EventSystem.current?.currentSelectedGameObject;
+                for (int i = 0; i < outfitCards.Length; i++)
+                    if (i != selectedOutfit && outfitCards[i].gameObject == selected) { SelectOutfit(i); break; }
+                return;
+            }
             RefreshGameplay();
         }
 
@@ -86,7 +117,11 @@ namespace Hotfix.HowToFish
         {
             if (world == null) return;
             bool show = world.IsPaused || !world.HasSession;
-            menu.SetActive(show);
+            if (!world.HasSession || !world.IsPaused || world.ShowJournal) outfitOpen = false;
+            menu.SetActive(show && !outfitOpen);
+            outfitPanel.SetActive(show && outfitOpen);
+            outfitButton.gameObject.SetActive(world.HasSession && !world.ShowJournal);
+            if (outfitOpen) RefreshOutfits();
             menuTitle.text = world.ShowEnding ? "航程完成\n<size=22>已经返回大陆 · 可继续探索</size>" : world.HasSession ? "已暂停" : "渔力全开\n<size=22>单人航程</size>";
             for (int i = 0; i < slots.Length; i++)
             {
@@ -127,6 +162,59 @@ namespace Hotfix.HowToFish
                 EventSystem.current.SetSelectedGameObject(world.HasSession ? resume.gameObject : slots[0].gameObject);
             menuWasVisible = show;
             RefreshGameplay();
+        }
+
+        private void OpenOutfits()
+        {
+            if (world == null || !world.HasSession || !world.IsPaused || world.ShowJournal) return;
+            outfitReturnFocus = EventSystem.current?.currentSelectedGameObject;
+            selectedOutfit = 0;
+            for (int i = 0; i < HowToFishOutfitCatalog.All.Count; i++)
+                if (HowToFishOutfitCatalog.All[i].Id == world.SelectedOutfitId) { selectedOutfit = i; break; }
+            outfitOpen = true;
+            Refresh();
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(outfitCards[selectedOutfit].gameObject);
+        }
+
+        private void CloseOutfits()
+        {
+            outfitOpen = false;
+            Refresh();
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(outfitReturnFocus != null && outfitReturnFocus.activeInHierarchy ? outfitReturnFocus : outfitButton.gameObject);
+        }
+
+        private void SelectOutfit(int index)
+        {
+            selectedOutfit = index;
+            RefreshOutfits();
+        }
+
+        private void WearOutfit()
+        {
+            if (world == null || !outfitOpen) return;
+            if (!world.TrySelectOutfit(HowToFishOutfitCatalog.All[selectedOutfit].Id)) return;
+            RefreshOutfits();
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(outfitCards[selectedOutfit].gameObject);
+        }
+
+        private void RefreshOutfits()
+        {
+            for (int i = 0; i < outfitCards.Length; i++)
+            {
+                var outfit = HowToFishOutfitCatalog.All[i];
+                bool unlocked = HowToFishOutfitCatalog.IsUnlocked(outfit.Id, world.Session.State.unlockedOutfits);
+                bool equipped = outfit.Id == world.SelectedOutfitId;
+                outfitLabels[i].text = outfit.Name + (equipped ? " · 已穿戴" : unlocked ? "" : " · 未解锁");
+                outfitIcons[i].color = unlocked ? Color.white : new Color(.42f, .42f, .42f, 1);
+                // 锁定卡片仍可聚焦，查看条件；只有穿戴操作按解锁状态禁用。
+                outfitCards[i].image.color = i == selectedOutfit ? new Color(.34f, .52f, .57f) : new Color(.16f, .24f, .28f);
+            }
+            var selected = HowToFishOutfitCatalog.All[selectedOutfit];
+            bool canWear = HowToFishOutfitCatalog.IsUnlocked(selected.Id, world.Session.State.unlockedOutfits);
+            outfitDetails.text = selected.Name + "\n" + selected.UnlockHint +
+                (selected.Id == world.SelectedOutfitId ? "\n当前穿戴" : canWear ? "\n已解锁" : "\n尚未解锁");
+            outfitWear.interactable = canWear && selected.Id != world.SelectedOutfitId;
         }
 
         private void RefreshGameplay()

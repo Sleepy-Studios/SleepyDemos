@@ -10,6 +10,85 @@ namespace Tests.Demo
         private HowToFishCatalog catalog;
 
         [Test]
+        public void Outfits_DefaultsAreSelectableAndRewardsAreIdempotent()
+        {
+            var session = new HowToFishSession(catalog, new HowToFishSaveData());
+            Assert.That(HowToFishOutfitCatalog.All.Count, Is.EqualTo(18));
+            foreach (string id in new[] { "Badman", "Bikini", "Fisherman", "Sailor" })
+            {
+                Assert.That(HowToFishOutfitCatalog.IsUnlocked(id, session.State.unlockedOutfits), Is.True);
+                Assert.That(session.UnlockOutfit(id), Is.False);
+            }
+            Assert.That(session.State.unlockedOutfits, Is.Empty);
+            Assert.That(HowToFishOutfitCatalog.IsUnlocked("Andrei", session.State.unlockedOutfits), Is.False);
+            Assert.That(session.UnlockOutfit("Andrei"), Is.True);
+            Assert.That(session.UnlockOutfit("Andrei"), Is.False);
+            Assert.That(session.State.unlockedOutfits, Is.EqualTo(new[] { "Andrei" }));
+            Assert.That(HowToFishOutfitCatalog.IsUnlocked("Unknown", new[] { "Unknown" }), Is.False);
+            Assert.Throws<ArgumentException>(() => session.UnlockOutfit("Unknown"));
+        }
+
+        [Test]
+        public void Outfits_ReconcilePersistentProgressWithoutInventingInstantAchievements()
+        {
+            var state = new HowToFishSaveData
+            {
+                unlockedIsland = 4, hasBoatKey = true, boatMotorTier = 2, hasGrill = true,
+                hasMilitaryBoatKey = true, hasFinished = true, playedSeconds = 20
+            };
+            state.defeatedCreatures.AddRange(new[] { "SpiderCrab", "GiantPiranha", "Pufferfish", "Albatross", "MutatedBowheadWhale" });
+            state.unlockedSkins.Add("Pistol/Gold");
+            state.worldItems.Add(new HowToFishWorldItemData { instanceId = "OldCatch", definitionId = "Shrimp", cooking = 1, bettingMultiplier = 35 });
+            var session = new HowToFishSession(catalog, state);
+            var expected = new[] { "LighthouseKeeper", "SwampLady", "Tourist", "ScaredGuyInShorts", "Military",
+                "SwampMan", "StoreGrandma", "GrillMaster", "Scientist" };
+            Assert.That(state.unlockedOutfits, Is.EquivalentTo(expected));
+            state.tracksPausedPlaytime = true;
+            session.ReconcileOutfits();
+            Assert.That(state.unlockedOutfits, Is.EquivalentTo(expected), "历史皮肤、鱼获或短时结局都不能凭空补瞬时成就。");
+        }
+
+        [Test]
+        public void Outfits_MotorAndCompleteGunOperationsGrantOnlyMatchingMilestones()
+        {
+            JsonUtility.FromJsonOverwrite("{\"upgradeCosts\":[10],\"upgradedDamage\":[30],\"extendedMagazineSize\":17,\"attachmentPrices\":[310,940,400,2500,100,90]}", catalog.FindItem("Pistol"));
+            JsonUtility.FromJsonOverwrite("{\"attachmentPrices\":[280,650,220,1800,140,0]}", catalog.FindItem("Shotgun"));
+            var session = new HowToFishSession(catalog, new HowToFishSaveData { money = 10000, unlockedIsland = 3, hasBoatKey = true });
+            Assert.That(session.TryBuyMotor(2, 3, out _), Is.True);
+            Assert.That(session.State.unlockedOutfits, Is.EquivalentTo(new[] { "SwampMan", "StoreGrandma" }));
+            session.GrantItem("Pistol"); session.GrantItem("Shotgun");
+            var pistol = session.State.inventory.Find(item => item.id == "Pistol");
+            pistol.sight = HowToFishAttachment.RedDotSight;
+            pistol.barrel = HowToFishAttachment.Compensator;
+            pistol.hasExtendedMag = true;
+            session.State.inventory.Find(item => item.id == "Shotgun").hasLaser = true;
+            session.ReconcileOutfits();
+            Assert.That(session.State.unlockedOutfits, Does.Not.Contain("GunstoreClerc"), "配件不能跨枪拼接。");
+            Assert.That(session.TryBuyAttachment("Pistol", HowToFishAttachment.LaserSight, 1, out _), Is.True);
+            Assert.That(session.State.unlockedOutfits, Does.Not.Contain("GunstoreClerc"), "仍缺少该枪的伤害升级。");
+            Assert.That(session.TryUpgrade("Pistol", 1, out _), Is.True);
+            Assert.That(session.State.unlockedOutfits, Does.Contain("GunstoreClerc"));
+            var complete = pistol.Copy();
+            Assert.That(session.TryConsume("Pistol"), Is.True);
+            session.ReconcileOutfits();
+            Assert.That(session.State.unlockedOutfits, Does.Contain("GunstoreClerc"), "放下装备不能撤销已解锁服装。");
+            var pickup = new HowToFishSession(catalog, new HowToFishSaveData());
+            pickup.GrantEquipment(complete);
+            Assert.That(pickup.State.unlockedOutfits, Does.Contain("GunstoreClerc"));
+        }
+
+        [Test]
+        public void Outfits_BossDiscoveryDoesNotGrantDeathReward()
+        {
+            JsonUtility.FromJsonOverwrite("{\"id\":\"SpiderCrab\"}", catalog.FindCreature("Shrimp"));
+            var session = new HowToFishSession(catalog, new HowToFishSaveData());
+            session.RegisterCreature("SpiderCrab", false, false);
+            Assert.That(session.State.unlockedOutfits, Is.Empty);
+            session.RegisterCreature("SpiderCrab", true, false);
+            Assert.That(session.State.unlockedOutfits, Is.EqualTo(new[] { "LighthouseKeeper" }));
+        }
+
+        [Test]
         public void IndividualWeight_ValueCombinesFactorsAndRejectsInvalidWeight()
         {
             var state = new HowToFishSaveData();

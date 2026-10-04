@@ -48,6 +48,8 @@ namespace Hotfix.HowToFish
         public HowToFishCatalog Catalog => catalog;
         public HowToFishPlayer Player => player;
         public HowToFishInput Input => input;
+        /// 本机跨存档共享的当前人物服装。
+        public string SelectedOutfitId { get; private set; } = HowToFishOutfitCatalog.DefaultId;
         /// 已装配区域；雷达只显示进度已解锁的坐标。
         public IReadOnlyList<HowToFishIsland> Islands => islands;
         public bool IsPaused { get; private set; } = true;
@@ -117,20 +119,26 @@ namespace Hotfix.HowToFish
                 var state = newGame ? new HowToFishSaveData
                 {
                     safePosition = startPoint.position, safeYaw = startPoint.eulerAngles.y,
-                    boatPosition = boat.transform.position, boatYaw = boat.transform.eulerAngles.y
+                    boatPosition = boat.transform.position, boatYaw = boat.transform.eulerAngles.y,
+                    tracksPausedPlaytime = true
                 } : loaded.Data;
-                saves.LoadSharedSkins(state);
+                var profile = saves.LoadSharedSkins(state);
+                SelectedOutfitId = profile.selectedOutfitId;
                 string profileNotice = saves.SkinProfileNotice;
+                var nextSession = new HowToFishSession(catalog, state);
+                if (state.unlockedOutfits.Count != profile.unlockedOutfits.Count) saves.LoadSharedSkins(state);
                 slot = index;
-                session = new HowToFishSession(catalog, state);
+                session = nextSession;
                 boat.BindIslands(islands);
                 session.Changed += OnStateChanged;
                 if (session.Count("FreeLure") == 0) session.GrantItem("FreeLure");
                 player.Initialize(session, catalog, input, Spawn);
+                player.SetOutfit(catalog.FindOutfit(SelectedOutfitId));
                 player.Message += Notify;
                 player.InteractRequested += Interact;
                 player.Died += Respawn;
                 player.ChangeSkinRequested += ChangeSkin;
+                player.CreatureEaten += OnCreatureEaten;
                 foreach (var machine in FindObjectsByType<HowToFishSlotMachine>(FindObjectsSortMode.None))
                     if (machine.gameObject.scene == gameObject.scene) machine.Initialize(this);
                 foreach (var roulette in FindObjectsByType<HowToFishRoulette>(FindObjectsSortMode.None))
@@ -206,11 +214,54 @@ namespace Hotfix.HowToFish
             if (boss != null && item.Creature?.IsBoss == true) currentBoss = boss;
             if (item.Creature?.IsBoss == true) player.Fishing.TrackBoss(item);
             items.Add(item);
+            if (id == "SpiderCrab" || id == "GiantPiranha" || id == "Pufferfish" || id == "Albatross" || id == "MutatedBowheadWhale")
+                item.Defeated += SaveAfterOutfitBoss;
             return item;
         }
 
         /// 保存最近安全点和全部非活动首领实体。
         public void Save() => TrySave();
+
+        /// <summary>验证已解锁服装，先原子保存共享选择，再更新当前人物表现。</summary>
+        /// <param name="id">服装目录ID；未知、锁定或缺资源时保留原选择。</param>
+        public bool TrySelectOutfit(string id)
+        {
+            if (session == null || exiting || !HowToFishOutfitCatalog.IsUnlocked(id, session.State.unlockedOutfits) ||
+                catalog.FindOutfit(id)?.Prefab == null) return false;
+            try
+            {
+                var profile = saves.LoadSkinProfile(out bool recovered);
+                foreach (string unlocked in session.State.unlockedOutfits)
+                    if (!profile.unlockedOutfits.Contains(unlocked)) profile.unlockedOutfits.Add(unlocked);
+                profile.selectedOutfitId = id;
+                saves.SaveSkinProfile(profile);
+                SelectedOutfitId = id;
+                player.SetOutfit(catalog.FindOutfit(id));
+                Notify("当前服装：" + HowToFishOutfitCatalog.Find(id).Name + (recovered ? "；共享档案已从备份恢复，损坏原件已保留。" : ""));
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is NotSupportedException)
+            { Notify("服装选择未保存，原外观已保留：" + exception.Message); return false; }
+        }
+
+        private void SaveAfterOutfitBoss(HowToFishWorldItem item) => SaveOutfitProgress();
+
+        private void SaveOutfitProgress()
+        {
+            // 独立成就立即进入共享档案，不在死亡事件中抢拍仍等待帧末清理的世界实体。
+            try
+            {
+                saves.LoadSharedSkins(session.State);
+                if (!string.IsNullOrEmpty(saves.SkinProfileNotice)) Notify(saves.SkinProfileNotice);
+            }
+            catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is NotSupportedException)
+            { Notify("服装奖励仍在本次航程中，共享保存失败，请再次保存进度：" + exception.Message); }
+        }
+
+        private void OnCreatureEaten(HowToFishWorldItem item)
+        {
+            if (item.IsBurnt && session.UnlockOutfit("KioskLady")) SaveOutfitProgress();
+        }
 
         /// <summary>消费一个已由玩家持握后放手的死 Drip 生物，开奖并保存；重复奖励不退款。</summary>
         /// <param name="island">实际老虎机所在岛屿，0至4。</param>
@@ -226,6 +277,7 @@ namespace Hotfix.HowToFish
             { Notify("首领战斗结束后才能投入老虎机。"); return false; }
             HowToFishSkinDefinition reward = null;
             bool isNew = false;
+            bool newOutfit = false;
             try
             {
                 if (!item.TryConsume(() =>
@@ -235,8 +287,10 @@ namespace Hotfix.HowToFish
                     var pool = HowToFishSkinCatalog.Rewards(island, rarity);
                     reward = pool[UnityEngine.Random.Range(0, pool.Length)];
                     isNew = session.UnlockSkin(reward.Id);
+                    if (rarity == HowToFishSkinRarity.Legendary) newOutfit = session.UnlockOutfit("Jacob");
                     if (TrySave()) return;
                     if (isNew) session.State.unlockedSkins.Remove(reward.Id);
+                    if (newOutfit) session.State.unlockedOutfits.Remove("Jacob");
                     throw new IOException("老虎机进度未能保存，鱼获已保留。");
                 })) return false;
             }
@@ -301,7 +355,12 @@ namespace Hotfix.HowToFish
             }
             catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is InvalidOperationException)
             { Notify("本轮潜在中奖价值超出当前金额数值范围，未扣物品；请取回高倍率鱼获。"); return false; }
-            if (!TrySave(settled)) return false;
+            bool newOutfit = result == HowToFishRouletteColor.Green && winners > 0 && session.UnlockOutfit("Andrei");
+            if (!TrySave(settled))
+            {
+                if (newOutfit) session.State.unlockedOutfits.Remove("Andrei");
+                return false;
+            }
             foreach (var entry in settled) entry.Key.ApplyRouletteResult(entry.Value);
             string color = result == HowToFishRouletteColor.Green ? "绿" : result == HowToFishRouletteColor.Red ? "红" : "黑";
             announcement = $"轮盘落在{color}色：{winners}件获胜，{settled.Count - winners}件失去。取回获胜鱼获后出售兑现。";
@@ -316,6 +375,7 @@ namespace Hotfix.HowToFish
             try
             {
                 var state = session.State;
+                session.ReconcileOutfits();
                 state.boatPosition = boat.transform.position; state.boatYaw = boat.transform.eulerAngles.y;
                 state.isDriving = player.IsDriving;
                 state.isOnBoat = player.IsDriving || (Physics.Raycast(player.transform.position + Vector3.up * .1f,
@@ -440,8 +500,9 @@ namespace Hotfix.HowToFish
             if (!ShowEnding && session != null && input.Pressed("Pause")) SetPaused(!IsPaused);
             if (!ShowEnding && session != null && input.Pressed("Journal")) { ShowJournal = !ShowJournal; SetPaused(ShowJournal); }
             if (Notice != null && Time.unscaledTime > messageUntil) { Notice = null; Changed?.Invoke(); }
-            if (session == null || IsPaused) return;
-            session.State.playedSeconds += Time.deltaTime;
+            if (session == null) return;
+            if (!ShowEnding) session.State.playedSeconds += Time.unscaledDeltaTime;
+            if (IsPaused) return;
             foreach (var island in islands)
                 if (island.Index <= session.State.unlockedIsland && island.Index != player.Island &&
                     island.DistanceToShore(player.transform.position) < 15)
@@ -481,6 +542,7 @@ namespace Hotfix.HowToFish
             if (roulette != null && collider.GetComponentInParent<HowToFishWorldItem>() == null) { roulette.TrySpin(); return; }
             var station = collider.GetComponentInParent<HowToFishStation>();
             if (station == null) { player.PickUp(collider.GetComponentInParent<HowToFishWorldItem>()); return; }
+            int outfitsBefore = session.State.unlockedOutfits.Count;
             switch (station.Kind)
             {
                 case HowToFishStationKind.Product:
@@ -534,8 +596,18 @@ namespace Hotfix.HowToFish
                 case HowToFishStationKind.Scientist: TalkToScientist(); break;
                 case HowToFishStationKind.MilitaryDeparture:
                     if (!session.State.hasMilitaryBoatKey) { Notify("需要科学家交给你的军用船钥匙。"); break; }
+                    bool wasFinished = session.State.hasFinished;
                     session.State.hasFinished = true;
+                    bool newScientist = session.UnlockOutfit("Scientist");
+                    // 旧档未统计暂停时间，不能据不完整时钟补授限时奖励；小于一小时的边界为推定。
+                    bool newBean = !wasFinished && session.State.tracksPausedPlaytime && session.State.playedSeconds < 3600 && session.UnlockOutfit("Bean");
                     if (TrySave()) { ShowEnding = true; ShowJournal = false; SetPaused(true); Notify("你乘军用船回到了大陆。航程已保存，可以继续探索群岛。"); }
+                    else
+                    {
+                        session.State.hasFinished = wasFinished;
+                        if (newScientist) session.State.unlockedOutfits.Remove("Scientist");
+                        if (newBean) session.State.unlockedOutfits.Remove("Bean");
+                    }
                     break;
                 case HowToFishStationKind.Islander:
                     if (!TryDeliverToIslander(player.HeldItem))
@@ -543,6 +615,9 @@ namespace Hotfix.HowToFish
                             "岛民：用专业首领饵钓金枪鱼，打倒后把完整生鱼放在岸上引鸟。屋顶能挡落物，请把鸟头带回来。");
                     break;
             }
+            if (session.State.unlockedOutfits.Count > outfitsBefore &&
+                (station.Kind == HowToFishStationKind.MotorUpgrade || station.Kind == HowToFishStationKind.Attachment ||
+                 station.Kind == HowToFishStationKind.AmmoUpgrade || station.Kind == HowToFishStationKind.Anvil)) SaveOutfitProgress();
         }
 
         private void TalkToKeeper()
@@ -783,6 +858,7 @@ namespace Hotfix.HowToFish
         private void Respawn()
         {
             var remains = Spawn("PlayerRemains", player.transform.position + Vector3.up, false);
+            remains.SetOutfit(SelectedOutfitId);
             remains.Body.rotation = Quaternion.Euler(0, player.transform.eulerAngles.y, 90);
             session.State.health = 100;
             session.State.hunger = Mathf.Max(35, session.State.hunger);
@@ -815,6 +891,7 @@ namespace Hotfix.HowToFish
             foreach (var station in deliveryStations) if (station != null) station.DeliveryRequested -= DeliverToStation;
             if (player != null) { player.Message -= Notify; player.InteractRequested -= Interact; player.Died -= Respawn; player.Drop(false); }
             if (player != null) player.ChangeSkinRequested -= ChangeSkin;
+            if (player != null) player.CreatureEaten -= OnCreatureEaten;
             input?.Dispose();
             Time.timeScale = previousTimeScale;
             Cursor.lockState = previousCursor; Cursor.visible = previousCursorVisible;

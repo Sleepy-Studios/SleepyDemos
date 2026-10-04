@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using UnityEngine;
 
 namespace Hotfix.HowToFish
@@ -32,6 +34,27 @@ namespace Hotfix.HowToFish
         private bool hasLaser;
         private float appliedCooking = -1;
         private string appliedSkin;
+
+        /// <summary>使用服装模型的手臂材质更新现有持握模型，不修改共享材质或武器外观。</summary>
+        /// <param name="outfit">已装配的服装模型；裸臂与短袖不显示袖口。</param>
+        public void SetOutfit(HowToFishOutfitVisual outfit)
+        {
+            var hand = transform.Find("HandVisual");
+            if (hand == null) return;
+            if (outfit?.Prefab == null) throw new ArgumentException("服装模型未配置。", nameof(outfit));
+            var source = outfit.Prefab.GetComponentsInChildren<MeshRenderer>(true);
+            var sleeve = source.FirstOrDefault(value => value.name == "ForearmSleeveRight");
+            bool longSleeve = sleeve != null;
+            if (sleeve == null) sleeve = source.FirstOrDefault(value => value.name == "ForearmSkinRight");
+            var palm = source.FirstOrDefault(value => value.name == "PalmRight");
+            if (sleeve == null || palm == null) throw new InvalidOperationException("服装缺少右前臂或手掌材质。");
+            foreach (var renderer in hand.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                bool cloth = renderer.name == "Sleeve" || renderer.name == "Cuff";
+                renderer.sharedMaterial = cloth ? sleeve.sharedMaterial : palm.sharedMaterial;
+                if (renderer.name == "Cuff") renderer.gameObject.SetActive(longSleeve);
+            }
+        }
 
         /// <summary>切换本件装备的外观，并在新材质上重新应用受热程度。</summary>
         /// <param name="skinId">已验证的类型与皮肤标识；空值使用默认材质。</param>

@@ -26,6 +26,92 @@ namespace Tests.Demo
         }
 
         [Test]
+        public void Outfits_GlobalSelectionChangesWithoutNewUnlocksAndSurvivesSlotMerges()
+        {
+            var first = new HowToFishSaveData { tracksPausedPlaytime = true };
+            first.unlockedOutfits.Add("Andrei");
+            first.worldItems.Add(new HowToFishWorldItemData { instanceId = "Remains", definitionId = "PlayerRemains", outfitId = "Andrei" });
+            store.Save(0, first);
+            var profile = store.LoadSkinProfile(out _);
+            Assert.That(profile.selectedOutfitId, Is.EqualTo("Fisherman"));
+            profile.selectedOutfitId = "Andrei";
+            store.SaveSkinProfile(profile);
+            Assert.That(store.LoadSkinProfile(out _).selectedOutfitId, Is.EqualTo("Andrei"), "解锁数量没变也必须保存换装。");
+            var fresh = new HowToFishSaveData();
+            Assert.That(store.LoadSharedSkins(fresh).selectedOutfitId, Is.EqualTo("Andrei"));
+            fresh.unlockedOutfits.Add("Jacob");
+            store.Save(1, fresh);
+            var old = store.Load(0).Data;
+            profile = store.LoadSharedSkins(old);
+            Assert.That(old.unlockedOutfits, Is.EquivalentTo(new[] { "Andrei", "Jacob" }));
+            Assert.That(old.tracksPausedPlaytime, Is.True);
+            Assert.That(old.worldItems[0].outfitId, Is.EqualTo("Andrei"));
+            profile.selectedOutfitId = "Sailor";
+            store.SaveSkinProfile(profile);
+            store.Save(0, old);
+            Assert.That(store.LoadSkinProfile(out _).selectedOutfitId, Is.EqualTo("Sailor"), "旧槽不能覆盖全局选择。");
+            Assert.That(store.Load(0).Data.worldItems[0].outfitId, Is.EqualTo("Andrei"), "已有遗体保留死亡时服装。");
+        }
+
+        [Test]
+        public void Outfits_LegacyDefaultsAndInvalidSelectionsAreValidatedBeforeWriting()
+        {
+            var legacy = new HowToFishSaveData { unlockedOutfits = null };
+            legacy.Validate();
+            Assert.That(legacy.unlockedOutfits, Is.Empty);
+            Assert.That(legacy.tracksPausedPlaytime, Is.False);
+            var oldProfile = JsonUtility.FromJson<HowToFishSkinProfile>("{\"version\":1,\"unlockedSkins\":[]}");
+            oldProfile.Validate();
+            Assert.That(oldProfile.selectedOutfitId, Is.EqualTo("Fisherman"));
+            Assert.That(oldProfile.unlockedOutfits, Is.Empty);
+            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"definitionId\":\"PlayerRemains\"}").outfitId, Is.Null.Or.Empty);
+            store.Save(0, legacy);
+            foreach (var invalid in new[] { new[] { "Unknown" }, new[] { "Fisherman" }, new[] { "Andrei", "Andrei" } })
+                Assert.Throws<FormatException>(() => store.Save(0, new HowToFishSaveData { unlockedOutfits = new List<string>(invalid) }));
+            foreach (string invalid in new[] { "Unknown", "Jacob" })
+                Assert.Throws<FormatException>(() => store.SaveSkinProfile(new HowToFishSkinProfile { selectedOutfitId = invalid }));
+            var remains = new HowToFishWorldItemData { instanceId = "OldBody", definitionId = "PlayerRemains", outfitId = "Bean" };
+            legacy.worldItems.Add(remains);
+            Assert.DoesNotThrow(legacy.Validate, "遗体快照验证外观ID，不要求当前玩家已解锁。");
+            remains.definitionId = "Shrimp";
+            Assert.Throws<FormatException>(legacy.Validate);
+            remains.definitionId = "PlayerRemains"; remains.outfitId = "Unknown";
+            Assert.Throws<FormatException>(legacy.Validate);
+            Assert.That(store.Load(0).Data.worldItems, Is.Empty);
+        }
+
+        [Test]
+        public void Outfits_ProfileWriteFailureKeepsSelectionAndSlotMirrorRecoversRewards()
+        {
+            var profile = new HowToFishSkinProfile { selectedOutfitId = "Sailor" };
+            store.SaveSkinProfile(profile);
+            string profilePath = Path.Combine(directory, "PlayerSkins.json");
+            string before = File.ReadAllText(profilePath);
+            profile.selectedOutfitId = "Bikini";
+            var world = new HowToFishSaveData();
+            world.unlockedOutfits.Add("Bean");
+            using (var locked = new FileStream(profilePath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                Assert.Throws<IOException>(() => store.SaveSkinProfile(profile));
+                Assert.That(File.ReadAllText(profilePath), Is.EqualTo(before));
+                Assert.DoesNotThrow(() => store.Save(1, world));
+                Assert.That(store.SkinProfileNotice, Does.Contain("待下次进入"));
+                Assert.That(store.Load(1).Data.unlockedOutfits, Does.Contain("Bean"));
+            }
+            var fresh = new HowToFishSaveData();
+            profile = store.LoadSharedSkins(fresh);
+            Assert.That(profile.selectedOutfitId, Is.EqualTo("Sailor"));
+            Assert.That(fresh.unlockedOutfits, Does.Contain("Bean"));
+            File.WriteAllText(profilePath, "interrupted");
+            Assert.That(store.LoadSkinProfile(out bool recovered).selectedOutfitId, Is.EqualTo("Sailor"));
+            Assert.That(recovered, Is.True);
+            Assert.That(store.LoadSharedSkins(new HowToFishSaveData()).unlockedOutfits, Does.Contain("Bean"));
+            var deleted = store.LoadSkinProfile(out _);
+            deleted.unlockedOutfits.Clear();
+            Assert.Throws<InvalidOperationException>(() => store.SaveSkinProfile(deleted));
+        }
+
+        [Test]
         public void IndividualWeight_RoundTripsAndLegacyDefaultsToOne()
         {
             var state = new HowToFishSaveData();

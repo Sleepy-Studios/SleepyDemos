@@ -1,0 +1,107 @@
+{
+  "blender": "5.2.1 LTS",
+  "source_forward": "-Y",
+  "source_up": "+Z",
+  "source_right": "-X",
+  "target_forward": "+Z",
+  "target_up": "+Y",
+  "target_right": "+X",
+  "export_axis_forward": "Z",
+  "export_axis_up": "Y",
+  "bake_space_transform": true,
+  "use_space_transform": false,
+  "unsaved_export_basis": "RotationX(-90 degrees)",
+  "source_bounds_m": {
+    "min": [
+      -0.23717084527015686,
+      -0.13285920023918152,
+      0.0
+    ],
+    "max": [
+      0.23741468787193298,
+      0.10153583437204361,
+      1.75
+    ]
+  },
+  "source_mounts_m": {
+    "RightHand": [
+      -0.21402162313461304,
+      -0.026877133175730705,
+      0.9586176872253418
+    ],
+    "LeftHand": [
+      0.21402162313461304,
+      -0.026877133175730705,
+      0.9586176872253418
+    ],
+    "Grip": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "FaceFront": [
+      0.0,
+      -0.0995449349284172,
+      1.5708191394805908
+    ]
+  },
+  "sha256": "d5e7a6826ceae2c36e850ff642117b411894164034afaedd1c5c3a3da6846c64",
+  "unity_import_verified": false,
+  "candidate_fbx": "C:\\Users\\User\\.codex\\worktrees\\yuliquank-singleplayer\\SleepyDemos\\Library\\HowToFish\\OutfitExports\\OutfitMilitary.fbx",
+  "objects": [
+    "Belt",
+    "BootTopLeft",
+    "BootTopRight",
+    "Buckle",
+    "CalfLeft",
+    "CalfRight",
+    "CargoPocket",
+    "CargoPocket.001",
+    "ChestPocket",
+    "ChestPocket.001",
+    "EyeLeft",
+    "EyeRight",
+    "Face",
+    "FaceFront",
+    "FingerLeft0",
+    "FingerLeft1",
+    "FingerLeft2",
+    "FingerLeft3",
+    "FingerRight0",
+    "FingerRight1",
+    "FingerRight2",
+    "FingerRight3",
+    "FootLeft",
+    "FootRight",
+    "ForearmSleeveLeft",
+    "ForearmSleeveRight",
+    "Grip",
+    "HatCrown",
+    "Head",
+    "HelmetRim",
+    "LeftArm",
+    "LeftForearm",
+    "LeftHand",
+    "Neck",
+    "Nose",
+    "OutfitMilitary",
+    "PalmLeft",
+    "PalmRight",
+    "PupilLeft",
+    "PupilRight",
+    "RightArm",
+    "RightForearm",
+    "RightHand",
+    "ShoulderLeft",
+    "ShoulderRight",
+    "SleeveLeft",
+    "SleeveRight",
+    "ThighLeft",
+    "ThighRight",
+    "ThumbLeft",
+    "ThumbRight",
+    "Torso",
+    "Waist"
+  ],
+  "design_note": "Self-authored from visible front reference; unseen back, neutral face and standing pose inferred. No animation rig."
+}

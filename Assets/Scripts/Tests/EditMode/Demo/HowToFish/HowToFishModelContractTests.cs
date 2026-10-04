@@ -8,6 +8,13 @@ namespace Tests.Demo
     public sealed class HowToFishModelContractTests
     {
         [Test]
+        public void Outfits_AllEighteenKeepMetersFrontAndAppliedTransforms()
+        {
+            foreach (var outfit in Hotfix.HowToFish.HowToFishOutfitCatalog.All)
+                FirstIslandModel_PreservesForwardMountAndAppliedTransforms("Outfit" + outfit.Id, "FaceFront");
+        }
+
+        [Test]
         public void AxisProbe_ImportsAtMeterScaleWithUnityForwardRightAndUp()
         {
             const string path = "Assets/LoadResources/Demos/how_to_fish/Art/Models/AxisProbe.fbx";
