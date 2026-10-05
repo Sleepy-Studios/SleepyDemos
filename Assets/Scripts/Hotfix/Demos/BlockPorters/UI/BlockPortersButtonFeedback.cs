@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 队列递补的业务回弹；交互五态由公共 UIStateInteraction 表现。
     public sealed class BlockPortersButtonFeedback : MonoBehaviour

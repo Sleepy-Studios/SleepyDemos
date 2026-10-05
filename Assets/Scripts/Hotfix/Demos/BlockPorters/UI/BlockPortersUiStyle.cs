@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// Demo 方格、文字和世界投影共用的设计规格。
     [CreateAssetMenu(menuName = "SleepyDemos/小小搬豆工/UI 规格")]

@@ -2628,7 +2628,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f178d126016caf640b554c9a4c65b8c9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersResultPresenter
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersResultPresenter
   resultTitle: {fileID: 4270123787447046280}
   resultDescription: {fileID: 5252566447289315522}
   resultExtraButtons:
@@ -2649,7 +2649,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dd20ef2a3206c8844af0240921669625, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersOverlayLayout
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersOverlayLayout
   card: {fileID: 7263743187685778050}
 --- !u!114 &5579102730879240483
 MonoBehaviour:
@@ -2679,9 +2679,9 @@ MonoBehaviour:
   components:
   - {fileID: 8298814494266303147}
   componentTypes:
-  - Hotfix.BlockPorters.Adapters.BlockPortersResultPresenter
+  - Hotfix.BlockPorters.BlockPortersResultPresenter
   bindingKeys:
-  - BlockPortersResultView|Hotfix.BlockPorters.Adapters.BlockPortersResultPresenter
+  - BlockPortersResultView|Hotfix.BlockPorters.BlockPortersResultPresenter
   bindingMethods:
   - None
 --- !u!1 &4270388973150731280

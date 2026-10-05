@@ -179,7 +179,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6562287d8b33d2f439ce641b1886ba6e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersController
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersController
   catalog: {fileID: 11400000, guid: 13a7c968cd5cebc4eabfbf005b328523, type: 2}
   worldCamera: {fileID: 2133727270}
   backgroundRenderer: {fileID: 799775000}

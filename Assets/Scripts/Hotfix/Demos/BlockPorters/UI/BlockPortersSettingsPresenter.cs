@@ -3,7 +3,7 @@ using Core.Runtime.Inputs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 设置与暂停页；声音即时应用，暂停归属由当前会话 UI 协调器恢复。
     public sealed class BlockPortersSettingsPresenter : MonoBehaviour

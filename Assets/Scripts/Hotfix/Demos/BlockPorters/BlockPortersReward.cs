@@ -1,7 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     public enum PorterRewardResult { Completed, Canceled, Unavailable }
 

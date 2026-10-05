@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 序列化 UI 引用与布局适配；业务生命周期仍由 Core View 管理。
     public sealed class BlockPortersHudPresenter : MonoBehaviour

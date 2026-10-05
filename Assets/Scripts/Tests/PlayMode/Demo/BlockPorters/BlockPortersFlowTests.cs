@@ -10,7 +10,6 @@ using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.BlockPorters;
-using Hotfix.BlockPorters.Adapters;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
 using UnityEngine;
@@ -520,7 +519,9 @@ namespace Tests.Demo
                 while (!startup.isDone) yield return null;
             }
             yield return WaitUntil(() => GameSceneNavigator.Instance?.CurrentScene == GameSceneId.Hub &&
+                !GameSceneNavigator.Instance.IsTransitioning &&
                 UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "Hub 启动 / 复用");
+            yield return null;
         }
 
         private void SetLevels(BlockPortersController controller, BlockPortersLevel[] definitions)
@@ -564,13 +565,16 @@ namespace Tests.Demo
         private static void Click(View view, string name)
         {
             // Hub 已使用稳定 Key 的循环卡片；玩法控件仍按保存的固定节点定位。
-            var button = view is MainMenuView && name == "BlockPortersButton"
+            bool isDemoEntry = view is MainMenuView && name == "BlockPortersButton";
+            var button = isDemoEntry
                 ? view.gameObject.GetComponentsInChildren<LoopScrollMenuButton>(true).Single(item =>
                     item.GetComponentInParent<SleepyStudios.LoopScroll.LoopCell>().Context.IsCurrent &&
                     item.GetComponentInParent<SleepyStudios.LoopScroll.LoopCell>().Context.Key == "block_porters")
                 : view.gameObject.GetComponentsInChildren<Button>(true).Single(item => item.name == name);
             Assert.That(button.interactable, Is.True, name + " 不可交互");
             button.onClick.Invoke();
+            // 鼠标/触屏点击卡片只选择；键盘/手柄确认可能已经开始导航。
+            if (isDemoEntry && !GameSceneNavigator.Instance.IsTransitioning) Click(view, "Start");
         }
         private static IEnumerator WaitUntil(Func<bool> predicate, string reason, float timeout = 20)
         {

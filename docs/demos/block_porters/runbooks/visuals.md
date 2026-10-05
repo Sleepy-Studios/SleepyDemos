@@ -24,8 +24,8 @@
 2. 字体与人数使用 TMP；色号、人数、进度和玩法颜色不能烘焙进生成图片。队伍卡片取消立方块图标，使用大人数及小色号。内部内容面读取原始关卡牌色，按亮度自动选择深／浅文字；所有按钮关闭 ColorTint，禁用及预览不能改灰牌色。
 3. 五列各一个当前 Button 和三个 Preview Image，共五个按钮、十五个预览。所有外框与热区均为 80×80，内边距 8、内容面 64×64、圆角约 12、厚度约 6、影子下移约 4；横向间距 16、纵向间距 8。首排中心 y=752，预览中心 y=840／928／1016，列中心 x=108／204／300／396／492（设计图从顶部计）。字体人数 32 粗体、色号与状态 11。预览与装饰关闭 Raycast Target。递补由 Presenter 统一推进 0.2 秒，整列向上移动，新末排在结束后补入，同列暂时禁点；暂停、重开、切关和解绑恢复固定布局并清理输入锁。
 4. 设置入口为 Pause；Sound、Restart、Exit 位于 SettingsCard。SettingsContinue/SettingsClose 关闭设置，保留打开前的暂停状态。设置与结算遮罩必须可拦截射线。
-5. 新增或改变绑定时使用 MvcBind；自定义 Module 输出目录选择 `Assets/Scripts/Hotfix/Demos/BlockPorters/Adapters/UI`，工具会追加 View 名和 View 目录，不要再次手工追加。生成文件不得手改。
-   Image 的 Source Image 必须指向导入后的 Sprite 子资产，不能指向原始 Texture2D；在 Inspector 中从展开的图片资产选择 Sprite。设置和结果遮罩必须排在五列队伍之后，否则卡片会遮住弹窗。
+5. 新增或改变绑定时使用 MvcBind；自定义 Module 输出目录选择 `Assets/Scripts/Hotfix/Demos/BlockPorters/UI`，工具会追加 View 名和 View 目录，不要再次手工追加。生成文件不得手改。
+   Image 的 Source Image 必须指向导入后的 Sprite 子资产，不能指向原始 Texture2D；在 Inspector 中从展开的图片资产选择 Sprite。设置与结果使用独立 View 和 Prefab，通过 Tip/Modal 显示在 HUD 之上；各自遮罩覆盖宿主并拦截射线，不依赖 HUD 内的节点排序。
 6. 不新建 Demo 重建工具；常规调整直接保存 Prefab、场景和资产。小人 CarryAnchor、方块根 Renderer、坑口交付坐标保持不变。
 
 进度节点为 `ProgressRoot/ProgressTrack/ProgressClip/ProgressFill`，数量文字 `Progress` 同属 ProgressRoot。背景压缩为 328×20；Clip 使用圆角 Sprite 和 Mask，横向内边距 7、纵向内边距 5，Fill 撑满 Clip 并从左到右填充。不能再给 Fill 设置独立屏幕坐标或旧的 520 宽度。已入坑数量驱动进度，正常交付平滑增长，通关立即满格，新会话立即归零；不会把抬起数量当作交付数量。

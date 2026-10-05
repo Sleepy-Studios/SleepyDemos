@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.BlockPorters.Adapters;
+    using Hotfix.BlockPorters;
 
     [Source("LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersResultView")]
     public partial class BlockPortersResultView

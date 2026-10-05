@@ -1,5 +1,5 @@
 using UnityEngine;
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 独立弹窗共享的竖屏安全区布局，不持有玩法数据。
     public sealed class BlockPortersOverlayLayout : MonoBehaviour

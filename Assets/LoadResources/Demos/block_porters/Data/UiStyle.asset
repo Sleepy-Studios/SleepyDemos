@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c7fb27e34a43bdc478af2975b64d990f, type: 3}
   m_Name: UiStyle
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersUiStyle
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersUiStyle
   TileSize: 80
   CornerRadius: 12
   Padding: 8

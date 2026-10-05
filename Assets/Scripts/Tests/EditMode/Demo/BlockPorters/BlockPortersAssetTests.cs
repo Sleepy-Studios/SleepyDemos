@@ -1,9 +1,9 @@
 using System.IO;
 using System.Linq;
 using Core.Editor.AssetNaming;
+using Core.Editor.MvcBind;
 using Core.Runtime;
 using Hotfix.BlockPorters;
-using Hotfix.BlockPorters.Adapters;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -62,11 +62,6 @@ namespace Tests.Demo
             Assert.That(index.Components, Is.Not.Empty);
             Assert.That(index.Components.All(component => component != null), Is.True);
             Assert.That(index.BindingKeys.Length, Is.EqualTo(index.Components.Length));
-            foreach (string name in new[] { "SettingsCard", "ResultCard", "ProgressTrack" })
-            {
-                var image = hud.GetComponentsInChildren<Image>(true).Single(item => item.name == name);
-                Assert.That(image.sprite, Is.Not.Null, name + " 必须引用 Sprite 而非原始 Texture");
-            }
             var images = hud.GetComponentsInChildren<Image>(true);
             var fill = images.Single(item => item.name == "ProgressFill");
             var track = images.Single(item => item.name == "ProgressTrack");
@@ -95,6 +90,48 @@ namespace Tests.Demo
                 Assert.That(transform.GetComponents<Component>().All(component => component != null), Is.True, transform.name);
             var font = hud.GetComponentInChildren<TextMeshProUGUI>(true).font;
             foreach (char character in "抬坑堵筒") Assert.That(font.characterLookupTable.ContainsKey(character), Is.True, character.ToString());
+        }
+
+        [TestCase("BlockPortersHudView", typeof(BlockPortersHudPresenter))]
+        [TestCase("BlockPortersSettingsView", typeof(BlockPortersSettingsPresenter))]
+        [TestCase("BlockPortersResultView", typeof(BlockPortersResultPresenter))]
+        public void ViewBindingsMatchSavedComponents(string viewName, System.Type presenterType)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Prefabs/UI/{viewName}.prefab");
+            Assert.That(prefab, Is.Not.Null);
+            var imageName = viewName == "BlockPortersSettingsView" ? "SettingsCard" :
+                viewName == "BlockPortersResultView" ? "ResultCard" : "ProgressTrack";
+            var image = prefab.GetComponentsInChildren<Image>(true).Single(item => item.name == imageName);
+            Assert.That(image.sprite, Is.Not.Null, imageName + " 必须引用 Sprite 而非原始 Texture");
+            foreach (var transform in prefab.GetComponentsInChildren<Transform>(true))
+                Assert.That(transform.GetComponents<Component>().All(component => component != null), Is.True, transform.name);
+            var index = prefab.GetComponent<ComponentItemIndex>();
+            Assert.That(index, Is.Not.Null);
+            Assert.That(index.Components, Is.Not.Empty);
+            Assert.That(index.ComponentTypes.Length, Is.EqualTo(index.Components.Length));
+            Assert.That(index.BindingKeys.Length, Is.EqualTo(index.Components.Length));
+            Assert.That(index.BindingMethods.Length, Is.EqualTo(index.Components.Length));
+            for (int i = 0; i < index.Components.Length; i++)
+            {
+                var component = index.Components[i];
+                Assert.That(component, Is.Not.Null);
+                Assert.That(component.transform.IsChildOf(prefab.transform), Is.True);
+                Assert.That(index.ComponentTypes[i], Is.EqualTo(component.GetType().FullName));
+                var path = component.transform.name;
+                for (var parent = component.transform.parent; parent != null; parent = parent.parent)
+                    path = parent.name + "/" + path;
+                Assert.That(index.BindingKeys[i], Is.EqualTo(path + "|" + component.GetType().FullName));
+                Assert.That(index.Get<Component>(i), Is.SameAs(component));
+            }
+            Assert.That(index.Components.Any(component => component.GetType() == presenterType), Is.True);
+            var record = MvcBindIndexDiscovery.BuildViewRecords("Assets/Scripts/Hotfix/Demos/BlockPorters", Root + "/Prefabs/UI")
+                .Single(item => item.viewName == viewName);
+            Assert.That(record.isValid, Is.True, record.validationMessage);
+            Assert.That(record.moduleName, Is.EqualTo("BlockPorters"));
+            Assert.That(record.usesCustomModuleOutputDirectory, Is.True);
+            Assert.That(record.moduleOutputDirectory, Is.EqualTo("Assets/Scripts/Hotfix/Demos/BlockPorters/UI"));
+            Assert.That(File.Exists(record.viewScriptPath), Is.True);
+            Assert.That(File.Exists(record.componentScriptPath), Is.True);
         }
 
         [Test]

@@ -4999,7 +4999,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9c35494eeb79b4f43967c9bec6eb48c9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersHudPresenter
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersHudPresenter
   content: {fileID: 7399796665747793215}
   style: {fileID: 11400000, guid: 39b3901edc784cb4495a94749aa8c69b, type: 2}
   queueFaces:
@@ -5145,9 +5145,9 @@ MonoBehaviour:
   components:
   - {fileID: 2746390653723944715}
   componentTypes:
-  - Hotfix.BlockPorters.Adapters.BlockPortersHudPresenter
+  - Hotfix.BlockPorters.BlockPortersHudPresenter
   bindingKeys:
-  - BlockPortersHudView|Hotfix.BlockPorters.Adapters.BlockPortersHudPresenter
+  - BlockPortersHudView|Hotfix.BlockPorters.BlockPortersHudPresenter
   bindingMethods:
   - None
 --- !u!114 &1847836556662129601
@@ -11155,7 +11155,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7f8405a053b31443ad2b73bdfd17a70, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersButtonFeedback
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersButtonFeedback
 --- !u!114 &1123250989293912657
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11414,7 +11414,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7f8405a053b31443ad2b73bdfd17a70, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersButtonFeedback
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersButtonFeedback
 --- !u!114 &5129791861990327872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12569,7 +12569,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7f8405a053b31443ad2b73bdfd17a70, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersButtonFeedback
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersButtonFeedback
 --- !u!114 &5975654000707356422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12840,7 +12840,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7f8405a053b31443ad2b73bdfd17a70, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersButtonFeedback
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersButtonFeedback
 --- !u!114 &6283624922638994139
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13301,7 +13301,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e7f8405a053b31443ad2b73bdfd17a70, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersButtonFeedback
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersButtonFeedback
 --- !u!114 &4766040323419902778
 MonoBehaviour:
   m_ObjectHideFlags: 0

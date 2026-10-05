@@ -3,7 +3,7 @@ using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 每次请求独占加载器；只在结果仍有效时转交给当前背景。
     public sealed class BlockPortersThemeLoader : IDisposable

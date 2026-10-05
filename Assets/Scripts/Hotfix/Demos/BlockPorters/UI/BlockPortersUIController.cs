@@ -3,7 +3,7 @@ using System.Threading;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 当前会话只拥有一个独立弹窗，所有开关按现有导航队列顺序执行。
     internal sealed class BlockPortersUIController : IDisposable

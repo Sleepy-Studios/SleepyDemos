@@ -7,14 +7,14 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.BlockPorters.Adapters;
+    using Hotfix.BlockPorters;
 
-    [Source("LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersHudView")]
-    public partial class BlockPortersHudView
+    [Source("LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersSettingsView")]
+    public partial class BlockPortersSettingsView
     {
-        public override string Address => "LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersHudView";
-        public override UILayer Level => UILayer.Decorate;
-        public override UIViewMode ViewMode => UIViewMode.Widget;
+        public override string Address => "LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersSettingsView";
+        public override UILayer Level => UILayer.Tip;
+        public override UIViewMode ViewMode => UIViewMode.Modal;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
@@ -23,7 +23,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private BlockPortersHudPresenter BlockPortersHudPresenter_BlockPortersHudView;
+        private BlockPortersSettingsPresenter BlockPortersSettingsPresenter_BlockPortersSettingsView;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +35,7 @@ namespace Hotfix
                 return;
             }
 
-            BlockPortersHudPresenter_BlockPortersHudView = componentItemIndex.Get<BlockPortersHudPresenter>(0);
+            BlockPortersSettingsPresenter_BlockPortersSettingsView = componentItemIndex.Get<BlockPortersSettingsPresenter>(0);
         }
     }
 }

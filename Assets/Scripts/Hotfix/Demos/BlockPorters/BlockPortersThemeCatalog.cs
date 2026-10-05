@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 按地址登记主题，不使所有大图成为场景的直接依赖。
     [CreateAssetMenu(menuName = "SleepyDemos/小小搬豆工/主题目录")]

@@ -3936,7 +3936,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a66dfb36b074ef64ca4c9f307be40bad, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersSettingsPresenter
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersSettingsPresenter
   sound: {fileID: 8005620411219778758}
   restart: {fileID: 9048158087049958633}
   exit: {fileID: 6094164030585321957}
@@ -3954,7 +3954,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dd20ef2a3206c8844af0240921669625, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.Adapters.BlockPortersOverlayLayout
+  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersOverlayLayout
   card: {fileID: 2837362578272097678}
 --- !u!114 &1937956996417677640
 MonoBehaviour:
@@ -3984,9 +3984,9 @@ MonoBehaviour:
   components:
   - {fileID: 6466476354695247906}
   componentTypes:
-  - Hotfix.BlockPorters.Adapters.BlockPortersSettingsPresenter
+  - Hotfix.BlockPorters.BlockPortersSettingsPresenter
   bindingKeys:
-  - BlockPortersSettingsView|Hotfix.BlockPorters.Adapters.BlockPortersSettingsPresenter
+  - BlockPortersSettingsView|Hotfix.BlockPorters.BlockPortersSettingsPresenter
   bindingMethods:
   - None
 --- !u!1 &4915946346210291862

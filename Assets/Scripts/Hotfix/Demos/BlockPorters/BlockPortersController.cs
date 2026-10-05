@@ -6,7 +6,7 @@ using Cysharp.Threading.Tasks;
 using Hotfix.SceneManagement;
 using UnityEngine;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 场景会话、对象池与集中搬运演出的唯一所有者。
     public sealed class BlockPortersController : MonoBehaviour
@@ -231,8 +231,8 @@ namespace Hotfix.BlockPorters.Adapters
         /// <param name="side">0 为左侧，1 为右侧。</param>
         public void RequestUnlockSlot(int side) => UnlockSlotAsync(side).Forget();
 
-        /// <summary>替换当前会话奖励适配器，不更改核心玩法规则。</summary>
-        /// <param name="provider">不可为 null；正式平台适配器必须返回真实完成结果。</param>
+        /// <summary>替换当前会话奖励服务，不更改核心玩法规则。</summary>
+        /// <param name="provider">不可为 null；正式平台奖励服务必须返回真实完成结果。</param>
         public void SetRewardProvider(IBlockPortersReward provider) => reward = provider ?? throw new ArgumentNullException(nameof(provider));
 
         private async UniTaskVoid UnlockSlotAsync(int side)

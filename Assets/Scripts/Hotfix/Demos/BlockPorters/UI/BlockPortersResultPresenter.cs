@@ -2,7 +2,7 @@ using Core.Runtime.Inputs;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// 独立结算页，观察会话结果并保留模拟奖励、重开与下一关入口。
     public sealed class BlockPortersResultPresenter : MonoBehaviour

@@ -11,13 +11,13 @@
 - 规则与角色引用：`Assets/Scripts/Hotfix/Demos/BlockPorters/`，归属 `Hotfix`。
 - 图片工作台：`Assets/Scripts/Hotfix/Editor/BlockPorters/`，归属 `Hotfix.Editor`，仅处理关卡内容。
 - 原图与编辑配方：`Assets/Settings/BlockPorters/Sources/`、`Recipes/`，不进入 YooAsset Collector。
-- 宿主与 UI：该目录的 `Adapters/`；`BlockPortersController` 管理场景会话，`BlockPortersHudView` 进入 Core 的 Decorate/Widget 层，固定节点由 MvcBind 与 `ComponentItemIndex` 保存。
+- 场景会话、奖励服务与主题加载：Demo 根目录；`BlockPortersController` 管理场景会话。界面、屏幕布局和 UI 规格放在 `UI/`，`BlockPortersHudView` 进入 Core 的 Decorate/Widget 层，固定节点由 MvcBind 与 `ComponentItemIndex` 保存。业务类型使用 `Hotfix.BlockPorters` 命名空间，三个 View 保持 `Hotfix`；不设置统一的适配器层。
 - 资源：`Assets/LoadResources/Demos/block_porters/`；`Scenes/Main.unity`、`Prefabs/Porter.prefab`、`Prefabs/Brick.prefab`、`Prefabs/UI/BlockPortersHudView.prefab`、`Data/Level1.asset` 至 `Level5.asset`。程序化深坑网格保存为 `Data/PitRing.asset`，自制音效位于 `Audio/SFX/`。
 
 ## 主链路
 
 
-`AppEntrance → MainMenuView.BlockPortersButton → GameSceneNavigator.BlockPorters → BlockPortersController → BlockPortersLevelCatalog → BlockPortersScheduler / BlockPortersSession → BlockPortersHudView`。
+`AppEntrance → MainMenuView` 选择 `block_porters` 卡片 → 开始按钮或键盘/手柄确认 → `EnterDemoAsync(GameSceneId.BlockPorters) → GameSceneNavigator → BlockPortersController → BlockPortersLevelCatalog → BlockPortersScheduler / BlockPortersSession → BlockPortersHudView`。
 
 规则会话复制关卡网格和队列。派队消耗一个任务位，每队 1–8 人；每人预约一个方块，预约仍视为障碍。四方向洪泛只从棋盘外侧进入，封闭空洞和对角缝不能作为入口。小人抬起时打开格子，入坑时才计入交付；全队交付后释放任务位，所有方块交付后通关。
 
@@ -43,7 +43,7 @@ Lab 聚类与近色合并在独立像素副本上计算，近色辅助默认最�
 
 后台只处理快照；主线程版本、窗口编辑代次和取消状态共同阻止过期结果写回。分析不持久化为可信标签，再次打开配方必须分析；Undo/Redo、图案、队列及参数改动使报告失效。导出重放当前参考解，且校验当前版本与难度门槛；原图/配方不作为运行数据读取。
 
-奖励适配器 `IBlockPortersReward.RequestExtraSlotAsync(side, token)` 返回 `Completed`、`Canceled` 或 `Unavailable`。Controller 的 `RequestUnlockSlot` 只在完成结果上调用规则 `TryUnlockExtraSlot`；每侧每关一次，重开/切关重新锁定。请求期间停止调度并防止重复请求，会话版本隔离旧结果。规则用 `UnlockedExtraSlots` 位掩码记录左右状态；免费槽编号 0–4、左槽 5、右槽 6，开放数量不等同于物理编号。右侧先解锁也只开放槽 6。失败可通过剩余锁恢复继续，两侧都已开放时不再追加容量。当前仅模拟广告，未接平台 SDK。
+奖励服务 `IBlockPortersReward.RequestExtraSlotAsync(side, token)` 返回 `Completed`、`Canceled` 或 `Unavailable`。Controller 的 `RequestUnlockSlot` 只在完成结果上调用规则 `TryUnlockExtraSlot`；每侧每关一次，重开/切关重新锁定。请求期间停止调度并防止重复请求，会话版本隔离旧结果。规则用 `UnlockedExtraSlots` 位掩码记录左右状态；免费槽编号 0–4、左槽 5、右槽 6，开放数量不等同于物理编号。右侧先解锁也只开放槽 6。失败可通过剩余锁恢复继续，两侧都已开放时不再追加容量。当前仅模拟广告，未接平台 SDK。
 
 ## 生命周期
 
@@ -51,7 +51,7 @@ Lab 聚类与近色合并在独立像素副本上计算，近色辅助默认最�
 
 `Data/ThemeCatalog.asset` 登记玩具桌、花园、海边、星空的 ID、名字和背景地址。默认图为场景回退，其余按需加载，不保存四张图的直接引用。首次进入、新关及再次进入随机排除上次成功应用的主题，重开保持；独立随机源不影响关卡 seed。
 
-适配器 `BlockPortersThemeLoader` 为每次请求持有独立的 IResourceLoader，成功后才释放旧加载器，异常／空资源保留可用背景。请求版本、退出标记隔离旧结果；在途操作完成后释放，已应用资源在销毁时释放。Controller 共用背景 MPB 更新 `_BaseMap` 与安全区 UV，不修改共享材质。全主题共用同一棋盘框模板，装饰不影响色表或灯光。
+主题加载器 `BlockPortersThemeLoader` 为每次请求持有独立的 IResourceLoader，成功后才释放旧加载器，异常／空资源保留可用背景。请求版本、退出标记隔离旧结果；在途操作完成后释放，已应用资源在销毁时释放。Controller 共用背景 MPB 更新 `_BaseMap` 与安全区 UV，不修改共享材质。全主题共用同一棋盘框模板，装饰不影响色表或灯光。
 
 ### 软胶玩具视觉
 
@@ -69,7 +69,7 @@ HUD 沿用 Core Decorate/Widget 的宿主，不新增 Canvas。五列四排卡�
 
 方块保持根 Renderer 与挂点，使用共享倒角网格；小人不换模型，新增共享接触投影，起跳时隐藏。坑口有柔和暖灰棕渐变内壁与底面，交付波纹由控制器统一推进，用 MaterialPropertyBlock 更新透明度，不逐次创建材质。重开清空波纹和粒子。原坐标、路径、抬起与交付时刻保持原样。
 
-Hub 的相机关闭后，其灯光仍会影响 Additive 内容场景。Controller 在导航稳定后记录并临时停用其他场景当前启用的灯光，Disable/Destroy 时恢复；只记录启用项，原来关闭的灯光不变。此隔离仅属于本 Demo 适配器，不修改公共场景导航或项目渲染管线。
+Hub 的相机关闭后，其灯光仍会影响 Additive 内容场景。Controller 在导航稳定后记录并临时停用其他场景当前启用的灯光，Disable/Destroy 时恢复；只记录启用项，原来关闭的灯光不变。此隔离由本 Demo 的场景控制器负责，不修改公共场景导航或项目渲染管线。
 
 生成原图与提示词位于独立美术目录的 `Assets/Settings/BlockPorters/ArtSource/`，运行 Sprite 位于 Demo 的 `Art/UI/`。只保留已生成资产，不保留本次一次性装配脚本。直接修改 Prefab 或 Sprite Editor 元数据的步骤见 [视觉维护](runbooks/visuals.md)。
 

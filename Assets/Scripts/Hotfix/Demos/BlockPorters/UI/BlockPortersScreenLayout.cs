@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Hotfix.BlockPorters.Adapters
+namespace Hotfix.BlockPorters
 {
     /// Demo 的统一设计坐标，HUD 和世界相机共同使用，长屏只扩展背景边缘。
     public readonly struct BlockPortersScreenLayout

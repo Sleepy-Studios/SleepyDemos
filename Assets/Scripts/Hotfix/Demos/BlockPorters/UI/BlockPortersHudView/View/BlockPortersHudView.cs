@@ -1,5 +1,5 @@
 using Core.Runtime;
-using Hotfix.BlockPorters.Adapters;
+using Hotfix.BlockPorters;
 
 namespace Hotfix
 {
