@@ -22,7 +22,7 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 - `Core.Runtime`：运行时底座
 - `Core.Editor`：编辑器工具
 - `Hotfix/Module`：主菜单、公共业务模块和业务 View
-- `Hotfix/Demos/<DemoName>`：独立 Demo 玩法与宿主适配
+- `Hotfix/Demos/<DemoName>`：独立 Demo 的玩法、场景交互和界面
 - `Hotfix/Editor/<DemoName>`：只服务对应 Demo 的长期 Inspector、导入与构建工具
 
 ### 资源轴线
@@ -56,6 +56,7 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 ## 设计原则
 
 - 底座能力沉淀在 Core，不把业务玩法塞进 Core
+- 每个 Demo 按自身玩法、实际复杂度和职责组织代码，不要求统一目录模板或 `Adapters/` 分层
 - Demo 资源尽量岛状隔离，降低多人协作冲突
 - 只有稳定复用的能力才上提为公共模块
 - 自动化测试统一进入 `Tests.EditMode` / `Tests.PlayMode`，不按 Demo 增加测试程序集

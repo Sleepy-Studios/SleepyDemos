@@ -52,7 +52,7 @@
 - `Assets/Scripts/Hotfix`
   - 业务层与界面层
   - `Module/` 放主菜单、公共业务模块、View 和交互逻辑
-  - `Demos/<DemoName>/` 放独立 Demo 玩法；Demo 专属适配层也收在这里
+  - `Demos/<DemoName>/` 放独立 Demo 的玩法、场景交互和界面
 
 - `Assets/Scripts/Hotfix/Editor`
   - 只服务 Hotfix 业务或某个 Demo 的 Builder、Inspector 和装配工具
@@ -84,6 +84,7 @@
 
 - Core 放底座，不放具体玩法业务
 - Hotfix 放业务和页面，不反向污染 Core
+- 每个 Demo 按自身玩法、实际复杂度和职责组织代码，不要求统一目录模板或 `Adapters/` 分层
 - Demo 资源优先自包含，只有稳定复用后才提到公共目录
 - 优先复用现有模式，不随意引入新的并行体系
 - 涉及启动、热更、资源加载、模块边界的改动，要同步更新文档
