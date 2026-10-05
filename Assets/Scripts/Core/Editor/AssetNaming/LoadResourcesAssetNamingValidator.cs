@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using UnityEditor;
 
 namespace Core.Editor.AssetNaming
@@ -33,7 +33,7 @@ namespace Core.Editor.AssetNaming
                 issues.AddRange(LoadResourcesAssetNamingRules.Validate(assetPath));
                 AppendLabelIssues(assetPath, issues);
 
-                var address = MvcBindPathUtility.ToRuntimeAddress(assetPath);
+                var address = UIBindPathUtility.ToRuntimeAddress(assetPath);
                 if (!addressOwners.TryGetValue(address, out var owners))
                 {
                     owners = new List<string>();

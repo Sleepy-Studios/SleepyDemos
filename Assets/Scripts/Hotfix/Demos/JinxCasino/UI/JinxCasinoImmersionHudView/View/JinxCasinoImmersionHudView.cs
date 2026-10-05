@@ -4,7 +4,7 @@ namespace Hotfix
     using Core.Runtime;
 
     [Module("JinxCasino")]
-    [Mvc("JinxCasinoImmersionHudView")]
+    [UIBind("JinxCasinoImmersionHudView")]
     public partial class JinxCasinoImmersionHudView : View<Hotfix.JinxCasino.JinxCasinoController>
     {
         protected override void OnShow()

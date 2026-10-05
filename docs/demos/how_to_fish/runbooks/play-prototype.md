@@ -56,7 +56,7 @@
 
 - 模型源文件和 Blender 导出入口见 [模型契约](../model-contract.md)。
 - `Tools/SleepyDemos/HowToFish/生成首岛资源` 创建持久 Prefab、输入和内容目录。
-- `Tools/SleepyDemos/HowToFish/装配群岛场景和HUD` 维护五岛场景、商品/升级台、雷达 HUD 和 MvcBind 绑定。已有地形与岛屿不整体重建；灯塔门上的商品陈列由工具重建，旧商店板与出售柜台会移除。其它场景调整在 Unity 中保存。菜单执行后检查 Console 与场景实际保存，不能仅看菜单调用返回值。
+- `Tools/SleepyDemos/HowToFish/装配群岛场景和HUD` 维护五岛场景、商品/升级台、雷达 HUD 和 UIBind 绑定。已有地形与岛屿不整体重建；灯塔门上的商品陈列由工具重建，旧商店板与出售柜台会移除。其它场景调整在 Unity 中保存。菜单执行后检查 Console 与场景实际保存，不能仅看菜单调用返回值。
 - 字体复用项目的 HarmonyOS 源字体，专属 TMP 资产为 `HarmonyOS_CNHowToFish`，不会修改公共 `HarmonyOS_CN`。
 - Unity Test Runner 的 `Tests.Demo.HowToFishRuntimeTests` 检查真实启动与操作链路；具体覆盖和限制见 [验证记录](../validation.md)。
 

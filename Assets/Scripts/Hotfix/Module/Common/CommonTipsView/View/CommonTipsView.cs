@@ -5,7 +5,7 @@ namespace Hotfix
     using Cysharp.Threading.Tasks;
 
     [Module("Common")]
-    [Mvc("CommonTipsView")]
+    [UIBind("CommonTipsView")]
     public partial class CommonTipsView : View
     {
         private CancellationTokenSource emptyClose;

@@ -18,9 +18,9 @@
    - `Canvas`
    - `CanvasScaler`
    - `GraphicRaycaster`
-4. 打开现有 MvcBind 工具并选择正确的 `UILayer`。
+4. 打开现有 UIBind 工具并选择正确的 `UILayer`。
 5. 填写 `Module`。默认代码生成到 `Assets/Scripts/Hotfix/Module/{Module}/{Prefab名}/View`。
-6. Demo 需要把 View 留在源码适配边界时，勾选“自定义 Module 输出目录”，再用“选择文件夹”选择当前 Module 的输出目录。该路径不可手写且必须位于当前项目 `Assets` 内；生成器会自动追加 `{Prefab名}/View`，不会再次追加 Module 名。
+6. Demo 需要把 View 放在自己的 UI 目录时，勾选“自定义 Module 输出目录”，再用“选择文件夹”选择当前 Module 的输出目录。该路径不可手写且必须位于当前项目 `Assets` 内；生成器会自动追加 `{Prefab名}/View`，不会再次追加 Module 名。
 7. 显式选择 `ViewMode`：主页面用 `Page`，弹窗用 `Modal`，常驻挂件或 HUD 用 `Widget`。不要只依赖 `UILayer` 推导。
 8. 选择该 View 使用的 `UI Transition` 类型。未生成显式覆盖时，框架默认使用 `FadeScaleUITransition`；不需要视觉过渡时显式选择 `EmptyUITransition`，需要其它表现时选择自定义实现。
 9. 只有需要世界表现过渡时才填写 `World Transition Key`。该字段不会在生成代码中实例化世界过渡；首版 Hotfix Provider 按 View 精确类型解析，Key 保留给后续业务 Provider 自定义路由，不要把实现类型名写入 Key。
@@ -34,17 +34,17 @@
 1. `Assets/Scenes/StartupLoading.prefab` 是由 `AppEntrance` 直接引用的热更前启动 UI。其 `StartupLoadingView` 的 `titleText`、`descriptionText`、`stepText`、`progressText`、`sizeText` 均直接绑定 `TextMeshProUGUI`（字段类型 `TMP_Text`），不再支持 Legacy Text。`backgroundImage` 与 `progressFill` 仍为 `Image`，进度填充设置为水平 Filled，初始填充值为 0。
 2. 替换旧 Text 组件后逐项重新保存序列化引用，字段同名不代表原 Text 引用可自动转为 TMP。TMP 字体、材质及中文回退字体使用公共资源的直接引用，确保冷启动在 YooAsset 初始化前可显示文字。不要在 `Awake` 中搜索节点、创建字体或依赖 Hotfix 补字段。
 3. 阶段、说明和大小文本各使用独立叶节点，不能把其它控件挂到这些节点下；`SetProgress` 在空白时隐藏对应节点，非空时重新显示。默认标题使用 `SleepyDemos`、百分比 `0%`，说明与大小可以为空并初始隐藏。由真实状态机报告替换默认值，不能用示意图中的百分比初始化实际进度。
-4. `Assets/LoadResources/UI/Common/CommonLoading.prefab` 使用普通 Core View 与现有 MvcBind 引用。调整布局后保存绑定索引并重新生成组件；不要为复用启动界面直接挂 `StartupLoadingView` 或增加独立 Canvas/EventSystem。`SetTitle`、`SetProgress` 继续由场景加载 presenter 调用。
+4. `Assets/LoadResources/UI/Common/CommonLoading.prefab` 使用普通 Core View 与现有 UIBind 引用。调整布局后保存绑定索引并重新生成组件；不要为复用启动界面直接挂 `StartupLoadingView` 或增加独立 Canvas/EventSystem。`SetTitle`、`SetProgress` 继续由场景加载 presenter 调用。
 5. 两个 Prefab 更新后分别验证冷启动进入 Hub、点击 Demo 过渡及返回。检查标题、中文阶段、进度条、空大小字段及窄横屏安全区；场景加载失败时保留实际错误与导航恢复，不能把视觉进度跑满当作成功。
 
-一次性装配脚本及 `.meta` 在资源保存并验证后清理，持续修改通过 Prefab 与现有 MvcBind 入口完成。
+一次性装配脚本及 `.meta` 在资源保存并验证后清理，持续修改通过 Prefab 与现有 UIBind 入口完成。
 
 ## 使用绑定索引
 
-- 打开 MvcBind 窗口时会自动扫描一次 `Assets/LoadResources`；只有根节点带 `ComponentItemIndex` 的 Prefab 会进入索引。
+- 打开 UIBind 窗口时会自动扫描一次 `Assets/LoadResources`；只有根节点带 `ComponentItemIndex` 的 Prefab 会进入索引。
 - 在 Prefab Mode 打开已有 View Prefab 时，窗口按原有流程回填顶部配置；Module 和自定义输出目录可以从 `Assets/Scripts/Hotfix` 下的默认或自定义代码目录解析。
 - 下方索引只负责展示并定位 Prefab/脚本，不会因为点击条目而改写顶部配置；在 Project 面板普通选择 Prefab 也不会触发回填。
-- MvcBind 生成、Prefab 保存生成或业务 Builder 调用统一生成流程成功后，已打开的窗口会自动刷新。
+- UIBind 生成、Prefab 保存生成或业务 Builder 调用统一生成流程成功后，已打开的窗口会自动刷新。
 - 通过 Inspector、外部脚本或其它工具修改 Prefab 后，点击“刷新绑定索引”获取最新结果。工具不会监听全局项目变化，因此普通资源导入不会反复触发扫描。
 - `[异常绑定]` 表示 Prefab 已有 `ComponentItemIndex`，但缺少 View/Component 脚本、生成的 `Source` 与 Prefab 地址不一致、绑定数组长度不一致或存在丢失组件。展开条目查看中文原因，修复后重新生成并刷新。
 - Prefab Mode 下可拖动顶部配置区与下方绑定索引之间的横向分隔条；窗口空间不足时调整分隔位置，顶部配置区会独立滚动，不应与搜索框或索引树重叠。
@@ -148,9 +148,9 @@ ViewRoot
 
 ## 数据和控件刷新时序
 
-调用方提交一次打开请求：普通页面使用 `await UIManager.Instance.ShowAsync<DetailsView>(view => view.SetData(data))`；现有泛型页面继续使用 `ShowAsync<TView, TData>(data)`。请求在 FIFO 中持有数据，页面加载 → MvcBind 控件绑定 → OnGameObjectInitialize 完成后才调用 SetData，随后 OnShow/显示。SetData 可直接更新控件，复杂显示再拆业务自己的 private RefreshUI(data)；不要先显示再由外部补数据。缓存页面重开只交付本次数据，不重复绑定。需要打开数据的逻辑放在 SetData，不放在一次性初始化回调。
+调用方提交一次打开请求：普通页面使用 `await UIManager.Instance.ShowAsync<DetailsView>(view => view.SetData(data))`；现有泛型页面继续使用 `ShowAsync<TView, TData>(data)`。请求在 FIFO 中持有数据，页面加载 → UIBind 控件绑定 → OnGameObjectInitialize 完成后才调用 SetData，随后 OnShow/显示。SetData 可直接更新控件，复杂显示再拆业务自己的 private RefreshUI(data)；不要先显示再由外部补数据。缓存页面重开只交付本次数据，不重复绑定。需要打开数据的逻辑放在 SetData，不放在一次性初始化回调。
 
-列表顺序为 Item.Init → MvcBind InitComponent → RectData → 具体业务 SetData(具体类型)。手动创建 Item 时调用方同样先 Init，再 SetData；不支持普通 Item 提前设置后自动补刷新。回收复用只更新当前索引和数据。没有后续读取需求就不缓存数据，控件继续由 MvcBind 生成，业务不保存 Cell 上下文。
+列表顺序为 Item.Init → UIBind InitComponent → RectData → 具体业务 SetData(具体类型)。手动创建 Item 时调用方同样先 Init，再 SetData；不支持普通 Item 提前设置后自动补刷新。回收复用只更新当前索引和数据。没有后续读取需求就不缓存数据，控件继续由 UIBind 生成，业务不保存 Cell 上下文。
 
 ## 验证方式
 
@@ -194,4 +194,4 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 
 ## 页面自动发现
 
-具体 View 由正式启动或 Editor 直启的一次性程序集扫描自动发现，新增页面无需登记清单。继承 View，使用公开无参构造，并保持类名及 Mvc 别名唯一；抽象类、开放泛型、ItemView 不参与页面发现。字符串入口使用已缓存的类名/Mvc 别名；泛型入口按类型创建，不依赖名称索引。首次构造使用 Activator，之后由 UICache 复用，销毁后重新创建。
+具体 View 由正式启动或 Editor 直启的一次性程序集扫描自动发现，新增页面无需登记清单。继承 View，使用公开无参构造，并保持类名及 UIBind 别名唯一；抽象类、开放泛型、ItemView 不参与页面发现。字符串入口使用已缓存的类名/UIBind 别名；泛型入口按类型创建，不依赖名称索引。首次构造使用 Activator，之后由 UICache 复用，销毁后重新创建。

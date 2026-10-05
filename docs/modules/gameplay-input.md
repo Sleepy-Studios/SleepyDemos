@@ -50,3 +50,5 @@ InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、
 松键门闩只覆盖按键与手柄持续轴，鼠标绝对位置不需要回屏幕原点。触控命令按钮的 InputBindingPrompt 可配置 captionOnly，仅显示动作名；独立帮助/操作面板继续按 PromptDevice 提示实际绑定。
 
 InputBindingPrompt 使用实际动作和设备内路径，绑定/设备变化时更新。图标目录 InputGlyphCatalog 通过资源引用加载，仅保留使用中的 Xelu CC0 图标。已识别布局映射 Xbox/PlayStation/Switch；未知手柄的四个面键使用通用位置图标，其余控制显示实际绑定文字。Submit/Confirm/Interact 使用 <Gamepad>/{Submit}，Cancel/Back 使用 <Gamepad>/{Cancel}，由布局解析到 Switch A/B，不能仅换显示图标。
+
+UIBind 可以生成 InputCommandButton 的点击与保持回调；RegisterExtend 将回调交给 View 持有并在销毁时退订。InputBindingPrompt.BindAsset 按源动作 GUID 绑定实际会话副本；TouchInputPad 在禁用、失焦与应用暂停时释放指针。

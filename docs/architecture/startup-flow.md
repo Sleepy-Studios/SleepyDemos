@@ -78,9 +78,9 @@ Hotfix 入口位于：
 - 返回 Hub 只卸载当前 Demo 并恢复 Hub 相机和主菜单，不以 Single 模式重载 `AppEntrance`。
 - 启动期 `StartupLoading` 与运行期 `CommonLoadingView` 分属两条生命周期，不互相依赖。
 
-`StartupLoadingView` 属于 Core.Runtime，在资源服务及 Hotfix 就绪前展示。标题、阶段、说明、百分比与大小字段统一使用直接序列化的 `TMP_Text`；Prefab 同时直接引用公共字体、材质及必要回退字库，不能等待资源地址加载或 Hotfix/MvcBind 初始化后才补绑定。进度仍来自 `StartupStateMachine` 与各启动系统，View 不用定时器推进假进度。空阶段、说明或大小信息隐藏对应独立文本节点；后续报告非空信息时恢复显示。背景与进度条继续直接引用 `Image`。
+`StartupLoadingView` 属于 Core.Runtime，在资源服务及 Hotfix 就绪前展示。标题、阶段、说明、百分比与大小字段统一使用直接序列化的 `TMP_Text`；Prefab 同时直接引用公共字体、材质及必要回退字库，不能等待资源地址加载或 Hotfix/UIBind 初始化后才补绑定。进度仍来自 `StartupStateMachine` 与各启动系统，View 不用定时器推进假进度。空阶段、说明或大小信息隐藏对应独立文本节点；后续报告非空信息时恢复显示。背景与进度条继续直接引用 `Image`。
 
-运行期 `CommonLoadingView` 保持现有 MvcBind/TMP 字段及普通 Core View 导航链，不因视觉统一改变依赖层。修改这两套加载 Prefab 的具体步骤见[接入 Core UI View](../runbooks/create-ui-view.md#维护启动与场景加载界面)。
+运行期 `CommonLoadingView` 保持现有 UIBind/TMP 字段及普通 Core View 导航链，不因视觉统一改变依赖层。修改这两套加载 Prefab 的具体步骤见[接入 Core UI View](../runbooks/create-ui-view.md#维护启动与场景加载界面)。
 
 ## Unity Editor Demo 直启旁路
 
@@ -92,7 +92,7 @@ Editor 可在 Demo 场景通过独立 `DemoIslandEditorBootstrap` 补齐最小�
 
 - 不要把业务 UI 初始化提前塞进 Core 的低层系统里
 - 改状态顺序时，要同步检查资源、程序集和 UI 的前置依赖
-- 改 Hotfix 入口时，要同步检查 MvcBind 生成代码、预制体地址和主菜单可见性
+- 改 Hotfix 入口时，要同步检查 UIBind 生成代码、预制体地址和主菜单可见性
 - 改资源底层实现时，优先替换 `IResourceService` 注册点和实现层，不要把具体资源框架类型扩散到 UI 或 Hotfix
 - 调整 Hotfix 启动系统顺序时，必须保持依赖配置的业务初始化位于 `LubanConfigSystem` 之后
 - 只要启动链路变化，就必须同步更新本文档

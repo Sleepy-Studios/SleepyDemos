@@ -2,7 +2,7 @@
 
 渔力全开 Demo 的模型导入入口：`Tools/SleepyDemos/HowToFish/配置模型导入`，实现位于 `Assets/Scripts/Hotfix/Editor/HowToFish/HowToFishAssetBuilder.cs`。只处理该 Demo 的 FBX；源文件、导出参数与验证范围见[模型契约](../demos/how_to_fish/model-contract.md)。
 
-同组菜单 `生成首岛资源` 保存物品/装备/输入配置，`装配群岛场景和HUD` 维护灯塔/森林场景、雷达 HUD、MvcBind 和 Hub 入口；已有岛屿不整体重建，灯塔商品陈列由工具重建。操作与当前限制见[运行原型](../demos/how_to_fish/runbooks/play-prototype.md)。
+同组菜单 `生成首岛资源` 保存物品/装备/输入配置，`装配群岛场景和HUD` 维护灯塔/森林场景、雷达 HUD、UIBind 和 Hub 入口；已有岛屿不整体重建，灯塔商品陈列由工具重建。操作与当前限制见[运行原型](../demos/how_to_fish/runbooks/play-prototype.md)。
 
 本文档汇总 SleepyDemos 仓库内**可直接使用**的 Unity 编辑器工具、第三方插件入口，以及供 Codex / Claude / Cursor 等 Agent 使用的**仓库内** Skill 与 Rule。新增菜单或 Skill 时请同步更新本页。
 
@@ -34,11 +34,11 @@
 - **配置资产**：默认 `Assets/LoadResources/Config/HotfixConfig.asset`。
 - **SSH 私钥**：默认 `Assets/Settings/Hotfix/key`（不进 YooAsset 采集，勿放回 `LoadResources/Config`）。
 
-### 2. UI 绑定（MvcBind）
+### 2. UI 绑定（UIBind）
 
 | 菜单路径 | 说明 | 源码 |
 |----------|------|------|
-| `Tools/UI Framework/MvcBind` | View / Prefab 绑定扫描与编辑；Prefab 模式下可打开组件绑定子窗口 | `MvcBind/MvcBindWindow.cs`、`MvcPrefabScanner.cs`（`MvcComponentBindWindow`） |
+| `Tools/UI Framework/UIBind` | View / Prefab 绑定扫描与编辑；Prefab 模式下可打开组件绑定子窗口 | `UIBind/UIBindWindow.cs`、`UIBindPrefabScanner.cs`（`MvcComponentBindWindow`） |
 
 使用要点：
 
@@ -243,4 +243,4 @@ powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_
 
 ## 已保存的 Demo 装配资源
 
-DroneFlight 机体/UI/捕鱼场景、DLSS 场景/面板、Loop Scroll 宿主示例的一次性 Builder 已删除。日常直接维护保存的场景/Prefab，用现有 MvcBind 更新绑定；配置 Inspector、关卡工作台、字体工具、资源 Collector、HybridCLR 和正式平台构建事务继续维护。
+DroneFlight 机体/UI/捕鱼场景、DLSS 场景/面板、Loop Scroll 宿主示例的一次性 Builder 已删除。日常直接维护保存的场景/Prefab，用现有 UIBind 更新绑定；配置 Inspector、关卡工作台、字体工具、资源 Collector、HybridCLR 和正式平台构建事务继续维护。

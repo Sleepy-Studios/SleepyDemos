@@ -28,7 +28,7 @@
 
 放这些内容：
 - 热更构建工具
-- MvcBind 相关编辑器窗口与生成辅助
+- UIBind 相关编辑器窗口与生成辅助
 - 本地资源服务器、导入器、检查器
 - 将来所有“提升协作效率”的 Unity 编辑器扩展
 
@@ -60,13 +60,13 @@
 
 放只服务某个 Hotfix 业务模块的 Editor 扩展，例如业务配置自定义 Inspector、需要持续维护的 Demo 私有 Inspector 或导入工具。该目录使用独立 `Hotfix.Editor` 编辑器程序集，可以引用 `Hotfix`、`Core.Editor` 和 `Core.Runtime`；生产 `Hotfix` 不引用它。
 
-通用 MvcBind、构建、导入和跨业务检查工具仍放 `Core.Editor`。禁止为了实现业务 Inspector 让 `Core.Editor` 反向引用 `Hotfix`。
+通用 UIBind、构建、导入和跨业务检查工具仍放 `Core.Editor`。禁止为了实现业务 Inspector 让 `Core.Editor` 反向引用 `Hotfix`。
 
 ### `Assets/Scripts/Hotfix/Demos/<DemoName>`
 
 放独立 Demo 的运行时代码。Demo 内可以继续按职责拆分控制、物理、输入、装备和宿主适配，但仍归属 `Hotfix.dll`；不要为了单个 Demo 新建生产程序集。
 
-Demo 内部按实际玩法与职责组织，不要求照搬 DroneFlight 或使用 `Adapters/` 目录。UI、镜头交互、场景表现和模式流程是正常游戏职责，不因调用 Unity/Core 就都变成适配器。仅当需要转换外部服务接口或隔离宿主协议时，建立范围明确的接入类；纯规则不反向依赖 UI 或外部接入。复用明确能力，不复制无关的目录结构或人为拆出大量转发层。
+Demo 内按玩法规则、场景表现和界面职责组织代码。外部服务接入负责接口转换；规则通过业务数据流驱动场景和页面，公共能力复用 Core。
 
 ## 资源布局
 

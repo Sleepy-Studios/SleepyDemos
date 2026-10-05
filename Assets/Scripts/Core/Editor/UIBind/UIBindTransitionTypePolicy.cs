@@ -5,9 +5,9 @@ using Core.Runtime;
 using UnityEditor;
 using UnityEditor.Compilation;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
-    internal static class MvcBindTransitionTypePolicy
+    internal static class UIBindTransitionTypePolicy
     {
         internal static List<string> GetTypeChoices()
         {
@@ -29,7 +29,7 @@ namespace Core.Editor.MvcBind
         /// <summary>
         /// 解析可由生成代码直接构造的 UI Transition 类型名。
         /// </summary>
-        /// <param name="configuredTypeName">MvcBind 设置中保存的完整类型名。</param>
+        /// <param name="configuredTypeName">UIBind 设置中保存的完整类型名。</param>
         /// <returns>可直接写入 C# 源码的完整类型名。</returns>
         /// <exception cref="InvalidDataException">类型不存在或不满足生成约束。</exception>
         internal static string ResolveCSharpTypeName(string configuredTypeName)
@@ -45,7 +45,7 @@ namespace Core.Editor.MvcBind
             }
 
             throw new InvalidDataException(
-                $"MvcBind 生成失败：UI Transition 类型 '{configuredTypeName}' 不存在或不可生成。" +
+                $"UIBind 生成失败：UI Transition 类型 '{configuredTypeName}' 不存在或不可生成。" +
                 "类型必须是 Player 可用的顶级 public 非泛型 class，并提供 public 无参构造函数。");
         }
 

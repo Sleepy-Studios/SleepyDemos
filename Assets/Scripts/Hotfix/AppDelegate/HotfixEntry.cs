@@ -47,7 +47,7 @@ namespace Hotfix.AppDelegate
                         throw new OperationCanceledException("Hotfix 启动在主界面稳定进入前被中断。");
                     case UIOperationStatus.Failed:
                         throw new InvalidOperationException(
-                            "Hotfix 启动无法稳定进入 MainMenuView，请检查 MvcBind 生成代码和预制体地址。",
+                            "Hotfix 启动无法稳定进入 MainMenuView，请检查 UIBind 生成代码和预制体地址。",
                             result.Exception);
                     default:
                         throw new InvalidOperationException($"Hotfix 启动收到未知 UI 导航状态: {result.Status}");

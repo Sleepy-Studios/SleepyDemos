@@ -204,3 +204,7 @@ namespace Hotfix
 - UI 生命周期内订阅状态时，要在隐藏或销毁时取消订阅。
 - 不要在 Core Flux 中写具体玩法规则；玩法 Action / Data / Handler 放在 Hotfix。
 - 网络请求前必须确认命令、Request / Response 类型和 `INetworkService` 注册方式，不要臆造协议接口。
+
+## 场景状态生命周期
+
+全局 Data 由 FluxService 注册；Demo 在初始化时注册自己的 Data，退出时先关闭页面、取消异步任务，再移除。Handler 的异步结果必须核对当前 Data 实例与会话版本后再修改状态；GlobalData 仅通知当前注册实例的状态更新，旧 Handler 无法覆盖重新注册的同类型 Data。页面通过 View.BindData 声明绑定，由 Core 配对订阅。

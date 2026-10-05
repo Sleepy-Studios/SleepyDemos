@@ -17,7 +17,7 @@
 ## 编辑器维护
 
 - `Tools > Rendering > Streamline > 配置项目Renderer`：为现有 Renderer 补齐 Feature，不替换原配置。
-- 公共面板维护已保存 Prefab，通过现有 MvcBind 更新绑定；一次性面板生成器已删除。
+- 公共面板维护已保存 Prefab，通过现有 UIBind 更新绑定；一次性面板生成器已删除。
 - 实验室维护已保存 Main 场景，不再提供一次性重建菜单。
 
 原生依赖和 Vulkan 启动方式见[接入手册](../../runbooks/use-streamline.md)。当前只支持 Windows Editor，Player、Reflex 和帧生成后续再接。

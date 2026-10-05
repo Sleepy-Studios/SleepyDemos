@@ -1,7 +1,7 @@
 using System.IO;
 using System.Linq;
 using Core.Editor.AssetNaming;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using Core.Runtime;
 using Hotfix.BlockPorters;
 using NUnit.Framework;
@@ -124,7 +124,7 @@ namespace Tests.Demo
                 Assert.That(index.Get<Component>(i), Is.SameAs(component));
             }
             Assert.That(index.Components.Any(component => component.GetType() == presenterType), Is.True);
-            var record = MvcBindIndexDiscovery.BuildViewRecords("Assets/Scripts/Hotfix/Demos/BlockPorters", Root + "/Prefabs/UI")
+            var record = UIBindIndexDiscovery.BuildViewRecords("Assets/Scripts/Hotfix/Demos/BlockPorters", Root + "/Prefabs/UI")
                 .Single(item => item.viewName == viewName);
             Assert.That(record.isValid, Is.True, record.validationMessage);
             Assert.That(record.moduleName, Is.EqualTo("BlockPorters"));

@@ -9,12 +9,12 @@ using UnityEngine.UIElements;
 
 using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
-    public sealed class MvcBindWindow : EditorWindow
+    public sealed class UIBindWindow : EditorWindow
     {
-        private readonly List<MvcBindViewRecord> viewRecords = new List<MvcBindViewRecord>();
-        private readonly MvcBindSettings settings = new MvcBindSettings();
+        private readonly List<UIBindViewRecord> viewRecords = new List<UIBindViewRecord>();
+        private readonly UIBindSettings settings = new UIBindSettings();
         private VisualElement bindPanel;
         private TextField folderField;
         private VisualElement customOutputRow;
@@ -24,16 +24,16 @@ namespace Core.Editor.MvcBind
         private Label refreshStatusLabel;
         private TwoPaneSplitView splitView;
         private ScrollView configurationPane;
-        private MvcBindModuleTreeView moduleTree;
+        private UIBindModuleTreeView moduleTree;
         private IMGUIContainer moduleTreeContainer;
         private GameObject targetPrefabRoot;
         private bool isRefreshingIndex;
-        private static MvcBindWindow activeWindow;
+        private static UIBindWindow activeWindow;
 
-        [MenuItem("Tools/UI Framework/MvcBind")]
+        [MenuItem("Tools/UI Framework/UIBind")]
         public static void Open()
         {
-            GetWindow<MvcBindWindow>("MvcBind");
+            GetWindow<UIBindWindow>("UIBind");
         }
 
         private void OnEnable()
@@ -90,7 +90,7 @@ namespace Core.Editor.MvcBind
             folderField = CreateTextField("Module", settings.moduleName, value =>
             {
                 settings.moduleName = value;
-                settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings);
+                settings.outputFolder = UIBindPathUtility.ToOutputFolder(settings);
             });
             bindPanel.Add(folderField);
 
@@ -100,7 +100,7 @@ namespace Core.Editor.MvcBind
                 value =>
                 {
                     settings.useCustomModuleOutputDirectory = value;
-                    settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings);
+                    settings.outputFolder = UIBindPathUtility.ToOutputFolder(settings);
                     UpdateCustomOutputDirectoryVisibility();
                 });
             customOutputToggle.tooltip =
@@ -176,7 +176,7 @@ namespace Core.Editor.MvcBind
             searchField.RegisterValueChangedCallback(_ => ApplyFilter());
             indexPane.Add(searchField);
 
-            moduleTree = new MvcBindModuleTreeView(new TreeViewState(), OnModuleTreeItemActivated);
+            moduleTree = new UIBindModuleTreeView(new TreeViewState(), OnModuleTreeItemActivated);
             moduleTree.ReloadRecords(viewRecords);
             moduleTreeContainer = new IMGUIContainer(DrawModuleTree)
             {
@@ -200,7 +200,7 @@ namespace Core.Editor.MvcBind
 
         private void SelectCustomModuleOutputDirectory()
         {
-            var initialDirectory = MvcBindPathUtility.IsValidCustomModuleOutputDirectory(
+            var initialDirectory = UIBindPathUtility.IsValidCustomModuleOutputDirectory(
                 settings.customModuleOutputDirectory)
                 ? Path.GetFullPath(settings.customModuleOutputDirectory)
                 : Application.dataPath;
@@ -216,12 +216,12 @@ namespace Core.Editor.MvcBind
             if (!TryConvertToAssetFolder(selectedDirectory, out var assetFolder))
             {
                 ShowNotification(new GUIContent("只能选择当前项目 Assets 内的目录"));
-                Debug.LogWarning("MvcBind 自定义 Module 输出目录必须位于当前项目 Assets 内。");
+                Debug.LogWarning("UIBind 自定义 Module 输出目录必须位于当前项目 Assets 内。");
                 return;
             }
 
             settings.customModuleOutputDirectory = assetFolder;
-            settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings);
+            settings.outputFolder = UIBindPathUtility.ToOutputFolder(settings);
             customOutputField?.SetValueWithoutNotify(assetFolder);
             if (customOutputField != null)
             {
@@ -298,7 +298,7 @@ namespace Core.Editor.MvcBind
             isRefreshingIndex = true;
             try
             {
-                var refreshedRecords = MvcBindIndexDiscovery.BuildViewRecords();
+                var refreshedRecords = UIBindIndexDiscovery.BuildViewRecords();
                 viewRecords.Clear();
                 viewRecords.AddRange(refreshedRecords);
                 moduleTree?.ReloadRecords(viewRecords);
@@ -317,7 +317,7 @@ namespace Core.Editor.MvcBind
                 {
                     refreshStatusLabel.text = "刷新失败，已保留上次结果";
                 }
-                Debug.LogError($"MvcBind 刷新绑定索引失败：{exception}");
+                Debug.LogError($"UIBind 刷新绑定索引失败：{exception}");
             }
             finally
             {
@@ -336,7 +336,7 @@ namespace Core.Editor.MvcBind
             moduleTree.OnGUI(rect);
         }
 
-        private void OnModuleTreeItemActivated(MvcBindModuleTreeItem item)
+        private void OnModuleTreeItemActivated(UIBindModuleTreeItem item)
         {
             if (item == null)
             {
@@ -348,13 +348,13 @@ namespace Core.Editor.MvcBind
                 return;
             }
 
-            if (item.kind == MvcBindTreeItemKind.Code)
+            if (item.kind == UIBindTreeItemKind.Code)
             {
                 OpenAsset(item.assetPath);
                 return;
             }
 
-            if (item.kind == MvcBindTreeItemKind.Prefab)
+            if (item.kind == UIBindTreeItemKind.Prefab)
             {
                 PingAsset(item.assetPath);
             }
@@ -370,7 +370,7 @@ namespace Core.Editor.MvcBind
             var asset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
             if (asset == null)
             {
-                Debug.LogWarning($"MvcBind 找不到资源：{assetPath}");
+                Debug.LogWarning($"UIBind 找不到资源：{assetPath}");
                 return;
             }
 
@@ -388,7 +388,7 @@ namespace Core.Editor.MvcBind
             var asset = AssetDatabase.LoadAssetAtPath<Object>(assetPath);
             if (asset == null)
             {
-                Debug.LogWarning($"MvcBind 找不到资源：{assetPath}");
+                Debug.LogWarning($"UIBind 找不到资源：{assetPath}");
                 return;
             }
 
@@ -421,7 +421,7 @@ namespace Core.Editor.MvcBind
             {
                 var record = viewRecords.FirstOrDefault(item =>
                     string.Equals(item.prefabPath, prefabPath, System.StringComparison.OrdinalIgnoreCase)) ??
-                    MvcBindIndexDiscovery.FindRecordForPrefab(prefabPath);
+                    UIBindIndexDiscovery.FindRecordForPrefab(prefabPath);
                 settings.ApplyPrefabPath(prefabPath);
                 ApplyPrefabGenerationLocation(settings, record);
                 folderField?.SetValueWithoutNotify(settings.moduleName);
@@ -440,57 +440,57 @@ namespace Core.Editor.MvcBind
             RefreshFromSelection();
             if (targetPrefabRoot == null)
             {
-                Debug.LogWarning("MvcBind 需要在 Prefab Mode 中打开 Prefab，或选中一个 Prefab。");
+                Debug.LogWarning("UIBind 需要在 Prefab Mode 中打开 Prefab，或选中一个 Prefab。");
                 return;
             }
 
-            var nodes = MvcBindHierarchyOverlay.Root == targetPrefabRoot
-                ? MvcBindHierarchyOverlay.Nodes.ToList()
-                : MvcPrefabScanner.Scan(targetPrefabRoot);
+            var nodes = UIBindHierarchyOverlay.Root == targetPrefabRoot
+                ? UIBindHierarchyOverlay.Nodes.ToList()
+                : UIBindPrefabScanner.Scan(targetPrefabRoot);
 
-            if (MvcBindHierarchyOverlay.Root == targetPrefabRoot && nodes.Count == 0)
+            if (UIBindHierarchyOverlay.Root == targetPrefabRoot && nodes.Count == 0)
             {
-                MvcBindHierarchyOverlay.ForceRefresh();
-                nodes = MvcBindHierarchyOverlay.Nodes.ToList();
+                UIBindHierarchyOverlay.ForceRefresh();
+                nodes = UIBindHierarchyOverlay.Nodes.ToList();
             }
 
-            var components = MvcCodeGenerator.CollectComponents(nodes);
+            var components = UIBindCodeGenerator.CollectComponents(nodes);
             if (components.Count == 0)
             {
                 ShowNotification(new GUIContent("请先在 Hierarchy 勾选至少一个组件"));
-                Debug.LogWarning("MvcBind 生成失败：请先在 Hierarchy 勾选至少一个要绑定的组件。");
+                Debug.LogWarning("UIBind 生成失败：请先在 Hierarchy 勾选至少一个要绑定的组件。");
                 return;
             }
 
-            if (!MvcBindComponentWindowBridge.GenerateAndBind(targetPrefabRoot, settings, nodes, true, out var path, out var message))
+            if (!UIBindComponentWindowBridge.GenerateAndBind(targetPrefabRoot, settings, nodes, true, out var path, out var message))
             {
                 ShowNotification(new GUIContent(message));
                 Debug.LogWarning(message);
                 return;
             }
 
-            Debug.Log($"MvcBind generated: {path}");
+            Debug.Log($"UIBind generated: {path}");
             RefreshModuleList();
         }
 
         private bool TryResolveCurrentPrefabPath(out string prefabPath)
         {
             var prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
-            if (prefabStage != null && MvcBindPathUtility.IsPrefabAssetPath(prefabStage.assetPath))
+            if (prefabStage != null && UIBindPathUtility.IsPrefabAssetPath(prefabStage.assetPath))
             {
-                prefabPath = MvcBindPathUtility.NormalizeAssetPath(prefabStage.assetPath);
+                prefabPath = UIBindPathUtility.NormalizeAssetPath(prefabStage.assetPath);
                 return true;
             }
 
-            return MvcBindPathUtility.TryGetPrefabAssetPath(targetPrefabRoot, out prefabPath);
+            return UIBindPathUtility.TryGetPrefabAssetPath(targetPrefabRoot, out prefabPath);
         }
 
         internal static string ResolveModuleName(string prefabPath, string address)
         {
-            var records = MvcBindIndexDiscovery.BuildViewRecords();
-            var viewName = MvcBindPathUtility.ToViewClassName(prefabPath);
+            var records = UIBindIndexDiscovery.BuildViewRecords();
+            var viewName = UIBindPathUtility.ToViewClassName(prefabPath);
             var record = records.FirstOrDefault(item =>
-                item.prefabPath == MvcBindPathUtility.NormalizeAssetPath(prefabPath) ||
+                item.prefabPath == UIBindPathUtility.NormalizeAssetPath(prefabPath) ||
                 item.address == address ||
                 item.viewName == viewName);
             return record != null ? record.moduleName : string.Empty;
@@ -500,7 +500,7 @@ namespace Core.Editor.MvcBind
         {
             targetPrefabRoot = stage.prefabContentsRoot;
             RefreshFromSelection();
-            MvcBindHierarchyOverlay.ForceRefresh();
+            UIBindHierarchyOverlay.ForceRefresh();
         }
 
         private void OnPrefabStageClosing(PrefabStage stage)
@@ -539,31 +539,31 @@ namespace Core.Editor.MvcBind
             }
         }
 
-        internal static List<MvcBindViewRecord> BuildViewRecords(string root)
+        internal static List<UIBindViewRecord> BuildViewRecords(string root)
         {
-            return MvcBindIndexDiscovery.BuildViewRecords(root, MvcBindToolConfig.LoadResourcesRoot);
+            return UIBindIndexDiscovery.BuildViewRecords(root, UIBindToolConfig.LoadResourcesRoot);
         }
 
-        /// 刷新当前已打开的 MvcBind 窗口索引；窗口未打开时不执行扫描。
+        /// 刷新当前已打开的 UIBind 窗口索引；窗口未打开时不执行扫描。
         public static void RefreshActiveIndex()
         {
             activeWindow?.RefreshModuleList();
         }
 
-        internal static void ApplyPrefabGenerationLocation(MvcBindSettings target, MvcBindViewRecord record)
+        internal static void ApplyPrefabGenerationLocation(UIBindSettings target, UIBindViewRecord record)
         {
             target.moduleName = record != null && record.isValid ? record.moduleName : string.Empty;
             target.useCustomModuleOutputDirectory = record != null && record.usesCustomModuleOutputDirectory;
             target.customModuleOutputDirectory = record?.moduleOutputDirectory ?? string.Empty;
-            target.outputFolder = MvcBindPathUtility.ToOutputFolder(target);
+            target.outputFolder = UIBindPathUtility.ToOutputFolder(target);
         }
 
         internal static List<string> GetUITransitionTypeChoices()
         {
-            return MvcBindTransitionTypePolicy.GetTypeChoices();
+            return UIBindTransitionTypePolicy.GetTypeChoices();
         }
 
-        internal static MvcBindSettings CreateSettingsForPrefabSave(GameObject prefabRoot, string prefabPath)
+        internal static UIBindSettings CreateSettingsForPrefabSave(GameObject prefabRoot, string prefabPath)
         {
             var source = activeWindow != null && activeWindow.targetPrefabRoot == prefabRoot
                 ? activeWindow.settings
@@ -571,19 +571,19 @@ namespace Core.Editor.MvcBind
 
             var result = source != null
                 ? CopySettings(source)
-                : new MvcBindSettings();
+                : new UIBindSettings();
 
             result.ApplyPrefabPath(prefabPath);
             result.moduleName = source != null
                 ? source.moduleName
                 : ResolveModuleName(result.prefabPath, result.address);
-            result.outputFolder = MvcBindPathUtility.ToOutputFolder(result);
+            result.outputFolder = UIBindPathUtility.ToOutputFolder(result);
             return result;
         }
 
-        private static MvcBindSettings CopySettings(MvcBindSettings source)
+        private static UIBindSettings CopySettings(UIBindSettings source)
         {
-            return new MvcBindSettings
+            return new UIBindSettings
             {
                 prefabPath = source.prefabPath,
                 moduleName = source.moduleName,

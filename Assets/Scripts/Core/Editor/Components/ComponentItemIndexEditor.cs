@@ -18,7 +18,7 @@ namespace Core.Editor
         {
             serializedObject.Update();
 
-            // 绑定关系由 MvcBind 工具维护，Inspector 只负责展示，避免手动破坏下标契约。
+            // 绑定关系由 UIBind 工具维护，Inspector 只负责展示，避免手动破坏下标契约。
             using (new EditorGUI.DisabledScope(true))
             {
                 EditorGUILayout.PropertyField(components, true);

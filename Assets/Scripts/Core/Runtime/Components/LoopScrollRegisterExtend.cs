@@ -6,12 +6,6 @@ namespace Core.Runtime
     /// <summary>宿主注册入口；View 持有生命周期，嵌套 ItemView 显式持有订阅句柄。</summary>
     public static class LoopScrollRegisterExtend
     {
-        private sealed class Subscription : IDisposable
-        {
-            private Action dispose;
-            public Subscription(Action dispose) { this.dispose = dispose; }
-            public void Dispose() { var callback = dispose; dispose = null; callback?.Invoke(); }
-        }
         /// <summary>获取物理 Cell 的 ItemView 缓存，每个列表仅创建一个桥接。</summary>
         /// <param name="list">包列表组件。</param>
         /// <returns>宿主桥接。</returns>
@@ -32,7 +26,7 @@ namespace Core.Runtime
             var subscription = SubscribeSimpleRect(list, callback);
             view.AddBinding(subscription);
         }
-        /// <summary>配置固定 ItemView 工厂并注册数据刷新；MvcBind 的普通回调入口。</summary>
+        /// <summary>配置固定 ItemView 工厂并注册数据刷新；UIBind 的普通回调入口。</summary>
         /// <param name="view">订阅拥有者。</param>
         /// <param name="list">列表；提交前配置固定 ItemView 工厂。</param>
         /// <param name="callback">当前数据项与索引。</param>
@@ -52,7 +46,7 @@ namespace Core.Runtime
             var subscription = SubscribeSimpleRect(list, callback);
             return subscription;
         }
-        /// <summary>配置固定 ItemView 工厂并注册数据刷新；MvcBind 的普通回调入口。</summary>
+        /// <summary>配置固定 ItemView 工厂并注册数据刷新；UIBind 的普通回调入口。</summary>
         /// <param name="view">订阅拥有者。</param>
         /// <param name="list">列表；提交前配置固定 ItemView 工厂。</param>
         /// <param name="callback">当前数据项与索引。</param>
@@ -66,7 +60,7 @@ namespace Core.Runtime
             var bridge = list.ItemViews();
             var adapter = bridge.GetSimpleCallback<Action<ItemView, int, CellBindContext>>(callback, () => (item, index, context) => { if (context.IsCurrent) callback((TView)item, index); });
             var subscription = SubscribeRect(list, adapter);
-            return new Subscription(() =>
+            return new CallbackBinding(() =>
             {
                 subscription.Dispose();
                 if (bridge != null) bridge.ReleaseSimpleCallback(callback);
@@ -83,7 +77,7 @@ namespace Core.Runtime
             var subscription = SubscribeSimpleClick(list, callback);
             view.AddBinding(subscription);
         }
-        /// <summary>注册当前项的点击；MvcBind 的普通回调入口。</summary>
+        /// <summary>注册当前项的点击；UIBind 的普通回调入口。</summary>
         /// <param name="view">订阅拥有者。</param>
         /// <param name="list">列表；提交前配置固定 ItemView 工厂。</param>
         /// <param name="callback">当前数据项与索引。</param>
@@ -102,7 +96,7 @@ namespace Core.Runtime
             var subscription = SubscribeSimpleClick(list, callback);
             return subscription;
         }
-        /// <summary>注册当前项的点击；MvcBind 的普通回调入口。</summary>
+        /// <summary>注册当前项的点击；UIBind 的普通回调入口。</summary>
         /// <param name="view">订阅拥有者。</param>
         /// <param name="list">列表；提交前配置固定 ItemView 工厂。</param>
         /// <param name="callback">当前数据项与索引。</param>
@@ -116,7 +110,7 @@ namespace Core.Runtime
             var bridge = list.ItemViews();
             var adapter = bridge.GetSimpleCallback<Action<ItemView, int, CellBindContext>>(callback, () => (item, index, context) => { if (context.IsCurrent) callback((TView)item, index); });
             var subscription = SubscribeClick(list, adapter);
-            return new Subscription(() =>
+            return new CallbackBinding(() =>
             {
                 subscription.Dispose();
                 if (bridge != null) bridge.ReleaseSimpleCallback(callback);
@@ -133,7 +127,7 @@ namespace Core.Runtime
             var subscription = SubscribeSimpleItemHide(list, callback);
             view.AddBinding(subscription);
         }
-        /// <summary>注册回收时的业务资源清理；MvcBind 的普通回调入口。</summary>
+        /// <summary>注册回收时的业务资源清理；UIBind 的普通回调入口。</summary>
         /// <param name="view">订阅拥有者。</param>
         /// <param name="list">列表；提交前配置固定 ItemView 工厂。</param>
         /// <param name="callback">当前数据项，回收时清理业务资源。</param>
@@ -152,7 +146,7 @@ namespace Core.Runtime
             var subscription = SubscribeSimpleItemHide(list, callback);
             return subscription;
         }
-        /// <summary>注册回收时的业务资源清理；MvcBind 的普通回调入口。</summary>
+        /// <summary>注册回收时的业务资源清理；UIBind 的普通回调入口。</summary>
         /// <param name="view">订阅拥有者。</param>
         /// <param name="list">列表；提交前配置固定 ItemView 工厂。</param>
         /// <param name="callback">当前数据项，回收时清理业务资源。</param>
@@ -166,7 +160,7 @@ namespace Core.Runtime
             var bridge = list.ItemViews();
             var adapter = bridge.GetSimpleCallback<Action<ItemView, CellBindContext>>(callback, () => (item, context) => callback((TView)item));
             var subscription = SubscribeItemHide(list, adapter);
-            return new Subscription(() =>
+            return new CallbackBinding(() =>
             {
                 subscription.Dispose();
                 if (bridge != null) bridge.ReleaseSimpleCallback(callback);
@@ -213,7 +207,7 @@ namespace Core.Runtime
         {
             if (callback == null) throw new ArgumentNullException(nameof(callback));
             var bridge = list.ItemViews(); bridge.CellBound -= callback; bridge.CellBound += callback;
-            return new Subscription(() => { if (bridge != null) bridge.CellBound -= callback; });
+            return new CallbackBinding(() => { if (bridge != null) bridge.CellBound -= callback; });
         }
         /// <summary>注册点击，事件只接收有效的当前绑定身份。</summary>
         /// <param name="view">订阅拥有者。</param>
@@ -232,7 +226,7 @@ namespace Core.Runtime
         {
             if (callback == null) throw new ArgumentNullException(nameof(callback));
             var bridge = list.ItemViews(); bridge.CellClicked -= callback; bridge.CellClicked += callback;
-            return new Subscription(() => { if (bridge != null) bridge.CellClicked -= callback; });
+            return new CallbackBinding(() => { if (bridge != null) bridge.CellClicked -= callback; });
         }
         /// <summary>注册解绑，此时旧绑定上下文已经失效。</summary>
         /// <param name="view">订阅拥有者。</param>
@@ -251,7 +245,7 @@ namespace Core.Runtime
         {
             if (callback == null) throw new ArgumentNullException(nameof(callback));
             var bridge = list.ItemViews(); bridge.CellUnbound -= callback; bridge.CellUnbound += callback;
-            return new Subscription(() => { if (bridge != null) bridge.CellUnbound -= callback; });
+            return new CallbackBinding(() => { if (bridge != null) bridge.CellUnbound -= callback; });
         }
     }
 }

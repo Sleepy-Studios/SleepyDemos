@@ -98,13 +98,13 @@ Assets/LoadResources/UI/Main/MainMenuView.prefab
 ```
 
 - 地址只含 `[A-Za-z0-9/_]`。
-- YooAsset 全路径寻址（`YooAssetFullPathAddressRule`）与 MvcBind 生成的 `Address` / `[Source(...)]` 必然一致，因为都从同一路径推导。
+- YooAsset 全路径寻址（`YooAssetFullPathAddressRule`）与 UIBind 生成的 `Address` / `[Source(...)]` 必然一致，因为都从同一路径推导。
 - **地址冲突**：同目录同主名不同扩展名会生成相同地址（如 TMP `.asset` 与图集 `.png`）。校验器有**地址冲突扫描**兜底；TMP 外部图集用 `_Atlas` 后缀区分（如 `HarmonyOS_CN.asset` 与 `HarmonyOS_CN_Atlas.png`）。
 
 改名 / 移动 LoadResources 资产后：
 
 1. 同步 Hotfix 生成代码中的 `Address` / `[Source]`。
-2. 必要时在 `Tools/UI Framework/MvcBind` 重新生成 View 绑定代码。
+2. 必要时在 `Tools/UI Framework/UIBind` 重新生成 View 绑定代码。
 3. 重新收集 YooAsset，PlayMode 验证界面能打开。
 
 ## 场景命名
@@ -149,11 +149,11 @@ Assets/LoadResources/UI/Main/MainMenuView.prefab
 | Warning | 提示，不阻断 | 语义名非 PascalCase、Unity Asset Label 缺失或存在过期托管标签 |
 | Info | 建议 | 预留 |
 
-## MvcBind 与 UI 命名
+## UIBind 与 UI 命名
 
 - UI 预制体放 `Assets/LoadResources/UI/<Module>/`，文件名遵循通用 PascalCase 语义规则。
 - View 类名直接取文件名（已是 PascalCase）。
-- 详见 [项目工具 - MvcBind](../runbooks/project-tools.md)。
+- 详见 [项目工具 - UIBind](../runbooks/project-tools.md)。
 
 ## 字体资源
 

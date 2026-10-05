@@ -6,11 +6,11 @@
 
 | 子系统 | 结论与依据 |
 |---|---|
-| UI 类型发现/构造 | 修正此前无性能证据的手写清单方案：取消登记表，恢复限定程序集的一次性 View 发现与首次 Activator 构造。类名/Mvc 别名查缓存，泛型入口独立于名称索引；不扫描整个 AppDomain，不引入生成流程。 |
+| UI 类型发现/构造 | 修正此前无性能证据的手写清单方案：取消登记表，恢复限定程序集的一次性 View 发现与首次 Activator 构造。类名/UIBind 别名查缓存，泛型入口独立于名称索引；不扫描整个 AppDomain，不引入生成流程。 |
 | Flux | 按用户最新要求保留现有 Handler、MessageHandler 反射消息路由及网络接口；Flux 源码、模块文档和两份 gen-module 模板均恢复原状。 |
 | TMP 自适应 | 删除私有字段读取，明确维护设计字号。当前保存场景/Prefab 没有挂载该组件，无字段资产迁移。 |
 | 启动/HybridCLR | 保留 Assembly.Load 和必要入口查找；Core 不反向引用 Hotfix，不另建启动框架。 |
-| 编辑器类型分析 | MvcBind、FontEngine 仍需检查类型/编辑器 API；保留。 |
+| 编辑器类型分析 | UIBind、FontEngine 仍需检查类型/编辑器 API；保留。 |
 | 公共输入/UI | 复用 Input System/EventSystem；设备活动与提示设备分开，作用域顶层独占导航，业务 Selected 与交互表现分开。保存配置 99 个现有 Selectable，额外 Demo 控件直接保存在各自资源。 |
 | 手柄图标 | 55 张实际使用的 Xelu CC0 图标与一个目录资产，含未知手柄的四个面键位置提示；没有引入 Resources 扫描或第三方提示框架。Switch 用布局的 Submit/Cancel 用途同步真实 A/B 绑定。 |
 | Demo 设备分支 | 无人机和 DLSS 使用 InputActionSession，镜头/装备读当前帧；赌场提示使用实际动作。Hotfix 生产代码没有直接读 Keyboard.current/Gamepad.current/Mouse.current 的调用。 |

@@ -12,11 +12,11 @@ Windows x64 ZIP、Android ARM64 APK；第一人称自由探索、靠近聚焦机
 
 2026-10-03当前推进状态为**继续实施 Hub、两种 Loading 及三机台正式制作**。视觉确认门槛已满足；独立代码清理、输入回归、双平台构建和可操作的原生验证已记录，历史阻塞记录保留用于追溯。Windows真实键盘Esc结果、Android与实物Xbox验收仍待外部条件；不要求先集齐全部真机才继续制作。完整目标及S1/最终体验门槛不变，S1用户体验确认前不扩大到其余14款，Goal尚未完成。
 
-Hub 卡片 Grid、Item 模板及两种 Loading 的正式 Prefab 已保存，卡片引用和按钮由 MvcBind 生成；普通数据回调只调用一次具体 SetData，直接更新控件。列表先初始化再交付数据；页面由导航请求持有数据，初始化完成后、显示前交付，取消和失败仍走原事务。键鼠、触屏、手柄共用布局，导航与回收身份保护由 Core 提供。临时装配脚本及 meta 已清理，预览使用简单现有场景图。直接相关验证见实施记录，尚未重打双端包或完成视觉/真机验收；三机台与大厅的正式美术切片继续按 S1 推进。
+Hub 卡片 Grid、Item 模板及两种 Loading 的正式 Prefab 已保存，卡片引用和按钮由 UIBind 生成；普通数据回调只调用一次具体 SetData，直接更新控件。列表先初始化再交付数据；页面由导航请求持有数据，初始化完成后、显示前交付，取消和失败仍走原事务。键鼠、触屏、手柄共用布局，导航与回收身份保护由 Core 提供。临时装配脚本及 meta 已清理，预览使用简单现有场景图。直接相关验证见实施记录，尚未重打双端包或完成视觉/真机验收；三机台与大厅的正式美术切片继续按 S1 推进。
 
 赌场使用酒红、深绿、木质、少量黄铜与暖灯；不制作繁密雕花、复杂窗景或大量镜面。Hub独立采用清爽卡片展示，保留现有有效Demo入口。StartupLoading与CommonLoading视觉统一但生命周期独立，保持SetTitle/SetProgress API及真实进度；不新建UI框架或平台专属Prefab。
 
-代码清理只覆盖赌场与Hub：移除赌场Adapters目录/命名空间，将十个Controller partial按Controller/Game/玩家交互/表现的实际职责拆分；删除ControllerTableOperations与IJinxCasinoTableOperations转发，TableSession直接使用具体游戏对象和机台身份。旧P0/P4专属场景/面板/配置/构建入口/测试已按引用清理，可复用规则与资源保留；Controller玩家交互拆分和Adapters归位已完成，后续继续实际体验和内容重做。资源同步使用Editor一次性操作，完成后删除临时脚本及meta；MvcBind索引与生成引用同次更新。
+代码清理只覆盖赌场与Hub：移除赌场Adapters目录/命名空间，将十个Controller partial按Controller/Game/玩家交互/表现的实际职责拆分；删除ControllerTableOperations与IJinxCasinoTableOperations转发，TableSession直接使用具体游戏对象和机台身份。旧P0/P4专属场景/面板/配置/构建入口/测试已按引用清理，可复用规则与资源保留；Controller玩家交互拆分和Adapters归位已完成，后续继续实际体验和内容重做。资源同步使用Editor一次性操作，完成后删除临时脚本及meta；UIBind索引与生成引用同次更新。
 
 |阶段|退出条件|
 |---|---|

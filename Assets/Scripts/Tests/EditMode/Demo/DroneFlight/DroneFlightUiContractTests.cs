@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using Core.Runtime;
 using Hotfix;
 using Hotfix.DroneFlight;
@@ -13,7 +13,7 @@ using UnityEngine;
 namespace Tests.Demo
 {
     /*
-     * 测试说明：验证 DroneFlight 正式 UI 的资源地址、Widget 层级、MvcBind 结构和关键布局锚点。
+     * 测试说明：验证 DroneFlight 正式 UI 的资源地址、Widget 层级、UIBind 结构和关键布局锚点。
      */
     public sealed class DroneFlightUiContractTests
     {
@@ -42,7 +42,7 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void Prefabs_AreCanvasFreeMvcBindWidgetsWithExpectedLayoutAnchors()
+        public void Prefabs_AreCanvasFreeUIBindWidgetsWithExpectedLayoutAnchors()
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
             var debug = AssetDatabase.LoadAssetAtPath<GameObject>(DebugPrefabPath);
@@ -125,7 +125,7 @@ namespace Tests.Demo
             Assert.That(
                 violations,
                 Is.Empty,
-                "固定 View 节点必须通过 ComponentItemIndex 与 MvcBind 生成字段访问。\n" +
+                "固定 View 节点必须通过 ComponentItemIndex 与 UIBind 生成字段访问。\n" +
                 string.Join("\n", violations));
         }
 

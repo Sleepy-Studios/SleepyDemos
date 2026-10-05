@@ -68,7 +68,7 @@
 
 - Editor 中能打开 `Tools/UI Framework/Hotfix Build`。
 - 启动时 `HybridMetadataSystem` 和 `HotfixAssemblySystem` 不报错。
-- 热更程序集加载后，具体 View 自动按类名与 Mvc 别名进入索引，新增页面无需手写清单；未知名称只查缓存，不扫描其它程序集兜底。
+- 热更程序集加载后，具体 View 自动按类名与 UIBind 别名进入索引，新增页面无需手写清单；未知名称只查缓存，不扫描其它程序集兜底。
 - `Tests.Module.HotfixAssemblyDefinitionFilterTests` 和 `Tests.Module.TestAssemblyBoundaryTests` 全部通过。
 - `HotfixConfig.HotfixAssemblies` 当前只包含 `Hotfix.dll`，热更代码目录不存在 `.Tests.dll`。
 - 如果使用本地 Mock Server，资源包 URL 能访问并被 YooAsset 正常下载。

@@ -54,7 +54,7 @@
 
 1. `Tests.Module.UINavigationContractsTests`（EditMode）
 2. `Tests.Module.UIStackTests`（EditMode）
-3. `Tests.Module.MvcBindTransitionGenerationTests`（EditMode）
+3. `Tests.Module.UIBindTransitionGenerationTests`（EditMode）
 4. `Tests.Module.UIViewLifecyclePlayModeTests`（PlayMode）
 5. `Tests.Module.UIManagerNavigationPlayModeTests`（PlayMode）
 6. `Tests.Module.UITransitionPlayModeTests`（PlayMode）

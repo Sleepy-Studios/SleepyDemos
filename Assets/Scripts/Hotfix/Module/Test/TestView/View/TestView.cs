@@ -3,7 +3,7 @@ namespace Hotfix
     using Core.Runtime;
 
     [Module("Test")]
-    [Mvc("TestView")]
+    [UIBind("TestView")]
     public partial class TestView : View
     {
         protected override void OnGameObjectInitialize()

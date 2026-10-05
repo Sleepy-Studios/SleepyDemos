@@ -30,16 +30,16 @@ namespace Core.Runtime
                 if (!type.IsClass || type == typeof(View) || !typeof(View).IsAssignableFrom(type)
                     || type.IsAbstract || type.ContainsGenericParameters) continue;
 
-                var mvcAttribute = type.GetCustomAttribute<MvcAttribute>();
-                // 保持原有命名规则：Mvc 别名与类名均可导航，同名保留先发现的类型。
-                if (mvcAttribute != null && !nameToTypes.ContainsKey(mvcAttribute.MvcName))
-                    nameToTypes.Add(mvcAttribute.MvcName, type);
+                var bindingAttribute = type.GetCustomAttribute<UIBindAttribute>();
+                // 保持原有命名规则：UIBind 别名与类名均可导航，同名保留先发现的类型。
+                if (bindingAttribute != null && !nameToTypes.ContainsKey(bindingAttribute.ViewName))
+                    nameToTypes.Add(bindingAttribute.ViewName, type);
                 if (!nameToTypes.ContainsKey(type.Name)) nameToTypes.Add(type.Name, type);
             }
         }
 
         /// <summary>查找已经发现的页面，未知名称不触发额外扫描。</summary>
-        /// <param name="viewName">类名或 Mvc 别名。</param>
+        /// <param name="viewName">类名或 UIBind 别名。</param>
         /// <returns>已发现的页面类型；未知或空名称返回 null。</returns>
         public static Type Get(string viewName)
         {

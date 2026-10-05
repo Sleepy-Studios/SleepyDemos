@@ -10,7 +10,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 namespace Hotfix.JinxCasino.UI
 {
-    /// 独立窗口的显示与业务命令绑定，由对应 MvcBind View 持有生命周期。
+    /// 独立窗口的显示与业务命令绑定，由对应 UIBind View 持有生命周期。
     public sealed class JinxCasinoTutorialPresenter : MonoBehaviour, ICancelHandler
     {
         [SerializeField] private Button tutorialCompleteButton;

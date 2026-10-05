@@ -10,6 +10,8 @@ namespace Core.Runtime
     {
         private IResourceLoader loader;
         private readonly List<IDisposable> bindings = new List<IDisposable>();
+        private readonly Dictionary<Delegate, (Action subscribe, Action unsubscribe)> dataBindings = new();
+        private bool dataBindingsActive;
         private readonly List<View> subViews = new List<View>();
         private readonly object loadWaiterGate = new object();
         private UniTask<bool> loadingTask;
@@ -78,6 +80,47 @@ namespace Core.Runtime
             }
 
             return binding;
+        }
+
+        /// <summary>登记随页面销毁释放的事件订阅。</summary>
+        /// <param name="release">一次性退订或释放回调。</param>
+        public IDisposable AddBinding(Action release) => AddBinding(new CallbackBinding(release));
+
+        /// <summary>登记页面动画或布局更新；仅在显示期间执行，销毁后结束。</summary>
+        /// <param name="update">当前页面的更新回调，不在此轮询业务状态。</param>
+        /// <param name="timing">更新时机；布局与视觉动画可选择 LastPostLateUpdate。</param>
+        protected void BindUpdate(Action update, PlayerLoopTiming timing = PlayerLoopTiming.Update)
+        {
+            if (update == null) throw new ArgumentNullException(nameof(update));
+            UpdateWhileAlive(update, timing).Forget();
+        }
+
+        private async UniTask UpdateWhileAlive(Action update, PlayerLoopTiming timing)
+        {
+            while (gameObject != null && State != ViewState.Destroying && State != ViewState.Destroyed && State != ViewState.Faulted)
+            {
+                await UniTask.Yield(timing);
+                if (IsEnable) update();
+            }
+        }
+
+        /// <summary>初始化时声明状态绑定；显示、隐藏、导航回滚和销毁由框架配对订阅。</summary>
+        /// <param name="onChanged">状态更新与首次显示时的刷新回调。</param>
+        /// <typeparam name="TData">已注册的业务状态类型。</typeparam>
+        protected void BindData<TData>(Action<TData> onChanged) where TData : IData
+        {
+            if (onChanged == null) throw new ArgumentNullException(nameof(onChanged));
+            if (dataBindings.ContainsKey(onChanged)) return;
+            dataBindings.Add(onChanged, (() => GlobalData.Subscribe(onChanged), () => GlobalData.UnSubscribe(onChanged)));
+            if (dataBindingsActive) GlobalData.Subscribe(onChanged);
+        }
+
+        private void SetDataBindingsActive(bool active)
+        {
+            if (dataBindingsActive == active) return;
+            dataBindingsActive = active;
+            foreach (var binding in new List<(Action subscribe, Action unsubscribe)>(dataBindings.Values))
+                if (active) binding.subscribe(); else binding.unsubscribe();
         }
 
         /// <summary>
@@ -282,6 +325,7 @@ namespace Core.Runtime
             {
                 ForceDisable = false;
                 gameObject.SetActive(true);
+                SetDataBindingsActive(true);
                 OnShow();
                 cancellationToken.ThrowIfCancellationRequested();
                 if (context.Animated)
@@ -332,6 +376,7 @@ namespace Core.Runtime
 
                 cancellationToken.ThrowIfCancellationRequested();
                 gameObject.SetActive(false);
+                SetDataBindingsActive(false);
                 OnHide();
                 State = ViewState.LoadedHidden;
             }
@@ -374,6 +419,7 @@ namespace Core.Runtime
                 State = snapshotState == ViewState.Visible
                     ? ViewState.Visible
                     : ViewState.LoadedHidden;
+                SetDataBindingsActive(State == ViewState.Visible);
             }
         }
 
@@ -467,6 +513,7 @@ namespace Core.Runtime
             }
 
             State = ViewState.Destroying;
+            SetDataBindingsActive(false);
             CancelLoadLifetime();
             Exception cleanupException = null;
             try
@@ -555,6 +602,8 @@ namespace Core.Runtime
         private async UniTask<Exception> CleanupOwnedResourcesCoreAsync(GameObject instance)
         {
             Exception cleanupException = null;
+            SetDataBindingsActive(false);
+            dataBindings.Clear();
             var ownedSubViews = subViews.ToArray();
             subViews.Clear();
             foreach (var subView in ownedSubViews)

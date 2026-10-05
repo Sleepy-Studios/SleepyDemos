@@ -12,7 +12,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `UIWorldTransitionTransaction`：快照本次操作的 Provider，缓存每个目标唯一解析结果，并在回滚时恢复已尝试的世界表现终态。
 - `UIStack`：只维护已提交的 Page、Modal、Widget 状态与顺序，并提供事务快照与恢复。
 - `UICache`：按 View 类型缓存 View 实例，仅在没有可复用实例时通过 Activator.CreateInstance 构造；泛型入口无需登记。
-- `UITypeReflection`：启动时按 View 继承关系发现页面，缓存类名与 Mvc 别名；每个指定程序集在本轮初始化中只扫描一次，运行时 Get 只查字典，不扫描整个 AppDomain。排除 View 基类、抽象类、开放泛型及 ItemView；不同类型同名沿用先发现者优先。
+- `UITypeReflection`：启动时按 View 继承关系发现页面，缓存类名与 UIBind 别名；每个指定程序集在本轮初始化中只扫描一次，运行时 Get 只查字典，不扫描整个 AppDomain。排除 View 基类、抽象类、开放泛型及 ItemView；不同类型同名沿用先发现者优先。
 - `UIRootManager`：构建 `UIRootCanvas`、透视 UI Camera、EventSystem、固定层级 Canvas 和遮罩。
 - `UIRootManager.BindToBaseCamera`：Additive 场景切换时迁移持久化 UI Camera 的 URP Camera Stack 归属。
 - `Components/`：公共基础组件及无业务依赖的 UGUI/TMP 表现组件。
@@ -34,11 +34,11 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 ## View 生命周期
 
-页面顺序为导航请求排队持有数据 → 实例化 → MvcBind 的 InitComponent → 一次性 OnGameObjectInitialize → 业务 SetData → OnShow/显示。加载失败或取消不交付数据；缓存页面再次打开不重复初始化，但交付本次请求的数据。已经可见的单实例收到新的数据请求时只交付一次 SetData，保持现有 Ignored 结果、不重复 OnShow。FIFO、取消和事务回滚仍由原导航协调器负责。
+页面顺序为导航请求排队持有数据 → 实例化 → UIBind 的 InitComponent → 一次性 OnGameObjectInitialize → 业务 SetData → OnShow/显示。加载失败或取消不交付数据；缓存页面再次打开不重复初始化，但交付本次请求的数据。已经可见的单实例收到新的数据请求时只交付一次 SetData，保持现有 Ignored 结果、不重复 OnShow。FIFO、取消和事务回滚仍由原导航协调器负责。
 
 业务在具体类中声明具体类型 SetData，并在其中直接更新控件；显示复杂或需要复用时再拆自己的 private RefreshUI(data)。仅点击、语言切换等后续行为需要时缓存数据。普通页面可用 ShowAsync<TView>(view => view.SetData(data))；现有 View<T> 仍服务实际使用它的页面，但不强制普通业务继承。一次性初始化回调只做绑定和初始化，不读取尚未交付的打开数据。本次受影响页面没有依赖数据决定资源地址的调用方；未来确有需求时单独定义加载参数，不恢复普通 SetData 的加载前交付。
 
-普通列表由桥接创建一次 ItemView，先 Init/InitComponent，再 RectData → 业务 SetData；复用只更新索引和当前数据。Item 自己声明 SetData(具体类型)，不依赖父类 params1、待刷新标记或初始化后补刷新。物理 Cell 的激活、测量由包管理，绑定与数据回调在同一次同步 reconcile 中完成，随后 Canvas 显示本帧数据；不能在物理 Cell 的 OnEnable 中读取业务打开数据。MvcBind 负责控件引用与一次性事件绑定，Core/包保留回收身份校验。
+普通列表由桥接创建一次 ItemView，先 Init/InitComponent，再 RectData → 业务 SetData；复用只更新索引和当前数据。Item 自己声明 SetData(具体类型)，不依赖父类 params1、待刷新标记或初始化后补刷新。物理 Cell 的激活、测量由包管理，绑定与数据回调在同一次同步 reconcile 中完成，随后 Canvas 显示本帧数据；不能在物理 Cell 的 OnEnable 中读取业务打开数据。UIBind 负责控件引用与一次性事件绑定，Core/包保留回收身份校验。
 
 `ViewState` 是真实单值状态，不再表示可组合标记。主链路如下：
 
@@ -118,7 +118,7 @@ Loading --加载失败或取消--> Faulted
 
 正式入口统一为可等待的 Async 方法，返回 `UIOperationResult`；旧 Show/Close/Back/CloseAll 包装已移除。无等待需求的事件入口应在异步处理方法中检查 Failed 后再 `.Forget()`，单独 `.Forget()` 不会自动记录结果对象中的 Exception。导航不提供同步 bool；动画由现有选项控制。
 
-组件持有的 View 使用 `LoadAsync`、`ShowAsync`、`HideAsync`、`DestroyAsync`；同步 `Init` 仅供基础组件同步资源分支，`InitWithGameObject` 用于已有实例。MvcBind 不再提供未生效的 IsAsync 配置，导航统一异步加载。
+组件持有的 View 使用 `LoadAsync`、`ShowAsync`、`HideAsync`、`DestroyAsync`；同步 `Init` 仅供基础组件同步资源分支，`InitWithGameObject` 用于已有实例。UIBind 不再提供未生效的 IsAsync 配置，导航统一异步加载。
 
 - 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
 - 跨场景或跨会话持有 View 时使用 `CloseAsync(View expectedView, ...)`。它只关闭调用方保存的具体实例；即使同类型新 View 已由下一场景显示，旧会话清理也不会误关新实例。按类型 `CloseAsync<T>()` 只用于当前所有者明确唯一的普通界面。
@@ -187,7 +187,7 @@ Loading --加载失败或取消--> Faulted
 
 ## 通用 Tips
 
-两类正式 Prefab 为 `LoadResources/UI/Common/SimpleTips` 和 `CommonTips`，对应 Hotfix/Common 的 `SimpleTipsView`、`CommonTipsView`。统一通过 `SingleUIManager.Instance` 调用 `UIManager` 的数据交付与导航队列，使用 `Tip + Widget`、`EmptyUITransition` 和隐藏缓存，不占 Page/Modal 栈，也不隐藏当前页面。固定引用由 MvcBind 生成，根节点不添加 Canvas 三件套。
+两类正式 Prefab 为 `LoadResources/UI/Common/SimpleTips` 和 `CommonTips`，对应 Hotfix/Common 的 `SimpleTipsView`、`CommonTipsView`。统一通过 `SingleUIManager.Instance` 调用 `UIManager` 的数据交付与导航队列，使用 `Tip + Widget`、`EmptyUITransition` 和隐藏缓存，不占 Page/Modal 栈，也不隐藏当前页面。固定引用由 UIBind 生成，根节点不添加 Canvas 三件套。
 
 Core 的 `UITipsPanel` 负责文本和背景尺寸；SimpleTips 正文超高使用 ScrollRect，不缩小字号。CommonTips 使用嵌套的 `TMPAutoScroll` 公共预制体，单行横向自动滚动，不使用纵向正文布局。`UITooltip` 跟随目标矩形，通过 `TooltipPlacementUtil` 将目标 Canvas 投影到 Tips Canvas，按安全区选择方向、收拢主体并移动箭头。只有目标、边界或内容变化才重新定位，静止时不重建布局。
 
@@ -208,7 +208,7 @@ CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标�
 - 默认字体选型与 TMP Settings 资源绑定在字体调整时按字体流程人工检查，不由公共 UI 测试固定为某个字体资产；圆角与 TMP 网格效果的行为回归继续保留。
 - 通用Loading沿用`HarmonyOS_CN`，新增字形由共享`HarmonyOS_CNSupplement`回退字体补充。补充字体使用同一中文源、512动态图集和多图集扩容，保留原字体图集及材质GUID，不让公共UI依赖某个Demo专属字库。正式Prefab直接保存字体、材质和回退引用，不保留一次性装配脚本作为运行或维护入口。
 - `Tests.Module.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
-- `Tests.Module.MvcBindTransitionGenerationTests` 在 Edit Mode 中检查 MvcBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
+- `Tests.Module.UIBindTransitionGenerationTests` 在 Edit Mode 中检查 UIBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Tests.Module.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
 - `Tests.Module.UIViewLifecyclePlayModeTests` 在真实 Play Mode 中检查加载、独立 waiter 取消、加载中销毁、稳定 Transition、幂等释放、subView 无环约束和 Destroyed 缓存替换。
 - `Tests.Module.UIWorldTransitionPlayModeTests` 在真实 Play Mode 中检查 UI / World 同阶段并行屏障、Provider 单次解析、空实现、非动画终态、取消和失败回滚。
@@ -217,7 +217,7 @@ CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标�
 
 统一运行方式见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。
 
-独立 UPM 虚拟列表与 ItemView/MvcBind 的接入由 [Loop Scroll 宿主桥接](loop-scroll.md) 维护；包内算法不归入 Core，宿主的薄桥接归入 Core.Runtime。
+独立 UPM 虚拟列表与 ItemView/UIBind 的接入由 [Loop Scroll 宿主桥接](loop-scroll.md) 维护；包内算法不归入 Core，宿主的薄桥接归入 Core.Runtime。
 
 ## 三端控件表现
 
@@ -232,3 +232,9 @@ UIMenuScope 保存于普通页面/弹窗资源，MenuInputScope 的顶层所有�
 异步组件使用最新请求覆盖旧初始化。UITab/AccordionTab 通过代次阻止旧回调；ViewList 取消旧任务并清理未完成的旧 View；ViewTab/AccordionViewTab 串行等待旧切换退出，释放时先移交旧列表所有权，避免旧清理改写新列表。UIImageLoader 丢弃迟到图片并使用原加载器释放，销毁后不创建新加载器。
 
 基础模板的职责、逐项检查范围及验证边界见 [基础 UI 预制体维护](ui-foundation-assets.md)。
+
+## Flux 页面绑定
+
+页面在 OnGameObjectInitialize 中调用 BindData<TData>(Refresh)。Core 在显示时订阅并交付当前状态，隐藏或销毁时退订；导航回滚会恢复订阅并刷新，而不重复业务 OnShow。按钮通过 GlobalData.Dispatch 提交业务 Action；列表和普通打开参数继续使用具体 SetData，顺序保持初始化后、显示前。
+
+页面需要视觉动画或布局 Tick 时，在一次性初始化中调用 BindUpdate；框架仅在显示期间运行，并在销毁时结束。该回调用于表现，不负责轮询业务状态。页面事件可用 AddBinding(release) 登记配对清理。

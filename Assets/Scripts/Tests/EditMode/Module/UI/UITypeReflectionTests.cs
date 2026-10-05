@@ -9,14 +9,14 @@ namespace Tests.Module
     public sealed class UITypeReflectionTests
     {
         private sealed class AutoPage : View { }
-        [Mvc("DiscoveryAlias")]
+        [UIBind("DiscoveryAlias")]
         private sealed class AliasedPage : View { }
         private abstract class AbstractPage : View { }
         private sealed class OpenPage<T> : View { }
         private sealed class ListItem : ItemView { }
-        [Mvc("DiscoveryCollision")]
+        [UIBind("DiscoveryCollision")]
         private sealed class FirstPage : View { }
-        [Mvc("DiscoveryCollision")]
+        [UIBind("DiscoveryCollision")]
         private sealed class SecondPage : View { }
 
         private sealed class CountingAssembly : Assembly
@@ -31,7 +31,7 @@ namespace Tests.Module
         public void Cleanup() => UITypeReflection.Init();
 
         [Test]
-        public void DiscoveryUsesInheritanceAndMvcAliasButExcludesNonPages()
+        public void DiscoveryUsesInheritanceAndUIBindAliasButExcludesNonPages()
         {
             UITypeReflection.Init(new CountingAssembly(typeof(AutoPage), typeof(AliasedPage),
                 typeof(AbstractPage), typeof(OpenPage<>), typeof(ListItem), typeof(View)));

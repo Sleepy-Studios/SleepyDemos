@@ -4,7 +4,7 @@ namespace Hotfix
 {
     /// Demo 卡片使用普通数据刷新，虚拟列表身份和导航由公共组件维护。
     [Module("Main")]
-    [Mvc("MainMenuDemoItemView")]
+    [UIBind("MainMenuDemoItemView")]
     public sealed partial class MainMenuDemoItemView : ItemView
     {
         private string previewAddress;

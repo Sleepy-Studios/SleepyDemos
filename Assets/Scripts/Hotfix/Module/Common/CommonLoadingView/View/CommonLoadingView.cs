@@ -4,7 +4,7 @@ namespace Hotfix
     using UnityEngine;
 
     [Module("Common")]
-    [Mvc("CommonLoadingView")]
+    [UIBind("CommonLoadingView")]
     public partial class CommonLoadingView : View
     {
         private UIProgressBar progressBar;

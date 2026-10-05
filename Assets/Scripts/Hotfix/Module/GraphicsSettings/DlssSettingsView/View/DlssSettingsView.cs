@@ -7,7 +7,7 @@ using UnityEngine.UI;
 namespace Hotfix
 {
     [Module("GraphicsSettings")]
-    [Mvc("DlssSettingsView")]
+    [UIBind("DlssSettingsView")]
     public partial class DlssSettingsView : View
     {
         protected override void OnGameObjectInitialize()

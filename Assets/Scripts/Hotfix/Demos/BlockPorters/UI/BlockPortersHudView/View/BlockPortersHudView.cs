@@ -4,7 +4,7 @@ using Hotfix.BlockPorters;
 namespace Hotfix
 {
     [Module("BlockPorters")]
-    [Mvc("BlockPortersHudView")]
+    [UIBind("BlockPortersHudView")]
     public sealed partial class BlockPortersHudView : View<BlockPortersController>
     {
         private BlockPortersHudPresenter presenter;

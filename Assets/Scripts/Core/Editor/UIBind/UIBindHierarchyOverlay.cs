@@ -7,24 +7,24 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
     [InitializeOnLoad]
-    public static class MvcBindHierarchyOverlay
+    public static class UIBindHierarchyOverlay
     {
         private const float ToggleWidth = 18f;
         private const float MethodWidth = 18f;
         private const float ComponentWidth = 132f;
 
-        private static readonly Dictionary<int, MvcBindNode> nodes = new Dictionary<int, MvcBindNode>();
+        private static readonly Dictionary<int, UIBindNode> nodes = new Dictionary<int, UIBindNode>();
         private static GameObject root;
         private static bool refreshScheduled;
         private static bool generatingFromPrefabSave;
 
         public static GameObject Root => root;
-        public static IReadOnlyCollection<MvcBindNode> Nodes => nodes.Values;
+        public static IReadOnlyCollection<UIBindNode> Nodes => nodes.Values;
 
-        static MvcBindHierarchyOverlay()
+        static UIBindHierarchyOverlay()
         {
             EditorApplication.hierarchyWindowItemOnGUI += OnHierarchyGUI;
             EditorApplication.hierarchyChanged += ScheduleRefresh;
@@ -54,7 +54,7 @@ namespace Core.Editor.MvcBind
             DrawNode(node, selectionRect);
         }
 
-        private static void DrawNode(MvcBindNode node, Rect selectionRect)
+        private static void DrawNode(UIBindNode node, Rect selectionRect)
         {
             var xMax = Mathf.Min(selectionRect.xMax, EditorGUIUtility.currentViewWidth - 10f);
             var methodRect = new Rect(xMax - MethodWidth, selectionRect.y, MethodWidth, selectionRect.height);
@@ -63,20 +63,20 @@ namespace Core.Editor.MvcBind
 
             var selected = node.selectedComponentType != null ||
                            node.selectedComponentTypes.Count > 0 ||
-                           MvcBindComponentWindowBridge.IsMixedSelected(node);
+                           UIBindComponentWindowBridge.IsMixedSelected(node);
             var nextSelected = EditorGUI.Toggle(toggleRect, selected);
             if (nextSelected != selected)
             {
                 if (!nextSelected)
                 {
-                    MvcBindComponentWindowBridge.ApplyComponentChoice(node, MvcBindComponentWindowBridge.NoneChoice);
+                    UIBindComponentWindowBridge.ApplyComponentChoice(node, UIBindComponentWindowBridge.NoneChoice);
                 }
                 else
                 {
                     var defaultChoice = node.componentTypes.Count > 0
-                        ? MvcBindComponentWindowBridge.GetComponentDisplayName(node.componentTypes[0])
-                        : MvcBindComponentWindowBridge.NoneChoice;
-                    MvcBindComponentWindowBridge.ApplyComponentChoice(node, defaultChoice);
+                        ? UIBindComponentWindowBridge.GetComponentDisplayName(node.componentTypes[0])
+                        : UIBindComponentWindowBridge.NoneChoice;
+                    UIBindComponentWindowBridge.ApplyComponentChoice(node, defaultChoice);
                 }
             }
 
@@ -90,7 +90,7 @@ namespace Core.Editor.MvcBind
                 ShowComponentMenu(node, componentRect);
             }
 
-            if (node.selectedComponentType != null && MvcCodeGenerator.GetRegisterMethods(node.selectedComponentType, node.name).Count > 0)
+            if (node.selectedComponentType != null && UIBindCodeGenerator.GetRegisterMethods(node.selectedComponentType, node.name).Count > 0)
             {
                 if (GUI.Button(methodRect, string.Empty, EditorStyles.popup))
                 {
@@ -99,43 +99,43 @@ namespace Core.Editor.MvcBind
             }
         }
 
-        private static string GetSelectedLabel(MvcBindNode node)
+        private static string GetSelectedLabel(UIBindNode node)
         {
-            if (MvcBindComponentWindowBridge.IsMixedSelected(node))
+            if (UIBindComponentWindowBridge.IsMixedSelected(node))
             {
-                return MvcBindComponentWindowBridge.MixedChoice;
+                return UIBindComponentWindowBridge.MixedChoice;
             }
 
             return node.selectedComponentType == null
-                ? MvcBindComponentWindowBridge.NoneChoice
-                : MvcBindComponentWindowBridge.GetComponentDisplayName(node.selectedComponentType);
+                ? UIBindComponentWindowBridge.NoneChoice
+                : UIBindComponentWindowBridge.GetComponentDisplayName(node.selectedComponentType);
         }
 
-        private static void ShowComponentMenu(MvcBindNode node, Rect rect)
+        private static void ShowComponentMenu(UIBindNode node, Rect rect)
         {
             var menu = new GenericMenu();
-            menu.AddItem(new GUIContent(MvcBindComponentWindowBridge.NoneChoice), node.selectedComponentType == null && node.selectedComponentTypes.Count == 0, () => ApplyAndRepaint(node, MvcBindComponentWindowBridge.NoneChoice));
-            menu.AddItem(new GUIContent(MvcBindComponentWindowBridge.MixedChoice), MvcBindComponentWindowBridge.IsMixedSelected(node), () => ApplyAndRepaint(node, MvcBindComponentWindowBridge.MixedChoice));
+            menu.AddItem(new GUIContent(UIBindComponentWindowBridge.NoneChoice), node.selectedComponentType == null && node.selectedComponentTypes.Count == 0, () => ApplyAndRepaint(node, UIBindComponentWindowBridge.NoneChoice));
+            menu.AddItem(new GUIContent(UIBindComponentWindowBridge.MixedChoice), UIBindComponentWindowBridge.IsMixedSelected(node), () => ApplyAndRepaint(node, UIBindComponentWindowBridge.MixedChoice));
             foreach (var type in node.componentTypes)
             {
-                var choice = MvcBindComponentWindowBridge.GetComponentDisplayName(type);
-                menu.AddItem(new GUIContent(choice), MvcBindComponentWindowBridge.IsComponentSelected(node, type), () => ApplyAndRepaint(node, choice));
+                var choice = UIBindComponentWindowBridge.GetComponentDisplayName(type);
+                menu.AddItem(new GUIContent(choice), UIBindComponentWindowBridge.IsComponentSelected(node, type), () => ApplyAndRepaint(node, choice));
             }
 
             menu.DropDown(rect);
         }
 
-        private static void ShowMethodMenu(MvcBindNode node, Rect rect)
+        private static void ShowMethodMenu(UIBindNode node, Rect rect)
         {
             var menu = new GenericMenu();
             var selectedMethods = GetSelectedMethodNames(node);
-            menu.AddItem(new GUIContent(MvcBindComponentWindowBridge.NoneChoice), selectedMethods.Count == 0, () =>
+            menu.AddItem(new GUIContent(UIBindComponentWindowBridge.NoneChoice), selectedMethods.Count == 0, () =>
             {
                 selectedMethods.Clear();
                 EditorApplication.RepaintHierarchyWindow();
             });
 
-            foreach (var method in MvcCodeGenerator.GetRegisterMethods(node.selectedComponentType, node.name))
+            foreach (var method in UIBindCodeGenerator.GetRegisterMethods(node.selectedComponentType, node.name))
             {
                 menu.AddItem(new GUIContent(method.registerMethodName), selectedMethods.Contains(method.registerMethodName), () =>
                 {
@@ -148,7 +148,7 @@ namespace Core.Editor.MvcBind
             menu.DropDown(rect);
         }
 
-        private static List<string> GetSelectedMethodNames(MvcBindNode node)
+        private static List<string> GetSelectedMethodNames(UIBindNode node)
         {
             if (node.selectedComponentType != null &&
                 node.selectedMethodNamesByComponentTypeName.TryGetValue(node.selectedComponentType.FullName, out var methods))
@@ -159,9 +159,9 @@ namespace Core.Editor.MvcBind
             return node.selectedMethodNames;
         }
 
-        private static void ApplyAndRepaint(MvcBindNode node, string choice)
+        private static void ApplyAndRepaint(UIBindNode node, string choice)
         {
-            MvcBindComponentWindowBridge.ApplyComponentChoice(node, choice);
+            UIBindComponentWindowBridge.ApplyComponentChoice(node, choice);
             EditorApplication.RepaintHierarchyWindow();
         }
 
@@ -178,12 +178,12 @@ namespace Core.Editor.MvcBind
                 return;
             }
 
-            foreach (var node in MvcPrefabScanner.Scan(root))
+            foreach (var node in UIBindPrefabScanner.Scan(root))
             {
                 nodes[node.gameObject.GetInstanceID()] = node;
             }
 
-            MvcBindComponentWindowBridge.RestoreComponentChoices(root, nodes.Values);
+            UIBindComponentWindowBridge.RestoreComponentChoices(root, nodes.Values);
             RestoreSelectionSnapshot(nodes.Values, selectionSnapshot);
         }
 
@@ -221,7 +221,7 @@ namespace Core.Editor.MvcBind
         {
             if (prefabRoot == null ||
                 generatingFromPrefabSave ||
-                MvcBindComponentWindowBridge.SuppressAutoGenerateOnPrefabSave)
+                UIBindComponentWindowBridge.SuppressAutoGenerateOnPrefabSave)
             {
                 return;
             }
@@ -239,20 +239,20 @@ namespace Core.Editor.MvcBind
 
             var targetNodes = root == prefabRoot
                 ? nodes.Values.ToList()
-                : MvcPrefabScanner.Scan(prefabRoot);
-            var components = MvcCodeGenerator.CollectComponents(targetNodes);
+                : UIBindPrefabScanner.Scan(prefabRoot);
+            var components = UIBindCodeGenerator.CollectComponents(targetNodes);
             if (components.Count == 0)
             {
                 return;
             }
 
-            var settings = MvcBindWindow.CreateSettingsForPrefabSave(prefabRoot, prefabStage.assetPath);
+            var settings = UIBindWindow.CreateSettingsForPrefabSave(prefabRoot, prefabStage.assetPath);
             generatingFromPrefabSave = true;
             try
             {
-                if (MvcBindComponentWindowBridge.GenerateAndBind(prefabRoot, settings, targetNodes, true, out var path, out var message))
+                if (UIBindComponentWindowBridge.GenerateAndBind(prefabRoot, settings, targetNodes, true, out var path, out var message))
                 {
-                    Debug.Log($"MvcBind generated before prefab save: {path}");
+                    Debug.Log($"UIBind generated before prefab save: {path}");
                 }
                 else if (!string.IsNullOrEmpty(message))
                 {
@@ -265,7 +265,7 @@ namespace Core.Editor.MvcBind
             }
         }
 
-        private static Dictionary<string, NodeSelectionSnapshot> SnapshotSelections(IEnumerable<MvcBindNode> sourceNodes)
+        private static Dictionary<string, NodeSelectionSnapshot> SnapshotSelections(IEnumerable<UIBindNode> sourceNodes)
         {
             var result = new Dictionary<string, NodeSelectionSnapshot>();
             foreach (var node in sourceNodes)
@@ -281,7 +281,7 @@ namespace Core.Editor.MvcBind
             return result;
         }
 
-        private static void RestoreSelectionSnapshot(IEnumerable<MvcBindNode> targetNodes, IReadOnlyDictionary<string, NodeSelectionSnapshot> snapshots)
+        private static void RestoreSelectionSnapshot(IEnumerable<UIBindNode> targetNodes, IReadOnlyDictionary<string, NodeSelectionSnapshot> snapshots)
         {
             if (snapshots == null || snapshots.Count == 0)
             {
@@ -307,7 +307,7 @@ namespace Core.Editor.MvcBind
             private readonly List<string> selectedMethodNames;
             private readonly Dictionary<string, List<string>> selectedMethodNamesByComponentTypeName;
 
-            public NodeSelectionSnapshot(MvcBindNode node)
+            public NodeSelectionSnapshot(UIBindNode node)
             {
                 selectedComponentType = node.selectedComponentType;
                 selectedComponentTypeName = node.selectedComponentTypeName;
@@ -317,7 +317,7 @@ namespace Core.Editor.MvcBind
                     .ToDictionary(item => item.Key, item => item.Value.ToList());
             }
 
-            public void ApplyTo(MvcBindNode node)
+            public void ApplyTo(UIBindNode node)
             {
                 node.selectedComponentType = selectedComponentType != null && node.componentTypes.Contains(selectedComponentType)
                     ? selectedComponentType
@@ -342,16 +342,16 @@ namespace Core.Editor.MvcBind
                     }
                 }
 
-                if (selectedComponentTypeName == MvcBindComponentWindowBridge.MixedChoice &&
+                if (selectedComponentTypeName == UIBindComponentWindowBridge.MixedChoice &&
                     node.selectedComponentTypes.Count > 0)
                 {
-                    node.selectedComponentTypeName = MvcBindComponentWindowBridge.MixedChoice;
+                    node.selectedComponentTypeName = UIBindComponentWindowBridge.MixedChoice;
                     return;
                 }
 
                 if (node.selectedComponentTypes.Count > 1)
                 {
-                    node.selectedComponentTypeName = MvcBindComponentWindowBridge.MixedChoice;
+                    node.selectedComponentTypeName = UIBindComponentWindowBridge.MixedChoice;
                 }
             }
         }

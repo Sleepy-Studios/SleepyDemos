@@ -2,7 +2,7 @@
 
 ## 职责与边界
 
-SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、对象池和场景扩展。SleepyDemos 的 Core.Runtime 仅适配普通 C# ItemView 与 View 订阅生命周期；Core.Editor 提供 MvcBind 接入和本地示例构建。包不引用 Core、Hotfix、MvcBind、UniTask 或资源框架。
+SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、对象池和场景扩展。SleepyDemos 的 Core.Runtime 仅适配普通 C# ItemView 与 View 订阅生命周期；Core.Editor 提供 UIBind 接入和本地示例构建。包不引用 Core、Hotfix、UIBind、UniTask 或资源框架。
 
 ## 入口与主链路
 
@@ -14,9 +14,9 @@ SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、�
 
 先 RegisterLoopScrollRect<TView> 配置工厂与绑定，再注册 Click/ItemHide，最后 SetTotalCount 提交真实集合。ListDataSource 进入包的统一 Commit/Reconcile，桥接更新 ItemView.Index 和 context，触发唯一一组 CellBound/CellUnbound/CellClicked 事件。解绑前旧 context 已失效并取消 Token，点击读取当前身份。
 
-MvcBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击为 `(ItemView,index)`，解绑为 `(ItemView)`；普通业务 Item 不保存 `CellBindContext`。手写页面可用 `RegisterLoopScrollRect<TItem>(list, Action<TItem,int>)` 同时配置工厂，Click 与 ItemHide 也支持 typed 回调。生成的基础 ItemView 回调不推断工厂，提交前显式 `Configure<TItem>`。生命周期仍由 View.AddBinding 收口，重复注册同一委托只触发一次，typed 包装在桥接内复用并随订阅释放。
+UIBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击为 `(ItemView,index)`，解绑为 `(ItemView)`；普通业务 Item 不保存 `CellBindContext`。手写页面可用 `RegisterLoopScrollRect<TItem>(list, Action<TItem,int>)` 同时配置工厂，Click 与 ItemHide 也支持 typed 回调。生成的基础 ItemView 回调不推断工厂，提交前显式 `Configure<TItem>`。生命周期仍由 View.AddBinding 收口，重复注册同一委托只触发一次，typed 包装在桥接内复用并随订阅释放。
 
-带 `CellBindContext` 的高级重载继续服务需要身份 Token 的异步绑定和多类型数据源，取消旧 Token、点击当前身份的保护仍在 Core/包内部。高级重载不参与 MvcBind 普通回调发现，避免同一回调名出现两套签名。不要为同步 `SetData` 或按钮点击要求业务项保存物理 Cell 上下文。
+带 `CellBindContext` 的高级重载继续服务需要身份 Token 的异步绑定和多类型数据源，取消旧 Token、点击当前身份的保护仍在 Core/包内部。高级重载不参与 UIBind 普通回调发现，避免同一回调名出现两套签名。不要为同步 `SetData` 或按钮点击要求业务项保存物理 Cell 上下文。
 
 公共菜单导航读取包的 `LayoutLaneCount`，不从当前实例数量推导 Grid 列数。菜单按钮在指针按下时保存绑定身份，抬手前换绑则取消点击；手柄提交只接受重新选中的有效身份。业务入口不需要再维护这些保护。
 
@@ -32,7 +32,7 @@ MvcBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击�
 
 ## 定位结果
 
-完成/取消与像素偏移由独立包的 ScrollToCell/ScrollToOffset 统一维护，桥接无需包装请求。Hotfix 的 MvcBind 页面直接用 ScrollResult 更新状态，提供 ±60 偏移和 CancelAnimation；操作按钮保持可用。刷新翻译不改变业务身份，也不取消当前定位。禁用和销毁可能先以 Disabled 终止，回调只报告首次原因。
+完成/取消与像素偏移由独立包的 ScrollToCell/ScrollToOffset 统一维护，桥接无需包装请求。Hotfix 的 UIBind 页面直接用 ScrollResult 更新状态，提供 ±60 偏移和 CancelAnimation；操作按钮保持可用。刷新翻译不改变业务身份，也不取消当前定位。禁用和销毁可能先以 Disabled 终止，回调只报告首次原因。
 
 ## 菜单导航
 
@@ -42,6 +42,6 @@ MvcBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击�
 
 ## 验证
 
-包测试独立留在包 Tests；宿主测试进入现有 Tests.EditMode/Tests.PlayMode。直接目标为 LoopScrollMvcGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests，另检查 TestAssemblyBoundaryTests。不运行无关全量测试。
+包测试独立留在包 Tests；宿主测试进入现有 Tests.EditMode/Tests.PlayMode。直接目标为 LoopScrollUIBindGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests，另检查 TestAssemblyBoundaryTests。不运行无关全量测试。
 
 详见 [接入步骤](../runbooks/use-loop-scroll.md)、[示例](../demos/loop_scroll/README.md) 与包 Documentation~/Validation.md。

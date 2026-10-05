@@ -2,7 +2,7 @@ using Core.Runtime;
 using Hotfix.JinxCasino;
 namespace Hotfix
 {
-    [Module("JinxCasino")] [Mvc("JinxCasinoSettingsView")]
+    [Module("JinxCasino")] [UIBind("JinxCasinoSettingsView")]
     public sealed partial class JinxCasinoSettingsView : View<JinxCasinoController>
     {
         protected override void OnShow() { base.OnShow(); JinxCasinoSettingsPresenter_JinxCasinoSettingsView.Bind(params1); }

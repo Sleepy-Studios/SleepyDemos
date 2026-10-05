@@ -13,7 +13,7 @@
 - `Hotfix/`
   - 热更构建窗口
   - 本地 Bundle HTTP 服务
-- `MvcBind/`
+- `UIBind/`
   - 绑定数据、窗口、树视图、层级面板辅助
   - View 配置显式选择 `ViewMode` 和 `IUITransition` 实现，并按需填写 `World Transition Key`
   - 生成的 partial View 通过 `CreateUITransition()` 工厂创建 UI Transition；不再生成每次读取都会创建实例的动画表达式属性，也不直接实例化世界过渡
@@ -39,7 +39,7 @@
 ## 改这里时注意什么
 
 - 编辑器工具应尽量减少对业务层的硬编码依赖
-- MvcBind 索引必须保持 Prefab-first：不要重新引入只有脚本、没有绑定 Prefab 的索引项，也不要在每个 Prefab 匹配时重复扫描脚本目录
+- UIBind 索引必须保持 Prefab-first：不要重新引入只有脚本、没有绑定 Prefab 的索引项，也不要在每个 Prefab 匹配时重复扫描脚本目录
 - 新工具如果会改变团队操作流程，要同步补 `runbooks/`
 - 如果工具只是临时一次性使用，不要直接落进正式模块
 

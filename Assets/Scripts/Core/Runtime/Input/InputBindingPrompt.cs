@@ -25,6 +25,10 @@ namespace Core.Runtime.Inputs
         /// <summary>将提示绑定到业务会话副本，而不是未生效的源资产。</summary>
         /// <param name="value">实际动作。</param>
         public void Bind(InputAction value) { runtimeAction = value; Refresh(); }
+
+        /// <summary>按源动作GUID绑定实际会话副本，避免页面重复解析提示动作。</summary>
+        /// <param name="asset">本次输入会话的动作资产；为空时恢复源引用。</param>
+        public void BindAsset(InputActionAsset asset) => Bind(asset != null && action != null ? asset.FindAction(action.action.id) : null);
         private void OnEnable()
         {
             InputDeviceState.Initialize();

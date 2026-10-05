@@ -4,7 +4,7 @@ using Hotfix.HowToFish;
 namespace Hotfix
 {
     [Module("HowToFish")]
-    [Mvc("HowToFishHudView")]
+    [UIBind("HowToFishHudView")]
     public sealed partial class HowToFishHudView : View<HowToFishWorld>
     {
         protected override void OnShow()

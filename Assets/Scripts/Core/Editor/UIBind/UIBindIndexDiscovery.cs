@@ -8,28 +8,28 @@ using Core.Runtime;
 using UnityEditor;
 using UnityEngine;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
-    internal static class MvcBindIndexDiscovery
+    internal static class UIBindIndexDiscovery
     {
-        internal static List<MvcBindViewRecord> BuildViewRecords(
-            string scriptRoot = MvcBindToolConfig.ScriptRoot,
-            string prefabRoot = MvcBindToolConfig.LoadResourcesRoot)
+        internal static List<UIBindViewRecord> BuildViewRecords(
+            string scriptRoot = UIBindToolConfig.ScriptRoot,
+            string prefabRoot = UIBindToolConfig.LoadResourcesRoot)
         {
             return Discover(scriptRoot, prefabRoot).Records;
         }
 
-        internal static MvcBindIndexDiscoveryResult Discover(
-            string scriptRoot = MvcBindToolConfig.ScriptRoot,
-            string prefabRoot = MvcBindToolConfig.LoadResourcesRoot)
+        internal static UIBindIndexDiscoveryResult Discover(
+            string scriptRoot = UIBindToolConfig.ScriptRoot,
+            string prefabRoot = UIBindToolConfig.LoadResourcesRoot)
         {
             var scripts = BuildScriptIndex(scriptRoot);
-            var records = new List<MvcBindViewRecord>();
+            var records = new List<UIBindViewRecord>();
             var prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { prefabRoot });
 
             foreach (var prefabPath in prefabGuids
                          .Select(AssetDatabase.GUIDToAssetPath)
-                         .Where(MvcBindPathUtility.IsPrefabAssetPath)
+                         .Where(UIBindPathUtility.IsPrefabAssetPath)
                          .OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
             {
                 var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
@@ -42,27 +42,27 @@ namespace Core.Editor.MvcBind
                 records.Add(BuildRecord(prefabPath, itemIndex, scripts));
             }
 
-            return new MvcBindIndexDiscoveryResult(records, prefabGuids.Length, 1);
+            return new UIBindIndexDiscoveryResult(records, prefabGuids.Length, 1);
         }
 
-        internal static MvcBindViewRecord FindRecordForPrefab(string prefabPath)
+        internal static UIBindViewRecord FindRecordForPrefab(string prefabPath)
         {
-            var normalized = MvcBindPathUtility.NormalizeAssetPath(prefabPath);
+            var normalized = UIBindPathUtility.NormalizeAssetPath(prefabPath);
             return BuildViewRecords().FirstOrDefault(record =>
                 string.Equals(record.prefabPath, normalized, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static MvcBindViewRecord BuildRecord(
+        private static UIBindViewRecord BuildRecord(
             string prefabPath,
             ComponentItemIndex itemIndex,
             ScriptIndex scripts)
         {
-            var normalizedPrefabPath = MvcBindPathUtility.NormalizeAssetPath(prefabPath);
-            var viewName = MvcBindPathUtility.ToViewClassName(normalizedPrefabPath);
-            var record = new MvcBindViewRecord
+            var normalizedPrefabPath = UIBindPathUtility.NormalizeAssetPath(prefabPath);
+            var viewName = UIBindPathUtility.ToViewClassName(normalizedPrefabPath);
+            var record = new UIBindViewRecord
             {
                 viewName = viewName,
-                address = MvcBindPathUtility.ToRuntimeAddress(normalizedPrefabPath),
+                address = UIBindPathUtility.ToRuntimeAddress(normalizedPrefabPath),
                 prefabPath = normalizedPrefabPath,
                 hasPrefab = true
             };
@@ -120,20 +120,20 @@ namespace Core.Editor.MvcBind
             record.validationMessage = string.Join("；", errors);
             if (!record.isValid)
             {
-                record.moduleName = MvcBindViewRecord.InvalidModuleName;
+                record.moduleName = UIBindViewRecord.InvalidModuleName;
             }
 
             return record;
         }
 
-        private static void ApplyModuleOutputLocation(MvcBindViewRecord record, string scriptPath)
+        private static void ApplyModuleOutputLocation(UIBindViewRecord record, string scriptPath)
         {
             if (string.IsNullOrEmpty(scriptPath) || string.IsNullOrEmpty(record.moduleName))
             {
                 return;
             }
 
-            var normalized = MvcBindPathUtility.NormalizeAssetPath(scriptPath);
+            var normalized = UIBindPathUtility.NormalizeAssetPath(scriptPath);
             var suffix = $"/{record.viewName}/View/{Path.GetFileName(normalized)}";
             if (!normalized.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             {
@@ -141,7 +141,7 @@ namespace Core.Editor.MvcBind
             }
 
             var moduleOutputRoot = normalized.Substring(0, normalized.Length - suffix.Length);
-            var defaultRoot = $"{MvcBindToolConfig.ModuleRoot}/{record.moduleName}";
+            var defaultRoot = $"{UIBindToolConfig.ModuleRoot}/{record.moduleName}";
             if (string.Equals(moduleOutputRoot, defaultRoot, StringComparison.OrdinalIgnoreCase))
             {
                 return;
@@ -186,7 +186,7 @@ namespace Core.Editor.MvcBind
 
             foreach (var path in Directory.GetFiles(scriptRoot, "*.cs", SearchOption.AllDirectories))
             {
-                var normalized = MvcBindPathUtility.NormalizeAssetPath(path);
+                var normalized = UIBindPathUtility.NormalizeAssetPath(path);
                 var fileName = Path.GetFileNameWithoutExtension(normalized);
                 var isComponent = fileName.EndsWith("ViewComponent", StringComparison.Ordinal);
                 var isView = !isComponent && fileName.EndsWith("View", StringComparison.Ordinal);
@@ -247,10 +247,10 @@ namespace Core.Editor.MvcBind
         }
     }
 
-    internal sealed class MvcBindIndexDiscoveryResult
+    internal sealed class UIBindIndexDiscoveryResult
     {
-        internal MvcBindIndexDiscoveryResult(
-            List<MvcBindViewRecord> records,
+        internal UIBindIndexDiscoveryResult(
+            List<UIBindViewRecord> records,
             int prefabCandidateCount,
             int scriptScanPasses)
         {
@@ -259,7 +259,7 @@ namespace Core.Editor.MvcBind
             ScriptScanPasses = scriptScanPasses;
         }
 
-        internal List<MvcBindViewRecord> Records { get; }
+        internal List<UIBindViewRecord> Records { get; }
         internal int PrefabCandidateCount { get; }
         internal int ScriptScanPasses { get; }
     }

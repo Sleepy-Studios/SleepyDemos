@@ -38,7 +38,7 @@ Hub 保持独立清爽风格：深蓝灰背景、清晰浅色文字、少量青�
 
 沿用 Hub 配色与字级，通过背景、简洁入口图标、标题、阶段说明和进度条完成画面。68% 为示意值，不引入随机或定时假进度；进度与阶段继续来自现有 SetTitle / SetProgress 调用。无资源体积时不显示空数字字段。
 
-StartupLoading 在热更前通过入口直接引用，不能依赖 Hotfix 或热更资源服务；CommonLoading 继续普通 Core View 的场景过渡生命周期。两者统一视觉、不合并依赖链，不新增 EventSystem。启动界面按直接序列化引用更新，普通 UI 按 MvcBind 保存索引和生成组件引用。
+StartupLoading 在热更前通过入口直接引用，不能依赖 Hotfix 或热更资源服务；CommonLoading 继续普通 Core View 的场景过渡生命周期。两者统一视觉、不合并依赖链，不新增 EventSystem。启动界面按直接序列化引用更新，普通 UI 按 UIBind 保存索引和生成组件引用。
 
 ## 还原与确认边界
 

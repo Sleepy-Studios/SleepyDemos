@@ -49,7 +49,7 @@ Assets/Scripts/Hotfix/Demos/<DemoName>/
 根据当前 Demo 的真实复杂度明确职责，不以无人机或其它 Demo 作为必须照搬的模板：
 
 - 玩法规则与状态、世界交互、场景表现、UI 和模式流程按职责组织；小 Demo 无需为了目录完整而人为分层。
-- 只在确有外部接口转换或宿主协议隔离时建立接入类。不要求 `Adapters/` 目录，不把所有 MonoBehaviour、UI 和演出编排统称为适配器。
+- 按玩法规则、场景表现和界面职责放置代码；外部接口转换由对应接入类负责。
 
 纯规则不反向依赖 UI 或外部接入。Demo 专属能力也不能因为调用方便塞进 `Core.Runtime`；跨 Demo 的通用能力按实际复用价值抽取。目录命名不能替代职责拆分，不用巨型 Controller 或大量转发包装掩盖耦合。
 
@@ -66,7 +66,7 @@ Assets/Scripts/Hotfix/Editor/<DemoName>/
 - 可加载场景使用纯语义名，例如 `Scenes/Main.unity`。
 - 启动入口 `AppEntrance.unity` 继续留在 `Assets/Scenes`，不要把 Demo 场景混入启动目录。
 - Prefab、材质、贴图、配置和音效按[资源命名规范](../architecture/asset-naming.md)放入对应子目录。
-- MvcBind 生成的 `*Component.cs` 不可手改；需要自定义输出时使用现有 MvcBind 自定义 Module 目录能力。
+- UIBind 生成的 `*Component.cs` 不可手改；需要自定义输出时使用现有 UIBind 自定义 Module 目录能力。
 
 ## 5. 接入 YooAsset 与场景导航
 
@@ -142,7 +142,7 @@ docs/agent/prompts/demos/<demo_id>/original-goal.md
 - 在运行时临时拼装本应保存为 Prefab 的结构。
 - 把 Demo Scene 加进 Build Settings 绕过 YooAsset。
 - 直接加载场景，绕过 `GameSceneNavigator`。
-- 手改 MvcBind 生成文件。
+- 手改 UIBind 生成文件。
 - 为单个 Demo 新建测试 asmdef。
 - 只验证进入，不验证返回 Hub 后的生命周期清理。
 - 接入方式变化后没有同步长期文档。

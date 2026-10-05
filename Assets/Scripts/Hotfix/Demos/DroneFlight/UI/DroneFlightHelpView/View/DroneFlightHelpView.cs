@@ -6,7 +6,8 @@ using UnityEngine.InputSystem;
 namespace Hotfix
 {
     /// 按当前输入设备与装备显示操作说明，不提交飞行或装备命令。
-    [Module("DroneFlight"), Mvc("DroneFlightHelpView")]
+    [Module("DroneFlight")]
+    [UIBind("DroneFlightHelpView")]
     public partial class DroneFlightHelpView : View<DroneFlightViewData>
     {
         /// <summary>交付会话数据；已显示的指南立即更新装备和设备说明。</summary>

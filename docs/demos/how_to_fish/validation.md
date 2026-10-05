@@ -25,7 +25,7 @@ Hub 从 AppEntrance 实际进入并显示，Console 无错误；画面证据 `Li
 
 ## 2026-10-04：首岛操作原型与续玩
 
-新增了场景、HUD、三槽菜单、物理物品 Prefab、第一人称装备、实体商品交互和 Hub 入口。公共接入只涉及 Hotfix 场景目录、主菜单及其 MvcBind 生成绑定；Hotfix.Editor 增加 Input System 引用，Core 框架未改动。
+新增了场景、HUD、三槽菜单、物理物品 Prefab、第一人称装备、实体商品交互和 Hub 入口。公共接入只涉及 Hotfix 场景目录、主菜单及其 UIBind 生成绑定；Hotfix.Editor 增加 Input System 引用，Core 框架未改动。
 
 | 检查 | jobId | 结果 |
 |---|---|---|
@@ -222,7 +222,7 @@ RocksShop 镜像屋顶绕序修订后重新导出，并重新渲染/查看最终
 
 删除旧大厅按钮复制装配。输入改为 Core InputActionSession 与 InputDeviceState，补单次死区和切换松键回归；旧 Hub 按钮测试迁移至真实卡片确认。预览图由当前自制 FishingBoat.blend 渲染。Unity 刷新后主线程暂未响应，当前未取得合并后编译或测试通过证据；没有执行全量测试，没有提交或推送。临时装配工具须在最终资产完成验证后按主线规则清理。
 
-主线同步验证补充：Editor 于 2026-10-04 07:57 完成零错误编译。旧生成器仍在内存中时，先按新版模板移除过时 IsAsync 声明以恢复编译，随后通过新版 MvcBind 完整重生成 HUD，确认 Widget / Decorate / EmptyUITransition 与原行为一致。输入精确 PlayMode 测试 `Input_SingleDeadzoneAndHeldMapTransition`（job `ad3bc31e`）1/1 通过：原始摇杆只应用一次死区、驾驶切换等待回中、暂停读值为零、原模板未启用。证据 `Library/HowToFish/Evidence/MainInput-ad3bc31e.xml`。大厅完整闭环回归仍在执行。
+主线同步验证补充：Editor 于 2026-10-04 07:57 完成零错误编译。旧生成器仍在内存中时，先按新版模板移除过时 IsAsync 声明以恢复编译，随后通过新版 UIBind 完整重生成 HUD，确认 Widget / Decorate / EmptyUITransition 与原行为一致。输入精确 PlayMode 测试 `Input_SingleDeadzoneAndHeldMapTransition`（job `ad3bc31e`）1/1 通过：原始摇杆只应用一次死区、驾驶切换等待回中、暂停读值为零、原模板未启用。证据 `Library/HowToFish/Evidence/MainInput-ad3bc31e.xml`。大厅完整闭环回归仍在执行。
 
 维护回归已完成：新版大厅混合输入钓鱼/交易/保存/返回 `c56bf449` 1/1；船舶浮力/驾驶/暂停/甲板退出 `6293e326` 1/1。两次原生 XML 已分别保存为 `MainHub-c56bf449.xml` 和 `MainBoat-6293e326.xml`，Console 查询为 0 错误。没有执行全量测试，也没有提交或推送。
 
@@ -342,13 +342,13 @@ BingBong-b6465464：PlayMode 1/1 通过（78秒）。真实购买椰子、普通
 
 蜘蛛蟹6cab15a8为1/1通过（104秒），证据SpiderQueuedClaw-6cab15a8.xml；锁定爪击后退开仍扣血、2.5秒硬直、暂停、单次掉落、逃脱、交付保存通过。首次2bf6df76为Test Runner域重载未恢复，零用例，非断言失败；随后确认编辑器未运行且Console无错后重跑。已查看1920×1080的SpiderCrabFight.png，生命82与750首领条/硬直提示可读；仍有灰色占位地面、平海面及未动画化蟹钳，不能记为G5视觉验收通过。
 
-按当前需求移除本 Demo 的 Adapters 组织：World 直接位于 Demo 根目录，Presenter 与 View 位于 UI/；四个脚本GUID保留，namespace和生成路径同步。原生装配已更新MvcBind组件类型索引、HUD与场景的EditorClassIdentifier，当前代码、现行文档和两份资源中不再有旧Adapters引用。待同轮Hub往返运行回归确认；不新增兼容适配层。
+按当前需求移除本 Demo 的 Adapters 组织：World 直接位于 Demo 根目录，Presenter 与 View 位于 UI/；四个脚本GUID保留，namespace和生成路径同步。原生装配已更新UIBind组件类型索引、HUD与场景的EditorClassIdentifier，当前代码、现行文档和两份资源中不再有旧Adapters引用。待同轮Hub往返运行回归确认；不新增兼容适配层。
 
 信天翁调整后的原生测试55de243a为1/1通过（用例22.75秒），证据AlbatrossRuntime-55de243a.xml：实际爬升后验证五发落物、屋顶阻挡、移除屋顶后的追逐与真实俯冲45伤害、无半血保护。此前测试把刚出生18米的刚体瞬移到24米后立即FreezeAll，物理步骤仍锁在18米，不满足巡航高度；改为等待真实爬升，未为测试修改生产逻辑。REST完成状态报告域重载恢复失败，但同轮原生XML明确记录该方法Passed；按原生结果计入，未将零用例REST报告当成断言失败。未执行全量测试。
 
 普通鱼竖直运动回归6a1832d8为1/1通过（总95秒、用例21.48秒），证据FishMotionVertical-6a1832d8.xml：鲭鱼跃动/死亡停止、食人鱼空中接触与持握停止攻击，以及红鲷高空实际下落均通过。未执行全量测试。
 
-移除Adapters后的Hub完整往返回归a4282b64为1/1通过（105秒），证据DirectLayoutHub-a4282b64.xml：Hub入口、三槽界面首槽、键盘和手柄混合钓鱼交易、保存、暂停返回Hub、再次进入读档及再次返回均通过，确认新的World/UI路径和MvcBind绑定可用。此为混合输入定向回归，不代表独立双输入从新档通关；未执行全量测试。
+移除Adapters后的Hub完整往返回归a4282b64为1/1通过（105秒），证据DirectLayoutHub-a4282b64.xml：Hub入口、三槽界面首槽、键盘和手柄混合钓鱼交易、保存、暂停返回Hub、再次进入读档及再次返回均通过，确认新的World/UI路径和UIBind绑定可用。此为混合输入定向回归，不代表独立双输入从新档通关；未执行全量测试。
 
 炸药模型7b67a6d8精确检查1/1通过（31秒），证据DynamiteModel-7b67a6d8.xml；引信存档8bf890ce为1/1通过（22秒），覆盖剩余秒数往返、旧档零值、NaN/无限/越界和其它物品携带引信拒绝，证据DynamiteSave-8bf890ce.xml。原生装配后资源类c6fdfd09为7/7通过（40秒），包含四岛供货、25价格、实体组件/质量、第一人称模型与既有资源契约，证据DynamiteAssets-c6fdfd09.xml。以上尚未替代实际爆炸与输入运行验证，未执行全量测试。
 

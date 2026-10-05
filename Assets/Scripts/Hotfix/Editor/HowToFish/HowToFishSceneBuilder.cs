@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using Core.Runtime;
 using Hotfix.HowToFish;
 using TMPro;
@@ -1198,7 +1198,7 @@ namespace Hotfix.Editor.HowToFish
             var presenter = new SerializedObject(root.GetComponent<HowToFishHudPresenter>());
             presenter.FindProperty("m_EditorClassIdentifier").stringValue = "Hotfix::" + typeof(HowToFishHudPresenter).FullName;
             presenter.ApplyModifiedPropertiesWithoutUndo();
-            var nodes = MvcPrefabScanner.Scan(root);
+            var nodes = UIBindPrefabScanner.Scan(root);
             foreach (var node in nodes)
             {
                 var component = node.gameObject.GetComponent<HowToFishHudPresenter>() as Component
@@ -1207,18 +1207,18 @@ namespace Hotfix.Editor.HowToFish
                     ?? node.gameObject.GetComponent<Image>();
                 if (component != null) Select(node, component.GetType());
             }
-            var settings = new MvcBindSettings
+            var settings = new UIBindSettings
             {
                 prefabPath = HudPath, moduleName = "HowToFish", viewName = "HowToFishHudView", namespaceName = "Hotfix",
-                address = MvcBindPathUtility.ToRuntimeAddress(HudPath), viewType = ViewType.View,
+                address = UIBindPathUtility.ToRuntimeAddress(HudPath), viewType = ViewType.View,
                 layer = UILayer.Decorate, viewMode = UIViewMode.Widget, mask = MaskType.None,
                 isHotfix = true, enableOnInit = true, destroyOnHide = true,
                 useCustomModuleOutputDirectory = true,
                 customModuleOutputDirectory = "Assets/Scripts/Hotfix/Demos/HowToFish/UI",
                 uiTransitionType = typeof(EmptyUITransition).FullName
             };
-            settings.outputFolder = MvcBindPathUtility.ToOutputFolder(settings);
-            if (!MvcBindComponentWindowBridge.GenerateAndBind(root, settings, nodes, false, out _, out var message)) throw new InvalidOperationException(message);
+            settings.outputFolder = UIBindPathUtility.ToOutputFolder(settings);
+            if (!UIBindComponentWindowBridge.GenerateAndBind(root, settings, nodes, false, out _, out var message)) throw new InvalidOperationException(message);
             PrefabUtility.SaveAsPrefabAsset(root, HudPath);
         }
 
@@ -1420,7 +1420,7 @@ namespace Hotfix.Editor.HowToFish
         { var image = Rect(name, parent, size, position).gameObject.AddComponent<Image>(); image.color = color; return image; }
 
         private static void Bind(SerializedObject owner, string field, Object value) => owner.FindProperty(field).objectReferenceValue = value;
-        private static void Select(MvcBindNode node, Type type)
+        private static void Select(UIBindNode node, Type type)
         { node.selectedComponentType = type; node.selectedComponentTypeName = type.FullName; node.selectedComponentTypes.Clear(); node.selectedMethodNames.Clear(); node.selectedMethodNamesByComponentTypeName.Clear(); }
     }
 }

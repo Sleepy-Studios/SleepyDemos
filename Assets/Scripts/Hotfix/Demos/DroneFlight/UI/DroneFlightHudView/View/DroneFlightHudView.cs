@@ -5,7 +5,7 @@ namespace Hotfix
     using DroneFlight;
 
     [Module("DroneFlight")]
-    [Mvc("DroneFlightHudView")]
+    [UIBind("DroneFlightHudView")]
     public partial class DroneFlightHudView : View<DroneFlightViewData>
     {
         private UIProgressBar resetProgressBar;

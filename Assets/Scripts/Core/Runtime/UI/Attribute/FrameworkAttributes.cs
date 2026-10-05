@@ -14,14 +14,14 @@ namespace Core.Runtime
     }
 
     [AttributeUsage(AttributeTargets.Class, Inherited = false)]
-    public sealed class MvcAttribute : Attribute
+    public sealed class UIBindAttribute : Attribute
     {
-        public MvcAttribute(string mvcName)
+        public UIBindAttribute(string viewName)
         {
-            MvcName = mvcName;
+            ViewName = viewName;
         }
 
-        public string MvcName { get; }
+        public string ViewName { get; }
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property, Inherited = false)]

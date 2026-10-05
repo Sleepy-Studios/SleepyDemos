@@ -89,7 +89,7 @@ Assets/LoadResources/Demos/drone_flight/
 6. 选择完成后无需再按 F；`R` 仍是唯一的电机解锁/锁定入口。F 只保留为旧 `Waiting` 状态的兼容入口，不进入常驻操作提示。
 7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
-机型选择以 1920×1080 为设计基准，`DroneVehicleSelectionLayout` 按宿主尺寸和安全区缩放内容，超宽屏扩展独立背景，触屏放大卡片文字。三张透明 PNG 直接由成品 Prefab 的真实网格与材质渲染，大预览与卡片共用同一 Sprite；模型图保持比例，按钮/卡片底板使用带 Border 的 Sliced Sprite。`UIMenuScope`、`UICancelRelay` 与 `InputBindingPrompt` 继续提供公共导航、返回和实际绑定提示。一次性取图、装配工具完成后删除，日常通过 Prefab 和 MvcBind 维护，不运行时重建 UI。
+机型选择以 1920×1080 为设计基准，`DroneVehicleSelectionLayout` 按宿主尺寸和安全区缩放内容，超宽屏扩展独立背景，触屏放大卡片文字。三张透明 PNG 直接由成品 Prefab 的真实网格与材质渲染，大预览与卡片共用同一 Sprite；模型图保持比例，按钮/卡片底板使用带 Border 的 Sliced Sprite。`UIMenuScope`、`UICancelRelay` 与 `InputBindingPrompt` 继续提供公共导航、返回和实际绑定提示。一次性取图、装配工具完成后删除，日常通过 Prefab 和 UIBind 维护，不运行时重建 UI。
 
 ## 配置边界
 
@@ -147,8 +147,8 @@ Assets/LoadResources/Demos/drone_flight/
 - 模式切换用 `0.35 s` SmoothStep，位置和旋转各自阻尼。ThirdPerson/Orbit 使用忽略本机、装备和 Trigger 的 SphereCast 防穿模。所有平滑只写 Camera Transform，不写 Rigidbody。
 - HUD 正上方显示当前视角及切换提示，左上显示飞控状态与档位，左下显示高度、距离与水平/垂直速度；触屏将遥测移至左上，避让双摇杆。装备提示按纯无人机、抓斗、渔叉切换，告警和长按重置仅在对应状态出现。完整操作说明移至独立 `DroneFlightHelpView`，通过 F1 或操作菜单的帮助入口打开。指南按当前提示设备与装备显示四组真实操作，不显示开发诊断或虚构的电池、GNSS、图传信号。
 - 操作指南使用 `Tip/Modal`、强类型 `DroneFlightViewData`、公共 `UIMenuScope` 焦点与取消事件；正文可滚动，窄屏切换单列并避让安全区。`IsHelpOpen` 独立阻止飞行输入并清空保持状态，保留 `IsPanelOpen` 来源：关闭后回原操作菜单或飞行，等待旧按键释放，不将取消穿透为退出遥控。
-- HUD、帮助、Debug 和机型选择 View 中固定存在的绑定节点统一进入根节点 `ComponentItemIndex`，业务代码使用 MvcBind 生成的强类型字段；布局和触控表现组件通过 Prefab 序列化引用其子节点，不在显示时按名称查找。
-- HUD 修改后使用现有 MvcBind 更新完整绑定索引，自定义 Module 输出目录选择 `Assets/Scripts/Hotfix/Demos/DroneFlight/UI`，工具追加 `<View名>/View`；不重跑已删除的装配脚本。
+- HUD、帮助、Debug 和机型选择 View 中固定存在的绑定节点统一进入根节点 `ComponentItemIndex`，业务代码使用 UIBind 生成的强类型字段；布局和触控表现组件通过 Prefab 序列化引用其子节点，不在显示时按名称查找。
+- HUD 修改后使用现有 UIBind 更新完整绑定索引，自定义 Module 输出目录选择 `Assets/Scripts/Hotfix/Demos/DroneFlight/UI`，工具追加 `<View名>/View`；不重跑已删除的装配脚本。
 - 相机监听器、运行时机体组件以及捕鱼场景显式注入的 Canvas/Button 属于运行时组合或场景结构，不是 View Prefab 固定节点；这些位置可以在组合阶段缓存组件，但必须用中文注释说明原因。
 
 ## 飞控与遥测
@@ -170,7 +170,7 @@ F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/�
 - 不在玩法或输入代码中直接调用 `SceneManager`；切换和重载统一走导航器。
 - 装备模块必须独立保存为 Prefab；装备机体必须保存为基础无人机加嵌套装备的成品 Prefab。运行时禁止动态拼装或调用编辑器 Builder。
 - 不修改生成的 `*Component.cs`；View 数据由正式 UIManager 导航事务传入。
-- 手写 `*View.cs` 禁止通过 `Transform.Find`、`GameObject.Find` 或 `GetComponentInChildren` 获取固定 Prefab 节点；新增固定节点时先维护 `ComponentItemIndex`，再通过 MvcBind 重新生成强类型字段。
+- 手写 `*View.cs` 禁止通过 `Transform.Find`、`GameObject.Find` 或 `GetComponentInChildren` 获取固定 Prefab 节点；新增固定节点时先维护 `ComponentItemIndex`，再通过 UIBind 重新生成强类型字段。
 - 不使用中心总推力替代四个 Rotor，不用高 Rigidbody 阻尼掩盖振荡。
 - 装备内部碰撞必须忽略，装备与载荷/场景碰撞保留。
 - 场景卸载、断绳、释放与回收必须清理临时 Joint、碰撞忽略和弹体引用。
@@ -195,7 +195,7 @@ Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使�
 
 ## HUD 子资源（2026-10-05）
 
-保留已有 HUD、机型选择、帮助、调试四个独立 View。HUD 的 `TelemetryRoot`、`TouchControls`、`OperationPanel` 保存于 `Prefabs/UI/Parts/`，通过嵌套 Prefab 维护；根 View 的 MvcBind、DroneHudLayout 和 DroneControlsPresenter 引用仍指向实际子资源实例。遥测与控制生命周期沿用既有绑定/解除绑定，不新增窗口或飞行控制器。
+保留已有 HUD、机型选择、帮助、调试四个独立 View。HUD 的 `TelemetryRoot`、`TouchControls`、`OperationPanel` 保存于 `Prefabs/UI/Parts/`，通过嵌套 Prefab 维护；根 View 的 UIBind、DroneHudLayout 和 DroneControlsPresenter 引用仍指向实际子资源实例。遥测与控制生命周期沿用既有绑定/解除绑定，不新增窗口或飞行控制器。
 
 按钮使用公共五状态反馈，机型业务选中态独立使用 UIState，保留橙色选中与原字体、布局；复位进度继续使用 UIProgressBar。子资源变更后检查 HUD 绑定与触控双指针释放，禁止重新合并为巨型页面。
 

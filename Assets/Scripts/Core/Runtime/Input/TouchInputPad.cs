@@ -64,5 +64,7 @@ namespace Core.Runtime.Inputs
         }
 
         private void OnDisable() => ResetInput();
+        private void OnApplicationFocus(bool focused) { if (!focused) ResetInput(); }
+        private void OnApplicationPause(bool paused) { if (paused) ResetInput(); }
     }
 }

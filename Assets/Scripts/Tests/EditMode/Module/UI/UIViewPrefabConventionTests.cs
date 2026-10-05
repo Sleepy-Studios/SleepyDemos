@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -15,7 +15,7 @@ namespace Tests.Module
             var violations = new List<string>();
             var prefabGuids = AssetDatabase.FindAssets(
                 "t:Prefab",
-                new[] { MvcBindPathUtility.DefaultUiPrefabRoot });
+                new[] { UIBindPathUtility.DefaultUiPrefabRoot });
 
             foreach (var guid in prefabGuids)
             {

@@ -251,13 +251,12 @@ namespace Core.Runtime
 
         private static bool Modify(Type type, IData instance)
         {
-            processingList.Remove(type);
-            if (!state.ContainsKey(type))
+            if (!state.TryGetValue(type, out var registered) || !ReferenceEquals(registered, instance))
             {
                 return false;
             }
 
-            state[type] = instance;
+            processingList.Remove(type);
             if (subjects.TryGetValue(type, out var actionData))
             {
                 actionData.Invoke(instance);

@@ -11,7 +11,7 @@
 - 规则与角色引用：`Assets/Scripts/Hotfix/Demos/BlockPorters/`，归属 `Hotfix`。
 - 图片工作台：`Assets/Scripts/Hotfix/Editor/BlockPorters/`，归属 `Hotfix.Editor`，仅处理关卡内容。
 - 原图与编辑配方：`Assets/Settings/BlockPorters/Sources/`、`Recipes/`，不进入 YooAsset Collector。
-- 场景会话、奖励服务与主题加载：Demo 根目录；`BlockPortersController` 管理场景会话。界面、屏幕布局和 UI 规格放在 `UI/`，`BlockPortersHudView` 进入 Core 的 Decorate/Widget 层，固定节点由 MvcBind 与 `ComponentItemIndex` 保存。业务类型使用 `Hotfix.BlockPorters` 命名空间，三个 View 保持 `Hotfix`；不设置统一的适配器层。
+- 场景会话、奖励服务与主题加载：Demo 根目录；`BlockPortersController` 管理场景会话。界面、屏幕布局和 UI 规格放在 `UI/`，`BlockPortersHudView` 进入 Core 的 Decorate/Widget 层，固定节点由 UIBind 与 `ComponentItemIndex` 保存。业务类型使用 `Hotfix.BlockPorters` 命名空间，三个 View 保持 `Hotfix`；不设置统一的适配器层。
 - 资源：`Assets/LoadResources/Demos/block_porters/`；`Scenes/Main.unity`、`Prefabs/Porter.prefab`、`Prefabs/Brick.prefab`、`Prefabs/UI/BlockPortersHudView.prefab`、`Data/Level1.asset` 至 `Level5.asset`。程序化深坑网格保存为 `Data/PitRing.asset`，自制音效位于 `Audio/SFX/`。
 
 ## 主链路
@@ -61,7 +61,7 @@ HUD 沿用 Core Decorate/Widget 的宿主，不新增 Canvas。五列四排卡�
 
 坑内使用私有开口裁剪 Shader，按世界相机正交视线投回坑沿平面，防止深处坑底在后景图片上露出孔外轮廓；不依赖被移除的三维地面遮挡，不引入全屏后处理。参数由 Controller 随布局适配更新，孔心使用实际 PitRim 高度，半径向内留半设计像素余量，不参与搬运规则或事件时刻。
 
-设置入口保留 `Pause` 节点名，打开时记录原暂停状态，关闭只撤销面板产生的暂停；声音、重开、返回位于设置中。设置与结果分别保存为 `BlockPortersSettingsView`、`BlockPortersResultView` 的独立 Prefab 和 MvcBind View，位于 Tip/Modal；各自全屏背景负责拦截，公共 Modal Mask 不改。重开后的刷新关闭设置、恢复队伍和进度。
+设置入口保留 `Pause` 节点名，打开时记录原暂停状态，关闭只撤销面板产生的暂停；声音、重开、返回位于设置中。设置与结果分别保存为 `BlockPortersSettingsView`、`BlockPortersResultView` 的独立 Prefab 和 UIBind View，位于 Tip/Modal；各自全屏背景负责拦截，公共 Modal Mask 不改。重开后的刷新关闭设置、恢复队伍和进度。
 
 安全区变化时内容整体适配，遮罩反向补偿内容的缩放和偏移，覆盖整个宿主；弹窗卡片仍居中于安全区。长竖屏顶部留白不能穿透到公共画质入口。齿轮位置避开公共画质按钮，两者继续独立维护。
 
@@ -96,7 +96,7 @@ Editor 的性能采样包含测试与编辑器开销，不能替代抖音/微信
 - [场景导航](../../modules/scene-runtime.md)
 - [新增 Demo](../../runbooks/add-demo.md)
 
-UI 与场景直接维护已保存资产，绑定更新使用公共 MvcBind。启动不预建小人，每列显示列头和三队预览。
+UI 与场景直接维护已保存资产，绑定更新使用公共 UIBind。启动不预建小人，每列显示列头和三队预览。
 
 ## 菜单输入
 

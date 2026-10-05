@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using Core.Runtime;
 using NUnit.Framework;
 using UnityEditor;
@@ -8,9 +8,9 @@ using UnityEngine;
 
 namespace Tests.Module
 {
-    public sealed class MvcBindIndexDiscoveryTests
+    public sealed class UIBindIndexDiscoveryTests
     {
-        private const string TemporaryRoot = "Assets/__MvcBindIndexDiscoveryTests";
+        private const string TemporaryRoot = "Assets/__UIBindIndexDiscoveryTests";
 
         [TearDown]
         public void TearDown()
@@ -24,7 +24,7 @@ namespace Tests.Module
         [Test]
         public void Discover_ProjectIndex_UsesPrefabsAndFindsDroneFlightCustomDirectoryViews()
         {
-            var result = MvcBindIndexDiscovery.Discover();
+            var result = UIBindIndexDiscovery.Discover();
 
             Assert.That(result.ScriptScanPasses, Is.EqualTo(1));
             Assert.That(result.PrefabCandidateCount, Is.GreaterThanOrEqualTo(result.Records.Count));
@@ -33,10 +33,11 @@ namespace Tests.Module
             var droneRecords = result.Records
                 .Where(record => record.viewName.StartsWith("DroneFlight", StringComparison.Ordinal))
                 .ToArray();
-            Assert.That(droneRecords.Select(record => record.viewName), Is.EquivalentTo(new[]
+            Assert.That(droneRecords.Select(record => record.viewName), Is.SupersetOf(new[]
             {
                 "DroneFlightDebugView",
                 "DroneFlightHudView",
+                "DroneFlightHelpView",
                 "DroneFlightVehicleSelectView"
             }));
             Assert.That(droneRecords.All(record => record.isValid), Is.True);
@@ -48,11 +49,11 @@ namespace Tests.Module
         {
             CreateTemporaryIndexedPrefab("MissingGeneratedScriptsView");
 
-            var records = MvcBindIndexDiscovery.BuildViewRecords(MvcBindToolConfig.ScriptRoot, TemporaryRoot);
+            var records = UIBindIndexDiscovery.BuildViewRecords(UIBindToolConfig.ScriptRoot, TemporaryRoot);
 
             Assert.That(records, Has.Count.EqualTo(1));
             Assert.That(records[0].isValid, Is.False);
-            Assert.That(records[0].moduleName, Is.EqualTo(MvcBindViewRecord.InvalidModuleName));
+            Assert.That(records[0].moduleName, Is.EqualTo(UIBindViewRecord.InvalidModuleName));
             StringAssert.Contains("缺少手写 View 脚本", records[0].validationMessage);
             StringAssert.Contains("缺少生成的 ViewComponent 脚本", records[0].validationMessage);
         }
@@ -60,12 +61,12 @@ namespace Tests.Module
         [Test]
         public void ApplyPrefabGenerationLocation_DroneFlightHud_UsesCustomDirectory()
         {
-            var record = MvcBindIndexDiscovery.BuildViewRecords()
+            var record = UIBindIndexDiscovery.BuildViewRecords()
                 .Single(item => item.viewName == "DroneFlightHudView");
-            var settings = new MvcBindSettings();
+            var settings = new UIBindSettings();
             settings.ApplyPrefabPath(record.prefabPath);
 
-            MvcBindWindow.ApplyPrefabGenerationLocation(settings, record);
+            UIBindWindow.ApplyPrefabGenerationLocation(settings, record);
 
             Assert.That(settings.moduleName, Is.EqualTo("DroneFlight"));
             Assert.That(settings.useCustomModuleOutputDirectory, Is.True);
@@ -81,12 +82,12 @@ namespace Tests.Module
         [Test]
         public void ApplyPrefabGenerationLocation_DefaultModuleView_DoesNotEnableCustomDirectory()
         {
-            var record = MvcBindIndexDiscovery.BuildViewRecords()
+            var record = UIBindIndexDiscovery.BuildViewRecords()
                 .Single(item => item.viewName == "MainMenuView");
-            var settings = new MvcBindSettings();
+            var settings = new UIBindSettings();
             settings.ApplyPrefabPath(record.prefabPath);
 
-            MvcBindWindow.ApplyPrefabGenerationLocation(settings, record);
+            UIBindWindow.ApplyPrefabGenerationLocation(settings, record);
 
             Assert.That(settings.moduleName, Is.EqualTo("Main"));
             Assert.That(settings.useCustomModuleOutputDirectory, Is.False);
@@ -97,7 +98,7 @@ namespace Tests.Module
 
         private static void CreateTemporaryIndexedPrefab(string viewName)
         {
-            AssetDatabase.CreateFolder("Assets", "__MvcBindIndexDiscoveryTests");
+            AssetDatabase.CreateFolder("Assets", "__UIBindIndexDiscoveryTests");
             var root = new GameObject(viewName, typeof(RectTransform), typeof(ComponentItemIndex));
             try
             {

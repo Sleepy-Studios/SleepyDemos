@@ -2,7 +2,7 @@
 
 ## 入口与资料
 
-非 Play 模式打开 `Tools/SleepyDemos/小小搬豆工/关卡编辑器`。工具不重建场景、UI、模型或字体；这些资源直接维护已保存资产，绑定使用 MvcBind。
+非 Play 模式打开 `Tools/SleepyDemos/小小搬豆工/关卡编辑器`。工具不重建场景、UI、模型或字体；这些资源直接维护已保存资产，绑定使用 UIBind。
 
 单图用“导入单图”，多图可拖入项目/外部 PNG、JPG 或选择“批量目录”。原图副本与配方在 `Assets/Settings/BlockPorters/`；正式导出在 `Assets/LoadResources/Demos/block_porters/Data/`。关卡集默认为 `Data/LevelCatalog.asset`，也可显式选择其他关卡集作为导出目标。
 

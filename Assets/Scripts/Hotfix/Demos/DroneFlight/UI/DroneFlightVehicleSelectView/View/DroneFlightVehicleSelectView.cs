@@ -28,7 +28,7 @@ namespace Hotfix
     }
 
     [Module("DroneFlight")]
-    [Mvc("DroneFlightVehicleSelectView")]
+    [UIBind("DroneFlightVehicleSelectView")]
     public partial class DroneFlightVehicleSelectView : View<DroneFlightVehicleSelectionData>
     {
         private static readonly (string Title, string Description, string Equipment, string Operation, string Purpose)[] Models =

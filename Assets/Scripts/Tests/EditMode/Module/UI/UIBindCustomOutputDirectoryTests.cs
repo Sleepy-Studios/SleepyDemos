@@ -1,19 +1,19 @@
 using System.IO;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using Core.Runtime;
 using NUnit.Framework;
 using UnityEngine;
 
 namespace Tests.Module
 {
-    public sealed class MvcBindCustomOutputDirectoryTests
+    public sealed class UIBindCustomOutputDirectoryTests
     {
         [Test]
         public void ToOutputFolder_WhenCustomDirectoryDisabled_PreservesDefaultConvention()
         {
             var settings = CreateSettings();
 
-            var output = MvcBindPathUtility.ToOutputFolder(settings);
+            var output = UIBindPathUtility.ToOutputFolder(settings);
 
             Assert.That(
                 output,
@@ -28,7 +28,7 @@ namespace Tests.Module
             settings.customModuleOutputDirectory =
                 "Assets/Scripts/Hotfix/Demos/DroneFlight/UI";
 
-            var output = MvcBindPathUtility.ToOutputFolder(settings);
+            var output = UIBindPathUtility.ToOutputFolder(settings);
 
             Assert.That(
                 output,
@@ -62,7 +62,7 @@ namespace Tests.Module
         [TestCase("Assets/../Packages/DroneFlight")]
         public void IsValidCustomModuleOutputDirectory_WhenOutsideAssets_ReturnsFalse(string path)
         {
-            Assert.That(MvcBindPathUtility.IsValidCustomModuleOutputDirectory(path), Is.False);
+            Assert.That(UIBindPathUtility.IsValidCustomModuleOutputDirectory(path), Is.False);
         }
 
         [Test]
@@ -70,7 +70,7 @@ namespace Tests.Module
         {
             var absolutePath = Path.Combine(Application.dataPath, "Scripts", "Hotfix");
 
-            var converted = MvcBindWindow.TryConvertToAssetFolder(absolutePath, out var assetFolder);
+            var converted = UIBindWindow.TryConvertToAssetFolder(absolutePath, out var assetFolder);
 
             Assert.That(converted, Is.True);
             Assert.That(assetFolder, Is.EqualTo("Assets/Scripts/Hotfix"));
@@ -81,7 +81,7 @@ namespace Tests.Module
         {
             var outsidePath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Library"));
 
-            var converted = MvcBindWindow.TryConvertToAssetFolder(outsidePath, out var assetFolder);
+            var converted = UIBindWindow.TryConvertToAssetFolder(outsidePath, out var assetFolder);
 
             Assert.That(converted, Is.False);
             Assert.That(assetFolder, Is.Empty);
@@ -93,7 +93,7 @@ namespace Tests.Module
             var target = new GameObject("MissingModuleView", typeof(RectTransform));
             try
             {
-                var settings = new MvcBindSettings
+                var settings = new UIBindSettings
                 {
                     prefabPath = "Assets/LoadResources/UI/MissingModuleView.prefab",
                     viewName = "MissingModuleView",
@@ -101,7 +101,7 @@ namespace Tests.Module
                     useCustomModuleOutputDirectory = true,
                     customModuleOutputDirectory = "Assets/Scripts/Hotfix/Demos"
                 };
-                var node = new MvcBindNode
+                var node = new UIBindNode
                 {
                     name = target.name,
                     path = target.name,
@@ -109,7 +109,7 @@ namespace Tests.Module
                     selectedComponentType = typeof(RectTransform)
                 };
 
-                var success = MvcBindComponentWindowBridge.GenerateAndBind(
+                var success = UIBindComponentWindowBridge.GenerateAndBind(
                     target,
                     settings,
                     new[] { node },
@@ -127,9 +127,9 @@ namespace Tests.Module
             }
         }
 
-        private static MvcBindSettings CreateSettings()
+        private static UIBindSettings CreateSettings()
         {
-            return new MvcBindSettings
+            return new UIBindSettings
             {
                 moduleName = "DroneFlight",
                 viewName = "DroneFlightHudView"

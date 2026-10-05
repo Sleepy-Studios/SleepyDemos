@@ -24,6 +24,8 @@ namespace Tests.Module
             };
 
         private GameObject createdMainCamera;
+        private Core.Runtime.Rendering.Streamline.StreamlineDlssMode? savedDlssMode;
+        private bool restoreDlssMode;
 
         [UnitySetUp]
         public IEnumerator SetUp()
@@ -56,6 +58,11 @@ namespace Tests.Module
             }
 
             yield return null;
+            if (restoreDlssMode)
+            {
+                Core.Runtime.Rendering.Streamline.StreamlineRuntime.SetMode(savedDlssMode);
+                restoreDlssMode = false;
+            }
         }
 
         [Test]
@@ -169,6 +176,9 @@ namespace Tests.Module
         [UnityTest]
         public IEnumerator BindToBaseCamera_MovesOverlayCameraBetweenUrpStacks()
         {
+            savedDlssMode = Core.Runtime.Rendering.Streamline.StreamlineRuntime.RequestedMode;
+            restoreDlssMode = true;
+            Core.Runtime.Rendering.Streamline.StreamlineRuntime.SetMode(null);
             var manager = UIRootManager.Instance;
             var previousCamera = manager.BaseCamera;
             var nextObject = new GameObject("Next Base Camera");

@@ -12,7 +12,7 @@ namespace Hotfix
     using UnityEngine.InputSystem;
 
     [Module("Main")]
-    [Mvc("MainMenuView")]
+    [UIBind("MainMenuView")]
     public partial class MainMenuView : View
     {
         private readonly List<MainMenuDemoEntry> entries = new List<MainMenuDemoEntry>();

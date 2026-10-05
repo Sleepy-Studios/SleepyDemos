@@ -1,5 +1,5 @@
 using System.Linq;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using UnityEditor;
 using YooAsset.Editor;
 

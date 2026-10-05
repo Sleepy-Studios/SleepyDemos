@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Core.Editor.MvcBind;
+using Core.Editor.UIBind;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
@@ -11,16 +11,16 @@ using UnityEngine;
 
 namespace Tests.Module
 {
-    public sealed class MvcBindTransitionGenerationTests
+    public sealed class UIBindTransitionGenerationTests
     {
         [Test]
         public void CreateComponentScriptText_GeneratesTransitionFactoryAndExplicitViewMode()
         {
             var settings = CreateSettings();
 
-            var source = MvcCodeGenerator.CreateComponentScriptText(
+            var source = UIBindCodeGenerator.CreateComponentScriptText(
                 settings,
-                Array.Empty<MvcBindComponentInfo>());
+                Array.Empty<UIBindComponentInfo>());
 
             StringAssert.Contains("protected override IUITransition CreateUITransition()", source);
             StringAssert.Contains("return new Core.Runtime.EmptyUITransition();", source);
@@ -36,9 +36,9 @@ namespace Tests.Module
             var settings = CreateSettings();
             settings.worldTransitionKey = "camera\\\"main";
 
-            var source = MvcCodeGenerator.CreateComponentScriptText(
+            var source = UIBindCodeGenerator.CreateComponentScriptText(
                 settings,
-                new List<MvcBindComponentInfo>());
+                new List<UIBindComponentInfo>());
 
             StringAssert.Contains("public override string WorldTransitionKey => \"camera\\\\\\\"main\";", source);
             StringAssert.DoesNotContain("new IUIWorldTransition", source);
@@ -47,7 +47,7 @@ namespace Tests.Module
         [Test]
         public void GetUITransitionTypeChoices_OnlyReturnsConstructiblePlayerTypes()
         {
-            var choices = MvcBindWindow.GetUITransitionTypeChoices();
+            var choices = UIBindWindow.GetUITransitionTypeChoices();
 
             CollectionAssert.Contains(choices, typeof(EmptyUITransition).FullName);
             CollectionAssert.DoesNotContain(choices, typeof(EditorOnlyTransition).FullName);
@@ -64,9 +64,9 @@ namespace Tests.Module
             settings.uiTransitionType = transitionType.FullName;
 
             var exception = Assert.Throws<InvalidDataException>(() =>
-                MvcCodeGenerator.CreateComponentScriptText(
+                UIBindCodeGenerator.CreateComponentScriptText(
                     settings,
-                    Array.Empty<MvcBindComponentInfo>()));
+                    Array.Empty<UIBindComponentInfo>()));
 
             StringAssert.Contains(transitionType.FullName, exception.Message);
         }
@@ -74,22 +74,22 @@ namespace Tests.Module
         [Test]
         public void GenerateAndBind_InvalidTransitionType_HasNoPrefabOrFileSideEffects()
         {
-            var uniqueModuleName = $"__MvcBindPreflight_{Guid.NewGuid():N}";
+            var uniqueModuleName = $"__UIBindPreflight_{Guid.NewGuid():N}";
             var moduleRoot = $"Assets/Scripts/Hotfix/Module/{uniqueModuleName}";
             var viewName = "InvalidTransitionView";
-            var outputFolder = MvcBindPathUtility.ToOutputFolder(uniqueModuleName, viewName);
-            var target = new GameObject("MvcBindPreflightTarget", typeof(RectTransform));
+            var outputFolder = UIBindPathUtility.ToOutputFolder(uniqueModuleName, viewName);
+            var target = new GameObject("UIBindPreflightTarget", typeof(RectTransform));
 
             try
             {
-                var node = new MvcBindNode
+                var node = new UIBindNode
                 {
                     name = target.name,
                     path = target.name,
                     gameObject = target,
                     selectedComponentType = typeof(RectTransform)
                 };
-                var settings = new MvcBindSettings
+                var settings = new UIBindSettings
                 {
                     prefabPath = $"Assets/LoadResources/UI/{viewName}.prefab",
                     moduleName = uniqueModuleName,
@@ -100,7 +100,7 @@ namespace Tests.Module
                     uiTransitionType = typeof(EditorOnlyTransition).FullName
                 };
 
-                var success = MvcBindComponentWindowBridge.GenerateAndBind(
+                var success = UIBindComponentWindowBridge.GenerateAndBind(
                     target,
                     settings,
                     new[] { node },
@@ -129,9 +129,9 @@ namespace Tests.Module
             }
         }
 
-        private static MvcBindSettings CreateSettings()
+        private static UIBindSettings CreateSettings()
         {
-            return new MvcBindSettings
+            return new UIBindSettings
             {
                 namespaceName = "Hotfix",
                 viewName = "GeneratedView",

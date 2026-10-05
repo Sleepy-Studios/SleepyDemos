@@ -6,6 +6,27 @@ namespace Core.Runtime
 {
     public static class RegisterExtend
     {
+        /// <summary>绑定设备无关命令点击；随 View 根对象销毁解除。</summary>
+        /// <param name="view">拥有此按钮的页面。</param>
+        /// <param name="button">已保存的输入按钮。</param>
+        /// <param name="onClick">业务命令回调。</param>
+        [ComponentAttribute("On{0}Click", true)]
+        public static void RegisterInputCommandButton(this View view, Inputs.InputCommandButton button, Action<string> onClick)
+        {
+            button.Clicked += onClick;
+            view.AddBinding(new CallbackBinding(() => { if (button != null) button.Clicked -= onClick; }));
+        }
+
+        /// <summary>绑定按下与释放；公共按钮处理指针归属与禁用释放。</summary>
+        /// <param name="view">拥有此按钮的页面。</param>
+        /// <param name="button">已保存的输入按钮。</param>
+        /// <param name="onHold">命令名与保持状态。</param>
+        [ComponentAttribute("On{0}HoldChanged")]
+        public static void RegisterInputCommandHold(this View view, Inputs.InputCommandButton button, Action<string, bool> onHold)
+        {
+            button.HoldChanged += onHold;
+            view.AddBinding(new CallbackBinding(() => { if (button != null) button.HoldChanged -= onHold; }));
+        }
         [ComponentAttribute("On{0}Click", true)]
         public static void RegisterButton(this View view, Button button, UnityAction onClick)
         {
@@ -49,7 +70,7 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 注册手风琴 Tab 的叶子页签点击回调，供 MvcBind 生成 View 绑定代码使用。
+        /// 注册手风琴 Tab 的叶子页签点击回调，供 UIBind 生成 View 绑定代码使用。
         /// </summary>
         [ComponentAttribute("On{0}Click")]
         public static void RegisterAccordionTab(this View view, AccordionTab tab, Action<int> action)
@@ -58,7 +79,7 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 注册手风琴 ViewTab 的叶子页签点击回调，供 MvcBind 生成 View 绑定代码使用。
+        /// 注册手风琴 ViewTab 的叶子页签点击回调，供 UIBind 生成 View 绑定代码使用。
         /// </summary>
         [ComponentAttribute("On{0}Click")]
         public static void RegisterAccordionViewTab(this View view, AccordionViewTab tab, Action<int> action)
@@ -127,7 +148,7 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 注册手风琴 Tab 的叶子页签点击回调，供 MvcBind 生成 ItemView 绑定代码使用。
+        /// 注册手风琴 Tab 的叶子页签点击回调，供 UIBind 生成 ItemView 绑定代码使用。
         /// </summary>
         [ComponentAttribute("On{0}Click")]
         public static void RegisterAccordionTab(this ItemView view, AccordionTab tab, Action<int> action)
@@ -136,7 +157,7 @@ namespace Core.Runtime
         }
 
         /// <summary>
-        /// 注册手风琴 ViewTab 的叶子页签点击回调，供 MvcBind 生成 ItemView 绑定代码使用。
+        /// 注册手风琴 ViewTab 的叶子页签点击回调，供 UIBind 生成 ItemView 绑定代码使用。
         /// </summary>
         [ComponentAttribute("On{0}Click")]
         public static void RegisterAccordionViewTab(this ItemView view, AccordionViewTab tab, Action<int> action)

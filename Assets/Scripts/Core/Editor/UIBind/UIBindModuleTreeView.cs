@@ -10,16 +10,16 @@ using TreeView = UnityEditor.IMGUI.Controls.TreeView<int>;
 using TreeViewItem = UnityEditor.IMGUI.Controls.TreeViewItem<int>;
 using TreeViewState = UnityEditor.IMGUI.Controls.TreeViewState<int>;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
-    public sealed class MvcBindModuleTreeItem : TreeViewItem
+    public sealed class UIBindModuleTreeItem : TreeViewItem
     {
-        public MvcBindModuleTreeItem(
+        public UIBindModuleTreeItem(
             int id,
             int depth,
             string displayName,
-            MvcBindTreeItemKind kind,
-            MvcBindViewRecord record,
+            UIBindTreeItemKind kind,
+            UIBindViewRecord record,
             string assetPath)
             : base(id, depth, displayName)
         {
@@ -28,21 +28,21 @@ namespace Core.Editor.MvcBind
             this.assetPath = assetPath;
         }
 
-        public readonly MvcBindTreeItemKind kind;
-        public readonly MvcBindViewRecord record;
+        public readonly UIBindTreeItemKind kind;
+        public readonly UIBindViewRecord record;
         public readonly string assetPath;
     }
 
-    public sealed class MvcBindModuleTreeView : TreeView
+    public sealed class UIBindModuleTreeView : TreeView
     {
-        private readonly Action<MvcBindModuleTreeItem> itemActivated;
-        private readonly List<MvcBindViewRecord> records = new List<MvcBindViewRecord>();
+        private readonly Action<UIBindModuleTreeItem> itemActivated;
+        private readonly List<UIBindViewRecord> records = new List<UIBindViewRecord>();
         private readonly GUIContent warningIcon = EditorGUIUtility.IconContent("console.warnicon.sml");
         private readonly GUIContent prefabIcon = EditorGUIUtility.IconContent("Prefab Icon");
         private readonly GUIContent scriptIcon = EditorGUIUtility.IconContent("cs Script Icon");
         private int nextId;
 
-        public MvcBindModuleTreeView(TreeViewState state, Action<MvcBindModuleTreeItem> itemActivated)
+        public UIBindModuleTreeView(TreeViewState state, Action<UIBindModuleTreeItem> itemActivated)
             : base(state)
         {
             this.itemActivated = itemActivated;
@@ -52,7 +52,7 @@ namespace Core.Editor.MvcBind
             Reload();
         }
 
-        public void ReloadRecords(IEnumerable<MvcBindViewRecord> newRecords)
+        public void ReloadRecords(IEnumerable<UIBindViewRecord> newRecords)
         {
             records.Clear();
             if (newRecords != null)
@@ -68,7 +68,7 @@ namespace Core.Editor.MvcBind
         {
             nextId = 1;
             var root = new TreeViewItem { id = 0, depth = -1, displayName = "Root" };
-            var moduleHeader = NewItem(0, "Module", MvcBindTreeItemKind.Root, null, string.Empty);
+            var moduleHeader = NewItem(0, "Module", UIBindTreeItemKind.Root, null, string.Empty);
             root.AddChild(moduleHeader);
 
             foreach (var moduleGroup in records
@@ -76,7 +76,7 @@ namespace Core.Editor.MvcBind
                          .OrderBy(group => group.Key))
             {
                 var moduleName = string.IsNullOrEmpty(moduleGroup.Key) ? "[Module]" : $"[{moduleGroup.Key}]";
-                var moduleItem = NewItem(1, moduleName, MvcBindTreeItemKind.Module, null, string.Empty);
+                var moduleItem = NewItem(1, moduleName, UIBindTreeItemKind.Module, null, string.Empty);
                 moduleHeader.AddChild(moduleItem);
 
                 foreach (var record in moduleGroup.OrderBy(item => item.viewName))
@@ -84,22 +84,22 @@ namespace Core.Editor.MvcBind
                     var displayName = record.isValid || string.IsNullOrEmpty(record.validationMessage)
                         ? record.viewName
                         : $"{record.viewName}  —  {record.validationMessage}";
-                    var viewItem = NewItem(2, displayName, MvcBindTreeItemKind.View, record, string.Empty);
+                    var viewItem = NewItem(2, displayName, UIBindTreeItemKind.View, record, string.Empty);
                     moduleItem.AddChild(viewItem);
 
                     if (record.hasViewScript)
                     {
-                        viewItem.AddChild(NewItem(3, Path.GetFileNameWithoutExtension(record.viewScriptPath), MvcBindTreeItemKind.Code, record, record.viewScriptPath));
+                        viewItem.AddChild(NewItem(3, Path.GetFileNameWithoutExtension(record.viewScriptPath), UIBindTreeItemKind.Code, record, record.viewScriptPath));
                     }
 
                     if (record.hasComponentScript)
                     {
-                        viewItem.AddChild(NewItem(3, Path.GetFileNameWithoutExtension(record.componentScriptPath), MvcBindTreeItemKind.Code, record, record.componentScriptPath));
+                        viewItem.AddChild(NewItem(3, Path.GetFileNameWithoutExtension(record.componentScriptPath), UIBindTreeItemKind.Code, record, record.componentScriptPath));
                     }
 
                     if (record.hasPrefab)
                     {
-                        viewItem.AddChild(NewItem(3, "GameObject", MvcBindTreeItemKind.Prefab, record, record.prefabPath));
+                        viewItem.AddChild(NewItem(3, "GameObject", UIBindTreeItemKind.Prefab, record, record.prefabPath));
                     }
                 }
             }
@@ -120,7 +120,7 @@ namespace Core.Editor.MvcBind
                 return true;
             }
 
-            if (item is not MvcBindModuleTreeItem mvcItem)
+            if (item is not UIBindModuleTreeItem mvcItem)
             {
                 return base.DoesItemMatchSearch(item, search);
             }
@@ -132,7 +132,7 @@ namespace Core.Editor.MvcBind
 
         protected override void RowGUI(RowGUIArgs args)
         {
-            if (args.item is not MvcBindModuleTreeItem item)
+            if (args.item is not UIBindModuleTreeItem item)
             {
                 base.RowGUI(args);
                 return;
@@ -153,9 +153,9 @@ namespace Core.Editor.MvcBind
                 GUI.Label(iconRect, icon);
             }
 
-            using (new EditorGUI.DisabledScope(item.kind == MvcBindTreeItemKind.Root))
+            using (new EditorGUI.DisabledScope(item.kind == UIBindTreeItemKind.Root))
             {
-                var style = item.kind == MvcBindTreeItemKind.Module || item.kind == MvcBindTreeItemKind.View || item.kind == MvcBindTreeItemKind.Root
+                var style = item.kind == UIBindTreeItemKind.Module || item.kind == UIBindTreeItemKind.View || item.kind == UIBindTreeItemKind.Root
                     ? EditorStyles.boldLabel
                     : EditorStyles.label;
                 EditorGUI.LabelField(labelRect, item.displayName, style);
@@ -172,37 +172,37 @@ namespace Core.Editor.MvcBind
 
         protected override void DoubleClickedItem(int id)
         {
-            itemActivated?.Invoke(FindItem(id, rootItem) as MvcBindModuleTreeItem);
+            itemActivated?.Invoke(FindItem(id, rootItem) as UIBindModuleTreeItem);
         }
 
         protected override void SingleClickedItem(int id)
         {
-            itemActivated?.Invoke(FindItem(id, rootItem) as MvcBindModuleTreeItem);
+            itemActivated?.Invoke(FindItem(id, rootItem) as UIBindModuleTreeItem);
         }
 
-        private MvcBindModuleTreeItem NewItem(
+        private UIBindModuleTreeItem NewItem(
             int depth,
             string displayName,
-            MvcBindTreeItemKind kind,
-            MvcBindViewRecord record,
+            UIBindTreeItemKind kind,
+            UIBindViewRecord record,
             string assetPath)
         {
-            return new MvcBindModuleTreeItem(nextId++, depth, displayName, kind, record, assetPath);
+            return new UIBindModuleTreeItem(nextId++, depth, displayName, kind, record, assetPath);
         }
 
-        private GUIContent GetIcon(MvcBindModuleTreeItem item)
+        private GUIContent GetIcon(UIBindModuleTreeItem item)
         {
             return item.kind switch
             {
-                MvcBindTreeItemKind.Prefab => prefabIcon,
-                MvcBindTreeItemKind.Code => scriptIcon,
+                UIBindTreeItemKind.Prefab => prefabIcon,
+                UIBindTreeItemKind.Code => scriptIcon,
                 _ => null
             };
         }
 
-        private static bool ShouldWarn(MvcBindModuleTreeItem item)
+        private static bool ShouldWarn(UIBindModuleTreeItem item)
         {
-            return item.kind == MvcBindTreeItemKind.View && item.record != null && !item.record.isValid;
+            return item.kind == UIBindTreeItemKind.View && item.record != null && !item.record.isValid;
         }
 
         private static bool ContainsSearch(string value, string search)

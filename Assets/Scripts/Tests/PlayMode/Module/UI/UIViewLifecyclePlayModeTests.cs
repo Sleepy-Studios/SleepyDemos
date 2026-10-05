@@ -16,6 +16,98 @@ namespace Tests.Module
     {
         private readonly List<GameObject> createdObjects = new List<GameObject>();
 
+        private sealed class UpdatingView : View
+        {
+            public int Updates;
+            protected override IUITransition CreateUITransition() => new EmptyUITransition();
+            protected override void OnGameObjectInitialize() => BindUpdate(() => Updates++);
+        }
+
+        [UnityTest]
+        public IEnumerator PageUpdatesPauseWhileHiddenAndStopAfterDestruction()
+        {
+            var view = new UpdatingView();
+            view.InitWithGameObject(CreateObject("UpdatingView"));
+            yield return null;
+            Assert.That(view.Updates, Is.Zero);
+            yield return view.ShowAsync(false).ToCoroutine();
+            yield return null;
+            Assert.That(view.Updates, Is.GreaterThan(0));
+            yield return view.HideAsync(false).ToCoroutine();
+            int hidden = view.Updates;
+            yield return null;
+            Assert.That(view.Updates, Is.EqualTo(hidden));
+            yield return view.ShowAsync(false).ToCoroutine();
+            yield return null;
+            Assert.That(view.Updates, Is.GreaterThan(hidden));
+            yield return view.DestroyAsync().ToCoroutine();
+            int destroyed = view.Updates;
+            yield return null;
+            Assert.That(view.Updates, Is.EqualTo(destroyed));
+        }
+
+        private sealed class BoundData : IData
+        {
+            public List<IHandler> Handlers { get; } = new();
+            public void ClearData() { }
+        }
+        private sealed class BoundView : View
+        {
+            public int Refreshes, Shows;
+            protected override IUITransition CreateUITransition() => new EmptyUITransition();
+            protected override void OnGameObjectInitialize() { BindData<BoundData>(Refresh); BindData<BoundData>(Refresh); }
+            private void Refresh(BoundData data) => Refreshes++;
+            protected override void OnShow() => Shows++;
+        }
+
+        [UnityTest]
+        public IEnumerator DataBindingFollowsVisibilityAndNavigationRollbackWithoutRepeatedHooks()
+        {
+            GlobalData.Add<BoundData>();
+            var view = new BoundView();
+            view.InitWithGameObject(CreateObject("BoundView"));
+            try
+            {
+                Assert.That(view.Refreshes, Is.Zero);
+                yield return view.ShowAsync(false).ToCoroutine();
+                yield return view.ShowAsync(false).ToCoroutine();
+                Assert.That(view.Refreshes, Is.EqualTo(1));
+                yield return view.HideAsync(false).ToCoroutine();
+                GlobalData.DispatchAll();
+                Assert.That(view.Refreshes, Is.EqualTo(1));
+                typeof(View).GetMethod("RestoreVisibleAfterNavigationFailure", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(view, null);
+                Assert.That(view.Refreshes, Is.EqualTo(2));
+                Assert.That(view.Shows, Is.EqualTo(1), "回滚只恢复订阅，不重复业务OnShow。");
+                GlobalData.DispatchAll();
+                Assert.That(view.Refreshes, Is.EqualTo(3));
+                yield return view.DestroyAsync().ToCoroutine();
+                GlobalData.DispatchAll();
+                Assert.That(view.Refreshes, Is.EqualTo(3));
+            }
+            finally { GlobalData.Remove<BoundData>(); }
+        }
+
+        [UnityTest]
+        public IEnumerator CanceledEnterRemovesDataSubscription()
+        {
+            GlobalData.Add<BoundData>();
+            var view = new BoundView();
+            view.InitWithGameObject(CreateObject("CanceledBoundView"));
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            try
+            {
+                Exception error = null;
+                yield return CaptureResult(CaptureException(view.ShowAsync(false, cancellation.Token)), value => error = value).ToCoroutine();
+                Assert.That(error, Is.TypeOf<OperationCanceledException>());
+                int refreshes = view.Refreshes;
+                GlobalData.DispatchAll();
+                Assert.That(view.Refreshes, Is.EqualTo(refreshes));
+                yield return view.DestroyAsync().ToCoroutine();
+            }
+            finally { GlobalData.Remove<BoundData>(); }
+        }
+
         [UnityTearDown]
         public IEnumerator TearDown()
         {

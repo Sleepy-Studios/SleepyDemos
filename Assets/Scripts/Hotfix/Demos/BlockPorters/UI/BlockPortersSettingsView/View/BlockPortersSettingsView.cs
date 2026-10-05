@@ -3,7 +3,7 @@ using Hotfix.BlockPorters;
 namespace Hotfix
 {
     [Module("BlockPorters")]
-    [Mvc("BlockPortersSettingsView")]
+    [UIBind("BlockPortersSettingsView")]
     public sealed partial class BlockPortersSettingsView : View<BlockPortersController>
     {
         protected override void OnShow() { base.OnShow(); BlockPortersSettingsPresenter_BlockPortersSettingsView.Bind(params1); }

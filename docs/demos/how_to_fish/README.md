@@ -16,4 +16,4 @@
 
 目标：Windows 离线单人，键鼠与手柄，完整岛屿主线、收集、正式自制模型与 UI、三个存档槽，并接入现有 Hub。首岛不是最终交付。
 
-代码归属 Hotfix/Demos/HowToFish，资源归属 LoadResources/Demos/how_to_fish，专属编辑工具归属 Hotfix/Editor/HowToFish。复用现有 Core UI、MvcBind、YooAsset、GameSceneNavigator 和两套测试程序集。
+代码归属 Hotfix/Demos/HowToFish，资源归属 LoadResources/Demos/how_to_fish，专属编辑工具归属 Hotfix/Editor/HowToFish。复用现有 Core UI、UIBind、YooAsset、GameSceneNavigator 和两套测试程序集。

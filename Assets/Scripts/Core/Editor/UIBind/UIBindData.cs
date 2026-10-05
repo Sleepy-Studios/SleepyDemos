@@ -6,16 +6,16 @@ using System.Text;
 using UnityEditor;
 using UnityEngine;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
     [Serializable]
-    public sealed class MvcBindSettings
+    public sealed class UIBindSettings
     {
         public string prefabPath = string.Empty;
-        public string moduleName = MvcBindToolConfig.DefaultModuleName;
+        public string moduleName = UIBindToolConfig.DefaultModuleName;
         public string viewName = "NewView";
-        public string namespaceName = MvcBindToolConfig.DefaultNamespace;
-        public string outputFolder = MvcBindToolConfig.ModuleRoot;
+        public string namespaceName = UIBindToolConfig.DefaultNamespace;
+        public string outputFolder = UIBindToolConfig.ModuleRoot;
         public bool useCustomModuleOutputDirectory;
         public string customModuleOutputDirectory = string.Empty;
         public string address = string.Empty;
@@ -34,20 +34,20 @@ namespace Core.Editor.MvcBind
 
         public bool ApplyPrefabPath(string assetPath)
         {
-            if (!MvcBindPathUtility.IsPrefabAssetPath(assetPath))
+            if (!UIBindPathUtility.IsPrefabAssetPath(assetPath))
             {
                 return false;
             }
 
-            prefabPath = MvcBindPathUtility.NormalizeAssetPath(assetPath);
-            address = MvcBindPathUtility.ToRuntimeAddress(prefabPath);
-            viewName = MvcBindPathUtility.ToViewClassName(prefabPath);
-            outputFolder = MvcBindPathUtility.ToOutputFolder(this);
+            prefabPath = UIBindPathUtility.NormalizeAssetPath(assetPath);
+            address = UIBindPathUtility.ToRuntimeAddress(prefabPath);
+            viewName = UIBindPathUtility.ToViewClassName(prefabPath);
+            outputFolder = UIBindPathUtility.ToOutputFolder(this);
             return true;
         }
     }
 
-    public sealed class MvcBindNode
+    public sealed class UIBindNode
     {
         public int id;
         public int depth;
@@ -62,16 +62,16 @@ namespace Core.Editor.MvcBind
         public readonly List<Type> componentTypes = new List<Type>();
     }
 
-    public sealed class MvcBindComponentInfo
+    public sealed class UIBindComponentInfo
     {
         public int index;
         public string fieldName;
         public Type componentType;
         public Component component;
-        public readonly List<MvcBindMethodInfo> methods = new List<MvcBindMethodInfo>();
+        public readonly List<UIBindMethodInfo> methods = new List<UIBindMethodInfo>();
     }
 
-    public sealed class MvcBindMethodInfo
+    public sealed class UIBindMethodInfo
     {
         public string registerMethodName;
         public string componentMethodName;
@@ -79,7 +79,7 @@ namespace Core.Editor.MvcBind
         public List<Type> parameterTypes = new List<Type>();
     }
 
-    public enum MvcBindTreeItemKind
+    public enum UIBindTreeItemKind
     {
         Root,
         Module,
@@ -88,7 +88,7 @@ namespace Core.Editor.MvcBind
         Code
     }
 
-    public sealed class MvcBindViewRecord
+    public sealed class UIBindViewRecord
     {
         public const string InvalidModuleName = "异常绑定";
 
@@ -107,7 +107,7 @@ namespace Core.Editor.MvcBind
         public string moduleOutputDirectory = string.Empty;
     }
 
-    public static class MvcBindPathUtility
+    public static class UIBindPathUtility
     {
         public const string DefaultUiPrefabRoot = "Assets/LoadResources/UI";
 
@@ -182,8 +182,8 @@ namespace Core.Editor.MvcBind
             var cleanModule = ToRelativeFolder(moduleName);
             var cleanView = ToPascalIdentifier(viewName);
             var moduleRoot = string.IsNullOrEmpty(cleanModule)
-                ? MvcBindToolConfig.ModuleRoot
-                : $"{MvcBindToolConfig.ModuleRoot}/{cleanModule}";
+                ? UIBindToolConfig.ModuleRoot
+                : $"{UIBindToolConfig.ModuleRoot}/{cleanModule}";
             return string.IsNullOrEmpty(cleanView)
                 ? moduleRoot
                 : $"{moduleRoot}/{cleanView}/View";
@@ -192,9 +192,9 @@ namespace Core.Editor.MvcBind
         /// <summary>
         /// 根据生成设置解析最终输出目录；自定义目录代表当前 Module 的输出目录，不重复追加 Module 名。
         /// </summary>
-        /// <param name="settings">MvcBind 生成设置。</param>
+        /// <param name="settings">UIBind 生成设置。</param>
         /// <returns>Unity 项目内的脚本输出目录。</returns>
-        public static string ToOutputFolder(MvcBindSettings settings)
+        public static string ToOutputFolder(UIBindSettings settings)
         {
             if (settings == null || !settings.useCustomModuleOutputDirectory)
             {
@@ -254,7 +254,7 @@ namespace Core.Editor.MvcBind
         }
     }
 
-    public static class MvcBindToolConfig
+    public static class UIBindToolConfig
     {
         public const string ScriptRoot = "Assets/Scripts/Hotfix";
         public const string ModuleRoot = ScriptRoot + "/Module";

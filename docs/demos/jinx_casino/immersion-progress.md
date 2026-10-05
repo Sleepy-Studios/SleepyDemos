@@ -290,7 +290,7 @@ S1协作拉杆另有明确体验缺口：保存场景只有伙伴仪表与自动
 
 用户已批准「新原型精简与视觉优化计划」，恢复本轮执行。创建单机长期 Goal，不设 Token 预算；至多两个子 Agent。本轮先完成共享 UI、新原型唯一流程和简化复古方向的合同与审查。a949052 已推送：同步 AGENTS/CLAUDE，更新当前实施计划，归档批准记录，标记复杂方向 A / 手机专属页面 / 旧档兼容已被替代。
 
-两名 Agent 只读审查赌场旧链与 Hub 接线，没有修改文件或运行 Unity。赌场需保留共用 CasinoGameKind、随机、实际使用的模型/音频、当前原子保存；删旧链不能按目录整包删除。移动 Presenter 命名空间时必须同步保存 Prefab 的 MvcBind 类型字符串、bindingKeys 和生成引用。Controller 原脚本 GUID 与场景序列化字段应保留，不使用永久旧类型别名兜底。实际代码仍处于旧结构，SchemaVersion=4 / PrototypeV2 尚未实现。
+两名 Agent 只读审查赌场旧链与 Hub 接线，没有修改文件或运行 Unity。赌场需保留共用 CasinoGameKind、随机、实际使用的模型/音频、当前原子保存；删旧链不能按目录整包删除。移动 Presenter 命名空间时必须同步保存 Prefab 的 UIBind 类型字符串、bindingKeys 和生成引用。Controller 原脚本 GUID 与场景序列化字段应保留，不使用永久旧类型别名兜底。实际代码仍处于旧结构，SchemaVersion=4 / PrototypeV2 尚未实现。
 
 使用内置 imagegen 完成大厅、共享二十一点、Hub、Loading 四张简化稿。大厅清除机台前凳子；牌桌修正三个明牌的倒置角标，玩家 10+6=16、庄家 7+暗牌一致。Hub 卡片插画不是当前 Demo 实机截图；Loading 的 68% 仅为构图。四个 PNG 和完整提示词已保存到 ArtSource/jinx_casino/concepts/prototype-v2；[视觉审阅文档](architecture/prototype-v2-visual-review.md)记录还原约束与待确认状态。
 
@@ -344,7 +344,7 @@ TableSession/Contracts移至Interaction，保留原meta；直接持有Game和真
 
 补查音效恢复去重时，d24638a6旧PresentationTests在等待旧HUD阶段超时，尚未到音效断言；将该有效用例迁入当前ImmersionEntryTests，不再使用旧HUD夹具，不删断言跳过。旧Avatar用例及其旧夹具仍待随旧表现清理。迁移中修正缺少HUD局部引用的编译接缝；bc7ade68在结局后错误点击暂停菜单返回失败，改为实际结局卡返回。bc0b2e4a精确1/1通过，覆盖重复请求、结算/结局恢复、换装通知不重播声音和注册音源音量/静音。最终17项相关用例通过，保留上述初次失败事实；迁移只重跑该精确方法，生产代码未因此改变。
 
-Controller脚本及两份移动桌面meta逐项与HEAD核对一致；保存Scene/Prefab无改动，MvcBind组件类型与字段本次未迁移，不重生成原人工UI。Game/Interaction新meta由Editor产生；无关字体动态补字、UnitySkills/vTabs/平台设置等保留。同步README、实施状态、module和rules-baseline；代码属于Hotfix Demo，无Core或新程序集变化。正式资源仍等待四稿确认，当前包不包含本次重构。
+Controller脚本及两份移动桌面meta逐项与HEAD核对一致；保存Scene/Prefab无改动，UIBind组件类型与字段本次未迁移，不重生成原人工UI。Game/Interaction新meta由Editor产生；无关字体动态补字、UnitySkills/vTabs/平台设置等保留。同步README、实施状态、module和rules-baseline；代码属于Hotfix Demo，无Core或新程序集变化。正式资源仍等待四稿确认，当前包不包含本次重构。
 
 提交名「refactor(jinx): 拆出具体游戏对象并删除桌面转发层」，SHA见git log。Game、直接桌面及调用方构成同一可编译依赖闭环，未等待整个重做阶段结束；下一闭环移出玩家交互并清理旧P0/P4流程。S1画面、Android触屏/Xbox、Windows原生键盘及新Player构建仍待验证，Goal不标记完成。
 
@@ -370,7 +370,7 @@ Unity正式编译与最终Console均0错误；直接相关Test Runner结果：43
 
 LocalSettings独立管理Store、Value副本、Warning与Changed；构造不读盘，加载/预览/保存显式调用，失败不写值或通知。Controller订阅一次把设置应用到公共InputRouter与场景AudioDirector，设置UI管理自己的触控布局。旧LocalPreferences partial删除；沿用原测试类并补构造不隐式读盘、警告保留、副本隔离和通知/非法输入回归，无新测试文件或程序集。
 
-33份现存源码通过Editor按职责移动并校验GUID：根Controller/GameSettings，Interaction为机台/玩家/教学/离场/柜台/区域，Presentation为三台表现/协调器/时钟/环境/音频，UI为保存HUD/View与设置。原脚本GUID全部相同，31份meta字节一致、2份仅LF/CRLF区别；旧Adapters目录及meta删除，无旧类型映射。场景/配置/HUD在Editor通过SerializedObject同步类型标识，避免普通保存仍留旧namespace；实际控件布局和物件引用保留。既有MvcBind重新生成Component并保持手写View，Presenter槽及bindingKey改为当前UI全名，输出移至UI/JinxCasinoImmersionHudView/View。两个触控区域同步为Core.Runtime.Inputs.TouchInputPad后删旧MovedFrom；Core仅移除这条旧赌场类型映射，输入功能仍是公共框架能力。一次性迁移源码/meta已删除，Editor目录仍只有正式平台构建入口。
+33份现存源码通过Editor按职责移动并校验GUID：根Controller/GameSettings，Interaction为机台/玩家/教学/离场/柜台/区域，Presentation为三台表现/协调器/时钟/环境/音频，UI为保存HUD/View与设置。原脚本GUID全部相同，31份meta字节一致、2份仅LF/CRLF区别；旧Adapters目录及meta删除，无旧类型映射。场景/配置/HUD在Editor通过SerializedObject同步类型标识，避免普通保存仍留旧namespace；实际控件布局和物件引用保留。既有UIBind重新生成Component并保持手写View，Presenter槽及bindingKey改为当前UI全名，输出移至UI/JinxCasinoImmersionHudView/View。两个触控区域同步为Core.Runtime.Inputs.TouchInputPad后删旧MovedFrom；Core仅移除这条旧赌场类型映射，输入功能仍是公共框架能力。一次性迁移源码/meta已删除，Editor目录仍只有正式平台构建入口。
 
 首轮编译发现入口测试仍引用旧IsAdventureInputBlocked，迁到Player.IsMenuOpen后0错误。c5c466d1本机设置EditMode12/12，c8b17ee9保存场景3/3通过。首轮PlayMode834f3f30全部10项因启动HUD钱包读取空旅程而失败；源文件已改为无旅程时显示0，但最后修改后漏触发正式编译，Library/ScriptAssemblies/Hotfix.dll比该源文件旧32秒。test_cancel确认当前TestRunnerApi不支持取消，保留同一live任务等待自然完成（441秒），未在运行中改C#、退出Play或另起测试。随后正式重新编译并等待恢复，重跑直接相关入口，不删除有效断言规避失败。
 
@@ -392,7 +392,7 @@ Android在产物生成后恢复配置失败：Mobile_RPAsset.asset内存映射�
 
 ## 2026-10-03：Hub 统一进入及加载失败恢复
 
-等待四稿确认期间完成不依赖新视觉的Hub进入闭环。MainMenuView四个已接通Demo统一调用EnterDemoAsync，进入前锁定全部入口并拒绝重复点击；未接通的UI验证入口不可用且标注“未开放”。导航失败或异常记录诊断，显示“进入失败／请重试”。Loading会销毁原Hub，因此结束后只在同一导航实例稳定停留Hub时更新当前可见MainMenuView，避免写已销毁控件或干扰已进入的Demo。保留现有Prefab、MvcBind绑定与导航实现，没有新增适配器、UI Builder、框架或生产程序集。
+等待四稿确认期间完成不依赖新视觉的Hub进入闭环。MainMenuView四个已接通Demo统一调用EnterDemoAsync，进入前锁定全部入口并拒绝重复点击；未接通的UI验证入口不可用且标注“未开放”。导航失败或异常记录诊断，显示“进入失败／请重试”。Loading会销毁原Hub，因此结束后只在同一导航实例稳定停留Hub时更新当前可见MainMenuView，避免写已销毁控件或干扰已进入的Demo。保留现有Prefab、UIBind绑定与导航实现，没有新增适配器、UI Builder、框架或生产程序集。
 
 新增一条有长期回归价值的MainMenuNavigationPlayModeTests用例：复用实际AppEntrance、保存页面、Core Loading与InputSystem指针，仅注入场景加载失败；验证旧页面销毁、加载期间重复点击、新页面反馈及全入口恢复、未开放状态与实际再次点击。反馈的preferred size与现有控件比较，避免溢出遮挡入口，不固定布局尺寸或资源数量。Tests.PlayMode补必要的Unity.TextMeshPro引用，仍只有原有两种测试程序集。现有赌场入口辅助方法改为实际点击Hub按钮，继续验证成功进入和返回。
 
@@ -471,11 +471,11 @@ Windows从新ZIP独立解压到Library/JinxCasino/PlayerValidation/2026100221530
 
 ## 2026-10-03：Hub卡片、加载界面与初始化时序
 
-用户确认四稿并授权继续，随后要求普通列表遵循钓鱼项目的代码习惯，并明确数据可能早于初始化。当前实现用 typed RectData/Click/ItemHide 接收普通 Item 和索引；卡片控件、按钮事件由 MvcBind 生成。业务不保存 CellBindContext，不增加 Card/Button 子类或预览序列化组件。Core.ItemView<T>.SetData 保存数据，控件绑定成功后才调用独立 RefreshUI；提前配置只刷新最后一份。页面 View<T> 保持加载前配置，在 OnShow 消费数据的契约已补入公共文档；钓鱼项目仅只读参考，未修改。
+用户确认四稿并授权继续，随后要求普通列表遵循钓鱼项目的代码习惯，并明确数据可能早于初始化。当前实现用 typed RectData/Click/ItemHide 接收普通 Item 和索引；卡片控件、按钮事件由 UIBind 生成。业务不保存 CellBindContext，不增加 Card/Button 子类或预览序列化组件。Core.ItemView<T>.SetData 保存数据，控件绑定成功后才调用独立 RefreshUI；提前配置只刷新最后一份。页面 View<T> 保持加载前配置，在 OnShow 消费数据的契约已补入公共文档；钓鱼项目仅只读参考，未修改。
 
-Hub正式Prefab改为共享卡片Grid，卡片含预览、标题、描述和按钮，保留四个有效入口及一个未开放入口。公共导航处理Grid列数、滚动、回收身份、按下/抬手换绑及默认目标变化；刷新仅恢复同一个仍可见的Key，触屏点击空白不会被普通帧更新抢回。StartupLoading改用直接引用的TMP字体，CommonLoading通过MvcBind重绑，两者共用简洁视觉并保留真实SetTitle/SetProgress。图片采用简单保存场景预览，未继续制作复杂封面。一次性Hub装配源码、菜单和meta均已删除，正式资产保留。
+Hub正式Prefab改为共享卡片Grid，卡片含预览、标题、描述和按钮，保留四个有效入口及一个未开放入口。公共导航处理Grid列数、滚动、回收身份、按下/抬手换绑及默认目标变化；刷新仅恢复同一个仍可见的Key，触屏点击空白不会被普通帧更新抢回。StartupLoading改用直接引用的TMP字体，CommonLoading通过UIBind重绑，两者共用简洁视觉并保留真实SetTitle/SetProgress。图片采用简单保存场景预览，未继续制作复杂封面。一次性Hub装配源码、菜单和meta均已删除，正式资产保留。
 
-直接相关Unity Test Runner共13个不同用例通过：LoopScrollMvcGenerationTests 2/2、LoopScrollItemViewBridgeTests 7/7、GameplayInputRouterTests.CoreMenuOwnsExactlyOneSubmitAndTableUsesIndependentFocus 1/1、MainMenuNavigationPlayModeTests 3/3。导航和菜单输入在最终焦点调整后分别精确复测通过；Hub最终原生XML时间为2026-10-03 01:47:08Z至01:47:37Z。最初发现的提示溢出、焦点恢复和跨测试残留均已修正；入口测试每项通过公共UI导航关闭重开页面，保留真实InputSystem输入及有效断言，没有用直接调用按钮监听器代替。
+直接相关Unity Test Runner共13个不同用例通过：LoopScrollUIBindGenerationTests 2/2、LoopScrollItemViewBridgeTests 7/7、GameplayInputRouterTests.CoreMenuOwnsExactlyOneSubmitAndTableUsesIndependentFocus 1/1、MainMenuNavigationPlayModeTests 3/3。导航和菜单输入在最终焦点调整后分别精确复测通过；Hub最终原生XML时间为2026-10-03 01:47:08Z至01:47:37Z。最初发现的提示溢出、焦点恢复和跨测试残留均已修正；入口测试每项通过公共UI导航关闭重开页面，保留真实InputSystem输入及有效断言，没有用直接调用按钮监听器代替。
 
 UnitySkills包装任务在Domain Reload后报告句柄未恢复、计数为0；此处通过结果依据已核对的原生TestResults.xml，各次副本在Library/JinxCasino/Verification/2026-10-03-hub/，不提交缓存。未运行全量或第三方测试，JinxCasinoImmersionEntryTests只更新了新Hub定位调用方并确认编译，本轮未运行赌场全流程。Editor正式编译通过；没有重打Windows/Android包、完成新视觉验收或Android/实物Xbox真机验收，旧试玩包仍对应旧构建基线。S1与完整Goal未完成，继续三机台和大厅正式切片。
 
@@ -487,11 +487,11 @@ Goal追踪器仍保留旧视觉等待条件的blocked状态，当前助手接口
 
 本节按用户最新要求替代上一节的泛型 Item 自动刷新及页面加载前配置方案；上一节保留为历史事实，不再作为当前契约。先检查当前未提交工作和已提交实现，只调整 SleepyDemos 的公共 UI、Hub、循环列表示例及相关文档；钓鱼项目只读参考，独立 SleepyLoopScroll 包本轮没有修改。
 
-页面打开请求通过现有导航队列持有自己的数据回调，实际顺序为：实例化、MvcBind 控件绑定、一次性初始化、业务 SetData、打开回调及显示。新增 ShowAsync<T>(Action<T>) 直接调用具体业务方法；已有泛型页面因无人机、方块与赌场实际调用方仍使用而保留。缓存页面重新打开更新本次数据而不重复初始化；可见单例仍更新数据并返回 Ignored，不重复 OnShow；预加载在初始化后交付数据且保持隐藏。FIFO、取消、失败回滚及导航事务未改。核对生产初始化回调后，当前没有需要在初始化前读取本次业务数据的调用方，也没有需要新增资源加载参数的页面。
+页面打开请求通过现有导航队列持有自己的数据回调，实际顺序为：实例化、UIBind 控件绑定、一次性初始化、业务 SetData、打开回调及显示。新增 ShowAsync<T>(Action<T>) 直接调用具体业务方法；已有泛型页面因无人机、方块与赌场实际调用方仍使用而保留。缓存页面重新打开更新本次数据而不重复初始化；可见单例仍更新数据并返回 Ignored，不重复 OnShow；预加载在初始化后交付数据且保持隐藏。FIFO、取消、失败回滚及导航事务未改。核对生产初始化回调后，当前没有需要在初始化前读取本次业务数据的调用方，也没有需要新增资源加载参数的页面。
 
-MainMenuDemoItemView 现在直接继承普通 ItemView，自己声明 SetData(MainMenuDemoEntry data)，在方法中更新 MvcBind 生成的图片、标题、描述和按钮，不保存无用途的数据字段。循环列表示例采用相同的具体 SetData 写法。调用方仍只交付一次数据；经调用方核对，移除已无用途的 ItemView<T> 以及待刷新标记、初始化完成后补刷新钩子。框架桥接继续保证每个物理 Cell 仅初始化一次，再交付当前数据；复用只更新索引和数据。底层包为测量先激活 Cell，再在同一同步协调过程完成绑定和数据交付，下一次 Canvas 可见帧前已完成；不能把物理 Cell 的 OnEnable 当成业务数据已到达的回调。
+MainMenuDemoItemView 现在直接继承普通 ItemView，自己声明 SetData(MainMenuDemoEntry data)，在方法中更新 UIBind 生成的图片、标题、描述和按钮，不保存无用途的数据字段。循环列表示例采用相同的具体 SetData 写法。调用方仍只交付一次数据；经调用方核对，移除已无用途的 ItemView<T> 以及待刷新标记、初始化完成后补刷新钩子。框架桥接继续保证每个物理 Cell 仅初始化一次，再交付当前数据；复用只更新索引和数据。底层包为测量先激活 Cell，再在同一同步协调过程完成绑定和数据交付，下一次 Canvas 可见帧前已完成；不能把物理 Cell 的 OnEnable 当成业务数据已到达的回调。
 
-回收身份校验、UIImageLoader 异步过期保护、公共输入与手柄焦点导航保持原有用途。没有增加业务控件序列化字段、CellBindContext 或节点查找兜底，MvcBind 生成代码未改；原循环列表示例既有的动态创建 Text 控件方式未扩展为新框架。没有新增永久测试文件、生产程序集或临时 Builder；前一轮 Hub 临时装配脚本及 meta 已清理，本轮未重新引入。
+回收身份校验、UIImageLoader 异步过期保护、公共输入与手柄焦点导航保持原有用途。没有增加业务控件序列化字段、CellBindContext 或节点查找兜底，UIBind 生成代码未改；原循环列表示例既有的动态创建 Text 控件方式未扩展为新框架。没有新增永久测试文件、生产程序集或临时 Builder；前一轮 Hub 临时装配脚本及 meta 已清理，本轮未重新引入。
 
 正式 Editor 编译通过，Console 的 C# 编译错误检索为 0。Unity Test Runner 最终结果：UIManagerNavigationPlayModeTests 51/51、LoopScrollItemViewBridgeTests 7/7、MainMenuNavigationPlayModeTests 3/3，共 61 个不同的直接相关用例通过。现有用例覆盖绑定与初始化早于数据、一次数据交付、缓存页面重新打开、普通具体类型页面、FIFO、取消、失败回滚、列表复用不重复初始化、回收身份和实际 Hub 鼠标／触屏／键盘／手柄输入。没有直接调用按钮监听器替代 Hub 输入验证。首次导航验证 47/51，原因是测试夹具把 Text 添加到根对象后改变其 Transform；改为子控件后完整 51/51，通过修正夹具保留全部有效断言，没有改生产逻辑规避失败。最终 XML 与首次失败证据保存在 Library/SetDataVerification/2026-10-03/，不进入源码提交。
 

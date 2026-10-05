@@ -13,7 +13,7 @@ using UnityEditor;
 namespace Tests.Demo
 {
     /*
-     * 测试说明：验证 DroneFlight HUD 的 MvcBind 生成字段能够在真实 Prefab 生命周期中完成初始化和刷新。
+     * 测试说明：验证 DroneFlight HUD 的 UIBind 生成字段能够在真实 Prefab 生命周期中完成初始化和刷新。
      */
     public sealed class DroneFlightHudBindingPlayModeTests
     {

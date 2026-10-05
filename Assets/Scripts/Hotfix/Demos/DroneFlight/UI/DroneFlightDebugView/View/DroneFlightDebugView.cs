@@ -4,7 +4,7 @@ namespace Hotfix
     using DroneFlight;
 
     [Module("DroneFlight")]
-    [Mvc("DroneFlightDebugView")]
+    [UIBind("DroneFlightDebugView")]
     public partial class DroneFlightDebugView : View<DroneFlightViewData>
     {
         private DroneFlightUiTelemetrySource telemetrySource;

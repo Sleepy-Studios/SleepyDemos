@@ -20,7 +20,7 @@ namespace Hotfix.Demos.LoopScroll
         protected override void BuildPage()
         {
             for (var i = 0; i < 1000; i++) items.Add(new LoopSampleItem(i, "mvcItem"));
-            list = MakeList("MvcBind", new Vector2(840, 460), new Vector2(0, -10), LoopLayout.Vertical);
+            list = MakeList("UIBind", new Vector2(840, 460), new Vector2(0, -10), LoopLayout.Vertical);
             view = new LoopScrollExampleView(items, index => SetStatus("clicked", index, list.GetItemKey(index)));
             view.InitWithGameObject(list.gameObject);
             ActionButton("refresh", new Vector2(-205, 250), list.RefreshCells);

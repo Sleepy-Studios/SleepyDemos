@@ -2,7 +2,7 @@ using Core.Runtime;
 using Hotfix.HowToFish;
 namespace Hotfix
 {
-    [Module("HowToFish")] [Mvc("HowToFishJournalView")]
+    [Module("HowToFish")] [UIBind("HowToFishJournalView")]
     public sealed partial class HowToFishJournalView : View<HowToFishWorld>
     {
         protected override void OnShow() { base.OnShow(); HowToFishJournalPresenter_HowToFishJournalView.Bind(params1); }

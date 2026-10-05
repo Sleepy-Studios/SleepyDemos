@@ -2,7 +2,7 @@ using System.Linq;
 using UnityEditor;
 using YooAsset.Editor;
 
-namespace Core.Editor.MvcBind
+namespace Core.Editor.UIBind
 {
     public static class YooAssetDemoCollectorSetup
     {
@@ -11,7 +11,7 @@ namespace Core.Editor.MvcBind
             const string settingPath = "Assets/Settings/AssetBundleCollectorSetting.asset";
             const string packageName = "DefaultPackage";
             const string groupName = "UI";
-            const string collectPath = MvcBindPathUtility.DefaultUiPrefabRoot;
+            const string collectPath = UIBindPathUtility.DefaultUiPrefabRoot;
 
             var setting = AssetDatabase.LoadAssetAtPath<BundleCollectorSetting>(settingPath);
             if (setting == null)
@@ -79,7 +79,7 @@ namespace Core.Editor.MvcBind
 
         string IAddressRule.GetAssetAddress(AddressRuleData data)
         {
-            return MvcBindPathUtility.ToRuntimeAddress(data.AssetPath);
+            return UIBindPathUtility.ToRuntimeAddress(data.AssetPath);
         }
     }
 }

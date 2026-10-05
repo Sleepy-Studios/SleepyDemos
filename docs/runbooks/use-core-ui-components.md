@@ -177,9 +177,9 @@ CommonTips 新消息叠在前面，不覆盖旧消息。收起时可见三层，
 
 预先取消的 Show 请求返回 Canceled，并保留当前 Tips。CommonTips 的令牌在显示后取消只移除本次消息；`HideTipsMessageBarsAsync()` 清空全部并取消已排队消息。SimpleTips 仍使用单条替换规则：排队期间取消或显示失败时，没有新请求接管则清理失去所有权的旧提示，避免残留 Blocker；已显示后仍允许外部点击或返回关闭。
 
-CommonTips Prefab 的 `ItemTemplate` 必须保持隐藏，直接保存 `UITipsPanel`、CanvasGroup、Details、CloseButton、三种图标与中文字体引用；`MessageRegion` 是唯一交互区域，外层 ScrollRect 与安全区适配由 `UITipsStack` 管理。根节点不添加全屏 Graphic，关闭按钮的 Navigation 使用 None。模板修改走 Prefab 与 MvcBind 流程，不在运行时拼装缺失控件。
+CommonTips Prefab 的 `ItemTemplate` 必须保持隐藏，直接保存 `UITipsPanel`、CanvasGroup、Details、CloseButton、三种图标与中文字体引用；`MessageRegion` 是唯一交互区域，外层 ScrollRect 与安全区适配由 `UITipsStack` 管理。根节点不添加全屏 Graphic，关闭按钮的 Navigation 使用 None。模板修改走 Prefab 与 UIBind 流程，不在运行时拼装缺失控件。
 
-正式资源位于 `Assets/LoadResources/UI/Common`，背景、箭头和状态图标位于公共 `Sprites/Tips`。修改绑定后通过 MvcBind 重新生成，不手改 `*Component.cs`。字体使用公共 HarmonyOS_CN 及其现有回退；箭头与 Body 为同级，Pivot 位于连接边缘；定位完成后不要再次覆写主体位置。尺寸、安全边距和 gap 使用 Canvas 本地单位，不按 Screen.width 手工缩放。
+正式资源位于 `Assets/LoadResources/UI/Common`，背景、箭头和状态图标位于公共 `Sprites/Tips`。修改绑定后通过 UIBind 重新生成，不手改 `*Component.cs`。字体使用公共 HarmonyOS_CN 及其现有回退；箭头与 Body 为同级，Pivot 位于连接边缘；定位完成后不要再次覆写主体位置。尺寸、安全边距和 gap 使用 Canvas 本地单位，不按 Screen.width 手工缩放。
 
 背景、箭头、成功勾号和提醒叹号参考钓鱼项目公共资源；单色符号用 ColorUtil 的语义色着色。警告三角为本项目资源，矢量原稿保存在独立美术目录的 `ArtSource/common_ui/WarningTriangle.svg`，对应 `WarningTriangle.png`。直接维护正式资产，临时装配、导出及预览工具不作为长期菜单保留。
 

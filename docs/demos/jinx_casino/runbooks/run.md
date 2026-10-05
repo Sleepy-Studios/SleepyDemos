@@ -19,7 +19,7 @@
 
 实体补给柜台已保存在Immersion场景中，维护三件商品、报价牌、购买与库存目标、商品缩放及聚焦挂点。新局商品范围由ImmersionSettings限制为双人扳手、重抽牌、止损券，当前版本存档保留自身配置。柜台复用唯一游戏相机，不创建资金或库存服务。
 
-非模态教学提示维护于 JinxCasinoImmersionHudView；教学选择与确认维护于 JinxCasinoTutorialView，暂停入口维护于 JinxCasinoPauseView。每个页面均有独立 Presenter、MvcBind View 和同名 Prefab，生成代码位于 UI/<View名>/View；使用既有 MvcBind 更新绑定，不手改生成字段。
+非模态教学提示维护于 JinxCasinoImmersionHudView；教学选择与确认维护于 JinxCasinoTutorialView，暂停入口维护于 JinxCasinoPauseView。每个页面均有独立 Presenter、UIBind View 和同名 Prefab，生成代码位于 UI/<View名>/View；使用既有 UIBind 更新绑定，不手改生成字段。
 
 开发样板从主菜单选择“互动教学”，按实际动作依次体验水果机、二十一点、柜台扳手和协作拉杆；普通练习入口保持自由游玩。教学最后离开桌面再选择完成，稍后也可从暂停菜单回到教学结果。此练习不推进标准冒险区域，标准局阶段推进和结局仍需单独实玩验证。
 

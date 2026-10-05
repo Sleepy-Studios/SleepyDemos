@@ -5,7 +5,7 @@ namespace Hotfix
     using UnityEngine;
 
     [Module("Common")]
-    [Mvc("SimpleTipsView")]
+    [UIBind("SimpleTipsView")]
     public partial class SimpleTipsView : View
     {
         private SimpleTipsRequest request;
