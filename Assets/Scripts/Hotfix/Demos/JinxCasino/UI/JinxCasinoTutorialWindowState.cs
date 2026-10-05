@@ -18,15 +18,15 @@ namespace Hotfix.JinxCasino.UI
         internal bool Restarting => tutorialConfirmation == TutorialConfirmation.RestartTutorial;
         internal JinxCasinoTutorialWindowState(JinxCasinoController controller) => owner = controller;
         internal void SetFeedback(string value) => tutorialUiFeedback = value;
-        private void Refresh() => owner.UI.Refresh();
-        internal int ResolveState()
+        private void Refresh() => owner.Data.Handler.Publish();
+        internal JinxCasinoPage ResolveState()
         {
-            if (!owner.Game.HasAdventure) return 0;
-            if (tutorialConfirmation != TutorialConfirmation.None) return 5;
+            if (!owner.Game.HasAdventure) return JinxCasinoPage.MainMenu;
+            if (tutorialConfirmation != TutorialConfirmation.None) return JinxCasinoPage.TutorialConfirm;
             bool canChoose = owner.Player.IsPaused || !owner.Player.HasFocus && !owner.Game.HasActiveRound;
-            if (canChoose && tutorialDismissedRun != TutorialRun && (owner.Player.Tutorial.Status == CasinoTutorialStatus.Completed || owner.Player.Tutorial.Status == CasinoTutorialStatus.Skipped)) return 4;
-            if (canChoose && tutorialReadyDeferredRun != TutorialRun && owner.Player.Tutorial.Status == CasinoTutorialStatus.Active && owner.Player.Tutorial.Step == CasinoTutorialStep.Ready) return 3;
-            return owner.Player.IsPaused ? 1 : 2;
+            if (canChoose && tutorialDismissedRun != TutorialRun && (owner.Player.Tutorial.Status == CasinoTutorialStatus.Completed || owner.Player.Tutorial.Status == CasinoTutorialStatus.Skipped)) return JinxCasinoPage.TutorialChoice;
+            if (canChoose && tutorialReadyDeferredRun != TutorialRun && owner.Player.Tutorial.Status == CasinoTutorialStatus.Active && owner.Player.Tutorial.Step == CasinoTutorialStep.Ready) return JinxCasinoPage.TutorialReady;
+            return owner.Player.IsPaused ? JinxCasinoPage.Pause : JinxCasinoPage.Field;
         }
         internal void StartTeaching() { RecordTeachingResult(owner.Player.Tutorial.StartAdventure()); Refresh(); }
 
@@ -82,9 +82,9 @@ namespace Hotfix.JinxCasino.UI
             // Core Cancel与手柄Menu/Pause同帧触发时，只处理一次当前菜单返回。
             lastTutorialCancelFrame = Time.frameCount;
             if (tutorialConfirmation != TutorialConfirmation.None) { tutorialConfirmation = TutorialConfirmation.None; tutorialUiFeedback = null; Refresh(); }
-            else if (owner.UI.State == 3) DeferTeachingCompletion();
-            else if (owner.UI.State == 4) { tutorialDismissedRun = TutorialRun; tutorialUiFeedback = null; Refresh(); }
-            else if (owner.UI.State == 1) { owner.Player.Resume(); Refresh(); }
+            else if (owner.Data.Page == JinxCasinoPage.TutorialReady) DeferTeachingCompletion();
+            else if (owner.Data.Page == JinxCasinoPage.TutorialChoice) { tutorialDismissedRun = TutorialRun; tutorialUiFeedback = null; Refresh(); }
+            else if (owner.Data.Page == JinxCasinoPage.Pause) { owner.Player.Resume(); Refresh(); }
         }
     }
 }

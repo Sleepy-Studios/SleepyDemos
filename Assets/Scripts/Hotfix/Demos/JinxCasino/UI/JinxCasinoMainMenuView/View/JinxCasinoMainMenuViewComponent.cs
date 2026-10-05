@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoMainMenuView")]
     public partial class JinxCasinoMainMenuView
@@ -23,7 +24,15 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoMainMenuPresenter JinxCasinoMainMenuPresenter_JinxCasinoMainMenuView;
+        private UICancelRelay UICancelRelay_JinxCasinoMainMenuView;
+        private RectTransform RectTransform_MainMenu;
+        private Button Button_Start;
+        private Button Button_Practice;
+        private TextMeshProUGUI TextMeshProUGUI_Footer;
+        private Button Button_Tutorial;
+        private Button Button_LoadAdventure;
+        private Button Button_Settings;
+        private Button Button_QuitGame;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +44,15 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoMainMenuPresenter_JinxCasinoMainMenuView = componentItemIndex.Get<JinxCasinoMainMenuPresenter>(0);
+            UICancelRelay_JinxCasinoMainMenuView = componentItemIndex.Get<UICancelRelay>(0);
+            RectTransform_MainMenu = componentItemIndex.Get<RectTransform>(1);
+            Button_Start = componentItemIndex.Get<Button>(2);
+            Button_Practice = componentItemIndex.Get<Button>(3);
+            TextMeshProUGUI_Footer = componentItemIndex.Get<TextMeshProUGUI>(4);
+            Button_Tutorial = componentItemIndex.Get<Button>(5);
+            Button_LoadAdventure = componentItemIndex.Get<Button>(6);
+            Button_Settings = componentItemIndex.Get<Button>(7);
+            Button_QuitGame = componentItemIndex.Get<Button>(8);
         }
     }
 }

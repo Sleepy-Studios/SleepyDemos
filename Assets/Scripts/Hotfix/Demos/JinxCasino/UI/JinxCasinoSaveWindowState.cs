@@ -20,7 +20,7 @@ namespace Hotfix.JinxCasino.UI
         internal string Feedback => saveUiFeedback;
         internal CasinoSaveSlotInfo Info(int slot) => saveInfos[slot - 1];
         internal JinxCasinoSaveWindowState(JinxCasinoController controller) => owner = controller;
-        private void Refresh() => owner.UI.Refresh();
+        private void Refresh() => owner.Data.Handler.Publish();
         internal void Open(bool writing)
         {
             if (owner.IsBusy || writing && !owner.Game.HasAdventure) return;
@@ -60,7 +60,7 @@ namespace Hotfix.JinxCasino.UI
             lastSaveActionFrame = Time.frameCount;
             if (saveSourceRun != owner.Game.State?.RunId)
             { saveUiFeedback = "当前旅程已改变，请返回后重新选择。"; Refresh(); return; }
-            bool success = saveWriting ? owner.Game.SaveAdventure(slot) : owner.LoadAdventure(slot);
+            bool success = saveWriting ? JinxCasinoSaveAdventureAction.Send(owner.Game, slot) : owner.LoadAdventure(slot);
             saveUiFeedback = owner.Game.Status;
             if (!success) { Refresh(); return; }
             savePendingSlot = 0;

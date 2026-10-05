@@ -51,7 +51,7 @@ namespace Tests.Demo
         {
             yield return EnterSample(enterWithHeldGamepad: true);
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
-            var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = hud;
             var body = owner.Player.Body; var camera = owner.Player.Camera;
             var start = Field<Button>(presenter, "start"); Button resume;
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == start.gameObject && EventSystem.current.sendNavigationEvents, "首次菜单焦点及Core导航", 3);
@@ -179,7 +179,7 @@ namespace Tests.Demo
         public IEnumerator SavedTutorialAdvancesOnlyThroughRealMovementObjectsAndSettlements()
         {
             yield return EnterSample(touchEntry: true);
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             var body = owner.Player.Body; var camera = owner.Player.Camera;
             yield return TouchTap(Field<Button>(presenter, "tutorialStartButton"));
             yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen && Cursor.lockState == CursorLockMode.None,
@@ -265,11 +265,11 @@ namespace Tests.Demo
             Assert.That(owner.Game.State.SettledRoundSequence, Is.EqualTo(3));
             yield return Screenshot("S1TutorialReady");
             yield return TouchTap(Field<Button>(presenter, "exitTable"));
-            yield return Wait(() => Field<Button>(presenter, "tutorialCompleteButton").gameObject.activeInHierarchy, "明确完成教学按钮", 3);
+            yield return Wait(() => UIManager.Instance.Get<JinxCasinoTutorialView>()?.State == ViewState.Visible && Field<Button>(presenter, "tutorialCompleteButton").gameObject.activeInHierarchy, "明确完成教学按钮", 3);
             yield return TouchTap(Field<Button>(presenter, "tutorialReadyBackButton"));
             yield return Wait(() => !owner.Player.IsMenuOpen, "稍后完成仍可继续练习", 3);
             yield return TouchTap(Field<Button>(presenter, "pause"));
-            yield return Wait(() => owner.Player.IsPaused && Field<Button>(presenter, "tutorialReviewButton").gameObject.activeInHierarchy,
+            yield return Wait(() => owner.Player.IsPaused && UIManager.Instance.Get<JinxCasinoPauseView>()?.State == ViewState.Visible && Field<Button>(presenter, "tutorialReviewButton").gameObject.activeInHierarchy,
                 "暂停提供重新打开教学结果入口", 3);
             yield return TouchTap(Field<Button>(presenter, "tutorialReviewButton"));
             yield return TouchTap(Field<Button>(presenter, "tutorialCompleteButton"));
@@ -285,7 +285,7 @@ namespace Tests.Demo
         {
             yield return EnterSample();
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
-            var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = hud;
             yield return MouseClick(Field<Button>(presenter, "saveMainLoadButton"));
             Assert.That(Field<Button>(presenter, "saveSlot1Button").interactable, Is.False);
             Assert.That(Field<Button>(presenter, "saveSlot2Button").interactable, Is.False);
@@ -356,7 +356,7 @@ namespace Tests.Demo
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoMainMenuView>()?.State == ViewState.Visible, "独立主菜单", 10);
             owner = Object.FindFirstObjectByType<JinxCasinoController>();
             owner.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); owner.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
-            hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>(); presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>(); presenter = hud;
             yield return Wait(() => hud.gameObject.GetComponentsInParent<CanvasGroup>(true).All(group => group.alpha >= .99f), "重新入场淡出结束", 3);
             yield return MouseClick(Field<Button>(presenter, "saveMainLoadButton"));
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == Field<Button>(presenter, "saveSlot1Button").gameObject,
@@ -379,11 +379,11 @@ namespace Tests.Demo
             typeof(GameSceneNavigator).GetProperty("StandaloneScene").SetValue(GameSceneNavigator.Instance, GameSceneId.JinxCasino);
             standaloneOverride = true;
             var initial = owner; owner.RequestExit();
-            yield return Wait(() => initial == null && UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning,
+            yield return Wait(() => initial == null && UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && UIManager.Instance.Get<JinxCasinoMainMenuView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning,
                 "模拟独立包主菜单", 45);
             owner = Object.FindFirstObjectByType<JinxCasinoController>();
             owner.Game.SetLocalSaveStore(new CasinoLocalSaveStore(saveDirectory)); owner.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             Assert.That(owner.IsStandalonePlayer, Is.True);
             Assert.That(Field<Button>(presenter, "quitGameButton").gameObject.activeInHierarchy, Is.True);
             Assert.That(owner.Game.HasAdventure, Is.False);
@@ -393,7 +393,7 @@ namespace Tests.Demo
             var old = owner;
             yield return MouseClick(Field<Button>(presenter, "leave"));
             yield return Wait(() => old == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.JinxCasino &&
-                !GameSceneNavigator.Instance.IsTransitioning && UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible,
+                !GameSceneNavigator.Instance.IsTransitioning && UIManager.Instance.Get<JinxCasinoImmersionHudView>()?.State == ViewState.Visible && UIManager.Instance.Get<JinxCasinoMainMenuView>()?.State == ViewState.Visible,
                 "独立包返回新的游戏主菜单", 45);
             owner = Object.FindFirstObjectByType<JinxCasinoController>(); Assert.That(owner.Game.HasAdventure, Is.False);
             Assert.That(UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, Is.False);
@@ -406,8 +406,8 @@ namespace Tests.Demo
         public IEnumerator SettingsPreviewSaveAndCancelUseRealControlsAndKeepPause()
         {
             yield return EnterSample();
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
-            JinxCasinoLocalSettingsPresenter local;
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
+            JinxCasinoSettingsView local;
             settingsTestKey = "JinxCasino.SettingsEntry." + Guid.NewGuid().ToString("N");
             var store = new CasinoLocalPreferencesStore(settingsTestKey);
             store.Save(new CasinoLocalPreferences { PcLookMultiplier = 1.2f, Volume = .4f });
@@ -419,7 +419,7 @@ namespace Tests.Demo
             gamepad = InputSystem.AddDevice<Gamepad>(); InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoSettingsView>()?.State == ViewState.Visible, "独立设置页", 5);
-            local = UIManager.Instance.Get<JinxCasinoSettingsView>().gameObject.GetComponentInChildren<JinxCasinoLocalSettingsPresenter>(true);
+            local = UIManager.Instance.Get<JinxCasinoSettingsView>();
             Assert.That(local, Is.Not.Null);
             var pc = Field<Slider>(local, "pcSensitivity");
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == pc.gameObject, "设置默认焦点", 3);
@@ -432,7 +432,7 @@ namespace Tests.Demo
             Assert.That(owner.Settings.Value.PcLookMultiplier, Is.EqualTo(1.2f));
             yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoSettingsView>()?.State == ViewState.Visible, "独立设置页", 5);
-            local = UIManager.Instance.Get<JinxCasinoSettingsView>().gameObject.GetComponentInChildren<JinxCasinoLocalSettingsPresenter>(true);
+            local = UIManager.Instance.Get<JinxCasinoSettingsView>();
             Assert.That(local, Is.Not.Null);
             yield return MouseClick(Field<Button>(local, "gamepadTabButton"));
             var padLook = Field<Slider>(local, "gamepadLookMultiplier");
@@ -451,7 +451,7 @@ namespace Tests.Demo
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoPauseView>()?.State == ViewState.Visible, "独立暂停页面", 5);
             long time = owner.Game.State.RemainingMilliseconds;
             yield return MouseClick(Field<Button>(presenter, "settingsPauseButton"));
-            local = UIManager.Instance.Get<JinxCasinoSettingsView>().gameObject.GetComponentInChildren<JinxCasinoLocalSettingsPresenter>(true);
+            local = UIManager.Instance.Get<JinxCasinoSettingsView>();
             yield return MouseClick(Field<Button>(local, "audioTabButton"));
             yield return MouseClick(Field<Toggle>(local, "muted")); Assert.That(owner.Settings.Value.Muted, Is.True);
             Assert.That(Field<AudioSource>(audio, "music").mute && Field<AudioSource>(audio, "sfx").mute, Is.True);
@@ -471,7 +471,7 @@ namespace Tests.Demo
         public IEnumerator IndependentWindows_CancelConfirmPreserveRunSlotsAndReleaseAtHub()
         {
             yield return EnterSample();
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             gamepad = InputSystem.AddDevice<Gamepad>(); InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             yield return MouseClick(Field<Button>(presenter, "saveMainLoadButton"));
             Assert.That(Field<Button>(presenter, "saveSlot1Button").interactable, Is.False);
@@ -529,7 +529,7 @@ namespace Tests.Demo
         public IEnumerator UnsupportedSavesLeaveCurrentRunCameraAndFilesUntouched()
         {
             yield return EnterSample();
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             yield return MouseClick(Field<Button>(presenter, "start"));
             yield return KeyPress(Key.Escape);
             string run = owner.Game.State.RunId;
@@ -573,7 +573,7 @@ namespace Tests.Demo
             yield return EnterSample();
             gamepad = InputSystem.AddDevice<Gamepad>();
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             yield return MouseClick(Field<Button>(presenter, "start"));
             yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "标准局进入探索", 3);
             var body = owner.Player.Body; var camera = owner.Player.Camera;
@@ -647,7 +647,7 @@ namespace Tests.Demo
         public IEnumerator WithdrawalRequiresVisibleRepeatedIntentAndEndingCanBeSaved()
         {
             yield return EnterSample();
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             yield return MouseClick(Field<Button>(presenter, "start"));
             yield return Wait(() => owner.Game.HasAdventure && !owner.Player.IsMenuOpen, "标准局进入探索", 3);
             var body = owner.Player.Body;
@@ -687,7 +687,7 @@ namespace Tests.Demo
         public IEnumerator RestoredClosingBlackjackKeepsItsDeskUntilSettledAndThenAllowsWithdrawal()
         {
             yield return EnterSample();
-            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>().gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             // 用真实领域构造超时活动牌局恢复夹具；不把它宣称为等待完整四分钟的实玩。
             var config = Field<JinxCasinoGameSettings>(owner, "gameSettings").CreateConfig();
             CasinoAdventureSession fixture = null;
@@ -705,7 +705,7 @@ namespace Tests.Demo
             yield return MouseClick(Field<Button>(presenter, "saveMainLoadButton"));
             yield return MouseClick(Field<Button>(presenter, "saveSlot1Button"));
             yield return Wait(() => owner.Game.HasActiveRound && !owner.Player.IsMenuOpen, "真实菜单恢复Closing牌局", 3);
-            Assert.That(Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, Is.False);
+            Assert.That(UIManager.Instance.Get<JinxCasinoEndingView>(), Is.Null);
             Assert.That(owner.Game.State.Coins, Is.EqualTo(beforeCoins)); Assert.That(owner.Game.State.RandomState, Is.EqualTo(beforeRandom));
             var body = owner.Player.Body; var camera = owner.Player.Camera;
             yield return MoveUntil(Key.A, () => body.transform.position.x <= -2.1f); yield return LookYaw(180);
@@ -713,7 +713,7 @@ namespace Tests.Demo
             Assert.That(owner.Player.Exit.Feedback, Does.Contain("完成这一局"));
             Assert.That(owner.Game.State.Phase, Is.EqualTo(CasinoAdventurePhase.Closing));
             Assert.That(owner.Game.HasActiveRound, Is.True); Assert.That(owner.Game.State.LockedCoins, Is.EqualTo(10));
-            Assert.That(Field<GameObject>(presenter, "standardEndingPanel").activeInHierarchy, Is.False);
+            Assert.That(UIManager.Instance.Get<JinxCasinoEndingView>(), Is.Null);
             yield return LookYaw(0); yield return MoveUntil(Key.D, () => body.transform.position.x >= -.1f);
             var cards = Object.FindObjectsByType<JinxCasinoStation>(FindObjectsSortMode.None).Single(station => station.StationId == "s1.cards");
             yield return MoveUntil(Key.W, () => body.transform.position.z >= cards.InteractionPosition.z - .12f); yield return KeyPress(Key.E);
@@ -823,7 +823,7 @@ namespace Tests.Demo
             owner.Game.SetLocalProfileStore(new CasinoProfileStore(Path.Combine(saveDirectory, "Profile")));
             Assert.That(owner.gameObject.scene.path, Is.EqualTo("Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity"));
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
-            var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = hud;
             Assert.That(presenter, Is.Not.Null);
             if (enterWithHeldGamepad)
             {
@@ -989,7 +989,7 @@ namespace Tests.Demo
         {
             yield return EnterSample();
             var hud = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
-            var presenter = hud.gameObject.GetComponentInChildren<JinxCasinoImmersionHudPresenter>(true);
+            var presenter = hud;
             var director = owner.GetComponent<JinxCasinoAudioDirector>();
             Assert.That(director, Is.Not.Null);
             var music = Field<AudioSource>(director, "music");
@@ -1089,19 +1089,15 @@ namespace Tests.Demo
         {
             var field = value.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
             if (field != null) return (T)field.GetValue(value);
-            if (value is JinxCasinoImmersionHudPresenter)
+            if (value is JinxCasinoImmersionHudView)
             {
                 // 拆分后只查当前正式页面的控件，不再从HUD读取未加载的窗口。
                 foreach (var view in new View[] { UIManager.Instance.Get<JinxCasinoMainMenuView>(), UIManager.Instance.Get<JinxCasinoPauseView>(),
                     UIManager.Instance.Get<JinxCasinoTutorialView>(), UIManager.Instance.Get<JinxCasinoSaveView>(), UIManager.Instance.Get<JinxCasinoEndingView>(), UIManager.Instance.Get<JinxCasinoSettingsView>() })
                 {
                     if (view?.gameObject == null) continue;
-                    foreach (var component in view.gameObject.GetComponentsInChildren<MonoBehaviour>(true))
-                    {
-                        if (component == null) continue;
-                        field = component.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
-                        if (field != null) return (T)field.GetValue(component);
-                    }
+                    field = view.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (field != null) return (T)field.GetValue(view);
                 }
             }
             Assert.Fail("当前页面没有绑定控件：" + name);

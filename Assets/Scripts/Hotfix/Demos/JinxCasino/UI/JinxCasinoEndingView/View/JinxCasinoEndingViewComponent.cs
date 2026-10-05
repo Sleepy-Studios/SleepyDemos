@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoEndingView")]
     public partial class JinxCasinoEndingView
@@ -23,7 +24,14 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoEndingPresenter JinxCasinoEndingPresenter_JinxCasinoEndingView;
+        private UICancelRelay UICancelRelay_JinxCasinoEndingView;
+        private RectTransform RectTransform_StandardEnding;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
+        private TextMeshProUGUI TextMeshProUGUI_Message;
+        private TextMeshProUGUI TextMeshProUGUI_Stats;
+        private TextMeshProUGUI TextMeshProUGUI_Profile;
+        private Button Button_Save;
+        private Button Button_ReturnToHub;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +43,14 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoEndingPresenter_JinxCasinoEndingView = componentItemIndex.Get<JinxCasinoEndingPresenter>(0);
+            UICancelRelay_JinxCasinoEndingView = componentItemIndex.Get<UICancelRelay>(0);
+            RectTransform_StandardEnding = componentItemIndex.Get<RectTransform>(1);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(2);
+            TextMeshProUGUI_Message = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_Stats = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_Profile = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Button_Save = componentItemIndex.Get<Button>(6);
+            Button_ReturnToHub = componentItemIndex.Get<Button>(7);
         }
     }
 }

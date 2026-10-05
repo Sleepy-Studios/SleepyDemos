@@ -101,7 +101,7 @@ namespace Hotfix.JinxCasino.Interaction
                 return Failure("TutorialReplacementRequired", "先选择保存或放弃当前局，再明确重玩教学。");
             try
             {
-                return PublishFeedback(game.StartTutorialAdventure(configuration.CreateConfig(), replaceCurrentRun, seed));
+                return PublishFeedback(JinxCasinoStartTutorialAdventureAction.Send(game, configuration.CreateConfig(), replaceCurrentRun, seed));
             }
             catch (Exception exception) when (exception is ArgumentException || exception is InvalidOperationException || exception is OverflowException)
             {
@@ -113,7 +113,7 @@ namespace Hotfix.JinxCasino.Interaction
         public CasinoAdventureResult Skip()
         {
             if (!game.HasAdventure || !player.AcceptsCommands) return Failure("TutorialInactive", "当前没有可操作教学。");
-            var result = game.SkipTutorial();
+            var result = JinxCasinoSkipTutorialAction.Send(game);
             if (result.Changed) Reset();
             return PublishFeedback(result);
         }
@@ -123,7 +123,7 @@ namespace Hotfix.JinxCasino.Interaction
         {
             if (!game.HasAdventure || !player.AcceptsCommands || Status != CasinoTutorialStatus.Active || Step != CasinoTutorialStep.Ready)
                 return Failure("TutorialNotReady", "请先完成实际教学步骤。");
-            return PublishFeedback(game.CompleteTutorial());
+            return PublishFeedback(JinxCasinoCompleteTutorialAction.Send(game));
         }
 
         // 唯一调用点在探索旋转和CharacterController.Move之后，不观察聚焦、恢复或传送产生的变换。
@@ -263,7 +263,7 @@ namespace Hotfix.JinxCasino.Interaction
         private CasinoAdventureResult ObserveFact(CasinoTutorialFact fact, int value, string stationId = null, bool publish = true)
         {
             // 教学事实绕过经济提交帧，不伪造下注请求或发放奖励。
-            var result = game.ObserveTutorial(fact, value, stationId, publish);
+            var result = JinxCasinoObserveTutorialAction.Send(game, fact, value, stationId, publish);
             if (result.Changed) Feedback = null;
             else if (!result.Success && publish)
             {

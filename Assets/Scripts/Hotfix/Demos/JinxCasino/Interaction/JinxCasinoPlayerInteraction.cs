@@ -1,3 +1,4 @@
+using Core.Runtime;
 using Hotfix.JinxCasino;
 using Hotfix.JinxCasino.Presentation;
 using System;
@@ -123,10 +124,10 @@ namespace Hotfix.JinxCasino.Interaction
             var nearest = FindNearbyStation();
             if (Exit.PreferNearby(nearest)) { Exit.Interact(); return; }
             if (PreferNearbyShop(nearest))
-            { if (!TryOpenShop()) Game.SetStatus("柜台暂不可操作。"); return; }
+            { if (!TryOpenShop()) JinxCasinoSetStatusAction.Send(Game, "柜台暂不可操作。"); return; }
             if (nearest != null)
-            { if (!TryOpenTable(nearest)) Game.SetStatus("此机台暂不可操作。"); }
-            else Game.SetStatus("靠近机台后按E或触碰交互按钮。");
+            { if (!TryOpenTable(nearest)) JinxCasinoSetStatusAction.Send(Game, "此机台暂不可操作。"); }
+            else JinxCasinoSetStatusAction.Send(Game, "靠近机台后按E或触碰交互按钮。");
         }
 
         private CasinoAdventureResult UseItem(string itemId, string targetId)
@@ -134,10 +135,10 @@ namespace Hotfix.JinxCasino.Interaction
             var item = CasinoContentCatalog.FindItem(itemId);
             if (item?.IsPrank == true && effects != null && !effects.CanApplyPrank(targetId))
             {
-                Game.SetStatus("目标不存在或仍在五秒保护内，库存保留。");
+                JinxCasinoSetStatusAction.Send(Game, "目标不存在或仍在五秒保护内，库存保留。");
                 return new CasinoAdventureResult { Error = "TargetProtected", Description = Game.Status, Balance = Game.State?.Coins ?? 0 };
             }
-            return Game.UseItem(itemId, targetId, Time.frameCount);
+            return JinxCasinoUseItemAction.Send(Game, itemId, targetId, Time.frameCount);
         }
 
 
@@ -249,7 +250,7 @@ namespace Hotfix.JinxCasino.Interaction
             if (tableSession != null && (!tableFocus.IsActive || focusedStation == null)) CloseTable();
             if (HasShopBinding && (!tableFocus.IsActive || focusedShop == null || !focusedShop.isActiveAndEnabled)) CloseTable();
             if (IsPaused) return;
-            Game.Tick(presentationDelta);
+            JinxCasinoTickAction.Send(Game, presentationDelta);
             Exit.Tick();
             Tutorial.UpdateSceneFacts();
             if (IsMenuOpen) return;
@@ -346,7 +347,10 @@ namespace Hotfix.JinxCasino.Interaction
             if (tableSession == null || !tableFocus.IsReady || IsPaused) return;
             if (focusedPresentation != null && focusedPresentation.IsAnimating && action != JinxCasinoTableAction.Help)
             { TableFeedback = "请等机台完成当前动作。"; HasTableFeedbackError = false; return; }
-            var result = tableSession.Apply(action, value, Time.frameCount);
+            var request = new JinxCasinoTableActionRequest(GlobalData.Get<JinxCasinoData>()?.Scene, tableSession, action, value, Time.frameCount);
+            GlobalData.Dispatch(request);
+            var result = request.Result;
+            if (result == null) return;
             TableFeedback = result.Description; HasTableFeedbackError = !result.Success;
             Tutorial.ObserveTableCommand(action, result);
             RefreshTable(); Changed?.Invoke();
@@ -460,9 +464,9 @@ namespace Hotfix.JinxCasino.Interaction
                 var item = focusedShop.Product(selectedShopProduct);
                 if (item == null) return;
                 CasinoAdventureResult result = null;
-                if (action == JinxCasinoTableAction.PurchaseProduct) result = Game.PurchaseItem(item.Id, Time.frameCount);
+                if (action == JinxCasinoTableAction.PurchaseProduct) result = JinxCasinoPurchaseItemAction.Send(Game, item.Id, Time.frameCount);
                 else if (action == JinxCasinoTableAction.UseProduct || action == JinxCasinoTableAction.Secondary)
-                    result = Game.State.PreparedItems.Contains(item.Id) ? Game.CancelPreparedItem(item.Id, Time.frameCount) : UseItem(item.Id, "team");
+                    result = Game.State.PreparedItems.Contains(item.Id) ? JinxCasinoCancelPreparedItemAction.Send(Game, item.Id, Time.frameCount) : UseItem(item.Id, "team");
                 else if (action == JinxCasinoTableAction.Help) ShopFeedback = item.Description;
                 if (result != null)
                 {

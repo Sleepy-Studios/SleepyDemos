@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoSaveView")]
     public partial class JinxCasinoSaveView
@@ -23,7 +24,23 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoSavePresenter JinxCasinoSavePresenter_JinxCasinoSaveView;
+        private UICancelRelay UICancelRelay_JinxCasinoSaveView;
+        private RectTransform RectTransform_SaveSlots;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
+        private Button Button_Slot1;
+        private TextMeshProUGUI TextMeshProUGUI_Label;
+        private Button Button_Slot2;
+        private TextMeshProUGUI TextMeshProUGUI_Label1;
+        private Button Button_Slot3;
+        private TextMeshProUGUI TextMeshProUGUI_Label2;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback;
+        private Button Button_Back;
+        private RectTransform RectTransform_SaveConfirm;
+        private TextMeshProUGUI TextMeshProUGUI_Title1;
+        private TextMeshProUGUI TextMeshProUGUI_Message;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback1;
+        private Button Button_Confirm;
+        private Button Button_Cancel;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +52,23 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoSavePresenter_JinxCasinoSaveView = componentItemIndex.Get<JinxCasinoSavePresenter>(0);
+            UICancelRelay_JinxCasinoSaveView = componentItemIndex.Get<UICancelRelay>(0);
+            RectTransform_SaveSlots = componentItemIndex.Get<RectTransform>(1);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_Slot1 = componentItemIndex.Get<Button>(3);
+            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(4);
+            Button_Slot2 = componentItemIndex.Get<Button>(5);
+            TextMeshProUGUI_Label1 = componentItemIndex.Get<TextMeshProUGUI>(6);
+            Button_Slot3 = componentItemIndex.Get<Button>(7);
+            TextMeshProUGUI_Label2 = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(9);
+            Button_Back = componentItemIndex.Get<Button>(10);
+            RectTransform_SaveConfirm = componentItemIndex.Get<RectTransform>(11);
+            TextMeshProUGUI_Title1 = componentItemIndex.Get<TextMeshProUGUI>(12);
+            TextMeshProUGUI_Message = componentItemIndex.Get<TextMeshProUGUI>(13);
+            TextMeshProUGUI_Feedback1 = componentItemIndex.Get<TextMeshProUGUI>(14);
+            Button_Confirm = componentItemIndex.Get<Button>(15);
+            Button_Cancel = componentItemIndex.Get<Button>(16);
         }
     }
 }

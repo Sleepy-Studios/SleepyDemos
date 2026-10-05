@@ -16,49 +16,52 @@ namespace Hotfix.JinxCasino.UI
         private readonly JinxCasinoController owner;
         private readonly CancellationToken token;
         private View current;
-        private readonly Dictionary<int, string> focusNames = new();
-        private int shownKind = -1;
+        private readonly Dictionary<JinxCasinoPage, string> focusNames = new();
+        private JinxCasinoPage shownKind = JinxCasinoPage.None;
         private bool changing;
         private bool started;
         private bool stopping;
-        private int menuState = -1;
-        private bool settingsOpen;
+        private JinxCasinoPage menuState = JinxCasinoPage.None;
+        private bool settingsOpen => owner.Data.SettingsOpen;
         private int lastSettingsCancelFrame = -1;
-        internal JinxCasinoSaveWindowState Save { get; }
-        internal JinxCasinoTutorialWindowState Tutorial { get; }
-        internal int State => menuState;
+        internal JinxCasinoSaveWindowState Save => owner.Data.Save;
+        internal JinxCasinoTutorialWindowState Tutorial => owner.Data.Tutorial;
+        internal JinxCasinoPage State => owner.Data.Page;
         internal JinxCasinoUIController(JinxCasinoController controller, CancellationToken lifetime)
-        { owner = controller; token = lifetime; Save = new(owner); Tutorial = new(owner); owner.Changed += Refresh; owner.Player.Changed += Refresh; }
+        { owner = controller; token = lifetime; GlobalData.Subscribe<JinxCasinoData>(OnData); }
+        private void Dispatch(JinxCasinoUiCommand command) => GlobalData.Dispatch(new JinxCasinoUiAction(owner, command));
+        internal void OnSettingsClosed() => Dispatch(JinxCasinoUiCommand.CloseSettings);
+        internal void CancelImmersionHudWindow() => Dispatch(JinxCasinoUiCommand.CancelWindow);
+        private void OnData(JinxCasinoData value) { if (ReferenceEquals(value, owner.Data)) Refresh(); }
         internal void Begin() { started = true; Refresh(); }
-        internal void SetFirstSelection(GameObject first) => owner.Player.SetMenuState(menuState != 2, menuState == 9, first, CancelImmersionHudWindow);
-        internal void OpenSettings()
-        { if (owner.IsBusy || settingsOpen || menuState != 0 && menuState != 1) return; settingsOpen = true; Refresh(); }
-        internal void OnSettingsClosed()
-        { lastSettingsCancelFrame = Time.frameCount; settingsOpen = false; Refresh(); }
+        internal void SetFirstSelection(GameObject first) => owner.Player.SetMenuState(menuState != JinxCasinoPage.Field, menuState == JinxCasinoPage.Settings, first, CancelImmersionHudWindow);
+        internal void OpenSettings() => Dispatch(JinxCasinoUiCommand.OpenSettings);
+        internal void OnSettingsClosedCore()
+        { lastSettingsCancelFrame = Time.frameCount; }
         internal void CloseSettingsWindow()
         {
             if (!settingsOpen || lastSettingsCancelFrame == Time.frameCount) return;
             lastSettingsCancelFrame = Time.frameCount;
             var view = current as JinxCasinoSettingsView;
-            if (view != null) view.CancelPreview(); else OnSettingsClosed();
+            if (view != null) view.CancelPreview(); else OnSettingsClosedCore();
         }
-        internal void OpenSaveLoad() => Save.Open(false);
-        internal void OpenSaveWrite() => Save.Open(true);
-        private int ResolveEndingHudState(int normal) => owner.Player.Exit.HasEnding && !owner.Game.HasActiveRound && !owner.Player.HasFocus ? 8 : normal;
+        internal void OpenSaveLoad() => Dispatch(JinxCasinoUiCommand.OpenSaveLoad);
+        internal void OpenSaveWrite() => Dispatch(JinxCasinoUiCommand.OpenSaveWrite);
+
         internal void Refresh()
         {
             if (!started || stopping) return;
-            int state = settingsOpen ? 9 : Save.IsOpen ? Save.PendingSlot > 0 ? 7 : 6 : ResolveEndingHudState(Tutorial.ResolveState());
+            JinxCasinoPage state = owner.Data.Page;
             if (menuState != state)
             {
                 var selected = EventSystem.current?.currentSelectedGameObject;
                 if (current != null && selected != null && selected.transform.IsChildOf(current.transform)) focusNames[shownKind] = selected.name;
                 menuState = state;
-                owner.Player.SetMenuState(state != 2, state == 9, null, CancelImmersionHudWindow);
+                owner.Player.SetMenuState(state != JinxCasinoPage.Field, state == JinxCasinoPage.Settings, null, CancelImmersionHudWindow);
             }
             if (!changing && shownKind != WantedKind) SynchronizeAsync().Forget();
         }
-        private int WantedKind => stopping || owner.IsBusy ? -1 : menuState is 3 or 4 or 5 ? 3 : menuState is 6 or 7 ? 6 : menuState == 2 ? -1 : menuState;
+        private JinxCasinoPage WantedKind => stopping || owner.IsBusy ? JinxCasinoPage.None : menuState is JinxCasinoPage.TutorialReady or JinxCasinoPage.TutorialChoice or JinxCasinoPage.TutorialConfirm ? JinxCasinoPage.TutorialReady : menuState is JinxCasinoPage.SaveSlots or JinxCasinoPage.SaveConfirm ? JinxCasinoPage.SaveSlots : menuState == JinxCasinoPage.Field ? JinxCasinoPage.None : menuState;
         private async UniTaskVoid SynchronizeAsync()
         {
             changing = true;
@@ -68,19 +71,19 @@ namespace Hotfix.JinxCasino.UI
                 {
                     if (current != null)
                     {
-                        await CloseViewAsync(current); current = null; shownKind = -1;
+                        await CloseViewAsync(current); current = null; shownKind = JinxCasinoPage.None;
                     }
-                    int kind = WantedKind;
-                    if (kind < 0) continue;
+                    JinxCasinoPage kind = WantedKind;
+                    if (kind == JinxCasinoPage.None) continue;
                     var options = new UIShowOptions(animated: false, hidePrevious: false);
                     UIOperationResult result = kind switch
                     {
-                        0 => await UIManager.Instance.ShowAsync<JinxCasinoMainMenuView, JinxCasinoController>(owner, options, token),
-                        1 => await UIManager.Instance.ShowAsync<JinxCasinoPauseView, JinxCasinoController>(owner, options, token),
-                        3 => await UIManager.Instance.ShowAsync<JinxCasinoTutorialView, JinxCasinoController>(owner, options, token),
-                        6 => await UIManager.Instance.ShowAsync<JinxCasinoSaveView, JinxCasinoController>(owner, options, token),
-                        8 => await UIManager.Instance.ShowAsync<JinxCasinoEndingView, JinxCasinoController>(owner, options, token),
-                        9 => await UIManager.Instance.ShowAsync<JinxCasinoSettingsView, JinxCasinoController>(owner, options, token),
+                        JinxCasinoPage.MainMenu => await UIManager.Instance.ShowAsync<JinxCasinoMainMenuView>(view => view.SetData(owner), options, token),
+                        JinxCasinoPage.Pause => await UIManager.Instance.ShowAsync<JinxCasinoPauseView>(view => view.SetData(owner), options, token),
+                        JinxCasinoPage.TutorialReady => await UIManager.Instance.ShowAsync<JinxCasinoTutorialView>(view => view.SetData(owner), options, token),
+                        JinxCasinoPage.SaveSlots => await UIManager.Instance.ShowAsync<JinxCasinoSaveView>(view => view.SetData(owner), options, token),
+                        JinxCasinoPage.Ending => await UIManager.Instance.ShowAsync<JinxCasinoEndingView>(view => view.SetData(owner), options, token),
+                        JinxCasinoPage.Settings => await UIManager.Instance.ShowAsync<JinxCasinoSettingsView>(view => view.SetData(owner), options, token),
                         _ => throw new InvalidOperationException("未知赌场窗口状态。")
                     };
                     if (result.Status == UIOperationStatus.Canceled) return;
@@ -103,16 +106,16 @@ namespace Hotfix.JinxCasino.UI
             stopping = true; await UniTask.WaitUntil(() => !changing);
             if (current != null)
                     {
-                        await CloseViewAsync(current); current = null; shownKind = -1;
+                        await CloseViewAsync(current); current = null; shownKind = JinxCasinoPage.None;
                     }
         }
         internal void Restore() { stopping = false; Refresh(); }
-        public void Dispose() { stopping = true; owner.Changed -= Refresh; owner.Player.Changed -= Refresh; }
-        internal void CancelImmersionHudWindow()
+        public void Dispose() { stopping = true; GlobalData.UnSubscribe<JinxCasinoData>(OnData); }
+        internal void CancelImmersionHudWindowCore()
         {
             if (lastSettingsCancelFrame == Time.frameCount) return;
             if (settingsOpen) CloseSettingsWindow();
-            else if (menuState == 8) Refresh();
+            else if (menuState == JinxCasinoPage.Ending) Refresh();
             else if (Save.IsOpen) Save.CancelSaveWindow();
             else Tutorial.CancelTutorialWindow();
         }

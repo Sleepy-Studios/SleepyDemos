@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView")]
     public partial class JinxCasinoImmersionHudView
@@ -23,7 +24,20 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoImmersionHudPresenter JinxCasinoImmersionHudPresenter_JinxCasinoImmersionHudView;
+        private RectTransform RectTransform_FieldHud;
+        private TextMeshProUGUI TextMeshProUGUI_Wallet;
+        private TextMeshProUGUI TextMeshProUGUI_Objective;
+        private Button Button_Pause;
+        private TextMeshProUGUI TextMeshProUGUI_Prompt;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback;
+        private TouchInputPad TouchInputPad_MovePad;
+        private TouchInputPad TouchInputPad_LookPad;
+        private Button Button_Interact;
+        private Button Button_ExitTable;
+        private RectTransform RectTransform_TutorialStrip;
+        private TextMeshProUGUI TextMeshProUGUI_Hint;
+        private TextMeshProUGUI TextMeshProUGUI_Direction;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback1;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +49,20 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoImmersionHudPresenter_JinxCasinoImmersionHudView = componentItemIndex.Get<JinxCasinoImmersionHudPresenter>(0);
+            RectTransform_FieldHud = componentItemIndex.Get<RectTransform>(0);
+            TextMeshProUGUI_Wallet = componentItemIndex.Get<TextMeshProUGUI>(1);
+            TextMeshProUGUI_Objective = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_Pause = componentItemIndex.Get<Button>(3);
+            TextMeshProUGUI_Prompt = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TouchInputPad_MovePad = componentItemIndex.Get<TouchInputPad>(6);
+            TouchInputPad_LookPad = componentItemIndex.Get<TouchInputPad>(7);
+            Button_Interact = componentItemIndex.Get<Button>(8);
+            Button_ExitTable = componentItemIndex.Get<Button>(9);
+            RectTransform_TutorialStrip = componentItemIndex.Get<RectTransform>(10);
+            TextMeshProUGUI_Hint = componentItemIndex.Get<TextMeshProUGUI>(11);
+            TextMeshProUGUI_Direction = componentItemIndex.Get<TextMeshProUGUI>(12);
+            TextMeshProUGUI_Feedback1 = componentItemIndex.Get<TextMeshProUGUI>(13);
         }
     }
 }

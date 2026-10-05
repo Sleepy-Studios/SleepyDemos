@@ -104,10 +104,10 @@ namespace Hotfix.JinxCasino.Interaction
                 { Feedback = "核验已通过，请去另一侧领取离场券。"; player.NotifyChanged(); return; }
                 if (game.State.Phase != CasinoAdventurePhase.Playing)
                 { Feedback = "时间已到，请前往另一侧离场口。"; player.NotifyChanged(); return; }
-                result = game.CompleteStage(Time.frameCount);
+                result = JinxCasinoCompleteStageAction.Send(game, Time.frameCount);
             }
             else if (game.State.Phase == CasinoAdventurePhase.Finale)
-                result = game.ChooseEnding(CasinoAdventureEnding.LeaveWithDignity, Time.frameCount);
+                result = JinxCasinoChooseEndingAction.Send(game, CasinoAdventureEnding.LeaveWithDignity, Time.frameCount);
             else if (!IsWithdrawalArmed(terminal))
             {
                 armedExitTerminal = terminal; armedExitRun = game.State.RunId;
@@ -115,7 +115,7 @@ namespace Hotfix.JinxCasino.Interaction
                 Feedback = "再次交互确认撤离：会结束本次旅程，并保留剩余筹码。";
                 player.NotifyChanged(); return;
             }
-            else result = game.ChooseEnding(CasinoAdventureEnding.Withdraw, Time.frameCount);
+            else result = JinxCasinoChooseEndingAction.Send(game, CasinoAdventureEnding.Withdraw, Time.frameCount);
             Feedback = result.Success && terminal.Action == JinxCasinoExitAction.Verify ? "验票通过，请到离场口领取离场券。" : result.Description ?? result.Error;
             feedbackExitPhase = game.State.Phase;
             if (result.Success) ClearExitIntent();

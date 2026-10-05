@@ -35,7 +35,8 @@ namespace Hotfix.JinxCasino
         private JinxCasinoUIController ui;
         internal JinxCasinoUIController UI => ui;
         private CancellationTokenSource lifetime;
-        private bool isExiting;
+        internal JinxCasinoData Data { get; private set; }
+        private bool isExiting { get => Data?.IsExiting == true; set { Data?.Handler.SetExiting(value); } }
 
         /// 场景离开过程中停止接受命令。
         public bool IsBusy => isExiting;
@@ -60,12 +61,12 @@ namespace Hotfix.JinxCasino
                 Changed?.Invoke();
             }
             catch (OperationCanceledException) { }
-            catch (Exception exception) { Game.SetStatus(exception.Message); Debug.LogException(exception, this); Changed?.Invoke(); }
+            catch (Exception exception) { JinxCasinoSetStatusAction.Send(Game, exception.Message); Debug.LogException(exception, this); Changed?.Invoke(); }
         }
 
         private async UniTask<View> ShowLocalHudAsync()
         {
-            var result = await UIManager.Instance.ShowAsync<JinxCasinoImmersionHudView, JinxCasinoController>(this,
+            var result = await UIManager.Instance.ShowAsync<JinxCasinoImmersionHudView>(view => view.SetData(this),
                 new UIShowOptions(animated: false), lifetime.Token);
             if (result.Status == UIOperationStatus.Failed) throw result.Exception;
             return result.View;
@@ -75,14 +76,15 @@ namespace Hotfix.JinxCasino
         {
             Game.CommandInputEnabled = !IsBusy;
             Player.Tick();
-            ui?.Refresh();
+            Data?.Handler.Publish();
         }
 
         private void OnApplicationFocus(bool focused) => Player.SetApplicationFocus(focused);
         private void OnApplicationPause(bool paused) => Player.SetApplicationPaused(paused);
 
         /// 保存单机进度并关闭具体 View，再返回 Hub。
-        public void RequestExit() { if (!IsBusy) ExitAsync().Forget(); }
+        public void RequestExit() => GlobalData.Dispatch(new JinxCasinoUiAction(this, JinxCasinoUiCommand.Exit));
+        internal void ExitScene() { if (!IsBusy) ExitAsync().Forget(); }
         /// 独立包返回本游戏主菜单，Editor的Hub接入保持原行为。
         public bool IsStandalonePlayer => GameSceneNavigator.Instance?.StandaloneScene == GameSceneId.JinxCasino;
         /// 仅独立包主菜单接受退出应用，不用此方法丢弃正在进行的旅程。
@@ -101,13 +103,13 @@ namespace Hotfix.JinxCasino
                     : await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status != GameSceneSwitchStatus.Succeeded && result.Status != GameSceneSwitchStatus.Ignored)
                 {
-                    if (this != null) Game.SetStatus(result.Error ?? "导航繁忙，请稍后再试。");
+                    if (this != null) JinxCasinoSetStatusAction.Send(Game, result.Error ?? "导航繁忙，请稍后再试。");
                 }
             }
             catch (OperationCanceledException) { }
             catch (Exception exception)
             {
-                if (this != null) { Game.SetStatus(exception.Message); Debug.LogException(exception, this); }
+                if (this != null) { JinxCasinoSetStatusAction.Send(Game, exception.Message); Debug.LogException(exception, this); }
             }
             finally
             {
@@ -115,6 +117,7 @@ namespace Hotfix.JinxCasino
                 if (this != null && lifetime != null && !lifetime.IsCancellationRequested &&
                     GameSceneNavigator.Instance?.CurrentScene == GameSceneId.JinxCasino)
                 {
+                    if (!ReferenceEquals(GlobalData.Get<JinxCasinoData>(), Data)) GlobalData.Add(Data);
                     isExiting = false; ui.Restore();
                     if (hud == null)
                     {
@@ -125,7 +128,7 @@ namespace Hotfix.JinxCasino
                         catch (OperationCanceledException) { }
                         catch (Exception exception)
                         {
-                            if (this != null) { Game.SetStatus(exception.Message); Debug.LogException(exception, this); }
+                            if (this != null) { JinxCasinoSetStatusAction.Send(Game, exception.Message); Debug.LogException(exception, this); }
                         }
                     }
                     if (this != null) Changed?.Invoke();
@@ -143,12 +146,18 @@ namespace Hotfix.JinxCasino
             Game.CommandInputEnabled = false;
             lifetime?.Cancel();
             Settings.Changed -= ApplyLocalSettings;
+            Data?.Handler.Dispose();
+            if (ReferenceEquals(GlobalData.Get<JinxCasinoData>(), Data)) GlobalData.Remove<JinxCasinoData>();
             Changed = null;
             lifetime?.Dispose();
             lifetime = null;
         }
         private void Awake()
         {
+            // 同 Demo 重载先创建目标场景，旧场景销毁稍后发生；新场景必须注册自己的实例。
+            var previous = GlobalData.Get<JinxCasinoData>();
+            if (previous != null) { previous.Handler.Dispose(); GlobalData.Remove<JinxCasinoData>(); }
+            Data = GlobalData.Add(new JinxCasinoData(this));
             Player.Bind(Game, transform, worldCamera, immersionInputAsset, gameSettings, sceneEffects, shopCounter, exitTerminals, RequestExit);
             Settings.Changed += ApplyLocalSettings;
             ApplyLocalSettings();
@@ -191,14 +200,14 @@ namespace Hotfix.JinxCasino
         /// <param name="seed">可选固定种子，不设置必中结果。</param>
         public void StartAdventure(CasinoAdventureMode mode, uint? seed = null)
         {
-            if (IsBusy) { Game.SetStatus("请先结束当前操作。"); return; }
-            if (gameSettings == null) { Game.SetStatus("场景缺少玩法配置。"); return; }
-            Game.StartAdventure(mode, gameSettings.CreateConfig(), seed);
+            if (IsBusy) { JinxCasinoSetStatusAction.Send(Game, "请先结束当前操作。"); return; }
+            if (gameSettings == null) { JinxCasinoSetStatusAction.Send(Game, "场景缺少玩法配置。"); return; }
+            JinxCasinoStartAdventureAction.Send(Game, mode, gameSettings.CreateConfig(), seed);
         }
 
         /// <summary>先检查场景是否可继续候选旅程，再安装；失败不清焦点或替换当前局。</summary>
         /// <param name="slot">玩家明确选择的1到3槽。</param>
-        public bool LoadAdventure(int slot) => !IsBusy && Game.LoadAdventure(slot);
+        public bool LoadAdventure(int slot) => !IsBusy && JinxCasinoLoadAdventureAction.Send(Game, slot);
 
         private void ValidateImmersionRestore(CasinoAdventureState candidate)
         {
@@ -240,7 +249,7 @@ namespace Hotfix.JinxCasino
 
         private void SaveAdventureBeforeExit()
         {
-            if (Game.HasAdventure && Game.SelectedSaveSlot > 0) Game.SaveAdventure(Game.SelectedSaveSlot);
+            if (Game.HasAdventure && Game.SelectedSaveSlot > 0) JinxCasinoSaveAdventureAction.Send(Game, Game.SelectedSaveSlot);
             sceneEffects?.ClearEffects();
         }
 

@@ -1,3 +1,4 @@
+using Core.Runtime;
 using Hotfix.JinxCasino;
 using Hotfix.JinxCasino.Interaction;
 using Hotfix.JinxCasino.Presentation;
@@ -15,6 +16,32 @@ namespace Tests.Demo
     public sealed class JinxCasinoImmersionSceneTests
     {
         private const string Root = "Assets/LoadResources/Demos/jinx_casino";
+
+        [TestCase("MainMenu")]
+        [TestCase("Pause")]
+        [TestCase("Tutorial")]
+        [TestCase("Save")]
+        [TestCase("Ending")]
+        [TestCase("ImmersionHud")]
+        [TestCase("Settings")]
+        public void SavedViewBindingsMatchTheirComponents(string page)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Prefabs/UI/JinxCasino" + page + "View.prefab");
+            Assert.That(prefab, Is.Not.Null);
+            var index = prefab.GetComponent<ComponentItemIndex>();
+            Assert.That(index, Is.Not.Null);
+            Assert.That(index.Components, Has.None.Null);
+            Assert.That(index.ComponentTypes.Length, Is.EqualTo(index.Components.Length));
+            Assert.That(index.BindingKeys.Length, Is.EqualTo(index.Components.Length));
+            Assert.That(index.BindingKeys.Distinct().Count(), Is.EqualTo(index.BindingKeys.Length));
+            for (int i = 0; i < index.Components.Length; i++)
+            {
+                Assert.That(index.ComponentTypes[i], Is.EqualTo(index.Components[i].GetType().FullName));
+                Assert.That(index.BindingKeys[i], Is.Not.Empty);
+            }
+            foreach (var node in prefab.GetComponentsInChildren<Transform>(true))
+                Assert.That(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject), Is.Zero, node.name);
+        }
 
         [Test]
         public void SavedCounterAllowsOldInventoryWithoutSellingTheItemAgain()

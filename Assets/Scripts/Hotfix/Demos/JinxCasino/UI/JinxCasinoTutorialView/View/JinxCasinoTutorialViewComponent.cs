@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoTutorialView")]
     public partial class JinxCasinoTutorialView
@@ -23,7 +24,20 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoTutorialPresenter JinxCasinoTutorialPresenter_JinxCasinoTutorialView;
+        private UICancelRelay UICancelRelay_JinxCasinoTutorialView;
+        private RectTransform RectTransform_TutorialReady;
+        private Button Button_Complete;
+        private Button Button_Back;
+        private RectTransform RectTransform_TutorialChoice;
+        private TextMeshProUGUI TextMeshProUGUI_Hint;
+        private Button Button_Continue;
+        private Button Button_Standard;
+        private RectTransform RectTransform_TutorialConfirm;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
+        private TextMeshProUGUI TextMeshProUGUI_Hint1;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback;
+        private Button Button_Confirm;
+        private Button Button_Cancel;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +49,20 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoTutorialPresenter_JinxCasinoTutorialView = componentItemIndex.Get<JinxCasinoTutorialPresenter>(0);
+            UICancelRelay_JinxCasinoTutorialView = componentItemIndex.Get<UICancelRelay>(0);
+            RectTransform_TutorialReady = componentItemIndex.Get<RectTransform>(1);
+            Button_Complete = componentItemIndex.Get<Button>(2);
+            Button_Back = componentItemIndex.Get<Button>(3);
+            RectTransform_TutorialChoice = componentItemIndex.Get<RectTransform>(4);
+            TextMeshProUGUI_Hint = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Button_Continue = componentItemIndex.Get<Button>(6);
+            Button_Standard = componentItemIndex.Get<Button>(7);
+            RectTransform_TutorialConfirm = componentItemIndex.Get<RectTransform>(8);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(9);
+            TextMeshProUGUI_Hint1 = componentItemIndex.Get<TextMeshProUGUI>(10);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(11);
+            Button_Confirm = componentItemIndex.Get<Button>(12);
+            Button_Cancel = componentItemIndex.Get<Button>(13);
         }
     }
 }

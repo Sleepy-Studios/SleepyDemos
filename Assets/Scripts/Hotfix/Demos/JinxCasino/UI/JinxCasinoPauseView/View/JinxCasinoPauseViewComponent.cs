@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoPauseView")]
     public partial class JinxCasinoPauseView
@@ -23,7 +24,17 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoPausePresenter JinxCasinoPausePresenter_JinxCasinoPauseView;
+        private UICancelRelay UICancelRelay_JinxCasinoPauseView;
+        private RectTransform RectTransform_PauseMenu;
+        private TextMeshProUGUI TextMeshProUGUI_Hint;
+        private Button Button_Resume;
+        private Button Button_Leave;
+        private Button Button_TutorialSkip;
+        private Button Button_TutorialReview;
+        private Button Button_TutorialRetry;
+        private Button Button_SaveAdventure;
+        private Button Button_LoadAdventure;
+        private Button Button_Settings;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +46,17 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoPausePresenter_JinxCasinoPauseView = componentItemIndex.Get<JinxCasinoPausePresenter>(0);
+            UICancelRelay_JinxCasinoPauseView = componentItemIndex.Get<UICancelRelay>(0);
+            RectTransform_PauseMenu = componentItemIndex.Get<RectTransform>(1);
+            TextMeshProUGUI_Hint = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_Resume = componentItemIndex.Get<Button>(3);
+            Button_Leave = componentItemIndex.Get<Button>(4);
+            Button_TutorialSkip = componentItemIndex.Get<Button>(5);
+            Button_TutorialReview = componentItemIndex.Get<Button>(6);
+            Button_TutorialRetry = componentItemIndex.Get<Button>(7);
+            Button_SaveAdventure = componentItemIndex.Get<Button>(8);
+            Button_LoadAdventure = componentItemIndex.Get<Button>(9);
+            Button_Settings = componentItemIndex.Get<Button>(10);
         }
     }
 }

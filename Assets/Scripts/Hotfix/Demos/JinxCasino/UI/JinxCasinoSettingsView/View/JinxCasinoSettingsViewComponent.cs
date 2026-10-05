@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.JinxCasino.UI;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoSettingsView")]
     public partial class JinxCasinoSettingsView
@@ -23,7 +24,39 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private JinxCasinoSettingsPresenter JinxCasinoSettingsPresenter_JinxCasinoSettingsView;
+        private UICancelRelay UICancelRelay_JinxCasinoSettingsView;
+        private RectTransform RectTransform_SettingsPanel;
+        private UITab UITab_SettingsPanel;
+        private RectTransform RectTransform_PointerPage;
+        private TextMeshProUGUI TextMeshProUGUI_PcSensitivityLabel;
+        private Slider Slider_PcSensitivity;
+        private TextMeshProUGUI TextMeshProUGUI_TouchSensitivityLabel;
+        private Slider Slider_TouchSensitivity;
+        private Toggle Toggle_LeftHanded;
+        private RectTransform RectTransform_GamepadPage;
+        private TextMeshProUGUI TextMeshProUGUI_LookMultiplierLabel;
+        private Slider Slider_LookMultiplier;
+        private TextMeshProUGUI TextMeshProUGUI_DeadzoneLabel;
+        private Slider Slider_Deadzone;
+        private TextMeshProUGUI TextMeshProUGUI_LookRateLabel;
+        private Slider Slider_LookRate;
+        private TextMeshProUGUI TextMeshProUGUI_MaximumLabel;
+        private Slider Slider_Maximum;
+        private TextMeshProUGUI TextMeshProUGUI_RumbleStrengthLabel;
+        private Slider Slider_RumbleStrength;
+        private Toggle Toggle_InvertY;
+        private Toggle Toggle_RumbleEnabled;
+        private RectTransform RectTransform_AudioPage;
+        private TextMeshProUGUI TextMeshProUGUI_VolumeLabel;
+        private Slider Slider_Volume;
+        private Toggle Toggle_Muted;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback;
+        private Button Button_Save;
+        private Button Button_Defaults;
+        private Button Button_Close;
+        private Button Button_PointerTab;
+        private Button Button_GamepadTab;
+        private Button Button_AudioTab;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +68,39 @@ namespace Hotfix
                 return;
             }
 
-            JinxCasinoSettingsPresenter_JinxCasinoSettingsView = componentItemIndex.Get<JinxCasinoSettingsPresenter>(0);
+            UICancelRelay_JinxCasinoSettingsView = componentItemIndex.Get<UICancelRelay>(0);
+            RectTransform_SettingsPanel = componentItemIndex.Get<RectTransform>(1);
+            UITab_SettingsPanel = componentItemIndex.Get<UITab>(2);
+            RectTransform_PointerPage = componentItemIndex.Get<RectTransform>(3);
+            TextMeshProUGUI_PcSensitivityLabel = componentItemIndex.Get<TextMeshProUGUI>(4);
+            Slider_PcSensitivity = componentItemIndex.Get<Slider>(5);
+            TextMeshProUGUI_TouchSensitivityLabel = componentItemIndex.Get<TextMeshProUGUI>(6);
+            Slider_TouchSensitivity = componentItemIndex.Get<Slider>(7);
+            Toggle_LeftHanded = componentItemIndex.Get<Toggle>(8);
+            RectTransform_GamepadPage = componentItemIndex.Get<RectTransform>(9);
+            TextMeshProUGUI_LookMultiplierLabel = componentItemIndex.Get<TextMeshProUGUI>(10);
+            Slider_LookMultiplier = componentItemIndex.Get<Slider>(11);
+            TextMeshProUGUI_DeadzoneLabel = componentItemIndex.Get<TextMeshProUGUI>(12);
+            Slider_Deadzone = componentItemIndex.Get<Slider>(13);
+            TextMeshProUGUI_LookRateLabel = componentItemIndex.Get<TextMeshProUGUI>(14);
+            Slider_LookRate = componentItemIndex.Get<Slider>(15);
+            TextMeshProUGUI_MaximumLabel = componentItemIndex.Get<TextMeshProUGUI>(16);
+            Slider_Maximum = componentItemIndex.Get<Slider>(17);
+            TextMeshProUGUI_RumbleStrengthLabel = componentItemIndex.Get<TextMeshProUGUI>(18);
+            Slider_RumbleStrength = componentItemIndex.Get<Slider>(19);
+            Toggle_InvertY = componentItemIndex.Get<Toggle>(20);
+            Toggle_RumbleEnabled = componentItemIndex.Get<Toggle>(21);
+            RectTransform_AudioPage = componentItemIndex.Get<RectTransform>(22);
+            TextMeshProUGUI_VolumeLabel = componentItemIndex.Get<TextMeshProUGUI>(23);
+            Slider_Volume = componentItemIndex.Get<Slider>(24);
+            Toggle_Muted = componentItemIndex.Get<Toggle>(25);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(26);
+            Button_Save = componentItemIndex.Get<Button>(27);
+            Button_Defaults = componentItemIndex.Get<Button>(28);
+            Button_Close = componentItemIndex.Get<Button>(29);
+            Button_PointerTab = componentItemIndex.Get<Button>(30);
+            Button_GamepadTab = componentItemIndex.Get<Button>(31);
+            Button_AudioTab = componentItemIndex.Get<Button>(32);
         }
     }
 }
