@@ -82,6 +82,12 @@ namespace Hotfix.BlockPorters
     /// 返回失败后恢复会话及奖励请求能力。
     internal sealed class BlockPortersRestoreAction : BlockPortersAction
     {
+        internal BlockPortersData Source;
+
+        internal BlockPortersRestoreAction(BlockPortersData source)
+        {
+            Source = source;
+        }
     }
 
     /// 请求奖励服务解锁一侧额外搬运槽。
@@ -114,6 +120,27 @@ namespace Hotfix.BlockPorters
             Version = version;
             Side = side;
             Result = result;
+        }
+    }
+
+    /// 同步 HUD 准备或场景停用状态。
+    internal sealed class BlockPortersReadyAction : BlockPortersAction
+    {
+        /// 拥有 HUD 的当前会话。
+        internal BlockPortersData Source;
+
+        /// HUD 已准备且场景启用时为 true。
+        internal bool Ready;
+
+        /// <summary>
+        /// 同步 HUD 准备或场景停用状态。
+        /// </summary>
+        /// <param name="source">拥有 HUD 的当前会话。</param>
+        /// <param name="ready">HUD 已准备且场景启用时为 true。</param>
+        internal BlockPortersReadyAction(BlockPortersData source, bool ready)
+        {
+            Source = source;
+            Ready = ready;
         }
     }
 }

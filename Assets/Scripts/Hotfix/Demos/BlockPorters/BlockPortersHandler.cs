@@ -35,12 +35,6 @@ namespace Hotfix.BlockPorters
             rewardLifetime = CancellationTokenSource.CreateLinkedTokenSource(scene.Lifetime);
         }
 
-        internal void SetReady(bool ready)
-        {
-            State.Ready = ready;
-            Publish();
-        }
-
         internal void Publish() => ApplyState();
 
         internal void Advance(double time)
@@ -59,6 +53,9 @@ namespace Hotfix.BlockPorters
         {
             switch (action)
             {
+                case BlockPortersReadyAction ready when ReferenceEquals(ready.Source, State):
+                    State.Ready = ready.Ready;
+                    break;
                 case BlockPortersLoadLevelAction load:
                     LoadLevel(load.Index, load.ChooseTheme);
                     return;
@@ -117,11 +114,14 @@ namespace Hotfix.BlockPorters
                     Publish();
                     scene.ExitScene();
                     return;
-                case BlockPortersRestoreAction:
+                case BlockPortersRestoreAction restore when ReferenceEquals(restore.Source, State):
                     State.IsExiting = State.IsRewardPending = false;
                     RenewReward();
                     break;
+                default:
+                    return;
             }
+
             if (!State.IsPaused || State.Session != State.SettingsSession)
                 State.SettingsRequested = false;
             Publish();
@@ -155,8 +155,14 @@ namespace Hotfix.BlockPorters
             {
                 result = await reward.RequestExtraSlotAsync(side, rewardLifetime.Token);
             }
-            catch (OperationCanceledException) { }
-            catch (Exception error) { Debug.LogException(error, scene); }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception error)
+            {
+                Debug.LogException(error, scene);
+            }
+
             // 旧关卡或旧场景的奖励完成不能影响重新注册的会话。
             if (version == State.Version && ReferenceEquals(GlobalData.Get<BlockPortersData>(), State))
                 GlobalData.Dispatch(new BlockPortersRewardResultAction(version, side, result));

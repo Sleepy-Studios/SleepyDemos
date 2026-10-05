@@ -7,12 +7,28 @@ namespace Hotfix
     /// 大厅的入口集合、选中态、导航状态和反馈。
     public sealed class MainMenuData : IData
     {
-        public List<IHandler> Handlers { get; } = new() { new MainMenuHandler() };
+        public List<IHandler> Handlers { get; } = new()
+        {
+            new MainMenuHandler()
+        };
+
+        /// 当前展示的 Demo 卡片集合；卡片配置在构造时创建。
         public List<MainMenuDemoEntry> Entries { get; } = new();
+
+        /// 当前选中卡片索引，从零开始。
         public int SelectedIndex { get; internal set; }
+
+        /// 是否正在等待场景进入结果。
         public bool IsEntering { get; internal set; }
+
+        /// 入口是否允许进入或切换选择。
         public bool CanEnter { get; internal set; }
+
+        /// 当前用户可见反馈；null 表示无反馈。
         public string Feedback { get; internal set; }
+
+        internal int Version;
+
         public MainMenuData()
         {
             const string art = "LoadResources/UI/Hall/Art/Gallery/";
@@ -24,10 +40,19 @@ namespace Hotfix
             Entries.Add(new MainMenuDemoEntry("how_to_fish", "渔力全开", "驾船探索群岛，钓起奇异生物。\n单人冒险开发中。", "LoadResources/Demos/how_to_fish/Art/UI/HubPreview", GameSceneId.HowToFish, "出海垂钓，探索未知"));
             Entries[0].IsSelected = true;
         }
+
+        /// 重置业务状态，使上一轮请求结果失效。
         public void ClearData()
         {
-            SelectedIndex = 0; IsEntering = CanEnter = false; Feedback = null;
-            for (int i = 0; i < Entries.Count; i++) { Entries[i].IsSelected = i == 0; Entries[i].CanEnter = Entries[i].CanBrowse = false; }
+            Version++;
+            SelectedIndex = 0;
+            IsEntering = CanEnter = false;
+            Feedback = null;
+            for (int i = 0; i < Entries.Count; i++)
+            {
+                Entries[i].IsSelected = i == 0;
+                Entries[i].CanEnter = Entries[i].CanBrowse = false;
+            }
         }
     }
 }

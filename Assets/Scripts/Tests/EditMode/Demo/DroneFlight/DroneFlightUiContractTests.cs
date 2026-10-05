@@ -15,24 +15,34 @@ namespace Tests.Demo
     /*
      * 测试说明：验证 DroneFlight 正式 UI 的资源地址、Widget 层级、UIBind 结构和关键布局锚点。
      */
+
     public sealed class DroneFlightUiContractTests
     {
         private const string HudPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView.prefab";
+
         private const string DebugPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightDebugView.prefab";
+
         private const string SelectPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightVehicleSelectView.prefab";
+
         private const string ViewRoot = "Assets/Scripts/Hotfix/Demos/DroneFlight";
 
         private static readonly string[] ControlTextNames =
         {
-            "StatusText", "CameraText", "HeightText", "DistanceText", "HorizontalText", "VerticalText", "GearText", "EquipmentText", "WarningText"
+            "StatusText",
+            "CameraText",
+            "HeightText",
+            "DistanceText",
+            "HorizontalText",
+            "VerticalText",
+            "GearText",
+            "EquipmentText",
+            "WarningText"
         };
-
         [Test]
         public void Views_UseFormalWidgetLayersAndExpectedAddresses()
         {
             var hud = new DroneFlightHudView();
             var debug = new DroneFlightDebugView();
-
             Assert.That(hud.Level, Is.EqualTo(UILayer.Decorate));
             Assert.That(hud.ViewMode, Is.EqualTo(UIViewMode.Widget));
             StringAssert.EndsWith("DroneFlightHudView", hud.Address);
@@ -47,7 +57,6 @@ namespace Tests.Demo
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
             var debug = AssetDatabase.LoadAssetAtPath<GameObject>(DebugPrefabPath);
             var select = AssetDatabase.LoadAssetAtPath<GameObject>(SelectPrefabPath);
-
             Assert.That(hud, Is.Not.Null);
             Assert.That(debug, Is.Not.Null);
             Assert.That(select, Is.Not.Null);
@@ -62,16 +71,34 @@ namespace Tests.Demo
             AssertIndexArraysAreAligned(debug.GetComponent<ComponentItemIndex>());
             var selectIndex = select.GetComponent<ComponentItemIndex>();
             AssertIndexArraysAreAligned(selectIndex);
-            foreach (string method in new[] { "OnPlainButtonClick", "OnGrappleButtonClick", "OnHarpoonButtonClick", "OnStartButtonClick", "OnBackButtonClick" })
+            foreach (string method in new[]
+            {
+                "OnPlainButtonClick",
+                "OnGrappleButtonClick",
+                "OnHarpoonButtonClick",
+                "OnStartButtonClick",
+                "OnBackButtonClick"
+            }
+
+            )
                 Assert.That(selectIndex.BindingMethods.Count(value => value == method), Is.EqualTo(1), method);
             Assert.That(selectIndex.Components, Has.None.Null);
             Assert.That(select.GetComponent<Canvas>(), Is.Null);
-            foreach (string name in new[] { "PlainPreview", "GrapplePreview", "HarpoonPreview", "Hero" })
+            foreach (string name in new[]
+            {
+                "PlainPreview",
+                "GrapplePreview",
+                "HarpoonPreview",
+                "Hero"
+            }
+
+            )
             {
                 var image = selectIndex.Components.OfType<UnityEngine.UI.Image>().Single(value => value.name == name);
                 Assert.That(image.sprite, Is.Not.Null, name);
                 Assert.That(image.preserveAspect, Is.True, name + " 不得拉伸实际模型");
             }
+
             Assert.That(hudIndex.Components.OfType<Core.Runtime.Inputs.TouchInputPad>().Count(), Is.EqualTo(2), "两个触控区承载四轴操作。");
             Assert.That(hudIndex.Components.OfType<Core.Runtime.Inputs.InputCommandButton>(), Is.Not.Empty);
             Assert.That(hud.GetComponent<DroneHudLayout>(), Is.Not.Null);
@@ -86,16 +113,11 @@ namespace Tests.Demo
         {
             var hud = AssetDatabase.LoadAssetAtPath<GameObject>(HudPrefabPath);
             var index = hud.GetComponent<ComponentItemIndex>();
-
             foreach (var nodeName in ControlTextNames)
             {
                 var text = hud.GetComponentsInChildren<TextMeshProUGUI>(true).SingleOrDefault(value => value.name == nodeName);
                 Assert.That(text, Is.Not.Null, $"HUD 缺少固定文本节点：{nodeName}");
-                Assert.That(
-                    index.Components.Count(component => component == text),
-                    Is.EqualTo(1),
-                    $"{nodeName} 必须且只能进入 ComponentItemIndex 一次。");
-
+                Assert.That(index.Components.Count(component => component == text), Is.EqualTo(1), $"{nodeName} 必须且只能进入 ComponentItemIndex 一次。");
                 var bindingIndex = System.Array.IndexOf(index.Components, text);
                 Assert.That(index.ComponentTypes[bindingIndex], Is.EqualTo(typeof(TextMeshProUGUI).FullName));
                 StringAssert.Contains(nodeName, index.BindingKeys[bindingIndex]);
@@ -107,21 +129,48 @@ namespace Tests.Demo
         {
             var forbiddenTokens = new[]
             {
-                "Transform.Find(", "GameObject.Find(", ".Find(\"", "GetComponent<",
-                "GetComponentInChildren<", "GetComponentsInChildren<"
+                "Transform.Find(",
+                "GameObject.Find(",
+                ".Find(\"",
+                "GetComponent<",
+                "GetComponentInChildren<",
+                "GetComponentsInChildren<"
             };
-            var violations = Directory.GetFiles(Path.GetFullPath(ViewRoot), "*View.cs", SearchOption.AllDirectories)
-                .Where(path => !path.EndsWith("ViewComponent.cs", System.StringComparison.Ordinal))
-                .SelectMany(path => forbiddenTokens
-                    .Where(token => File.ReadAllText(path).Contains(token))
-                    .Select(token => $"{Path.GetRelativePath(Path.GetFullPath(ViewRoot), path)}: {token}"))
-                .ToArray();
+            var violations = Directory.GetFiles(Path.GetFullPath(ViewRoot), "*View.cs", SearchOption.AllDirectories).Where(path => !path.EndsWith("ViewComponent.cs", System.StringComparison.Ordinal)).SelectMany(path => forbiddenTokens.Where(token => File.ReadAllText(path).Contains(token)).Select(token => $"{Path.GetRelativePath(Path.GetFullPath(ViewRoot), path)}: {token}")).ToArray();
+            Assert.That(violations, Is.Empty, "固定 View 节点必须通过 ComponentItemIndex 与 UIBind 生成字段访问。\n" + string.Join("\n", violations));
+        }
 
-            Assert.That(
-                violations,
-                Is.Empty,
-                "固定 View 节点必须通过 ComponentItemIndex 与 UIBind 生成字段访问。\n" +
-                string.Join("\n", violations));
+        [Test]
+        public void NavigationAndPageResultsIgnoreReplacedSession()
+        {
+            var previous = GlobalData.Add<DroneFlightData>();
+            previous.Handler.Dispose();
+            GlobalData.Remove<DroneFlightData>();
+            var current = GlobalData.Add<DroneFlightData>();
+            int notifications = 0;
+            GlobalData.Subscribe<DroneFlightData>(_ => notifications++, false);
+            try
+            {
+                GlobalData.Dispatch(new DroneFlightHelpResultAction(previous, true));
+                GlobalData.Dispatch(new DroneFlightFeedbackAction(previous, "过期反馈"));
+                GlobalData.Dispatch(new DroneFlightRestoreModeAction(previous, true));
+                Assert.That(current.HelpRequested, Is.False);
+                Assert.That(current.Feedback, Is.Null);
+                Assert.That(current.Mode, Is.EqualTo(DroneFlightSessionMode.Selecting));
+                Assert.That(notifications, Is.Zero, "过期结果不应触发新会话刷新。");
+                GlobalData.Dispatch(new DroneFlightBeginLeavingAction(current));
+                Assert.That(current.Mode, Is.EqualTo(DroneFlightSessionMode.Leaving));
+                GlobalData.Dispatch(new DroneFlightRestoreModeAction(current, true));
+                Assert.That(current.Mode, Is.EqualTo(DroneFlightSessionMode.Active));
+                GlobalData.Dispatch(new DroneFlightFeedbackAction(current, "可重试"));
+                Assert.That(current.Feedback, Is.EqualTo("可重试"));
+                Assert.That(notifications, Is.EqualTo(3));
+            }
+            finally
+            {
+                current.Handler.Dispose();
+                GlobalData.Remove<DroneFlightData>();
+            }
         }
 
         private static void AssertIndexArraysAreAligned(ComponentItemIndex index)
@@ -131,6 +180,5 @@ namespace Tests.Demo
             Assert.That(index.BindingKeys.Length, Is.EqualTo(index.Components.Length));
             Assert.That(index.BindingMethods.Length, Is.EqualTo(index.Components.Length));
         }
-
     }
 }

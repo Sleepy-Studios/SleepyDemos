@@ -7,31 +7,79 @@ namespace Hotfix.Dlss
     internal sealed class DlssHandler : HandlerBase<DlssAction, DlssData>, IDisposable
     {
         private readonly DlssDemoController scene;
-        internal DlssHandler(DlssDemoController scene) => this.scene=scene;
-        protected override void OnInit() { InputDeviceState.Changed += RefreshDevice; RefreshDevice(); }
-        private void RefreshDevice() { State.DeviceKind=InputDeviceState.ActiveKind; if(State.DeviceKind!=InputDeviceKind.Touch) State.Sprint=false; ApplyState(); }
-        internal void Restore() { State.IsExiting=false; ApplyState(); }
-        protected override void Reduce(DlssAction action)
+
+        internal DlssHandler(DlssDemoController scene)
         {
-            switch(action)
-            {
-                case DlssSprintAction sprint:
-                    if(State.Sprint==sprint.Held) return;
-                    if(!sprint.Held || !State.IsExiting && !State.SettingsOpen) State.Sprint=sprint.Held; break;
-                case DlssSettingsClosedAction:
-                    if(!State.SettingsOpen) return; State.SettingsOpen=false; scene.RestoreControls(); break;
-                case DlssControlAction control:
-                    if(State.IsExiting || State.SettingsOpen) return;
-                    switch(control.Command)
-                    {
-                        case "Reset": scene.ResetCamera(); break;
-                        case "Settings": State.SettingsOpen=true; State.Sprint=false; ApplyState(); scene.ShowSettings(); return;
-                        case "Exit": State.IsExiting=true; State.Sprint=false; ApplyState(); scene.ExitScene(); return;
-                    }
-                    break;
-            }
+            this.scene = scene;
+        }
+
+        protected override void OnInit()
+        {
+            InputDeviceState.Changed += RefreshDevice;
+            RefreshDevice();
+        }
+
+        private void RefreshDevice()
+        {
+            State.DeviceKind = InputDeviceState.ActiveKind;
+            if (State.DeviceKind != InputDeviceKind.Touch)
+                State.Sprint = false;
             ApplyState();
         }
+
+        /// <summary>
+        /// 处理本模块业务命令，按实际服务与规则结果发布状态。
+        /// </summary>
+        /// <param name="action">当前模块的业务请求。</param>
+        protected override void Reduce(DlssAction action)
+        {
+            switch (action)
+            {
+                case DlssRestoreAction restore when ReferenceEquals(restore.Source, State):
+                    State.IsExiting = false;
+                    break;
+                case DlssSprintAction sprint:
+                    if (State.Sprint == sprint.Held)
+                        return;
+                    if (!sprint.Held || !State.IsExiting && !State.SettingsOpen)
+                        State.Sprint = sprint.Held;
+                    break;
+                case DlssSettingsClosedAction closed when ReferenceEquals(closed.Source, State):
+                    if (!State.SettingsOpen)
+                        return;
+                    State.SettingsOpen = false;
+                    scene.RestoreControls();
+                    break;
+                case DlssControlAction control:
+                    if (State.IsExiting || State.SettingsOpen)
+                        return;
+                    switch (control.Command)
+                    {
+                        case "Reset":
+                            scene.ResetCamera();
+                            break;
+                        case "Settings":
+                            State.SettingsOpen = true;
+                            State.Sprint = false;
+                            ApplyState();
+                            scene.ShowSettings();
+                            return;
+                        case "Exit":
+                            State.IsExiting = true;
+                            State.Sprint = false;
+                            ApplyState();
+                            scene.ExitScene();
+                            return;
+                    }
+
+                    break;
+                default:
+                    return;
+            }
+
+            ApplyState();
+        }
+
         public void Dispose() => InputDeviceState.Changed -= RefreshDevice;
     }
 }

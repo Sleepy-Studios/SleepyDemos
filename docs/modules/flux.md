@@ -222,3 +222,5 @@ namespace Hotfix
 全局 Data 由 FluxService 注册；Demo 在初始化时注册自己的 Data，退出时先关闭页面、取消异步任务，再移除。Handler 的异步结果必须核对当前 Data 实例与会话版本后再修改状态；GlobalData 仅通知当前注册实例的状态更新，旧 Handler 无法覆盖重新注册的同类型 Data。页面通过 View.BindData 声明绑定，由 Core 配对订阅。
 
 同类型 Demo 重载时，目标场景使用新的 Data 实例；旧场景的销毁仅移除自己仍持有的注册实例。异步完成先核对当前注册实例与会话版本，View 隐藏、任务取消后再移除场景 Data。需要同步结果的玩法 Action 保存结果字段，Handler 处理后由调用方读取。
+
+大厅导航捕获 MainMenuData 的版本；Data 清理或重新注册后，迟到结果不更新选择、反馈或进入标志。Demo 的页面与导航结果同时携带所属 Data，Handler 拒绝其它实例的结果。

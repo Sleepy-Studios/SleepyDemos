@@ -10,18 +10,33 @@ namespace Hotfix
     [UIBind("DlssSettingsView")]
     public partial class DlssSettingsView : View
     {
+        private Hotfix.Dlss.DlssData dlssSession;
+
+        protected override void OnShow()
+        {
+            dlssSession = GlobalData.Get<Hotfix.Dlss.DlssData>();
+            base.OnShow();
+        }
+
         protected override void OnGameObjectInitialize()
         {
             BindData<GraphicsSettingsData>(RefreshState);
             UIMenuScope_SettingsPanel.Canceled += OnCloseButtonClick;
         }
-        protected override void OnHide() { GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction()); base.OnHide(); }
+
+        protected override void OnHide()
+        {
+            GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction(dlssSession));
+            base.OnHide();
+        }
+
         protected override void OnDestroy()
         {
             UIMenuScope_SettingsPanel.Canceled -= OnCloseButtonClick;
-            GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction());
+            GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction(dlssSession));
             base.OnDestroy();
         }
+
         private void RefreshState(GraphicsSettingsData data)
         {
             TextMeshProUGUI_DeviceText.text = data.Hardware?.GraphicsDeviceName + "\n" + data.Hardware?.GraphicsDeviceType;
@@ -48,11 +63,17 @@ namespace Hotfix
         }
 
         private void OnOffButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(null));
+
         private void OnQualityButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Quality));
+
         private void OnBalancedButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Balanced));
+
         private void OnPerformanceButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Performance));
+
         private void OnUltraPerformanceButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.UltraPerformance));
+
         private void OnDlaaButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Dlaa));
+
         private void OnCloseButtonClick() => UIManager.Instance.CloseAsync<DlssSettingsView>().Forget();
     }
 }

@@ -204,3 +204,7 @@ Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使�
 ## Flux 状态流
 
 DroneFlightData 保存机型、准备/活动/离场阶段、页面请求和只读遥测快照。按钮提交 Action；Handler 处理选择、帮助、调试及控制命令，再由场景服务执行生成或页面过渡。采样器按诊断配置的原刷新频率发布带 SessionId 的快照，旧会话不能覆盖新场读数。SceneCoordinator 注册状态，销毁时释放订阅并移除；UIController 持有自己的 Data 和页面实例，直接卸载也关闭页面。飞控、混控、PID及物理 Tick 保持原职责。
+
+## Flux 入口整理
+
+页面反馈、帮助/调试显示结果、离场和导航恢复通过具体 Action 提交；结果 Action 携带原 Data 实例，旧场景结果不刷新新会话。场景初始化仍配置机体生成与导航回调，物理飞控和遥测采样保持原链路。
