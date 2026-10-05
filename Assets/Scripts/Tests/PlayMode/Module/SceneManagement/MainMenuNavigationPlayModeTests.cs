@@ -51,7 +51,7 @@ namespace Tests.Module
             yield return Click(position);
             Assert.That(runtime.LoadCount, Is.EqualTo(1), "加载期间重复点击不能再发起进入请求。");
 
-            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenuView\] 无法进入 JinxCasino：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 JinxCasino：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "加载失败恢复 Hub", 15);
             var restoredMenu = UIManager.Instance.Get<MainMenuView>();
@@ -69,7 +69,7 @@ namespace Tests.Module
             Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo("倒霉蛋俱乐部"), "失败恢复应保留待重试玩法。");
             yield return Click(ButtonPosition(Field<Button>(restoredMenu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 2, "新 Hub 可以实际点击重试", 15);
-            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenuView\] 无法进入 JinxCasino：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 JinxCasino：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "重试失败也能恢复", 15);
             yield return null; yield return null;
@@ -335,7 +335,7 @@ namespace Tests.Module
                 yield return null;
                 if (runtime?.HasPendingEntry == true)
                 {
-                    LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenuView\] 无法进入 .*：测试场景加载失败"));
+                    LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 .*：测试场景加载失败"));
                     runtime.FailEntry();
                     yield return Wait(IsStableHub, "清理待完成的进入请求", 15);
                 }
@@ -434,7 +434,7 @@ namespace Tests.Module
         }
 
         private static void ExpectEntryFailure(GameSceneId target) =>
-            LogAssert.Expect(LogType.Error, new Regex($@"\[MainMenuView\] 无法进入 {target}：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex($@"\[MainMenu\] 无法进入 {target}：测试场景加载失败"));
 
         private static T Field<T>(object instance, string name) =>
             (T)instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance);

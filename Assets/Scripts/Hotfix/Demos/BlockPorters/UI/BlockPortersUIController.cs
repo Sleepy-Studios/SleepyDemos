@@ -16,29 +16,14 @@ namespace Hotfix.BlockPorters
         private Page wanted;
         private bool changing;
         private bool stopping;
-        private bool settingsRequested;
-        private bool wasPaused;
-        private BlockPortersSession settingsSession;
         internal BlockPortersUIController(BlockPortersController controller, CancellationToken lifetime)
-        { owner = controller; token = lifetime; owner.Changed += Refresh; }
-        internal void OpenSettings()
-        {
-            if (stopping || owner.IsExiting || settingsRequested || owner.Session.Status != BlockPortersStatus.Playing) return;
-            wasPaused = owner.IsPaused; settingsSession = owner.Session; settingsRequested = true;
-            if (!wasPaused) owner.TogglePause();
-            Refresh();
-        }
-        internal void CloseSettings()
-        {
-            if (!settingsRequested) return;
-            settingsRequested = false;
-            if (!wasPaused && owner.IsPaused && owner.Session == settingsSession && !owner.IsExiting) owner.TogglePause();
-            Refresh();
-        }
+        { owner = controller; token = lifetime; GlobalData.Subscribe<BlockPortersData>(OnData); }
+        internal void OpenSettings() => GlobalData.Dispatch(new BlockPortersOpenSettingsAction());
+        internal void CloseSettings() => GlobalData.Dispatch(new BlockPortersCloseSettingsAction());
+        private void OnData(BlockPortersData value) => Refresh();
         private void Refresh()
         {
-            if (!owner.IsPaused || owner.Session != settingsSession) settingsRequested = false;
-            wanted = stopping || owner.IsExiting ? Page.None : settingsRequested ? Page.Settings :
+            wanted = stopping || owner.IsExiting ? Page.None : owner.Data.SettingsRequested ? Page.Settings :
                 owner.Session.Status != BlockPortersStatus.Playing ? Page.Result : Page.None;
             if (!changing && shown != wanted) SynchronizeAsync().Forget();
         }
@@ -59,8 +44,8 @@ namespace Hotfix.BlockPorters
                     if (target == Page.None) continue;
                     var options = new UIShowOptions(animated: false, hidePrevious: false);
                     var opened = target == Page.Settings
-                        ? await UIManager.Instance.ShowAsync<BlockPortersSettingsView, BlockPortersController>(owner, options, token)
-                        : await UIManager.Instance.ShowAsync<BlockPortersResultView, BlockPortersController>(owner, options, token);
+                        ? await UIManager.Instance.ShowAsync<BlockPortersSettingsView>( options, token)
+                        : await UIManager.Instance.ShowAsync<BlockPortersResultView>( options, token);
                     if (opened.Status == UIOperationStatus.Canceled) return;
                     if (opened.Status == UIOperationStatus.Failed) throw opened.Exception;
                     current = opened.View; shown = target;
@@ -77,6 +62,6 @@ namespace Hotfix.BlockPorters
             if (current != null) throw new InvalidOperationException("搬豆工弹窗关闭失败。");
         }
         internal void Restore() { stopping = false; Refresh(); }
-        public void Dispose() { stopping = true; owner.Changed -= Refresh; }
+        public void Dispose() { stopping = true; GlobalData.UnSubscribe<BlockPortersData>(OnData); }
     }
 }

@@ -11,13 +11,13 @@
 - 规则与角色引用：`Assets/Scripts/Hotfix/Demos/BlockPorters/`，归属 `Hotfix`。
 - 图片工作台：`Assets/Scripts/Hotfix/Editor/BlockPorters/`，归属 `Hotfix.Editor`，仅处理关卡内容。
 - 原图与编辑配方：`Assets/Settings/BlockPorters/Sources/`、`Recipes/`，不进入 YooAsset Collector。
-- 场景会话、奖励服务与主题加载：Demo 根目录；`BlockPortersController` 管理场景会话。界面、屏幕布局和 UI 规格放在 `UI/`，`BlockPortersHudView` 进入 Core 的 Decorate/Widget 层，固定节点由 UIBind 与 `ComponentItemIndex` 保存。业务类型使用 `Hotfix.BlockPorters` 命名空间，三个 View 保持 `Hotfix`；不设置统一的适配器层。
+- Action、Data、Handler、奖励服务与主题加载位于 Demo 根目录；`BlockPortersHandler` 修改规则状态，`BlockPortersController` 管理对象池、镜头和搬运演出。界面、屏幕布局和 UI 规格放在 `UI/`，`BlockPortersHudView` 进入 Core 的 Decorate/Widget 层，固定节点由 UIBind 与 `ComponentItemIndex` 保存。业务类型使用 `Hotfix.BlockPorters` 命名空间，三个 View 保持 `Hotfix`。
 - 资源：`Assets/LoadResources/Demos/block_porters/`；`Scenes/Main.unity`、`Prefabs/Porter.prefab`、`Prefabs/Brick.prefab`、`Prefabs/UI/BlockPortersHudView.prefab`、`Data/Level1.asset` 至 `Level5.asset`。程序化深坑网格保存为 `Data/PitRing.asset`，自制音效位于 `Audio/SFX/`。
 
 ## 主链路
 
 
-`AppEntrance → MainMenuView` 选择 `block_porters` 卡片 → 开始按钮或键盘/手柄确认 → `EnterDemoAsync(GameSceneId.BlockPorters) → GameSceneNavigator → BlockPortersController → BlockPortersLevelCatalog → BlockPortersScheduler / BlockPortersSession → BlockPortersHudView`。
+`AppEntrance → MainMenuView` 选择 `block_porters` 卡片 → 开始按钮或键盘/手柄确认 → `MainMenuEnterAction → MainMenuHandler → GameSceneNavigator → BlockPortersController → BlockPortersLoadLevelAction → BlockPortersHandler / BlockPortersData → BlockPortersHudView`。
 
 规则会话复制关卡网格和队列。派队消耗一个任务位，每队 1–8 人；每人预约一个方块，预约仍视为障碍。四方向洪泛只从棋盘外侧进入，封闭空洞和对角缝不能作为入口。小人抬起时打开格子，入坑时才计入交付；全队交付后释放任务位，所有方块交付后通关。
 
@@ -57,7 +57,7 @@ Lab 聚类与近色合并在独立像素副本上计算，近色辅助默认最�
 
 HUD 沿用 Core Decorate/Widget 的宿主，不新增 Canvas。五列四排卡片显示大人数和小色号，只有首排可点击；三排预览独立递补，队列不足时隐藏不存在的预览。首排边框高亮，预览保留色表辨识。五个免费任务槽固定一排，左右广告槽位于坑口两侧；开放后原地显示任务徽块和运输状态。
 
-`BlockPortersScreenLayout` 是本 Demo 的 600×1080 安全区坐标来源。HUD、正交相机和背景平面共同等比适配；棋盘中心设计点为 (300,304)，最大图案宽度 416，背景框为 (24,104,552,400)。`Data/UiStyle.asset` 同时约束 HUD 的 80×80 方格、64×64 内容面、字体、间距及世界投影。所有类型的格子嵌套 `TileBase.prefab`，牌面原色与深／浅数字由 Presenter 显示。背景使用世界相机后景的无光照贴图平面，UV 超出内容区时通过私有背景 Shader 平滑延展边缘底色，不以 Decorate 图片覆盖玩法。旧三维托盘和桌面 Renderer 已移出场景，小人接触投影继续保留。坑口整体缩小至旧尺寸约 45%，交付坐标与调度时刻不变。
+`BlockPortersScreenLayout` 是本 Demo 的 600×1080 安全区坐标来源。HUD、正交相机和背景平面共同等比适配；棋盘中心设计点为 (300,304)，最大图案宽度 416，背景框为 (24,104,552,400)。`Data/UiStyle.asset` 同时约束 HUD 的 80×80 方格、64×64 内容面、字体、间距及世界投影。所有类型的格子嵌套 `TileBase.prefab`，牌面原色与深／浅数字由 HUD View 显示。背景使用世界相机后景的无光照贴图平面，UV 超出内容区时通过私有背景 Shader 平滑延展边缘底色，不以 Decorate 图片覆盖玩法。旧三维托盘和桌面 Renderer 已移出场景，小人接触投影继续保留。坑口整体缩小至旧尺寸约 45%，交付坐标与调度时刻不变。
 
 坑内使用私有开口裁剪 Shader，按世界相机正交视线投回坑沿平面，防止深处坑底在后景图片上露出孔外轮廓；不依赖被移除的三维地面遮挡，不引入全屏后处理。参数由 Controller 随布局适配更新，孔心使用实际 PitRim 高度，半径向内留半设计像素余量，不参与搬运规则或事件时刻。
 
@@ -65,7 +65,7 @@ HUD 沿用 Core Decorate/Widget 的宿主，不新增 Canvas。五列四排卡�
 
 安全区变化时内容整体适配，遮罩反向补偿内容的缩放和偏移，覆盖整个宿主；弹窗卡片仍居中于安全区。长竖屏顶部留白不能穿透到公共画质入口。齿轮位置避开公共画质按钮，两者继续独立维护。
 
-`BlockPortersHudPresenter` 合并同一帧的规则通知，集中更新文字、进度插值、队伍递补、弹窗和 `BlockPortersButtonFeedback`。后者只记录指针和回弹状态，不维护独立 Update。派队后递补 0.2 秒期间锁住同列，暂停、切换会话和解绑清理布局与输入锁。进度填充位于凹槽的圆角遮罩内部，按已交付数量平滑变化，Won 立即满格，切换会话立即归零。界面动画用未缩放时间，搬运仍由既有调度时钟控制。
+`BlockPortersHudView` 合并同一帧的规则通知，集中更新文字、进度插值、队伍递补、弹窗和 `BlockPortersButtonFeedback`。后者只记录指针和回弹状态，不维护独立 Update。派队后递补 0.2 秒期间锁住同列，暂停、切换会话和解绑清理布局与输入锁。进度填充位于凹槽的圆角遮罩内部，按已交付数量平滑变化，Won 立即满格，切换会话立即归零。界面动画用未缩放时间，搬运仍由既有调度时钟控制。
 
 方块保持根 Renderer 与挂点，使用共享倒角网格；小人不换模型，新增共享接触投影，起跳时隐藏。坑口有柔和暖灰棕渐变内壁与底面，交付波纹由控制器统一推进，用 MaterialPropertyBlock 更新透明度，不逐次创建材质。重开清空波纹和粒子。原坐标、路径、抬起与交付时刻保持原样。
 
@@ -73,7 +73,7 @@ Hub 的相机关闭后，其灯光仍会影响 Additive 内容场景。Controlle
 
 生成原图与提示词位于独立美术目录的 `Assets/Settings/BlockPorters/ArtSource/`，运行 Sprite 位于 Demo 的 `Art/UI/`。只保留已生成资产，不保留本次一次性装配脚本。直接修改 Prefab 或 Sprite Editor 元数据的步骤见 [视觉维护](runbooks/visuals.md)。
 
-控制器等待全局场景导航稳定后显示带强类型会话数据的 HUD。暂停只停止本 Demo 的调度与动画，不修改全局 `Time.timeScale`。重开回收全部角色与方块、清空特效、取消旧奖励结果的生效资格；不卸载重建启动壳。
+场景入口等待导航稳定后注册 BlockPortersData，并打开 HUD。页面通过 BindData 读取同一规则状态，按钮提交 Action；Handler 管理暂停、重开和异步奖励，退出时关闭页面并取消任务后移除 Data。暂停只停止本 Demo 的调度与动画，不修改全局 `Time.timeScale`。重开回收全部角色与方块、清空特效、取消旧奖励结果的生效资格；不卸载重建启动壳。
 
 返回 Hub 前禁用输入并按具体 HUD 实例关闭，再执行导航卸载；失败时恢复当前 HUD。销毁时取消异步等待和奖励请求，释放订阅。UI 的 Hide/Destroy 均解绑场景引用。音效资源为场景引用，由资源场景句柄管理。
 
@@ -104,7 +104,7 @@ HUD、设置和结果资源保存 UIMenuScope，方向选择/确认只派发一�
 
 ## 独立页面维护
 
-`BlockPortersHudPresenter` 只负责队列、任务位与进度。设置页持有声音开关、继续、重开与返回；结算页持有胜负文案、奖励、重开、下一关与返回。`BlockPortersUIController` 随 Controller 会话创建，串行关闭旧弹窗与打开目标弹窗；返回 Hub 先关闭弹窗，再关闭 HUD。导航失败恢复当前会话，避免下一次场景误关旧 View。
+`BlockPortersHudView` 只负责队列、任务位与进度。设置页持有声音开关、继续、重开与返回；结算页持有胜负文案、奖励、重开、下一关与返回。`BlockPortersUIController` 随 Controller 会话创建，串行关闭旧弹窗与打开目标弹窗；返回 Hub 先关闭弹窗，再关闭 HUD。导航失败恢复当前会话，避免下一次场景误关旧 View。
 
 设置页使用公共 UIBtnSwitch，按钮使用 UIState/UIStateInteraction 和独立取消作用域。队列的业务色与计数色仍由 HUD 管理，公共五态只持有强调边与内部卡面缩放；BlockPortersButtonFeedback 只保留队列递补回弹。弹窗布局共用本 Demo 的安全区布局组件，不创建额外 Canvas 或 EventSystem。
 

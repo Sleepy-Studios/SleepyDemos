@@ -2586,7 +2586,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8196160510835757217}
-  - component: {fileID: 8298814494266303147}
   - component: {fileID: 5099364178444972754}
   - component: {fileID: 5579102730879240483}
   - component: {fileID: 3853812942056885484}
@@ -2617,27 +2616,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8298814494266303147
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4205933201238727533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f178d126016caf640b554c9a4c65b8c9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersResultPresenter
-  resultTitle: {fileID: 4270123787447046280}
-  resultDescription: {fileID: 5252566447289315522}
-  resultExtraButtons:
-  - {fileID: 1023850650517855676}
-  - {fileID: 4211169493283635923}
-  next: {fileID: 5358171282512653535}
-  resultRestart: {fileID: 8405193921579644079}
-  resultExit: {fileID: 103569522447113410}
-  nextLabel: {fileID: 786941911086449685}
 --- !u!114 &5099364178444972754
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2677,12 +2655,40 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 8298814494266303147}
+  - {fileID: 4270123787447046280}
+  - {fileID: 5252566447289315522}
+  - {fileID: 5358171282512653535}
+  - {fileID: 786941911086449685}
+  - {fileID: 8405193921579644079}
+  - {fileID: 103569522447113410}
+  - {fileID: 1023850650517855676}
+  - {fileID: 4211169493283635923}
   componentTypes:
-  - Hotfix.BlockPorters.BlockPortersResultPresenter
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
   bindingKeys:
-  - BlockPortersResultView|Hotfix.BlockPorters.BlockPortersResultPresenter
+  - BlockPortersResultView/ResultPanel/ResultCard/ResultTitle|TMPro.TextMeshProUGUI
+  - BlockPortersResultView/ResultPanel/ResultCard/ResultDescription|TMPro.TextMeshProUGUI
+  - BlockPortersResultView/ResultPanel/ResultCard/Next|UnityEngine.UI.Button
+  - BlockPortersResultView/ResultPanel/ResultCard/Next/NextLabel|TMPro.TextMeshProUGUI
+  - BlockPortersResultView/ResultPanel/ResultCard/ResultRestart|UnityEngine.UI.Button
+  - BlockPortersResultView/ResultPanel/ResultCard/ResultExit|UnityEngine.UI.Button
+  - BlockPortersResultView/ResultPanel/ResultCard/ResultUnlock0|UnityEngine.UI.Button
+  - BlockPortersResultView/ResultPanel/ResultCard/ResultUnlock1|UnityEngine.UI.Button
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &4270388973150731280
 GameObject:

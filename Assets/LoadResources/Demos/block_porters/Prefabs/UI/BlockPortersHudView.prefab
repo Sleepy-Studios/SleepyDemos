@@ -4945,7 +4945,6 @@ GameObject:
   m_Component:
   - component: {fileID: 514407043323335126}
   - component: {fileID: 1623985796320464417}
-  - component: {fileID: 2746390653723944715}
   - component: {fileID: 8902375230488516940}
   - component: {fileID: 1847836556662129601}
   m_Layer: 5
@@ -4988,148 +4987,6 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
---- !u!114 &2746390653723944715
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6208211075853330124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c35494eeb79b4f43967c9bec6eb48c9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.BlockPorters.BlockPortersHudPresenter
-  content: {fileID: 7399796665747793215}
-  style: {fileID: 11400000, guid: 39b3901edc784cb4495a94749aa8c69b, type: 2}
-  queueFaces:
-  - {fileID: 9095962080045658455}
-  - {fileID: 6958935807321864021}
-  - {fileID: 8705005762157340398}
-  - {fileID: 8780521287515940091}
-  - {fileID: 6803331378507451230}
-  previewFaces:
-  - {fileID: 2647884522909337182}
-  - {fileID: 3028620344256943444}
-  - {fileID: 6402474322241108796}
-  - {fileID: 5155568389667738305}
-  - {fileID: 3903509427897767255}
-  - {fileID: 8974477948374149931}
-  - {fileID: 7974188353113220529}
-  - {fileID: 5303733768991211807}
-  - {fileID: 4320046358310905811}
-  - {fileID: 3098146070446959492}
-  - {fileID: 4516645961366828178}
-  - {fileID: 7815124730527103238}
-  - {fileID: 8462788864944952302}
-  - {fileID: 529188895326879940}
-  - {fileID: 7275396278901406787}
-  title: {fileID: 6869041525020425498}
-  progress: {fileID: 2543700814778243345}
-  progressFill: {fileID: 2876432260852760612}
-  slots: {fileID: 5986656954143543163}
-  hint: {fileID: 1752191131374455260}
-  columns:
-  - {fileID: 2464305345141131481}
-  - {fileID: 1866654262536163020}
-  - {fileID: 2928028654341013754}
-  - {fileID: 2201315891626510488}
-  - {fileID: 3881597474073636029}
-  columnLabels:
-  - {fileID: 3187312961635496065}
-  - {fileID: 3644500816781981315}
-  - {fileID: 3084580431436097336}
-  - {fileID: 3159953018135766317}
-  - {fileID: 894682258101226120}
-  previews:
-  - {fileID: 1300791689285139364}
-  - {fileID: 2068746519450626222}
-  - {fileID: 7955700752304260806}
-  - {fileID: 8160023299770429243}
-  - {fileID: 44603832770422957}
-  - {fileID: 5348512683248326353}
-  - {fileID: 6347957649094744139}
-  - {fileID: 9162817622573448421}
-  - {fileID: 955212347546114601}
-  - {fileID: 2039190240519362174}
-  - {fileID: 584379735084239208}
-  - {fileID: 6541088538852246780}
-  - {fileID: 4882929442524376596}
-  - {fileID: 3596816619270094142}
-  - {fileID: 5928176962924642745}
-  previewLabels:
-  - {fileID: 8556814965703919496}
-  - {fileID: 8648907147250734210}
-  - {fileID: 782198519212473066}
-  - {fileID: 1552764625934848791}
-  - {fileID: 7218364433918022785}
-  - {fileID: 3353780072441555709}
-  - {fileID: 4371525324318286951}
-  - {fileID: 1989008644493295817}
-  - {fileID: 7634487952278824453}
-  - {fileID: 8718430660844333650}
-  - {fileID: 7831368890826077508}
-  - {fileID: 4500261067212159184}
-  - {fileID: 2842079998367470136}
-  - {fileID: 6149888967715651858}
-  - {fileID: 3960813959843331477}
-  previewColorLabels:
-  - {fileID: 7031561139217742024}
-  - {fileID: 8011306977276947394}
-  - {fileID: 2157253982571595178}
-  - {fileID: 190964599882214487}
-  - {fileID: 8288380663564577729}
-  - {fileID: 4152867843595916733}
-  - {fileID: 3134559659010644775}
-  - {fileID: 914396385912078217}
-  - {fileID: 9140565815208237381}
-  - {fileID: 8058311956400231698}
-  - {fileID: 8900356387490449924}
-  - {fileID: 2981055166175217552}
-  - {fileID: 3484641290969902456}
-  - {fileID: 4787956523794824786}
-  - {fileID: 2440200264894530261}
-  taskSlots:
-  - {fileID: 8163386038353402658}
-  - {fileID: 1145077245390375422}
-  - {fileID: 1061804635506598442}
-  - {fileID: 4246711294754551536}
-  - {fileID: 5024578418373979582}
-  - {fileID: 1157653936587599826}
-  - {fileID: 1648637910478102910}
-  taskLabels:
-  - {fileID: 1583176484467091214}
-  - {fileID: 7734544740334040530}
-  - {fileID: 7642317707783855622}
-  - {fileID: 6799845731783035612}
-  - {fileID: 2380255436853989778}
-  - {fileID: 8404401735031542782}
-  - {fileID: 8238101554982526290}
-  pause: {fileID: 8681478653078729073}
-  extraButtons:
-  - {fileID: 2333318421154516872}
-  - {fileID: 409839371069207437}
-  extraLabels:
-  - {fileID: 128027019953571052}
-  - {fileID: 519924463611202112}
-  extraIcons:
-  - {fileID: 6873381558908421323}
-  - {fileID: 6454462500898196071}
-  levelName: {fileID: 8631656393565573935}
-  queueColorLabels:
-  - {fileID: 4256299918476234689}
-  - {fileID: 2718248204489312707}
-  - {fileID: 4459786248178522232}
-  - {fileID: 4391184454083877485}
-  - {fileID: 1963704402534675912}
-  taskBadges:
-  - {fileID: 5185991239264823000}
-  - {fileID: 4131589109258564612}
-  - {fileID: 4039221334648102864}
-  - {fileID: 890906490655804170}
-  - {fileID: 8289042947297284164}
-  - {fileID: 2783976397901140520}
-  - {fileID: 2329302903704050820}
 --- !u!114 &8902375230488516940
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5143,12 +5000,468 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 2746390653723944715}
+  - {fileID: 7399796665747793215}
+  - {fileID: 6869041525020425498}
+  - {fileID: 8631656393565573935}
+  - {fileID: 5986656954143543163}
+  - {fileID: 1752191131374455260}
+  - {fileID: 8681478653078729073}
+  - {fileID: 2876432260852760612}
+  - {fileID: 2543700814778243345}
+  - {fileID: 2464305345141131481}
+  - {fileID: 9095962080045658455}
+  - {fileID: 3187312961635496065}
+  - {fileID: 4256299918476234689}
+  - {fileID: 1300791689285139364}
+  - {fileID: 2647884522909337182}
+  - {fileID: 8556814965703919496}
+  - {fileID: 7031561139217742024}
+  - {fileID: 2068746519450626222}
+  - {fileID: 3028620344256943444}
+  - {fileID: 8648907147250734210}
+  - {fileID: 8011306977276947394}
+  - {fileID: 7955700752304260806}
+  - {fileID: 6402474322241108796}
+  - {fileID: 782198519212473066}
+  - {fileID: 2157253982571595178}
+  - {fileID: 1866654262536163020}
+  - {fileID: 6958935807321864021}
+  - {fileID: 3644500816781981315}
+  - {fileID: 2718248204489312707}
+  - {fileID: 8160023299770429243}
+  - {fileID: 5155568389667738305}
+  - {fileID: 1552764625934848791}
+  - {fileID: 190964599882214487}
+  - {fileID: 44603832770422957}
+  - {fileID: 3903509427897767255}
+  - {fileID: 7218364433918022785}
+  - {fileID: 8288380663564577729}
+  - {fileID: 5348512683248326353}
+  - {fileID: 8974477948374149931}
+  - {fileID: 3353780072441555709}
+  - {fileID: 4152867843595916733}
+  - {fileID: 2928028654341013754}
+  - {fileID: 8705005762157340398}
+  - {fileID: 3084580431436097336}
+  - {fileID: 4459786248178522232}
+  - {fileID: 6347957649094744139}
+  - {fileID: 7974188353113220529}
+  - {fileID: 4371525324318286951}
+  - {fileID: 3134559659010644775}
+  - {fileID: 9162817622573448421}
+  - {fileID: 5303733768991211807}
+  - {fileID: 1989008644493295817}
+  - {fileID: 914396385912078217}
+  - {fileID: 955212347546114601}
+  - {fileID: 4320046358310905811}
+  - {fileID: 7634487952278824453}
+  - {fileID: 9140565815208237381}
+  - {fileID: 2201315891626510488}
+  - {fileID: 8780521287515940091}
+  - {fileID: 3159953018135766317}
+  - {fileID: 4391184454083877485}
+  - {fileID: 2039190240519362174}
+  - {fileID: 3098146070446959492}
+  - {fileID: 8718430660844333650}
+  - {fileID: 8058311956400231698}
+  - {fileID: 584379735084239208}
+  - {fileID: 4516645961366828178}
+  - {fileID: 7831368890826077508}
+  - {fileID: 8900356387490449924}
+  - {fileID: 6541088538852246780}
+  - {fileID: 7815124730527103238}
+  - {fileID: 4500261067212159184}
+  - {fileID: 2981055166175217552}
+  - {fileID: 3881597474073636029}
+  - {fileID: 6803331378507451230}
+  - {fileID: 894682258101226120}
+  - {fileID: 1963704402534675912}
+  - {fileID: 4882929442524376596}
+  - {fileID: 8462788864944952302}
+  - {fileID: 2842079998367470136}
+  - {fileID: 3484641290969902456}
+  - {fileID: 3596816619270094142}
+  - {fileID: 529188895326879940}
+  - {fileID: 6149888967715651858}
+  - {fileID: 4787956523794824786}
+  - {fileID: 5928176962924642745}
+  - {fileID: 7275396278901406787}
+  - {fileID: 3960813959843331477}
+  - {fileID: 2440200264894530261}
+  - {fileID: 8163386038353402658}
+  - {fileID: 5185991239264823000}
+  - {fileID: 1583176484467091214}
+  - {fileID: 1145077245390375422}
+  - {fileID: 4131589109258564612}
+  - {fileID: 7734544740334040530}
+  - {fileID: 1061804635506598442}
+  - {fileID: 4039221334648102864}
+  - {fileID: 7642317707783855622}
+  - {fileID: 4246711294754551536}
+  - {fileID: 890906490655804170}
+  - {fileID: 6799845731783035612}
+  - {fileID: 5024578418373979582}
+  - {fileID: 8289042947297284164}
+  - {fileID: 2380255436853989778}
+  - {fileID: 1157653936587599826}
+  - {fileID: 2333318421154516872}
+  - {fileID: 2783976397901140520}
+  - {fileID: 8404401735031542782}
+  - {fileID: 6873381558908421323}
+  - {fileID: 128027019953571052}
+  - {fileID: 1648637910478102910}
+  - {fileID: 409839371069207437}
+  - {fileID: 2329302903704050820}
+  - {fileID: 8238101554982526290}
+  - {fileID: 6454462500898196071}
+  - {fileID: 519924463611202112}
   componentTypes:
-  - Hotfix.BlockPorters.BlockPortersHudPresenter
+  - UnityEngine.RectTransform
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
   bindingKeys:
-  - BlockPortersHudView|Hotfix.BlockPorters.BlockPortersHudPresenter
+  - BlockPortersHudView/PortraitContent|UnityEngine.RectTransform
+  - BlockPortersHudView/PortraitContent/Title|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Subtitle|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/SlotsTitle|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Hint|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Pause|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/ProgressRoot/ProgressTrack/ProgressClip/ProgressFill|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/ProgressRoot/Progress|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue0|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/Queue0/TeamFace0|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Queue0/Queue0Label|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue0/TeamColorLabel0|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview0|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview0/UpcomingFace0|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview0/PreviewLabel0|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview0/UpcomingColorLabel0|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview1|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview1/UpcomingFace1|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview1/PreviewLabel1|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview1/UpcomingColorLabel1|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview2|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview2/UpcomingFace2|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview2/PreviewLabel2|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview2/UpcomingColorLabel2|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue1|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/Queue1/TeamFace1|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Queue1/Queue1Label|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue1/TeamColorLabel1|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview3|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview3/UpcomingFace3|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview3/PreviewLabel3|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview3/UpcomingColorLabel3|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview4|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview4/UpcomingFace4|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview4/PreviewLabel4|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview4/UpcomingColorLabel4|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview5|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview5/UpcomingFace5|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview5/PreviewLabel5|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview5/UpcomingColorLabel5|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue2|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/Queue2/TeamFace2|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Queue2/Queue2Label|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue2/TeamColorLabel2|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview6|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview6/UpcomingFace6|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview6/PreviewLabel6|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview6/UpcomingColorLabel6|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview7|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview7/UpcomingFace7|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview7/PreviewLabel7|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview7/UpcomingColorLabel7|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview8|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview8/UpcomingFace8|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview8/PreviewLabel8|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview8/UpcomingColorLabel8|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue3|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/Queue3/TeamFace3|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Queue3/Queue3Label|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue3/TeamColorLabel3|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview9|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview9/UpcomingFace9|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview9/PreviewLabel9|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview9/UpcomingColorLabel9|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview10|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview10/UpcomingFace10|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview10/PreviewLabel10|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview10/UpcomingColorLabel10|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview11|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview11/UpcomingFace11|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview11/PreviewLabel11|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview11/UpcomingColorLabel11|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue4|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/Queue4/TeamFace4|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Queue4/Queue4Label|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Queue4/TeamColorLabel4|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview12|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview12/UpcomingFace12|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview12/PreviewLabel12|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview12/UpcomingColorLabel12|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview13|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview13/UpcomingFace13|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview13/PreviewLabel13|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview13/UpcomingColorLabel13|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview14|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview14/UpcomingFace14|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/Preview14/PreviewLabel14|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/Preview14/UpcomingColorLabel14|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot0|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot0/TaskBadge0|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot0/TaskLabel0|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot1|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot1/TaskBadge1|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot1/TaskLabel1|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot2|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot2/TaskBadge2|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot2/TaskLabel2|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot3|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot3/TaskBadge3|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot3/TaskLabel3|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot4|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot4/TaskBadge4|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot4/TaskLabel4|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot5|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot5|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/TaskSlot5/TaskBadge5|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot5/TaskLabel5|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot5/ExtraSlotIcon0|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot5/ExtraSlotLabel0|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot6|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot6|UnityEngine.UI.Button
+  - BlockPortersHudView/PortraitContent/TaskSlot6/TaskBadge6|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot6/TaskLabel6|TMPro.TextMeshProUGUI
+  - BlockPortersHudView/PortraitContent/TaskSlot6/ExtraSlotIcon1|UnityEngine.UI.Image
+  - BlockPortersHudView/PortraitContent/TaskSlot6/ExtraSlotLabel1|TMPro.TextMeshProUGUI
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!114 &1847836556662129601
 MonoBehaviour:

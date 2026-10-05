@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.BlockPorters;
+    using TMPro;
 
     [Source("LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersSettingsView")]
     public partial class BlockPortersSettingsView
@@ -23,7 +23,12 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private BlockPortersSettingsPresenter BlockPortersSettingsPresenter_BlockPortersSettingsView;
+        private Button Button_SettingsClose;
+        private Button Button_Sound;
+        private TextMeshProUGUI TextMeshProUGUI_SoundLabel;
+        private Button Button_Restart;
+        private Button Button_Exit;
+        private Button Button_SettingsContinue;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +40,12 @@ namespace Hotfix
                 return;
             }
 
-            BlockPortersSettingsPresenter_BlockPortersSettingsView = componentItemIndex.Get<BlockPortersSettingsPresenter>(0);
+            Button_SettingsClose = componentItemIndex.Get<Button>(0);
+            Button_Sound = componentItemIndex.Get<Button>(1);
+            TextMeshProUGUI_SoundLabel = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_Restart = componentItemIndex.Get<Button>(3);
+            Button_Exit = componentItemIndex.Get<Button>(4);
+            Button_SettingsContinue = componentItemIndex.Get<Button>(5);
         }
     }
 }

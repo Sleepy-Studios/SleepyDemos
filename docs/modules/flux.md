@@ -22,7 +22,9 @@
 - `Assets/Scripts/Core/Runtime/Flux/GlobalData.cs`：状态注册、派发、订阅、清理
 - `Assets/Scripts/Core/Runtime/Flux/ActionConvert.cs`：订阅回调容器
 - `Assets/Scripts/Hotfix/AppDelegate/Services/FluxService.cs`：Hotfix 全局 Data 注册和重新登录清理入口
-- `Assets/Scripts/Hotfix/Module/User/`：当前第一个实际 Data 三件套，启动时记录本机硬件配置
+- `Assets/Scripts/Hotfix/Module/User/`：启动时记录本机硬件配置
+- `Assets/Scripts/Hotfix/Module/Main/`：大厅选择、导航状态和反馈
+- `Assets/Scripts/Hotfix/Demos/BlockPorters/`：场景范围内的关卡、派队、暂停和奖励状态
 
 ## 核心 API
 
@@ -86,6 +88,7 @@ FluxService.InitializeGlobalData();
 
 ```csharp
 GlobalData.Add<UserData>().InitData();
+GlobalData.Add<MainMenuData>();
 ```
 
 重新登录、切号或退出登录时统一调用：

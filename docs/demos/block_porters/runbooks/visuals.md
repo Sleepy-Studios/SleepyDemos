@@ -22,7 +22,7 @@
 
 1. 保持 PortraitContent 为 600×1080 的内容根，安全区缩放由 HUD 管理。修改顶部、任务位和队伍卡片时同时检查场景相机，防止遮挡坑口或搬运路线。
 2. 字体与人数使用 TMP；色号、人数、进度和玩法颜色不能烘焙进生成图片。队伍卡片取消立方块图标，使用大人数及小色号。内部内容面读取原始关卡牌色，按亮度自动选择深／浅文字；所有按钮关闭 ColorTint，禁用及预览不能改灰牌色。
-3. 五列各一个当前 Button 和三个 Preview Image，共五个按钮、十五个预览。所有外框与热区均为 80×80，内边距 8、内容面 64×64、圆角约 12、厚度约 6、影子下移约 4；横向间距 16、纵向间距 8。首排中心 y=752，预览中心 y=840／928／1016，列中心 x=108／204／300／396／492（设计图从顶部计）。字体人数 32 粗体、色号与状态 11。预览与装饰关闭 Raycast Target。递补由 Presenter 统一推进 0.2 秒，整列向上移动，新末排在结束后补入，同列暂时禁点；暂停、重开、切关和解绑恢复固定布局并清理输入锁。
+3. 五列各一个当前 Button 和三个 Preview Image，共五个按钮、十五个预览。所有外框与热区均为 80×80，内边距 8、内容面 64×64、圆角约 12、厚度约 6、影子下移约 4；横向间距 16、纵向间距 8。首排中心 y=752，预览中心 y=840／928／1016，列中心 x=108／204／300／396／492（设计图从顶部计）。字体人数 32 粗体、色号与状态 11。预览与装饰关闭 Raycast Target。递补由 HUD View 统一推进 0.2 秒，整列向上移动，新末排在结束后补入，同列暂时禁点；暂停、重开、切关和解绑恢复固定布局并清理输入锁。
 4. 设置入口为 Pause；Sound、Restart、Exit 位于 SettingsCard。SettingsContinue/SettingsClose 关闭设置，保留打开前的暂停状态。设置与结算遮罩必须可拦截射线。
 5. 新增或改变绑定时使用 UIBind；自定义 Module 输出目录选择 `Assets/Scripts/Hotfix/Demos/BlockPorters/UI`，工具会追加 View 名和 View 目录，不要再次手工追加。生成文件不得手改。
    Image 的 Source Image 必须指向导入后的 Sprite 子资产，不能指向原始 Texture2D；在 Inspector 中从展开的图片资产选择 Sprite。设置与结果使用独立 View 和 Prefab，通过 Tip/Modal 显示在 HUD 之上；各自遮罩覆盖宿主并拦截射线，不依赖 HUD 内的节点排序。
@@ -40,7 +40,7 @@
 
 ## 规格与主题维护
 
-`Data/UiStyle.asset` 是布局与字号的唯一规格；Presenter 在 Awake 时读取格子尺寸、内边距、排距和字体，Controller 读取相同投影中心与比例。不要单独修改某一格的 RectTransform 来改变尺寸。共用底座或内容面材质感直接编辑 TileBase／两个 Sprite；改变绑定使用 UIBind。
+`Data/UiStyle.asset` 是布局与字号的唯一规格；HUD View 在 OnGameObjectInitialize 时读取格子尺寸、内边距、排距和字体，Controller 读取相同投影中心与比例。不要单独修改某一格的 RectTransform 来改变尺寸。共用底座或内容面材质感直接编辑 TileBase／两个 Sprite；改变绑定使用 UIBind。
 
 `Data/ThemeCatalog.asset` 的主题包含唯一 ID、名称和不带扩展名的资源地址。添加主题只添加 PNG 及此目录项，不修改关卡、控制器或场景常驻引用。默认 ToyTable 是唯一场景直接引用的大图；主题目录使用字符串地址，不把四张图同时挂入场景。
 

@@ -15,6 +15,7 @@ namespace Hotfix.AppDelegate
 
             initialized = true;
             GlobalData.Add<UserData>().InitData();
+            GlobalData.Add<MainMenuData>();
         }
 
         public static void ClearForRelogin()

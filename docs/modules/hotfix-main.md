@@ -17,7 +17,7 @@
 ## 当前行为
 
 - 扫描 Hotfix 程序集中的 View 类型
-- 运行 Hotfix 启动系统，当前会通过 `FluxService` 注册 `UserData`
+- 运行 Hotfix 启动系统，当前会通过 `FluxService` 注册 `UserData` 与 `MainMenuData`
 - 注册首版空配置的 `HotfixWorldTransitionProvider`，为后续 Demo 的真实相机或场景过渡保留 Hotfix 扩展点
 - 等待 `MainMenuView` 的 `ShowAsync` 导航结果稳定完成；Failed 保留原异常中断启动，Canceled 作为启动取消传播
 - `MainMenuView` 订阅 `UserData`，打印启动时记录的本机硬件配置
@@ -37,7 +37,7 @@
 
 列表仅使用一个公共 `LoopScrollMenuNavigation`，卡片使用 `LoopScrollMenuButton`。页面持有单个 MenuInputScope，隐藏及销毁时释放。键鼠/手柄更新默认焦点；触屏仅驱动输入门闩，不因布局重排抢回焦点。物理按钮回收后的身份保护、左右导航和滚入目标由公共组件处理。业务只将焦点同步到当前预览，不维护另一套导航字典。详细契约见 [Loop Scroll 宿主桥接](loop-scroll.md) 和 [公共玩法输入](gameplay-input.md)。
 
-指针点击卡片只选择预览，点击“开始体验”才进入；键盘/手柄在卡片上确认可直接进入。进入仍统一经过 EnterDemoAsync，加载期间禁用浏览和开始操作，防止重复请求。正常返回 Hub 时按导航事务状态恢复控件。失败提示使用独立 Status 控件；Loading 会销毁旧页面，收尾刷新当前新实例并保留失败目标，将开始按钮变为“重试”；按住确认键不重复提交。
+指针点击卡片只选择预览，点击“开始体验”才进入；键盘/手柄在卡片上确认可直接进入。进入通过 MainMenuEnterAction 交给 MainMenuHandler 执行导航，加载期间禁用浏览和开始操作，防止重复请求。正常返回 Hub 时按导航事务状态恢复控件。失败提示使用独立 Status 控件；Loading 会销毁旧页面，Handler 发布当前状态，新 View 立即读取并保留失败目标，将开始按钮变为“重试”；按住确认键不重复提交。
 
 大厅画面设置入口位于左侧开始操作区，不在右上角单独悬浮。按钮直接调用 `UIManager.ShowAsync<DlssSettingsView>()`，按需打开普通 Pop。关闭按钮、Esc 或遮罩关闭后销毁弹窗并恢复来源焦点；大厅不维护额外的入口显隐作用域。
 
@@ -68,3 +68,5 @@
 - [接入运行期场景导航](../runbooks/use-scene-navigation.md)
 - [接入 Sleepy Loop Scroll](../runbooks/use-loop-scroll.md)
 - [接入 Core UI View](../runbooks/create-ui-view.md)
+
+大厅入口集合、选择、加载状态和反馈由 MainMenuData 保存；Handler 修改状态并执行场景导航，View 通过 BindData 渲染。当前页面销毁后，导航结果仍能刷新新实例。

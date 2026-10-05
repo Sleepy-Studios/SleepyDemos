@@ -160,7 +160,7 @@ namespace Tests.Demo
             Assert.That(fill.fillAmount, Is.Zero);
             Assert.That(controller.Session.Total, Is.EqualTo(256));
             yield return Capture("Progress0");
-            var scheduler = (BlockPortersScheduler)typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            var scheduler = GlobalData.Get<BlockPortersData>().Scheduler;
             bool quarter = false, half = false;
             // 手动逐事件推进时暂停自动Update，避免同一帧再次推进跳过采样点。
             var automaticPause = typeof(BlockPortersController).GetField("isApplicationPaused", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -279,7 +279,7 @@ namespace Tests.Demo
             Assert.That(materials.Length, Is.EqualTo(12));
             for (int i = 0; i < 12; i++) Assert.That(Vector4.Distance(materials[i].color, palette[i]), Is.LessThan(.00001f), "共享材质保持关卡色表");
             yield return Capture("TwelveColors");
-            var scheduler = (BlockPortersScheduler)typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
+            var scheduler = GlobalData.Get<BlockPortersData>().Scheduler;
             foreach (int column in solution)
             {
                 controller.Dispatch(column);
@@ -305,7 +305,6 @@ namespace Tests.Demo
             var catalog = (BlockPortersLevelCatalog)typeof(BlockPortersController).GetField("catalog", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(controller);
             Assert.That(catalog.Levels.Length, Is.GreaterThanOrEqualTo(8));
             var authored = catalog.Levels;
-            var schedulerField = typeof(BlockPortersController).GetField("scheduler", BindingFlags.Instance | BindingFlags.NonPublic);
             var materialsField = typeof(BlockPortersController).GetField("levelMaterials", BindingFlags.Instance | BindingFlags.NonPublic);
             for (int index = 0; index < authored.Length; index++)
             {
@@ -313,7 +312,7 @@ namespace Tests.Demo
                 controller.LoadLevel(index);
                 yield return Capture(authored[index].name);
                 Assert.That(previousMaterials.All(material => material == null), Is.True, "切关销毁旧共享材质");
-                var scheduler = (BlockPortersScheduler)schedulerField.GetValue(controller);
+                var scheduler = GlobalData.Get<BlockPortersData>().Scheduler;
                 bool carried = false;
                 foreach (int column in authored[index].Solution)
                 {

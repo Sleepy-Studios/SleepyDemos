@@ -92,10 +92,10 @@ namespace Tests.Demo
             foreach (char character in "抬坑堵筒") Assert.That(font.characterLookupTable.ContainsKey(character), Is.True, character.ToString());
         }
 
-        [TestCase("BlockPortersHudView", typeof(BlockPortersHudPresenter))]
-        [TestCase("BlockPortersSettingsView", typeof(BlockPortersSettingsPresenter))]
-        [TestCase("BlockPortersResultView", typeof(BlockPortersResultPresenter))]
-        public void ViewBindingsMatchSavedComponents(string viewName, System.Type presenterType)
+        [TestCase("BlockPortersHudView", typeof(TMPro.TextMeshProUGUI))]
+        [TestCase("BlockPortersSettingsView", typeof(TMPro.TextMeshProUGUI))]
+        [TestCase("BlockPortersResultView", typeof(TMPro.TextMeshProUGUI))]
+        public void ViewBindingsMatchSavedComponents(string viewName, System.Type boundType)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{Root}/Prefabs/UI/{viewName}.prefab");
             Assert.That(prefab, Is.Not.Null);
@@ -123,7 +123,7 @@ namespace Tests.Demo
                 Assert.That(index.BindingKeys[i], Is.EqualTo(path + "|" + component.GetType().FullName));
                 Assert.That(index.Get<Component>(i), Is.SameAs(component));
             }
-            Assert.That(index.Components.Any(component => component.GetType() == presenterType), Is.True);
+            Assert.That(index.Components.Any(component => component.GetType() == boundType), Is.True);
             var record = UIBindIndexDiscovery.BuildViewRecords("Assets/Scripts/Hotfix/Demos/BlockPorters", Root + "/Prefabs/UI")
                 .Single(item => item.viewName == viewName);
             Assert.That(record.isValid, Is.True, record.validationMessage);

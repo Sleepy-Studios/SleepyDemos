@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace Hotfix.BlockPorters
 {
-    /// 场景会话、对象池与集中搬运演出的唯一所有者。
+    /// 对象池、主题、镜头与集中搬运演出的场景入口。
     public sealed class BlockPortersController : MonoBehaviour
     {
         private static readonly Color RippleColor = new Color(.55f, .8f, .7f, 1);
@@ -21,7 +21,10 @@ namespace Hotfix.BlockPorters
         }
 
         [SerializeField] private BlockPortersLevelCatalog catalog;
-        private BlockPortersScheduler scheduler;
+        private BlockPortersData data;
+        private BlockPortersScheduler scheduler => data?.Scheduler;
+        internal BlockPortersData Data => data;
+        internal CancellationToken Lifetime => lifetime.Token;
         private Material[] levelMaterials;
         [SerializeField] private Camera worldCamera;
         [SerializeField] private Renderer backgroundRenderer;
@@ -55,13 +58,7 @@ namespace Hotfix.BlockPorters
         private BlockPortersUIController ui;
         internal BlockPortersUIController UI => ui;
         private CancellationTokenSource lifetime;
-        private CancellationTokenSource rewardLifetime;
-        private IBlockPortersReward reward = new SimulatedBlockPortersReward();
-        private bool isReady;
-        private bool isExiting;
-        private bool isRewardPending;
         private bool isApplicationPaused;
-        private int sessionVersion;
         private int screenWidth;
         private int screenHeight;
         private Rect lastSafeArea;
@@ -71,18 +68,17 @@ namespace Hotfix.BlockPorters
         private float rippleAge = 1;
         private MaterialPropertyBlock rippleProperties;
 
-        public BlockPortersSession Session { get; private set; }
-        private BlockPortersLevel[] Definitions => catalog.Levels;
+        public BlockPortersSession Session => data?.Session;
+        internal BlockPortersLevel[] Definitions => catalog.Levels;
         public BlockPortersLevel CurrentLevel => Definitions[LevelIndex];
-        public int LevelIndex { get; private set; }
+        public int LevelIndex => data.LevelIndex;
         public int LevelCount => Definitions.Length;
         public bool IsStable => scheduler != null && scheduler.IsStable;
         public int ActorCount => actors.Count;
-        public bool IsPaused { get; private set; }
-        public bool IsMuted { get; private set; }
-        public bool IsRewardPending => isRewardPending;
-        public bool IsExiting => isExiting;
-        public event Action Changed;
+        public bool IsPaused => data?.IsPaused == true;
+        public bool IsMuted => data?.IsMuted == true;
+        public bool IsRewardPending => data?.IsRewardPending == true;
+        public bool IsExiting => data?.IsExiting == true;
 
         private void Start() => InitializeAsync().Forget();
 
@@ -98,14 +94,14 @@ namespace Hotfix.BlockPorters
                 foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
                     if (light.enabled && light.gameObject.scene != gameObject.scene)
                     { suspendedLights.Add(light); light.enabled = false; }
+                data = GlobalData.Add(new BlockPortersData(this, uiStyle));
                 LoadLevel(0);
                 ui = new BlockPortersUIController(this, lifetime.Token);
-                var result = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(
-                    this, new UIShowOptions(animated: false), lifetime.Token);
+                var result = await UIManager.Instance.ShowAsync<BlockPortersHudView>(new UIShowOptions(animated: false), lifetime.Token);
                 if (result.Status == UIOperationStatus.Failed) throw result.Exception;
                 hud = UIManager.Instance.Get<BlockPortersHudView>();
-                isReady = result.Status == UIOperationStatus.Succeeded || result.Status == UIOperationStatus.Ignored;
-                Changed?.Invoke();
+                data.Handler.SetReady(result.Status == UIOperationStatus.Succeeded || result.Status == UIOperationStatus.Ignored);
+                data?.Handler.Publish();
             }
             catch (OperationCanceledException) { }
             catch (Exception exception) { Debug.LogException(exception, this); }
@@ -113,16 +109,14 @@ namespace Hotfix.BlockPorters
 
         private void Update()
         {
-            if (Session == null || !isReady || isExiting) return;
+            if (Session == null || !data.Ready || IsExiting) return;
             FitCamera();
             if (!IsPaused && !isApplicationPaused) UpdateRipple(Time.deltaTime);
-            if (IsPaused || isApplicationPaused || isRewardPending || Session.Status != BlockPortersStatus.Playing) return;
+            if (IsPaused || isApplicationPaused || IsRewardPending || Session.Status != BlockPortersStatus.Playing) return;
             float delta = Time.deltaTime;
             animationClock += delta;
-            var previous = Session.Status;
-            scheduler.AdvanceTo(scheduler.Time + delta);
+            data.Handler.Advance(scheduler.Time + delta);
             foreach (var actor in actors) PoseActor(actor);
-            if (Session.Status != previous) Changed?.Invoke();
         }
 
         private void PoseActor(Actor actor)
@@ -176,7 +170,7 @@ namespace Hotfix.BlockPorters
             avatar.gameObject.SetActive(true); avatar.ResetPose(levelMaterials[task.Job.Color]);
             avatar.transform.position = CellPosition(task.Job.Path[0]);
             actors.Add(new Actor { Avatar = avatar, Transport = task });
-            Changed?.Invoke();
+            data?.Handler.Publish();
         }
 
         private void OnPickedUp(BlockPortersScheduler.Transport task)
@@ -185,7 +179,7 @@ namespace Hotfix.BlockPorters
             actor.Brick = boardBricks[task.Job.CellIndex]; boardBricks[task.Job.CellIndex] = null;
             actor.Brick.SetParent(actor.Avatar.CarryAnchor, false);
             actor.Brick.localPosition = Vector3.zero; actor.Brick.localRotation = Quaternion.identity;
-            PlaySound(pickupSound, .15f); Changed?.Invoke();
+            PlaySound(pickupSound, .15f); data?.Handler.Publish();
         }
 
         private void OnDelivered(BlockPortersScheduler.Transport task)
@@ -193,7 +187,7 @@ namespace Hotfix.BlockPorters
             var actor = actors.Find(item => item.Transport == task);
             ReturnBrick(actor.Brick);
             actor.Avatar.gameObject.SetActive(false); porterPool.Push(actor.Avatar); actors.Remove(actor);
-            pitParticles.Emit(6); PlaySound(dropSound, .3f); Changed?.Invoke();
+            pitParticles.Emit(6); PlaySound(dropSound, .3f); data?.Handler.Publish();
             rippleAge = 0;
         }
 
@@ -213,51 +207,34 @@ namespace Hotfix.BlockPorters
 
         /// <summary>派出列头队伍；输入关闭时忽略，不支持派出后排队伍。</summary>
         /// <param name="column">当前关卡的队列编号，最多五列。</param>
-        public void Dispatch(int column)
-        {
-            if (!isReady || IsPaused || isExiting || isRewardPending) return;
-            if (scheduler.Dispatch(column)) Changed?.Invoke();
-        }
+        public void Dispatch(int column) => GlobalData.Dispatch(new BlockPortersDispatchAction(column));
 
         /// 切换暂停，不修改全局 Time.timeScale。
-        public void TogglePause() { if (!isExiting) { IsPaused = !IsPaused; Changed?.Invoke(); } }
+        public void TogglePause() => GlobalData.Dispatch(new BlockPortersTogglePauseAction());
         /// 切换当前场景音效开关。
-        public void ToggleSound() { IsMuted = !IsMuted; audioSource.mute = IsMuted; Changed?.Invoke(); }
+        public void ToggleSound() => GlobalData.Dispatch(new BlockPortersToggleSoundAction());
+        internal void ApplySound(bool muted) => audioSource.mute = muted;
         /// 重置当前关卡与演出，取消旧会话奖励结果。
-        public void Restart() { if (!isExiting) LoadLevel(LevelIndex, false); }
+        public void Restart() => GlobalData.Dispatch(new BlockPortersRestartAction());
         /// 通关后进入下一关；最后一关回到第一关。
-        public void NextLevel() { if (!isExiting && Session.Status == BlockPortersStatus.Won) LoadLevel((LevelIndex + 1) % LevelCount); }
+        public void NextLevel() => GlobalData.Dispatch(new BlockPortersNextLevelAction());
         /// <summary>请求单侧模拟广告，当前会话每侧只解锁一次。</summary>
         /// <param name="side">0 为左侧，1 为右侧。</param>
-        public void RequestUnlockSlot(int side) => UnlockSlotAsync(side).Forget();
+        public void RequestUnlockSlot(int side) => GlobalData.Dispatch(new BlockPortersUnlockSlotAction(side));
 
         /// <summary>替换当前会话奖励服务，不更改核心玩法规则。</summary>
         /// <param name="provider">不可为 null；正式平台奖励服务必须返回真实完成结果。</param>
-        public void SetRewardProvider(IBlockPortersReward provider) => reward = provider ?? throw new ArgumentNullException(nameof(provider));
+        public void SetRewardProvider(IBlockPortersReward provider) => data.Handler.SetReward(provider);
 
-        private async UniTaskVoid UnlockSlotAsync(int side)
-        {
-            if (!isReady || isExiting || isRewardPending || side < 0 || side > 1 ||
-                Session.Status == BlockPortersStatus.Won || Session.IsSlotAvailable(side + 5)) return;
-            int version = sessionVersion;
-            isRewardPending = true; Changed?.Invoke();
-            try
-            {
-                var result = await reward.RequestExtraSlotAsync(side, rewardLifetime.Token);
-                if (version == sessionVersion && !isExiting && result == PorterRewardResult.Completed) Session.TryUnlockExtraSlot(side);
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception exception) { Debug.LogException(exception, this); }
-            finally { if (version == sessionVersion) { isRewardPending = false; Changed?.Invoke(); } }
-        }
+
 
         /// 关闭本会话 HUD 后通过导航返回 Hub。
-        public void ReturnToHub() => ExitAsync().Forget();
+        public void ReturnToHub() => GlobalData.Dispatch(new BlockPortersExitAction());
+        internal void ExitScene() => ExitAsync().Forget();
 
         private async UniTaskVoid ExitAsync()
         {
-            if (isExiting) return;
-            isExiting = true; sessionVersion++; themeLoader?.Invalidate(); rewardLifetime?.Cancel(); Changed?.Invoke();
+            themeLoader?.Invalidate();
             try
             {
                 await ui.CloseAsync();
@@ -269,32 +246,31 @@ namespace Hotfix.BlockPorters
                 var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status != GameSceneSwitchStatus.Succeeded)
                 {
-                    isExiting = false; isRewardPending = false; ui.Restore();
-                    var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(this, new UIShowOptions(animated: false), lifetime.Token);
+                    GlobalData.Dispatch(new BlockPortersRestoreAction()); ui.Restore();
+                    var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView>(new UIShowOptions(animated: false), lifetime.Token);
                     if (restored.Status == UIOperationStatus.Failed) throw restored.Exception;
                     hud = UIManager.Instance.Get<BlockPortersHudView>();
-                    ResetRewardLifetime();
-                    Changed?.Invoke();
+                    data?.Handler.Publish();
                     if (result.Status == GameSceneSwitchStatus.Failed) Debug.LogError(result.Error, this);
                 }
             }
             catch (Exception exception)
             {
-                isExiting = false; isRewardPending = false; ui.Restore(); ResetRewardLifetime();
+                GlobalData.Dispatch(new BlockPortersRestoreAction()); ui.Restore();
                 Debug.LogException(exception, this);
-                var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView, BlockPortersController>(this, new UIShowOptions(animated: false), lifetime.Token);
+                var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView>(new UIShowOptions(animated: false), lifetime.Token);
                 if (restored.Status == UIOperationStatus.Failed) Debug.LogException(restored.Exception, this);
                 hud = UIManager.Instance.Get<BlockPortersHudView>();
-                Changed?.Invoke();
+                data?.Handler.Publish();
             }
         }
 
-        internal void LoadLevel(int index, bool chooseTheme = true)
+        internal void LoadLevel(int index, bool chooseTheme = true) => GlobalData.Dispatch(new BlockPortersLoadLevelAction(index, chooseTheme));
+
+        internal void BuildLevel(bool chooseTheme)
         {
-            sessionVersion++; isRewardPending = false; IsPaused = false; LevelIndex = index;
             themeLoader?.Invalidate();
             if (chooseTheme && themeCatalog != null) ApplyThemeAsync(themeCatalog.Choose(lastAppliedTheme, themeRandom)).Forget();
-            ResetRewardLifetime();
             foreach (var actor in actors)
             {
                 if (actor.Brick != null) ReturnBrick(actor.Brick);
@@ -309,8 +285,6 @@ namespace Hotfix.BlockPorters
                 levelMaterials[color] = new Material(colorMaterialTemplate);
                 levelMaterials[color].color = CurrentLevel.Palette[color];
             }
-            Session = new BlockPortersSession(CurrentLevel.CreateData());
-            scheduler = new BlockPortersScheduler(Session);
             scheduler.Assigned += OnAssigned; scheduler.PickedUp += OnPickedUp; scheduler.Delivered += OnDelivered;
             cellSize = Mathf.Min(0.4f, 6.4f / Mathf.Max(Session.Width, Session.Height));
             boardBricks = new Transform[Session.Width * Session.Height];
@@ -329,7 +303,7 @@ namespace Hotfix.BlockPorters
             if (pitParticles != null) pitParticles.Clear();
             rippleAge = 1;
             if (pitRipple != null) pitRipple.gameObject.SetActive(false);
-            FitCamera(); Changed?.Invoke();
+            FitCamera(); data?.Handler.Publish();
         }
 
         private Vector3 CellPosition(PorterCell cell) => new(
@@ -395,25 +369,22 @@ namespace Hotfix.BlockPorters
             }
         }
         private void OnApplicationPause(bool paused) => isApplicationPaused = paused;
-        private void ResetRewardLifetime()
-        {
-            rewardLifetime?.Cancel(); rewardLifetime?.Dispose();
-            rewardLifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        }
+
         private void RestoreLighting()
         {
             foreach (var light in suspendedLights) if (light != null) light.enabled = true;
             suspendedLights.Clear();
         }
-        private void OnDisable() { isReady = false; themeLoader?.Invalidate(); RestoreLighting(); }
+        private void OnDisable() { data?.Handler.SetReady(false); themeLoader?.Invalidate(); RestoreLighting(); }
         private void OnDestroy()
         {
             ui?.Dispose();
             RestoreLighting();
             themeLoader?.Dispose();
             if (levelMaterials != null) foreach (var material in levelMaterials) Destroy(material);
-            rewardLifetime?.Cancel(); rewardLifetime?.Dispose();
-            lifetime?.Cancel(); lifetime?.Dispose(); Changed = null;
+            data?.Handler.CancelReward();
+            lifetime?.Cancel(); lifetime?.Dispose();
+            if (ReferenceEquals(GlobalData.Get<BlockPortersData>(), data)) GlobalData.Remove<BlockPortersData>();
         }
     }
 }

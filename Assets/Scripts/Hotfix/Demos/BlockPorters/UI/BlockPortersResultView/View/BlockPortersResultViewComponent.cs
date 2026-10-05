@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.BlockPorters;
+    using TMPro;
 
     [Source("LoadResources/Demos/block_porters/Prefabs/UI/BlockPortersResultView")]
     public partial class BlockPortersResultView
@@ -23,7 +23,14 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private BlockPortersResultPresenter BlockPortersResultPresenter_BlockPortersResultView;
+        private TextMeshProUGUI TextMeshProUGUI_ResultTitle;
+        private TextMeshProUGUI TextMeshProUGUI_ResultDescription;
+        private Button Button_Next;
+        private TextMeshProUGUI TextMeshProUGUI_NextLabel;
+        private Button Button_ResultRestart;
+        private Button Button_ResultExit;
+        private Button Button_ResultUnlock0;
+        private Button Button_ResultUnlock1;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +42,14 @@ namespace Hotfix
                 return;
             }
 
-            BlockPortersResultPresenter_BlockPortersResultView = componentItemIndex.Get<BlockPortersResultPresenter>(0);
+            TextMeshProUGUI_ResultTitle = componentItemIndex.Get<TextMeshProUGUI>(0);
+            TextMeshProUGUI_ResultDescription = componentItemIndex.Get<TextMeshProUGUI>(1);
+            Button_Next = componentItemIndex.Get<Button>(2);
+            TextMeshProUGUI_NextLabel = componentItemIndex.Get<TextMeshProUGUI>(3);
+            Button_ResultRestart = componentItemIndex.Get<Button>(4);
+            Button_ResultExit = componentItemIndex.Get<Button>(5);
+            Button_ResultUnlock0 = componentItemIndex.Get<Button>(6);
+            Button_ResultUnlock1 = componentItemIndex.Get<Button>(7);
         }
     }
 }
