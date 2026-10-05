@@ -1,84 +1,68 @@
 ---
 name: gen-module
-description: "生成或修改 SleepyDemos Hotfix Flux 模块的 Action/Data/Handler C# 文件。创建新业务模块、补本地 Action、补 Data 状态、补 Handler 处理逻辑，或用户提到 Action/Data/Handler 三件套时使用。"
+description: "生成或修改 SleepyDemos Hotfix Flux 三件套；覆盖本地业务、Demo 状态及已有网络协议。"
 argument-hint: "[ModuleName]"
 ---
 
-# Hotfix Flux 模块生成器
+# Hotfix Flux 模块生成与整理
 
-本技能从钓鱼项目迁入，但已按 SleepyDemos 当前架构调整。生成前必须先读取当前项目源码，不允许沿用钓鱼项目的网络接口或命名空间。
+先读目标三件套及全部直接调用方，再按当前需求修改。命名、排版和注释以 [项目 C# 规范](../../../docs/architecture/documentation-rules.md) 为准，格式由项目根 `.editorconfig` 约束。
 
-## 当前项目事实
+## 入口与落点
 
-- Flux 底座源码：`Assets/Scripts/Core/Runtime/Flux/`
-- `IAction`、`IData`、`IHandler`、`HandlerBase<TAction,TState>`、`GlobalData` 均位于 `Core.Runtime` 命名空间。
-- Hotfix 业务代码位于 `Assets/Scripts/Hotfix`，当前命名空间使用 `Hotfix`。
-- `HandlerBase` 当前抽象方法是 `protected abstract void Reduce(TAction action)`。
-- `HandlerBase` 当前支持钓鱼项目同款命令式网络写法：`SendMsg(command, request)` + `[MessageHandler(command, MessageHandler.State.Success/Error)]`。
-- 网络 Success / Error handler 执行完成后，框架会自动 `ApplyState()`。
-- `HandlerBase` 也保留泛型 `SendMsg<TRequest,TResponse>(request)` 和回调重载，供不走命令路由的临时场景使用。
+- 从需求和源码确定模块、动作、状态与同步结果；只有实质歧义才询问，不因为文件已存在重复确认。
+- 普通业务放 `Assets/Scripts/Hotfix/Module/<ModuleName>`。新模块可使用 `_Actions`、`_Data`、`_Reducers`；已有模块保留自己的目录。
+- Demo 放 `Assets/Scripts/Hotfix/Demos/<DemoName>`，沿用其命名空间与职责布局；不为套模板迁移目录或一律改成 `Hotfix`。
+- 底座在 `Assets/Scripts/Core/Runtime/Flux`，使用 `Core.Runtime` 的 `IAction`、`IData`、`IHandler`、`HandlerBase<TAction, TData>` 和 `GlobalData`。
+- Handler 实现 `protected override void Reduce(TAction action)`，不复制钓鱼的 `Execute`、`Game.Main` 或专属异步 API。
 
-## 交互流程
+## Action
 
-### Step 1：确认模块名与落点
+- 基类在前，具体动作保留模块名前缀。只有一个动作时可直接实现 `IAction`，不用额外基类。
+- 参数使用 **PascalCase 公开字段 + 构造函数**；参数名用 camelCase。内部来源、版本字段也用 PascalCase，保留必要访问限制。
+- 每个业务动作写简短中文 `///`；带参公开构造函数写完整 XML，说明索引范围、默认值、来源及调用副作用。
+- Action 只表示请求和结果，不内置静态 `Send`，不在构造时派发，不执行存档或导航。
+- 同步结果用 `public ... Result { get; internal set; }` 等具名属性。调用方构造动作、`GlobalData.Dispatch(action)` 后读取结果，未处理时的结果须明确。
 
-- `$ARGUMENTS` 非空则直接用作 `{ModuleName}`，要求 PascalCase，例如 `GravityWell`。
-- `$ARGUMENTS` 为空则询问用户模块名。
-- 新模块默认落点：
+## Data
 
-```text
-Assets/Scripts/Hotfix/Module/{ModuleName}/_Actions/{ModuleName}Action.cs
-Assets/Scripts/Hotfix/Module/{ModuleName}/_Data/{ModuleName}Data.cs
-Assets/Scripts/Hotfix/Module/{ModuleName}/_Reducers/{ModuleName}Handler.cs
-```
+- `Handlers` 为初始化一次的稳定列表；场景依赖在构造时注入。
+- 保存同一份真源和读取入口，提供配置查询、业务判断与派生数据，不复制 Session/存档进度，不持有 UI 控件。
+- 关键公开状态补简短业务注释。可变状态通常使用只读读取与 `internal set`；公开 Action 字段规则不适用于业务状态及 Inspector。
+- `ClearData` 恢复明确初始值、使旧版本失效，按所属生命周期清理；不得开始玩法命令、读写存档、导航或场景表现。任务取消和事件退订按实际持有者处理。
 
-检查上述三个文件是否已存在：
+## Handler 与 View
 
-- 不存在：创建新模块骨架。
-- 部分存在：只补缺失文件，修改已有文件前先读取现有内容。
-- 全部存在：询问是新增 Action、删除 Action，还是修改状态/处理逻辑。
+- 外部业务修改走 Action；注册、依赖配置、物理采样、释放可保留具体生命周期入口。Handler 可桥接规则和公共服务事件。
+- `Reduce` 分支逐行展开；复杂操作进入具名私有方法。不要用转发属性掩盖 `State`，不为一条赋值拆方法。
+- 本地完整操作结束后 `ApplyState()`；嵌套命令、规则事件及高频采样保持原发布时序，不重复刷新。
+- View 初始化时声明 `BindData<TData>`，由 Core 管理订阅。页面读取 Data、提交 Action，具体 `SetData` 保持在显示前交付。
+- 异步完成前核对注册实例、会话版本和生命周期；失败/取消恢复状态，旧结果不得修改新会话。
+- 私有复杂分支用 `//` 解释同步结果、嵌套发布、取消和回滚顺序，不堆机械注释。
 
-### Step 2：确认动作和状态
+## 完整本地示例
 
-如果用户没有提供清晰的 Action / Data / Handler 需求，先让用户补充：
-
-```text
-请说明这个模块需要哪些 Action，以及每个 Action 会修改哪些 Data 状态。
-如果涉及网络请求，也请说明现有 Request/Response 类型和实际发送方式。
-```
-
-如果用户粘贴的是协议列表，可以按钓鱼项目模式生成 `const string Cmd`、`SendMsg(cmd, request)` 和 `[MessageHandler]` 回包方法。但必须先确认 Request / Response 类型在当前项目存在，不能臆造协议类型。
-
-### Step 3：生成并自检
-
-生成后检查：
-
-1. 命名空间是否为 `Hotfix`。
-2. 是否引用 `Core.Runtime`。
-3. `Data` 是否实现 `IData.ClearData()`。
-4. `Data.Handlers` 是否注册了对应 Handler。
-5. `Handler` 是否 override `Reduce({ModuleName}Action action)`。
-6. 纯本地修改状态后是否调用 `ApplyState()`；网络 `[MessageHandler]` 回包里是否避免重复调用。
-7. 没有臆造不存在的网络接口、Attribute、Req/Res 类型或业务字段。
-
-## 基础模板
-
-### Action 模板
+以下三件套可独立编译；按实际模块替换名称和业务内容，不额外生成网络骨架。
 
 ```csharp
 using Core.Runtime;
 
 namespace Hotfix
 {
-    public class {ModuleName}Action : IAction
+    /// 修改示例功能的启用状态。
+    public sealed class ExampleSetEnabledAction : IAction
     {
-    }
+        /// 本次请求的启用状态。
+        public bool Enabled;
 
-    public sealed class {ModuleName}SetEnabledAction : {ModuleName}Action
-    {
-        public bool Enabled { get; }
+        /// 是否接受请求；未注册 Data 时为 false。
+        public bool Result { get; internal set; }
 
-        public {ModuleName}SetEnabledAction(bool enabled)
+        /// <summary>
+        /// 请求修改启用状态；构造后需通过 GlobalData.Dispatch 派发。
+        /// </summary>
+        /// <param name="enabled">true 启用，false 关闭。</param>
+        public ExampleSetEnabledAction(bool enabled)
         {
             Enabled = enabled;
         }
@@ -86,30 +70,24 @@ namespace Hotfix
 }
 ```
 
-规则：
-
-- 基类放在文件最前面。
-- 子类命名保留模块名前缀，避免跨模块重名。
-- 字段优先用只读属性；如项目已有同模块风格，则跟随现有风格。
-- 注释只写业务含义，不塞入未确认的协议细节。
-
-### Data 模板
-
 ```csharp
 using System.Collections.Generic;
 using Core.Runtime;
 
 namespace Hotfix
 {
-    public class {ModuleName}Data : IData
+    /// 示例功能的状态与读取入口。
+    public sealed class ExampleData : IData
     {
         public List<IHandler> Handlers { get; } = new List<IHandler>
         {
-            new {ModuleName}Handler()
+            new ExampleHandler()
         };
 
-        public bool Enabled { get; set; }
+        /// 功能是否启用；初始为 false。
+        public bool Enabled { get; internal set; }
 
+        /// 恢复初始状态。
         public void ClearData()
         {
             Enabled = false;
@@ -118,79 +96,40 @@ namespace Hotfix
 }
 ```
 
-规则：
-
-- `Handlers` 必须返回包含 `{ModuleName}Handler` 的列表。
-- 每个状态字段都要在 `ClearData()` 中恢复到明确初始值。
-- 复杂查询或转换逻辑可以放在 `Data` 中，但不要把 UI 控制逻辑塞进去。
-
-### Handler 模板
-
 ```csharp
 using Core.Runtime;
 
 namespace Hotfix
 {
-    public class {ModuleName}Handler : HandlerBase<{ModuleName}Action, {ModuleName}Data>
+    /// 接受启用请求并发布状态。
+    public sealed class ExampleHandler : HandlerBase<ExampleSetEnabledAction, ExampleData>
     {
-        public const string {ModuleName}GetInfo = "{moduleName}/getInfo";
-
-        protected override void Reduce({ModuleName}Action action)
+        /// <summary>
+        /// 同步处理请求；订阅回调执行前先写回结果。
+        /// </summary>
+        /// <param name="action">当前启用请求。</param>
+        protected override void Reduce(ExampleSetEnabledAction action)
         {
-            switch (action)
-            {
-                case {ModuleName}SetEnabledAction setEnabled:
-                    State.Enabled = setEnabled.Enabled;
-                    ApplyState();
-                    break;
-
-                case {ModuleName}GetInfoAction getInfo:
-                    SendMsg({ModuleName}GetInfo, getInfo.Request);
-                    break;
-            }
-        }
-
-        [MessageHandler({ModuleName}GetInfo, MessageHandler.State.Success)]
-        void On{ModuleName}GetInfo({ModuleName}InfoRes response)
-        {
-            State.Info = response;
+            State.Enabled = action.Enabled;
+            action.Result = true;
+            ApplyState();
         }
     }
 }
 ```
 
-规则：
+## 网络业务：仅在存在协议时使用
 
-- 纯本地修改 `State` 后必须手动调用 `ApplyState()`。
-- 网络请求回包通过 `[MessageHandler]` 修改 `State`，框架会在 Success / Error 方法执行完后自动 `ApplyState()`。
-- `[MessageHandler]` 方法里不要重复调用 `ApplyState()`。
-- `SendMsg(command, request)` 前必须确认命令、Request / Response 类型已存在，且当前 `INetworkService` 已被注册。
-- 如确实需要不走命令路由的异步请求，可使用泛型 `SendMsg<TRequest,TResponse>` 重载，但必须先确认调用方期望。
+- 先确认真实 command、Request/Response 及 `INetworkService` 注册入口；本地模块不创建 `GetInfo`、`InfoRes` 或假请求类。
+- 命令式请求用 `SendMsg(command, request)`，真实回包用 `[MessageHandler(command, MessageHandler.State.Success/Error)]`。
+- 回包方法执行后框架自动 `ApplyState()`，方法内不重复调用。泛型异步重载遵循当前 `HandlerBase` 的返回和发布契约。
+- 注释写实际协议语义，不导入钓鱼专属网络、日志、资源或任务框架。
 
-## 修改已有模块
+## 完成自检
 
-新增 Action：
-
-1. 读取现有 Action / Data / Handler。
-2. 在 Action 文件追加子类。
-3. 如需新状态，在 Data 中追加字段并更新 `ClearData()`。
-4. 在 Handler 的 switch 中追加 case。
-
-删除 Action：
-
-1. 读取现有三个文件。
-2. 移除 Action 子类。
-3. 移除 Handler case。
-4. 如果 Data 字段只服务该 Action，确认后再删除字段和 `ClearData()` 语句。
-
-修改 Action 参数：
-
-1. 更新 Action 子类属性和构造函数。
-2. 更新 Handler case 中读取参数的逻辑。
-3. 如果状态结构变化，同步更新 Data 和 `ClearData()`。
-
-## 异常处理
-
-- 模块名、协议、字段含义不明确：先向用户确认。
-- 目标文件存在但结构不符合模板：先读取并按现有风格修改，不强行重排。
-- 涉及网络请求但接口不明确：停止生成网络代码，只生成已确认的本地 Action / Data / Handler 骨架，或向用户确认现有网络 API。
+1. 字段命名、构造参数、同步结果、Handler 路由及全部调用方一致。
+2. 动作、关键状态、带参公开入口有真实业务说明；构造函数、方法和分支没有多语句挤一行。
+3. 注册列表稳定，Data 清理边界及场景退出顺序明确。
+4. View 读取 Data、派发 Action，规则、物理、输入和表现保持实际职责。
+5. 用 Unity 编译和相关既有 Test Runner 用例验证；不新建测试程序集、不写源码字符串快照锁定写法。
+6. 同步维护文档和两侧同名技能，执行 `git diff --check`。

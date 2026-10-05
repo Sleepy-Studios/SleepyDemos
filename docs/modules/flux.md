@@ -134,6 +134,12 @@ await SendMsg<MyRequest, MyResponse>(request, response =>
 });
 ```
 
+## 业务三件套写法
+
+Action 使用 PascalCase 公开参数字段与显式构造函数，说明动作、来源、参数范围和结果；调用方构造后派发，同步结果由 Handler 回填，不在 Action 内隐藏静态 Send。具体生成和维护遵循项目 gen-module 技能及 [C# 规范](../architecture/documentation-rules.md)。
+
+Data 保存同一份业务真源及查询入口，Handler 负责命令执行和状态发布，View 通过 BindData 刷新。配置、采样和释放入口保留生命周期职责；页面请求、反馈及导航恢复走 Action。清理必须说明任务取消、退订、版本失效和状态重置顺序，不能开始新的玩法、存档或导航操作。
+
 ## Data 模板
 
 ```csharp
@@ -149,7 +155,8 @@ namespace Hotfix
             new DemoHandler()
         };
 
-        public bool Enabled { get; set; }
+        /// 功能是否启用。
+        public bool Enabled { get; internal set; }
 
         public void ClearData()
         {
