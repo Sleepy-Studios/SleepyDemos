@@ -42,14 +42,15 @@
 - 业务入口
 - 主菜单和界面逻辑
 - 玩法模块
-- 与具体业务流绑定的 View、Presenter、Module
+- 业务 Action / Data / Handler、View 和独立界面子组件
 
 当前可见模块包括：
 - `AppDelegate`
 - `Eventing`
 - `Module/Main`
 - `Module/Common`
-- `Demos/DroneFlight`
+- `Module/User`、`Module/GraphicsSettings`
+- `Demos/`：搬豆工、无人机、DLSS、赌场、渔力全开与 LoopScroll 示例
 
 不要放：
 - 通用资源加载框架

@@ -30,6 +30,13 @@ namespace Tests.Demo
         private string saveDirectory;
         private HowToFishWorld testWorld;
 
+        [UnitySetUp]
+        public IEnumerator PrepareScreenshotDirectory()
+        {
+            Directory.CreateDirectory(Path.GetFullPath("Library/HowToFish/Evidence"));
+            yield break;
+        }
+
         [UnityTest, Timeout(360000)]
         public IEnumerator SaveSlots_AllThreeMenusContinueRestartAndRecoverIndependently()
         {
@@ -122,7 +129,7 @@ namespace Tests.Demo
         {
             yield return EnterHub();
             yield return EnterHowToFish();
-            yield return WaitFor(() => UnityEngine.Object.FindAnyObjectByType<HowToFishHudPresenter>() != null &&
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishHudView>()?.State == ViewState.Visible &&
                 !GameSceneNavigator.Instance.IsTransitioning, "三槽菜单未出现。");
             testWorld = UnityEngine.Object.FindAnyObjectByType<HowToFishWorld>();
             testWorld.Input.Asset.devices = new InputDevice[] { keyboard, gamepad, mouse };
@@ -1209,8 +1216,8 @@ namespace Tests.Demo
             var eye = world.Player.Eye.transform;
             Vector3 localPosition = eye.localPosition;
             Quaternion localRotation = eye.localRotation;
-            var hud = UnityEngine.Object.FindAnyObjectByType<HowToFishHudPresenter>();
-            var canvas = hud == null ? null : hud.GetComponentInParent<Canvas>();
+            var hud = UIManager.Instance.Get<HowToFishHudView>();
+            var canvas = hud == null ? null : hud.gameObject.GetComponentInParent<Canvas>();
             bool visible = canvas != null && canvas.enabled;
             try
             {
@@ -1591,7 +1598,7 @@ namespace Tests.Demo
             Assert.That(Time.timeScale, Is.EqualTo(1));
             Assert.That(UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None).Count(listener => listener.enabled), Is.EqualTo(1));
             yield return EnterHowToFish();
-            yield return WaitFor(() => UnityEngine.Object.FindAnyObjectByType<HowToFishHudPresenter>() != null &&
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishHudView>()?.State == ViewState.Visible &&
                 !GameSceneNavigator.Instance.IsTransitioning, "再次进入未显示 HUD。");
             world = UnityEngine.Object.FindAnyObjectByType<HowToFishWorld>();
             typeof(HowToFishWorld).GetField("saves", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -1961,6 +1968,7 @@ namespace Tests.Demo
             Assert.That(world.Catalog.RollCatch(1, "ModifiedLeech", 0, "FishingRod").Id, Is.EqualTo("GiantPiranha"));
             world.Session.GrantItem("FishingRod");
             world.Session.GrantItem("Shotgun");
+            world.Player.SelectEquipmentSlot(world.Session.State.equipmentSlots.IndexOf("FishingRod"));
             world.Player.Teleport(lady.transform.position + Vector3.forward * 2, 0);
             yield return new WaitForSeconds(.4f);
             yield return PressKey(Key.B);
@@ -2180,6 +2188,8 @@ namespace Tests.Demo
                 world.SetPaused(true); yield return null;
                 Assert.That(sources.Where(value => value != ui).All(value => !value.isPlaying), Is.True,
                     "暂停后所有玩法循环和单次音源必须停止。");
+                yield return WaitFor(() => UIManager.Instance.Get<HowToFishPauseView>()?.State == ViewState.Visible, "暂停页面未显示。");
+                yield return WaitFor(() => EventSystem.current.sendNavigationEvents, "暂停菜单的输入释放门闩未完成。");
                 EventSystem.current.SetSelectedGameObject(ObjectFind<Button>("Resume").gameObject);
                 InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South));
                 yield return null; yield return null;
@@ -2511,9 +2521,10 @@ namespace Tests.Demo
             world.Player.Teleport(desert.Position + new Vector3(0, 4, -15), 0);
             var puffer = world.Spawn("Pufferfish", desert.Position + new Vector3(0, 4, -7), false);
             var behavior = puffer.GetComponent<HowToFishPufferfish>();
+            var initialScale = puffer.transform.localScale;
             yield return new WaitForSeconds(.4f);
             Assert.That(world.Player.PickUp(puffer), Is.False);
-            Assert.That(puffer.transform.localScale, Is.EqualTo(Vector3.one));
+            Assert.That(puffer.transform.localScale, Is.EqualTo(initialScale));
             float radius = puffer.GetComponent<SphereCollider>().radius;
             puffer.Hit(puffer.Creature.Health * .55f, Vector3.zero);
             yield return WaitFor(() => UnityEngine.Object.FindAnyObjectByType<HowToFishDamagePool>() != null, "半血河豚没有产生毒区。");
@@ -2964,8 +2975,10 @@ namespace Tests.Demo
             Assert.That(world.Session.State.money, Is.Zero);
             yield return PressKey(Key.B);
             Assert.That(world.Player.Fishing.SelectedBait, Is.EqualTo(baitId));
+            int remainingBait = world.Session.Count(baitId);
             for (int catchIndex = 0; catchIndex < 2; catchIndex++)
             {
+                int baitBeforeCatch = world.Session.Count(baitId);
                 if (world.Player.Equipment.Id != "FishingRod") yield return PressKey(Key.Q);
                 world.Player.Teleport(island.Position + new Vector3(0, 1, shoreZ), 180);
                 yield return new WaitForSeconds(.3f);
@@ -2979,8 +2992,10 @@ namespace Tests.Demo
                 InputSystem.QueueStateEvent(gamepad, new GamepadState { rightTrigger = 1 });
                 yield return WaitFor(() => world.Player.Fishing.State.Phase == HowToFishFishingPhase.Reeling, "专业普通鱼未进入收线。");
                 yield return PullBackCatch(world);
+                remainingBait = world.Session.Count(baitId);
+                Assert.That(remainingBait, Is.InRange(Mathf.Max(0, baitBeforeCatch - 1), baitBeforeCatch), "一次落鱼最多结算一次概率损耗。");
                 var fish = UnityEngine.Object.FindObjectsByType<HowToFishWorldItem>(FindObjectsSortMode.None)
-                    .Single(value => value.Creature?.Island == islandIndex && !value.Creature.IsBoss && !value.Creature.IsGroundPickup && !value.IsConsumed);
+                    .Single(value => value.Creature != null && value.Creature.Baits.Contains(baitId) && !value.Creature.IsBoss && !value.Creature.IsGroundPickup && !value.IsConsumed);
                 Assert.That(fish.Creature.Baits, Does.Contain(baitId));
                 yield return PressKey(Key.Q);
                 Assert.That(world.Player.Equipment.Id, Is.EqualTo("SniperRifle"));
@@ -3014,7 +3029,7 @@ namespace Tests.Demo
                 yield return PressKey(Key.E);
                 Assert.That(world.Session.State.money, Is.EqualTo(after), "不能重复出售已消费鱼获。");
             }
-            Assert.That(world.Session.Count(baitId), Is.Zero);
+            Assert.That(world.Session.Count(baitId), Is.EqualTo(remainingBait), "换枪、处理和出售不能再次结算鱼饵损耗。");
             int money = world.Session.State.money, ammo = world.Player.Ammo;
             world.Save();
             world.ReturnToHub();
@@ -3023,7 +3038,7 @@ namespace Tests.Demo
             Assert.That(testWorld.Session.State.money, Is.EqualTo(money));
             Assert.That(testWorld.Player.Equipment.Id, Is.EqualTo("SniperRifle"));
             Assert.That(testWorld.Player.Ammo, Is.EqualTo(ammo));
-            Assert.That(testWorld.Session.Count(baitId), Is.Zero);
+            Assert.That(testWorld.Session.Count(baitId), Is.EqualTo(remainingBait), "续档必须保留实际剩余鱼饵。");
         }
 
         [UnityTest, Timeout(240000)]
@@ -3566,7 +3581,7 @@ namespace Tests.Demo
             yield return PressKey(Key.E); yield return PressKey(Key.E);
             Assert.That(world.Session.Count("FishBucket"), Is.EqualTo(1), "重复交谈不能堆叠免费鱼桶。");
             Assert.That(world.Catalog.RollCatch(4, "FishBucket", 0, "FishingRod").Id, Is.EqualTo("BowheadWhale"));
-            Assert.That(world.Catalog.RollCatch(3, "FishBucket", 0, "FishingRod"), Is.Null);
+            Assert.That(world.Catalog.RollCatch(3, "FishBucket", 0, "FishingRod").Id, Is.EqualTo("BowheadWhale"), "付费饵共享鱼池不按岛过滤。");
             world.Player.Teleport(island.Position + new Vector3(25, 5, -71), 0);
             var whale = world.Spawn("BowheadWhale", island.Position + new Vector3(0, 7, -71), false);
             yield return null;
@@ -3821,7 +3836,7 @@ namespace Tests.Demo
         {
             yield return EnterHub();
             yield return EnterHowToFish();
-            yield return WaitFor(() => UnityEngine.Object.FindAnyObjectByType<HowToFishHudPresenter>() != null &&
+            yield return WaitFor(() => UIManager.Instance.Get<HowToFishHudView>()?.State == ViewState.Visible &&
                 !GameSceneNavigator.Instance.IsTransitioning, "Demo HUD 未出现。");
             testWorld = UnityEngine.Object.FindAnyObjectByType<HowToFishWorld>();
             testWorld.Input.Asset.devices = new InputDevice[] { keyboard, gamepad, mouse };

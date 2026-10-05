@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.HowToFish;
+    using TMPro;
 
     [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishJournalView")]
     public partial class HowToFishJournalView
@@ -23,7 +23,11 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishJournalPresenter HowToFishJournalPresenter_HowToFishJournalView;
+        private TextMeshProUGUI TextMeshProUGUI_MenuTitle;
+        private Button Button_Resume;
+        private Button Button_Save;
+        private Button Button_ReturnHub;
+        private TextMeshProUGUI TextMeshProUGUI_Journal;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +39,11 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishJournalPresenter_HowToFishJournalView = componentItemIndex.Get<HowToFishJournalPresenter>(0);
+            TextMeshProUGUI_MenuTitle = componentItemIndex.Get<TextMeshProUGUI>(0);
+            Button_Resume = componentItemIndex.Get<Button>(1);
+            Button_Save = componentItemIndex.Get<Button>(2);
+            Button_ReturnHub = componentItemIndex.Get<Button>(3);
+            TextMeshProUGUI_Journal = componentItemIndex.Get<TextMeshProUGUI>(4);
         }
     }
 }

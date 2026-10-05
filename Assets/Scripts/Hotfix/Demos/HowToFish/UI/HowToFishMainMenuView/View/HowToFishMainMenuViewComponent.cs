@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.HowToFish;
+    using TMPro;
 
     [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishMainMenuView")]
     public partial class HowToFishMainMenuView
@@ -23,7 +23,18 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishMainMenuPresenter HowToFishMainMenuPresenter_HowToFishMainMenuView;
+        private TextMeshProUGUI TextMeshProUGUI_MenuTitle;
+        private Button Button_Slot0;
+        private TextMeshProUGUI TextMeshProUGUI_Slot0Label;
+        private Button Button_New0;
+        private Button Button_Slot1;
+        private TextMeshProUGUI TextMeshProUGUI_Slot1Label;
+        private Button Button_New1;
+        private Button Button_Slot2;
+        private TextMeshProUGUI TextMeshProUGUI_Slot2Label;
+        private Button Button_New2;
+        private Button Button_ReturnHub;
+        private Button Button_OpenSettings;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +46,18 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishMainMenuPresenter_HowToFishMainMenuView = componentItemIndex.Get<HowToFishMainMenuPresenter>(0);
+            TextMeshProUGUI_MenuTitle = componentItemIndex.Get<TextMeshProUGUI>(0);
+            Button_Slot0 = componentItemIndex.Get<Button>(1);
+            TextMeshProUGUI_Slot0Label = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_New0 = componentItemIndex.Get<Button>(3);
+            Button_Slot1 = componentItemIndex.Get<Button>(4);
+            TextMeshProUGUI_Slot1Label = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Button_New1 = componentItemIndex.Get<Button>(6);
+            Button_Slot2 = componentItemIndex.Get<Button>(7);
+            TextMeshProUGUI_Slot2Label = componentItemIndex.Get<TextMeshProUGUI>(8);
+            Button_New2 = componentItemIndex.Get<Button>(9);
+            Button_ReturnHub = componentItemIndex.Get<Button>(10);
+            Button_OpenSettings = componentItemIndex.Get<Button>(11);
         }
     }
 }

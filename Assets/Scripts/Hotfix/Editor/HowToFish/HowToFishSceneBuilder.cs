@@ -1195,18 +1195,9 @@ namespace Hotfix.Editor.HowToFish
 
         private static void GenerateHudBinding(GameObject root)
         {
-            var presenter = new SerializedObject(root.GetComponent<HowToFishHudPresenter>());
-            presenter.FindProperty("m_EditorClassIdentifier").stringValue = "Hotfix::" + typeof(HowToFishHudPresenter).FullName;
-            presenter.ApplyModifiedPropertiesWithoutUndo();
             var nodes = UIBindPrefabScanner.Scan(root);
-            foreach (var node in nodes)
-            {
-                var component = node.gameObject.GetComponent<HowToFishHudPresenter>() as Component
-                    ?? node.gameObject.GetComponent<Button>() as Component
-                    ?? node.gameObject.GetComponent<TextMeshProUGUI>() as Component
-                    ?? node.gameObject.GetComponent<Image>();
-                if (component != null) Select(node, component.GetType());
-            }
+            // 已保存的组件索引包含 HUD 子组件和完整控件引用，按现有选择重新生成。
+            UIBindComponentWindowBridge.RestoreComponentChoices(root, nodes);
             var settings = new UIBindSettings
             {
                 prefabPath = HudPath, moduleName = "HowToFish", viewName = "HowToFishHudView", namespaceName = "Hotfix",

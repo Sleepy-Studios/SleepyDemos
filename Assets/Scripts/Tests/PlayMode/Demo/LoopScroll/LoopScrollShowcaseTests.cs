@@ -233,9 +233,9 @@ namespace Tests.Demo
             Assert.That(list.Offset, Is.GreaterThan(before + 10)); yield return Back();
         }
         [UnityTest]
-        public IEnumerator MvcOffsetCompletionManualCancelDragAndLanguageKeepControlsAvailable()
+        public IEnumerator UIBindOffsetCompletionManualCancelDragAndLanguageKeepControlsAvailable()
         {
-            yield return Enter("mvc");
+            yield return Enter("uibind");
             var list = UnityEngine.Object.FindObjectOfType<LoopScrollView>();
             Button("offsetPositive").onClick.Invoke();
             Assert.That(list.IsAnimating, Is.True);

@@ -13,7 +13,7 @@
 
 它适合保存并反复读取的业务状态，例如玩家数据、Demo 当前状态、设置状态。一次性通知仍优先使用 `EventDispatcher`。
 
-如果 Action 走网络请求，推荐使用钓鱼项目同款写法：`Execute` 中调用 `SendMsg(command, request)`，回包方法使用 `[MessageHandler(command, MessageHandler.State.Success)]` 或 Error 标注。网络成功 / 错误处理方法执行完成后，框架会自动 `ApplyState()`。只有纯本地修改才需要手动调用 `ApplyState()`。
+如果 Action 走网络请求，推荐使用钓鱼项目同款写法：`Reduce` 中调用 `SendMsg(command, request)`，回包方法使用 `[MessageHandler(command, MessageHandler.State.Success)]` 或 Error 标注。网络成功 / 错误处理方法执行完成后，框架会自动 `ApplyState()`。只有纯本地修改才需要手动调用 `ApplyState()`。
 
 ## 代码位置
 
@@ -24,7 +24,8 @@
 - `Assets/Scripts/Hotfix/AppDelegate/Services/FluxService.cs`：Hotfix 全局 Data 注册和重新登录清理入口
 - `Assets/Scripts/Hotfix/Module/User/`：启动时记录本机硬件配置
 - `Assets/Scripts/Hotfix/Module/Main/`：大厅选择、导航状态和反馈
-- `Assets/Scripts/Hotfix/Demos/BlockPorters/`：场景范围内的关卡、派队、暂停和奖励状态
+- `Assets/Scripts/Hotfix/Module/GraphicsSettings/`：公共渲染设置请求与真实生效反馈。
+- `Assets/Scripts/Hotfix/Demos/`：搬豆工、无人机、DLSS、赌场和渔力全开随场景注册业务 Data。规则对象继续提供同一进度真源，Handler 接管业务修改，场景控制器保留物理与表现。
 
 ## 核心 API
 
@@ -89,6 +90,7 @@ FluxService.InitializeGlobalData();
 ```csharp
 GlobalData.Add<UserData>().InitData();
 GlobalData.Add<MainMenuData>();
+GlobalData.Add<GraphicsSettingsData>();
 ```
 
 重新登录、切号或退出登录时统一调用：
@@ -211,3 +213,5 @@ namespace Hotfix
 ## 场景状态生命周期
 
 全局 Data 由 FluxService 注册；Demo 在初始化时注册自己的 Data，退出时先关闭页面、取消异步任务，再移除。Handler 的异步结果必须核对当前 Data 实例与会话版本后再修改状态；GlobalData 仅通知当前注册实例的状态更新，旧 Handler 无法覆盖重新注册的同类型 Data。页面通过 View.BindData 声明绑定，由 Core 配对订阅。
+
+同类型 Demo 重载时，目标场景使用新的 Data 实例；旧场景的销毁仅移除自己仍持有的注册实例。异步完成先核对当前注册实例与会话版本，View 隐藏、任务取消后再移除场景 Data。需要同步结果的玩法 Action 保存结果字段，Handler 处理后由调用方读取。

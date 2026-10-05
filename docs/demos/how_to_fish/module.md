@@ -5,7 +5,8 @@
 生产代码位于 `Assets/Scripts/Hotfix/Demos/HowToFish/`，首岛原型已接入 Hub。依赖 Unity、Input System；世界与玩法代码直接位于 Demo 根目录，界面代码放在 `UI/`，不让 Core 反向依赖本 Demo。
 
 - `HowToFishCatalog`：ScriptableObject 内容定义，按区域/鱼饵筛选鱼池，验证稳定 ID 与基本配置。
-- `HowToFishSession`：交易、背包、升级、收集及状态通知。
+- `HowToFishSession`：交易、背包、升级和收集规则，继续持有同一 SaveData。
+- `HowToFishAction/Data/Handler`：业务命令、当前会话读取入口、任务与保存事务、生命/饱食、装备和页面状态。
 - `HowToFishSaveData` / `HowToFishSaveStore`：验证安全快照，维护三个本地槽。Load 只报告损坏与恢复选项；RestoreBackup 必须来自用户恢复选择。
 - `HowToFishFishingState`：独立钓鱼阶段、时长与张力规则，不持有 Unity 场景对象。
 - `HowToFishInput`：通过 Core InputActionSession 管理保存模板的副本、上下文松键门闩和单次摇杆死区；设备提示使用 InputDeviceState，绑定 ID 保持稳定。
@@ -13,7 +14,7 @@
 - `HowToFishPlayer` / `HowToFishFishingRig`：第一人称移动与交互、实体浮漂/鱼线/鱼获；交互射线排除自己正在抓取的物品，攻击射线仍可命中它。
 - `HowToFishBoat`：多点浮力与驾驶，依靠船体碰撞承载物品；深水浮力、双输入驾驶、暂停和离舵已通过定向测试，木船候选已装配，灯塔至森林水域的实际航行已有测试。ExitPoint 必须落在甲板内，不能放在船舷外。
 - `HowToFishSpiderCrab`：实体上岸后进入预警、定向冲撞/远距跳跃、硬直循环；活动首领不能抓取，死亡恢复原始刚体约束，逃脱销毁实例。伤害和时长为 Inspector 可调推定参数。
-- `HowToFishWorld`：会话、世界实体、输入、存档与导航的所有者；当前看守人链路是首岛任务初版，活动首领阻止保存。
+- `HowToFishWorld`：场景与服务生命周期、实体装配、输入采样、镜头和导航效果；通过 Action 请求业务修改，活动首领阻止保存的规则由 Handler 执行。
 - `UI/`：独立页面、HUD子区域和本世界UI协调器；复用Core UI/UIBind，页面清单与生命周期见下文。
 
 ## 接入与生命周期
@@ -160,7 +161,7 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 
 ## 装备外观与老虎机
 
-皮肤目录、解锁规则和持久化字段见[外观预设表](skin-catalog.md)。运行入口为 `World.ChangeSkin`，输入在Gameplay/Boat两种映射中共享默认C/右摇杆按下；玩家发请求，World按持有对象选择装备或船，不设适配层。五岛保存实体老虎机，投料触发区在模型Intake挂点；死Drip消费、奖励解锁和保存同次完成，重复奖励不退款。
+皮肤目录、解锁规则和持久化字段见[外观预设表](skin-catalog.md)。运行入口为 `World.ChangeSkin`，输入在Gameplay/Boat两种映射中共享默认C/右摇杆按下；玩家派发 Action，Handler 按持有对象选择装备或船，World 执行相应表现。五岛保存实体老虎机，投料触发区在模型Intake挂点；死Drip消费、奖励解锁和保存同次完成，重复奖励不退款。
 
 此模块只影响本Demo的Hotfix代码、专属Editor装配和Demo资源，不扩展Core。场景重装配会补齐旧输入模板动作及SkinView Shader引用，保留已有绑定ID；三槽保存的皮肤字段向后兼容。自制纹理、两秒滚轮节奏及同稀有度内等权仍需原作外观和权重对照。
 
@@ -176,7 +177,7 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 
 ## 人物服装
 
-`HowToFishOutfitCatalog` 保存18套稳定ID、名称、默认标记和解锁提示，`HowToFishCatalog.Outfits` 只引用保存好的模型Prefab和透明图标。`AssetBuilder.BuildOutfits`由现有场景装配入口调用，HUD仍由UIBind生成和绑定；暂停衣柜复用现有Presenter，不新增Core导航或适配层。
+`HowToFishOutfitCatalog` 保存18套稳定ID、名称、默认标记和解锁提示，`HowToFishCatalog.Outfits` 只引用保存好的模型Prefab和透明图标。`AssetBuilder.BuildOutfits`由现有场景装配入口调用，HUD仍由UIBind生成和绑定；衣柜由 HowToFishOutfitsView 维护，采用既有 UIManager 导航。
 
 选装入口统一为 `World.TrySelectOutfit`，先原子保存共享档案，再更新 `Player.SetOutfit`。第一人称装备实例重新创建时继承当前手袖材质；已有遗体保存自己的服装ID，恢复时不读取后来变化的全局选择。渲染只更换共享材质引用或已有视觉子树，不复制或改写共享材质内容。
 
@@ -194,10 +195,19 @@ HowToFishDynamite 使用实际OverlapSphere与Collider.ClosestPoint，按WorldIt
 
 ## 独立UI页面与HUD区域
 
-UI资源位于 `Prefabs/UI/`，主菜单（三槽）、暂停、设置、图鉴、服装、结局分别维护 `HowToFishMainMenuView`、`HowToFishPauseView`、`HowToFishSettingsView`、`HowToFishJournalView`、`HowToFishOutfitsView`、`HowToFishEndingView`。各自通过UIBind生成索引，普通业务数据随UIManager导航操作交付。暂停和结局复用一份动作Presenter，分别保存View和Prefab；不重复维护相同的继续、返回与设置动作。
+UI资源位于 `Prefabs/UI/`，主菜单（三槽）、暂停、设置、图鉴、服装、结局分别维护 `HowToFishMainMenuView`、`HowToFishPauseView`、`HowToFishSettingsView`、`HowToFishJournalView`、`HowToFishOutfitsView`、`HowToFishEndingView`。各自通过UIBind生成索引，普通业务数据随UIManager导航操作交付。每个 View 持有对应页面控件，继续、返回和设置按钮派发既有业务 Action。
 
 `HowToFishHudView`仅维护常驻显示，钓鱼、首领和雷达分别保存于 `Prefabs/UI/Parts/`，由自己的显示组件维护。普通填充复用白色Sprite与UIProgressBar。页面保留原配色、中文字体与布局；设置分组、服装卡片复用UITab，业务Selected与交互五态分开。
 
-`HowToFishUIController`随World会话创建，串行管理主页面与一个覆盖页。设置/服装通过正式导航隐藏底页，关闭后恢复原按钮焦点；返回Hub先关闭本世界所有页面，再关闭HUD。设置草稿、重绑、订阅和输入作用域随隐藏/销毁释放，未保存的预览回滚。主菜单业务重开确认在覆盖页隐藏期间保留。
+`HowToFishUIController`随 World 创建，订阅 Data，串行管理实际主页面与一个覆盖页。请求的覆盖页及设置草稿由 Data 保存。设置/服装通过正式导航隐藏底页，关闭后恢复原按钮焦点；返回Hub先关闭本世界所有页面，再关闭HUD。设置草稿、重绑、订阅和输入作用域随隐藏/销毁释放，未保存的预览回滚。主菜单重开确认由 Handler 处理，在覆盖页隐藏期间保留。
 
 场景装配工具只更新已保存HUD字体和绑定，不重新创建混合菜单或区域。删除UI资源后应从版本库恢复相应Prefab，再使用UIBind维护，不能用旧装配代码生成第二套页面。
+
+
+## Flux 状态与职责
+
+按钮、实体交付、背包、武器和生命状态通过具体 Action 进入 Handler，结果字段保留原同步时序与消费/保存事务。Data 提供当前 Session 的读取入口，Session.State 仍是持久进度真源。World 和 Player 保存物理、镜头、实体与表现职责；金钱、任务、奖励、生命/饱食、毒火持续时间、余弹与装备选择均由 Handler 修改。
+
+场景 Awake 注册自己的 Data，关闭页面和取消任务后移除；同 Demo 重载使用新的注册实例，旧请求不能更新新实例。设置重绑回调核对 Data 和会话版本，隐藏/销毁取消捕获并撤销未保存快照。世界遥测按原 HUD 的 0.05 秒刷新频率发布，View 使用一次声明的 BindData，由 Core 管理显示订阅、立即刷新、隐藏退订和回滚恢复。
+
+UIBind 继续维护原 Prefab 地址、控件索引和布局。七个整页 Presenter 已合入 View；雷达、首领与钓鱼 HUD 保留独立子组件。三槽、共享服装和本机偏好的保存格式保持原有规则。

@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.HowToFish;
+    using TMPro;
 
     [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishPauseView")]
     public partial class HowToFishPauseView
@@ -23,7 +23,12 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishPausePresenter HowToFishPausePresenter_HowToFishPauseView;
+        private TextMeshProUGUI TextMeshProUGUI_MenuTitle;
+        private Button Button_Resume;
+        private Button Button_Save;
+        private Button Button_ReturnHub;
+        private Button Button_OpenOutfits;
+        private Button Button_OpenSettings;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +40,12 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishPausePresenter_HowToFishPauseView = componentItemIndex.Get<HowToFishPausePresenter>(0);
+            TextMeshProUGUI_MenuTitle = componentItemIndex.Get<TextMeshProUGUI>(0);
+            Button_Resume = componentItemIndex.Get<Button>(1);
+            Button_Save = componentItemIndex.Get<Button>(2);
+            Button_ReturnHub = componentItemIndex.Get<Button>(3);
+            Button_OpenOutfits = componentItemIndex.Get<Button>(4);
+            Button_OpenSettings = componentItemIndex.Get<Button>(5);
         }
     }
 }

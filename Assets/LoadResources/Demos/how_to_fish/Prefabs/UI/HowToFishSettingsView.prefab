@@ -5273,7 +5273,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1930430222782792937}
-  - component: {fileID: 862251367428957797}
   - component: {fileID: 1589888870104840039}
   - component: {fileID: 5160073492449088664}
   m_Layer: 5
@@ -5303,55 +5302,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &862251367428957797
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2521080366438537957}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dfc1d788b3693d5499344d64768fe82f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishSettingsPresenter
-  settingsContent: {fileID: 7835917032420006657}
-  mouseSensitivity: {fileID: 6804144819854385332}
-  gamepadSensitivity: {fileID: 3646279862987168673}
-  inputDeadZone: {fileID: 1547200418388015118}
-  invertLook: {fileID: 6522865390798851602}
-  settingsValues:
-  - {fileID: 410886441913315390}
-  - {fileID: 3904804928409803990}
-  - {fileID: 3958942977031098236}
-  settingsGroups:
-  - {fileID: 2420024591232836216}
-  - {fileID: 6241530173529958546}
-  - {fileID: 5699471383587785078}
-  - {fileID: 3345078460195584392}
-  bindingButtons:
-  - {fileID: 2210541033512739114}
-  - {fileID: 8364321124823733854}
-  - {fileID: 4763542873778782258}
-  - {fileID: 527689858814460483}
-  - {fileID: 5867443041154463038}
-  - {fileID: 1844646117602489861}
-  bindingLabels:
-  - {fileID: 4863673376183364632}
-  - {fileID: 1389211045876209816}
-  - {fileID: 1483113006486600633}
-  - {fileID: 7470559783713322344}
-  - {fileID: 3831138566593900932}
-  - {fileID: 559206226494808432}
-  settingsPrevious: {fileID: 5839480018563424020}
-  settingsNext: {fileID: 1178282025870994523}
-  settingsPage: {fileID: 4827503787843104025}
-  settingsStatus: {fileID: 3032439658360515697}
-  settingsSave: {fileID: 6547743542135494318}
-  settingsCancel: {fileID: 4800713339803720587}
-  settingsDefaults: {fileID: 520706264258174184}
-  settingsCaptureCancel: {fileID: 2074665630672548669}
-  settingsTabs: {fileID: 1589888870104840039}
 --- !u!114 &1589888870104840039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5387,12 +5337,140 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 862251367428957797}
+  - {fileID: 1589888870104840039}
+  - {fileID: 7835917032420006657}
+  - {fileID: 410886441913315390}
+  - {fileID: 6804144819854385332}
+  - {fileID: 3904804928409803990}
+  - {fileID: 3646279862987168673}
+  - {fileID: 3958942977031098236}
+  - {fileID: 1547200418388015118}
+  - {fileID: 6522865390798851602}
+  - {fileID: 2210541033512739114}
+  - {fileID: 4863673376183364632}
+  - {fileID: 8364321124823733854}
+  - {fileID: 1389211045876209816}
+  - {fileID: 4763542873778782258}
+  - {fileID: 1483113006486600633}
+  - {fileID: 527689858814460483}
+  - {fileID: 7470559783713322344}
+  - {fileID: 5867443041154463038}
+  - {fileID: 3831138566593900932}
+  - {fileID: 1844646117602489861}
+  - {fileID: 559206226494808432}
+  - {fileID: 5839480018563424020}
+  - {fileID: 1178282025870994523}
+  - {fileID: 4827503787843104025}
+  - {fileID: 520706264258174184}
+  - {fileID: 6547743542135494318}
+  - {fileID: 4800713339803720587}
+  - {fileID: 2420024591232836216}
+  - {fileID: 6241530173529958546}
+  - {fileID: 5699471383587785078}
+  - {fileID: 3345078460195584392}
+  - {fileID: 3032439658360515697}
+  - {fileID: 2074665630672548669}
   componentTypes:
-  - Hotfix.HowToFish.HowToFishSettingsPresenter
+  - Core.Runtime.UITab
+  - UnityEngine.CanvasGroup
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Slider
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Slider
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Slider
+  - UnityEngine.UI.Toggle
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
   bindingKeys:
-  - HowToFishSettingsView|Hotfix.HowToFish.HowToFishSettingsPresenter
+  - HowToFishSettingsView|Core.Runtime.UITab
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent|UnityEngine.CanvasGroup
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/MouseSensitivityValue|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/MouseSensitivity|UnityEngine.UI.Slider
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/GamepadSensitivityValue|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/GamepadSensitivity|UnityEngine.UI.Slider
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/InputDeadZoneValue|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/InputDeadZone|UnityEngine.UI.Slider
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/InvertLook|UnityEngine.UI.Toggle
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow0|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow0/BindingRow0Label|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow1|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow1/BindingRow1Label|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow2|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow2/BindingRow2Label|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow3|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow3/BindingRow3Label|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow4|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow4/BindingRow4Label|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow5|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/BindingRow5/BindingRow5Label|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/SettingsPrevious|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/SettingsNext|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/SettingsPage|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/SettingsDefaults|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/SettingsSave|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/SettingsCancel|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/TabItem0/SettingsGroup0|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/TabItem1/SettingsGroup1|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/TabItem2/SettingsGroup2|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsContent/TabItem3/SettingsGroup3|UnityEngine.UI.Button
+  - HowToFishSettingsView/InputSettingsPanel/SettingsStatus|TMPro.TextMeshProUGUI
+  - HowToFishSettingsView/InputSettingsPanel/SettingsCaptureCancel|UnityEngine.UI.Button
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &2663147110081666788
 GameObject:

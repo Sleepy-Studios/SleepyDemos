@@ -851,7 +851,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6998535694833724131}
-  - component: {fileID: 7401991997109765824}
   - component: {fileID: 2151202717327563155}
   - component: {fileID: 7023590083841745438}
   - component: {fileID: 3611798247337090575}
@@ -882,79 +881,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7401991997109765824
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 365559018359204970}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ecc08372a3c2ce546825b82c43c9951d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishOutfitsPresenter
-  outfitCards:
-  - {fileID: 434315375101398452}
-  - {fileID: 1162759581119949232}
-  - {fileID: 7234885706874812479}
-  - {fileID: 4884728113762395557}
-  - {fileID: 8519335498067182745}
-  - {fileID: 3987567745575869277}
-  - {fileID: 7432754172568355023}
-  - {fileID: 240343555389568479}
-  - {fileID: 1134013178093128781}
-  - {fileID: 688900191604084325}
-  - {fileID: 4029687629608265256}
-  - {fileID: 1695672118961244591}
-  - {fileID: 2941575375832553758}
-  - {fileID: 8314405259113678746}
-  - {fileID: 5302573194436204726}
-  - {fileID: 5500755236805771632}
-  - {fileID: 7377590381952419460}
-  - {fileID: 4651199329631310677}
-  outfitIcons:
-  - {fileID: 6866896899118056179}
-  - {fileID: 388594761361914164}
-  - {fileID: 1770903166711085313}
-  - {fileID: 3263464997757398469}
-  - {fileID: 5504474706552311795}
-  - {fileID: 7414380695829887252}
-  - {fileID: 204517607414976897}
-  - {fileID: 8645183629705625811}
-  - {fileID: 4564234279909011694}
-  - {fileID: 5591621671450183283}
-  - {fileID: 9135464492969647173}
-  - {fileID: 6522050383975166586}
-  - {fileID: 582677641385214579}
-  - {fileID: 8958701676021500753}
-  - {fileID: 5769151146671244320}
-  - {fileID: 4919866328014661921}
-  - {fileID: 160773760940328395}
-  - {fileID: 2927604681591183975}
-  outfitLabels:
-  - {fileID: 6968008524929224329}
-  - {fileID: 53168158686572061}
-  - {fileID: 4396277076067145347}
-  - {fileID: 1957076597704865103}
-  - {fileID: 6808177277385210609}
-  - {fileID: 3400919329237835438}
-  - {fileID: 2783417813382597220}
-  - {fileID: 7412873502298560294}
-  - {fileID: 993263687354892768}
-  - {fileID: 1682977397105984596}
-  - {fileID: 2237097257941207520}
-  - {fileID: 9027704282672880774}
-  - {fileID: 7267023862740477219}
-  - {fileID: 1161362400492838335}
-  - {fileID: 7303704984694756357}
-  - {fileID: 2572179987422050010}
-  - {fileID: 474041018676464918}
-  - {fileID: 3123546687964144173}
-  outfitDetails: {fileID: 6975283974424212853}
-  outfitWear: {fileID: 4241626318358990691}
-  outfitBack: {fileID: 5594676778661752029}
-  outfitTabs: {fileID: 7023590083841745438}
 --- !u!114 &2151202717327563155
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1017,12 +943,240 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 7401991997109765824}
+  - {fileID: 7023590083841745438}
+  - {fileID: 6975283974424212853}
+  - {fileID: 4241626318358990691}
+  - {fileID: 5594676778661752029}
+  - {fileID: 434315375101398452}
+  - {fileID: 6968008524929224329}
+  - {fileID: 6866896899118056179}
+  - {fileID: 1162759581119949232}
+  - {fileID: 53168158686572061}
+  - {fileID: 388594761361914164}
+  - {fileID: 7234885706874812479}
+  - {fileID: 4396277076067145347}
+  - {fileID: 1770903166711085313}
+  - {fileID: 4884728113762395557}
+  - {fileID: 1957076597704865103}
+  - {fileID: 3263464997757398469}
+  - {fileID: 8519335498067182745}
+  - {fileID: 6808177277385210609}
+  - {fileID: 5504474706552311795}
+  - {fileID: 3987567745575869277}
+  - {fileID: 3400919329237835438}
+  - {fileID: 7414380695829887252}
+  - {fileID: 7432754172568355023}
+  - {fileID: 2783417813382597220}
+  - {fileID: 204517607414976897}
+  - {fileID: 240343555389568479}
+  - {fileID: 7412873502298560294}
+  - {fileID: 8645183629705625811}
+  - {fileID: 1134013178093128781}
+  - {fileID: 993263687354892768}
+  - {fileID: 4564234279909011694}
+  - {fileID: 688900191604084325}
+  - {fileID: 1682977397105984596}
+  - {fileID: 5591621671450183283}
+  - {fileID: 4029687629608265256}
+  - {fileID: 2237097257941207520}
+  - {fileID: 9135464492969647173}
+  - {fileID: 1695672118961244591}
+  - {fileID: 9027704282672880774}
+  - {fileID: 6522050383975166586}
+  - {fileID: 2941575375832553758}
+  - {fileID: 7267023862740477219}
+  - {fileID: 582677641385214579}
+  - {fileID: 8314405259113678746}
+  - {fileID: 1161362400492838335}
+  - {fileID: 8958701676021500753}
+  - {fileID: 5302573194436204726}
+  - {fileID: 7303704984694756357}
+  - {fileID: 5769151146671244320}
+  - {fileID: 5500755236805771632}
+  - {fileID: 2572179987422050010}
+  - {fileID: 4919866328014661921}
+  - {fileID: 7377590381952419460}
+  - {fileID: 474041018676464918}
+  - {fileID: 160773760940328395}
+  - {fileID: 4651199329631310677}
+  - {fileID: 3123546687964144173}
+  - {fileID: 2927604681591183975}
   componentTypes:
-  - Hotfix.HowToFish.HowToFishOutfitsPresenter
+  - Core.Runtime.UITab
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
   bindingKeys:
-  - HowToFishOutfitsView|Hotfix.HowToFish.HowToFishOutfitsPresenter
+  - HowToFishOutfitsView|Core.Runtime.UITab
+  - HowToFishOutfitsView/OutfitPanel/OutfitDetails|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/WearOutfit|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/CloseOutfits|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem0/OutfitBadman|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem0/OutfitBadman/OutfitBadmanLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem0/OutfitBadman/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem1/OutfitBikini|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem1/OutfitBikini/OutfitBikiniLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem1/OutfitBikini/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem2/OutfitFisherman|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem2/OutfitFisherman/OutfitFishermanLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem2/OutfitFisherman/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem3/OutfitSailor|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem3/OutfitSailor/OutfitSailorLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem3/OutfitSailor/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem4/OutfitLighthouseKeeper|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem4/OutfitLighthouseKeeper/OutfitLighthouseKeeperLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem4/OutfitLighthouseKeeper/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem5/OutfitSwampMan|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem5/OutfitSwampMan/OutfitSwampManLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem5/OutfitSwampMan/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem6/OutfitSwampLady|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem6/OutfitSwampLady/OutfitSwampLadyLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem6/OutfitSwampLady/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem7/OutfitKioskLady|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem7/OutfitKioskLady/OutfitKioskLadyLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem7/OutfitKioskLady/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem8/OutfitTourist|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem8/OutfitTourist/OutfitTouristLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem8/OutfitTourist/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem9/OutfitGrillMaster|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem9/OutfitGrillMaster/OutfitGrillMasterLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem9/OutfitGrillMaster/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem10/OutfitAndrei|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem10/OutfitAndrei/OutfitAndreiLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem10/OutfitAndrei/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem11/OutfitJacob|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem11/OutfitJacob/OutfitJacobLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem11/OutfitJacob/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem12/OutfitGunstoreClerc|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem12/OutfitGunstoreClerc/OutfitGunstoreClercLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem12/OutfitGunstoreClerc/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem13/OutfitScaredGuyInShorts|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem13/OutfitScaredGuyInShorts/OutfitScaredGuyInShortsLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem13/OutfitScaredGuyInShorts/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem14/OutfitStoreGrandma|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem14/OutfitStoreGrandma/OutfitStoreGrandmaLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem14/OutfitStoreGrandma/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem15/OutfitMilitary|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem15/OutfitMilitary/OutfitMilitaryLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem15/OutfitMilitary/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem16/OutfitScientist|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem16/OutfitScientist/OutfitScientistLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem16/OutfitScientist/Icon|UnityEngine.UI.Image
+  - HowToFishOutfitsView/OutfitPanel/TabItem17/OutfitBean|UnityEngine.UI.Button
+  - HowToFishOutfitsView/OutfitPanel/TabItem17/OutfitBean/OutfitBeanLabel|TMPro.TextMeshProUGUI
+  - HowToFishOutfitsView/OutfitPanel/TabItem17/OutfitBean/Icon|UnityEngine.UI.Image
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &429328823686975490
 GameObject:

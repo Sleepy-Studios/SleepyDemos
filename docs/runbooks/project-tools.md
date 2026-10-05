@@ -38,7 +38,7 @@
 
 | 菜单路径 | 说明 | 源码 |
 |----------|------|------|
-| `Tools/UI Framework/UIBind` | View / Prefab 绑定扫描与编辑；Prefab 模式下可打开组件绑定子窗口 | `UIBind/UIBindWindow.cs`、`UIBindPrefabScanner.cs`（`MvcComponentBindWindow`） |
+| `Tools/UI Framework/UIBind` | View / Prefab 绑定扫描与编辑；Prefab 模式下可打开组件绑定子窗口 | `UIBind/UIBindWindow.cs`、`UIBindPrefabScanner.cs`（`UIBindComponentWindow`） |
 
 使用要点：
 

@@ -9,17 +9,17 @@ using UnityEngine.UI;
 namespace Hotfix.Demos.LoopScroll
 {
     /// <summary>宿主独有的接入示例，通过 Showcase 主菜单进入和返回。</summary>
-    public sealed class LoopScrollMvcExample : LoopSamplePage
+    public sealed class LoopScrollUIBindExample : LoopSamplePage
     {
         private readonly List<LoopSampleItem> items = new List<LoopSampleItem>();
         private LoopScrollView list;
         private LoopScrollExampleView view;
         private ScrollResult? lastScrollResult;
         private bool scrollPending;
-        protected override string TitleKey => "mvc";
+        protected override string TitleKey => "uibind";
         protected override void BuildPage()
         {
-            for (var i = 0; i < 1000; i++) items.Add(new LoopSampleItem(i, "mvcItem"));
+            for (var i = 0; i < 1000; i++) items.Add(new LoopSampleItem(i, "uibindItem"));
             list = MakeList("UIBind", new Vector2(840, 460), new Vector2(0, -10), LoopLayout.Vertical);
             view = new LoopScrollExampleView(items, index => SetStatus("clicked", index, list.GetItemKey(index)));
             view.InitWithGameObject(list.gameObject);
@@ -29,7 +29,7 @@ namespace Hotfix.Demos.LoopScroll
             ActionButton("offsetPositive", new Vector2(-205, -265), () => Locate(60));
             ActionButton("cancelScroll", new Vector2(0, -265), list.CancelAnimation);
             ActionButton("offsetNegative", new Vector2(205, -265), () => Locate(-60));
-            SetStatus("mvcDesc");
+            SetStatus("uibindDesc");
         }
         private void Locate(float offsetPixels)
         {

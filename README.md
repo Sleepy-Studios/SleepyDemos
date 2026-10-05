@@ -37,6 +37,8 @@
 
 也就是说，Core 先完成准备、资源和热更装配，Hotfix 再接管业务入口和主界面。
 
+业务使用 Flux 数据流：输入或按钮 → Action → Handler → Data → View 刷新。Core 管理页面与输入生命周期，Hotfix 实现业务；规则会话保留进度真源，场景对象负责物理和表现。UIBind 负责控件绑定与代码生成。详见 [架构总览](docs/architecture/overview.md) 和 [Flux 模块](docs/modules/flux.md)。
+
 ## 目录怎么理解
 
 ### 代码目录

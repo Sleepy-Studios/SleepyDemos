@@ -305,7 +305,7 @@ GameObject:
   - component: {fileID: 1018288274}
   - component: {fileID: 1018288276}
   m_Layer: 0
-  m_Name: LoopScrollMvcExample
+  m_Name: LoopScrollUIBindExample
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -322,7 +322,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1d91bb3c2362a9d4c8c9e5afdd725251, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.Demos.LoopScroll.LoopScrollUIBindExample
   catalog: {fileID: 11400000, guid: 2509b0ff19875b84b8f3c7858c17754f, type: 2}
   font: {fileID: 12800000, guid: 5ef874849c984703a8fc7588fc67951a, type: 3}
 --- !u!224 &1018288275

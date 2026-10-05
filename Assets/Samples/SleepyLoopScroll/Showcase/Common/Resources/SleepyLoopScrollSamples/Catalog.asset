@@ -33,7 +33,7 @@ MonoBehaviour:
     titleKey: carousel
     descriptionKey: carouselDesc
     scenePath: CarouselPaging/CarouselPaging.unity
-  - id: mvc
-    titleKey: mvc
-    descriptionKey: mvcDesc
-    scenePath: Assets/LoadResources/Demos/loop_scroll/Scenes/LoopScrollMvcExample.unity
+  - id: uibind
+    titleKey: uibind
+    descriptionKey: uibindDesc
+    scenePath: Assets/LoadResources/Demos/loop_scroll/Scenes/LoopScrollUIBindExample.unity

@@ -53,6 +53,14 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 - Core 先完成准备、资源初始化、元数据和程序集装配
 - Hotfix 再运行启动系统，注册全局 Flux Data，接管业务入口和界面显示
 
+## 业务数据流
+
+输入或按钮 → Action → Handler → Data → View 刷新。全局 Data 由 FluxService 注册，Demo Data 随场景注册和移除；Handler 核对当前实例后修改业务状态。已有规则 Session、存档对象继续作为进度真源，Data 提供读取入口，Controller / World 负责物理、实体和场景表现。
+
+View 在初始化时声明 BindData，由 Core 管理显示订阅、立即刷新、隐藏退订和导航回滚恢复；打开参数与列表 Item 使用具体 SetData。UIBind 维护控件引用、BindingKey 和 Component 生成，UIManager 管理页面加载、排队、层级、过渡和回滚。公共输入接线、设备提示与释放由 Core 处理，Hotfix 将输入转换为具体业务 Action。
+
+完整接口与生命周期见 [Flux](../modules/flux.md)、[UI 运行时](../modules/ui-runtime.md) 和 [公共玩法输入](../modules/gameplay-input.md)。
+
 ## 设计原则
 
 - 底座能力沉淀在 Core，不把业务玩法塞进 Core

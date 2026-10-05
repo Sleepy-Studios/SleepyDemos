@@ -9,7 +9,7 @@
 - 维护已保存宿主场景；一次性 Build UIBind Example 已删除。各示例场景通过 LoopScrollInputHost 接入公共三端导航与反馈。
 - [宿主模块](../../modules/loop-scroll.md) 与 [接入步骤](../../runbooks/use-loop-scroll.md)。
 
-包的一个 Showcase Sample 包含 Main 与四个独立子场景。纯包目录不包含宿主 UIBind 入口；宿主示例场景仍位于 `Assets/LoadResources/Demos/loop_scroll/Scenes/LoopScrollMvcExample.unity`。Editor 导航不修改 Build Settings，独立 Player 演示需要显式传入场景组。包 API、架构及发布验证在独立仓库维护。
+包的一个 Showcase Sample 包含 Main 与四个独立子场景。纯包目录不包含宿主 UIBind 入口；宿主示例场景仍位于 `Assets/LoadResources/Demos/loop_scroll/Scenes/LoopScrollUIBindExample.unity`。Editor 导航不修改 Build Settings，独立 Player 演示需要显式传入场景组。包 API、架构及发布验证在独立仓库维护。
 
 调用统一为先注册再 SetTotalCount，操作使用 RefreshCells、RefillCells(RefillOptions)、ScrollToCell；宿主只生成 RectData/Click/ItemHide，所有回调携带 CellBindContext。当前验收和未完成门槛见包 Documentation~/UnifiedValidation.md。
 
@@ -20,6 +20,6 @@
 
 ## 动态 UI 与公共组件（2026-10-05）
 
-独立 SleepyLoopScroll 包的 Showcase 继续动态建页；这是包示例已有入口，不复制其列表实现，也不改包源码。项目 LoopScrollInputHost 给动态 Selectable 配置公共 UIState/UIStateInteraction 和 UIMenuScope。Hover 提亮、Focused 显示青色边框、Pressed 按钮缩小、Disabled 降低强调；边框不接收射线，Slider 不缩放几何。页面销毁解除返回订阅并释放仅由本页面创建的 EventSystem。Mvc 示例继续使用公共 ItemView 桥接与现有列表数据生命周期。
+独立 SleepyLoopScroll 包的 Showcase 继续动态建页；这是包示例已有入口，不复制其列表实现，也不改包源码。项目 LoopScrollInputHost 给动态 Selectable 配置公共 UIState/UIStateInteraction 和 UIMenuScope。Hover 提亮、Focused 显示青色边框、Pressed 按钮缩小、Disabled 降低强调；边框不接收射线，Slider 不缩放几何。页面销毁解除返回订阅并释放仅由本页面创建的 EventSystem。UIBind 示例继续使用公共 ItemView 桥接与现有列表数据生命周期。
 
 动态按钮定向测试 5dbcfacf（1/1）通过：实际鼠标 Hover/Pressed/Click、键盘提交、焦点边框、禁用清反馈及重复开关后缩放复位；未运行包内全量列表回归。

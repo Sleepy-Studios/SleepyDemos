@@ -1107,7 +1107,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9682260171893234}
-  - component: {fileID: 3152353708479357176}
   - component: {fileID: 7769527200259323875}
   - component: {fileID: 4366602691083499144}
   m_Layer: 5
@@ -1137,24 +1136,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3152353708479357176
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2646475500587621772}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 979822e7ffcaced47b5eaf0285e00276, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishPausePresenter
-  menuTitle: {fileID: 4186490373895374477}
-  resume: {fileID: 3057269221950081562}
-  save: {fileID: 346372312436611446}
-  back: {fileID: 3436406914048312790}
-  outfitButton: {fileID: 9121893729086293999}
-  settingsButton: {fileID: 1915606150148920553}
 --- !u!114 &7769527200259323875
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1181,12 +1162,32 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 3152353708479357176}
+  - {fileID: 4186490373895374477}
+  - {fileID: 3057269221950081562}
+  - {fileID: 346372312436611446}
+  - {fileID: 3436406914048312790}
+  - {fileID: 9121893729086293999}
+  - {fileID: 1915606150148920553}
   componentTypes:
-  - Hotfix.HowToFish.HowToFishPausePresenter
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
   bindingKeys:
-  - HowToFishPauseView|Hotfix.HowToFish.HowToFishPausePresenter
+  - HowToFishPauseView/Menu/MenuTitle|TMPro.TextMeshProUGUI
+  - HowToFishPauseView/Menu/Resume|UnityEngine.UI.Button
+  - HowToFishPauseView/Menu/Save|UnityEngine.UI.Button
+  - HowToFishPauseView/Menu/ReturnHub|UnityEngine.UI.Button
+  - HowToFishPauseView/Menu/OpenOutfits|UnityEngine.UI.Button
+  - HowToFishPauseView/Menu/OpenSettings|UnityEngine.UI.Button
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &2783865457934673309
 GameObject:

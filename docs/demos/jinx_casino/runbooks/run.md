@@ -11,7 +11,7 @@
 
 ## S1保存资源维护（开发中）
 
-当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、MVC绑定及人工调整；交互/表现/UI源码分别在Interaction/Presentation/UI，Controller仅保留场景职责，不重新运行临时生成/装配Builder。旧Main和通用HUD已经删除；新入口与完整流程仍需分别记录实际验证。
+当前工作分支的Hub赌场入口使用已保存的`Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`和`Prefabs/UI/JinxCasinoImmersionHudView.prefab`。直接维护场景与Prefab中的布局、引用、按钮导航和交互组件；保留GUID、UIBind 绑定及人工调整；交互/表现/UI源码分别在Interaction/Presentation/UI，Controller仅保留场景职责，不重新运行临时生成/装配Builder。旧Main和通用HUD已经删除；新入口与完整流程仍需分别记录实际验证。
 
 玩法范围维护独立`Data/ImmersionSettings.asset`，当前为一区、三机台且暂时关闭事件；旧AdventureSettings和SessionSettings已删除。后续接入事件设施时同步本资产与保存资源测试。本地胶囊射线层、操作目标和铭牌行高直接维护保存场景组件，核查序列化引用及`JinxCasinoImmersionSceneTests`结果。
 

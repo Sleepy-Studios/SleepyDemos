@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using UnityEngine;
 
@@ -144,11 +145,9 @@ namespace Hotfix.HowToFish
         /// <param name="amount">正数伤害。</param>
         public void Damage(float amount)
         {
-            if (session == null || session.State.health <= 0 || amount <= 0 || float.IsNaN(amount) || float.IsInfinity(amount)) return;
-            session.State.health = Mathf.Max(0, session.State.health - amount);
-            if (session.State.health > 0) return;
-            session.State.poisonSeconds = session.State.burningSeconds = 0;
-            session.State.poisonDamagePerSecond = session.State.burningDamagePerSecond = 0;
+            var request = new HowToFishDamageAction(session, amount);
+            GlobalData.Dispatch(request);
+            if (!request.Died) return;
             fishing.Cancel(); Drop(false); SetControls(false); Died?.Invoke();
         }
 
@@ -156,35 +155,14 @@ namespace Hotfix.HowToFish
         /// <param name="burning">true 为燃烧，false 为中毒。</param>
         /// <param name="seconds">此次施加的持续秒数，范围(0,60]。</param>
         /// <param name="damagePerSecond">每秒伤害，范围(0,1000]。</param>
-        public void ApplyDamageStatus(bool burning, float seconds, float damagePerSecond)
-        {
-            if (session == null || !(seconds > 0 && seconds <= 60) || !(damagePerSecond > 0 && damagePerSecond <= 1000)) return;
-            var state = session.State;
-            if (burning)
-            {
-                state.burningSeconds = Mathf.Max(state.burningSeconds, seconds);
-                state.burningDamagePerSecond = Mathf.Max(state.burningDamagePerSecond, damagePerSecond);
-            }
-            else
-            {
-                state.poisonSeconds = Mathf.Max(state.poisonSeconds, seconds);
-                state.poisonDamagePerSecond = Mathf.Max(state.poisonDamagePerSecond, damagePerSecond);
-            }
-        }
+        public void ApplyDamageStatus(bool burning, float seconds, float damagePerSecond) => GlobalData.Dispatch(new HowToFishDamageStatusAction(session, burning, seconds, damagePerSecond));
 
         private bool StepDamageStatus()
         {
-            var state = session.State;
-            float delta = Time.deltaTime;
-            float damage = Mathf.Min(delta, state.poisonSeconds) * state.poisonDamagePerSecond +
-                Mathf.Min(delta, state.burningSeconds) * state.burningDamagePerSecond;
-            state.poisonSeconds = Mathf.Max(0, state.poisonSeconds - delta);
-            state.burningSeconds = Mathf.Max(0, state.burningSeconds - delta);
-            if (state.poisonSeconds == 0) state.poisonDamagePerSecond = 0;
-            if (state.burningSeconds == 0) state.burningDamagePerSecond = 0;
-            bool lethal = damage >= state.health;
-            Damage(damage);
-            return lethal;
+            var request = new HowToFishDamageStatusTickAction(session, Time.deltaTime);
+            GlobalData.Dispatch(request);
+            Damage(request.Damage);
+            return request.Lethal;
         }
 
         /// <summary>尝试拾取物品或生物，必要时将装备收进背包。</summary>
@@ -210,8 +188,8 @@ namespace Hotfix.HowToFish
                 var snapshot = item.EquipmentState;
                 return item.TryConsume(() =>
                 {
-                    if (definition.IsConsumable) session.GrantItem(definition.Id);
-                    else session.GrantEquipment(snapshot);
+                    if (definition.IsConsumable) HowToFishGrantItemAction.Send(session, definition.Id);
+                    else HowToFishGrantEquipmentAction.Send(session, snapshot);
                     Message?.Invoke("拾回 " + definition.DisplayName);
                 });
             }
@@ -219,7 +197,7 @@ namespace Hotfix.HowToFish
             {
                 if (!definition.IsConsumable && session.Count(definition.Id) > 0)
                 { Message?.Invoke("已经拥有这件装备。"); return false; }
-                return item.TryConsume(() => { session.GrantItem(definition.Id); Message?.Invoke("获得 " + definition.DisplayName); });
+                return item.TryConsume(() => { HowToFishGrantItemAction.Send(session, definition.Id); Message?.Invoke("获得 " + definition.DisplayName); });
             }
             Drop(false);
             if (!item.TryHold(eye.transform, motor)) return false;
@@ -257,7 +235,7 @@ namespace Hotfix.HowToFish
                 dropped.SetEquipmentState(snapshot);
             }
             catch { Destroy(dropped.gameObject); throw; }
-            if (!session.TryConsume(id)) { Destroy(dropped.gameObject); return null; }
+            if (!HowToFishTryConsumeAction.Send(session, id)) { Destroy(dropped.gameObject); return null; }
             dropped.Body.linearVelocity = throwForward ? eye.transform.forward * 9 + Vector3.up * 1.5f : Vector3.zero;
             return dropped;
         }
@@ -271,10 +249,10 @@ namespace Hotfix.HowToFish
             if (equipment != null && !slots.Contains(equipment.Id))
             {
                 int empty = string.IsNullOrEmpty(slots[slot]) ? slot : slots.FindIndex(string.IsNullOrEmpty);
-                if (empty >= 0) session.TryStoreEquipment(equipment.Id, empty);
+                if (empty >= 0) HowToFishTryStoreEquipmentAction.Send(session, equipment.Id, empty);
                 else DropEquipment(equipment.Id, false);
             }
-            session.State.selectedEquipmentSlot = slot;
+            GlobalData.Dispatch(new HowToFishSelectSlotAction(session, slot));
             Equip(string.IsNullOrEmpty(slots[slot]) ? null : catalog.FindItem(slots[slot]));
         }
 
@@ -284,7 +262,7 @@ namespace Hotfix.HowToFish
             if (!session.State.equipmentSlots.Contains(equipment.Id))
             {
                 int empty = session.State.equipmentSlots.FindIndex(string.IsNullOrEmpty);
-                if (empty >= 0) session.TryStoreEquipment(equipment.Id, empty);
+                if (empty >= 0) HowToFishTryStoreEquipmentAction.Send(session, equipment.Id, empty);
                 else DropEquipment(equipment.Id, false);
             }
             Equip(null);
@@ -331,7 +309,7 @@ namespace Hotfix.HowToFish
             if (IsReloading)
             {
                 reloadRemaining = Mathf.Max(0, reloadRemaining - Time.deltaTime);
-                if (!IsReloading && equipment?.Kind == HowToFishItemKind.Gun) GunState.ammo = AmmoCapacity;
+                if (!IsReloading && equipment?.Kind == HowToFishItemKind.Gun) GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Reload));
             }
             if (input.Pressed("Throw")) Drop(true);
             if (input.Pressed("Next")) CycleTool(1);
@@ -355,7 +333,7 @@ namespace Hotfix.HowToFish
                 var owned = session.State.inventory.Find(item => item.id == equipment.Id);
                 if (owned != null)
                 {
-                    if (owned.cooking > 0 && equipmentView.CookingCenter.y < 0) owned.cooking = 0;
+                    if (owned.cooking > 0 && equipmentView.CookingCenter.y < 0) GlobalData.Dispatch(new HowToFishCookingAction(session, equipment.Id, 0, true));
                     equipmentView.SetSkin(owned.skinId);
                     equipmentView.SetCooking(owned.cooking);
                 }
@@ -369,7 +347,7 @@ namespace Hotfix.HowToFish
             if (equipment == null || equipmentView == null) return;
             var owned = session.State.inventory.Find(item => item.id == equipment.Id);
             if (owned == null) return;
-            owned.cooking = Mathf.Clamp01(owned.cooking + amount);
+            GlobalData.Dispatch(new HowToFishCookingAction(session, equipment.Id, amount));
             equipmentView.SetCooking(owned.cooking);
         }
 
@@ -391,13 +369,12 @@ namespace Hotfix.HowToFish
             void RestoreFood()
             {
                 float nutrition = HowToFishSession.CookingMultiplier(cooking);
-                session.State.hunger = Mathf.Min(100, session.State.hunger + (food?.Creature?.FullnessRestored ?? definition?.Nourishment ?? 20) * nutrition);
-                session.State.health = Mathf.Min(100, session.State.health + (food?.Creature?.HealthRestored ?? 12) * nutrition);
+                GlobalData.Dispatch(new HowToFishRestoreFoodAction(session, (food?.Creature?.FullnessRestored ?? definition?.Nourishment ?? 20) * nutrition, (food?.Creature?.HealthRestored ?? 12) * nutrition));
                 Message?.Invoke("进食完成，恢复了一些体力。");
                 if (food?.Creature != null) CreatureEaten?.Invoke(food);
             }
             if (food != null) food.TryConsume(RestoreFood);
-            else if (session.TryConsume(definition.Id)) RestoreFood();
+            else if (HowToFishTryConsumeAction.Send(session, definition.Id)) RestoreFood();
             eatingElapsed = 0; eatingNeedsRelease = true;
             return true;
         }
@@ -420,7 +397,7 @@ namespace Hotfix.HowToFish
             if (equipment?.Kind == HowToFishItemKind.Gun)
             {
                 if (Ammo <= 0) { attackReadyTime = Time.time + .25f; Message?.Invoke("弹匣已空，按 " + input.BindingLabel("Reload") + " 换弹。"); return; }
-                GunState.ammo--;
+                GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Consume));
                 SoundRequested?.Invoke(equipment.Id == "Shotgun" ? HowToFishSound.ShotgunShot :
                     equipment.Id == "Pistol" ? HowToFishSound.GunShot : HowToFishSound.RifleShot, eye.transform.position);
                 killScore.RecordAttack(equipment.UseInterval, Time.time);
@@ -525,7 +502,7 @@ namespace Hotfix.HowToFish
 
         private void Equip(HowToFishItemDefinition next)
         {
-            if (equipment == next) { session.State.equippedItemId = next?.Id; return; }
+            if (equipment == next) { GlobalData.Dispatch(new HowToFishEquipAction(session, next?.Id)); return; }
             if (next != null && next.ViewPrefab == null) { Message?.Invoke("装备模型尚未配置：" + next.DisplayName); return; }
             if (eatingElapsed > 0) eatingNeedsRelease = true;
             eatingElapsed = 0; HeldItem?.SetEatingProgress(0);
@@ -535,13 +512,8 @@ namespace Hotfix.HowToFish
             reloadRemaining = 0;
             IsAiming = false; eye.fieldOfView = normalFieldOfView;
             if (equipment?.Kind == HowToFishItemKind.Gun)
-                GunState.ammo = GunState.ammo < 0 ? AmmoCapacity : Mathf.Min(GunState.ammo, AmmoCapacity);
-            session.State.equippedItemId = next?.Id;
-            if (next != null)
-            {
-                int slot = session.State.equipmentSlots.IndexOf(next.Id);
-                if (slot >= 0) session.State.selectedEquipmentSlot = slot;
-            }
+                GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Initialize));
+            GlobalData.Dispatch(new HowToFishEquipAction(session, next?.Id));
             equipmentView = null;
             if (next == null) return;
             equipmentView = Instantiate(next.ViewPrefab, equipmentRoot).GetComponent<HowToFishEquipmentView>();
@@ -556,7 +528,7 @@ namespace Hotfix.HowToFish
         {
             if (session != null) session.Changed -= RefreshTools;
             if (fishing != null) fishing.Message -= ForwardMessage;
-            Drop(false);
+            if (ReferenceEquals(GlobalData.Get<HowToFishData>()?.Session, session)) Drop(false);
         }
     }
 }

@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.HowToFish;
+    using TMPro;
 
     [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishSettingsView")]
     public partial class HowToFishSettingsView
@@ -23,7 +23,39 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishSettingsPresenter HowToFishSettingsPresenter_HowToFishSettingsView;
+        private UITab UITab_HowToFishSettingsView;
+        private CanvasGroup CanvasGroup_SettingsContent;
+        private TextMeshProUGUI TextMeshProUGUI_MouseSensitivityValue;
+        private Slider Slider_MouseSensitivity;
+        private TextMeshProUGUI TextMeshProUGUI_GamepadSensitivityValue;
+        private Slider Slider_GamepadSensitivity;
+        private TextMeshProUGUI TextMeshProUGUI_InputDeadZoneValue;
+        private Slider Slider_InputDeadZone;
+        private Toggle Toggle_InvertLook;
+        private Button Button_BindingRow0;
+        private TextMeshProUGUI TextMeshProUGUI_BindingRow0Label;
+        private Button Button_BindingRow1;
+        private TextMeshProUGUI TextMeshProUGUI_BindingRow1Label;
+        private Button Button_BindingRow2;
+        private TextMeshProUGUI TextMeshProUGUI_BindingRow2Label;
+        private Button Button_BindingRow3;
+        private TextMeshProUGUI TextMeshProUGUI_BindingRow3Label;
+        private Button Button_BindingRow4;
+        private TextMeshProUGUI TextMeshProUGUI_BindingRow4Label;
+        private Button Button_BindingRow5;
+        private TextMeshProUGUI TextMeshProUGUI_BindingRow5Label;
+        private Button Button_SettingsPrevious;
+        private Button Button_SettingsNext;
+        private TextMeshProUGUI TextMeshProUGUI_SettingsPage;
+        private Button Button_SettingsDefaults;
+        private Button Button_SettingsSave;
+        private Button Button_SettingsCancel;
+        private Button Button_SettingsGroup0;
+        private Button Button_SettingsGroup1;
+        private Button Button_SettingsGroup2;
+        private Button Button_SettingsGroup3;
+        private TextMeshProUGUI TextMeshProUGUI_SettingsStatus;
+        private Button Button_SettingsCaptureCancel;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +67,39 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishSettingsPresenter_HowToFishSettingsView = componentItemIndex.Get<HowToFishSettingsPresenter>(0);
+            UITab_HowToFishSettingsView = componentItemIndex.Get<UITab>(0);
+            CanvasGroup_SettingsContent = componentItemIndex.Get<CanvasGroup>(1);
+            TextMeshProUGUI_MouseSensitivityValue = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Slider_MouseSensitivity = componentItemIndex.Get<Slider>(3);
+            TextMeshProUGUI_GamepadSensitivityValue = componentItemIndex.Get<TextMeshProUGUI>(4);
+            Slider_GamepadSensitivity = componentItemIndex.Get<Slider>(5);
+            TextMeshProUGUI_InputDeadZoneValue = componentItemIndex.Get<TextMeshProUGUI>(6);
+            Slider_InputDeadZone = componentItemIndex.Get<Slider>(7);
+            Toggle_InvertLook = componentItemIndex.Get<Toggle>(8);
+            Button_BindingRow0 = componentItemIndex.Get<Button>(9);
+            TextMeshProUGUI_BindingRow0Label = componentItemIndex.Get<TextMeshProUGUI>(10);
+            Button_BindingRow1 = componentItemIndex.Get<Button>(11);
+            TextMeshProUGUI_BindingRow1Label = componentItemIndex.Get<TextMeshProUGUI>(12);
+            Button_BindingRow2 = componentItemIndex.Get<Button>(13);
+            TextMeshProUGUI_BindingRow2Label = componentItemIndex.Get<TextMeshProUGUI>(14);
+            Button_BindingRow3 = componentItemIndex.Get<Button>(15);
+            TextMeshProUGUI_BindingRow3Label = componentItemIndex.Get<TextMeshProUGUI>(16);
+            Button_BindingRow4 = componentItemIndex.Get<Button>(17);
+            TextMeshProUGUI_BindingRow4Label = componentItemIndex.Get<TextMeshProUGUI>(18);
+            Button_BindingRow5 = componentItemIndex.Get<Button>(19);
+            TextMeshProUGUI_BindingRow5Label = componentItemIndex.Get<TextMeshProUGUI>(20);
+            Button_SettingsPrevious = componentItemIndex.Get<Button>(21);
+            Button_SettingsNext = componentItemIndex.Get<Button>(22);
+            TextMeshProUGUI_SettingsPage = componentItemIndex.Get<TextMeshProUGUI>(23);
+            Button_SettingsDefaults = componentItemIndex.Get<Button>(24);
+            Button_SettingsSave = componentItemIndex.Get<Button>(25);
+            Button_SettingsCancel = componentItemIndex.Get<Button>(26);
+            Button_SettingsGroup0 = componentItemIndex.Get<Button>(27);
+            Button_SettingsGroup1 = componentItemIndex.Get<Button>(28);
+            Button_SettingsGroup2 = componentItemIndex.Get<Button>(29);
+            Button_SettingsGroup3 = componentItemIndex.Get<Button>(30);
+            TextMeshProUGUI_SettingsStatus = componentItemIndex.Get<TextMeshProUGUI>(31);
+            Button_SettingsCaptureCancel = componentItemIndex.Get<Button>(32);
         }
     }
 }

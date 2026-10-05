@@ -198,7 +198,7 @@ namespace Hotfix.HowToFish
             if (!baitAttached) return;
             baitAttached = false;
             var bait = catalog.FindItem(selectedBait);
-            if (bait.BaitLossChance >= 1 || bait.BaitLossChance > 0 && UnityEngine.Random.value < bait.BaitLossChance) session.TryConsume(selectedBait);
+            if (bait.BaitLossChance >= 1 || bait.BaitLossChance > 0 && UnityEngine.Random.value < bait.BaitLossChance) HowToFishTryConsumeAction.Send(session, selectedBait);
             if (session.Count(selectedBait) == 0) selectedBait = "FreeLure";
         }
 

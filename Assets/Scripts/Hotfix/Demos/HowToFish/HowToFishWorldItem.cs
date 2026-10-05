@@ -118,7 +118,7 @@ namespace Hotfix.HowToFish
             // 个体随机范围暂无来源公式：均匀0.8至1.2为本项目推定，与Drip独立。
             ApplyWeightMultiplier(creature != null && !creature.SkipRandomizedWeight ? UnityEngine.Random.Range(.8f, 1.2f) : 1);
             if (definition?.IsEquipment == true) SetEquipmentState(new HowToFishOwnedItem { id = id, count = 1 });
-            if (creature != null) session.RegisterCreature(id, false, drip);
+            if (creature != null) HowToFishRegisterCreatureAction.Send(session, id, false, drip);
             if (id == "PlayerRemains") SetOutfit(HowToFishOutfitCatalog.DefaultId);
         }
 
@@ -274,7 +274,7 @@ namespace Hotfix.HowToFish
             if (health <= 0) styleMultiplier = style;
             Damaged?.Invoke(this, dealt);
             if (health > 0) return;
-            session.RegisterCreature(definitionId, true, isDrip);
+            HowToFishRegisterCreatureAction.Send(session, definitionId, true, isDrip);
             Defeated?.Invoke(this);
         }
 
@@ -321,7 +321,7 @@ namespace Hotfix.HowToFish
             money = 0;
             if (consumed || creature == null || creature.IgnoredBySeller || IsAlive || !hasBeenHeld) return false;
             consumed = true;
-            try { money = session.SellCatch(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier); }
+            try { money = HowToFishSellCatchAction.Send(session, definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier); }
             catch { consumed = false; throw; }
             FinishConsume();
             return true;

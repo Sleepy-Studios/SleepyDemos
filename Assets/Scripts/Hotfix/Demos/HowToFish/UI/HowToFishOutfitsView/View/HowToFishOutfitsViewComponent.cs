@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix.HowToFish;
+    using TMPro;
 
     [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishOutfitsView")]
     public partial class HowToFishOutfitsView
@@ -23,7 +23,64 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishOutfitsPresenter HowToFishOutfitsPresenter_HowToFishOutfitsView;
+        private UITab UITab_HowToFishOutfitsView;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitDetails;
+        private Button Button_WearOutfit;
+        private Button Button_CloseOutfits;
+        private Button Button_OutfitBadman;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitBadmanLabel;
+        private Image Image_Icon;
+        private Button Button_OutfitBikini;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitBikiniLabel;
+        private Image Image_Icon1;
+        private Button Button_OutfitFisherman;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitFishermanLabel;
+        private Image Image_Icon2;
+        private Button Button_OutfitSailor;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitSailorLabel;
+        private Image Image_Icon3;
+        private Button Button_OutfitLighthouseKeeper;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitLighthouseKeeperLabel;
+        private Image Image_Icon4;
+        private Button Button_OutfitSwampMan;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitSwampManLabel;
+        private Image Image_Icon5;
+        private Button Button_OutfitSwampLady;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitSwampLadyLabel;
+        private Image Image_Icon6;
+        private Button Button_OutfitKioskLady;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitKioskLadyLabel;
+        private Image Image_Icon7;
+        private Button Button_OutfitTourist;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitTouristLabel;
+        private Image Image_Icon8;
+        private Button Button_OutfitGrillMaster;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitGrillMasterLabel;
+        private Image Image_Icon9;
+        private Button Button_OutfitAndrei;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitAndreiLabel;
+        private Image Image_Icon10;
+        private Button Button_OutfitJacob;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitJacobLabel;
+        private Image Image_Icon11;
+        private Button Button_OutfitGunstoreClerc;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitGunstoreClercLabel;
+        private Image Image_Icon12;
+        private Button Button_OutfitScaredGuyInShorts;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitScaredGuyInShortsLabel;
+        private Image Image_Icon13;
+        private Button Button_OutfitStoreGrandma;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitStoreGrandmaLabel;
+        private Image Image_Icon14;
+        private Button Button_OutfitMilitary;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitMilitaryLabel;
+        private Image Image_Icon15;
+        private Button Button_OutfitScientist;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitScientistLabel;
+        private Image Image_Icon16;
+        private Button Button_OutfitBean;
+        private TextMeshProUGUI TextMeshProUGUI_OutfitBeanLabel;
+        private Image Image_Icon17;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +92,64 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishOutfitsPresenter_HowToFishOutfitsView = componentItemIndex.Get<HowToFishOutfitsPresenter>(0);
+            UITab_HowToFishOutfitsView = componentItemIndex.Get<UITab>(0);
+            TextMeshProUGUI_OutfitDetails = componentItemIndex.Get<TextMeshProUGUI>(1);
+            Button_WearOutfit = componentItemIndex.Get<Button>(2);
+            Button_CloseOutfits = componentItemIndex.Get<Button>(3);
+            Button_OutfitBadman = componentItemIndex.Get<Button>(4);
+            TextMeshProUGUI_OutfitBadmanLabel = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Image_Icon = componentItemIndex.Get<Image>(6);
+            Button_OutfitBikini = componentItemIndex.Get<Button>(7);
+            TextMeshProUGUI_OutfitBikiniLabel = componentItemIndex.Get<TextMeshProUGUI>(8);
+            Image_Icon1 = componentItemIndex.Get<Image>(9);
+            Button_OutfitFisherman = componentItemIndex.Get<Button>(10);
+            TextMeshProUGUI_OutfitFishermanLabel = componentItemIndex.Get<TextMeshProUGUI>(11);
+            Image_Icon2 = componentItemIndex.Get<Image>(12);
+            Button_OutfitSailor = componentItemIndex.Get<Button>(13);
+            TextMeshProUGUI_OutfitSailorLabel = componentItemIndex.Get<TextMeshProUGUI>(14);
+            Image_Icon3 = componentItemIndex.Get<Image>(15);
+            Button_OutfitLighthouseKeeper = componentItemIndex.Get<Button>(16);
+            TextMeshProUGUI_OutfitLighthouseKeeperLabel = componentItemIndex.Get<TextMeshProUGUI>(17);
+            Image_Icon4 = componentItemIndex.Get<Image>(18);
+            Button_OutfitSwampMan = componentItemIndex.Get<Button>(19);
+            TextMeshProUGUI_OutfitSwampManLabel = componentItemIndex.Get<TextMeshProUGUI>(20);
+            Image_Icon5 = componentItemIndex.Get<Image>(21);
+            Button_OutfitSwampLady = componentItemIndex.Get<Button>(22);
+            TextMeshProUGUI_OutfitSwampLadyLabel = componentItemIndex.Get<TextMeshProUGUI>(23);
+            Image_Icon6 = componentItemIndex.Get<Image>(24);
+            Button_OutfitKioskLady = componentItemIndex.Get<Button>(25);
+            TextMeshProUGUI_OutfitKioskLadyLabel = componentItemIndex.Get<TextMeshProUGUI>(26);
+            Image_Icon7 = componentItemIndex.Get<Image>(27);
+            Button_OutfitTourist = componentItemIndex.Get<Button>(28);
+            TextMeshProUGUI_OutfitTouristLabel = componentItemIndex.Get<TextMeshProUGUI>(29);
+            Image_Icon8 = componentItemIndex.Get<Image>(30);
+            Button_OutfitGrillMaster = componentItemIndex.Get<Button>(31);
+            TextMeshProUGUI_OutfitGrillMasterLabel = componentItemIndex.Get<TextMeshProUGUI>(32);
+            Image_Icon9 = componentItemIndex.Get<Image>(33);
+            Button_OutfitAndrei = componentItemIndex.Get<Button>(34);
+            TextMeshProUGUI_OutfitAndreiLabel = componentItemIndex.Get<TextMeshProUGUI>(35);
+            Image_Icon10 = componentItemIndex.Get<Image>(36);
+            Button_OutfitJacob = componentItemIndex.Get<Button>(37);
+            TextMeshProUGUI_OutfitJacobLabel = componentItemIndex.Get<TextMeshProUGUI>(38);
+            Image_Icon11 = componentItemIndex.Get<Image>(39);
+            Button_OutfitGunstoreClerc = componentItemIndex.Get<Button>(40);
+            TextMeshProUGUI_OutfitGunstoreClercLabel = componentItemIndex.Get<TextMeshProUGUI>(41);
+            Image_Icon12 = componentItemIndex.Get<Image>(42);
+            Button_OutfitScaredGuyInShorts = componentItemIndex.Get<Button>(43);
+            TextMeshProUGUI_OutfitScaredGuyInShortsLabel = componentItemIndex.Get<TextMeshProUGUI>(44);
+            Image_Icon13 = componentItemIndex.Get<Image>(45);
+            Button_OutfitStoreGrandma = componentItemIndex.Get<Button>(46);
+            TextMeshProUGUI_OutfitStoreGrandmaLabel = componentItemIndex.Get<TextMeshProUGUI>(47);
+            Image_Icon14 = componentItemIndex.Get<Image>(48);
+            Button_OutfitMilitary = componentItemIndex.Get<Button>(49);
+            TextMeshProUGUI_OutfitMilitaryLabel = componentItemIndex.Get<TextMeshProUGUI>(50);
+            Image_Icon15 = componentItemIndex.Get<Image>(51);
+            Button_OutfitScientist = componentItemIndex.Get<Button>(52);
+            TextMeshProUGUI_OutfitScientistLabel = componentItemIndex.Get<TextMeshProUGUI>(53);
+            Image_Icon16 = componentItemIndex.Get<Image>(54);
+            Button_OutfitBean = componentItemIndex.Get<Button>(55);
+            TextMeshProUGUI_OutfitBeanLabel = componentItemIndex.Get<TextMeshProUGUI>(56);
+            Image_Icon17 = componentItemIndex.Get<Image>(57);
         }
     }
 }

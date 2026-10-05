@@ -89,7 +89,7 @@
 - 通过 `ResourceServices.CreateSceneLoader()` 创建。
 - 加载成功返回不暴露 YooAsset 类型的 `IResourceSceneHandle`。
 - 句柄必须交还给同一个 loader 卸载；卸载成功后不可重复使用。
-- Active Scene、相机和业务 UI 不由资源适配层处理，而由 Hotfix 场景导航事务负责。
+- Active Scene、相机和业务 UI 由 Hotfix 场景导航事务管理；资源层负责加载与释放。
 
 ## 边界规则
 

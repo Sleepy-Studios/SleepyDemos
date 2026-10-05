@@ -1,3 +1,4 @@
+using Core.Runtime;
 using Hotfix.HowToFish;
 using System.Linq;
 using System.IO;
@@ -12,6 +13,31 @@ namespace Tests.Demo
 {
     public sealed class HowToFishAssetTests
     {
+        [TestCase("Hud")]
+        [TestCase("MainMenu")]
+        [TestCase("Pause")]
+        [TestCase("Journal")]
+        [TestCase("Settings")]
+        [TestCase("Outfits")]
+        [TestCase("Ending")]
+        public void SavedViewBindingsMatchTheirComponents(string page)
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFish" + page + "View.prefab");
+            var index = prefab.GetComponent<ComponentItemIndex>();
+            Assert.That(index, Is.Not.Null);
+            Assert.That(index.Components, Has.None.Null);
+            Assert.That(index.ComponentTypes.Length, Is.EqualTo(index.Components.Length));
+            Assert.That(index.BindingKeys.Length, Is.EqualTo(index.Components.Length));
+            Assert.That(index.BindingKeys.Distinct().Count(), Is.EqualTo(index.BindingKeys.Length));
+            for (int i = 0; i < index.Components.Length; i++)
+            {
+                Assert.That(index.ComponentTypes[i], Is.EqualTo(index.Components[i].GetType().FullName));
+                Assert.That(index.BindingKeys[i], Is.Not.Empty);
+            }
+            foreach (var node in prefab.GetComponentsInChildren<Transform>(true))
+                Assert.That(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject), Is.Zero, node.name);
+        }
+
         [Test]
         public void Outfits_AllModelsIconsAndHandsAreReadyForSavedUi()
         {
@@ -35,11 +61,11 @@ namespace Tests.Demo
                         Assert.That(material.HasProperty("_BaseColor"), Is.True);
                     }
             }
-            var hud = AssetDatabase.LoadAssetAtPath<GameObject>(root + "/Prefabs/UI/HowToFishHudView.prefab");
-            var panel = hud.transform.Find("OutfitPanel");
+            var page = AssetDatabase.LoadAssetAtPath<GameObject>(root + "/Prefabs/UI/HowToFishOutfitsView.prefab");
+            var panel = page.transform.Find("OutfitPanel");
             Assert.That(panel, Is.Not.Null);
             foreach (var outfit in HowToFishOutfitCatalog.All)
-                Assert.That(panel.Find("Outfit" + outfit.Id).GetComponent<UnityEngine.UI.Button>(), Is.Not.Null);
+                Assert.That(panel.GetComponentsInChildren<UnityEngine.UI.Button>(true).SingleOrDefault(button => button.name == "Outfit" + outfit.Id), Is.Not.Null, outfit.Id);
         }
 
         [Test]

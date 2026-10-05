@@ -8,6 +8,6 @@ Editor 导航自动解析导入目录，不需要修改 Build Settings。Tools/S
 
 Common 包含示例专用的语言、布局、场景目录和 Noto Sans SC 字体。FONT-LICENSE.txt 仅适用于字库；包运行时不依赖这些示例组件。只导入一份 Showcase，避免重复程序集。SleepyDemos 已维护一份导入内容，不必再次导入。
 
-SleepyDemos 的宿主示例 Builder 可追加 MvcBind / ItemView 页面，纯包场景目录保持五项。
+SleepyDemos 的宿主示例 Builder 可追加 UIBind / ItemView 页面，纯包场景目录保持五项。
 
 简单列表先 RegisterCellBinding 一次，再 SetTotalCount；刷新、完整重填与定位分别使用 RefreshCells、RefillCells(RefillOptions)、ScrollToCell。多类型和聊天通过 SetDataSource 提交。

@@ -8,6 +8,7 @@ namespace Hotfix
     using UnityEngine;
     using UnityEngine.UI;
     using Hotfix.HowToFish;
+    using TMPro;
 
     [Source("LoadResources/Demos/how_to_fish/Prefabs/UI/HowToFishHudView")]
     public partial class HowToFishHudView
@@ -23,7 +24,14 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private HowToFishHudPresenter HowToFishHudPresenter_HowToFishHudView;
+        private TextMeshProUGUI TextMeshProUGUI_Stats;
+        private TextMeshProUGUI TextMeshProUGUI_Focus;
+        private TextMeshProUGUI TextMeshProUGUI_Controls;
+        private HowToFishFishingHudPresenter HowToFishFishingHudPresenter_FishingPanel;
+        private TextMeshProUGUI TextMeshProUGUI_Notice;
+        private HowToFishBossHudPresenter HowToFishBossHudPresenter_BossPanel;
+        private HowToFishRadarHudPresenter HowToFishRadarHudPresenter_RadarPanel;
+        private TextMeshProUGUI TextMeshProUGUI_EquipmentSlots;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +43,14 @@ namespace Hotfix
                 return;
             }
 
-            HowToFishHudPresenter_HowToFishHudView = componentItemIndex.Get<HowToFishHudPresenter>(0);
+            TextMeshProUGUI_Stats = componentItemIndex.Get<TextMeshProUGUI>(0);
+            TextMeshProUGUI_Focus = componentItemIndex.Get<TextMeshProUGUI>(1);
+            TextMeshProUGUI_Controls = componentItemIndex.Get<TextMeshProUGUI>(2);
+            HowToFishFishingHudPresenter_FishingPanel = componentItemIndex.Get<HowToFishFishingHudPresenter>(3);
+            TextMeshProUGUI_Notice = componentItemIndex.Get<TextMeshProUGUI>(4);
+            HowToFishBossHudPresenter_BossPanel = componentItemIndex.Get<HowToFishBossHudPresenter>(5);
+            HowToFishRadarHudPresenter_RadarPanel = componentItemIndex.Get<HowToFishRadarHudPresenter>(6);
+            TextMeshProUGUI_EquipmentSlots = componentItemIndex.Get<TextMeshProUGUI>(7);
         }
     }
 }

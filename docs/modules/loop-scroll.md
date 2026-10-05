@@ -10,7 +10,7 @@ SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、�
 - `Core/Runtime/Components/LoopScrollRegisterExtend.cs`：提供 ItemViews() 和三种 `[ComponentAttribute]` 注册方法。
 - `Core/Runtime/Components/LoopScrollMenuNavigation.cs` / `LoopScrollMenuButton.cs`：公共虚拟列表菜单焦点、Grid 方向导航与按 Key 定位，不承载业务图片、文字或页面输入作用域。
 - `LoopScrollInputHost`：已保存示例场景的输入桥接，动态页面建立后接入公共状态和菜单作用域，不修改包源码。
-- `Hotfix/Demos/LoopScroll/LoopScrollMvcExample.cs`：本地 View/ItemView 接入示例。
+- `Hotfix/Demos/LoopScroll/LoopScrollUIBindExample.cs`：本地 View/ItemView 接入示例。
 
 先 RegisterLoopScrollRect<TView> 配置工厂与绑定，再注册 Click/ItemHide，最后 SetTotalCount 提交真实集合。ListDataSource 进入包的统一 Commit/Reconcile，桥接更新 ItemView.Index 和 context，触发唯一一组 CellBound/CellUnbound/CellClicked 事件。解绑前旧 context 已失效并取消 Token，点击读取当前身份。
 

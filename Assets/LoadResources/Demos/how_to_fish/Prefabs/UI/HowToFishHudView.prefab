@@ -146,7 +146,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6024476769144666112}
-  - component: {fileID: 1014225302179616106}
   - component: {fileID: 7655387472037126929}
   m_Layer: 5
   m_Name: HowToFishHudView
@@ -183,26 +182,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1014225302179616106
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1880328553904671411}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7711470a4c81007458e119f65a0daa61, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.HowToFish.HowToFishHudPresenter
-  stats: {fileID: 7897829561748875778}
-  focus: {fileID: 4441639508541644163}
-  notice: {fileID: 3991380966126048823}
-  controls: {fileID: 4512252756599989596}
-  equipmentSlots: {fileID: 7626557778247029355}
-  radarHud: {fileID: 3103439364229162472}
-  bossHud: {fileID: 2356117326866559865}
-  fishingHud: {fileID: 2849192932493690658}
 --- !u!114 &7655387472037126929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,12 +195,40 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 1014225302179616106}
+  - {fileID: 7897829561748875778}
+  - {fileID: 4441639508541644163}
+  - {fileID: 4512252756599989596}
+  - {fileID: 2849192932493690658}
+  - {fileID: 3991380966126048823}
+  - {fileID: 2356117326866559865}
+  - {fileID: 3103439364229162472}
+  - {fileID: 7626557778247029355}
   componentTypes:
-  - Hotfix.HowToFish.HowToFishHudPresenter
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - Hotfix.HowToFish.HowToFishFishingHudPresenter
+  - TMPro.TextMeshProUGUI
+  - Hotfix.HowToFish.HowToFishBossHudPresenter
+  - Hotfix.HowToFish.HowToFishRadarHudPresenter
+  - TMPro.TextMeshProUGUI
   bindingKeys:
-  - HowToFishHudView|Hotfix.HowToFish.HowToFishHudPresenter
+  - HowToFishHudView/Stats|TMPro.TextMeshProUGUI
+  - HowToFishHudView/Focus|TMPro.TextMeshProUGUI
+  - HowToFishHudView/Controls|TMPro.TextMeshProUGUI
+  - HowToFishHudView/FishingPanel|Hotfix.HowToFish.HowToFishFishingHudPresenter
+  - HowToFishHudView/Notice|TMPro.TextMeshProUGUI
+  - HowToFishHudView/BossPanel|Hotfix.HowToFish.HowToFishBossHudPresenter
+  - HowToFishHudView/RadarPanel|Hotfix.HowToFish.HowToFishRadarHudPresenter
+  - HowToFishHudView/EquipmentSlots|TMPro.TextMeshProUGUI
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &3700911859340466428
 GameObject:
