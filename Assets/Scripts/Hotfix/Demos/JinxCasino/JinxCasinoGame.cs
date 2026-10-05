@@ -9,54 +9,83 @@ namespace Hotfix.JinxCasino
     public sealed class JinxCasinoGame
     {
         private CasinoAdventureSession adventure;
+
         private CasinoAdventureState state;
+
         private CasinoLocalSaveStore localSaveStore;
+
         private double accumulatedMilliseconds;
+
         private int selectedSaveSlot;
+
         private int lastCommandFrame = -1;
+
         private bool isRestoring;
+
         private bool isSaving;
+
         private string status = "选择一场冒险，或继续已保存的旅程。";
+
         private CasinoProfile profile;
+
         private CasinoProfileStore profileStore;
+
         private string profileCommittedRun;
+
         private float profileRetryAfter;
+
         private float profileReadRetryAfter;
+
         private string profileStatus = "正式旅程结束后记录成长；练习不计。";
 
         /// 最近一次提交后的状态缓存；消费者只读使用，不通过此引用修改游戏。
         public CasinoAdventureState State => state;
+
         /// 最近操作及持久化反馈。
         public string Status => status;
+
         /// 是否已经安装旅程。
         public bool HasAdventure => adventure != null;
+
         /// 是否存在尚未结算的已投入局。
         public bool HasActiveRound => adventure?.HasActiveRound ?? false;
+
         /// 当前区域的实际筹码目标。
         public long Target => adventure?.CurrentTarget ?? 0;
+
         /// 下次投入前需展示的规则变化。
         public string BetRules => adventure?.NextBetDescription ?? string.Empty;
+
         /// 当前局或最近结算局的公开说明。
         public string ActiveRoundDescription => adventure?.ActiveRoundDescription ?? string.Empty;
+
         /// 当前旅程关联的存档槽；零表示尚未选择。
         public int SelectedSaveSlot => selectedSaveSlot;
+
         /// 读档安装与通知期间为真，表现层据此直接显示已有结果。
         public bool IsRestoring => isRestoring;
+
         /// 是否允许提交游戏命令；时钟、保存与教学观察仍可继续执行。
         public bool CommandInputEnabled { get; set; } = true;
+
         /// 永久档案深副本；读取失败返回空，不覆盖已有损坏文件。
         public CasinoProfileData ProfileData => EnsureProfile() ? profile.Data : null;
+
         /// 档案读取、记录及装备反馈。
         public string ProfileStatus => profileStatus;
+
         /// 永久声望等级，不影响局内收益。
         public long ProfileLevel => EnsureProfile() ? profile.Level : 1;
 
         /// 状态提交后的通知；效果仅供场景消费，重复回执不再次派发效果。
         public event Action<CasinoSceneEffect[]> Changed;
+
         /// 候选读档安装前检查场景能力；抛出异常将保留当前旅程。
         public event Action<CasinoAdventureState> ValidatingRestore;
+
         /// 替换旅程前清理场景交互，参数表示是否读档。
         public event Action<bool> BeforeRunReplacement;
+
         /// 写盘前同步尚未报告的教学事实；观察应使用不通知路径。
         public event Action BeforeSave;
 
@@ -85,7 +114,8 @@ namespace Hotfix.JinxCasino
         /// <returns>教学启动的实际领域回执。</returns>
         public CasinoAdventureResult StartTutorialAdventure(CasinoAdventureConfig config, bool replaceCurrentRun = false, uint? seed = null)
         {
-            if (!CommandInputEnabled) return Reject("Busy", "请先结束当前操作。");
+            if (!CommandInputEnabled)
+                return Reject("Busy", "请先结束当前操作。");
             if (HasAdventure && !replaceCurrentRun)
                 return Reject("TutorialReplacementRequired", "先选择保存或放弃当前局，再明确重玩教学。");
             try
@@ -95,7 +125,12 @@ namespace Hotfix.JinxCasino
                 tutorialConfig.EventIntervalMilliseconds = 0;
                 var candidate = CasinoAdventureSession.Start(seed ?? NewSeed(), CasinoAdventureMode.Practice, 1, tutorialConfig);
                 var result = candidate.StartTutorial(NewRequestId());
-                if (!result.Success) { SetStatus(result.Description ?? result.Error); return result; }
+                if (!result.Success)
+                {
+                    SetStatus(result.Description ?? result.Error);
+                    return result;
+                }
+
                 InstallAdventure(candidate, result.Description);
                 return result;
             }
@@ -112,7 +147,8 @@ namespace Hotfix.JinxCasino
         /// <param name="restoring">是否按读档静态恢复表现。</param>
         public void InstallAdventure(CasinoAdventureSession candidate, string message, int slot = 0, bool restoring = false)
         {
-            if (candidate == null) throw new ArgumentNullException(nameof(candidate));
+            if (candidate == null)
+                throw new ArgumentNullException(nameof(candidate));
             ValidateInstallationSlot(slot);
             // 候选快照先完成，任何验证失败都发生在旧局和场景清理之前。
             Install(candidate, candidate.CaptureState(), message, slot, restoring);
@@ -122,6 +158,14 @@ namespace Hotfix.JinxCasino
         public void ClearAdventure()
         {
             BeforeRunReplacement?.Invoke(false);
+            ResetAdventureState();
+            Publish(null);
+        }
+
+        // Data 清理仅重置规则，不能触发场景复位或主动发布中间状态。
+
+        internal void ResetAdventureState()
+        {
             adventure = null;
             state = null;
             accumulatedMilliseconds = 0;
@@ -129,16 +173,17 @@ namespace Hotfix.JinxCasino
             lastCommandFrame = -1;
             isRestoring = false;
             status = "选择一场冒险，或继续已保存的旅程。";
-            Publish(null);
         }
 
         /// <summary>累积实际经过时间，以至少100毫秒的批次推进领域时钟。</summary>
         /// <param name="deltaSeconds">宿主排除暂停后的非负秒增量。</param>
         public void Tick(float deltaSeconds)
         {
-            if (!HasAdventure || float.IsNaN(deltaSeconds) || float.IsInfinity(deltaSeconds) || deltaSeconds < 0) return;
+            if (!HasAdventure || float.IsNaN(deltaSeconds) || float.IsInfinity(deltaSeconds) || deltaSeconds < 0)
+                return;
             accumulatedMilliseconds += deltaSeconds * 1000d;
-            if (accumulatedMilliseconds < 100) return;
+            if (accumulatedMilliseconds < 100)
+                return;
             int elapsed = (int)Math.Min(Math.Floor(accumulatedMilliseconds), 3600000d);
             accumulatedMilliseconds -= elapsed;
             Advance(elapsed);
@@ -149,16 +194,19 @@ namespace Hotfix.JinxCasino
         /// <returns>时间推进回执，活动机台按原规则处理。</returns>
         public CasinoAdventureResult Advance(int milliseconds)
         {
-            if (!HasAdventure) return Reject("NoAdventure", "请先开始一场旅程。");
+            if (!HasAdventure)
+                return Reject("NoAdventure", "请先开始一场旅程。");
             var result = adventure.Advance(milliseconds);
             UpdateStatus(result);
-            if (result.Changed) RefreshState(result.Effects);
+            if (result.Changed)
+                RefreshState(result.Effects);
             else
             {
                 // 已结束旅程仍可重试失败的档案写盘，不重算奖励或重开机台。
                 RecordFinishedProfile();
                 Publish(null);
             }
+
             return result;
         }
 
@@ -170,8 +218,7 @@ namespace Hotfix.JinxCasino
         /// <param name="stationId">具体机台编号。</param>
         /// <param name="frameId">此次设备无关输入的提交帧。</param>
         /// <returns>投入回执。</returns>
-        public CasinoAdventureResult BeginGame(string requestId, CasinoGameKind kind, long stake, int choice, string stationId, int frameId)
-            => Execute(requestId, frameId, () => adventure.BeginGame(requestId, kind, stake, choice, stationId));
+        public CasinoAdventureResult BeginGame(string requestId, CasinoGameKind kind, long stake, int choice, string stationId, int frameId) => Execute(requestId, frameId, () => adventure.BeginGame(requestId, kind, stake, choice, stationId));
 
         /// <summary>向已投入的具体机台提交操作。</summary>
         /// <param name="requestId">稳定请求编号。</param>
@@ -180,8 +227,7 @@ namespace Hotfix.JinxCasino
         /// <param name="stationId">具体机台编号。</param>
         /// <param name="frameId">输入提交帧。</param>
         /// <returns>实际机台操作回执。</returns>
-        public CasinoAdventureResult Act(string requestId, CasinoMiniGameAction action, int value, string stationId, int frameId)
-            => Execute(requestId, frameId, () => adventure.Act(requestId, action, value, stationId));
+        public CasinoAdventureResult Act(string requestId, CasinoMiniGameAction action, int value, string stationId, int frameId) => Execute(requestId, frameId, () => adventure.Act(requestId, action, value, stationId));
 
         /// <summary>购买当前配置开放的商品。</summary>
         /// <param name="itemId">稳定商品编号。</param>
@@ -269,15 +315,17 @@ namespace Hotfix.JinxCasino
         /// <param name="pointIndex">任务点编号。</param>
         /// <param name="actorId">实际执行者编号。</param>
         /// <returns>任务事实回执。</returns>
-        public CasinoAdventureResult InteractWithMission(string requestId, string missionId, CasinoTaskAction action, int pointIndex, string actorId)
-            => Execute(requestId, 0, () => adventure.AdvanceTask(requestId, missionId, action, pointIndex, actorId), true);
+        public CasinoAdventureResult InteractWithMission(string requestId, string missionId, CasinoTaskAction action, int pointIndex, string actorId) => Execute(requestId, 0, () => adventure.AdvanceTask(requestId, missionId, action, pointIndex, actorId), true);
 
         /// 当前活动局或最近结算局的安全表现投影，不包含隐藏结果。
         public CasinoMiniGamePresentation GetPresentation() => adventure?.GetPresentation();
+
         /// 当前活动局的公开合法动作。
         public CasinoMiniGameActionDescriptor[] GetActions() => adventure?.GetAvailableActions() ?? Array.Empty<CasinoMiniGameActionDescriptor>();
+
         /// 当前配置及区域实际开放的玩法。
         public CasinoGameDefinition[] GetAvailableGames() => adventure?.GetAvailableGames() ?? Array.Empty<CasinoGameDefinition>();
+
         /// 当前事件的公开选择。
         public CasinoEventActionDescriptor[] GetEventActions() => adventure?.GetEventActions() ?? Array.Empty<CasinoEventActionDescriptor>();
 
@@ -326,13 +374,21 @@ namespace Hotfix.JinxCasino
         /// <returns>教学事实的领域回执。</returns>
         public CasinoAdventureResult ObserveTutorial(CasinoTutorialFact fact, int value, string stationId = null, bool notify = true)
         {
-            if (!HasAdventure) return new CasinoAdventureResult { Error = "NoAdventure", Description = "当前没有教学旅程。" };
+            if (!HasAdventure)
+                return new CasinoAdventureResult
+                {
+                    Error = "NoAdventure",
+                    Description = "当前没有教学旅程。"
+                };
             var result = adventure.ObserveTutorial(fact, value, stationId);
             if (result.Changed)
             {
-                if (notify) RefreshState(result.Effects);
-                else state = adventure.CaptureState();
+                if (notify)
+                    RefreshState(result.Effects);
+                else
+                    state = adventure.CaptureState();
             }
+
             return result;
         }
 
@@ -346,13 +402,16 @@ namespace Hotfix.JinxCasino
         /// 玩家在Ready检查点明确完成教学，不自动开始正式旅程。
         public CasinoAdventureResult CompleteTutorial()
         {
-            if (!HasAdventure || !CommandInputEnabled) return Reject("TutorialInactive", "当前没有可操作教学。");
+            if (!HasAdventure || !CommandInputEnabled)
+                return Reject("TutorialInactive", "当前没有可操作教学。");
             if (state.Teaching?.Status != CasinoTutorialStatus.Active || state.Teaching.Step != CasinoTutorialStep.Ready)
                 return Reject("TutorialNotReady", "请先完成实际教学步骤。");
             var result = adventure.ObserveTutorial(CasinoTutorialFact.Continue, 1);
             UpdateStatus(result);
-            if (result.Changed) RefreshState(result.Effects);
-            else Publish(null);
+            if (result.Changed)
+                RefreshState(result.Effects);
+            else
+                Publish(null);
             return result;
         }
 
@@ -374,7 +433,12 @@ namespace Hotfix.JinxCasino
         /// <returns>装备是否成功保存。</returns>
         public bool EquipProfile(string colorId = null, string hatId = null, string emoteId = null, string titleId = null)
         {
-            if (!EnsureProfile()) { Publish(null); return false; }
+            if (!EnsureProfile())
+            {
+                Publish(null);
+                return false;
+            }
+
             try
             {
                 var candidate = CasinoProfile.Restore(profile.ToJson());
@@ -384,6 +448,7 @@ namespace Hotfix.JinxCasino
                     Publish(null);
                     return false;
                 }
+
                 ProfileStore.Save(candidate);
                 profile = candidate;
                 profileStatus = "装扮已保存。";
@@ -399,8 +464,11 @@ namespace Hotfix.JinxCasino
         }
 
         private CasinoLocalSaveStore SaveStore => localSaveStore ?? (localSaveStore = new CasinoLocalSaveStore());
+
         private CasinoProfileStore ProfileStore => profileStore ?? (profileStore = new CasinoProfileStore());
+
         private static string NewRequestId() => Guid.NewGuid().ToString("N");
+
         private static uint NewSeed() => unchecked((uint)Guid.NewGuid().GetHashCode());
 
         private void Install(CasinoAdventureSession candidate, CasinoAdventureState snapshot, string message, int slot, bool restoring)
@@ -420,25 +488,34 @@ namespace Hotfix.JinxCasino
                 RecordFinishedProfile();
                 Publish(null);
             }
-            finally { isRestoring = previousRestoring; }
+            finally
+            {
+                isRestoring = previousRestoring;
+            }
         }
 
         private static void ValidateInstallationSlot(int slot)
         {
-            if (slot < 0 || slot > 3) throw new ArgumentOutOfRangeException(nameof(slot), "存档槽须为0至3。");
+            if (slot < 0 || slot > 3)
+                throw new ArgumentOutOfRangeException(nameof(slot), "存档槽须为0至3。");
         }
 
         private CasinoAdventureResult Execute(string requestId, int frameId, Func<CasinoAdventureResult> operation, bool sceneFact = false)
         {
-            if (!HasAdventure) return Reject("NoAdventure", "请先开始一场旅程。");
-            if (!CommandInputEnabled) return Reject("Busy", "请先结束当前操作。");
+            if (!HasAdventure)
+                return Reject("NoAdventure", "请先开始一场旅程。");
+            if (!CommandInputEnabled)
+                return Reject("Busy", "请先结束当前操作。");
             bool retry = state.ProcessedRequests.Exists(record => record.RequestId == requestId);
             if (!sceneFact && !retry)
             {
-                if (frameId < 0) return Reject("InvalidFrame", "输入提交帧不能为负数。");
-                if (lastCommandFrame == frameId) return Reject("Busy", "请等待当前操作完成。");
+                if (frameId < 0)
+                    return Reject("InvalidFrame", "输入提交帧不能为负数。");
+                if (lastCommandFrame == frameId)
+                    return Reject("Busy", "请等待当前操作完成。");
                 lastCommandFrame = frameId;
             }
+
             try
             {
                 var result = operation();
@@ -456,13 +533,20 @@ namespace Hotfix.JinxCasino
         private CasinoAdventureResult Reject(string error, string message)
         {
             SetStatus(message);
-            return new CasinoAdventureResult { Error = error, Description = message, Balance = state?.Coins ?? 0 };
+            return new CasinoAdventureResult
+            {
+                Error = error,
+                Description = message,
+                Balance = state?.Coins ?? 0
+            };
         }
 
         private void UpdateStatus(CasinoAdventureResult result)
         {
-            if (!string.IsNullOrEmpty(result.Description)) status = result.Description;
-            else if (!result.Success) status = result.Error ?? "操作未完成。";
+            if (!string.IsNullOrEmpty(result.Description))
+                status = result.Description;
+            else if (!result.Success)
+                status = result.Error ?? "操作未完成。";
         }
 
         private void RefreshState(CasinoSceneEffect[] effects)
@@ -478,11 +562,13 @@ namespace Hotfix.JinxCasino
 
         private bool Save(int slot, bool notify)
         {
-            if (!HasAdventure || isSaving) return false;
+            if (!HasAdventure || isSaving)
+                return false;
             isSaving = true;
             try
             {
-                if (slot < 1 || slot > 3) throw new ArgumentOutOfRangeException(nameof(slot), "存档槽须为1至3。");
+                if (slot < 1 || slot > 3)
+                    throw new ArgumentOutOfRangeException(nameof(slot), "存档槽须为1至3。");
                 BeforeSave?.Invoke();
                 SaveStore.Save(slot, adventure);
                 selectedSaveSlot = slot;
@@ -497,15 +583,22 @@ namespace Hotfix.JinxCasino
             finally
             {
                 isSaving = false;
-                if (notify) Publish(null);
+                if (notify)
+                    Publish(null);
             }
         }
 
         private bool EnsureProfile()
         {
-            if (profile != null) return true;
-            if (Time.unscaledTime < profileReadRetryAfter) return false;
-            try { profile = ProfileStore.LoadOrCreate(); return true; }
+            if (profile != null)
+                return true;
+            if (Time.unscaledTime < profileReadRetryAfter)
+                return false;
+            try
+            {
+                profile = ProfileStore.LoadOrCreate();
+                return true;
+            }
             catch (Exception exception)
             {
                 profileStatus = "档案读取失败，已有文件保留：" + exception.Message;
@@ -516,9 +609,14 @@ namespace Hotfix.JinxCasino
 
         private void RecordFinishedProfile()
         {
-            if (state == null || state.Phase != CasinoAdventurePhase.Ended || state.Mode == CasinoAdventureMode.Practice ||
-                profileCommittedRun == state.RunId || Time.unscaledTime < profileRetryAfter) return;
-            if (!EnsureProfile()) { profileRetryAfter = Time.unscaledTime + 5; return; }
+            if (state == null || state.Phase != CasinoAdventurePhase.Ended || state.Mode == CasinoAdventureMode.Practice || profileCommittedRun == state.RunId || Time.unscaledTime < profileRetryAfter)
+                return;
+            if (!EnsureProfile())
+            {
+                profileRetryAfter = Time.unscaledTime + 5;
+                return;
+            }
+
             try
             {
                 var candidate = CasinoProfile.Restore(profile.ToJson());
@@ -529,6 +627,7 @@ namespace Hotfix.JinxCasino
                     profile = candidate;
                     profileStatus = "本次正式旅程已记录成长与图鉴。";
                 }
+
                 profileCommittedRun = state.RunId;
             }
             catch (Exception exception)
@@ -541,12 +640,19 @@ namespace Hotfix.JinxCasino
         private void Publish(CasinoSceneEffect[] effects)
         {
             var listeners = Changed;
-            if (listeners == null) return;
+            if (listeners == null)
+                return;
             // 游戏与文件已提交后，单个表现订阅者异常不能把成功操作报告为失败。
             foreach (Action<CasinoSceneEffect[]> listener in listeners.GetInvocationList())
             {
-                try { listener(effects); }
-                catch (Exception exception) { Debug.LogException(exception); }
+                try
+                {
+                    listener(effects);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                }
             }
         }
     }

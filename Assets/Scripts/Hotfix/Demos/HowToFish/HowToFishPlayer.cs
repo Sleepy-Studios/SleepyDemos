@@ -8,63 +8,123 @@ namespace Hotfix.HowToFish
     [RequireComponent(typeof(CharacterController))]
     public sealed class HowToFishPlayer : MonoBehaviour
     {
-        [SerializeField] private Camera eye;
-        [SerializeField] private Transform equipmentRoot;
-        [SerializeField] private HowToFishFishingRig fishing;
-        [SerializeField] private float walkSpeed = 4.2f;
-        [SerializeField] private float sprintSpeed = 6.8f;
-        [SerializeField] private float eatingSeconds = 1.5f;
+        [SerializeField]
+        private Camera eye;
+        [SerializeField]
+        private Transform equipmentRoot;
+        [SerializeField]
+        private HowToFishFishingRig fishing;
+        [SerializeField]
+        private float walkSpeed = 4.2f;
+        [SerializeField]
+        private float sprintSpeed = 6.8f;
+        [SerializeField]
+        private float eatingSeconds = 1.5f;
+
         private CharacterController motor;
+
         private HowToFishSession session;
+
         private HowToFishCatalog catalog;
+
         private HowToFishInput input;
+
         private Func<string, Vector3, bool, HowToFishWorldItem> spawnItem;
+
         private HowToFishWorldItem heldItem;
+
         private HowToFishEquipmentView equipmentView;
+
         private HowToFishItemDefinition equipment;
+
         private HowToFishOutfitVisual outfit;
+
         private float verticalVelocity;
+
         private float pitch;
+
         private float attackReadyTime;
+
         private readonly HowToFishKillScore killScore = new HowToFishKillScore();
+
         private float reloadRemaining;
+
         private float normalFieldOfView;
+
         private float eatingElapsed;
+
         private float footstepDistance;
+
         private bool eatingNeedsRelease;
+
         private bool controlsEnabled;
+
         private Transform drivingSeat;
+
         private readonly RaycastHit[] focusHits = new RaycastHit[16];
-        private static readonly string[] slotActions = { "Slot1", "Slot2", "Slot3", "Slot4", "Slot5", "Slot6", "Slot7", "Slot8" };
+
+        private static readonly string[] slotActions =
+        {
+            "Slot1",
+            "Slot2",
+            "Slot3",
+            "Slot4",
+            "Slot5",
+            "Slot6",
+            "Slot7",
+            "Slot8"
+        };
 
         public Camera Eye => eye;
+
         public HowToFishWorldItem HeldItem => heldItem != null && !heldItem.IsConsumed && heldItem.IsHeld ? heldItem : null;
+
         public HowToFishFishingRig Fishing => fishing;
+
         public HowToFishItemDefinition Equipment => equipment;
+
         public bool IsDriving => drivingSeat != null;
+
         public int Island { get; set; }
+
         public float MouseSensitivity { get; set; } = 0.1f;
+
         public float GamepadSensitivity { get; set; } = 135;
+
         public float DeadZone { get; set; } = 0.15f;
+
         public bool InvertY { get; set; }
+
         public Collider Focus { get; private set; }
+
         public bool IsReloading => reloadRemaining > 0;
+
         public int Ammo => equipment?.Kind == HowToFishItemKind.Gun ? GunState?.ammo ?? 0 : 0;
-        public int AmmoCapacity => equipment?.Kind != HowToFishItemKind.Gun ? 0 :
-            GunState?.hasExtendedMag == true ? Mathf.Max(equipment.MagazineSize, equipment.ExtendedMagazineSize) : equipment.MagazineSize;
+
+        public int AmmoCapacity => equipment?.Kind != HowToFishItemKind.Gun ? 0 : GunState?.hasExtendedMag == true ? Mathf.Max(equipment.MagazineSize, equipment.ExtendedMagazineSize) : equipment.MagazineSize;
+
         public bool IsAiming { get; private set; }
+
         public float EatingProgress => Mathf.Clamp01(eatingElapsed / eatingSeconds);
-        public bool CanEat => HeldItem == null ? equipment?.Kind == HowToFishItemKind.Food :
-            !HeldItem.IsAlive && (HeldItem.Creature != null || catalog.FindItem(HeldItem.DefinitionId)?.Kind == HowToFishItemKind.Food);
+
+        public bool CanEat => HeldItem == null ? equipment?.Kind == HowToFishItemKind.Food : !HeldItem.IsAlive && (HeldItem.Creature != null || catalog.FindItem(HeldItem.DefinitionId)?.Kind == HowToFishItemKind.Food);
+
         public Vector3 EquipmentCenter => equipmentView == null ? transform.position : equipmentView.CookingCenter;
+
         private HowToFishOwnedItem GunState => session.State.inventory.Find(item => item.id == equipment.Id);
+
         public event Action<Collider> InteractRequested;
+
         /// 将当前手持装备或驾驶船的换肤请求交给世界会话。
         public event Action ChangeSkinRequested;
+
         public event Action<string> Message;
+
         public event Action Died;
+
         /// 已发生的玩法动作；声音只消费此通知，不反向影响规则。
         public event Action<HowToFishSound, Vector3> SoundRequested;
+
         /// 已消费的生物仍可读取其烧焦状态；消费回调期间实体已从保存快照排除。
         public event Action<HowToFishWorldItem> CreatureEaten;
 
@@ -76,18 +136,24 @@ namespace Hotfix.HowToFish
             equipmentView?.SetOutfit(outfit);
         }
 
-        private void Awake() { motor = GetComponent<CharacterController>(); normalFieldOfView = eye == null ? 75 : eye.fieldOfView; }
+        private void Awake()
+        {
+            motor = GetComponent<CharacterController>();
+            normalFieldOfView = eye == null ? 75 : eye.fieldOfView;
+        }
 
         /// <summary>将玩家绑定到当前单人会话。</summary>
         /// <param name="owner">业务会话。</param>
         /// <param name="definitions">内容目录。</param>
         /// <param name="controls">统一输入。</param>
         /// <param name="spawnCatch">世界鱼获生成入口。</param>
-        public void Initialize(HowToFishSession owner, HowToFishCatalog definitions, HowToFishInput controls,
-            Func<string, Vector3, bool, HowToFishWorldItem> spawnCatch)
+        public void Initialize(HowToFishSession owner, HowToFishCatalog definitions, HowToFishInput controls, Func<string, Vector3, bool, HowToFishWorldItem> spawnCatch)
         {
-            if (eye == null || equipmentRoot == null || fishing == null) throw new InvalidOperationException("玩家 Prefab 缺少镜头、装备根或钓竿绑定。");
-            session = owner; catalog = definitions; input = controls;
+            if (eye == null || equipmentRoot == null || fishing == null)
+                throw new InvalidOperationException("玩家 Prefab 缺少镜头、装备根或钓竿绑定。");
+            session = owner;
+            catalog = definitions;
+            input = controls;
             spawnItem = spawnCatch;
             fishing.Initialize(owner, definitions, eye.transform, spawnCatch);
             fishing.Message += ForwardMessage;
@@ -110,7 +176,8 @@ namespace Hotfix.HowToFish
         /// <param name="yaw">水平朝向。</param>
         public void Teleport(Vector3 position, float yaw)
         {
-            if (drivingSeat != null) transform.SetParent(null, true);
+            if (drivingSeat != null)
+                transform.SetParent(null, true);
             drivingSeat = null;
             motor.enabled = false;
             float clearance = motor.skinWidth + .02f;
@@ -120,9 +187,12 @@ namespace Hotfix.HowToFish
             transform.SetPositionAndRotation(position, Quaternion.Euler(0, yaw, 0));
             Physics.SyncTransforms();
             motor.enabled = true;
-            pitch = 0; verticalVelocity = 0; reloadRemaining = 0;
+            pitch = 0;
+            verticalVelocity = 0;
+            reloadRemaining = 0;
             eye.transform.localRotation = Quaternion.identity;
-            IsAiming = false; eye.fieldOfView = normalFieldOfView;
+            IsAiming = false;
+            eye.fieldOfView = normalFieldOfView;
             input?.SetMode(false, !controlsEnabled);
         }
 
@@ -130,9 +200,13 @@ namespace Hotfix.HowToFish
         /// <param name="seat">驾驶位挂点。</param>
         public void Board(Transform seat)
         {
-            if (seat == null) throw new ArgumentNullException(nameof(seat));
-            fishing.Cancel(); Drop(false); reloadRemaining = 0;
-            IsAiming = false; eye.fieldOfView = normalFieldOfView;
+            if (seat == null)
+                throw new ArgumentNullException(nameof(seat));
+            fishing.Cancel();
+            Drop(false);
+            reloadRemaining = 0;
+            IsAiming = false;
+            eye.fieldOfView = normalFieldOfView;
             motor.enabled = false;
             drivingSeat = seat;
             transform.SetParent(seat, false);
@@ -147,8 +221,12 @@ namespace Hotfix.HowToFish
         {
             var request = new HowToFishDamageAction(session, amount);
             GlobalData.Dispatch(request);
-            if (!request.Died) return;
-            fishing.Cancel(); Drop(false); SetControls(false); Died?.Invoke();
+            if (!request.Died)
+                return;
+            fishing.Cancel();
+            Drop(false);
+            SetControls(false);
+            Died?.Invoke();
         }
 
         /// <summary>刷新独立的毒火残留；同类不按每个区域累加，保留较强伤害与较长时间。</summary>
@@ -169,38 +247,62 @@ namespace Hotfix.HowToFish
         /// <param name="item">玩家指向的实体。</param>
         public bool PickUp(HowToFishWorldItem item)
         {
-            if (item == null || item.IsConsumed) return false;
+            if (item == null || item.IsConsumed)
+                return false;
             var dynamite = item.GetComponent<HowToFishDynamite>();
             if (dynamite != null && dynamite.IsArmed)
             {
                 Drop(false);
-                if (!item.TryHold(eye.transform, motor)) return false;
+                if (!item.TryHold(eye.transform, motor))
+                    return false;
                 heldItem = item;
                 return true;
             }
+
             var definition = catalog.FindItem(item.DefinitionId);
             if (definition?.IsEquipment == true)
             {
                 if (!definition.IsConsumable && session.Count(definition.Id) > 0)
-                { Message?.Invoke("已经拥有这件装备。"); return false; }
+                {
+                    Message?.Invoke("已经拥有这件装备。");
+                    return false;
+                }
+
                 if (session.Count(definition.Id) == 0 && session.UnstoredEquipment != null)
-                { Message?.Invoke("请先收纳或放下手中未收纳的装备。"); return false; }
+                {
+                    Message?.Invoke("请先收纳或放下手中未收纳的装备。");
+                    return false;
+                }
+
                 var snapshot = item.EquipmentState;
                 return item.TryConsume(() =>
                 {
-                    if (definition.IsConsumable) HowToFishGrantItemAction.Send(session, definition.Id);
-                    else HowToFishGrantEquipmentAction.Send(session, snapshot);
+                    if (definition.IsConsumable)
+                        GlobalData.Dispatch(new HowToFishGrantItemAction(session, definition.Id));
+                    else
+                        GlobalData.Dispatch(new HowToFishGrantEquipmentAction(session, snapshot));
                     Message?.Invoke("拾回 " + definition.DisplayName);
                 });
             }
+
             if (definition != null && item.Creature == null && definition.Kind != HowToFishItemKind.Quest && definition.Kind != HowToFishItemKind.Food)
             {
                 if (!definition.IsConsumable && session.Count(definition.Id) > 0)
-                { Message?.Invoke("已经拥有这件装备。"); return false; }
-                return item.TryConsume(() => { HowToFishGrantItemAction.Send(session, definition.Id); Message?.Invoke("获得 " + definition.DisplayName); });
+                {
+                    Message?.Invoke("已经拥有这件装备。");
+                    return false;
+                }
+
+                return item.TryConsume(() =>
+                {
+                    GlobalData.Dispatch(new HowToFishGrantItemAction(session, definition.Id));
+                    Message?.Invoke("获得 " + definition.DisplayName);
+                });
             }
+
             Drop(false);
-            if (!item.TryHold(eye.transform, motor)) return false;
+            if (!item.TryHold(eye.transform, motor))
+                return false;
             heldItem = item;
             return true;
         }
@@ -209,7 +311,8 @@ namespace Hotfix.HowToFish
         /// <param name="throwForward">是否向前投掷。</param>
         public void Drop(bool throwForward)
         {
-            if (eatingElapsed > 0) eatingNeedsRelease = true;
+            if (eatingElapsed > 0)
+                eatingNeedsRelease = true;
             eatingElapsed = 0;
             HeldItem?.SetEatingProgress(0);
             if (heldItem == null && throwForward && equipment?.IsEquipment == true && session.Count(equipment.Id) > 0)
@@ -217,6 +320,7 @@ namespace Hotfix.HowToFish
                 DropEquipment(equipment.Id, true);
                 return;
             }
+
             if (heldItem != null && !heldItem.IsConsumed)
                 heldItem.Release(throwForward ? eye.transform.forward * 9 + Vector3.up * 1.5f : Vector3.zero);
             heldItem = null;
@@ -225,7 +329,8 @@ namespace Hotfix.HowToFish
         private HowToFishWorldItem DropEquipment(string id, bool throwForward)
         {
             var snapshot = session.State.inventory.Find(item => item.id == id)?.Copy();
-            if (snapshot == null) return null;
+            if (snapshot == null)
+                return null;
             snapshot.count = 1;
             var dropped = spawnItem(id, eye.transform.position + eye.transform.forward, false);
             try
@@ -234,8 +339,20 @@ namespace Hotfix.HowToFish
                     throw new InvalidOperationException("炸药 Prefab 缺少 HowToFishDynamite。");
                 dropped.SetEquipmentState(snapshot);
             }
-            catch { Destroy(dropped.gameObject); throw; }
-            if (!HowToFishTryConsumeAction.Send(session, id)) { Destroy(dropped.gameObject); return null; }
+            catch
+            {
+                Destroy(dropped.gameObject);
+                throw;
+            }
+
+            var consume = new HowToFishTryConsumeAction(session, id);
+            GlobalData.Dispatch(consume);
+            if (!consume.Result)
+            {
+                Destroy(dropped.gameObject);
+                return null;
+            }
+
             dropped.Body.linearVelocity = throwForward ? eye.transform.forward * 9 + Vector3.up * 1.5f : Vector3.zero;
             return dropped;
         }
@@ -244,36 +361,53 @@ namespace Hotfix.HowToFish
         /// <param name="slot">从零开始的装备栏索引。</param>
         public void SelectEquipmentSlot(int slot)
         {
-            if (slot < 0 || slot >= session.EquipmentCapacity) { Message?.Invoke("请先购买此装备栏位。"); return; }
+            if (slot < 0 || slot >= session.EquipmentCapacity)
+            {
+                Message?.Invoke("请先购买此装备栏位。");
+                return;
+            }
+
             var slots = session.State.equipmentSlots;
             if (equipment != null && !slots.Contains(equipment.Id))
             {
                 int empty = string.IsNullOrEmpty(slots[slot]) ? slot : slots.FindIndex(string.IsNullOrEmpty);
-                if (empty >= 0) HowToFishTryStoreEquipmentAction.Send(session, equipment.Id, empty);
-                else DropEquipment(equipment.Id, false);
+                if (empty >= 0)
+                    GlobalData.Dispatch(new HowToFishTryStoreEquipmentAction(session, equipment.Id, empty));
+                else
+                    DropEquipment(equipment.Id, false);
             }
+
             GlobalData.Dispatch(new HowToFishSelectSlotAction(session, slot));
             Equip(string.IsNullOrEmpty(slots[slot]) ? null : catalog.FindItem(slots[slot]));
         }
 
         private void Holster()
         {
-            if (equipment == null) { SelectEquipmentSlot(session.State.selectedEquipmentSlot); return; }
+            if (equipment == null)
+            {
+                SelectEquipmentSlot(session.State.selectedEquipmentSlot);
+                return;
+            }
+
             if (!session.State.equipmentSlots.Contains(equipment.Id))
             {
                 int empty = session.State.equipmentSlots.FindIndex(string.IsNullOrEmpty);
-                if (empty >= 0) HowToFishTryStoreEquipmentAction.Send(session, equipment.Id, empty);
-                else DropEquipment(equipment.Id, false);
+                if (empty >= 0)
+                    GlobalData.Dispatch(new HowToFishTryStoreEquipmentAction(session, equipment.Id, empty));
+                else
+                    DropEquipment(equipment.Id, false);
             }
+
             Equip(null);
         }
 
         private void Update()
         {
-            if (session == null || !controlsEnabled || Time.timeScale <= 0) return;
-            if (StepDamageStatus()) return;
-            IsAiming = !IsDriving && !IsReloading && equipment?.Kind == HowToFishItemKind.Gun &&
-                input.Held("Alternate") && !CanEat;
+            if (session == null || !controlsEnabled || Time.timeScale <= 0)
+                return;
+            if (StepDamageStatus())
+                return;
+            IsAiming = !IsDriving && !IsReloading && equipment?.Kind == HowToFishItemKind.Gun && input.Held("Alternate") && !CanEat;
             killScore.RecordAim(IsAiming, Time.time);
             eye.fieldOfView = Mathf.MoveTowards(eye.fieldOfView, IsAiming ? equipmentView.AimFieldOfView : normalFieldOfView, Time.deltaTime * 180);
             var look = input.ReadLook(MouseSensitivity, GamepadSensitivity, DeadZone, InvertY, Time.deltaTime);
@@ -285,68 +419,94 @@ namespace Hotfix.HowToFish
             var movement = input.ReadMove(DeadZone);
             if (!IsDriving)
             {
-                if (motor.isGrounded && verticalVelocity < 0) verticalVelocity = -2;
-                if (motor.isGrounded && input.Pressed("Jump")) verticalVelocity = 5.5f;
+                if (motor.isGrounded && verticalVelocity < 0)
+                    verticalVelocity = -2;
+                if (motor.isGrounded && input.Pressed("Jump"))
+                    verticalVelocity = 5.5f;
                 verticalVelocity -= 18 * Time.deltaTime;
                 var beforeMove = transform.position;
-                motor.Move(((transform.right * movement.x + transform.forward * movement.y) *
-                    (input.Held("Sprint") ? sprintSpeed : walkSpeed) + Vector3.up * verticalVelocity) * Time.deltaTime);
+                motor.Move(((transform.right * movement.x + transform.forward * movement.y) * (input.Held("Sprint") ? sprintSpeed : walkSpeed) + Vector3.up * verticalVelocity) * Time.deltaTime);
                 if (beforeMove.y >= 0 && transform.position.y < 0)
                     SoundRequested?.Invoke(HowToFishSound.Splash, transform.position);
                 if (motor.isGrounded)
                 {
                     footstepDistance += Vector3.ProjectOnPlane(transform.position - beforeMove, Vector3.up).magnitude;
                     // 步距 1.6 米为音效节奏推定；撞墙和原地转向不会积累距离。
-                    if (footstepDistance >= 1.6f) { footstepDistance = 0; SoundRequested?.Invoke(HowToFishSound.Footstep, transform.position); }
+                    if (footstepDistance >= 1.6f)
+                    {
+                        footstepDistance = 0;
+                        SoundRequested?.Invoke(HowToFishSound.Footstep, transform.position);
+                    }
                 }
-                else footstepDistance = 0;
-                if (transform.position.y < -2.5f) Damage(100);
+                else
+                    footstepDistance = 0;
+                if (transform.position.y < -2.5f)
+                    Damage(100);
             }
+
             Focus = FindFocus();
-            if (input.Pressed("Interact")) InteractRequested?.Invoke(Focus);
-            if (input.Pressed("ChangeSkin")) ChangeSkinRequested?.Invoke();
-            if (IsDriving) return;
+            if (input.Pressed("Interact"))
+                InteractRequested?.Invoke(Focus);
+            if (input.Pressed("ChangeSkin"))
+                ChangeSkinRequested?.Invoke();
+            if (IsDriving)
+                return;
             if (IsReloading)
             {
                 reloadRemaining = Mathf.Max(0, reloadRemaining - Time.deltaTime);
-                if (!IsReloading && equipment?.Kind == HowToFishItemKind.Gun) GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Reload));
+                if (!IsReloading && equipment?.Kind == HowToFishItemKind.Gun)
+                    GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Reload));
             }
-            if (input.Pressed("Throw")) Drop(true);
-            if (input.Pressed("Next")) CycleTool(1);
-            if (input.Pressed("Previous")) CycleTool(-1);
-            if (input.Pressed("Holster")) Holster();
-            for (int slot = 0; slot < slotActions.Length; slot++) if (input.Pressed(slotActions[slot])) SelectEquipmentSlot(slot);
+
+            if (input.Pressed("Throw"))
+                Drop(true);
+            if (input.Pressed("Next"))
+                CycleTool(1);
+            if (input.Pressed("Previous"))
+                CycleTool(-1);
+            if (input.Pressed("Holster"))
+                Holster();
+            for (int slot = 0; slot < slotActions.Length; slot++)
+                if (input.Pressed(slotActions[slot]))
+                    SelectEquipmentSlot(slot);
             if (input.Pressed("Reload") && equipment?.Kind == HowToFishItemKind.Gun && !IsReloading && Ammo < AmmoCapacity)
             {
                 reloadRemaining = equipment.ReloadSeconds;
                 SoundRequested?.Invoke(HowToFishSound.Reload, eye.transform.position);
                 Message?.Invoke("换弹中……");
             }
+
             if (input.Pressed("Style") && equipmentView != null && !equipmentView.IsSpinning)
                 equipmentView.Spin();
             bool eating = StepEating();
-            if (!eating && equipment?.Kind == HowToFishItemKind.Rod && HeldItem == null) fishing.Step(input, Island);
-            else if (!eating && (equipment?.Automatic == true ? input.Held("Use") : input.Pressed("Use")) &&
-                equipment?.Kind != HowToFishItemKind.Radar && equipment?.Kind != HowToFishItemKind.Food) Attack();
+            if (!eating && equipment?.Kind == HowToFishItemKind.Rod && HeldItem == null)
+                fishing.Step(input, Island);
+            else if (!eating && (equipment?.Automatic == true ? input.Held("Use") : input.Pressed("Use")) && equipment?.Kind != HowToFishItemKind.Radar && equipment?.Kind != HowToFishItemKind.Food)
+                Attack();
             if (equipmentView != null)
             {
                 var owned = session.State.inventory.Find(item => item.id == equipment.Id);
                 if (owned != null)
                 {
-                    if (owned.cooking > 0 && equipmentView.CookingCenter.y < 0) GlobalData.Dispatch(new HowToFishCookingAction(session, equipment.Id, 0, true));
+                    if (owned.cooking > 0 && equipmentView.CookingCenter.y < 0)
+                        GlobalData.Dispatch(new HowToFishCookingAction(session, equipment.Id, 0, true));
                     equipmentView.SetSkin(owned.skinId);
                     equipmentView.SetCooking(owned.cooking);
                 }
+
                 equipmentView.Animate(movement.magnitude, IsReloading ? 1 - reloadRemaining / equipment.ReloadSeconds : 0, IsAiming);
-                if (equipment.Kind == HowToFishItemKind.Gun) equipmentView.UpdateLaser(eye, equipment.Range);
+                if (equipment.Kind == HowToFishItemKind.Gun)
+                    equipmentView.UpdateLaser(eye, equipment.Range);
             }
         }
 
         internal void HeatEquipment(float amount)
         {
-            if (equipment == null || equipmentView == null) return;
+            if (equipment == null || equipmentView == null)
+                return;
             var owned = session.State.inventory.Find(item => item.id == equipment.Id);
-            if (owned == null) return;
+            if (owned == null)
+                return;
             GlobalData.Dispatch(new HowToFishCookingAction(session, equipment.Id, amount));
             equipmentView.SetCooking(owned.cooking);
         }
@@ -358,33 +518,51 @@ namespace Hotfix.HowToFish
             bool edible = CanEat;
             if (!edible || !input.Held("Use"))
             {
-                eatingElapsed = 0; food?.SetEatingProgress(0); eatingNeedsRelease = false;
+                eatingElapsed = 0;
+                food?.SetEatingProgress(0);
+                eatingNeedsRelease = false;
                 return edible;
             }
-            if (eatingNeedsRelease) return true;
+
+            if (eatingNeedsRelease)
+                return true;
             eatingElapsed += Time.deltaTime;
             food?.SetEatingProgress(EatingProgress);
-            if (eatingElapsed < eatingSeconds) return true;
+            if (eatingElapsed < eatingSeconds)
+                return true;
             float cooking = food != null ? food.Cooking : session.State.inventory.Find(item => item.id == definition.Id)?.cooking ?? 0;
             void RestoreFood()
             {
                 float nutrition = HowToFishSession.CookingMultiplier(cooking);
                 GlobalData.Dispatch(new HowToFishRestoreFoodAction(session, (food?.Creature?.FullnessRestored ?? definition?.Nourishment ?? 20) * nutrition, (food?.Creature?.HealthRestored ?? 12) * nutrition));
                 Message?.Invoke("进食完成，恢复了一些体力。");
-                if (food?.Creature != null) CreatureEaten?.Invoke(food);
+                if (food?.Creature != null)
+                    CreatureEaten?.Invoke(food);
             }
-            if (food != null) food.TryConsume(RestoreFood);
-            else if (HowToFishTryConsumeAction.Send(session, definition.Id)) RestoreFood();
-            eatingElapsed = 0; eatingNeedsRelease = true;
+
+            if (food != null)
+                food.TryConsume(RestoreFood);
+            else
+            {
+                var consume = new HowToFishTryConsumeAction(session, definition.Id);
+                GlobalData.Dispatch(consume);
+                if (consume.Result)
+                    RestoreFood();
+            }
+
+            eatingElapsed = 0;
+            eatingNeedsRelease = true;
             return true;
         }
 
         private void Attack()
         {
-            if (Time.time < attackReadyTime || IsReloading) return;
+            if (Time.time < attackReadyTime || IsReloading)
+                return;
             if (equipment?.Kind == HowToFishItemKind.Explosive)
             {
-                if (HeldItem != null) return;
+                if (HeldItem != null)
+                    return;
                 float interval = equipment.UseInterval;
                 var thrown = DropEquipment(equipment.Id, true);
                 if (thrown != null)
@@ -392,14 +570,21 @@ namespace Hotfix.HowToFish
                     thrown.GetComponent<HowToFishDynamite>().Ignite();
                     attackReadyTime = Time.time + interval;
                 }
+
                 return;
             }
+
             if (equipment?.Kind == HowToFishItemKind.Gun)
             {
-                if (Ammo <= 0) { attackReadyTime = Time.time + .25f; Message?.Invoke("弹匣已空，按 " + input.BindingLabel("Reload") + " 换弹。"); return; }
+                if (Ammo <= 0)
+                {
+                    attackReadyTime = Time.time + .25f;
+                    Message?.Invoke("弹匣已空，按 " + input.BindingLabel("Reload") + " 换弹。");
+                    return;
+                }
+
                 GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Consume));
-                SoundRequested?.Invoke(equipment.Id == "Shotgun" ? HowToFishSound.ShotgunShot :
-                    equipment.Id == "Pistol" ? HowToFishSound.GunShot : HowToFishSound.RifleShot, eye.transform.position);
+                SoundRequested?.Invoke(equipment.Id == "Shotgun" ? HowToFishSound.ShotgunShot : equipment.Id == "Pistol" ? HowToFishSound.GunShot : HowToFishSound.RifleShot, eye.transform.position);
                 killScore.RecordAttack(equipment.UseInterval, Time.time);
                 attackReadyTime = Time.time + equipment.UseInterval;
                 equipmentView?.Strike();
@@ -407,19 +592,23 @@ namespace Hotfix.HowToFish
                 {
                     var spread = UnityEngine.Random.insideUnitCircle * equipment.Spread;
                     var direction = eye.transform.rotation * Quaternion.Euler(spread.y, spread.x, 0) * Vector3.forward;
-                    if (!Physics.Raycast(eye.transform.position, direction, out var shot, equipment.Range, ~0, QueryTriggerInteraction.Ignore)) continue;
+                    if (!Physics.Raycast(eye.transform.position, direction, out var shot, equipment.Range, ~0, QueryTriggerInteraction.Ignore))
+                        continue;
                     float shotDamage = equipment.DamageAtLevel(session.UpgradeLevel(equipment.Id));
                     HitCreature(shot, shotDamage, direction * (1.4f / equipment.Pellets), HowToFishKillMethod.Ranged);
                 }
+
                 pitch = Mathf.Clamp(pitch - equipment.RecoilAngle * equipmentView.RecoilMultiplier, -82, 82);
                 return;
             }
+
             attackReadyTime = Time.time + (equipment?.UseInterval ?? 0.5f);
             SoundRequested?.Invoke(HowToFishSound.MeleeSwing, eye.transform.position);
             killScore.RecordAttack(equipment?.UseInterval ?? .5f, Time.time);
             equipmentView?.Strike();
             float range = equipment?.Range ?? 2.4f;
-            if (!Physics.SphereCast(eye.transform.position, 0.12f, eye.transform.forward, out var hit, range, ~0, QueryTriggerInteraction.Ignore)) return;
+            if (!Physics.SphereCast(eye.transform.position, 0.12f, eye.transform.forward, out var hit, range, ~0, QueryTriggerInteraction.Ignore))
+                return;
             float damage = equipment == null ? 2 : equipment.DamageAtLevel(session.UpgradeLevel(equipment.Id));
             HitCreature(hit, damage, eye.transform.forward * 1.4f, HowToFishKillMethod.Melee);
         }
@@ -427,41 +616,40 @@ namespace Hotfix.HowToFish
         private void HitCreature(RaycastHit hit, float damage, Vector3 impulse, HowToFishKillMethod method)
         {
             var item = hit.collider.GetComponentInParent<HowToFishWorldItem>();
-            if (item == null || !item.IsAlive) return;
+            if (item == null || !item.IsAlive)
+                return;
             float multiplier = 1;
             string bonuses = null;
             if (item.DamageToApply(damage) >= item.Health)
             {
                 bool targetAirborne = true;
                 foreach (var floor in Physics.RaycastAll(item.Body.worldCenterOfMass, Vector3.down, 1.5f, ~0, QueryTriggerInteraction.Ignore))
-                    if (!floor.collider.transform.IsChildOf(item.transform) && floor.normal.y > .7f) { targetAirborne = false; break; }
-                var score = killScore.Score(new HowToFishKillHit
-                {
-                    Method = method, Health = item.Health, MaximumHealth = item.Creature.Health, Damage = damage,
-                    Endangered = item.Creature.IsEndangered, Boss = item.Creature.IsBoss,
-                    FirstPlayerHit = !item.HasBeenHitByPlayer, Headshot = item.IsHeadHit(hit.point),
-                    PlayerAirborne = !motor.isGrounded, TargetAirborne = targetAirborne,
-                    CameraDistance = Vector3.Distance(eye.transform.position, item.transform.position),
-                    PlayerDistance = Vector3.Distance(transform.position, item.transform.position), LastBullet = Ammo == 0
-                }, Time.time);
-                multiplier = score.Multiplier; bonuses = score.Bonuses;
+                    if (!floor.collider.transform.IsChildOf(item.transform) && floor.normal.y > .7f)
+                    {
+                        targetAirborne = false;
+                        break;
+                    }
+
+                var score = killScore.Score(new HowToFishKillHit { Method = method, Health = item.Health, MaximumHealth = item.Creature.Health, Damage = damage, Endangered = item.Creature.IsEndangered, Boss = item.Creature.IsBoss, FirstPlayerHit = !item.HasBeenHitByPlayer, Headshot = item.IsHeadHit(hit.point), PlayerAirborne = !motor.isGrounded, TargetAirborne = targetAirborne, CameraDistance = Vector3.Distance(eye.transform.position, item.transform.position), PlayerDistance = Vector3.Distance(transform.position, item.transform.position), LastBullet = Ammo == 0 }, Time.time);
+                multiplier = score.Multiplier;
+                bonuses = score.Bonuses;
             }
+
             item.Hit(damage, impulse, multiplier, true);
-            if (bonuses != null && !item.IsAlive) Message?.Invoke($"击杀奖励 ×{multiplier:0.##}：{bonuses}");
+            if (bonuses != null && !item.IsAlive)
+                Message?.Invoke($"击杀奖励 ×{multiplier:0.##}：{bonuses}");
         }
 
         internal void HitByExplosion(HowToFishWorldItem item, float damage)
         {
-            if (item == null || !item.IsAlive) return;
+            if (item == null || !item.IsAlive)
+                return;
             float multiplier = 1;
             if (item.DamageToApply(damage) >= item.Health)
-                multiplier = killScore.Score(new HowToFishKillHit
-                {
-                    Method = HowToFishKillMethod.Explosion, Health = item.Health,
-                    MaximumHealth = item.Creature.Health, Damage = damage
-                }, Time.time).Multiplier;
+                multiplier = killScore.Score(new HowToFishKillHit { Method = HowToFishKillMethod.Explosion, Health = item.Health, MaximumHealth = item.Creature.Health, Damage = damage }, Time.time).Multiplier;
             item.Hit(damage, Vector3.zero, multiplier, true);
-            if (!item.IsAlive) Message?.Invoke("击杀奖励 ×1.25：爆炸");
+            if (!item.IsAlive)
+                Message?.Invoke("击杀奖励 ×1.25：爆炸");
         }
 
         private Collider FindFocus()
@@ -473,10 +661,12 @@ namespace Hotfix.HowToFish
             for (int i = 0; i < count; i++)
             {
                 var hit = focusHits[i];
-                if (hit.collider.transform.IsChildOf(transform) ||
-                    (carried != null && hit.collider.transform.IsChildOf(carried.transform)) || hit.distance >= distance) continue;
-                nearest = hit.collider; distance = hit.distance;
+                if (hit.collider.transform.IsChildOf(transform) || (carried != null && hit.collider.transform.IsChildOf(carried.transform)) || hit.distance >= distance)
+                    continue;
+                nearest = hit.collider;
+                distance = hit.distance;
             }
+
             return nearest;
         }
 
@@ -484,8 +674,10 @@ namespace Hotfix.HowToFish
         {
             string id = session.State.equippedItemId;
             var desired = string.IsNullOrEmpty(id) || session.Count(id) == 0 ? null : catalog.FindItem(id);
-            if (equipment != desired) Equip(desired);
-            if (equipment?.Kind == HowToFishItemKind.Gun) equipmentView?.SetAttachments(GunState);
+            if (equipment != desired)
+                Equip(desired);
+            if (equipment?.Kind == HowToFishItemKind.Gun)
+                equipmentView?.SetAttachments(GunState);
         }
 
         private void CycleTool(int direction)
@@ -496,39 +688,65 @@ namespace Hotfix.HowToFish
             for (int step = 0; step < slots.Count; step++)
             {
                 index = (index + direction + slots.Count) % slots.Count;
-                if (unstored || !string.IsNullOrEmpty(slots[index])) { SelectEquipmentSlot(index); return; }
+                if (unstored || !string.IsNullOrEmpty(slots[index]))
+                {
+                    SelectEquipmentSlot(index);
+                    return;
+                }
             }
         }
 
         private void Equip(HowToFishItemDefinition next)
         {
-            if (equipment == next) { GlobalData.Dispatch(new HowToFishEquipAction(session, next?.Id)); return; }
-            if (next != null && next.ViewPrefab == null) { Message?.Invoke("装备模型尚未配置：" + next.DisplayName); return; }
-            if (eatingElapsed > 0) eatingNeedsRelease = true;
-            eatingElapsed = 0; HeldItem?.SetEatingProgress(0);
+            if (equipment == next)
+            {
+                GlobalData.Dispatch(new HowToFishEquipAction(session, next?.Id));
+                return;
+            }
+
+            if (next != null && next.ViewPrefab == null)
+            {
+                Message?.Invoke("装备模型尚未配置：" + next.DisplayName);
+                return;
+            }
+
+            if (eatingElapsed > 0)
+                eatingNeedsRelease = true;
+            eatingElapsed = 0;
+            HeldItem?.SetEatingProgress(0);
             fishing.SetRod(null, null);
-            if (equipmentView != null) Destroy(equipmentView.gameObject);
+            if (equipmentView != null)
+                Destroy(equipmentView.gameObject);
             equipment = next;
             reloadRemaining = 0;
-            IsAiming = false; eye.fieldOfView = normalFieldOfView;
+            IsAiming = false;
+            eye.fieldOfView = normalFieldOfView;
             if (equipment?.Kind == HowToFishItemKind.Gun)
                 GlobalData.Dispatch(new HowToFishAmmoAction(session, equipment.Id, AmmoCapacity, HowToFishAmmoOperation.Initialize));
             GlobalData.Dispatch(new HowToFishEquipAction(session, next?.Id));
             equipmentView = null;
-            if (next == null) return;
+            if (next == null)
+                return;
             equipmentView = Instantiate(next.ViewPrefab, equipmentRoot).GetComponent<HowToFishEquipmentView>();
-            if (equipmentView == null) throw new InvalidOperationException("装备 Prefab 缺少 HowToFishEquipmentView。");
-            if (outfit != null) equipmentView.SetOutfit(outfit);
-            if (next.Kind == HowToFishItemKind.Gun) equipmentView.SetAttachments(GunState);
+            if (equipmentView == null)
+                throw new InvalidOperationException("装备 Prefab 缺少 HowToFishEquipmentView。");
+            if (outfit != null)
+                equipmentView.SetOutfit(outfit);
+            if (next.Kind == HowToFishItemKind.Gun)
+                equipmentView.SetAttachments(GunState);
             fishing.SetRod(next.Kind == HowToFishItemKind.Rod ? equipmentView.Tip : null, next.Id);
         }
 
         private void ForwardMessage(string message) => Message?.Invoke(message);
+
         private void OnDestroy()
         {
-            if (session != null) session.Changed -= RefreshTools;
-            if (fishing != null) fishing.Message -= ForwardMessage;
-            if (ReferenceEquals(GlobalData.Get<HowToFishData>()?.Session, session)) Drop(false);
+            if (session != null)
+                session.Changed -= RefreshTools;
+            if (fishing != null)
+                fishing.Message -= ForwardMessage;
+            if (ReferenceEquals(GlobalData.Get<HowToFishData>()?.Session, session))
+                Drop(false);
         }
     }
 }

@@ -47,3 +47,5 @@
 ## Flux 入口整理
 
 控制页的离场恢复及设置关闭结果携带所属 Demo Data；公共设置 View 在显示时记录当前会话，隐藏/销毁只通知该会话。模式请求采用 PascalCase Action 参数，生效状态仍由公共 Streamline 服务事件发布。
+
+2026-10-06 Flux 风格整理后的精确验证及失败范围见 [本轮实施记录](../../agent/flux-style-cleanup-2026-10-06.md)。

@@ -13,39 +13,85 @@ namespace Hotfix
     public sealed partial class HowToFishMainMenuView : View
     {
         private TextMeshProUGUI menuTitle;
+
         private Button[] slots;
+
         private TextMeshProUGUI[] slotLabels;
+
         private Button[] newGames;
+
         private Button back;
+
         private Button settingsButton;
+
         private HowToFishWorld world;
+
+        private HowToFishData data;
+
         private UIMenuScope menu;
+
         protected override void OnGameObjectInitialize()
         {
             BindData<HowToFishData>(OnData);
             menuTitle = TextMeshProUGUI_MenuTitle;
-            slots = new UnityEngine.UI.Button[] { Button_Slot0, Button_Slot1, Button_Slot2 };
-            slotLabels = new TMPro.TextMeshProUGUI[] { TextMeshProUGUI_Slot0Label, TextMeshProUGUI_Slot1Label, TextMeshProUGUI_Slot2Label };
-            newGames = new UnityEngine.UI.Button[] { Button_New0, Button_New1, Button_New2 };
+            slots = new UnityEngine.UI.Button[]
+            {
+                Button_Slot0,
+                Button_Slot1,
+                Button_Slot2
+            };
+            slotLabels = new TMPro.TextMeshProUGUI[]
+            {
+                TextMeshProUGUI_Slot0Label,
+                TextMeshProUGUI_Slot1Label,
+                TextMeshProUGUI_Slot2Label
+            };
+            newGames = new UnityEngine.UI.Button[]
+            {
+                Button_New0,
+                Button_New1,
+                Button_New2
+            };
             back = Button_ReturnHub;
             settingsButton = Button_OpenSettings;
             menu = gameObject.GetComponent<UIMenuScope>();
-            menu.Canceled += Back; AddBinding(() => menu.Canceled -= Back);
+            menu.Canceled += Back;
+            AddBinding(() => menu.Canceled -= Back);
             for (int i = 0; i < slots.Length; i++)
-            { int index = i; slots[i].onClick.AddListener(() => ContinueSlot(index)); newGames[i].onClick.AddListener(() => NewSlot(index)); }
+            {
+                int index = i;
+                slots[i].onClick.AddListener(() => ContinueSlot(index));
+                newGames[i].onClick.AddListener(() => NewSlot(index));
+            }
+
             back.onClick.AddListener(Back);
-            settingsButton.onClick.AddListener(() => world?.UI.OpenSettings());
-            foreach (var button in gameObject.GetComponentsInChildren<Button>(true)) button.onClick.AddListener(() => world?.PlayUiSound());
+            settingsButton.onClick.AddListener(() => GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.OpenSettings)));
+            foreach (var button in gameObject.GetComponentsInChildren<Button>(true))
+                button.onClick.AddListener(() => world?.PlayUiSound());
         }
+
         /// <summary>显示前绑定三槽菜单。</summary>
         /// <param name="owner">当前世界。</param>
-        public void SetData(HowToFishWorld owner) => world = owner;
-        /// 隐藏时释放订阅。
-        private void Unbind() => world = null;
-        private void Back() => world?.ReturnToHub();
+        public void SetData(HowToFishWorld owner)
+        {
+            world = owner;
+            data = owner?.Data;
+        }
+
+        // 隐藏时清理本页持有的场景引用。
+
+        private void Unbind()
+        {
+            world = null;
+            data = null;
+        }
+
+        private void Back() => GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.Exit));
+
         private void Refresh()
         {
-            if (world == null) return;
+            if (world == null)
+                return;
             menuTitle.text = "渔力全开\n<size=22>单人航程</size>";
             for (int i = 0; i < slots.Length; i++)
             {
@@ -62,16 +108,31 @@ namespace Hotfix
                 newGames[i].interactable = saved.Status == HowToFishLoadStatus.Ready || saved.Status == HowToFishLoadStatus.Empty;
             }
         }
+
         private void ContinueSlot(int index)
         {
-            var saved = world.InspectSlot(index);
-            world.StartSlot(index, saved.Status == HowToFishLoadStatus.Empty, saved.Status == HowToFishLoadStatus.RecoveryAvailable);
+            GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.ContinueSlot, index));
         }
 
         private void NewSlot(int index) => GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.NewSlot, index));
 
-        protected override void OnDestroy() { Unbind(); base.OnDestroy(); }
-        protected override void OnHide() { Unbind(); base.OnHide(); }
-        private void OnData(HowToFishData value) { world = value.Scene; Refresh(); }
+        protected override void OnDestroy()
+        {
+            Unbind();
+            base.OnDestroy();
+        }
+
+        protected override void OnHide()
+        {
+            Unbind();
+            base.OnHide();
+        }
+
+        private void OnData(HowToFishData value)
+        {
+            world = value.Scene;
+            data = value;
+            Refresh();
+        }
     }
 }

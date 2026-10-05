@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Hotfix.JinxCasino.Rules;
+using Hotfix.JinxCasino;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -10,9 +11,36 @@ namespace Tests.Demo
     public sealed class CasinoAdventureTests
     {
         [Test]
+        public void DataResetDoesNotRunWorldReplacementOrPublishIntermediateState()
+        {
+            var game = new JinxCasinoGame();
+            game.StartAdventure(CasinoAdventureMode.Standard, new CasinoAdventureConfig(), 1);
+            int replacements = 0, publications = 0;
+            game.BeforeRunReplacement += _ => replacements++;
+            game.Changed += _ => publications++;
+            game.ResetAdventureState();
+            Assert.That(game.HasAdventure, Is.False);
+            Assert.That(game.State, Is.Null);
+            Assert.That(replacements, Is.Zero, "Data 重置不能触发场景替换。");
+            Assert.That(publications, Is.Zero, "完整重置后由 Flux 发布，不能发中间状态。");
+            game.ClearAdventure();
+            Assert.That(replacements, Is.EqualTo(1), "公开玩法清理仍保留场景复位契约。");
+            Assert.That(publications, Is.EqualTo(1));
+        }
+
+        [Test]
         public void ShortcutUsesFullStageIdentityAndDoesNotExpireWhenExtraTimeIsAdded()
         {
-            var config = new CasinoAdventureConfig { Targets = new long[] { 0, 0, 0, 0 } };
+            var config = new CasinoAdventureConfig
+            {
+                Targets = new long[]
+                {
+                    0,
+                    0,
+                    0,
+                    0
+                }
+            };
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Endless, 1, config);
             Assert.That(session.Purchase("key", "shortcut_key").Success, Is.True);
             Assert.That(session.UseItem("open", "shortcut_key", "local").Success, Is.True);
@@ -28,6 +56,7 @@ namespace Tests.Demo
                 Assert.That(session.CompleteStage("complete" + index).Success, Is.True);
                 Assert.That(session.BeginNextStage("next" + index).Success, Is.True);
             }
+
             Assert.That(session.State.StageIndex, Is.EqualTo(4));
             Assert.That(session.State.Effects.Find(value => value.Id == effect.Id).Value, Is.Not.EqualTo(session.State.StageIndex));
             Assert.That(session.Purchase("new-key", "shortcut_key").Success, Is.True);
@@ -39,7 +68,13 @@ namespace Tests.Demo
         [Test]
         public void GoalIsThresholdAndRequiresExplicitShoppingConfirmation()
         {
-            var config = QuietConfig(); config.StageCount = 2; config.Targets = new long[] { 1100, 1100 };
+            var config = QuietConfig();
+            config.StageCount = 2;
+            config.Targets = new long[]
+            {
+                1100,
+                1100
+            };
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Standard, 1, config);
             Assert.That(session.BeginGame("win", CasinoGameKind.CoinFlip, 100, 0).Success, Is.True);
             Assert.That(session.State.Coins, Is.EqualTo(1100));
@@ -59,7 +94,12 @@ namespace Tests.Demo
         [TestCase(1100, CasinoAdventurePhase.Failed)]
         public void DeadlineEvaluatesWalletWithoutChargingQuota(long target, CasinoAdventurePhase expected)
         {
-            var config = QuietConfig(); config.Targets = new[] { target }; config.StageDurationMilliseconds = 1000;
+            var config = QuietConfig();
+            config.Targets = new[]
+            {
+                target
+            };
+            config.StageDurationMilliseconds = 1000;
             var session = CasinoAdventureSession.Start(7, CasinoAdventureMode.Standard, 1, config);
             Assert.That(session.Advance(999).Success, Is.True);
             Assert.That(session.State.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
@@ -97,7 +137,12 @@ namespace Tests.Demo
         [Test]
         public void CommittedGameSurvivesDeadlineAndCannotBeCanceledByEnding()
         {
-            var config = QuietConfig(); config.StageDurationMilliseconds = 10; config.Targets = new long[] { 0 };
+            var config = QuietConfig();
+            config.StageDurationMilliseconds = 10;
+            config.Targets = new long[]
+            {
+                0
+            };
             var session = CasinoAdventureSession.Start(2, CasinoAdventureMode.Standard, 1, config);
             Assert.That(session.BeginGame("cards", CasinoGameKind.CoinFlip, 100, 2).Success, Is.True);
             Assert.That(session.HasActiveRound, Is.True);
@@ -150,7 +195,8 @@ namespace Tests.Demo
         public void StopLossUsesRealRuleAndCannotBeConsumedTwice()
         {
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Practice, 1, QuietConfig());
-            session.Purchase("buy", "stop_loss"); session.UseItem("prepare", "stop_loss");
+            session.Purchase("buy", "stop_loss");
+            session.UseItem("prepare", "stop_loss");
             Assert.That(session.BeginGame("lose", CasinoGameKind.CoinFlip, 100, 1).Success, Is.True);
             Assert.That(session.State.LastRoundPayout, Is.EqualTo(50));
             Assert.That(Count(session, "stop_loss"), Is.Zero);
@@ -162,7 +208,8 @@ namespace Tests.Demo
         [Test]
         public void WalletOverflowRollsBackRandomAndFundsThenKeepsRejectedReceipt()
         {
-            var config = QuietConfig(); config.StartingCoins = long.MaxValue;
+            var config = QuietConfig();
+            config.StartingCoins = long.MaxValue;
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Practice, 1, config);
             uint random = session.State.RandomState;
             Assert.That(session.BeginGame("overflow", CasinoGameKind.CoinFlip, 1, 0).Error, Is.EqualTo("BalanceOverflow"));
@@ -193,7 +240,8 @@ namespace Tests.Demo
         public void PrankProtectionPersistsAcrossSnapshotAndRejectedUseKeepsInventory()
         {
             var session = CasinoAdventureSession.Start(11, CasinoAdventureMode.Practice, 1, QuietConfig());
-            session.Purchase("buy1", "bubble_gun"); session.Purchase("buy2", "banana_peel");
+            session.Purchase("buy1", "bubble_gun");
+            session.Purchase("buy2", "banana_peel");
             var effect = session.UseItem("prank", "bubble_gun", "friend").Effects.Single();
             Assert.That(effect.DurationMilliseconds, Is.LessThanOrEqualTo(3000));
             Assert.That(effect.ProtectionMilliseconds, Is.EqualTo(5000));
@@ -216,7 +264,8 @@ namespace Tests.Demo
             Assert.That(session.AdvanceTask("one", task.Id, CasinoTaskAction.Collect, 0).Success, Is.True);
             Assert.That(session.AdvanceTask("duplicate-spot", task.Id, CasinoTaskAction.Collect, 0).Success, Is.False);
             var restored = CasinoAdventureSession.Restore(session.ToSnapshotJson());
-            for (int index = 1; index < 5; index++) Assert.That(restored.AdvanceTask("pick" + index, task.Id, CasinoTaskAction.Collect, index).Success, Is.True);
+            for (int index = 1; index < 5; index++)
+                Assert.That(restored.AdvanceTask("pick" + index, task.Id, CasinoTaskAction.Collect, index).Success, Is.True);
             Assert.That(restored.State.ActiveMission.Completed, Is.True);
             Assert.That(restored.State.Coins, Is.EqualTo(1150));
             var finished = CasinoAdventureSession.Restore(restored.ToSnapshotJson());
@@ -228,7 +277,8 @@ namespace Tests.Demo
         public void GoldMissionMustPickUpBeforeDeliveryAndExpiredTaskCannotReward()
         {
             var session = CasinoAdventureSession.Start(4, CasinoAdventureMode.Standard, 1, SingleEventConfig("gold_delivery"));
-            session.Advance(1000); string task = session.State.ActiveMission.Id;
+            session.Advance(1000);
+            string task = session.State.ActiveMission.Id;
             Assert.That(session.AdvanceTask("no-carry", task, CasinoTaskAction.Deliver).Success, Is.False);
             Assert.That(session.AdvanceTask("carry", task, CasinoTaskAction.Carry).Success, Is.True);
             session.Advance(45000);
@@ -241,10 +291,13 @@ namespace Tests.Demo
         public void SyncMissionSupportsSoloAndCountsDistinctPlayers(int players)
         {
             var session = CasinoAdventureSession.Start(4, CasinoAdventureMode.Standard, players, SingleEventConfig("sync_buttons"));
-            session.Advance(1000); string task = session.State.ActiveMission.Id;
+            session.Advance(1000);
+            string task = session.State.ActiveMission.Id;
             Assert.That(session.AdvanceTask("press0", task, CasinoTaskAction.Press, actorId: "p0").Success, Is.True);
-            if (players > 1) Assert.That(session.AdvanceTask("same-player", task, CasinoTaskAction.Press, actorId: "p0").Success, Is.False);
-            for (int index = 1; index < players; index++) Assert.That(session.AdvanceTask("press" + index, task, CasinoTaskAction.Press, actorId: "p" + index).Success, Is.True);
+            if (players > 1)
+                Assert.That(session.AdvanceTask("same-player", task, CasinoTaskAction.Press, actorId: "p0").Success, Is.False);
+            for (int index = 1; index < players; index++)
+                Assert.That(session.AdvanceTask("press" + index, task, CasinoTaskAction.Press, actorId: "p" + index).Success, Is.True);
             Assert.That(session.State.ActiveMission.Completed, Is.True);
             Assert.That(session.State.Coins, Is.GreaterThan(1000));
         }
@@ -281,12 +334,17 @@ namespace Tests.Demo
         [Test]
         public void TakeOverRequiresActualCooperativeChallengeVictory()
         {
-            var config = QuietConfig(); config.Targets = new long[] { 0 };
+            var config = QuietConfig();
+            config.Targets = new long[]
+            {
+                0
+            };
             var session = CasinoAdventureSession.Start(3, CasinoAdventureMode.Standard, 1, config);
             session.CompleteStage("finale");
             Assert.That(session.ChooseEnding("cheat", CasinoAdventureEnding.TakeOver).Error, Is.EqualTo("ChallengeRequired"));
             Assert.That(session.BeginGame("challenge", CasinoGameKind.CooperativeVault, 10, 0).Success, Is.True);
-            for (int index = 0; index < 3; index++) Assert.That(session.Act("clue" + index, CasinoMiniGameAction.InspectClue, index).Success, Is.True);
+            for (int index = 0; index < 3; index++)
+                Assert.That(session.Act("clue" + index, CasinoMiniGameAction.InspectClue, index).Success, Is.True);
             var clue = Regex.Match(session.ActiveRoundDescription, "互补线索：(\\d{3})");
             Assert.That(clue.Success, Is.True, session.ActiveRoundDescription);
             Assert.That(session.Act("open", CasinoMiniGameAction.EnterCode, int.Parse(clue.Groups[1].Value)).Success, Is.True);
@@ -300,8 +358,11 @@ namespace Tests.Demo
         {
             var config = QuietConfig();
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Standard, 1, config);
-            config.StartingCoins = 999999; config.Targets[0] = 0;
-            var copy = session.State; copy.Coins = 0; copy.Config.Targets[0] = 0;
+            config.StartingCoins = 999999;
+            config.Targets[0] = 0;
+            var copy = session.State;
+            copy.Coins = 0;
+            copy.Config.Targets[0] = 0;
             Assert.That(session.State.Coins, Is.EqualTo(1000));
             Assert.That(session.CurrentTarget, Is.EqualTo(1100));
             copy.LockedCoins = 1001;
@@ -311,14 +372,22 @@ namespace Tests.Demo
         [Test]
         public void InsuranceCompensationCannotForgeCooperativeChallengeVictory()
         {
-            var config = QuietConfig(); config.Targets = new long[] { 0 };
+            var config = QuietConfig();
+            config.Targets = new long[]
+            {
+                0
+            };
             var session = CasinoAdventureSession.Start(3, CasinoAdventureMode.Standard, 1, config);
-            session.Purchase("buy-insurance", "stop_loss"); session.Purchase("buy-coupon", "jackpot_coupon");
-            session.UseItem("insurance", "stop_loss"); session.UseItem("coupon", "jackpot_coupon");
+            session.Purchase("buy-insurance", "stop_loss");
+            session.Purchase("buy-coupon", "jackpot_coupon");
+            session.UseItem("insurance", "stop_loss");
+            session.UseItem("coupon", "jackpot_coupon");
             session.CompleteStage("finale");
             session.BeginGame("challenge", CasinoGameKind.CooperativeVault, 10, 0);
-            for (int index = 0; index < 3; index++) session.Act("clue" + index, CasinoMiniGameAction.InspectClue, index);
-            for (int index = 0; index < 3; index++) Assert.That(session.Act("wrong" + index, CasinoMiniGameAction.EnterCode, 0).Success, Is.True);
+            for (int index = 0; index < 3; index++)
+                session.Act("clue" + index, CasinoMiniGameAction.InspectClue, index);
+            for (int index = 0; index < 3; index++)
+                Assert.That(session.Act("wrong" + index, CasinoMiniGameAction.EnterCode, 0).Success, Is.True);
             Assert.That(session.State.LastRoundPayout, Is.GreaterThan(session.State.LastRoundCost));
             Assert.That(session.State.TakeOverUnlocked, Is.False);
             Assert.That(session.ChooseEnding("take-over", CasinoAdventureEnding.TakeOver).Error, Is.EqualTo("ChallengeRequired"));
@@ -327,9 +396,14 @@ namespace Tests.Demo
         [Test]
         public void EndlessCyclesScaleGoalsAndNeverExposeStandardSuccessEnding()
         {
-            var config = QuietConfig(); config.Targets = new long[] { 100 };
+            var config = QuietConfig();
+            config.Targets = new long[]
+            {
+                100
+            };
             var session = CasinoAdventureSession.Start(3, CasinoAdventureMode.Endless, 1, config);
-            session.CompleteStage("first"); session.BeginNextStage("next");
+            session.CompleteStage("first");
+            session.BeginNextStage("next");
             Assert.That(session.CurrentTarget, Is.EqualTo(150));
             Assert.That(session.State.Phase, Is.EqualTo(CasinoAdventurePhase.Playing));
             Assert.That(session.ChooseEnding("success", CasinoAdventureEnding.LeaveWithDignity).Success, Is.False);
@@ -358,21 +432,44 @@ namespace Tests.Demo
         {
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Standard, 1, QuietConfig());
             var invalid = session.State;
-            invalid.ActiveMission = new CasinoAdventureMission { EventId = "chip_rain" };
+            invalid.ActiveMission = new CasinoAdventureMission
+            {
+                EventId = "chip_rain"
+            };
             Assert.Throws<ArgumentException>(() => CasinoAdventureSession.Restore(JsonUtility.ToJson(invalid)));
-            invalid.ActiveMission = new CasinoAdventureMission { RewardCoins = 150 };
+            invalid.ActiveMission = new CasinoAdventureMission
+            {
+                RewardCoins = 150
+            };
             Assert.Throws<ArgumentException>(() => CasinoAdventureSession.Restore(JsonUtility.ToJson(invalid)));
-            invalid.ActiveMission = new CasinoAdventureMission { Id = "broken", TargetCount = 5, Progress = 6, EventId = "chip_rain" };
+            invalid.ActiveMission = new CasinoAdventureMission
+            {
+                Id = "broken",
+                TargetCount = 5,
+                Progress = 6,
+                EventId = "chip_rain"
+            };
             Assert.Throws<ArgumentException>(() => CasinoAdventureSession.Restore(JsonUtility.ToJson(invalid)));
         }
 
-        internal static CasinoAdventureConfig QuietConfig() => new CasinoAdventureConfig { StageCount = 1, Targets = new long[] { 1100 }, EventIntervalMilliseconds = 0 };
+        internal static CasinoAdventureConfig QuietConfig() => new CasinoAdventureConfig
+        {
+            StageCount = 1,
+            Targets = new long[]
+            {
+                1100
+            },
+            EventIntervalMilliseconds = 0
+        };
+
         internal static CasinoAdventureConfig SingleEventConfig(string id)
         {
-            var config = QuietConfig(); config.EventIntervalMilliseconds = 1000;
+            var config = QuietConfig();
+            config.EventIntervalMilliseconds = 1000;
             config.EventWeights = CasinoContentCatalog.Events.Select(entry => new CasinoEventWeight { EventId = entry.Id, Weight = entry.Id == id ? 1 : 0 }).ToArray();
             return config;
         }
+
         private static int Count(CasinoAdventureSession session, string id) => session.State.Inventory.Find(item => item.ItemId == id)?.Count ?? 0;
     }
 }

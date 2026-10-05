@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using UnityEngine;
 
@@ -7,83 +8,142 @@ namespace Hotfix.HowToFish
     [RequireComponent(typeof(Rigidbody))]
     public sealed class HowToFishWorldItem : MonoBehaviour
     {
-        [SerializeField] private string definitionId;
-        [SerializeField] private Transform visualRoot;
-        [SerializeField] private Transform hookPoint;
-        [SerializeField] private float holdingDistance = 1.9f;
+        [SerializeField]
+        private string definitionId;
+        [SerializeField]
+        private Transform visualRoot;
+        [SerializeField]
+        private Transform hookPoint;
+        [SerializeField]
+        private float holdingDistance = 1.9f;
         [Tooltip("自制模型头部阈值：从重心到口部挂点的比例，按物种轮廓校准。")]
-        [Range(0, 1)] [SerializeField] private float headThreshold = .6f;
+        [Range(0, 1)]
+        [SerializeField]
+        private float headThreshold = .6f;
+
         private Rigidbody body;
+
         private Collider[] colliders;
+
         private Collider holderCollider;
+
         private Transform holdTarget;
+
         private float activeHoldingDistance;
+
         private bool originalGravity;
+
         private bool consumed;
+
         private HowToFishSession session;
+
         private HowToFishCatalog catalog;
+
         private string outfitId;
+
         private HowToFishCreatureDefinition creature;
+
         private HowToFishItemDefinition definition;
+
         private float health;
+
         private string instanceId;
+
         private bool isDrip;
+
         private float cooking;
+
         private float lastHeatStep = -1;
+
         private bool hasBeenHeld;
+
         private HowToFishOwnedItem equipmentState;
+
         private float styleMultiplier = 1;
+
         private float bettingMultiplier = 1;
+
         private float weightMultiplier = 1;
+
         private Vector3 originalScale;
+
         private bool hasBeenHitByPlayer;
+
         private HowToFishBossTransition bossTransition;
+
         private HowToFishDynamite dynamite;
 
         /// 定义标识，关联目录中的物品或生物。
         public string DefinitionId => definitionId;
+
         /// 持久化实例标识，区别同种的多个散落物品。
         public string InstanceId => instanceId;
+
         /// 当前生命；普通非生物物品为零。
         public float Health => health;
+
         /// 生物定义，普通装备为 null。
         public HowToFishCreatureDefinition Creature => creature;
+
         /// 此物品是否已被消费。
         public bool IsConsumed => consumed;
+
         /// 是否正在手持。
         public bool IsHeld => holdTarget != null;
+
         internal bool IsHeldBy(Transform holder) => holdTarget == holder;
+
         /// 是否为活物。
         public bool IsAlive => creature != null && health > 0;
+
         /// 当前是否已烹饪。
         public bool IsCooked => cooking > 0;
+
         public float Cooking => cooking;
+
         public bool IsBurnt => cooking >= .9f;
+
         public bool HasBeenHeld => hasBeenHeld;
+
         public bool HasBeenHitByPlayer => hasBeenHitByPlayer;
+
         public float KillMultiplier => styleMultiplier;
+
         public float BettingMultiplier => bettingMultiplier;
+
         public float WeightMultiplier => weightMultiplier;
+
         /// 该实例当前的实际物理重量，单位kg。
         public float Weight => body.mass;
+
         /// 当前轮盘仅接受曾被玩家持握、已放手且可出售的死生物。
         public bool CanBet => !consumed && !IsHeld && !IsAlive && creature != null && !creature.IgnoredBySeller && hasBeenHeld;
+
         public int SaleValue => creature == null ? 0 : session.CatchValue(definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier);
+
         /// 珍稀变体标记。
         public bool IsDrip => isDrip;
+
         public HowToFishOwnedItem EquipmentState => equipmentState?.Copy();
+
         /// 当前实体装备皮肤；通过已有装备快照保存和拾回。
         public string SkinId => equipmentState?.skinId;
+
         /// 遗体生成时记录的服装；之后玩家换装不影响此值。
         public string OutfitId => outfitId;
+
         /// 物理刚体。
         public Rigidbody Body => body;
+
         /// 渲染与关节的根节点。
         public Transform VisualRoot => visualRoot;
+
         /// 鱼线与鱼体连接位置。
         public Vector3 HookPosition => hookPoint != null ? hookPoint.position : transform.position;
+
         /// 击杀完成事件，用于首领状态和演出。
         public event Action<HowToFishWorldItem> Defeated;
+
         /// 受击反馈，数值为实际伤害。
         public event Action<HowToFishWorldItem, float> Damaged;
 
@@ -105,32 +165,42 @@ namespace Hotfix.HowToFish
         /// <param name="drip">是否使用珍稀变体。</param>
         public void Initialize(HowToFishSession owner, HowToFishCatalog catalog, string id, bool drip = false)
         {
-            if (session != null) throw new InvalidOperationException("世界物品不能重复初始化。");
+            if (session != null)
+                throw new InvalidOperationException("世界物品不能重复初始化。");
             session = owner ?? throw new ArgumentNullException(nameof(owner));
             this.catalog = catalog;
             definitionId = id;
             creature = catalog.FindCreature(id);
             definition = catalog.FindItem(id);
-            if (creature == null && definition == null) throw new ArgumentException("世界物品定义不存在：" + id);
+            if (creature == null && definition == null)
+                throw new ArgumentException("世界物品定义不存在：" + id);
             health = creature?.Health ?? 0;
             isDrip = drip;
-            if (creature != null && isDrip) HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, true);
+            if (creature != null && isDrip)
+                HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, true);
             // 个体随机范围暂无来源公式：均匀0.8至1.2为本项目推定，与Drip独立。
             ApplyWeightMultiplier(creature != null && !creature.SkipRandomizedWeight ? UnityEngine.Random.Range(.8f, 1.2f) : 1);
-            if (definition?.IsEquipment == true) SetEquipmentState(new HowToFishOwnedItem { id = id, count = 1 });
-            if (creature != null) HowToFishRegisterCreatureAction.Send(session, id, false, drip);
-            if (id == "PlayerRemains") SetOutfit(HowToFishOutfitCatalog.DefaultId);
+            if (definition?.IsEquipment == true)
+                SetEquipmentState(new HowToFishOwnedItem { id = id, count = 1 });
+            if (creature != null)
+                GlobalData.Dispatch(new HowToFishRegisterCreatureAction(session, id, false, drip));
+            if (id == "PlayerRemains")
+                SetOutfit(HowToFishOutfitCatalog.DefaultId);
         }
 
         /// <summary>恢复安全快照；不得用于活动首领。</summary>
         /// <param name="data">当前实例对应的持久化数据。</param>
         public void Restore(HowToFishWorldItemData data)
         {
-            if (data == null || data.definitionId != definitionId) throw new ArgumentException("存档物品定义不匹配。");
-            if (definitionId == "PlayerRemains") SetOutfit(string.IsNullOrEmpty(data.outfitId) ? HowToFishOutfitCatalog.DefaultId : data.outfitId);
+            if (data == null || data.definitionId != definitionId)
+                throw new ArgumentException("存档物品定义不匹配。");
+            if (definitionId == "PlayerRemains")
+                SetOutfit(string.IsNullOrEmpty(data.outfitId) ? HowToFishOutfitCatalog.DefaultId : data.outfitId);
             ApplyWeightMultiplier(data.weightMultiplier);
-            if (data.dynamiteFuseSeconds > 0 && dynamite == null) throw new ArgumentException("存档炸药缺少引信组件。");
-            if (dynamite != null) dynamite.RestoreFuse(data.dynamiteFuseSeconds);
+            if (data.dynamiteFuseSeconds > 0 && dynamite == null)
+                throw new ArgumentException("存档炸药缺少引信组件。");
+            if (dynamite != null)
+                dynamite.RestoreFuse(data.dynamiteFuseSeconds);
             instanceId = data.instanceId;
             health = creature == null ? 0 : Mathf.Clamp(data.health, 0, creature.Health);
             cooking = data.cooking > 0 ? data.cooking : data.isCooked ? .5f : 0;
@@ -139,7 +209,8 @@ namespace Hotfix.HowToFish
             bettingMultiplier = data.bettingMultiplier;
             hasBeenHitByPlayer = data.hasBeenHitByPlayer;
             isDrip = data.isDrip;
-            if (data.HasEquipment) SetEquipmentState(data.equipment);
+            if (data.HasEquipment)
+                SetEquipmentState(data.equipment);
             HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             transform.SetPositionAndRotation(data.position, Quaternion.Euler(data.eulerAngles));
             body.linearVelocity = Vector3.zero;
@@ -149,13 +220,21 @@ namespace Hotfix.HowToFish
         /// 创建当前物品快照。
         public HowToFishWorldItemData Snapshot() => new HowToFishWorldItemData
         {
-            instanceId = instanceId, definitionId = definitionId, health = health,
-            position = transform.position, eulerAngles = transform.eulerAngles,
-            isCooked = IsCooked, cooking = cooking, hasBeenHeld = hasBeenHeld, styleMultiplier = styleMultiplier,
+            instanceId = instanceId,
+            definitionId = definitionId,
+            health = health,
+            position = transform.position,
+            eulerAngles = transform.eulerAngles,
+            isCooked = IsCooked,
+            cooking = cooking,
+            hasBeenHeld = hasBeenHeld,
+            styleMultiplier = styleMultiplier,
             bettingMultiplier = bettingMultiplier,
             weightMultiplier = weightMultiplier,
             outfitId = outfitId,
-            isDrip = isDrip, hasBeenHitByPlayer = hasBeenHitByPlayer, equipment = equipmentState?.Copy(),
+            isDrip = isDrip,
+            hasBeenHitByPlayer = hasBeenHitByPlayer,
+            equipment = equipmentState?.Copy(),
             dynamiteFuseSeconds = dynamite != null ? dynamite.RemainingFuse : 0
         };
 
@@ -163,10 +242,13 @@ namespace Hotfix.HowToFish
         /// <param name="id">目录中的服装ID；不随全局后续选择改变。</param>
         public void SetOutfit(string id)
         {
-            if (definitionId != "PlayerRemains") throw new InvalidOperationException("只有玩家遗体可以记录服装。");
+            if (definitionId != "PlayerRemains")
+                throw new InvalidOperationException("只有玩家遗体可以记录服装。");
             var outfit = catalog.FindOutfit(id);
-            if (outfit?.Prefab == null) throw new ArgumentException("遗体服装未配置。", nameof(id));
-            if (outfitId == id) return;
+            if (outfit?.Prefab == null)
+                throw new ArgumentException("遗体服装未配置。", nameof(id));
+            if (outfitId == id)
+                return;
             var next = Instantiate(outfit.Prefab, transform).transform;
             next.name = "Visual";
             next.localPosition = visualRoot.localPosition;
@@ -190,12 +272,14 @@ namespace Hotfix.HowToFish
             visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
             HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             var view = visualRoot.GetComponent<HowToFishEquipmentView>();
-            if (view != null) view.SetAttachments(equipmentState);
+            if (view != null)
+                view.SetAttachments(equipmentState);
         }
 
         internal bool ChangeSkin()
         {
-            if (consumed || equipmentState == null || !HowToFishSkinCatalog.Supports(definitionId)) return false;
+            if (consumed || equipmentState == null || !HowToFishSkinCatalog.Supports(definitionId))
+                return false;
             equipmentState.skinId = session.NextUnlockedSkin(definitionId, equipmentState.skinId);
             visualRoot.GetComponent<HowToFishSkinView>()?.SetSkin(SkinId);
             HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
@@ -204,10 +288,13 @@ namespace Hotfix.HowToFish
 
         private void ApplyWeightMultiplier(float multiplier)
         {
-            if (!(multiplier >= .8f && multiplier <= 1.2f)) throw new ArgumentOutOfRangeException(nameof(multiplier));
-            if (creature == null) return;
+            if (!(multiplier >= .8f && multiplier <= 1.2f))
+                throw new ArgumentOutOfRangeException(nameof(multiplier));
+            if (creature == null)
+                return;
             float mass = creature.BaseWeight * multiplier;
-            if (!(mass > 0) || float.IsInfinity(mass)) throw new ArgumentOutOfRangeException(nameof(multiplier), "个体重量超出物理数值范围。");
+            if (!(mass > 0) || float.IsInfinity(mass))
+                throw new ArgumentOutOfRangeException(nameof(multiplier), "个体重量超出物理数值范围。");
             weightMultiplier = multiplier;
             body.mass = mass;
             // 重量按倍率、整体尺寸按立方根换算为当前推定；始终基于Prefab初始尺寸，读档不会重复累乘。
@@ -219,8 +306,13 @@ namespace Hotfix.HowToFish
         internal void ApplyRouletteResult(float multiplier)
         {
             // 世界已预检并原子保存整组结果；此处只兑现提交后的实体状态。
-            if (multiplier == 0) { consumed = true; FinishConsume(); }
-            else bettingMultiplier = multiplier;
+            if (multiplier == 0)
+            {
+                consumed = true;
+                FinishConsume();
+            }
+            else
+                bettingMultiplier = multiplier;
         }
 
         /// <summary>从相机方向物理抓取，忽略与持有者自身的碰撞。</summary>
@@ -229,10 +321,11 @@ namespace Hotfix.HowToFish
         /// <param name="distance">沿持有者前方的距离；默认使用 Prefab 值，海鸥使用零距离挂点。</param>
         public bool TryHold(Transform target, Collider playerCollider, float? distance = null)
         {
-            if (consumed || IsHeld || target == null || (creature != null &&
-                (creature.IsMainBoss || creature.IsBoss && IsAlive && creature.Id != "Tuna"))) return false;
+            if (consumed || IsHeld || target == null || (creature != null && (creature.IsMainBoss || creature.IsBoss && IsAlive && creature.Id != "Tuna")))
+                return false;
             float requestedDistance = distance ?? holdingDistance;
-            if (float.IsNaN(requestedDistance) || float.IsInfinity(requestedDistance) || requestedDistance < 0) return false;
+            if (float.IsNaN(requestedDistance) || float.IsInfinity(requestedDistance) || requestedDistance < 0)
+                return false;
             holdTarget = target;
             hasBeenHeld |= target.GetComponentInParent<HowToFishPlayer>() != null;
             activeHoldingDistance = requestedDistance;
@@ -241,7 +334,8 @@ namespace Hotfix.HowToFish
             originalGravity = body.useGravity;
             body.useGravity = false;
             if (holderCollider != null)
-                foreach (var collider in colliders) Physics.IgnoreCollision(collider, holderCollider, true);
+                foreach (var collider in colliders)
+                    Physics.IgnoreCollision(collider, holderCollider, true);
             return true;
         }
 
@@ -253,7 +347,8 @@ namespace Hotfix.HowToFish
             body.useGravity = creature != null && !IsAlive || originalGravity;
             body.linearVelocity = Vector3.ClampMagnitude(velocity, 30f);
             if (holderCollider != null)
-                foreach (var collider in colliders) Physics.IgnoreCollision(collider, holderCollider, false);
+                foreach (var collider in colliders)
+                    Physics.IgnoreCollision(collider, holderCollider, false);
             holderCollider = null;
         }
 
@@ -264,17 +359,20 @@ namespace Hotfix.HowToFish
         /// <param name="byPlayer">是否来自玩家攻击，用于首次命中规则。</param>
         public void Hit(float damage, Vector3 impulse, float style = 1, bool byPlayer = false)
         {
-            if (consumed || !IsAlive || damage <= 0 || float.IsNaN(damage) || float.IsInfinity(damage) ||
-                !(style >= 1) || float.IsInfinity(style)) return;
+            if (consumed || !IsAlive || damage <= 0 || float.IsNaN(damage) || float.IsInfinity(damage) || !(style >= 1) || float.IsInfinity(style))
+                return;
             float dealt = DamageToApply(damage);
-            if (dealt <= 0) return;
+            if (dealt <= 0)
+                return;
             hasBeenHitByPlayer |= byPlayer;
             health -= dealt;
             body.AddForce(Vector3.ClampMagnitude(impulse, 40), ForceMode.Impulse);
-            if (health <= 0) styleMultiplier = style;
+            if (health <= 0)
+                styleMultiplier = style;
             Damaged?.Invoke(this, dealt);
-            if (health > 0) return;
-            HowToFishRegisterCreatureAction.Send(session, definitionId, true, isDrip);
+            if (health > 0)
+                return;
+            GlobalData.Dispatch(new HowToFishRegisterCreatureAction(session, definitionId, true, isDrip));
             Defeated?.Invoke(this);
         }
 
@@ -282,7 +380,8 @@ namespace Hotfix.HowToFish
         /// <param name="damage">命中的原始伤害；无效值与受保护状态返回零。</param>
         public float DamageToApply(float damage)
         {
-            if (consumed || !IsAlive || !(damage > 0) || float.IsInfinity(damage)) return 0;
+            if (consumed || !IsAlive || !(damage > 0) || float.IsInfinity(damage))
+                return 0;
             return Mathf.Min(health, bossTransition == null ? damage : bossTransition.LimitDamage(damage));
         }
 
@@ -290,22 +389,22 @@ namespace Hotfix.HowToFish
         /// <param name="point">物理射线的实际命中点。</param>
         public bool IsHeadHit(Vector3 point)
         {
-            if (creature == null || hookPoint == null) return false;
+            if (creature == null || hookPoint == null)
+                return false;
             var direction = hookPoint.position - body.worldCenterOfMass;
-            return direction.sqrMagnitude > .0001f &&
-                Vector3.Dot(point - body.worldCenterOfMass, direction) >= direction.sqrMagnitude * headThreshold;
+            return direction.sqrMagnitude > .0001f && Vector3.Dot(point - body.worldCenterOfMass, direction) >= direction.sqrMagnitude * headThreshold;
         }
 
         /// <summary>对死鱼、可烹饪食物或工具加热；复合碰撞体每个物理步只加热一次。</summary>
         /// <param name="amount">本物理步增加的受热程度，正数；到1后不再增加。</param>
         public bool Heat(float amount)
         {
-            if (consumed || IsAlive || cooking >= 1 || lastHeatStep == Time.fixedTime ||
-                (creature == null && definition?.IsCookable != true && definition?.IsEquipment != true) ||
-                !(amount > 0) || float.IsInfinity(amount)) return false;
+            if (consumed || IsAlive || cooking >= 1 || lastHeatStep == Time.fixedTime || (creature == null && definition?.IsCookable != true && definition?.IsEquipment != true) || !(amount > 0) || float.IsInfinity(amount))
+                return false;
             lastHeatStep = Time.fixedTime;
             cooking = Mathf.Min(1, cooking + amount);
-            if (equipmentState != null) equipmentState.cooking = cooking;
+            if (equipmentState != null)
+                equipmentState.cooking = cooking;
             HowToFishEquipmentView.ApplyCookingTint(visualRoot, cooking, creature != null && isDrip);
             return true;
         }
@@ -319,10 +418,21 @@ namespace Hotfix.HowToFish
         public bool TrySell(out int money)
         {
             money = 0;
-            if (consumed || creature == null || creature.IgnoredBySeller || IsAlive || !hasBeenHeld) return false;
+            if (consumed || creature == null || creature.IgnoredBySeller || IsAlive || !hasBeenHeld)
+                return false;
             consumed = true;
-            try { money = HowToFishSellCatchAction.Send(session, definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier); }
-            catch { consumed = false; throw; }
+            try
+            {
+                var sale = new HowToFishSellCatchAction(session, definitionId, cooking, isDrip, styleMultiplier, bettingMultiplier, weightMultiplier);
+                GlobalData.Dispatch(sale);
+                money = sale.Result;
+            }
+            catch
+            {
+                consumed = false;
+                throw;
+            }
+
             FinishConsume();
             return true;
         }
@@ -331,27 +441,43 @@ namespace Hotfix.HowToFish
         /// <param name="effect">由任务或进食规则执行的单次效果。</param>
         public bool TryConsume(Action effect)
         {
-            if (consumed || effect == null) return false;
+            if (consumed || effect == null)
+                return false;
             consumed = true;
-            try { effect(); }
-            catch { consumed = false; throw; }
+            try
+            {
+                effect();
+            }
+            catch
+            {
+                consumed = false;
+                throw;
+            }
+
             FinishConsume();
             return true;
         }
 
         private void FixedUpdate()
         {
-            if (consumed) return;
+            if (consumed)
+                return;
             if (equipmentState != null && cooking > 0 && body.worldCenterOfMass.y < 0)
             {
                 cooking = equipmentState.cooking = 0;
                 HowToFishEquipmentView.ApplyCookingTint(visualRoot, 0, creature != null && isDrip);
             }
+
             if (holdTarget != null)
             {
                 var destination = holdTarget.position + holdTarget.forward * activeHoldingDistance;
                 var offset = destination - body.worldCenterOfMass;
-                if (offset.sqrMagnitude > 36f) { Release(Vector3.zero); return; }
+                if (offset.sqrMagnitude > 36f)
+                {
+                    Release(Vector3.zero);
+                    return;
+                }
+
                 body.AddForce(Vector3.ClampMagnitude(offset * 60 - body.linearVelocity * 12, 90), ForceMode.Acceleration);
                 body.angularVelocity *= 0.85f;
             }
@@ -360,13 +486,17 @@ namespace Hotfix.HowToFish
                 float lift = Mathf.Clamp(-transform.position.y * 18, 0, 24);
                 body.AddForce(Vector3.up * lift - body.linearVelocity * 1.5f, ForceMode.Acceleration);
             }
-            if (body.linearVelocity.sqrMagnitude > 900) body.linearVelocity = body.linearVelocity.normalized * 30;
+
+            if (body.linearVelocity.sqrMagnitude > 900)
+                body.linearVelocity = body.linearVelocity.normalized * 30;
         }
 
         private void FinishConsume()
         {
-            if (IsHeld) Release(Vector3.zero);
-            foreach (var collider in colliders) collider.enabled = false;
+            if (IsHeld)
+                Release(Vector3.zero);
+            foreach (var collider in colliders)
+                collider.enabled = false;
             gameObject.SetActive(false);
             Destroy(gameObject);
         }
@@ -375,7 +505,8 @@ namespace Hotfix.HowToFish
         {
             if (holderCollider != null && colliders != null)
                 foreach (var collider in colliders)
-                    if (collider != null) Physics.IgnoreCollision(collider, holderCollider, false);
+                    if (collider != null)
+                        Physics.IgnoreCollision(collider, holderCollider, false);
         }
     }
 }
