@@ -15,7 +15,7 @@
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。代码按实际职责组织：`Scene/` 管理资源加载、场景导航和会话生命周期，`UI/` 集中机型选择、HUD、调试 View、界面布局与 UIController，`Fishing/` 管理捕鱼任务、路径与演出，`Experience/` 管理等待/遥控状态及相机接管。不再设置统一的 `Adapters/` 层；飞控、物理和装备仍不反向依赖界面、资源服务或场景流程。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
+业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。代码按实际职责组织：`Scene/` 管理资源加载、场景导航和会话生命周期，`UI/` 集中机型选择、HUD、调试 View、界面布局与 UIController，`Fishing/` 管理捕鱼任务、路径与演出，`Experience/` 管理等待/遥控状态及相机接管。飞控、物理和装备仍不反向依赖界面、资源服务或场景流程。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -82,10 +82,10 @@ Assets/LoadResources/Demos/drone_flight/
 ## 进入和 UI 生命周期
 
 1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
-2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView, DroneFlightVehicleSelectionData>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
+2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
 3. 指针/触屏点击卡片只切换模型预览，点击开始飞行才确认；方向导航选择预览，确认键提交当前机型。准备期间保留选择页并禁用重复开始与返回，通过资源 Loader 实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，不在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
 4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配；抓斗先放置底座与四爪、连接 HingeJoint，最后才开放重力。它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步清零速度、保持电机锁定，并直接进入第三人称 `Active`。
-5. HUD 准备成功后关闭选择页，再开放第三人称控制；失败释放部分机体、恢复等待相机和选择输入，保留所选机型并显示重试。返回大厅失败也重开同一选择会话并恢复机型。HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者使用强类型 `DroneFlightViewData`，不读取静态 Context，也没有 `BindContext()`；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。
+5. HUD 准备成功后关闭选择页，再开放第三人称控制；失败释放部分机体、恢复等待相机和选择输入，保留所选机型并显示重试。返回大厅失败也重开同一选择会话并恢复机型。HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者通过 BindData 读取 DroneFlightData 的同一遥测快照；DroneFlightViewData 仅交付当前输入绑定参数；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。
 6. 选择完成后无需再按 F；`R` 仍是唯一的电机解锁/锁定入口。F 只保留为旧 `Waiting` 状态的兼容入口，不进入常驻操作提示。
 7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
@@ -190,13 +190,17 @@ DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什�
 
 Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使用公共 InputActionSession，键鼠保留原操作和键盘平滑；手柄左摇杆升降/偏航、右摇杆平移，触屏两个 TouchInputPad 同为摇杆模式。确认键短按解锁/锁定、长按按配置重载；Switch A 确认。返回键 Active → Waiting，再次返回退出 Hub；触屏有进入遥控入口。
 
-左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由保存的 DroneControlsPresenter 管理，UIController 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
+左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由 HUD View 读取 Data 并提交操作 Action，公共输入组件处理指针与提示；UIController 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
 
 
 ## HUD 子资源（2026-10-05）
 
-保留已有 HUD、机型选择、帮助、调试四个独立 View。HUD 的 `TelemetryRoot`、`TouchControls`、`OperationPanel` 保存于 `Prefabs/UI/Parts/`，通过嵌套 Prefab 维护；根 View 的 UIBind、DroneHudLayout 和 DroneControlsPresenter 引用仍指向实际子资源实例。遥测与控制生命周期沿用既有绑定/解除绑定，不新增窗口或飞行控制器。
+保留已有 HUD、机型选择、帮助、调试四个独立 View。HUD 的 `TelemetryRoot`、`TouchControls`、`OperationPanel` 保存于 `Prefabs/UI/Parts/`，通过嵌套 Prefab 维护；根 View 的 UIBind 和 DroneHudLayout 引用仍指向实际子资源实例。页面的数据订阅、更新与事件清理由 Core View 配对管理，不新增窗口或飞行控制器。
 
 按钮使用公共五状态反馈，机型业务选中态独立使用 UIState，保留橙色选中与原字体、布局；复位进度继续使用 UIProgressBar。子资源变更后检查 HUD 绑定与触控双指针释放，禁止重新合并为巨型页面。
 
 本次定向验证：HUD 绑定 243750f4（1/1）、保存 HUD 双指针与面板释放 fd80c957（1/1）、机型选择类 735e93a1（3/3）。覆盖真实鼠标/键盘/手柄/合成触控、失败重试及返回恢复；不执行飞控全量回归，也不代表实体设备验收。
+
+## Flux 状态流
+
+DroneFlightData 保存机型、准备/活动/离场阶段、页面请求和只读遥测快照。按钮提交 Action；Handler 处理选择、帮助、调试及控制命令，再由场景服务执行生成或页面过渡。采样器按诊断配置的原刷新频率发布带 SessionId 的快照，旧会话不能覆盖新场读数。SceneCoordinator 注册状态，销毁时释放订阅并移除；UIController 持有自己的 Data 和页面实例，直接卸载也关闭页面。飞控、混控、PID及物理 Tick 保持原职责。

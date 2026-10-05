@@ -55,7 +55,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -748,7 +748,6 @@ GameObject:
   - component: {fileID: 7503807890609028648}
   - component: {fileID: 6795763569753057671}
   - component: {fileID: 407098480938659669}
-  - component: {fileID: 7887204650061536078}
   - component: {fileID: 9118023406430713150}
   m_Layer: 0
   m_Name: DroneFlightHudView
@@ -817,8 +816,69 @@ MonoBehaviour:
   - {fileID: 96208346225789989}
   - {fileID: 1477170377598418097}
   - {fileID: 4757874377014371463}
+  - {fileID: 3872731906178567075}
   - {fileID: 7453962206839662548}
-  - {fileID: 7887204650061536078}
+  - {fileID: 458694930193558872}
+  - {fileID: 6474557024730019764}
+  - {fileID: 8381844529611533981}
+  - {fileID: 4091031899073128247}
+  - {fileID: 1256064426393119181}
+  - {fileID: 4052454852691905911}
+  - {fileID: 287772090179030583}
+  - {fileID: 6966702631150393410}
+  - {fileID: 984041380426838048}
+  - {fileID: 2678251415683536489}
+  - {fileID: 4534483092963474118}
+  - {fileID: 8090193573603251648}
+  - {fileID: 8768915500923296540}
+  - {fileID: 91634391281433245}
+  - {fileID: 1969989541375460497}
+  - {fileID: 8324372055094391707}
+  - {fileID: 7765347039945042360}
+  - {fileID: 4632696307801288254}
+  - {fileID: 3218666988296833244}
+  - {fileID: 7068063532874453366}
+  - {fileID: 8966936582790183091}
+  - {fileID: 2055875679808992439}
+  - {fileID: 6856939840084207694}
+  - {fileID: 1942495403191261427}
+  - {fileID: 1124251512956243082}
+  - {fileID: 7963798726479571082}
+  - {fileID: 7248537079991825812}
+  - {fileID: 3704174779915353557}
+  - {fileID: 7911951975788925955}
+  - {fileID: 8666011713069504663}
+  - {fileID: 2679543431667774104}
+  - {fileID: 495772844823564289}
+  - {fileID: 1132766782452917639}
+  - {fileID: 8141173907358245703}
+  - {fileID: 4547274222189396323}
+  - {fileID: 5729354793063054129}
+  - {fileID: 5549271425784779367}
+  - {fileID: 1862592325515530545}
+  - {fileID: 6789165989608277102}
+  - {fileID: 4263010443093340631}
+  - {fileID: 4389317361681380357}
+  - {fileID: 3877619149469024037}
+  - {fileID: 2977924643405219036}
+  - {fileID: 4225573350661915089}
+  - {fileID: 7217072994266119478}
+  - {fileID: 2261925110200138352}
+  - {fileID: 3925066824352412245}
+  - {fileID: 4362283610419723572}
+  - {fileID: 5567037457118918777}
+  - {fileID: 7993883201237173872}
+  - {fileID: 2478908770682163466}
+  - {fileID: 1483047513777239520}
+  - {fileID: 8308229984868023778}
+  - {fileID: 6879632900020365592}
+  - {fileID: 8571203863468958577}
+  - {fileID: 6425640290253812888}
+  - {fileID: 5219774174717759739}
+  - {fileID: 1321049132667626240}
+  - {fileID: 4985893395341095110}
+  - {fileID: 3989478860624928340}
+  - {fileID: 8842284398835162168}
   componentTypes:
   - UnityEngine.CanvasGroup
   - TMPro.TextMeshProUGUI
@@ -835,8 +895,69 @@ MonoBehaviour:
   - TMPro.TextMeshProUGUI
   - UnityEngine.RectTransform
   - UnityEngine.UI.Image
+  - Core.Runtime.UIProgressBar
   - TMPro.TextMeshProUGUI
-  - Hotfix.DroneFlight.DroneControlsPresenter
+  - UnityEngine.RectTransform
+  - Core.Runtime.Inputs.TouchInputPad
+  - UnityEngine.RectTransform
+  - Core.Runtime.Inputs.TouchInputPad
+  - UnityEngine.RectTransform
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - UnityEngine.RectTransform
+  - Core.Runtime.Inputs.UIMenuScope
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
   bindingKeys:
   - DroneFlightHudView/SafeRoot/TelemetryRoot|UnityEngine.CanvasGroup
   - DroneFlightHudView/SafeRoot/TelemetryRoot/StatusPanel/StatusText|TMPro.TextMeshProUGUI
@@ -853,8 +974,69 @@ MonoBehaviour:
   - DroneFlightHudView/SafeRoot/TelemetryRoot/WarningPanel/WarningText|TMPro.TextMeshProUGUI
   - DroneFlightHudView/SafeRoot/TelemetryRoot/ResetPanel|UnityEngine.RectTransform
   - DroneFlightHudView/SafeRoot/TelemetryRoot/ResetPanel/ResetProgressFill|UnityEngine.UI.Image
+  - DroneFlightHudView/SafeRoot/TelemetryRoot/ResetPanel/ResetProgressFill|Core.Runtime.UIProgressBar
   - DroneFlightHudView/SafeRoot/TelemetryRoot/ResetPanel/ResetProgressText|TMPro.TextMeshProUGUI
-  - DroneFlightHudView|Hotfix.DroneFlight.DroneControlsPresenter
+  - DroneFlightHudView/SafeRoot/TouchControls|UnityEngine.RectTransform
+  - DroneFlightHudView/SafeRoot/TouchControls/LeftStick|Core.Runtime.Inputs.TouchInputPad
+  - DroneFlightHudView/SafeRoot/TouchControls/LeftStick/Thumb|UnityEngine.RectTransform
+  - DroneFlightHudView/SafeRoot/TouchControls/RightStick|Core.Runtime.Inputs.TouchInputPad
+  - DroneFlightHudView/SafeRoot/TouchControls/RightStick/Thumb|UnityEngine.RectTransform
+  - DroneFlightHudView/SafeRoot/TouchControls/ArmOrReset|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/ArmOrReset/Prompt_\u89E3\u9501 / \u957F\u6309\u590D\u4F4D|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/Equipment|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/Equipment/Prompt_\u88C5\u5907\u64CD\u4F5C|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/Aim|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/Aim/Prompt_\u7784\u51C6|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/ViewModifier|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/ViewModifier/Prompt_\u955C\u5934\u6A21\u5F0F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/ReelIn|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/ReelIn/Prompt_\u6536\u7EBF|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/ReelOut|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/ReelOut/Prompt_\u653E\u7EBF|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/Activate|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/Activate/Prompt_\u8FDB\u5165\u9065\u63A7|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/Back|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/Back/Prompt_\u8FD4\u56DE|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/TouchControls/Panel|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/TouchControls/Panel/Prompt_\u64CD\u4F5C\u9762\u677F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel|UnityEngine.RectTransform
+  - DroneFlightHudView/SafeRoot/OperationPanel|Core.Runtime.Inputs.UIMenuScope
+  - DroneFlightHudView/SafeRoot/OperationPanel/Takeoff|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/Takeoff/Prompt_\u81EA\u52A8\u8D77\u98DE|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/Landing|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/Landing/Prompt_\u81EA\u52A8\u964D\u843D|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/ProfileCine|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/ProfileCine/Prompt_\u5E73\u7A33\u6A21\u5F0F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/ProfileNormal|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/ProfileNormal/Prompt_\u666E\u901A\u6A21\u5F0F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/ProfileSport|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/ProfileSport/Prompt_\u8FD0\u52A8\u6A21\u5F0F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/LandingGear|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/LandingGear/Prompt_\u8D77\u843D\u67B6\u6536\u653E|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/SwitchCamera|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/SwitchCamera/Prompt_\u5207\u6362\u955C\u5934|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/ZoomIn|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/ZoomIn/Prompt_\u653E\u5927\u89C6\u91CE|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/ZoomOut|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/ZoomOut/Prompt_\u7F29\u5C0F\u89C6\u91CE|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/Help|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/Help/Prompt_\u64CD\u4F5C\u8BF4\u660E|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/DebugDraw|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/DebugDraw/Prompt_\u52A8\u529B\u77E2\u91CF|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/DebugPanel|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/DebugPanel/Prompt_\u8C03\u8BD5\u9762\u677F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/CopyTelemetry|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/CopyTelemetry/Prompt_\u590D\u5236\u9065\u6D4B|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/Exit|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/Exit/Prompt_\u8FD4\u56DE Hub|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OperationPanel/Panel|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OperationPanel/Panel/Prompt_\u5173\u95ED\u9762\u677F|Core.Runtime.Inputs.InputBindingPrompt"
+  - "DroneFlightHudView/SafeRoot/OperationPanel/NavigationHints/Prompt_\u786E\u8BA4|Core.Runtime.Inputs.InputBindingPrompt"
+  - "DroneFlightHudView/SafeRoot/OperationPanel/NavigationHints/Prompt_\u8FD4\u56DE|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OpenOperations|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OpenOperations/Prompt_\u64CD\u4F5C\u9762\u677F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DroneFlightHudView/SafeRoot/OpenHelp|Core.Runtime.Inputs.InputCommandButton
+  - "DroneFlightHudView/SafeRoot/OpenHelp/Prompt_\u64CD\u4F5C\u8BF4\u660E|Core.Runtime.Inputs.InputBindingPrompt"
   bindingMethods:
   - None
   - None
@@ -873,81 +1055,67 @@ MonoBehaviour:
   - None
   - None
   - None
---- !u!114 &7887204650061536078
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2819237731884768918}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be3ded12a30138f459e8bf29d58ea27b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneControlsPresenter
-  touchControls: {fileID: 8050482024047865005}
-  operationPanel: {fileID: 2367551831669884316}
-  menuScope: {fileID: 1124251512956243082}
-  leftPad: {fileID: 6474557024730019764}
-  rightPad: {fileID: 4091031899073128247}
-  leftThumb: {fileID: 8381844529611533981}
-  rightThumb: {fileID: 1256064426393119181}
-  buttons:
-  - {fileID: 4052454852691905911}
-  - {fileID: 6966702631150393410}
-  - {fileID: 2678251415683536489}
-  - {fileID: 8090193573603251648}
-  - {fileID: 91634391281433245}
-  - {fileID: 8324372055094391707}
-  - {fileID: 4632696307801288254}
-  - {fileID: 7068063532874453366}
-  - {fileID: 2055875679808992439}
-  - {fileID: 7963798726479571082}
-  - {fileID: 3704174779915353557}
-  - {fileID: 8666011713069504663}
-  - {fileID: 495772844823564289}
-  - {fileID: 8141173907358245703}
-  - {fileID: 5729354793063054129}
-  - {fileID: 1862592325515530545}
-  - {fileID: 4263010443093340631}
-  - {fileID: 3877619149469024037}
-  - {fileID: 4225573350661915089}
-  - {fileID: 2261925110200138352}
-  - {fileID: 4362283610419723572}
-  - {fileID: 7993883201237173872}
-  - {fileID: 1483047513777239520}
-  - {fileID: 6879632900020365592}
-  - {fileID: 1321049132667626240}
-  - {fileID: 3989478860624928340}
-  prompts:
-  - {fileID: 287772090179030583}
-  - {fileID: 984041380426838048}
-  - {fileID: 4534483092963474118}
-  - {fileID: 8768915500923296540}
-  - {fileID: 1969989541375460497}
-  - {fileID: 7765347039945042360}
-  - {fileID: 3218666988296833244}
-  - {fileID: 8966936582790183091}
-  - {fileID: 6856939840084207694}
-  - {fileID: 7248537079991825812}
-  - {fileID: 7911951975788925955}
-  - {fileID: 2679543431667774104}
-  - {fileID: 1132766782452917639}
-  - {fileID: 4547274222189396323}
-  - {fileID: 5549271425784779367}
-  - {fileID: 6789165989608277102}
-  - {fileID: 4389317361681380357}
-  - {fileID: 2977924643405219036}
-  - {fileID: 7217072994266119478}
-  - {fileID: 3925066824352412245}
-  - {fileID: 5567037457118918777}
-  - {fileID: 2478908770682163466}
-  - {fileID: 8308229984868023778}
-  - {fileID: 8571203863468958577}
-  - {fileID: 6425640290253812888}
-  - {fileID: 5219774174717759739}
-  - {fileID: 4985893395341095110}
-  - {fileID: 8842284398835162168}
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
 --- !u!114 &9118023406430713150
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1595,6 +1763,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+--- !u!114 &3872731906178567075 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 618313970071515471, guid: 3aa287b62be778e40b0eda116efc17b9, type: 3}
+  m_PrefabInstance: {fileID: 4407340003414145772}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f77eab99ab2774499977a884d99e989, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIProgressBar
 --- !u!114 &4489473582255055733 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 245397861729982873, guid: 3aa287b62be778e40b0eda116efc17b9, type: 3}
@@ -1979,11 +2158,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41922778cf0f18b43ad439a6f274300f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.InputBindingPrompt
---- !u!1 &8050482024047865005 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2119424521171165178, guid: a3f981cb6f514d2469270f4b06af4e05, type: 3}
-  m_PrefabInstance: {fileID: 8273319086539322199}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &8090193573603251648 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 186512154921772695, guid: a3f981cb6f514d2469270f4b06af4e05, type: 3}
@@ -2146,7 +2320,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8132534068228420858, guid: e672589de2d39b7418ade3307583aefc, type: 3}
   m_PrefabInstance: {fileID: 9171216079072508016}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2367551831669884316}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b59056656ed948d488476d80afcee4ed, type: 3}
@@ -2201,11 +2375,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bed6d03db005f9e4897460b88ff2abec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.InputCommandButton
---- !u!1 &2367551831669884316 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 6889821017287818732, guid: e672589de2d39b7418ade3307583aefc, type: 3}
-  m_PrefabInstance: {fileID: 9171216079072508016}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &2478908770682163466 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6710484435695561082, guid: e672589de2d39b7418ade3307583aefc, type: 3}

@@ -75,8 +75,8 @@ namespace Tests.Demo
             var view = UIManager.Instance.Get<DroneFlightVehicleSelectView>();
             int started = 0, backed = 0;
             DroneVehicleKind submitted = default;
-            var data = new DroneFlightVehicleSelectionData(kind => { started++; submitted = kind; }, () => backed++);
-            view.SetData(data);
+            var data = GlobalData.Get<DroneFlightData>();
+            data.Handler.ConfigureSelection(kind => { started++; submitted = kind; }, () => backed++, null);
             yield return Wait(() => EventSystem.current.sendNavigationEvents, "公共导航松键");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.RightArrow)); yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
@@ -84,7 +84,7 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter)); yield return null; yield return null;
             Assert.That(started, Is.EqualTo(1));
             Assert.That(submitted, Is.EqualTo(DroneVehicleKind.Grapple));
-            view.SetBusy(false, "准备失败，请重试");
+            GlobalData.Dispatch(new DroneFlightSelectionResultAction(data.Version, false, "准备失败，请重试"));
             for(int i=0;i<5;i++) yield return null;
             Assert.That(started, Is.EqualTo(1), "保持确认键不能在恢复时重复进入。");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
@@ -100,7 +100,7 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
             Assert.That(started, Is.EqualTo(2));
             Assert.That(submitted, Is.EqualTo(DroneVehicleKind.Grapple));
-            view.SetBusy(false);
+            GlobalData.Dispatch(new DroneFlightSelectionResultAction(data.Version, false));
             yield return null; yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.East)); yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null;
@@ -184,7 +184,7 @@ namespace Tests.Demo
 
         private IEnumerator Click(Button button)
         {
-            Assert.That(button.interactable,Is.True);
+            Assert.That(button.interactable,Is.True,button.name + ": " + GlobalData.Get<DroneFlightData>()?.Mode);
             var point=Position(button);
             var hits=new List<RaycastResult>();EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current){position=point},hits);
             Assert.That(hits,Is.Not.Empty);

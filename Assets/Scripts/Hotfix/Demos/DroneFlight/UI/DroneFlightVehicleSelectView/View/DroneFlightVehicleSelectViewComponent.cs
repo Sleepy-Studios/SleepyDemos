@@ -24,22 +24,26 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
+        private UIMenuScope UIMenuScope_DroneFlightVehicleSelectView;
         private Image Image_Hero;
         private TextMeshProUGUI TextMeshProUGUI_Title;
         private TextMeshProUGUI TextMeshProUGUI_Description;
         private TextMeshProUGUI TextMeshProUGUI_Equipment;
         private TextMeshProUGUI TextMeshProUGUI_Operation;
         private TextMeshProUGUI TextMeshProUGUI_Purpose;
-        private Button Button_PlainButton;
         private Image Image_PlainButton;
+        private Button Button_PlainButton;
+        private UIState UIState_PlainButton;
         private Image Image_PlainPreview;
         private RectTransform RectTransform_PlainSelected;
-        private Button Button_GrappleButton;
         private Image Image_GrappleButton;
+        private Button Button_GrappleButton;
+        private UIState UIState_GrappleButton;
         private Image Image_GrapplePreview;
         private RectTransform RectTransform_GrappleSelected;
-        private Button Button_HarpoonButton;
         private Image Image_HarpoonButton;
+        private Button Button_HarpoonButton;
+        private UIState UIState_HarpoonButton;
         private Image Image_HarpoonPreview;
         private RectTransform RectTransform_HarpoonSelected;
         private Button Button_StartButton;
@@ -49,7 +53,6 @@ namespace Hotfix
         private RectTransform RectTransform_Hints;
         private TextMeshProUGUI TextMeshProUGUI_MoveHint;
         private TextMeshProUGUI TextMeshProUGUI_TouchHint;
-        private UIMenuScope UIMenuScope_DroneFlightVehicleSelectView;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -61,32 +64,35 @@ namespace Hotfix
                 return;
             }
 
-            Image_Hero = componentItemIndex.Get<Image>(0);
-            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
-            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(2);
-            TextMeshProUGUI_Equipment = componentItemIndex.Get<TextMeshProUGUI>(3);
-            TextMeshProUGUI_Operation = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_Purpose = componentItemIndex.Get<TextMeshProUGUI>(5);
-            Button_PlainButton = componentItemIndex.Get<Button>(6);
+            UIMenuScope_DroneFlightVehicleSelectView = componentItemIndex.Get<UIMenuScope>(0);
+            Image_Hero = componentItemIndex.Get<Image>(1);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(2);
+            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_Equipment = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_Operation = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_Purpose = componentItemIndex.Get<TextMeshProUGUI>(6);
             Image_PlainButton = componentItemIndex.Get<Image>(7);
-            Image_PlainPreview = componentItemIndex.Get<Image>(8);
-            RectTransform_PlainSelected = componentItemIndex.Get<RectTransform>(9);
-            Button_GrappleButton = componentItemIndex.Get<Button>(10);
-            Image_GrappleButton = componentItemIndex.Get<Image>(11);
-            Image_GrapplePreview = componentItemIndex.Get<Image>(12);
-            RectTransform_GrappleSelected = componentItemIndex.Get<RectTransform>(13);
-            Button_HarpoonButton = componentItemIndex.Get<Button>(14);
-            Image_HarpoonButton = componentItemIndex.Get<Image>(15);
-            Image_HarpoonPreview = componentItemIndex.Get<Image>(16);
-            RectTransform_HarpoonSelected = componentItemIndex.Get<RectTransform>(17);
-            Button_StartButton = componentItemIndex.Get<Button>(18);
-            TextMeshProUGUI_StartLabel = componentItemIndex.Get<TextMeshProUGUI>(19);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(20);
-            Button_BackButton = componentItemIndex.Get<Button>(21);
-            RectTransform_Hints = componentItemIndex.Get<RectTransform>(22);
-            TextMeshProUGUI_MoveHint = componentItemIndex.Get<TextMeshProUGUI>(23);
-            TextMeshProUGUI_TouchHint = componentItemIndex.Get<TextMeshProUGUI>(24);
-            UIMenuScope_DroneFlightVehicleSelectView = componentItemIndex.Get<UIMenuScope>(25);
+            Button_PlainButton = componentItemIndex.Get<Button>(8);
+            UIState_PlainButton = componentItemIndex.Get<UIState>(9);
+            Image_PlainPreview = componentItemIndex.Get<Image>(10);
+            RectTransform_PlainSelected = componentItemIndex.Get<RectTransform>(11);
+            Image_GrappleButton = componentItemIndex.Get<Image>(12);
+            Button_GrappleButton = componentItemIndex.Get<Button>(13);
+            UIState_GrappleButton = componentItemIndex.Get<UIState>(14);
+            Image_GrapplePreview = componentItemIndex.Get<Image>(15);
+            RectTransform_GrappleSelected = componentItemIndex.Get<RectTransform>(16);
+            Image_HarpoonButton = componentItemIndex.Get<Image>(17);
+            Button_HarpoonButton = componentItemIndex.Get<Button>(18);
+            UIState_HarpoonButton = componentItemIndex.Get<UIState>(19);
+            Image_HarpoonPreview = componentItemIndex.Get<Image>(20);
+            RectTransform_HarpoonSelected = componentItemIndex.Get<RectTransform>(21);
+            Button_StartButton = componentItemIndex.Get<Button>(22);
+            TextMeshProUGUI_StartLabel = componentItemIndex.Get<TextMeshProUGUI>(23);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(24);
+            Button_BackButton = componentItemIndex.Get<Button>(25);
+            RectTransform_Hints = componentItemIndex.Get<RectTransform>(26);
+            TextMeshProUGUI_MoveHint = componentItemIndex.Get<TextMeshProUGUI>(27);
+            TextMeshProUGUI_TouchHint = componentItemIndex.Get<TextMeshProUGUI>(28);
             this.RegisterButton(Button_PlainButton, OnPlainButtonClick);
             this.RegisterButton(Button_GrappleButton, OnGrappleButtonClick);
             this.RegisterButton(Button_HarpoonButton, OnHarpoonButtonClick);

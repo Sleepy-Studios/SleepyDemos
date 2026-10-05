@@ -10,26 +10,9 @@ using UnityEngine.UI;
 
 namespace Hotfix
 {
-    /// 同一次机型选择会话的数据，返回大厅失败后继续使用当前选择。
-    public sealed class DroneFlightVehicleSelectionData
-    {
-        /// <summary>绑定场景提供的开始与返回操作，不在页面中生成机体。</summary>
-        /// <param name="onSelected">玩家确认当前机型后调用；宿主负责生成及结果反馈。</param>
-        /// <param name="onBack">请求返回大厅。</param>
-        public DroneFlightVehicleSelectionData(Action<DroneVehicleKind> onSelected, Action onBack)
-        {
-            OnSelected = onSelected ?? throw new ArgumentNullException(nameof(onSelected));
-            OnBack = onBack ?? throw new ArgumentNullException(nameof(onBack));
-        }
-        public Action<DroneVehicleKind> OnSelected { get; }
-        public Action OnBack { get; }
-        public DroneVehicleKind SelectedKind { get; internal set; }
-        internal string Feedback { get; set; }
-    }
-
     [Module("DroneFlight")]
     [UIBind("DroneFlightVehicleSelectView")]
-    public partial class DroneFlightVehicleSelectView : View<DroneFlightVehicleSelectionData>
+    public partial class DroneFlightVehicleSelectView : View
     {
         private static readonly (string Title, string Description, string Equipment, string Operation, string Purpose)[] Models =
         {
@@ -40,10 +23,14 @@ namespace Hotfix
         private Button[] cards;
         private Image[] previews;
         private RectTransform[] badges;
-        private bool isBusy;
+        private DroneFlightData data;
+        private UIState[] cardStates;
+        private bool isBusy => data.Mode is DroneFlightSessionMode.Loading or DroneFlightSessionMode.Leaving;
 
         protected override void OnGameObjectInitialize()
         {
+            BindData<DroneFlightData>(OnData);
+            cardStates = new[] { UIState_PlainButton, UIState_GrappleButton, UIState_HarpoonButton };
             cards = new[] { Button_PlainButton, Button_GrappleButton, Button_HarpoonButton };
             previews = new[] { Image_PlainPreview, Image_GrapplePreview, Image_HarpoonPreview };
             badges = new[] { RectTransform_PlainSelected, RectTransform_GrappleSelected, RectTransform_HarpoonSelected };
@@ -53,23 +40,20 @@ namespace Hotfix
         /// <summary>在正式显示前交付当前选择与场景操作。</summary>
         /// <param name="data">本次选择会话，失败恢复时保留机型与提示。</param>
         /// <returns>当前页面。</returns>
-        public override View<DroneFlightVehicleSelectionData> SetData(DroneFlightVehicleSelectionData data)
+        private void OnData(DroneFlightData value)
         {
-            if (data == null) throw new ArgumentNullException(nameof(data));
-            if (!Enum.IsDefined(typeof(DroneVehicleKind), data.SelectedKind)) throw new ArgumentOutOfRangeException(nameof(data));
-            base.SetData(data);
+            data = value;
             RefreshSelection();
-            SetBusy(false, data.Feedback);
-            return this;
+            SetBusy(isBusy, data.Feedback);
+            RefreshHints();
         }
 
         protected override void OnShow()
         {
             base.OnShow();
-            InputDeviceState.Changed += RefreshHints;
             RefreshHints();
-            EventSystem.current?.SetSelectedGameObject(string.IsNullOrEmpty(params1.Feedback)
-                ? cards[(int)params1.SelectedKind].gameObject : Button_StartButton.gameObject);
+            EventSystem.current?.SetSelectedGameObject(string.IsNullOrEmpty(data.Feedback)
+                ? cards[(int)data.SelectedKind].gameObject : Button_StartButton.gameObject);
             FollowMenuFocusAsync().Forget();
         }
 
@@ -92,9 +76,9 @@ namespace Hotfix
             while (IsEnable)
             {
                 var focused = EventSystem.current?.currentSelectedGameObject;
-                if (!isBusy && params1 != null)
+                if (!isBusy && data != null)
                     for (int i = 0; i < cards.Length; i++)
-                        if (focused == cards[i].gameObject && (int)params1.SelectedKind != i) Select((DroneVehicleKind)i);
+                        if (focused == cards[i].gameObject && (int)data.SelectedKind != i) Select((DroneVehicleKind)i);
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
             }
         }
@@ -105,24 +89,18 @@ namespace Hotfix
 
         private void Choose(DroneVehicleKind kind)
         {
-            if (isBusy || params1 == null) return;
+            if (isBusy || data == null) return;
             Select(kind);
             // 方向导航已经选择预览；确认键提交，指针与触屏只切换卡片。
             if (InputDeviceState.ActiveDevice is Keyboard || InputDeviceState.ActiveDevice is Gamepad)
                 OnStartButtonClick();
         }
 
-        private void Select(DroneVehicleKind kind)
-        {
-            params1.SelectedKind = kind;
-            params1.Feedback = null;
-            RefreshSelection();
-            SetBusy(false);
-        }
+        private void Select(DroneVehicleKind kind) => GlobalData.Dispatch(new DroneFlightSelectAction(kind));
 
         private void RefreshSelection()
         {
-            int index = (int)params1.SelectedKind;
+            int index = (int)data.SelectedKind;
             var model = Models[index];
             TextMeshProUGUI_Title.text = model.Title;
             TextMeshProUGUI_Description.text = model.Description;
@@ -132,14 +110,13 @@ namespace Hotfix
             Image_Hero.sprite = previews[index].sprite;
             for (int i = 0; i < cards.Length; i++)
             {
-                cards[i].GetComponent<UIState>().SetState(i == index ? "Selected" : "Normal");
+                cardStates[i].SetState(i == index ? "Selected" : "Normal");
                 badges[i].gameObject.SetActive(i == index);
             }
         }
 
         internal void SetBusy(bool busy, string message = null)
         {
-            isBusy = busy;
             foreach (var card in cards) card.interactable = !busy;
             Button_StartButton.interactable = Button_BackButton.interactable = !busy;
             TextMeshProUGUI_StartLabel.text = busy ? "准备中…" : "开始飞行  »";
@@ -150,16 +127,14 @@ namespace Hotfix
 
         private void OnStartButtonClick()
         {
-            if (isBusy || params1 == null || !IsEnable) return;
-            SetBusy(true);
-            params1.OnSelected(params1.SelectedKind);
+            if (isBusy || data == null || !IsEnable) return;
+            GlobalData.Dispatch(new DroneFlightStartAction());
         }
 
         private void OnBackButtonClick()
         {
-            if (isBusy || params1 == null || !IsEnable) return;
-            SetBusy(true);
-            params1.OnBack();
+            if (isBusy || data == null || !IsEnable) return;
+            GlobalData.Dispatch(new DroneFlightExitAction());
         }
 
         private void RefreshHints()
@@ -172,7 +147,6 @@ namespace Hotfix
 
         private void ReleasePresentation()
         {
-            InputDeviceState.Changed -= RefreshHints;
         }
     }
 }

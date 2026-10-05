@@ -7,55 +7,39 @@ namespace Hotfix
     [UIBind("DroneFlightDebugView")]
     public partial class DroneFlightDebugView : View<DroneFlightViewData>
     {
-        private DroneFlightUiTelemetrySource telemetrySource;
+
 
         /// <summary>交付会话数据；已显示的调试台改为读取新机体。</summary>
         /// <param name="data">当前机体与输入会话。</param>
         /// <returns>当前调试台。</returns>
-        public override View<DroneFlightViewData> SetData(DroneFlightViewData data)
-        {
-            base.SetData(data);
-            if (State == ViewState.Visible) BindTelemetry();
-            return this;
-        }
+        public override View<DroneFlightViewData> SetData(DroneFlightViewData data) { base.SetData(data); return this; }
 
         protected override void OnGameObjectInitialize()
         {
+            BindData<DroneFlightData>(OnData);
             Button_Close.onClick.AddListener(Close);
-            Button_Vectors.onClick.AddListener(() => params1?.Input?.Execute("DebugDraw"));
-            Button_Copy.onClick.AddListener(() => params1?.Input?.Execute("CopyTelemetry"));
+            Button_Vectors.onClick.AddListener(() => GlobalData.Dispatch(new DroneFlightControlAction("DebugDraw")));
+            Button_Copy.onClick.AddListener(() => GlobalData.Dispatch(new DroneFlightControlAction("CopyTelemetry")));
             UIMenuScope_DroneFlightDebugView.Canceled += Close;
         }
 
-        private void Close() => params1?.Input?.Execute("DebugPanel");
+        private void Close() => GlobalData.Dispatch(new DroneFlightControlAction("DebugPanel"));
 
         protected override void OnShow()
         {
             base.OnShow();
             ScrollRect_Readout.verticalNormalizedPosition = 1f;
-            BindTelemetry();
         }
 
-        private void BindTelemetry()
-        {
-            Unsubscribe();
-            telemetrySource = params1?.TelemetrySource;
-            if (telemetrySource != null)
-            {
-                telemetrySource.SnapshotChanged += OnSnapshotChanged;
-                OnSnapshotChanged(telemetrySource.Current);
-            }
-        }
+        private void OnData(DroneFlightData data) { if (data.HasSnapshot) OnSnapshotChanged(data.Snapshot); }
 
         protected override void OnHide()
         {
-            Unsubscribe();
             base.OnHide();
         }
 
         protected override void OnDestroy()
         {
-            Unsubscribe();
             base.OnDestroy();
         }
 
@@ -80,10 +64,6 @@ namespace Hotfix
 
         private static string Number(string value) => $"<color=#F4A23A><mspace=0.6em>{value}</mspace></color>";
 
-        private void Unsubscribe()
-        {
-            if (telemetrySource != null) telemetrySource.SnapshotChanged -= OnSnapshotChanged;
-            telemetrySource = null;
-        }
+
     }
 }

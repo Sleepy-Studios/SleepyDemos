@@ -14,7 +14,7 @@ namespace Core.Runtime
         public static void RegisterInputCommandButton(this View view, Inputs.InputCommandButton button, Action<string> onClick)
         {
             button.Clicked += onClick;
-            view.AddBinding(new CallbackBinding(() => { if (button != null) button.Clicked -= onClick; }));
+            view.AddBinding(new CallbackBinding(() => { if ((object)button != null) button.Clicked -= onClick; }));
         }
 
         /// <summary>绑定按下与释放；公共按钮处理指针归属与禁用释放。</summary>
@@ -25,7 +25,7 @@ namespace Core.Runtime
         public static void RegisterInputCommandHold(this View view, Inputs.InputCommandButton button, Action<string, bool> onHold)
         {
             button.HoldChanged += onHold;
-            view.AddBinding(new CallbackBinding(() => { if (button != null) button.HoldChanged -= onHold; }));
+            view.AddBinding(new CallbackBinding(() => { if ((object)button != null) button.HoldChanged -= onHold; }));
         }
         [ComponentAttribute("On{0}Click", true)]
         public static void RegisterButton(this View view, Button button, UnityAction onClick)

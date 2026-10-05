@@ -26,14 +26,15 @@ namespace Hotfix.DroneFlight
         private GameObject currentDrone;
         private DronePlayerInput currentInput;
         private CancellationTokenSource lifetimeCancellation;
-        private bool isChangingScene;
-        private bool isStarting;
-        private string sessionId;
+        private DroneFlightData data;
+        private bool isChangingScene => data.Mode == DroneFlightSessionMode.Leaving;
+        private bool isStarting => data.Mode == DroneFlightSessionMode.Loading;
+        private string sessionId => data.SessionId;
 
         private void Awake()
         {
             lifetimeCancellation = new CancellationTokenSource();
-            sessionId = Guid.NewGuid().ToString("N");
+            data = GlobalData.Add<DroneFlightData>();
             // 场景协调组件按同对象组合，生命周期固定但不属于 View Prefab 子节点。
             demoExit ??= GetComponent<DroneFlightDemoExit>();
             if (demoExit != null)
@@ -58,6 +59,8 @@ namespace Hotfix.DroneFlight
 
             ReleaseCurrentDrone();
             resourceLoader?.Dispose();
+            data?.Handler.Dispose();
+            if (ReferenceEquals(GlobalData.Get<DroneFlightData>(), data)) GlobalData.Remove<DroneFlightData>();
         }
 
         internal void Configure(Camera waitingCamera, Transform point, DroneFlightUIController controller)
@@ -92,13 +95,13 @@ namespace Hotfix.DroneFlight
             }
 
             await uiController.ShowVehicleSelectAsync(
-                selection => StartSelectedAsync(selection).Forget(), HandleExitRequested, cancellationToken);
+                selection => StartSelectedAsync(selection).Forget(), () => ChangeSceneAsync(false).Forget(), cancellationToken);
         }
 
         private async UniTask StartSelectedAsync(DroneVehicleKind selection)
         {
-            if (isStarting || isChangingScene || currentDrone != null) return;
-            isStarting = true;
+            if (currentDrone != null || isChangingScene) return;
+            int version = data.Version;
             var cancellationToken = lifetimeCancellation.Token;
             try
             {
@@ -113,7 +116,11 @@ namespace Hotfix.DroneFlight
                 await uiController.ClearFlightViewsAsync();
                 uiController.SetSelectionFeedback("准备失败，请重试");
             }
-            finally { isStarting = false; }
+            finally
+            {
+                if (ReferenceEquals(GlobalData.Get<DroneFlightData>(), data))
+                    GlobalData.Dispatch(new DroneFlightSelectionResultAction(version, currentDrone != null));
+            }
         }
 
         private void ReleaseCurrentDrone(bool restoreCamera = false)
@@ -214,19 +221,10 @@ namespace Hotfix.DroneFlight
             ChangeSceneAsync(reload: true).Forget();
         }
 
-        private void HandleExitRequested()
-        {
-            if (isStarting) return;
-            ChangeSceneAsync(reload: false).Forget();
-        }
+        private void HandleExitRequested() => GlobalData.Dispatch(new DroneFlightExitAction());
 
         private async UniTaskVoid ChangeSceneAsync(bool reload)
         {
-            if (isChangingScene)
-            {
-                return;
-            }
-
             var navigator = GameSceneNavigator.Instance;
             if (navigator == null)
             {
@@ -234,7 +232,7 @@ namespace Hotfix.DroneFlight
                 return;
             }
 
-            isChangingScene = true;
+            data.Handler.BeginLeaving();
             if (currentInput != null)
             {
                 currentInput.enabled = false;
@@ -245,7 +243,7 @@ namespace Hotfix.DroneFlight
                 : await navigator.SwitchAsync(GameSceneId.Hub);
             if (result.Status == GameSceneSwitchStatus.Failed)
             {
-                isChangingScene = false;
+                data.Handler.RestoreMode(currentDrone != null);
                 if (currentInput != null)
                 {
                     currentInput.enabled = true;
@@ -260,7 +258,7 @@ namespace Hotfix.DroneFlight
             }
             else if (result.Status is GameSceneSwitchStatus.Busy or GameSceneSwitchStatus.Ignored)
             {
-                isChangingScene = false;
+                data.Handler.RestoreMode(currentDrone != null);
                 if (currentInput != null)
                 {
                     currentInput.enabled = true;

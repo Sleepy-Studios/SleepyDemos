@@ -22,6 +22,7 @@ namespace Hotfix
 
         protected override void OnGameObjectInitialize()
         {
+            BindData<DroneFlightData>(_ => Refresh());
             Button_Close.onClick.AddListener(Close);
             Button_Return.onClick.AddListener(Close);
             UIMenuScope_DroneFlightHelpView.Canceled += Close;
@@ -30,24 +31,21 @@ namespace Hotfix
         protected override void OnShow()
         {
             base.OnShow();
-            InputDeviceState.Changed += Refresh;
             Refresh();
             ScrollRect_Guide.verticalNormalizedPosition = 1;
         }
 
         protected override void OnHide()
         {
-            InputDeviceState.Changed -= Refresh;
             base.OnHide();
         }
 
         protected override void OnDestroy()
         {
-            InputDeviceState.Changed -= Refresh;
             base.OnDestroy();
         }
 
-        private void Close() => params1?.Input?.Execute("Help");
+        private void Close() => GlobalData.Dispatch(new DroneFlightControlAction("Help"));
 
         private string Key(string action, string fallback = "操作面板")
         {

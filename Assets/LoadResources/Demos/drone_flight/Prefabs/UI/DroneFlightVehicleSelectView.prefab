@@ -1845,22 +1845,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
+  - {fileID: 3348419721767921826}
   - {fileID: 8693243379949143821}
   - {fileID: 3945621541717296100}
   - {fileID: 5464111207929182222}
   - {fileID: 3591006900954168251}
   - {fileID: 7844380939734558196}
   - {fileID: 3836582743320648188}
-  - {fileID: 1902459523097549615}
   - {fileID: 665369742349444226}
+  - {fileID: 1902459523097549615}
+  - {fileID: 71998757543257799}
   - {fileID: 4734866895814356456}
   - {fileID: 4971776217383013432}
-  - {fileID: 2236525563134004871}
   - {fileID: 7990691615271507963}
+  - {fileID: 2236525563134004871}
+  - {fileID: 8760780839695367805}
   - {fileID: 859490447474664337}
   - {fileID: 7381153043333749175}
-  - {fileID: 2107241859531809750}
   - {fileID: 5848114342338068066}
+  - {fileID: 2107241859531809750}
+  - {fileID: 3319500071803316734}
   - {fileID: 8225813598375677954}
   - {fileID: 4751562792577197606}
   - {fileID: 6617353081174359487}
@@ -1870,51 +1874,57 @@ MonoBehaviour:
   - {fileID: 461775672310560647}
   - {fileID: 2601210963395552717}
   - {fileID: 494356952539727025}
-  - {fileID: 3348419721767921826}
   componentTypes:
-  - UnityEngine.UI.Image
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - UnityEngine.UI.Button
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Image
-  - UnityEngine.RectTransform
-  - UnityEngine.UI.Button
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Image
-  - UnityEngine.RectTransform
-  - UnityEngine.UI.Button
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Image
-  - UnityEngine.RectTransform
-  - UnityEngine.UI.Button
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - UnityEngine.UI.Button
-  - UnityEngine.RectTransform
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
   - Core.Runtime.Inputs.UIMenuScope
+  - UnityEngine.UI.Image
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Core.Runtime.UIState
+  - UnityEngine.UI.Image
+  - UnityEngine.RectTransform
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Core.Runtime.UIState
+  - UnityEngine.UI.Image
+  - UnityEngine.RectTransform
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Core.Runtime.UIState
+  - UnityEngine.UI.Image
+  - UnityEngine.RectTransform
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Button
+  - UnityEngine.RectTransform
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
   bindingKeys:
+  - DroneFlightVehicleSelectView|Core.Runtime.Inputs.UIMenuScope
   - DroneFlightVehicleSelectView/Content/Hero|UnityEngine.UI.Image
   - DroneFlightVehicleSelectView/Content/Title|TMPro.TextMeshProUGUI
   - DroneFlightVehicleSelectView/Content/Description|TMPro.TextMeshProUGUI
   - DroneFlightVehicleSelectView/Content/Equipment|TMPro.TextMeshProUGUI
   - DroneFlightVehicleSelectView/Content/Operation|TMPro.TextMeshProUGUI
   - DroneFlightVehicleSelectView/Content/Purpose|TMPro.TextMeshProUGUI
-  - DroneFlightVehicleSelectView/Content/PlainButton|UnityEngine.UI.Button
   - DroneFlightVehicleSelectView/Content/PlainButton|UnityEngine.UI.Image
+  - DroneFlightVehicleSelectView/Content/PlainButton|UnityEngine.UI.Button
+  - DroneFlightVehicleSelectView/Content/PlainButton|Core.Runtime.UIState
   - DroneFlightVehicleSelectView/Content/PlainButton/PlainPreview|UnityEngine.UI.Image
   - DroneFlightVehicleSelectView/Content/PlainButton/PlainSelected|UnityEngine.RectTransform
-  - DroneFlightVehicleSelectView/Content/GrappleButton|UnityEngine.UI.Button
   - DroneFlightVehicleSelectView/Content/GrappleButton|UnityEngine.UI.Image
+  - DroneFlightVehicleSelectView/Content/GrappleButton|UnityEngine.UI.Button
+  - DroneFlightVehicleSelectView/Content/GrappleButton|Core.Runtime.UIState
   - DroneFlightVehicleSelectView/Content/GrappleButton/GrapplePreview|UnityEngine.UI.Image
   - DroneFlightVehicleSelectView/Content/GrappleButton/GrappleSelected|UnityEngine.RectTransform
-  - DroneFlightVehicleSelectView/Content/HarpoonButton|UnityEngine.UI.Button
   - DroneFlightVehicleSelectView/Content/HarpoonButton|UnityEngine.UI.Image
+  - DroneFlightVehicleSelectView/Content/HarpoonButton|UnityEngine.UI.Button
+  - DroneFlightVehicleSelectView/Content/HarpoonButton|Core.Runtime.UIState
   - DroneFlightVehicleSelectView/Content/HarpoonButton/HarpoonPreview|UnityEngine.UI.Image
   - DroneFlightVehicleSelectView/Content/HarpoonButton/HarpoonSelected|UnityEngine.RectTransform
   - DroneFlightVehicleSelectView/Content/StartButton|UnityEngine.UI.Button
@@ -1924,8 +1934,9 @@ MonoBehaviour:
   - DroneFlightVehicleSelectView/Content/Hints|UnityEngine.RectTransform
   - DroneFlightVehicleSelectView/Content/Hints/MoveHint|TMPro.TextMeshProUGUI
   - DroneFlightVehicleSelectView/Content/TouchHint|TMPro.TextMeshProUGUI
-  - DroneFlightVehicleSelectView|Core.Runtime.Inputs.UIMenuScope
   bindingMethods:
+  - None
+  - None
   - None
   - None
   - None
@@ -1936,7 +1947,9 @@ MonoBehaviour:
   - None
   - None
   - None
+  - None
   - OnGrappleButtonClick
+  - None
   - None
   - None
   - None
@@ -1948,7 +1961,6 @@ MonoBehaviour:
   - None
   - None
   - OnBackButtonClick
-  - None
   - None
   - None
   - None

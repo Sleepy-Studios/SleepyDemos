@@ -339,7 +339,7 @@ DroneFlight 仍通过 `DroneFlight.asmref` 归属 `Hotfix.dll`，没有新增 `D
 - `Fishing` 负责捕鱼任务编排、贝塞尔路径、演出镜头与任务配置。
 - `Experience` 负责等待/遥控状态切换与相机接管。
 
-这些是正常游戏职责，不因调用 Unity/Core 就统一归入 `Adapters`。业务类型使用 `Hotfix.DroneFlight`，既有 View 保持 `Hotfix` 命名空间；不通过新增程序集或转发层隔离目录。
+这些职责分别由规则、场景与界面代码维护。业务类型使用 `Hotfix.DroneFlight`，既有 View 保持 `Hotfix` 命名空间；不通过新增程序集或转发层隔离目录。
 
 核心目录不能依赖 `Core.Runtime` 的 UI/资源服务、`UIManager`、`ResourceServices`、`GameSceneNavigator` 或上述场景、界面、任务、体验的具体流程类型。输入转换按项目约定复用 `Core.Runtime.Inputs`，不在 Demo 复制设备识别、死区和松键门闩。目录简化不改变依赖方向，该边界由 `DroneFlightPortabilityBoundaryTests` 扫描锁定。
 

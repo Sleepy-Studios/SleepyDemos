@@ -25,6 +25,7 @@ namespace Tests.Demo
         private Gamepad gamepad;
         private InputSettings originalSettings, testSettings;
         private DronePlayerInput input;
+        private DroneFlightData data;
         private DroneFlightController controller;
         private GameObject helpInstance, helpEvents;
         private DroneFlightHelpView helpTestView;
@@ -43,6 +44,8 @@ namespace Tests.Demo
             Assert.That(prefab, Is.Not.Null);
             drone = Object.Instantiate(prefab);
             input = drone.GetComponent<DronePlayerInput>(); controller = drone.GetComponent<DroneFlightController>();
+            data = GlobalData.Add<DroneFlightData>();
+            data.Handler.AttachInput(input);
             Assert.That(input.Session, Is.Not.Null, "正式资产必须保存动作引用，不能使用运行时兜底。");
             input.Session.Asset.devices = new InputDevice[] { gamepad };
             yield return null;
@@ -52,6 +55,7 @@ namespace Tests.Demo
         {
             if(helpTestView != null) yield return helpTestView.HideAsync(false).ToCoroutine();
             Object.Destroy(helpInstance);Object.Destroy(helpEvents);helpTestView=null;helpInstance=helpEvents=null;
+            data.Handler.Dispose(); GlobalData.Remove<DroneFlightData>();
             Object.Destroy(drone);
             if(gamepad != null) InputSystem.RemoveDevice(gamepad);
             if(helpKeyboard != null) InputSystem.RemoveDevice(helpKeyboard);helpKeyboard=null;
@@ -95,7 +99,7 @@ namespace Tests.Demo
             var instance=helpInstance=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHelpView.prefab"));
             var view=helpTestView=new DroneFlightHelpView();
             view.InitWithGameObject(instance);view.SetData(new DroneFlightViewData(null,"help-test",input));
-            input.SetHelpOpen(true);
+            data.Handler.SetHelpRequested(true);
             yield return view.ShowAsync(false).ToCoroutine();
             for(int i=0;i<5;i++) yield return null;
             var index=instance.GetComponent<ComponentItemIndex>();
@@ -103,12 +107,8 @@ namespace Tests.Demo
             Assert.That(device.text,Does.Contain("手柄"));
             Assert.That(EventSystem.current.currentSelectedGameObject,Is.Not.Null);
             Assert.That(EventSystem.current.currentSelectedGameObject.transform.IsChildOf(instance.transform),Is.True);
-            int helpCommands=0;
-            void Observe(string command) { if(command=="Help") helpCommands++; }
-            input.PresentationRequested+=Observe;
             ExecuteEvents.Execute(EventSystem.current.currentSelectedGameObject,new BaseEventData(EventSystem.current),ExecuteEvents.cancelHandler);
-            Assert.That(helpCommands,Is.EqualTo(1));
-            input.PresentationRequested-=Observe;
+            Assert.That(data.HelpRequested, Is.False, "公共Cancel提交帮助关闭Action。");
             InputSystem.RemoveDevice(gamepad);gamepad=null;InputDeviceState.NotifyTouch();yield return null;
             Assert.That(device.text,Is.EqualTo("触屏"));
             var flight=System.Array.Find(index.Components,x=>x.name=="Flight") as TMPro.TextMeshProUGUI;
@@ -176,15 +176,17 @@ namespace Tests.Demo
             scaler.referenceResolution = new Vector2(1920, 1080);
             var events = EventSystem.current == null ? new GameObject("TouchEvents", typeof(EventSystem), typeof(InputSystemUIInputModule)) : null;
             var hud = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView.prefab"), canvas.transform);
-            var presenter = hud.GetComponent<DroneControlsPresenter>();
+            var view = new DroneFlightHudView { Loader = new DroneFlightHudBindingPlayModeTests.OwnedObjectLoader() };
+            view.InitWithGameObject(hud);
+            view.SetData(new DroneFlightViewData(null, data.SessionId, input));
             try
             {
-                presenter.Bind(input); InputDeviceState.NotifyTouch(); yield return null;
+                yield return view.ShowAsync(false).ToCoroutine(); InputDeviceState.NotifyTouch(); yield return null;
                 var backButton = System.Array.Find(hud.GetComponentsInChildren<InputCommandButton>(true), button => button.Command == "Back");
                 Assert.That(backButton != null && backButton.gameObject.activeInHierarchy, Is.True, "飞行期间必须保留触屏返回遥控等待的入口。");
-                var fields = new SerializedObject(presenter);
-                var left = (TouchInputPad)fields.FindProperty("leftPad").objectReferenceValue;
-                var right = (TouchInputPad)fields.FindProperty("rightPad").objectReferenceValue;
+                var index = hud.GetComponent<ComponentItemIndex>();
+                var left = System.Array.Find(index.Components, item => item is TouchInputPad && item.name == "LeftStick") as TouchInputPad;
+                var right = System.Array.Find(index.Components, item => item is TouchInputPad && item.name == "RightStick") as TouchInputPad;
                 Assert.That(left.gameObject.activeInHierarchy, Is.True);
                 Assert.That(right.gameObject.activeInHierarchy, Is.True);
                 var a = new PointerEventData(EventSystem.current) { pointerId = 11, position = new Vector2(100, 100) };
@@ -200,7 +202,7 @@ namespace Tests.Demo
                 right.OnDrag(b); yield return null;
                 Assert.That(controller.CurrentControlInput.Right, Is.Zero, "退出并重新进入遥控不能沿用旧手指。");
                 input.SetPanelOpen(true);
-                var operationPanel = (GameObject)fields.FindProperty("operationPanel").objectReferenceValue;
+                var operationPanel = System.Array.Find(index.Components, item => item is RectTransform && item.name == "OperationPanel").gameObject;
                 var helpButton = System.Array.Find(operationPanel.GetComponentsInChildren<InputCommandButton>(true), button => button.Command == "Help");
                 Assert.That(helpButton, Is.Not.Null);
                 EventSystem.current.SetSelectedGameObject(helpButton.gameObject);
@@ -220,11 +222,11 @@ namespace Tests.Demo
                 System.IO.File.WriteAllBytes(System.IO.Path.Combine(folder, "DroneTouch.png"), shot.EncodeToPNG()); Object.Destroy(shot);
                 input.SetTouchArmHeld(true); yield return null;
                 Assert.That(input.ResetProgress, Is.GreaterThan(0));
-                presenter.enabled = false; yield return null;
+                yield return view.HideAsync(false).ToCoroutine(); yield return null;
                 Assert.That(input.ResetProgress, Is.Zero);
                 Assert.That(controller.IsArmed, Is.False, "HUD 隐藏释放保持输入，不能解释成短按解锁。");
             }
-            finally { Object.Destroy(canvas); if (events != null) Object.Destroy(events); }
+            finally { view.DestroyAsync().Forget(); Object.Destroy(canvas); if (events != null) Object.Destroy(events); }
             yield return null;
         }
 

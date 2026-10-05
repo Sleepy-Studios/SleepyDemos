@@ -11,62 +11,59 @@ namespace Hotfix.DroneFlight
     {
         private DroneFlightViewData viewData;
         private DroneFlightVehicleSelectView vehicleSelectView;
-        private DroneFlightVehicleSelectionData selectionData;
+        private bool hasSelection;
+        private DroneFlightData data;
+        private DroneFlightData Data => data ??= GlobalData.Get<DroneFlightData>();
+        private bool destroyed;
         private DroneFlightHudView hudView;
         private DroneFlightDebugView debugView;
         private DroneFlightHelpView helpView;
-        private bool helpRequested;
+        private bool helpRequested { get => Data?.HelpRequested == true; set { Data?.Handler.SetHelpRequested(value); } }
         private bool helpChanging;
         private bool debugChanging;
         private CancellationTokenSource overlayLifetime = new();
         private DroneFlightDebugDrawRenderer debugDrawRenderer;
-        private bool isDebugPanelVisible;
-        private bool isDebugDrawVisible;
-        private bool isShuttingDown;
+        private bool isDebugPanelVisible { get => Data?.DebugVisible == true; set { Data?.Handler.SetDebugVisible(value); } }
+        private bool isDebugDrawVisible { get => Data?.DebugDrawVisible == true; set { Data?.Handler.SetDebugDraw(value); } }
+        private bool isShuttingDown { get => destroyed || Data?.ShuttingDown == true; set { Data?.Handler.SetShuttingDown(value); } }
 
         private DronePlayerInput input;
         internal void ConfigureInput(DronePlayerInput value)
         {
             if (input != null) input.PresentationRequested -= OnPresentation;
             input = value;
+            Data?.Handler.AttachInput(value, this);
             if (input != null) input.PresentationRequested += OnPresentation;
         }
         private void OnDestroy()
         {
+            destroyed = true;
             isShuttingDown = true;
             overlayLifetime.Cancel(); overlayLifetime.Dispose();
-            input?.SetHelpOpen(false);
+
             input?.SetDebugOpen(false);
             ConfigureInput(null);
+            // 直接卸载场景也要关闭保存的实例，避免下一次进入复用仍可见的旧页面。
+            foreach (var view in new View[] { helpView, debugView, hudView, vehicleSelectView })
+                if (view != null) CloseExpectedAsync(view).Forget();
         }
-        private void OnPresentation(string command)
-        {
-            if (isShuttingDown || viewData == null) return;
-            switch (command)
-            {
-                case "Help":
-                    helpRequested = !helpRequested;
-                    if (!helpChanging) UpdateHelpAsync().Forget();
-                    break;
-                case "DebugDraw": ToggleDebugDraw(); break;
-                case "DebugPanel": ToggleDebugPanelAsync().Forget(); break;
-                case "CopyTelemetry": input.GetComponent<DroneTelemetryRecorder>()?.CopySummary(); break;
-            }
-        }
+        private void OnPresentation(string command) => GlobalData.Dispatch(new DroneFlightControlAction(command));
+        internal bool DebugChanging => debugChanging;
+        internal void SynchronizeHelp() { if (!helpChanging && viewData != null) UpdateHelpAsync().Forget(); }
+        internal void SynchronizeDebug() { if (viewData != null) ToggleDebugPanelAsync().Forget(); }
 
         internal async UniTask<bool> ShowVehicleSelectAsync(
             Action<DroneVehicleKind> onSelected, Action onBack, CancellationToken cancellationToken)
         {
-            selectionData = new DroneFlightVehicleSelectionData(onSelected, onBack);
+            hasSelection = true;
+            Data.Handler.ConfigureSelection(onSelected, onBack, this);
             return await RestoreVehicleSelectAsync(cancellationToken);
         }
 
         private async UniTask<bool> RestoreVehicleSelectAsync(CancellationToken cancellationToken = default)
         {
             isShuttingDown = false;
-            var result = await UIManager.Instance.ShowAsync<DroneFlightVehicleSelectView,
-                DroneFlightVehicleSelectionData>(
-                selectionData,
+            var result = await UIManager.Instance.ShowAsync<DroneFlightVehicleSelectView>(
                 new UIShowOptions(animated: true, hidePrevious: false),
                 cancellationToken);
             if (result.Status == UIOperationStatus.Canceled)
@@ -86,8 +83,7 @@ namespace Hotfix.DroneFlight
 
         internal void SetSelectionFeedback(string message)
         {
-            if (selectionData != null) selectionData.Feedback = message;
-            vehicleSelectView?.SetBusy(false, message);
+            Data.Handler.SetFeedback(message);
         }
 
         internal async UniTask CompleteVehicleSelectAsync()
@@ -96,7 +92,7 @@ namespace Hotfix.DroneFlight
             if (result.Status is not (UIOperationStatus.Succeeded or UIOperationStatus.Ignored))
                 throw result.Exception ?? new InvalidOperationException("机型选择页关闭失败。");
             vehicleSelectView = null;
-            selectionData = null;
+            hasSelection = false;
         }
 
         internal async UniTask ClearFlightViewsAsync()
@@ -132,7 +128,7 @@ namespace Hotfix.DroneFlight
             if (result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored)
             {
                 hudView = result.View as DroneFlightHudView;
-                hudView?.gameObject.GetComponent<DroneControlsPresenter>()?.Bind(input);
+
                 return true;
             }
 
@@ -164,7 +160,7 @@ namespace Hotfix.DroneFlight
         {
             if (viewData == null)
             {
-                return selectionData != null && await RestoreVehicleSelectAsync();
+                return hasSelection && await RestoreVehicleSelectAsync();
             }
 
             isShuttingDown = false;
@@ -173,13 +169,12 @@ namespace Hotfix.DroneFlight
                 viewData,
                 new UIShowOptions(animated: false, hidePrevious: false));
             hudView = result.View as DroneFlightHudView;
-            hudView?.gameObject.GetComponent<DroneControlsPresenter>()?.Bind(input);
+
             return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
         }
 
-        private void ToggleDebugDraw()
+        internal void ApplyDebugDraw()
         {
-            isDebugDrawVisible = !isDebugDrawVisible;
             if (debugDrawRenderer != null) debugDrawRenderer.enabled = isDebugDrawVisible;
         }
 
@@ -222,7 +217,7 @@ namespace Hotfix.DroneFlight
             }
             finally
             {
-                if (isShuttingDown || debugView == null) input?.SetDebugOpen(false);
+                if (isShuttingDown || debugView == null) Data?.Handler.SetDebugVisible(false);
                 debugChanging = false;
             }
         }
@@ -230,14 +225,13 @@ namespace Hotfix.DroneFlight
         private async UniTask UpdateHelpAsync()
         {
             helpChanging = true;
-            var owner = input;
             try
             {
                 while (!isShuttingDown && helpRequested != (helpView != null))
                 {
                     if (helpRequested)
                     {
-                        owner?.SetHelpOpen(true);
+
                         var show = await UIManager.Instance.ShowAsync<DroneFlightHelpView, DroneFlightViewData>(
                             viewData, new UIShowOptions(animated: false, hidePrevious: false), overlayLifetime.Token);
                         if (isShuttingDown) { await CloseExpectedAsync(show.View); break; }
@@ -246,7 +240,7 @@ namespace Hotfix.DroneFlight
                         else
                         {
                             helpRequested = false;
-                            owner?.SetHelpOpen(false);
+
                             if (show.Status == UIOperationStatus.Failed)
                                 Debug.LogError($"[DroneFlight] 操作指南打开失败：{show.Exception?.Message}", this);
                         }
@@ -261,13 +255,13 @@ namespace Hotfix.DroneFlight
                             break;
                         }
                         helpView = null;
-                        owner?.SetHelpOpen(false);
+
                     }
                 }
             }
             finally
             {
-                if (isShuttingDown || helpView == null) owner?.SetHelpOpen(false);
+                if (isShuttingDown || helpView == null) Data?.Handler.SetHelpRequested(false);
                 helpChanging = false;
             }
         }
@@ -278,7 +272,7 @@ namespace Hotfix.DroneFlight
             helpRequested = false;
             overlayLifetime.Cancel();
             await UniTask.WaitUntil(() => !helpChanging && !debugChanging);
-            input?.SetHelpOpen(false);
+
             input?.SetDebugOpen(false);
         }
 

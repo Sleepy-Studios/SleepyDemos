@@ -72,13 +72,8 @@ namespace Tests.Demo
                 Assert.That(image.sprite, Is.Not.Null, name);
                 Assert.That(image.preserveAspect, Is.True, name + " 不得拉伸实际模型");
             }
-            // HUD 仅装配三端操作表现；飞控与体验编排仍由场景持有。
-            Assert.That(hud.GetComponent<DroneControlsPresenter>(), Is.Not.Null);
-            Assert.That(hud.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
-                component => component.GetType().Name.EndsWith("Presenter") &&
-                             component is not DroneControlsPresenter));
-            Assert.That(debug.GetComponents<MonoBehaviour>(), Has.None.Matches<MonoBehaviour>(
-                component => component.GetType().Name.EndsWith("Presenter")));
+            Assert.That(hudIndex.Components.OfType<Core.Runtime.Inputs.TouchInputPad>().Count(), Is.EqualTo(2), "两个触控区承载四轴操作。");
+            Assert.That(hudIndex.Components.OfType<Core.Runtime.Inputs.InputCommandButton>(), Is.Not.Empty);
             Assert.That(hud.GetComponent<DroneHudLayout>(), Is.Not.Null);
             var group = hudIndex.Components.OfType<CanvasGroup>().Single(value => value.name == "TelemetryRoot");
             Assert.That(group.blocksRaycasts, Is.False);

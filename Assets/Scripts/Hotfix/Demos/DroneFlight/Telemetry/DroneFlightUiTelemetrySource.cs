@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using UnityEngine;
 
@@ -47,13 +48,14 @@ namespace Hotfix.DroneFlight
         private Vector3 homePosition;
         private float nextRefreshTime;
 
-        public event Action<DroneFlightUiSnapshot> SnapshotChanged;
+        private string sessionId;
 
         public DroneFlightUiSnapshot Current { get; private set; }
 
         internal void Configure(DroneFlightSceneContext value, DroneDiagnosticsConfig diagnosticsConfig = null)
         {
             context = value;
+            sessionId = GlobalData.Get<DroneFlightData>()?.SessionId;
             if (diagnosticsConfig != null)
             {
                 config = diagnosticsConfig;
@@ -127,7 +129,7 @@ namespace Hotfix.DroneFlight
                 progress,
                 holdSeconds,
                 visible);
-            SnapshotChanged?.Invoke(Current);
+            if (sessionId != null) GlobalData.Dispatch(new DroneFlightTelemetryAction(sessionId, Current));
         }
 
         internal static string FormatGear(DroneLandingGearState state) => state switch

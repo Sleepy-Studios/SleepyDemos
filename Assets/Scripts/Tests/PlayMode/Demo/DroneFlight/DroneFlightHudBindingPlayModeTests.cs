@@ -31,33 +31,27 @@ namespace Tests.Demo
             var height = FindBoundText(index, "HeightText");
             var camera = FindBoundText(index, "CameraText");
             var view = new DroneFlightHudView { Loader = new OwnedObjectLoader() };
+            var state = GlobalData.Add<DroneFlightData>();
             view.InitWithGameObject(instance);
             yield return view.ShowAsync(false).ToCoroutine();
             var hud = new Hotfix.DroneFlight.DroneHudSnapshot(
                 Hotfix.DroneFlight.DroneFlightOperationState.Flying, Hotfix.DroneFlight.DroneResponseProfile.Normal,
                 true, 0, 12.5f, 3, -1, 7, false, Hotfix.DroneFlight.DroneCameraMode.ThirdPerson, 0, 0, 60);
             var snapshot = new Hotfix.DroneFlight.DroneFlightUiSnapshot(hud, default, "", "", default, 0, 5, true);
-            var oldSource = new GameObject("OldHudTelemetry").AddComponent<DroneFlightUiTelemetrySource>();
-            var newSource = new GameObject("NewHudTelemetry").AddComponent<DroneFlightUiTelemetrySource>();
-            typeof(DroneFlightUiTelemetrySource).GetProperty("Current").SetValue(oldSource, snapshot);
-            view.SetData(new DroneFlightViewData(oldSource, "old-session"));
+            GlobalData.Dispatch(new DroneFlightTelemetryAction(state.SessionId, snapshot));
             StringAssert.Contains("12.5", ReadText(height));
             StringAssert.Contains("第三人称", ReadText(camera));
             var newHud = new DroneHudSnapshot(DroneFlightOperationState.Flying, DroneResponseProfile.Normal,
                 true, 0, 23.4f, 3, -1, 7, false, DroneCameraMode.Orbit, 0, 0, 60);
             var newSnapshot = new DroneFlightUiSnapshot(newHud, default, "", "", default, 0, 5, true);
-            typeof(DroneFlightUiTelemetrySource).GetProperty("Current").SetValue(newSource, newSnapshot);
-            view.SetData(new DroneFlightViewData(newSource, "new-session"));
-            var oldListeners = typeof(DroneFlightUiTelemetrySource).GetField("SnapshotChanged",
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(oldSource) as System.Action<DroneFlightUiSnapshot>;
-            oldListeners?.Invoke(snapshot);
+            GlobalData.Dispatch(new DroneFlightTelemetryAction(state.SessionId, newSnapshot));
+            GlobalData.Dispatch(new DroneFlightTelemetryAction("old-session", snapshot));
             StringAssert.Contains("23.4", ReadText(height), "显示中的 HUD 应切换数据源，旧机体不能继续覆盖读数。");
             StringAssert.Contains("环绕", ReadText(camera));
             var fault = new DroneHudSnapshot(DroneFlightOperationState.Fault, DroneResponseProfile.Normal,
                 false, 0, 23.4f, 0, 0, 7, false, DroneCameraMode.Orbit, 0, 0, 60);
-            typeof(DroneFlightUiTelemetrySource).GetProperty("Current").SetValue(newSource,
-                new DroneFlightUiSnapshot(fault, default, "", "飞控故障", default, 0, 5, true));
-            view.SetData(new DroneFlightViewData(newSource, "fault-session"));
+            GlobalData.Dispatch(new DroneFlightTelemetryAction(state.SessionId,
+                new DroneFlightUiSnapshot(fault, default, "", "飞控故障", default, 0, 5, true)));
             var warning = (TMPro.TextMeshProUGUI)FindBoundText(index, "WarningText");
             Assert.That(warning.transform.parent.gameObject.activeInHierarchy, Is.True);
             Assert.That(warning.color.r, Is.GreaterThan(warning.color.g * 2f), "飞控故障使用红色提示。");
@@ -66,8 +60,8 @@ namespace Tests.Demo
                 if (component is CanvasGroup group && group.name == "TelemetryRoot")
                     Assert.That(group.blocksRaycasts, Is.False);
             yield return view.DestroyAsync().ToCoroutine();
-            Object.Destroy(oldSource.gameObject);
-            Object.Destroy(newSource.gameObject);
+            state.Handler.Dispose();
+            GlobalData.Remove<DroneFlightData>();
             yield return null;
 
             Assert.That(view.State, Is.EqualTo(ViewState.Destroyed));
@@ -97,7 +91,7 @@ namespace Tests.Demo
             return (string)component.GetType().GetProperty("text")?.GetValue(component);
         }
 
-        private sealed class OwnedObjectLoader : IResourceLoader
+        internal sealed class OwnedObjectLoader : IResourceLoader
         {
             public GameObject Instantiate(string address, Transform parent)
             {

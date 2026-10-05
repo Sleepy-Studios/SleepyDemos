@@ -20,11 +20,19 @@ namespace Core.Runtime.Inputs
         /// 拥有指针的保持状态，禁用时配对释放。
         public event Action<string, bool> HoldChanged;
         private void OnEnable() => GetComponent<Button>().onClick.AddListener(OnClick);
+        private void OnApplicationFocus(bool focused) { if (!focused) ReleaseHold(); }
+        private void OnApplicationPause(bool paused) { if (paused) ReleaseHold(); }
+        private void ReleaseHold()
+        {
+            bool held = pointerId != int.MinValue;
+            if (held) HoldChanged?.Invoke(command, false);
+            pointerId = int.MinValue;
+            releaseFrame = held ? Time.frameCount : -1;
+        }
         private void OnDisable()
         {
             GetComponent<Button>().onClick.RemoveListener(OnClick);
-            if (pointerId != int.MinValue) HoldChanged?.Invoke(command, false);
-            pointerId = int.MinValue; releaseFrame = -1;
+            ReleaseHold();
         }
         private void OnClick()
         {
