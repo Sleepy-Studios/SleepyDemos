@@ -5532,7 +5532,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9076845827058925693}
-  - component: {fileID: 8332537205160003007}
+  - component: {fileID: 3473815822534304572}
   m_Layer: 0
   m_Name: DlssControls
   m_TagString: Untagged
@@ -5561,7 +5561,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8332537205160003007
+--- !u!114 &3473815822534304572
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5570,22 +5570,57 @@ MonoBehaviour:
   m_GameObject: {fileID: 7947693933767471944}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fa6806591a5a46d4d8a414a6c8525f8f, type: 3}
+  m_Script: {fileID: 11500000, guid: 3bd3bb9248fe72348879f4c6c2db983e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.Dlss.DlssControlsPresenter
-  touchControls: {fileID: 8719447757094978236}
-  movePad: {fileID: 2701160044641782600}
-  lookPad: {fileID: 4406150909330601613}
-  buttons:
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
+  components:
+  - {fileID: 8935949479854971063}
+  - {fileID: 2701160044641782600}
+  - {fileID: 4406150909330601613}
   - {fileID: 7329404919098019311}
-  - {fileID: 5793220868770344257}
-  - {fileID: 5229872948598526330}
-  - {fileID: 8885258989848687803}
-  prompts:
   - {fileID: 4935081453201219064}
+  - {fileID: 5793220868770344257}
   - {fileID: 8026284918987503033}
+  - {fileID: 5229872948598526330}
   - {fileID: 1458194794014895106}
+  - {fileID: 8885258989848687803}
   - {fileID: 2394164387536639243}
+  componentTypes:
+  - UnityEngine.RectTransform
+  - Core.Runtime.Inputs.TouchInputPad
+  - Core.Runtime.Inputs.TouchInputPad
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  - Core.Runtime.Inputs.InputCommandButton
+  - Core.Runtime.Inputs.InputBindingPrompt
+  bindingKeys:
+  - DlssControls/TouchControls|UnityEngine.RectTransform
+  - DlssControls/TouchControls/Move|Core.Runtime.Inputs.TouchInputPad
+  - DlssControls/TouchControls/Look|Core.Runtime.Inputs.TouchInputPad
+  - DlssControls/TouchControls/Sprint|Core.Runtime.Inputs.InputCommandButton
+  - "DlssControls/TouchControls/Sprint/Prompt_\u6309\u4F4F\u52A0\u901F|Core.Runtime.Inputs.InputBindingPrompt"
+  - DlssControls/TouchControls/Reset|Core.Runtime.Inputs.InputCommandButton
+  - "DlssControls/TouchControls/Reset/Prompt_\u91CD\u7F6E\u89C6\u89D2|Core.Runtime.Inputs.InputBindingPrompt"
+  - DlssControls/TouchControls/Settings|Core.Runtime.Inputs.InputCommandButton
+  - "DlssControls/TouchControls/Settings/Prompt_\u753B\u8D28\u8BBE\u7F6E|Core.Runtime.Inputs.InputBindingPrompt"
+  - DlssControls/TouchControls/Exit|Core.Runtime.Inputs.InputCommandButton
+  - "DlssControls/TouchControls/Exit/Prompt_\u8FD4\u56DE Hub|Core.Runtime.Inputs.InputBindingPrompt"
+  bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
 --- !u!1 &8309880272821557046
 GameObject:
   m_ObjectHideFlags: 0

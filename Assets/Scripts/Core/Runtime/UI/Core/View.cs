@@ -375,8 +375,8 @@ namespace Core.Runtime
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                gameObject.SetActive(false);
                 SetDataBindingsActive(false);
+                gameObject.SetActive(false);
                 OnHide();
                 State = ViewState.LoadedHidden;
             }
@@ -415,6 +415,7 @@ namespace Core.Runtime
             finally
             {
                 ForceDisable = false;
+                if (!active) SetDataBindingsActive(false);
                 gameObject.SetActive(active);
                 State = snapshotState == ViewState.Visible
                     ? ViewState.Visible

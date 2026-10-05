@@ -12,36 +12,27 @@ namespace Hotfix
     {
         protected override void OnGameObjectInitialize()
         {
+            BindData<GraphicsSettingsData>(RefreshState);
             UIMenuScope_SettingsPanel.Canceled += OnCloseButtonClick;
         }
-        protected override void OnShow()
-        {
-            base.OnShow();
-            StreamlineRuntime.Changed += RefreshState;
-            RefreshState();
-        }
-        protected override void OnHide()
-        {
-            StreamlineRuntime.Changed -= RefreshState;
-            base.OnHide();
-        }
+        protected override void OnHide() { GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction()); base.OnHide(); }
         protected override void OnDestroy()
         {
             UIMenuScope_SettingsPanel.Canceled -= OnCloseButtonClick;
-            StreamlineRuntime.Changed -= RefreshState;
+            GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction());
             base.OnDestroy();
         }
-        private void RefreshState()
+        private void RefreshState(GraphicsSettingsData data)
         {
-            TextMeshProUGUI_DeviceText.text = SystemInfo.graphicsDeviceName + "\n" + SystemInfo.graphicsDeviceType;
-            var mode = StreamlineRuntime.RequestedMode;
+            TextMeshProUGUI_DeviceText.text = data.Hardware?.GraphicsDeviceName + "\n" + data.Hardware?.GraphicsDeviceType;
+            var mode = data.RequestedMode;
             string selected = mode == StreamlineDlssMode.Dlaa ? "DLAA" : mode?.ToString() ?? "关闭";
-            TextMeshProUGUI_ModeText.text = "选择：" + selected + "\n生效：" + (StreamlineRuntime.EffectiveMode?.ToString() ?? "关闭");
-            var input = StreamlineRuntime.InputSize;
-            var output = StreamlineRuntime.OutputSize;
+            TextMeshProUGUI_ModeText.text = "选择：" + selected + "\n生效：" + (data.EffectiveMode?.ToString() ?? "关闭");
+            var input = data.InputSize;
+            var output = data.OutputSize;
             TextMeshProUGUI_ResolutionText.text = $"输入 {input.x} x {input.y}\n输出 {output.x} x {output.y}";
-            TextMeshProUGUI_StatusText.text = StreamlineRuntime.Status;
-            bool enabled = !StreamlineRuntime.IsBusy;
+            TextMeshProUGUI_StatusText.text = data.Status;
+            bool enabled = !data.IsBusy;
             SetButton(Button_OffButton, !mode.HasValue, enabled);
             SetButton(Button_QualityButton, mode == StreamlineDlssMode.Quality, enabled);
             SetButton(Button_BalancedButton, mode == StreamlineDlssMode.Balanced, enabled);
@@ -56,12 +47,12 @@ namespace Hotfix
             button.GetComponent<UIState>().SetState(selected ? "Selected" : "Normal");
         }
 
-        private void OnOffButtonClick() => StreamlineRuntime.SetMode(null);
-        private void OnQualityButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
-        private void OnBalancedButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.Balanced);
-        private void OnPerformanceButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.Performance);
-        private void OnUltraPerformanceButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.UltraPerformance);
-        private void OnDlaaButtonClick() => StreamlineRuntime.SetMode(StreamlineDlssMode.Dlaa);
+        private void OnOffButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(null));
+        private void OnQualityButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Quality));
+        private void OnBalancedButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Balanced));
+        private void OnPerformanceButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Performance));
+        private void OnUltraPerformanceButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.UltraPerformance));
+        private void OnDlaaButtonClick() => GlobalData.Dispatch(new GraphicsSettingsSetModeAction(StreamlineDlssMode.Dlaa));
         private void OnCloseButtonClick() => UIManager.Instance.CloseAsync<DlssSettingsView>().Forget();
     }
 }

@@ -49,7 +49,7 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 启用期间克隆当前 URP 配置，保留 Renderer 和 Volume 设置，不写回项目资产；只在世界相机渲染时使用 SDK 比例。目标纹理维持全输出尺寸，以保留玩法相机的屏幕坐标语义。DLSS 在后处理之前输出，公共呈现相机随后以比例 1 合成 UI。原来未启用后处理的相机临时使用空 Volume 层，以获取时域抖动且不引入额外场景效果。关闭恢复目标、抗锯齿、后处理、深度、动态分辨率及原管线。
 
-公共面板位于 `Hotfix/Module/GraphicsSettings`，使用既有 UIManager 的普通 Pop/Modal，按需加载，关闭后销毁；打开和关闭不改变已保存画质。资源位于 `LoadResources/UI/GraphicsSettings`，直接维护保存的 Prefab 并用 UIBind 更新绑定；实验室只包含场景与观察交互，Renderer 配置工具属于 Core.Editor。
+公共面板位于 `Hotfix/Module/GraphicsSettings`。`GraphicsSettingsSetModeAction` 经 Handler 调用 Streamline，服务 Changed 将真实状态发布到 GraphicsSettingsData，View 自动订阅。面板使用既有 UIManager 的普通 Pop/Modal，按需加载，关闭后销毁；打开和关闭不改变已保存画质。资源位于 `LoadResources/UI/GraphicsSettings`，直接维护保存的 Prefab 并用 UIBind 更新绑定；实验室只包含场景与观察交互，Renderer 配置工具属于 Core.Editor。
 
 通过 `UIManager.Instance.ShowAsync<DlssSettingsView>()` 打开，关闭按钮与 UIMenuScope 的 Cancel 调用 `CloseAsync<DlssSettingsView>()`。Pop 使用公共遮罩与淡入缩放过渡，点击遮罩可关闭；UIManager 和公共菜单作用域恢复原入口焦点。启动和 Demo 直启均不预加载设置 UI，不再提供全局右上角 OpenButton；GraphicsSettingsUI 和各页面入口抑制作用域已删除。
 

@@ -65,6 +65,19 @@ namespace Tests.Module
             }
         }
 
+        [UnityTest]
+        public IEnumerator BuildUIRoot_RebindsAfterPreviousBaseCameraIsDestroyed()
+        {
+            var manager = UIRootManager.Instance;
+            var replacement = new GameObject("Temporary scene camera", typeof(Camera));
+            manager.BindToBaseCamera(replacement.GetComponent<Camera>());
+            Object.Destroy(replacement);
+            yield return null;
+            yield return manager.BuildUIRootAsync().ToCoroutine();
+            Assert.That(manager.BaseCamera, Is.SameAs(Camera.main));
+            Assert.That(manager.BaseCamera.GetUniversalAdditionalCameraData().cameraStack, Does.Contain(manager.UICamera));
+        }
+
         [Test]
         public void BuildUIRoot_CreatesConfiguredRootCanvasAndPerspectiveCamera()
         {

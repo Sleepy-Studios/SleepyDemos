@@ -52,6 +52,9 @@ namespace Core.Runtime
         {
             if (Root != null)
             {
+                // 再次进入启动场景时复用 UI 根，但基础相机属于新的场景实例。
+                var camera = Camera.main;
+                if (BaseCamera == null && camera != null) BindToBaseCamera(camera);
                 return;
             }
 

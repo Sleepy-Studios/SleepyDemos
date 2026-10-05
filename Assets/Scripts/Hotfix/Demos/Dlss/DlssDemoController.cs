@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 using Core.Runtime.Rendering.Streamline;
@@ -14,46 +16,35 @@ namespace Hotfix.Dlss
     {
         [SerializeField] private InputActionAsset actions;
         private InputActionSession input;
-        private IResourceLoader controlsLoader;
-        private GameObject controlsObject;
-        private bool loadingControls;
-        private DlssControlsPresenter controls;
+        private DlssData data;
+        private readonly CancellationTokenSource lifetime = new();
+        private bool IsCurrent => !lifetime.IsCancellationRequested && ReferenceEquals(GlobalData.Get<DlssData>(), data);
+        private DlssControlsView controls;
         internal InputActionSession Actions => input;
-        internal bool AcceptsControls => !exiting && !SettingsOpen;
-        private bool SettingsOpen => UIManager.Instance.Get<DlssSettingsView>()?.IsEnable == true;
+        internal bool AcceptsControls => data != null && !data.IsExiting && !SettingsOpen;
+        private bool SettingsOpen => data?.SettingsOpen == true;
         [SerializeField] private Camera worldCamera;
         [SerializeField] private Transform movingObject;
         [SerializeField] private Transform spinningObject;
         private Vector3 homePosition, movingOrigin;
         private Quaternion homeRotation;
         private float yaw, pitch;
-        private bool exiting;
+        private bool exiting => data?.IsExiting == true;
         private readonly GameplayInputSettings inputSettings = new();
 
-        private async UniTaskVoid Start()
+        private void Start() => InitializeAsync().Forget();
+
+        private async UniTask InitializeAsync()
         {
             homePosition = worldCamera.transform.position;
             homeRotation = worldCamera.transform.rotation;
             movingOrigin = movingObject != null ? movingObject.position : Vector3.zero;
             ResetCamera();
             input = new InputActionSession(actions); input.SetMap("Observe");
-            controlsLoader = ResourceServices.CreateLoader();
-            var loader = controlsLoader;
-            loadingControls = true;
-            try
-            {
-                var instance = await loader.InstantiateAsync("LoadResources/Demos/dlss/Prefabs/UI/DlssControls", UIRootManager.Instance.GetRoot(UILayer.Decorate));
-                if (this == null) { if (instance != null) loader.ReleaseInstance(instance); return; }
-                if (instance == null) return;
-                controlsObject = instance;
-                controls = instance.GetComponent<DlssControlsPresenter>(); controls.Bind(this);
-            }
-            finally
-            {
-                // 加载器尚在等待时不提前释放资源句柄；场景销毁后的迟到实例也由同一所有者回收。
-                loadingControls = false;
-                if (this == null) loader.Dispose();
-            }
+            data = GlobalData.Add(new DlssData(this));
+            var opened = await UIManager.Instance.ShowAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIShowOptions(false), lifetime.Token);
+            if(opened.Status==UIOperationStatus.Failed) throw opened.Exception;
+            if (IsCurrent) controls = opened.View as DlssControlsView;
         }
 
         private void Update()
@@ -72,10 +63,10 @@ namespace Hotfix.Dlss
             string map = SettingsOpen ? "Menu" : "Observe";
             if (input.Map?.name != map)
             {
-                input.SetMap(map); controls?.gameObject.SetActive(!SettingsOpen);
+                input.SetMap(map);
             }
             if (SettingsOpen) return;
-            if (input.Pressed("Reset")) ResetCamera();
+            if (input.Pressed("Reset")) GlobalData.Dispatch(new DlssControlAction("Reset"));
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
             Vector2 mouse = input.Held("LookHold") && !overUi ? input.Read<Vector2>("MouseLook") : Vector2.zero;
             Vector2 pad = input.ReadVector("Look");
@@ -89,18 +80,39 @@ namespace Hotfix.Dlss
         }
 
         /// 打开公共设置并马上退出观察动作；关闭后等松键再恢复。
-        public void OpenSettings()
+        public void OpenSettings() => GlobalData.Dispatch(new DlssControlAction("Settings"));
+        internal void ShowSettings() => ShowSettingsAsync().Forget();
+        private async UniTask ShowSettingsAsync()
         {
-            UIManager.Instance.ShowAsync<DlssSettingsView>().Forget();
-            input?.SetMap("Menu"); controls?.gameObject.SetActive(false);
+            if (!IsCurrent) return;
+            input?.SetMap("Menu");
+            if(controls!=null) await UIManager.Instance.CloseAsync(controls,false);
+            var result=await UIManager.Instance.ShowAsync<DlssSettingsView>(cancellationToken: lifetime.Token);
+            if(IsCurrent && result.Status==UIOperationStatus.Failed) { Debug.LogException(result.Exception,this); GlobalData.Dispatch(new DlssSettingsClosedAction()); }
+        }
+        internal void RestoreControls() => RestoreControlsAsync().Forget();
+        private async UniTask RestoreControlsAsync()
+        {
+            if (!IsCurrent) return;
+            input?.SetMap("Observe");
+            var opened=await UIManager.Instance.ShowAsync<DlssControlsView>(view=>view.SetData(input.Asset),new UIShowOptions(false), lifetime.Token);
+            if(IsCurrent && opened.Status==UIOperationStatus.Failed) Debug.LogException(opened.Exception,this);
+            if (IsCurrent) controls=opened.View as DlssControlsView;
         }
         private void OnDestroy()
         {
-            input?.Dispose();
-            if (controlsObject != null) controlsLoader?.ReleaseInstance(controlsObject);
-            if (!loadingControls) controlsLoader?.Dispose();
+            lifetime.Cancel();
+            input?.Dispose(); data?.Handler.Dispose();
+            if(controls!=null) DisposeControlsAsync(controls).Forget();
+            if(ReferenceEquals(GlobalData.Get<DlssData>(),data)) GlobalData.Remove<DlssData>();
+            lifetime.Dispose();
         }
-
+        private static async UniTask DisposeControlsAsync(DlssControlsView view)
+        {
+            await UIManager.Instance.CloseAsync(view,false);
+            UIManager.Instance.cacheStack.Remove(view);
+            await view.DestroyAsync();
+        }
         /// 恢复初始视角并重置时域历史。
         public void ResetCamera()
         {
@@ -112,16 +124,13 @@ namespace Hotfix.Dlss
         }
 
         /// 返回 Hub，先收口具体 View 和 GPU 会话。
-        public void RequestExit()
+        public void RequestExit() => GlobalData.Dispatch(new DlssControlAction("Exit"));
+        internal void ExitScene() => ExitAsync().Forget();
+        private async UniTask ExitAsync()
         {
-            if (!exiting) ExitAsync().Forget();
-        }
-
-        private async UniTaskVoid ExitAsync()
-        {
-            exiting = true;
-            var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
-            if (result.Status == GameSceneSwitchStatus.Failed) exiting = false;
+            if(controls!=null) { await DisposeControlsAsync(controls); controls=null; }
+            var result=await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
+            if(IsCurrent && result.Status!=GameSceneSwitchStatus.Succeeded) { data.Handler.Restore(); RestoreControls(); }
         }
     }
 }

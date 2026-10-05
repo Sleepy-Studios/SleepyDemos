@@ -24,17 +24,19 @@
 
 ## 验证
 
-相关 PlayMode 用例 `Tests.Demo.DlssDemoFlowTests.FormalStartupModesAndHubReturn` 检查正式启动、DroneFlight 实际选择和退出、Hub 与实验室沿用设置、各档画面、面板开关、窗口变化、暂停恢复、屏幕坐标及不支持相机回退。2026-09-22 双后端公共流程已通过，另已通过失败回滚、Editor 直启与设置持久化检查。未执行全量测试。本地提交后暂停 Goal，等待用户体验。
+相关 PlayMode 用例 `Tests.Demo.DlssDemoFlowTests.FormalStartupModesAndHubReturn` 检查正式启动、DroneFlight 实际选择和退出、Hub 与实验室沿用设置、各档画面、面板开关、窗口变化、暂停恢复、屏幕坐标及不支持相机回退。2026-09-22 双后端公共流程已通过，另已通过失败回滚、Editor 直启与设置持久化检查。未执行全量测试。
 
 截图和原始报告只放临时目录；用户体验重点是画面差异、相机控制和 UI 手感。
 
 观察输入使用 Core InputActionSession；设置打开时停止 Observe，关闭后经过中立门闩恢复。DLSS 功能仍受 GPU/平台限制，移动端使用已有不支持时的原生渲染回退；三端输入接入不表示 Android 支持 DLSS。
 
 
-## 公共 UI 复用（2026-10-05）
+## 状态与页面生命周期
 
-观察控件继续保存于 DlssControls.prefab，按钮复用 InputCommandButton、UIStateInteraction；DlssControlsPresenter 重复 Bind 先解除旧订阅，销毁时配对释放并清除保持输入。公共设置以普通 Pop 打开期间，观察动作切换到 Menu 并隐藏观察控件；关闭销毁 Pop 后恢复 Observe 和原观察会话。
+`DlssAction → DlssHandler → DlssData` 管理重置、设置、退出和触屏加速请求；场景控制器保留相机移动、连续轴采样与演示物体动画。Data 随场景注册和移除，页面加载使用场景取消令牌，完成后核对注册实例。
 
-画质设置继续复用公共 DlssSettingsView，不另建 Demo 设置页。画质模式的 Normal/Selected 由各按钮 UIState 持有，独立反馈层只处理焦点边框、按压缩放等交互属性，避免 RefreshState 与交互反馈覆盖同一底色。
+观察控件仍使用原地址 `DlssControls.prefab`，现在由 `DlssControlsView` 和 UIManager 管理。UIBind 生成组件引用和输入回调，View 声明一次 Data 绑定；隐藏前由 Core 退订，输入组件禁用时释放保持操作。打开设置关闭观察 View，关闭设置重新显示缓存 View，离场销毁该 View。
 
-本次定向生命周期测试 fb10ffa1（1/1）验证重复绑定只有一份按钮订阅、隐藏释放保持输入、再次显示不延续 Sprint、销毁配对解除。此次不运行 GPU 模式/图像质量全量测试；模式底色与交互反馈分离属于公共画质界面修改。
+公共 `GraphicsSettingsData/Handler` 随 FluxService 注册。模式按钮派发 Action，Handler 调用现有 Streamline 服务；Data 发布服务实际请求档位、生效档位、尺寸和反馈。显示状态不推测 GPU 执行结果。
+
+本轮定向验证：观察控件生命周期、设置阻断恢复、Editor 直启和偏好测试通过。GPU 综合用例在原有“画面不能为空”断言失败，截图为全黑；运行时相机已启用，Game View 未呈现，画面验收仍待解决。没有运行全项目测试。

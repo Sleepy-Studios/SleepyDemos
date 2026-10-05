@@ -34,11 +34,21 @@ namespace Tests.Demo
             var session = new Core.Runtime.Inputs.InputActionSession(asset);
             typeof(DlssDemoController).GetField("input", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(owner, session);
             var controls = Object.Instantiate(UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/dlss/Prefabs/UI/DlssControls.prefab"));
-            var presenter = controls.GetComponent<DlssControlsPresenter>();
+            var presenter = new DlssControlsView { Loader = new DroneFlightHudBindingPlayModeTests.OwnedObjectLoader() };
+            var state = GlobalData.Add(new DlssData(owner));
+            presenter.InitWithGameObject(controls);
+            var index = controls.GetComponent<ComponentItemIndex>();
+            Assert.That(index.Components, Has.None.Null);
+            for (int i = 0; i < index.Components.Length; i++)
+            {
+                Assert.That(index.ComponentTypes[i], Is.EqualTo(index.Components[i].GetType().FullName));
+                Assert.That(index.BindingKeys[i], Is.Not.Empty);
+            }
             var buttons = controls.GetComponentsInChildren<Core.Runtime.Inputs.InputCommandButton>(true);
             try
             {
-                presenter.Bind(owner); presenter.Bind(owner);
+                presenter.SetData(session.Asset); presenter.SetData(session.Asset);
+                yield return presenter.ShowAsync(false).ToCoroutine();
                 foreach (var button in buttons)
                     foreach (var name in new[] { "Clicked", "HoldChanged" })
                     {
@@ -50,18 +60,18 @@ namespace Tests.Demo
                 Assert.That(sprint, Is.Not.Null);
                 sprint.OnPointerDown(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current) { pointerId = 15 });
                 Assert.That(presenter.Sprint, Is.True);
-                controls.SetActive(false); yield return null;
+                yield return presenter.HideAsync(false).ToCoroutine(); yield return null;
                 Assert.That(presenter.Sprint, Is.False);
-                controls.SetActive(true); yield return null;
+                yield return presenter.ShowAsync(false).ToCoroutine(); yield return null;
                 Assert.That(presenter.Sprint, Is.False);
-                Object.Destroy(controls); yield return null;
+                yield return presenter.DestroyAsync().ToCoroutine(); yield return null;
                 foreach (var button in buttons)
                 {
                     var callbacks = typeof(Core.Runtime.Inputs.InputCommandButton).GetField("Clicked", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(button) as Delegate;
                     Assert.That(callbacks, Is.Null, "销毁配对解除订阅");
                 }
             }
-            finally { if (controls != null) Object.Destroy(controls); Object.Destroy(host); }
+            finally { state.Handler.Dispose(); GlobalData.Remove<DlssData>(); if (controls != null) Object.Destroy(controls); Object.Destroy(host); }
             yield return null;
         }
 
@@ -78,9 +88,9 @@ namespace Tests.Demo
             Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null);
             yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Dlss).ToCoroutine();
             DlssDemoController owner = null;
-            yield return WaitUntil(() => (owner = Object.FindFirstObjectByType<DlssDemoController>()) != null && owner.Actions != null && Object.FindFirstObjectByType<DlssControlsPresenter>() != null, "观察控件");
+            yield return WaitUntil(() => (owner = Object.FindFirstObjectByType<DlssDemoController>()) != null && owner.Actions != null && UIManager.Instance.Get<DlssControlsView>() != null, "观察控件");
             Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "实验室不自动加载悬浮入口。");
-            var controls = Object.FindFirstObjectByType<DlssControlsPresenter>();
+            var controls = UIManager.Instance.Get<DlssControlsView>();
             var mode = StreamlineRuntime.RequestedMode;
             owner.OpenSettings();
             yield return WaitUntil(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "普通Pop");
@@ -113,8 +123,11 @@ namespace Tests.Demo
         {
             if (!StreamlineRuntime.IsBackendSupported) Assert.Ignore("Requires Windows Editor DX12/Vulkan.");
             // Only the real startup shell is loaded directly. All Demo transitions use the Hub button/navigation.
-            var startup = SceneManager.LoadSceneAsync("AppEntrance", LoadSceneMode.Single);
-            while (!startup.isDone) yield return null;
+            if (GameSceneNavigator.Instance == null)
+            {
+                var startup = SceneManager.LoadSceneAsync("AppEntrance", LoadSceneMode.Single);
+                while (!startup.isDone) yield return null;
+            }
             yield return WaitUntil(() => GameSceneNavigator.Instance != null &&
                 UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "Formal Hub startup");
             Assert.IsTrue(StreamlineRuntime.IsInitialized);
@@ -235,6 +248,11 @@ namespace Tests.Demo
             if (isUiTest) { isUiTest = false; yield break; }
             StreamlineRuntime.SetMode(null);
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Cleanup");
+            if (GameSceneNavigator.Instance != null && GameSceneNavigator.Instance.CurrentScene != GameSceneId.Hub)
+                {
+                yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub).ToCoroutine();
+                yield return WaitUntil(() => GameSceneNavigator.Instance?.IsEditorDirect == false && UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "Cleanup Hub");
+            }
         }
 
         private static void Click(View view, string name)
