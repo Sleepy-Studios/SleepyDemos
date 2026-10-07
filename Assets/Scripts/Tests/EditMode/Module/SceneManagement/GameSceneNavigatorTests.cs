@@ -10,6 +10,22 @@ namespace Tests.Module
     public sealed class GameSceneNavigatorTests
     {
         [Test]
+        public void Catalog_DirectEntryResolvesAllRegisteredDemoPaths()
+        {
+            foreach (GameSceneId scene in Enum.GetValues(typeof(GameSceneId)))
+            {
+                if (scene == GameSceneId.Hub)
+                {
+                    continue;
+                }
+                Assert.That(GameSceneCatalog.TryGet(scene, out var definition), Is.True);
+                Assert.That(GameSceneCatalog.TryFindSceneId(definition.Address, out var resolved), Is.True);
+                Assert.That(resolved, Is.EqualTo(scene));
+            }
+            Assert.That(GameSceneCatalog.TryFindSceneId("Assets/Scenes/AppEntrance.unity", out _), Is.False);
+        }
+
+        [Test]
         public void Catalog_MapsBusinessSceneWithoutGivingHubAResourceAddress()
         {
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.Hub, out var hub), Is.True);

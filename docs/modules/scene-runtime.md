@@ -71,6 +71,7 @@ Editor 直启重载：
 - Demo 场景必须且只能提供一个带 `MainCamera` Tag 的 Camera 和一个 AudioListener。
 - `StartupLoading` 与 `CommonLoadingView` 生命周期不同，不共享脚本或 Presenter。
 - Editor 直启不运行 HybridCLR、Hotfix 程序集装配或完整 `HotfixEntry`；`HotfixBootService` 必须幂等。
+- Editor 直启由 `GameSceneCatalog` 按当前保存的 `Scene.path` 解析实际 Demo 标识，未登记路径明确报错；导航从该 Demo 状态开始，适用于无人机、赌场、渔力全开和夹爆它等已登记场景。
 
 ## 验证重点
 

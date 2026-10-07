@@ -100,10 +100,13 @@ namespace Hotfix.SceneManagement
                 var startupContext = new StartupContext(config, null, this);
                 await HotfixBootService.RunBootSystems(new HotfixStartupContext(startupContext));
                 UIManager.Instance.RegisterWorldTransitionProvider(new HotfixWorldTransitionProvider());
-                var runtime = new EditorDirectGameSceneRuntime(
-                    ResourceServices.CreateSceneLoader(),
-                    SceneManager.GetActiveScene());
-                GameSceneNavigator.InitializeEditorDirect(runtime);
+                var scene = SceneManager.GetActiveScene();
+                if (!GameSceneCatalog.TryFindSceneId(scene.path, out var sceneId))
+                {
+                    throw new System.InvalidOperationException("当前直启场景未在 GameSceneCatalog 登记：" + scene.path);
+                }
+                var runtime = new EditorDirectGameSceneRuntime(ResourceServices.CreateSceneLoader(), scene);
+                GameSceneNavigator.InitializeEditorDirect(runtime, sceneId);
                 readySource.TrySetResult(true);
             }
             catch (System.Exception exception)

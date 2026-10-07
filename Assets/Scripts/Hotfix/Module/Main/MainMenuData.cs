@@ -39,6 +39,7 @@ namespace Hotfix
             Entries.Add(new MainMenuDemoEntry("ui_validation", "UI 交互展台", "界面与导航的交互体验。\n展台正在准备中，敬请期待。", art + "UiValidation", null, "新的体验，即将开放"));
             Entries.Add(new MainMenuDemoEntry("how_to_fish", "渔力全开", "驾船探索群岛，钓起奇异生物。\n单人冒险开发中。", "LoadResources/Demos/how_to_fish/Art/UI/HubPreview", GameSceneId.HowToFish, "出海垂钓，探索未知"));
             Entries[0].IsSelected = true;
+            Entries.Add(new MainMenuDemoEntry("wall_squeeze", "夹爆它", "拖动滑墙，把红怪赶拢夹爆。\n移开蓝色住户，留出安全空间。", "LoadResources/Demos/wall_squeeze/Art/UI/HubPreview", GameSceneId.WallSqueeze, "推墙夹击，保护住户"));
         }
 
         /// 重置业务状态，使上一轮请求结果失效。

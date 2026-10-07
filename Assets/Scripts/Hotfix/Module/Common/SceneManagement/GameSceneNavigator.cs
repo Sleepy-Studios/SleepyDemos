@@ -64,7 +64,7 @@ namespace Hotfix.SceneManagement
         }
 
 #if UNITY_EDITOR
-        internal static void InitializeEditorDirect(IEditorDirectGameSceneRuntime runtime)
+        internal static void InitializeEditorDirect(IEditorDirectGameSceneRuntime runtime, GameSceneId sceneId)
         {
             if (Instance != null)
             {
@@ -73,7 +73,7 @@ namespace Hotfix.SceneManagement
 
             Instance = new GameSceneNavigator(runtime, new GameSceneLoadingPresenter())
             {
-                CurrentScene = GameSceneId.DroneFlight,
+                CurrentScene = sceneId,
                 isEditorDirect = true
             };
         }

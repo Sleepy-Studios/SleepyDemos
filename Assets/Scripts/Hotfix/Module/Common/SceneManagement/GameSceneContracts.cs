@@ -8,7 +8,8 @@ namespace Hotfix.SceneManagement
         Dlss = 2,
         BlockPorters = 3,
         JinxCasino = 4,
-        HowToFish = 5
+        HowToFish = 5,
+        WallSqueeze = 6
     }
 
     /// 场景切换结果状态。
@@ -76,6 +77,22 @@ namespace Hotfix.SceneManagement
         internal const string JinxCasinoAddress = "Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity";
 
         internal const string HowToFishAddress = "Assets/LoadResources/Demos/how_to_fish/Scenes/Main.unity";
+        internal const string WallSqueezeAddress = "Assets/LoadResources/Demos/wall_squeeze/Scenes/Main.unity";
+
+        internal static bool TryFindSceneId(string scenePath, out GameSceneId sceneId)
+        {
+            foreach (GameSceneId candidate in System.Enum.GetValues(typeof(GameSceneId)))
+            {
+                if (candidate != GameSceneId.Hub && TryGet(candidate, out var definition)
+                    && string.Equals(definition.Address, scenePath, System.StringComparison.Ordinal))
+                {
+                    sceneId = candidate;
+                    return true;
+                }
+            }
+            sceneId = GameSceneId.Hub;
+            return false;
+        }
 
         internal static bool TryGet(GameSceneId sceneId, out GameSceneDefinition definition)
         {
@@ -101,6 +118,9 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.HowToFish:
                     definition = new GameSceneDefinition(GameSceneId.HowToFish, "渔力全开 · 单人", HowToFishAddress);
+                    return true;
+                case GameSceneId.WallSqueeze:
+                    definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", WallSqueezeAddress);
                     return true;
                 default:
                     definition = default;
