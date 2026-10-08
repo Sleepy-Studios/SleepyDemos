@@ -2,9 +2,9 @@
 
 ## 前置条件
 
-项目通过 `Packages/manifest.json` 从私有组织仓库 `https://github.com/Sleepy-Studios/SleepyLoopScroll.git` 拉取独立包，使用完整提交 SHA 固定版本；`Packages/packages-lock.json` 随项目提交，不依赖开发者本机的包目录。更新包时先提交并推送包仓库，再同步 manifest 的提交 SHA 与 lock 的版本和 hash。
+项目通过 `Packages/manifest.json` 从公开组织仓库 `https://github.com/Sleepy-Studios/SleepyLoopScroll.git#v0.1.0` 拉取独立包，使用发布标签固定版本；`Packages/packages-lock.json` 随项目提交，其中的提交哈希由 Unity 记录，不依赖开发者本机的包目录。更新包时先提交、推送包仓库并发布新的 `v` 标签，再更新 manifest 标签，由 Unity 解析并同步 lock；已发布标签保持不变。
 
-同事的 GitHub 账号需具有 `Sleepy-Studios` 组织仓库读取权限，本机 Git 需配置 HTTPS 凭据。先执行 `git ls-remote https://github.com/Sleepy-Studios/SleepyLoopScroll.git` 验证访问，再打开 Unity 等待 Package Manager 解析；无法读取时检查组织成员资格和 Git 凭据。
+插件仓库与 SleepyDemos 一样公开，拉包无需 GitHub 登录或额外权限。打开 Unity 等待 Package Manager 解析即可。
 
 Canvas 下创建 GameObject/UI/Sleepy Loop Scroll，配置 Viewport、Content、隐藏模板和尺寸。模板包含 LoopCell，业务 ItemView 仍为普通 C# 类。
 
