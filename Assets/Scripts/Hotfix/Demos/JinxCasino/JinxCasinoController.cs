@@ -45,10 +45,6 @@ namespace Hotfix.JinxCasino
 
         private View hud;
 
-        private JinxCasinoUIController ui;
-
-        internal JinxCasinoUIController UI => ui;
-
         private CancellationTokenSource lifetime;
 
         internal JinxCasinoData Data { get; private set; }
@@ -68,6 +64,12 @@ namespace Hotfix.JinxCasino
         /// 当前状态改变。
         public event Action Changed;
 
+        internal CancellationToken Lifetime => lifetime?.Token ?? default;
+
+        internal void SetFirstSelection(GameObject first)
+            => Player.SetMenuState(Data.Page != JinxCasinoPage.Field, Data.Page == JinxCasinoPage.Settings, first,
+                () => GlobalData.Dispatch(new JinxCasinoUiAction(this, JinxCasinoUiCommand.CancelWindow)));
+
         private void Start() => InitializeAsync().Forget();
 
         private async UniTaskVoid InitializeAsync()
@@ -80,10 +82,9 @@ namespace Hotfix.JinxCasino
                     throw new InvalidOperationException("请从 AppEntrance → Hub 进入倒霉蛋俱乐部。");
                 await navigator.WaitUntilStableAsync(GameSceneId.JinxCasino, lifetime.Token);
                 Settings.Load();
-                ui = new JinxCasinoUIController(this, lifetime.Token);
                 Player.Activate();
                 hud = await ShowLocalHudAsync();
-                ui.Begin();
+                Data.Handler.BeginUi();
                 Changed?.Invoke();
             }
             catch (OperationCanceledException)
@@ -142,7 +143,7 @@ namespace Hotfix.JinxCasino
             SaveAdventureBeforeExit();
             try
             {
-                await ui.CloseAsync();
+                await Data.Handler.CloseWindowsAsync();
                 if (hud != null)
                 {
                     await UIManager.Instance.CloseAsync(hud);
@@ -175,7 +176,7 @@ namespace Hotfix.JinxCasino
                     if (!ReferenceEquals(GlobalData.Get<JinxCasinoData>(), Data))
                         GlobalData.Add(Data);
                     isExiting = false;
-                    ui.Restore();
+                    Data.Handler.BeginUi();
                     if (hud == null)
                     {
                         try
@@ -203,7 +204,8 @@ namespace Hotfix.JinxCasino
 
         private void OnDestroy()
         {
-            ui?.Dispose();
+            if (hud != null)
+                UIManager.Instance.CloseAsync(hud, false).Forget();
             isExiting = true;
             SaveAdventureBeforeExit();
             Player.Dispose();
@@ -212,6 +214,7 @@ namespace Hotfix.JinxCasino
             lifetime?.Cancel();
             Settings.Changed -= ApplyLocalSettings;
             Data?.Handler.Dispose();
+            Data?.ClearData();
             if (ReferenceEquals(GlobalData.Get<JinxCasinoData>(), Data))
                 GlobalData.Remove<JinxCasinoData>();
             Changed = null;

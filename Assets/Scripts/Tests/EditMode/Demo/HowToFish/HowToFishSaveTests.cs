@@ -1,4 +1,5 @@
 using System;
+using Core.Runtime;
 using System.Collections.Generic;
 using System.IO;
 using Hotfix.HowToFish;
@@ -16,21 +17,27 @@ namespace Tests.Demo
         public void InputPreferences_RoundTripRejectsInvalidWritesAndPreservesCorruptRecord()
         {
             string key = "HowToFish.Tests.Preferences." + Guid.NewGuid().ToString("N");
-            var preferences = new HowToFishLocalPreferencesStore(key);
+            string warning = null;
+            HowToFishLocalPreferences Load() => LocalDataManager.LoadData(key, new HowToFishLocalPreferences(), out warning, HowToFishLocalPreferences.Validate);
+            void Save(HowToFishLocalPreferences value)
+            {
+                LocalDataManager.SaveData(key, value, HowToFishLocalPreferences.Validate);
+                warning = null;
+            }
             try
             {
-                var defaults = preferences.Load();
+                var defaults = Load();
                 Assert.That(defaults.Bindings, Is.Empty, "默认绑定无需任何覆盖 JSON。");
-                Assert.That(preferences.LastLoadWarning, Is.Null);
+                Assert.That(warning, Is.Null);
                 Assert.That(PlayerPrefs.HasKey(key), Is.False, "读取缺失记录不能隐式写入默认值。");
                 var saved = new HowToFishLocalPreferences
                 {
                     MouseSensitivity = .25f, GamepadSensitivity = 180, DeadZone = .3f,
                     InvertY = true, Bindings = ""
                 };
-                preferences.Save(saved);
+                Save(saved);
                 string validRecord = PlayerPrefs.GetString(key);
-                var restored = new HowToFishLocalPreferencesStore(key).Load();
+                var restored = Load();
                 Assert.That(restored.MouseSensitivity, Is.EqualTo(saved.MouseSensitivity));
                 Assert.That(restored.GamepadSensitivity, Is.EqualTo(saved.GamepadSensitivity));
                 Assert.That(restored.DeadZone, Is.EqualTo(saved.DeadZone));
@@ -47,7 +54,7 @@ namespace Tests.Demo
                     new HowToFishLocalPreferences { Bindings = "{broken" }
                 })
                 {
-                    Assert.Throws<ArgumentException>(() => preferences.Save(invalid));
+                    Assert.Throws<ArgumentException>(() => Save(invalid));
                     Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(validRecord), "拒绝无效设置后原记录被修改。");
                 }
 
@@ -56,13 +63,13 @@ namespace Tests.Demo
                 foreach (string corrupt in new[] { "{broken", "{}", JsonUtility.ToJson(future), JsonUtility.ToJson(brokenBindings) })
                 {
                     PlayerPrefs.SetString(key, corrupt);
-                    restored = preferences.Load();
+                    restored = Load();
                     Assert.That(JsonUtility.ToJson(restored), Is.EqualTo(JsonUtility.ToJson(defaults)), "损坏记录应退回完整默认设置。");
-                    Assert.That(preferences.LastLoadWarning, Is.Not.Null.And.Not.Empty, "回退默认值必须向用户提供提示。");
+                    Assert.That(warning, Is.Not.Null.And.Not.Empty, "回退默认值必须向用户提供提示。");
                     Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(corrupt), "加载不能偷偷覆盖损坏或未来版本的原始记录。");
                 }
-                preferences.Save(saved);
-                Assert.That(preferences.LastLoadWarning, Is.Null, "明确保存成功后应清除旧警告。");
+                Save(saved);
+                Assert.That(warning, Is.Null, "明确保存成功后应清除旧警告。");
                 Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(validRecord));
             }
             finally
@@ -92,11 +99,11 @@ namespace Tests.Demo
             first.unlockedOutfits.Add("Andrei");
             first.worldItems.Add(new HowToFishWorldItemData { instanceId = "Remains", definitionId = "PlayerRemains", outfitId = "Andrei" });
             store.Save(0, first);
-            var profile = store.LoadSkinProfile(out _);
+            var profile = store.LoadSkinProfile();
             Assert.That(profile.selectedOutfitId, Is.EqualTo("Fisherman"));
             profile.selectedOutfitId = "Andrei";
             store.SaveSkinProfile(profile);
-            Assert.That(store.LoadSkinProfile(out _).selectedOutfitId, Is.EqualTo("Andrei"), "解锁数量没变也必须保存换装。");
+            Assert.That(store.LoadSkinProfile().selectedOutfitId, Is.EqualTo("Andrei"), "解锁数量没变也必须保存换装。");
             var fresh = new HowToFishSaveData();
             Assert.That(store.LoadSharedSkins(fresh).selectedOutfitId, Is.EqualTo("Andrei"));
             fresh.unlockedOutfits.Add("Jacob");
@@ -109,34 +116,27 @@ namespace Tests.Demo
             profile.selectedOutfitId = "Sailor";
             store.SaveSkinProfile(profile);
             store.Save(0, old);
-            Assert.That(store.LoadSkinProfile(out _).selectedOutfitId, Is.EqualTo("Sailor"), "旧槽不能覆盖全局选择。");
+            Assert.That(store.LoadSkinProfile().selectedOutfitId, Is.EqualTo("Sailor"), "旧槽不能覆盖全局选择。");
             Assert.That(store.Load(0).Data.worldItems[0].outfitId, Is.EqualTo("Andrei"), "已有遗体保留死亡时服装。");
         }
 
         [Test]
-        public void Outfits_LegacyDefaultsAndInvalidSelectionsAreValidatedBeforeWriting()
+        public void Outfits_InvalidSelectionsAreRejectedBeforeWriting()
         {
-            var legacy = new HowToFishSaveData { unlockedOutfits = null };
-            legacy.Validate();
-            Assert.That(legacy.unlockedOutfits, Is.Empty);
-            Assert.That(legacy.tracksPausedPlaytime, Is.False);
-            var oldProfile = JsonUtility.FromJson<HowToFishSkinProfile>("{\"version\":1,\"unlockedSkins\":[]}");
-            oldProfile.Validate();
-            Assert.That(oldProfile.selectedOutfitId, Is.EqualTo("Fisherman"));
-            Assert.That(oldProfile.unlockedOutfits, Is.Empty);
-            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"definitionId\":\"PlayerRemains\"}").outfitId, Is.Null.Or.Empty);
-            store.Save(0, legacy);
+            var state = new HowToFishSaveData();
+            store.Save(0, state);
             foreach (var invalid in new[] { new[] { "Unknown" }, new[] { "Fisherman" }, new[] { "Andrei", "Andrei" } })
                 Assert.Throws<FormatException>(() => store.Save(0, new HowToFishSaveData { unlockedOutfits = new List<string>(invalid) }));
             foreach (string invalid in new[] { "Unknown", "Jacob" })
                 Assert.Throws<FormatException>(() => store.SaveSkinProfile(new HowToFishSkinProfile { selectedOutfitId = invalid }));
-            var remains = new HowToFishWorldItemData { instanceId = "OldBody", definitionId = "PlayerRemains", outfitId = "Bean" };
-            legacy.worldItems.Add(remains);
-            Assert.DoesNotThrow(legacy.Validate, "遗体快照验证外观ID，不要求当前玩家已解锁。");
+            var remains = new HowToFishWorldItemData { instanceId = "Body", definitionId = "PlayerRemains", outfitId = "Bean" };
+            state.worldItems.Add(remains);
+            Assert.DoesNotThrow(state.Validate);
             remains.definitionId = "Shrimp";
-            Assert.Throws<FormatException>(legacy.Validate);
-            remains.definitionId = "PlayerRemains"; remains.outfitId = "Unknown";
-            Assert.Throws<FormatException>(legacy.Validate);
+            Assert.Throws<FormatException>(state.Validate);
+            remains.definitionId = "PlayerRemains";
+            remains.outfitId = "Unknown";
+            Assert.Throws<FormatException>(state.Validate);
             Assert.That(store.Load(0).Data.worldItems, Is.Empty);
         }
 
@@ -150,7 +150,7 @@ namespace Tests.Demo
             profile.selectedOutfitId = "Bikini";
             var world = new HowToFishSaveData();
             world.unlockedOutfits.Add("Bean");
-            using (var locked = new FileStream(profilePath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var locked = new FileStream(profilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 Assert.Throws<IOException>(() => store.SaveSkinProfile(profile));
                 Assert.That(File.ReadAllText(profilePath), Is.EqualTo(before));
@@ -163,23 +163,21 @@ namespace Tests.Demo
             Assert.That(profile.selectedOutfitId, Is.EqualTo("Sailor"));
             Assert.That(fresh.unlockedOutfits, Does.Contain("Bean"));
             File.WriteAllText(profilePath, "interrupted");
-            Assert.That(store.LoadSkinProfile(out bool recovered).selectedOutfitId, Is.EqualTo("Sailor"));
-            Assert.That(recovered, Is.True);
+            Assert.That(store.LoadSkinProfile().selectedOutfitId, Is.EqualTo("Fisherman"));
             Assert.That(store.LoadSharedSkins(new HowToFishSaveData()).unlockedOutfits, Does.Contain("Bean"));
-            var deleted = store.LoadSkinProfile(out _);
+            var deleted = store.LoadSkinProfile();
             deleted.unlockedOutfits.Clear();
             Assert.Throws<InvalidOperationException>(() => store.SaveSkinProfile(deleted));
         }
 
         [Test]
-        public void IndividualWeight_RoundTripsAndLegacyDefaultsToOne()
+        public void IndividualWeight_RoundTripsAndRejectsInvalidValues()
         {
             var state = new HowToFishSaveData();
             var item = new HowToFishWorldItemData { instanceId = "WeightedFish", definitionId = "Shrimp", weightMultiplier = 1.125f };
             state.worldItems.Add(item);
             store.Save(0, state);
             Assert.That(store.Load(0).Data.worldItems[0].weightMultiplier, Is.EqualTo(1.125f));
-            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"definitionId\":\"Shrimp\"}").weightMultiplier, Is.EqualTo(1));
             foreach (float invalid in new[] { 0, -1, .79f, 1.21f, float.NaN, float.PositiveInfinity })
             {
                 item.weightMultiplier = invalid;
@@ -189,7 +187,7 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void RouletteMultiplier_RoundTripsAndOldSnapshotsDefaultToOne()
+        public void RouletteMultiplier_RoundTripsAndRejectsInvalidValues()
         {
             var state = new HowToFishSaveData();
             var item = new HowToFishWorldItemData
@@ -200,7 +198,6 @@ namespace Tests.Demo
             state.worldItems.Add(item);
             store.Save(0, state);
             Assert.That(store.Load(0).Data.worldItems[0].bettingMultiplier, Is.EqualTo(70));
-            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"instanceId\":\"OldShrimp\",\"definitionId\":\"Shrimp\"}").bettingMultiplier, Is.EqualTo(1));
             foreach (float invalid in new[] { 0, -1, float.NaN, float.PositiveInfinity })
             {
                 item.bettingMultiplier = invalid;
@@ -210,57 +207,20 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void SharedSkins_MigrateAcrossWorldsRecoverBackupAndRejectInvalidProfile()
+        public void SharedSkins_MergeValidSlotsAndRejectInvalidProfile()
         {
             var first = new HowToFishSaveData { boatSkinId = "Boat/Gold" };
             first.unlockedSkins.Add("Knife/Chess");
             store.Save(0, first);
-            string profilePath = Path.Combine(directory, "PlayerSkins.json");
-            // 模拟只有旧槽记录、尚无共享档案的版本，进入新世界时完成幂等迁移。
-            File.Delete(profilePath);
-            var fresh = new HowToFishSaveData();
-            store.LoadSharedSkins(fresh);
-            Assert.That(fresh.unlockedSkins, Is.EquivalentTo(new[] { "Knife/Chess" }));
-            Assert.That(fresh.boatSkinId, Is.Null, "共享解锁不能复制另一个世界的当前船皮肤。");
-            fresh.unlockedSkins.Add("Pistol/Wood");
-            store.Save(1, fresh);
-            var third = new HowToFishSaveData();
-            store.LoadSharedSkins(third);
-            Assert.That(third.unlockedSkins, Is.EquivalentTo(new[] { "Knife/Chess", "Pistol/Wood" }));
-            var reloaded = store.Load(0).Data;
-            store.LoadSharedSkins(reloaded);
-            Assert.That(reloaded.unlockedSkins, Is.EquivalentTo(third.unlockedSkins));
-            Assert.That(reloaded.boatSkinId, Is.EqualTo("Boat/Gold"));
-
-            File.WriteAllText(profilePath, "interrupted");
-            Assert.Throws<IOException>(() => store.SaveSkinProfile(new HowToFishSkinProfile()));
-            Assert.That(File.ReadAllText(profilePath), Is.EqualTo("interrupted"));
-            var recovered = store.LoadSkinProfile(out bool restored);
-            Assert.That(restored, Is.True);
-            Assert.That(recovered.unlockedSkins, Does.Contain("Knife/Chess"));
-            Assert.That(Directory.GetFiles(directory, "PlayerSkins.json.corrupt-*").Length, Is.EqualTo(1));
-            store.LoadSharedSkins(third);
-            Assert.That(third.unlockedSkins, Does.Contain("Pistol/Wood"), "有效槽镜像补回备份较旧的解锁。");
-
-            string validProfile = File.ReadAllText(profilePath);
-            var invalid = new HowToFishSkinProfile(); invalid.unlockedSkins.Add("Knife/Unknown");
-            Assert.Throws<FormatException>(() => store.SaveSkinProfile(invalid));
-            Assert.That(File.ReadAllText(profilePath), Is.EqualTo(validProfile));
-            // 共享文件写入中断发生在槽提交之后，不能向调用者报告整个保存失败、让已消费物品被回滚。
-            third.unlockedSkins.Add("Boat/Gold");
-            using (var locked = new FileStream(profilePath + ".tmp", FileMode.Create, FileAccess.Write, FileShare.None))
-            {
-                Assert.DoesNotThrow(() => store.Save(2, third));
-                Assert.That(store.SkinProfileNotice, Does.Contain("待下次进入"));
-                Assert.That(store.Load(2).Data.unlockedSkins, Does.Contain("Boat/Gold"));
-            }
-            var nextWorld = new HowToFishSaveData();
-            store.LoadSharedSkins(nextWorld);
-            Assert.That(nextWorld.unlockedSkins, Does.Contain("Boat/Gold"));
-            File.WriteAllText(profilePath, "broken-primary");
-            File.WriteAllText(profilePath + ".bak", "broken-backup");
-            Assert.Throws<IOException>(() => store.LoadSharedSkins(new HowToFishSaveData()));
-            Assert.That(File.ReadAllText(profilePath), Is.EqualTo("broken-primary"));
+            var other = new HowToFishSaveData();
+            Assert.That(store.LoadSharedSkins(other).unlockedSkins, Does.Contain("Knife/Chess"));
+            string path = Path.Combine(directory, "PlayerSkins.json");
+            File.WriteAllText(path, "interrupted");
+            Assert.That(store.LoadSkinProfile().unlockedSkins, Is.Empty);
+            Assert.That(store.LoadSharedSkins(new HowToFishSaveData()).unlockedSkins, Does.Contain("Knife/Chess"));
+            string before = File.ReadAllText(path);
+            Assert.Throws<FormatException>(() => store.SaveSkinProfile(new HowToFishSkinProfile { unlockedSkins = new List<string> { "Unknown" } }));
+            Assert.That(File.ReadAllText(path), Is.EqualTo(before));
         }
 
         [Test]
@@ -274,14 +234,14 @@ namespace Tests.Demo
                 equipment = new HowToFishOwnedItem { id = "Pistol", count = 1, skinId = "Pistol/Black and White", ammo = 3 } });
             store.Save(0, data);
             var loaded = store.Load(0);
-            Assert.That(loaded.Status, Is.EqualTo(HowToFishLoadStatus.Ready), loaded.Error);
+            Assert.That(loaded.Status, Is.EqualTo(HowToFishLoadStatus.Ready));
             Assert.That(loaded.Data.boatSkinId, Is.EqualTo("Boat/Gold"));
             Assert.That(loaded.Data.unlockedSkins, Is.EqualTo(new[] { "Knife/Chess" }));
             Assert.That(loaded.Data.inventory[0].skinId, Is.EqualTo("Knife/Chess"));
             Assert.That(loaded.Data.inventory[0].cooking, Is.EqualTo(.6f));
             Assert.That(loaded.Data.worldItems[0].equipment.skinId, Is.EqualTo("Pistol/Black and White"));
-            var legacy = new HowToFishSaveData { unlockedSkins = null };
-            legacy.Validate(); Assert.That(legacy.unlockedSkins, Is.Empty);
+            var incomplete = new HowToFishSaveData { unlockedSkins = null };
+            Assert.Throws<FormatException>(incomplete.Validate);
             foreach (string invalid in new[] { "Missing/Gold", "Boat/Default", "" })
             {
                 var corrupt = new HowToFishSaveData(); corrupt.unlockedSkins.Add(invalid);
@@ -312,7 +272,7 @@ namespace Tests.Demo
             data.defeatedDripCreatures.Add("Shrimp");
             store.Save(0, data);
             var loaded = store.Load(0);
-            Assert.That(loaded.Status, Is.EqualTo(HowToFishLoadStatus.Ready), loaded.Error);
+            Assert.That(loaded.Status, Is.EqualTo(HowToFishLoadStatus.Ready));
             Assert.That(loaded.Data.money, Is.EqualTo(120));
             Assert.That(loaded.Data.poisonSeconds, Is.EqualTo(2));
             Assert.That(loaded.Data.poisonDamagePerSecond, Is.EqualTo(8));
@@ -364,7 +324,6 @@ namespace Tests.Demo
             }
             item.dynamiteFuseSeconds = 1; item.definitionId = "Shrimp";
             Assert.Throws<FormatException>(() => data.Validate());
-            Assert.That(JsonUtility.FromJson<HowToFishWorldItemData>("{\"definitionId\":\"Dynamite\"}").dynamiteFuseSeconds, Is.Zero);
             Assert.That(store.Load(0).Data.worldItems[0].dynamiteFuseSeconds, Is.EqualTo(1.25f));
         }
 
@@ -385,28 +344,23 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void CorruptPrimary_OffersBackupAndRequiresExplicitRecovery()
+        public void CorruptPrimary_IsAnEmptySlotUntilExplicitSave()
         {
-            store.Save(0, new HowToFishSaveData { money = 20 });
-            store.Save(0, new HowToFishSaveData { money = 40 });
-            var path = Path.Combine(directory, "Slot1.json");
+            store.Save(0, new HowToFishSaveData { money = 12 });
+            string path = Path.Combine(directory, "Slot1.json");
             File.WriteAllText(path, "interrupted");
-            Assert.That(store.Load(0).Status, Is.EqualTo(HowToFishLoadStatus.RecoveryAvailable));
-            Assert.Throws<IOException>(() => store.Save(0, new HowToFishSaveData()));
+            Assert.That(store.Load(0).Status, Is.EqualTo(HowToFishLoadStatus.Empty));
             Assert.That(File.ReadAllText(path), Is.EqualTo("interrupted"));
-            store.RestoreBackup(0);
-            Assert.That(store.Load(0).Data.money, Is.EqualTo(20));
-            Assert.That(Directory.GetFiles(directory, "*.corrupt-*").Length, Is.EqualTo(1));
+            store.Save(0, new HowToFishSaveData { money = 3 });
+            Assert.That(store.Load(0).Data.money, Is.EqualTo(3));
         }
 
         [Test]
-        public void FutureVersion_DoesNotSilentlyRestoreOlderBackup()
+        public void UnsupportedStructure_IsAnEmptySlot()
         {
-            store.Save(0, new HowToFishSaveData());
-            store.Save(0, new HowToFishSaveData { money = 15 });
-            File.WriteAllText(Path.Combine(directory, "Slot1.json"), "{\"format\":2}");
-            Assert.That(store.Load(0).Status, Is.EqualTo(HowToFishLoadStatus.UnsupportedVersion));
-            Assert.Throws<IOException>(() => store.Save(0, new HowToFishSaveData()));
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "Slot1.json"), "{\"version\":99}");
+            Assert.That(store.Load(0).Status, Is.EqualTo(HowToFishLoadStatus.Empty));
         }
 
         [Test]
@@ -428,17 +382,16 @@ namespace Tests.Demo
             Assert.That(store.Load(0).Data.money, Is.EqualTo(10));
         }
 
-        [TestCase("interrupted", HowToFishLoadStatus.Corrupt)]
-        [TestCase("{\"format\":2}", HowToFishLoadStatus.UnsupportedVersion)]
-        public void MissingPrimary_WithUnreadableBackup_IsNotAnEmptySlot(string backup, HowToFishLoadStatus expected)
+        [Test]
+        public void MissingPrimary_DoesNotReadOldBackup()
         {
             Directory.CreateDirectory(directory);
-            var path = Path.Combine(directory, "Slot1.json");
-            File.WriteAllText(path + ".bak", backup);
-            Assert.That(store.Load(0).Status, Is.EqualTo(expected));
-            Assert.Throws<IOException>(() => store.Save(0, new HowToFishSaveData()));
-            Assert.That(File.Exists(path), Is.False);
-            Assert.That(File.ReadAllText(path + ".bak"), Is.EqualTo(backup));
+            string backup = Path.Combine(directory, "Slot1.json.bak");
+            File.WriteAllText(backup, JsonUtility.ToJson(new HowToFishSaveData { money = 99 }));
+            Assert.That(store.Load(0).Status, Is.EqualTo(HowToFishLoadStatus.Empty));
+            store.Save(0, new HowToFishSaveData { money = 1 });
+            Assert.That(store.Load(0).Data.money, Is.EqualTo(1));
+            Assert.That(File.ReadAllText(backup), Does.Contain("99"));
         }
     }
 }

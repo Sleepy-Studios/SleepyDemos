@@ -97,7 +97,8 @@ namespace Hotfix
             if (shownState != state)
             {
                 shownState = state;
-                owner.UI.SetFirstSelection(standardEndingReturnButton.gameObject);
+                if (state == JinxCasinoPage.Ending)
+                    owner.SetFirstSelection(RestoreMenuSelection(standardEndingReturnButton.gameObject));
             }
         }
 

@@ -332,6 +332,8 @@ namespace Core.Runtime
                     return UIOperationResult.Ignored(operation.OperationId, operation.Action, view);
                 }
 
+                // 新页面的输入作用域可能在加载时清焦点，先由底页保存自己的控件。
+                previous?.CaptureMenuSelection();
                 OnBeginOpen?.Invoke(view);
                 var loaded = view.IsLoaded || await view.LoadAsync(
                     UIRootManager.Instance.GetViewRoot(view.Level),

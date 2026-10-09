@@ -1,4 +1,7 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Core.Runtime;
 using Hotfix.JinxCasino.Rules;
 using Hotfix.JinxCasino.Persistence;
@@ -11,9 +14,13 @@ namespace Hotfix.JinxCasino
     internal sealed class JinxCasinoHandler : HandlerBase<JinxCasinoAction, JinxCasinoData>, IDisposable
     {
         private readonly JinxCasinoController scene;
-
         private int reducing;
-
+        private bool uiReady;
+        private View window;
+        private View returnPage;
+        private Type requestedPage;
+        private CancellationTokenSource pageLifetime;
+        private Task pageChange = Task.CompletedTask;
         internal JinxCasinoHandler(JinxCasinoController scene)
         {
             this.scene = scene;
@@ -29,7 +36,6 @@ namespace Hotfix.JinxCasino
         }
 
         private void OnGame(CasinoSceneEffect[] _) => Publish();
-
         private void SetExiting(bool value)
         {
             State.IsExiting = value;
@@ -44,6 +50,7 @@ namespace Hotfix.JinxCasino
             if (scene != null)
                 State.Page = State.ResolvePage();
             ApplyState();
+            UpdatePage();
         }
 
         /// <summary>
@@ -205,6 +212,127 @@ namespace Hotfix.JinxCasino
             Publish();
         }
 
+        internal void BeginUi()
+        {
+            uiReady = true;
+            Publish();
+        }
+
+        private void UpdatePage()
+        {
+            if (!uiReady)
+                return;
+            Type target = State.IsExiting ? null : PageType(State.Page);
+            if (target == requestedPage)
+                return;
+            if (target == null)
+                State.Player.SetMenuState(false, false, null);
+            requestedPage = target;
+            CancelPageRequest();
+            pageLifetime = CancellationTokenSource.CreateLinkedTokenSource(scene.Lifetime);
+            pageChange = ChangePageAsync(State.IsExiting ? JinxCasinoPage.None : State.Page, pageLifetime.Token).AsTask();
+            pageChange.AsUniTask().Forget();
+        }
+
+        private static Type PageType(JinxCasinoPage page) => page switch
+        {
+            JinxCasinoPage.MainMenu => typeof(JinxCasinoMainMenuView),
+            JinxCasinoPage.Pause => typeof(JinxCasinoPauseView),
+            JinxCasinoPage.TutorialReady or JinxCasinoPage.TutorialChoice or JinxCasinoPage.TutorialConfirm => typeof(JinxCasinoTutorialView),
+            JinxCasinoPage.SaveSlots or JinxCasinoPage.SaveConfirm => typeof(JinxCasinoSaveView),
+            JinxCasinoPage.Ending => typeof(JinxCasinoEndingView),
+            JinxCasinoPage.Settings => typeof(JinxCasinoSettingsView),
+            _ => null
+        };
+        private async UniTask ChangePageAsync(JinxCasinoPage page, CancellationToken token)
+        {
+            Type target = PageType(page);
+            try
+            {
+                bool overlay = target == typeof(JinxCasinoSettingsView) || target == typeof(JinxCasinoSaveView);
+                if (returnPage != null && returnPage.GetType() == target)
+                {
+                    if (!ReferenceEquals(window, returnPage))
+                        await ClosePageAsync(window, token);
+                    window = returnPage;
+                    returnPage = null;
+                    return;
+                }
+
+                if (window != null)
+                {
+                    if (overlay && returnPage == null)
+                        returnPage = window;
+                    else
+                    {
+                        await ClosePageAsync(window, token);
+                        window = null;
+                    }
+                }
+
+                if (!overlay && returnPage != null)
+                {
+                    await ClosePageAsync(returnPage, token);
+                    returnPage = null;
+                }
+
+                if (target == null)
+                    return;
+                var options = new UIShowOptions(animated: false, hidePrevious: overlay);
+                var result = page switch
+                {
+                    JinxCasinoPage.MainMenu => await UIManager.Instance.ShowAsync<JinxCasinoMainMenuView>(view => view.SetData(scene), options, token),
+                    JinxCasinoPage.Pause => await UIManager.Instance.ShowAsync<JinxCasinoPauseView>(view => view.SetData(scene), options, token),
+                    JinxCasinoPage.TutorialReady or JinxCasinoPage.TutorialChoice or JinxCasinoPage.TutorialConfirm => await UIManager.Instance.ShowAsync<JinxCasinoTutorialView>(view => view.SetData(scene), options, token),
+                    JinxCasinoPage.SaveSlots or JinxCasinoPage.SaveConfirm => await UIManager.Instance.ShowAsync<JinxCasinoSaveView>(view => view.SetData(scene), options, token),
+                    JinxCasinoPage.Ending => await UIManager.Instance.ShowAsync<JinxCasinoEndingView>(view => view.SetData(scene), options, token),
+                    JinxCasinoPage.Settings => await UIManager.Instance.ShowAsync<JinxCasinoSettingsView>(view => view.SetData(scene), options, token),
+                    _ => throw new ArgumentOutOfRangeException(nameof(page))};
+                if (result.Status == UIOperationStatus.Failed)
+                    throw result.Exception;
+                if (result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored)
+                    window = result.View;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, scene);
+                if (ReferenceEquals(GlobalData.Get<JinxCasinoData>(), State))
+                    GlobalData.Dispatch(new JinxCasinoSetStatusAction(State.Game, "页面打开失败：" + exception.Message));
+            }
+        }
+
+        private static async UniTask ClosePageAsync(View view, CancellationToken token = default)
+        {
+            var result = await UIManager.Instance.CloseAsync(view, false, token);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            token.ThrowIfCancellationRequested();
+        }
+
+        private void CancelPageRequest()
+        {
+            pageLifetime?.Cancel();
+            pageLifetime?.Dispose();
+            pageLifetime = null;
+        }
+
+        internal async UniTask CloseWindowsAsync()
+        {
+            uiReady = false;
+            CancelSettings();
+            CancelPageRequest();
+            await pageChange;
+            if (window != null)
+                await ClosePageAsync(window);
+            if (returnPage != null)
+                await ClosePageAsync(returnPage);
+            window = returnPage = null;
+            requestedPage = null;
+        }
+
         private void OpenSettings()
         {
             if (State.SettingsOpen || State.Page != JinxCasinoPage.MainMenu && State.Page != JinxCasinoPage.Pause)
@@ -263,6 +391,18 @@ namespace Hotfix.JinxCasino
 
         public void Dispose()
         {
+            uiReady = false;
+            CancelPageRequest();
+            foreach (var view in new[]
+            {
+                window,
+                returnPage
+            }
+
+            )
+                if (view != null)
+                    UIManager.Instance.CloseAsync(view, false).Forget();
+            window = returnPage = null;
             State.Game.Changed -= OnGame;
             if (State.Player != null)
                 State.Player.Changed -= Publish;

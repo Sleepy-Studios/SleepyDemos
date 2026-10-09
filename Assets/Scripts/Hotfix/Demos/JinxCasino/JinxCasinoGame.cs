@@ -354,6 +354,11 @@ namespace Hotfix.JinxCasino
             try
             {
                 var candidate = SaveStore.Load(slot);
+                if (candidate == null)
+                {
+                    SetStatus("该槽没有有效存档，请开始新的旅程。");
+                    return false;
+                }
                 var candidateState = candidate.CaptureState();
                 ValidatingRestore?.Invoke(candidateState);
                 Install(candidate, candidateState, "已继续存档" + slot + "，未完成的机台保持原状态。", slot, true);

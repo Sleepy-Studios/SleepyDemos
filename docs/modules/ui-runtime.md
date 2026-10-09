@@ -238,3 +238,7 @@ UIMenuScope 保存于普通页面/弹窗资源，MenuInputScope 的顶层所有�
 页面在 OnGameObjectInitialize 中调用 BindData<TData>(Refresh)。Core 在显示时订阅并交付当前状态，隐藏或销毁时退订；导航回滚会恢复订阅并刷新，而不重复业务 OnShow。按钮通过 GlobalData.Dispatch 提交业务 Action；列表和普通打开参数继续使用具体 SetData，顺序保持初始化后、显示前。
 
 页面需要视觉动画或布局 Tick 时，在一次性初始化中调用 BindUpdate；框架仅在显示期间运行，并在销毁时结束。该回调用于表现，不负责轮询业务状态。页面事件可用 AddBinding(release) 登记配对清理。
+
+## 页面焦点
+
+View 在退出前保存自身当前选中控件，页面重新露出时可以通过 `RestoreMenuSelection(firstSelection)` 取得仍可交互的保存控件，失效时使用首选项。保存了 UIMenuScope 的页面由该组件在隐藏时记录本作用域焦点，重新启用时恢复；失效控件与嵌套作用域不作为恢复目标。焦点对象属于页面，业务 Data 不保存 GameObject。赌场设置与存档页复用现有 UI 栈隐藏底页，关闭后露出原实例；不再用独立控制器按名称恢复页面焦点。

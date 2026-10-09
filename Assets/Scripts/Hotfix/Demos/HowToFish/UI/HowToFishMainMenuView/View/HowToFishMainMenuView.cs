@@ -100,11 +100,9 @@ namespace Hotfix
                 {
                     HowToFishLoadStatus.Empty => $"存档 {i + 1} · 新的航程",
                     HowToFishLoadStatus.Ready => $"存档 {i + 1} · 继续  ${saved.Data.money}",
-                    HowToFishLoadStatus.RecoveryAvailable => $"存档 {i + 1} · 恢复备份",
-                    HowToFishLoadStatus.UnsupportedVersion => $"存档 {i + 1} · 版本不支持",
                     _ => $"存档 {i + 1} · 数据损坏"
                 };
-                slots[i].interactable = saved.Status != HowToFishLoadStatus.Corrupt && saved.Status != HowToFishLoadStatus.UnsupportedVersion;
+                slots[i].interactable = true;
                 newGames[i].interactable = saved.Status == HowToFishLoadStatus.Ready || saved.Status == HowToFishLoadStatus.Empty;
             }
         }

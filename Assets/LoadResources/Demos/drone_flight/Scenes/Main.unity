@@ -1128,7 +1128,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1465942319}
   - component: {fileID: 1465942320}
-  - component: {fileID: 1465942322}
   - component: {fileID: 1465942323}
   m_Layer: 0
   m_Name: DemoLifecycle
@@ -1165,18 +1164,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightDemoExit
   actions: {fileID: -944628639613478452, guid: 301b27e55897ec7478306fcd6476c7aa, type: 3}
---- !u!114 &1465942322
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1465942318}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9067927ad7704ea40b2fdfbce8e5517d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightUIController
 --- !u!114 &1465942323
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1191,7 +1178,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hotfix::Hotfix.DroneFlight.DroneFlightSceneCoordinator
   playerCamera: {fileID: 1719812489}
   spawnPoint: {fileID: 2139893225}
-  uiController: {fileID: 1465942322}
   demoExit: {fileID: 0}
 --- !u!1 &1719812487
 GameObject:

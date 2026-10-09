@@ -163,7 +163,7 @@ namespace Hotfix
 
         private void Unbind()
         {
-            if (world != null && ReferenceEquals(GlobalData.Get<HowToFishData>(), world.Data))
+            if (world != null && !world.Data.IsExiting && ReferenceEquals(GlobalData.Get<HowToFishData>(), world.Data))
                 GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.CancelSettings));
             settingsMenu?.Dispose();
             settingsMenu = null;
@@ -283,7 +283,7 @@ namespace Hotfix
                 GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.CancelSettings));
             settingsMenu?.Dispose();
             settingsMenu = null;
-            world.UI.CloseSettings();
+            GlobalData.Dispatch(new HowToFishUiAction(world, HowToFishUiCommand.CloseSettings));
         }
 
         private void SelectSettingsGroup(int group)

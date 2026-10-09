@@ -15,7 +15,7 @@
 
 DroneFlight 是 `Hotfix` 业务 Demo，提供真实四旋翼飞控、三机型选择、正式 UI 和遥测。飞控继续使用四个 Rotor 独立施力、级联 PID、物理控制分配与一阶电机模型；装备不得修改 PID、Mixer、电机模型、Rotor 施力或 Cine/Normal/Sport 控制规律。
 
-业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。代码按实际职责组织：`Scene/` 管理资源加载、场景导航和会话生命周期，`UI/` 集中机型选择、HUD、调试 View、界面布局与 UIController，`Fishing/` 管理捕鱼任务、路径与演出，`Experience/` 管理等待/遥控状态及相机接管。飞控、物理和装备仍不反向依赖界面、资源服务或场景流程。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
+业务代码位于 `Assets/Scripts/Hotfix/Demos/DroneFlight/`，通过 `DroneFlight.asmref` 继续归属 `Hotfix.dll`；业务 Inspector 位于 `Hotfix.Editor`。代码按实际职责组织：`Scene/` 管理资源加载、场景导航和会话生命周期，`UI/` 集中机型选择、HUD、调试 View、界面布局与界面绑定，`Fishing/` 管理捕鱼任务、路径与演出，`Experience/` 管理等待/遥控状态及相机接管。飞控、物理和装备仍不反向依赖界面、资源服务或场景流程。详见[实现原理与架构设计](architecture/design.md)。资源位于 `Assets/LoadResources/Demos/drone_flight/`，自动化测试按模式位于 `Assets/Scripts/Tests/EditMode|PlayMode/Demo/DroneFlight`，统一使用 `Tests.Demo` 命名空间。
 
 ## 资源结构
 
@@ -190,7 +190,7 @@ DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什�
 
 Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使用公共 InputActionSession，键鼠保留原操作和键盘平滑；手柄左摇杆升降/偏航、右摇杆平移，触屏两个 TouchInputPad 同为摇杆模式。确认键短按解锁/锁定、长按按配置重载；Switch A 确认。返回键 Active → Waiting，再次返回退出 Hub；触屏有进入遥控入口。
 
-左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由 HUD View 读取 Data 并提交操作 Action，公共输入组件处理指针与提示；UIController 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
+左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由 HUD View 读取 Data 并提交操作 Action，公共输入组件处理指针与提示；Handler 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
 
 
 ## HUD 子资源（2026-10-05）
@@ -203,8 +203,16 @@ Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使�
 
 ## Flux 状态流
 
-DroneFlightData 保存机型、准备/活动/离场阶段、页面请求和只读遥测快照。按钮提交 Action；Handler 处理选择、帮助、调试及控制命令，再由场景服务执行生成或页面过渡。采样器按诊断配置的原刷新频率发布带 SessionId 的快照，旧会话不能覆盖新场读数。SceneCoordinator 注册状态，销毁时释放订阅并移除；UIController 持有自己的 Data 和页面实例，直接卸载也关闭页面。飞控、混控、PID及物理 Tick 保持原职责。
+DroneFlightData 保存机型、准备/活动/离场阶段、页面请求和只读遥测快照。按钮提交 Action；Handler 处理选择、帮助、调试及控制命令，再由场景服务执行生成或页面过渡。采样器按诊断配置的原刷新频率发布带 SessionId 的快照，旧会话不能覆盖新场读数。SceneCoordinator 注册状态，销毁时释放订阅并移除；SceneCoordinator 管理本场 HUD/选择页，Handler 管理帮助和调试请求；直接卸载按具体实例关闭页面，再同步清理 Data。飞控、混控、PID及物理 Tick 保持原职责。
 
 ## Flux 入口整理
 
 页面反馈、帮助/调试显示结果、离场和导航恢复通过具体 Action 提交；结果 Action 携带原 Data 实例，旧场景结果不刷新新会话。场景初始化仍配置机体生成与导航回调，物理飞控和遥测采样保持原链路。
+
+## 场景清理
+
+本场 Data 随场景注册、同步清空并移除；UI、输入和规则事件由实际持有者释放。导航失败且原场景仍在时保留当前 Data。
+
+## 本轮定向验证
+
+2026-10-09 UI 职责整理：机型选择、生成失败重试、返回失败恢复 3/3，统一输入 6/6 通过；真实会话的帮助页和调试页开关、调试绘制独立性已覆盖。Editor 打开 Main 场景检查 Missing Script 为 0。未执行全量测试或真机验证。

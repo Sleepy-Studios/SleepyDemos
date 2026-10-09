@@ -1,4 +1,5 @@
 using System;
+using Core.Runtime;
 using Hotfix.JinxCasino.UI;
 using Hotfix.JinxCasino.Persistence;
 using NUnit.Framework;
@@ -10,11 +11,20 @@ namespace Tests.Demo
     public sealed class CasinoLocalPreferencesTests
     {
         private string key;
-        private CasinoLocalPreferencesStore store;
+        private string warning;
+
+        private CasinoLocalPreferences Load()
+            => LocalDataManager.LoadData(key, new CasinoLocalPreferences(), out warning, CasinoLocalPreferences.Validate);
+
+        private void Save(CasinoLocalPreferences value)
+        {
+            LocalDataManager.SaveData(key, value, CasinoLocalPreferences.Validate);
+            warning = null;
+        }
 
         [SetUp]
         public void Prepare()
-        { key = "JinxCasino.Tests.Preferences." + Guid.NewGuid().ToString("N"); store = new CasinoLocalPreferencesStore(key); }
+        { key = "JinxCasino.Tests.Preferences." + Guid.NewGuid().ToString("N"); }
 
         [TearDown]
         public void Cleanup()
@@ -25,7 +35,7 @@ namespace Tests.Demo
         {
             const string invalid = "not-json";
             PlayerPrefs.SetString(key, invalid);
-            var settings = new JinxCasinoLocalSettings(store);
+            var settings = new JinxCasinoLocalSettings(key);
             Assert.That(settings.Warning, Is.Null, "构造只绑定存储；坏记录应在显式Load时才产生警告。");
             Assert.That(settings.Value.Volume, Is.EqualTo(0.7f));
             settings.Load();
@@ -36,13 +46,13 @@ namespace Tests.Demo
             Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(invalid));
             settings.Save(draft);
             Assert.That(settings.Warning, Is.Null);
-            Assert.That(store.Load().Volume, Is.EqualTo(0.2f));
+            Assert.That(Load().Volume, Is.EqualTo(0.2f));
         }
 
         [Test]
         public void SettingsOwnCopiesAndNotifyOnlyForSuccessfulChanges()
         {
-            var settings = new JinxCasinoLocalSettings(store);
+            var settings = new JinxCasinoLocalSettings(key);
             int changes = 0;
             settings.Changed += () => changes++;
             settings.Load();
@@ -61,13 +71,13 @@ namespace Tests.Demo
             Assert.That(PlayerPrefs.HasKey(key), Is.False);
             settings.Save(settings.Value);
             Assert.That(changes, Is.EqualTo(3));
-            Assert.That(store.Load().Volume, Is.EqualTo(0.2f));
+            Assert.That(Load().Volume, Is.EqualTo(0.2f));
         }
 
         [Test]
         public void MissingPreferencesKeepOriginalInputAndDoNotCreateSavedKey()
         {
-            var defaults = store.Load(); Assert.That(defaults.PcLookMultiplier, Is.EqualTo(1)); Assert.That(defaults.TouchLookMultiplier, Is.EqualTo(1));
+            var defaults = Load(); Assert.That(defaults.PcLookMultiplier, Is.EqualTo(1)); Assert.That(defaults.TouchLookMultiplier, Is.EqualTo(1));
             Assert.That(defaults.Volume, Is.EqualTo(0.7f)); Assert.That(defaults.Muted || defaults.LeftHanded, Is.False);
             Assert.That(defaults.GamepadDeadzone, Is.EqualTo(0.2f)); Assert.That(defaults.GamepadLookDegreesPerSecond, Is.EqualTo(90));
             Assert.That(defaults.RumbleEnabled, Is.True); Assert.That(defaults.RumbleStrength, Is.EqualTo(1));
@@ -85,23 +95,23 @@ namespace Tests.Demo
         public void InvalidRecordFallsBackWithoutOverwritingUntilExplicitSave(string json)
         {
             PlayerPrefs.SetString(key, json);
-            var restored = store.Load(); Assert.That(restored.IsValid, Is.True); Assert.That(restored.PcLookMultiplier, Is.EqualTo(1));
+            var restored = Load(); Assert.That(restored.IsValid, Is.True); Assert.That(restored.PcLookMultiplier, Is.EqualTo(1));
             Assert.That(restored.Volume, Is.EqualTo(0.7f)); Assert.That(restored.GamepadDeadzone, Is.EqualTo(0.2f));
-            Assert.That(store.LastLoadWarning, Is.Not.Empty); Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(json));
-            store.Save(restored); Assert.That(store.LastLoadWarning, Is.Null); Assert.That(PlayerPrefs.GetString(key), Is.Not.EqualTo(json));
+            Assert.That(warning, Is.Not.Empty); Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(json));
+            Save(restored); Assert.That(warning, Is.Null); Assert.That(PlayerPrefs.GetString(key), Is.Not.EqualTo(json));
         }
 
         [Test]
         public void SavingNonfiniteOrUnsupportedPreferencesRejectsWithoutChangingExistingRecord()
         {
-            store.Save(new CasinoLocalPreferences { PcLookMultiplier = 1.5f, Volume = 0.3f }); string before = PlayerPrefs.GetString(key);
+            Save(new CasinoLocalPreferences { PcLookMultiplier = 1.5f, Volume = 0.3f }); string before = PlayerPrefs.GetString(key);
             foreach (float invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, -1, 4 })
             {
-                Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { TouchLookMultiplier = invalid }));
+                Assert.Throws<ArgumentException>(() => Save(new CasinoLocalPreferences { TouchLookMultiplier = invalid }));
                 Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(before));
             }
-            Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { SchemaVersion = 99 }));
-            Assert.Throws<ArgumentException>(() => store.Save(new CasinoLocalPreferences { Volume = float.NaN }));
+            Assert.Throws<ArgumentException>(() => Save(new CasinoLocalPreferences { SchemaVersion = 99 }));
+            Assert.Throws<ArgumentException>(() => Save(new CasinoLocalPreferences { Volume = float.NaN }));
             foreach (var invalid in new[]
             {
                 new CasinoLocalPreferences { GamepadDeadzone = float.NaN },
@@ -112,7 +122,7 @@ namespace Tests.Demo
                 new CasinoLocalPreferences { RumbleStrength = -1 },
                 new CasinoLocalPreferences { SchemaVersion = 1 }
             })
-                Assert.Throws<ArgumentException>(() => store.Save(invalid));
+                Assert.Throws<ArgumentException>(() => Save(invalid));
             Assert.That(PlayerPrefs.GetString(key), Is.EqualTo(before));
         }
 
@@ -125,9 +135,9 @@ namespace Tests.Demo
                 GamepadDeadzone = 0.1f, GamepadMaximum = 0.9f, GamepadLookDegreesPerSecond = 120,
                 GamepadLookMultiplier = 1.5f, GamepadInvertY = true, RumbleEnabled = false, RumbleStrength = 0.4f
             };
-            store.Save(saved); saved.Volume = 1;
-            var first = store.Load(); first.LeftHanded = false; first.PcLookMultiplier = 3;
-            var second = new CasinoLocalPreferencesStore(key).Load();
+            Save(saved); saved.Volume = 1;
+            var first = Load(); first.LeftHanded = false; first.PcLookMultiplier = 3;
+            var second = Load();
             Assert.That(second.PcLookMultiplier, Is.EqualTo(0.5f)); Assert.That(second.TouchLookMultiplier, Is.EqualTo(2.5f));
             Assert.That(second.Volume, Is.EqualTo(0.2f)); Assert.That(second.Muted && second.LeftHanded, Is.True);
             var input = second.ToInputSettings();
@@ -136,9 +146,9 @@ namespace Tests.Demo
             Assert.That(input.GamepadLookDegreesPerSecond, Is.EqualTo(120)); Assert.That(input.GamepadLookMultiplier, Is.EqualTo(1.5f));
             Assert.That(input.GamepadInvertY, Is.True); Assert.That(input.RumbleEnabled, Is.False); Assert.That(input.RumbleStrength, Is.EqualTo(0.4f));
             input.GamepadDeadzone = 0.3f; second.GamepadDeadzone = 0.2f;
-            Assert.That(store.Load().GamepadDeadzone, Is.EqualTo(0.1f));
+            Assert.That(Load().GamepadDeadzone, Is.EqualTo(0.1f));
             second.GamepadDeadzone = 0; second.RumbleStrength = 0; second.GamepadInvertY = false;
-            store.Save(second); var zeroRestored = new CasinoLocalPreferencesStore(key).Load();
+            Save(second); var zeroRestored = Load();
             Assert.That(zeroRestored.GamepadDeadzone, Is.Zero); Assert.That(zeroRestored.RumbleStrength, Is.Zero);
             Assert.That(zeroRestored.GamepadInvertY || zeroRestored.RumbleEnabled, Is.False);
         }
@@ -146,7 +156,7 @@ namespace Tests.Demo
         [Test]
         public void PreviewPreservesInputSettingsWithoutWritingUntilExplicitSave()
         {
-            var settings = new JinxCasinoLocalSettings(store);
+            var settings = new JinxCasinoLocalSettings(key);
             settings.Load();
             Assert.That(settings.Value.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
             var draft = settings.Value; draft.PcLookMultiplier = 2; draft.TouchLookMultiplier = 0.5f;
@@ -162,11 +172,11 @@ namespace Tests.Demo
             Assert.That(settings.Value.GamepadLookDegreesPerSecond, Is.EqualTo(90));
             Assert.That(PlayerPrefs.HasKey(key), Is.False, "取消预览不能创建偏好键。");
             settings.Save(draft);
-            Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(2));
-            Assert.That(store.Load().GamepadLookDegreesPerSecond, Is.EqualTo(200));
+            Assert.That(Load().PcLookMultiplier, Is.EqualTo(2));
+            Assert.That(Load().GamepadLookDegreesPerSecond, Is.EqualTo(200));
             settings.Apply(new CasinoLocalPreferences());
             Assert.That(settings.Value.ToInputSettings().MouseLookMultiplier, Is.EqualTo(1));
-            Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(2), "撤销预览不能覆盖明确保存值");
+            Assert.That(Load().PcLookMultiplier, Is.EqualTo(2), "撤销预览不能覆盖明确保存值");
             Assert.That(settings.Value.GamepadInvertY, Is.False);
         }
     }

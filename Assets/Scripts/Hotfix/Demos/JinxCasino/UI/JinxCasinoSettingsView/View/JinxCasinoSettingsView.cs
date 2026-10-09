@@ -165,7 +165,7 @@ namespace Hotfix
             if (first != FirstSelection)
             {
                 first = FirstSelection;
-                owner.UI.SetFirstSelection(first);
+                owner.SetFirstSelection(RestoreMenuSelection(first));
             }
         }
 
@@ -181,6 +181,8 @@ namespace Hotfix
         protected override void OnHide()
         {
             SendSettings(JinxCasinoSettingsOperation.Cancel);
+            if (owner != null && owner.Data.SettingsOpen && !owner.Data.IsExiting)
+                CancelPreview();
             owner = null;
             base.OnHide();
         }

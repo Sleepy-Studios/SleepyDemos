@@ -104,7 +104,7 @@ HUD、设置和结果资源保存 UIMenuScope，方向选择/确认只派发一�
 
 ## 独立页面维护
 
-`BlockPortersHudView` 只负责队列、任务位与进度。设置页持有声音开关、继续、重开与返回；结算页持有胜负文案、奖励、重开、下一关与返回。`BlockPortersUIController` 随 Controller 会话创建，串行关闭旧弹窗与打开目标弹窗；返回 Hub 先关闭弹窗，再关闭 HUD。导航失败恢复当前会话，避免下一次场景误关旧 View。
+HUD、设置和结果各自维护 View 与 Prefab。Handler 在设置请求或结算状态变化时直接导航，返回 Hub 先关闭所属页面与 HUD，失败恢复当前 Data。场景销毁时释放任务并同步 ClearData；不维护独立页面控制器。
 
 设置页使用公共 UIBtnSwitch，按钮使用 UIState/UIStateInteraction 和独立取消作用域。队列的业务色与计数色仍由 HUD 管理，公共五态只持有强调边与内部卡面缩放；BlockPortersButtonFeedback 只保留队列递补回弹。弹窗布局共用本 Demo 的安全区布局组件，不创建额外 Canvas 或 EventSystem。
 
@@ -119,3 +119,11 @@ Action 的 PascalCase 参数字段与构造函数显式描述关卡、列及奖�
 ## Flux 入口整理
 
 HUD 准备与场景停用通过 Ready Action 同步；返回失败的恢复 Action 携带原 Data 实例。调度采样、主题表现事件及奖励依赖配置保留生命周期入口。
+
+## 场景清理
+
+本场 Data 随场景注册、同步清空并移除；UI、输入和规则事件由实际持有者释放。导航失败且原场景仍在时保留当前 Data。
+
+## 本轮定向验证
+
+2026-10-09 UI 职责整理：设置、暂停恢复和返回定向用例通过；完整 FlowTests 6/6 通过，页面任务修正后设置用例再次通过。未执行全量测试。

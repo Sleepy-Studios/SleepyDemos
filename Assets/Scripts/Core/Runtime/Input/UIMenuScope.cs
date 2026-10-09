@@ -10,6 +10,7 @@ namespace Core.Runtime.Inputs
     public sealed class UIMenuScope : MonoBehaviour, ICancelHandler
     {
         [SerializeField] private Selectable firstSelection;
+        private Selectable previousSelection;
         private MenuInputScope scope;
         private Selectable[] candidates = new Selectable[32];
         private readonly Dictionary<Selectable, Navigation> originalNavigation = new();
@@ -36,8 +37,15 @@ namespace Core.Runtime.Inputs
             scope.Update(First());
         }
         private void OnTransformChildrenChanged() => hierarchyChanged = true;
+        internal void CaptureSelection()
+        {
+            var selected = EventSystem.current?.currentSelectedGameObject?.GetComponent<Selectable>();
+            if (selected != null && selected.GetComponentInParent<UIMenuScope>(true) == this)
+                previousSelection = selected;
+        }
         private void OnDisable()
         {
+            CaptureSelection();
             scope?.Dispose(); scope = null;
             foreach (var entry in originalNavigation) if (entry.Key != null) entry.Key.navigation = entry.Value;
             originalNavigation.Clear();
@@ -79,6 +87,7 @@ namespace Core.Runtime.Inputs
         }
         private GameObject First()
         {
+            if (Available(previousSelection)) return previousSelection.gameObject;
             if (Available(firstSelection)) return firstSelection.gameObject;
             if (candidates.Length < Selectable.allSelectableCount) Array.Resize(ref candidates, Selectable.allSelectableCount + 16);
             int count = Selectable.AllSelectablesNoAlloc(candidates);

@@ -59,7 +59,7 @@ namespace Core.Runtime.Rendering.Streamline
         }
 
         /// 读取持久化偏好，不初始化图形资源。
-        public static StreamlineDlssMode? ReadSavedMode() => DecodePreference(PlayerPrefs.GetInt(PreferenceKey, 0));
+        public static StreamlineDlssMode? ReadSavedMode() => DecodePreference(LocalDataManager.LoadData(PreferenceKey, 0));
 
         /// <summary>保存全局档位并应用到当前相机；不能应用时保留偏好。</summary>
         /// <param name="mode">空表示关闭。</param>
@@ -68,8 +68,7 @@ namespace Core.Runtime.Rendering.Streamline
             if (mode.HasValue && DecodePreference((int)mode.Value) == null) throw new ArgumentOutOfRangeException(nameof(mode));
             Initialize();
             RequestedMode = mode;
-            PlayerPrefs.SetInt(PreferenceKey, mode.HasValue ? (int)mode.Value : 0);
-            PlayerPrefs.Save();
+            LocalDataManager.SaveData(PreferenceKey, mode.HasValue ? (int)mode.Value : 0);
             ReapplyAsync().Forget();
             Changed?.Invoke();
         }

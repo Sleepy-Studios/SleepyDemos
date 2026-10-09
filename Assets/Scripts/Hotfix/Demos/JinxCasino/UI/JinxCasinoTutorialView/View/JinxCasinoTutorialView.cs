@@ -127,7 +127,7 @@ namespace Hotfix
             if (shownState != state)
             {
                 shownState = state;
-                owner.UI.SetFirstSelection(state == JinxCasinoPage.TutorialReady ? tutorialCompleteButton.gameObject : state == JinxCasinoPage.TutorialChoice ? tutorialContinueButton.gameObject : tutorialCancelButton.gameObject);
+                owner.SetFirstSelection(RestoreMenuSelection(state == JinxCasinoPage.TutorialReady ? tutorialCompleteButton.gameObject : state == JinxCasinoPage.TutorialChoice ? tutorialContinueButton.gameObject : tutorialCancelButton.gameObject));
             }
         }
 

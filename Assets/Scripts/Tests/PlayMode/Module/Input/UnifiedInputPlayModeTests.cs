@@ -71,8 +71,17 @@ namespace Tests.Module
                 Assert.That(first.GetComponent<Button>().navigation.selectOnRight, Is.Null);
                 next.SetActive(true); yield return null;
                 Assert.That(first.GetComponent<Button>().navigation.selectOnRight, Is.SameAs(next.GetComponent<Button>()));
+                child.SetActive(false);
+                EventSystem.current.SetSelectedGameObject(next);
+                panel.SetActive(false);
+                panel.SetActive(true);
+                yield return null; yield return null;
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(next), "重新露出页面恢复原控件焦点");
                 next.GetComponent<Button>().interactable = false; yield return null;
                 Assert.That(first.GetComponent<Button>().navigation.selectOnRight, Is.Null);
+                panel.SetActive(false); panel.SetActive(true);
+                yield return null; yield return null;
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(first), "原控件失效时回到可用控件");
             }
             finally { Object.Destroy(root); if (original != null) EventSystem.current = original; }
             yield return null;

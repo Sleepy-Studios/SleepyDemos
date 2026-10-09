@@ -335,7 +335,7 @@ DroneFlight 仍通过 `DroneFlight.asmref` 归属 `Hotfix.dll`，没有新增 `D
 
 - `Control`、`Physics`、`Input`、`Camera`、`Equipment`、`Payload`、`Telemetry`、`Vehicle`、`Cruise`、`Runtime` 是可脱离 SleepyDemos 宿主理解的核心。
 - `Scene` 负责资源加载、场景导航和 Hub 会话生命周期。
-- `UI` 集中机型选择、HUD、调试 View 与专属布局；UIController 连接正式 UIManager 与场景会话，保留强类型 ViewData。页面表示选择和反馈，不承担机体资源加载或生成。
+- `UI` 集中机型选择、HUD、调试 View 与专属布局；SceneCoordinator 连接正式 UIManager 与场景会话，保留强类型 ViewData。页面表示选择和反馈，不承担机体资源加载或生成。
 - `Fishing` 负责捕鱼任务编排、贝塞尔路径、演出镜头与任务配置。
 - `Experience` 负责等待/遥控状态切换与相机接管。
 

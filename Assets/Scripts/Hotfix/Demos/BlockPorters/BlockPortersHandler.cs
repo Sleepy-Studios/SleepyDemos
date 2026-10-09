@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -10,18 +11,18 @@ namespace Hotfix.BlockPorters
     internal sealed class BlockPortersHandler : HandlerBase<BlockPortersAction, BlockPortersData>
     {
         private readonly BlockPortersController scene;
-
         private CancellationTokenSource rewardLifetime;
-
+        private CancellationTokenSource pageLifetime;
+        private Task pageChange = Task.CompletedTask;
+        private View window;
+        private Type requestedPage;
         private IBlockPortersReward reward = new SimulatedBlockPortersReward();
-
         internal BlockPortersHandler(BlockPortersController scene)
         {
             this.scene = scene;
         }
 
         internal void SetReward(IBlockPortersReward provider) => reward = provider ?? throw new ArgumentNullException(nameof(provider));
-
         internal void CancelReward()
         {
             rewardLifetime?.Cancel();
@@ -35,7 +36,84 @@ namespace Hotfix.BlockPorters
             rewardLifetime = CancellationTokenSource.CreateLinkedTokenSource(scene.Lifetime);
         }
 
-        internal void Publish() => ApplyState();
+        internal void Publish()
+        {
+            ApplyState();
+            Type target = !State.Ready || State.IsExiting ? null : State.SettingsRequested ? typeof(BlockPortersSettingsView) : State.Session?.Status != BlockPortersStatus.Playing ? typeof(BlockPortersResultView) : null;
+            if (target == requestedPage)
+                return;
+            requestedPage = target;
+            CancelPageRequest();
+            pageLifetime = CancellationTokenSource.CreateLinkedTokenSource(scene.Lifetime);
+            pageChange = ChangePageAsync(target, pageLifetime.Token).AsTask();
+            pageChange.AsUniTask().Forget();
+        }
+
+        private async UniTask ChangePageAsync(Type target, CancellationToken token)
+        {
+            try
+            {
+                if (window != null)
+                {
+                    var closed = await UIManager.Instance.CloseAsync(window, false, token);
+                    if (closed.Status == UIOperationStatus.Failed)
+                        throw closed.Exception;
+                    token.ThrowIfCancellationRequested();
+                    window = null;
+                }
+
+                if (target == null)
+                    return;
+                var options = new UIShowOptions(animated: false, hidePrevious: false);
+                var opened = target == typeof(BlockPortersSettingsView) ? await UIManager.Instance.ShowAsync<BlockPortersSettingsView>(options, token) : await UIManager.Instance.ShowAsync<BlockPortersResultView>(options, token);
+                if (opened.Status == UIOperationStatus.Failed)
+                {
+                    throw opened.Exception;
+                }
+
+                if (opened.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored)
+                    window = opened.View;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, scene);
+                if (ReferenceEquals(GlobalData.Get<BlockPortersData>(), State))
+                    GlobalData.Dispatch(new BlockPortersCloseSettingsAction());
+            }
+        }
+
+        private void CancelPageRequest()
+        {
+            pageLifetime?.Cancel();
+            pageLifetime?.Dispose();
+            pageLifetime = null;
+        }
+
+        internal async UniTask CloseWindowsAsync()
+        {
+            CancelPageRequest();
+            await pageChange;
+            requestedPage = null;
+            if (window == null)
+                return;
+            var result = await UIManager.Instance.CloseAsync(window, false);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            window = null;
+        }
+
+        internal void ReleasePages()
+        {
+            CancelPageRequest();
+            var owned = window;
+            window = null;
+            requestedPage = null;
+            if (owned != null)
+                UIManager.Instance.CloseAsync(owned, false).Forget();
+        }
 
         internal void Advance(double time)
         {

@@ -66,16 +66,16 @@ Windows构建会校验本机System32的chcp.com签名和哈希，再临时提供
 
 标准样板目标达成后按提示前往验票口，再到离场口领取票券；未达标可在离场口两次交互确认撤离。若超时仍有已投入牌局，先回原桌完成；暂停不会耗尽撤离确认窗口。结局可保存在三槽中，再明确返回Hub。此流程的Editor真实输入证据记录于immersion-progress，不替代Player或真机实玩。
 
-当前旅程在Application.persistentDataPath/JinxCasino/PrototypeV2/save-1.json至save-3.json，成长在PrototypeV2/Profile/profile.json。只接受冒险版本4，旧目录不读取、旧快照不迁移；不要搬旧档进新目录或手改版本号/机台ID。当前有效数据也须匹配样板实际开放内容，拒绝恢复时保留当前旅程和文件；四区/无尽等恢复等待对应场景接入。普通.bak用于当前版本损坏恢复，不是旧档迁移。
+当前旅程在Application.persistentDataPath/JinxCasino/save-1.json至save-3.json，成长在JinxCasino/Profile/profile.json。只接受冒险版本4，旧目录不读取、旧快照不迁移；不要搬旧档进新目录或手改版本号/机台ID。当前有效数据也须匹配样板实际开放内容，拒绝恢复时保留当前旅程和文件；四区/无尽等恢复等待对应场景接入。不读取或创建.bak；损坏槽按空槽、损坏成长档案按新用户处理。
 
 JinxCasinoSettingsView 是独立设置页，可从主菜单或暂停菜单打开，分为键鼠/触控、手柄和声音。修改立即预览，保存才持久化；B/Esc/Menu或返回撤销未保存改动并回原菜单。恢复默认也是预览，仍须保存。手柄上下选控件、左右调滑条；真实设备的震动与Android后台恢复仍需单独验证。
 
-新原型偏好键为JinxCasino.PrototypeV2.LocalPreferences，不读取旧原型的JinxCasino.LocalPreferences.v1；首次进入使用完整默认值。当前记录缺失版本或数值时显示回退提示，明确保存才替换新键的内容，不修改旧键。公共输入设置仍由Core负责读取参数和设备操作，赌场只保存本机偏好。
+当前偏好键由LocalDataKeys.CasinoPreferences集中定义，值为JinxCasino.LocalPreferences。只读取完整当前记录；缺失或损坏回默认，预览与取消不写盘，明确保存才替换记录。公共输入设置仍由Core消费参数和处理设备操作，赌场只保存本机偏好。
 
 
 ## 页面生命周期维护
 
-页面资源统一位于 `Prefabs/UI/`。HUD 仅承担场地信息、输入提示与触控；JinxCasinoUIController 串行切换一个当前窗口。存档及教学的跨窗口待确认状态由各自 WindowState 保存，Presenter 不持有其它页面控件。
+页面资源统一位于 `Prefabs/UI/`。HUD 仅承担场地信息、输入提示与触控；JinxCasinoHandler 串行切换一个当前窗口。存档及教学的跨窗口待确认状态由各自 WindowState 保存，Presenter 不持有其它页面控件。
 
 数据经 `ShowAsync<View, JinxCasinoController>` 在显示前交付，View 在 OnShow 绑定、OnHide/OnDestroy 解除。所有可导航控件配置公共 UICancelRelay，将 Cancel 转交给页面根；不新增 EventSystem 或重复输入作用域。关闭设置撤销未保存预览，关闭窗口恢复来源控件焦点，返回 Hub 先关闭当前窗口再释放 HUD 和场景。
 

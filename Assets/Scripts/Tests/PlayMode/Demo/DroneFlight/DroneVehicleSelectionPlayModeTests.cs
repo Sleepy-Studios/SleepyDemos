@@ -66,6 +66,18 @@ namespace Tests.Demo
             Assert.That(delayed.Requests, Is.EqualTo(2));
             Assert.That(Field<GameObject>(coordinator, "currentDrone").name, Is.EqualTo("DroneHarpoonVariant"));
             Assert.That(Object.FindObjectsByType<DroneFlightController>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
+            GlobalData.Dispatch(new DroneFlightControlAction("Help"));
+            yield return Wait(() => UIManager.Instance.Get<DroneFlightHelpView>()?.State == ViewState.Visible, "本场帮助页");
+            GlobalData.Dispatch(new DroneFlightControlAction("Help"));
+            yield return Wait(() => UIManager.Instance.Get<DroneFlightHelpView>() == null, "帮助页关闭");
+            Assert.That(GlobalData.Get<DroneFlightData>().HelpRequested, Is.False);
+            GlobalData.Dispatch(new DroneFlightControlAction("DebugPanel"));
+            yield return Wait(() => UIManager.Instance.Get<DroneFlightDebugView>()?.State == ViewState.Visible, "本场调试页");
+            GlobalData.Dispatch(new DroneFlightControlAction("DebugDraw"));
+            Assert.That(GlobalData.Get<DroneFlightData>().DebugDrawVisible, Is.True);
+            GlobalData.Dispatch(new DroneFlightControlAction("DebugPanel"));
+            yield return Wait(() => UIManager.Instance.Get<DroneFlightDebugView>() == null, "调试页关闭");
+            Assert.That(GlobalData.Get<DroneFlightData>().DebugDrawVisible, Is.True, "调试页与调试绘制独立");
         }
 
         [UnityTest, Timeout(180000)]
@@ -76,7 +88,7 @@ namespace Tests.Demo
             int started = 0, backed = 0;
             DroneVehicleKind submitted = default;
             var data = GlobalData.Get<DroneFlightData>();
-            data.Handler.ConfigureSelection(kind => { started++; submitted = kind; }, () => backed++, null);
+            data.Handler.ConfigureSelection(kind => { started++; submitted = kind; }, () => backed++);
             yield return Wait(() => EventSystem.current.sendNavigationEvents, "公共导航松键");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.RightArrow)); yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;

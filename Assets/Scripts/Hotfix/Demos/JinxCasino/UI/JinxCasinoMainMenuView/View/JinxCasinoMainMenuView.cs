@@ -108,7 +108,8 @@ namespace Hotfix
             if (shownState != state)
             {
                 shownState = state;
-                owner.UI.SetFirstSelection(start.gameObject);
+                if (state == JinxCasinoPage.MainMenu)
+                    owner.SetFirstSelection(RestoreMenuSelection(start.gameObject));
             }
         }
 

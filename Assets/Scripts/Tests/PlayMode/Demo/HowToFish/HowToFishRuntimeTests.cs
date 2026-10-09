@@ -29,16 +29,23 @@ namespace Tests.Demo
         private Mouse mouse;
         private string saveDirectory;
         private HowToFishWorld testWorld;
+        private InputSettings originalInputSettings;
+        private InputSettings testInputSettings;
 
         [UnitySetUp]
         public IEnumerator PrepareScreenshotDirectory()
         {
+            originalInputSettings = InputSystem.settings;
+            testInputSettings = UnityEngine.Object.Instantiate(originalInputSettings);
+            testInputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            testInputSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = testInputSettings;
             Directory.CreateDirectory(Path.GetFullPath("Library/HowToFish/Evidence"));
             yield break;
         }
 
         [UnityTest, Timeout(360000)]
-        public IEnumerator SaveSlots_AllThreeMenusContinueRestartAndRecoverIndependently()
+        public IEnumerator SaveSlots_AllThreeMenusContinueRestartAndResetCorruptIndependently()
         {
             saveDirectory = Path.Combine(Path.GetTempPath(), "HowToFishRuntimeTests", Guid.NewGuid().ToString("N"));
             keyboard = InputSystem.AddDevice<Keyboard>();
@@ -96,31 +103,29 @@ namespace Tests.Demo
             Assert.That(Vector3.Distance(testWorld.Session.State.safePosition, positions[1]), Is.GreaterThan(.3f));
             Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "Slot1.json")), Is.EqualTo(records[0]));
             Assert.That(File.ReadAllText(Path.Combine(saveDirectory, "Slot3.json")), Is.EqualTo(records[2]));
-            Assert.That(File.Exists(Path.Combine(saveDirectory, "Slot2.json.bak")), Is.True);
+            Assert.That(File.Exists(Path.Combine(saveDirectory, "Slot2.json.bak")), Is.False);
             yield return PressKey(Key.Escape);
             yield return SubmitInputSettingsControl("ReturnHub");
             yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "重开后未返回Hub。");
 
-            // 仅损坏此次测试临时目录的文件，随后必须通过恢复按钮使用已有备份。
+            // 本次临时目录中的损坏槽按空槽处理，其余有效槽仍可继续。
             File.WriteAllText(Path.Combine(saveDirectory, "Slot2.json"), "broken-primary-for-ui-test");
             yield return EnterThreeSlotMenu();
-            Assert.That(testWorld.InspectSlot(1).Status, Is.EqualTo(HowToFishLoadStatus.RecoveryAvailable));
-            Vector3 recoveryPosition = testWorld.InspectSlot(1).Data.safePosition;
-            Assert.That(ObjectFind<Button>("Slot1").GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("恢复备份"));
-            Assert.That(ObjectFind<Button>("New1").interactable, Is.False, "待恢复槽不能被重开按钮静默覆盖。");
+            Assert.That(testWorld.InspectSlot(1).Status, Is.EqualTo(HowToFishLoadStatus.Empty));
+            Assert.That(ObjectFind<Button>("Slot1").GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("新的航程"));
+            Assert.That(ObjectFind<Button>("New1").interactable, Is.True);
             yield return SubmitInputSettingsControl("Slot1", true);
-            yield return WaitFor(() => testWorld.HasSession, "恢复按钮没有载入备份。");
-            Assert.That(testWorld.Session.State.safePosition, Is.EqualTo(recoveryPosition));
+            yield return WaitFor(() => testWorld.HasSession, "空槽没有建立新航程。");
+            Assert.That(testWorld.Session.State.money, Is.Zero);
             Assert.That(testWorld.InspectSlot(1).Status, Is.EqualTo(HowToFishLoadStatus.Ready));
             yield return PressInputSettingsPad(GamepadButton.Start);
             yield return SubmitInputSettingsControl("ReturnHub", true);
-            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "恢复后未返回Hub。");
+            yield return WaitFor(() => GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "新航程未返回Hub。");
             File.WriteAllText(Path.Combine(saveDirectory, "Slot3.json"), "broken-primary-for-ui-test");
-            File.WriteAllText(Path.Combine(saveDirectory, "Slot3.json.bak"), "broken-backup-for-ui-test");
             yield return EnterThreeSlotMenu();
-            Assert.That(ObjectFind<Button>("Slot2").GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("数据损坏"));
-            Assert.That(ObjectFind<Button>("Slot2").interactable, Is.False);
-            Assert.That(ObjectFind<Button>("New2").interactable, Is.False);
+            Assert.That(ObjectFind<Button>("Slot2").GetComponentInChildren<TextMeshProUGUI>().text, Does.Contain("新的航程"));
+            Assert.That(ObjectFind<Button>("Slot2").interactable, Is.True);
+            Assert.That(ObjectFind<Button>("New2").interactable, Is.True);
             Assert.That(ObjectFind<Button>("Slot0").interactable && ObjectFind<Button>("Slot1").interactable, Is.True);
             Assert.That(testWorld.HasSession, Is.False);
         }
@@ -308,7 +313,7 @@ namespace Tests.Demo
         [UnityTest, Timeout(240000)]
         public IEnumerator InputSettings_MenuPreviewCancelRebindAndHubPersistence()
         {
-            const string key = HowToFishLocalPreferencesStore.DefaultKey;
+            const string key = LocalDataKeys.HowToFishPreferences;
             bool hadPreferences = PlayerPrefs.HasKey(key);
             string originalPreferences = hadPreferences ? PlayerPrefs.GetString(key) : null;
             try
@@ -406,7 +411,7 @@ namespace Tests.Demo
                 yield return null; yield return null;
                 yield return SubmitInputSettingsControl("SettingsSave", true);
                 Assert.That(world.IsEditingSettings, Is.False);
-                var stored = new HowToFishLocalPreferencesStore().Load();
+                var stored = LocalDataManager.LoadData(LocalDataKeys.HowToFishPreferences, new HowToFishLocalPreferences(), HowToFishLocalPreferences.Validate);
                 Assert.That(stored.MouseSensitivity, Is.EqualTo(expected.MouseSensitivity).Within(.0001f));
                 Assert.That(stored.GamepadSensitivity, Is.EqualTo(expected.GamepadSensitivity));
                 Assert.That(stored.DeadZone, Is.EqualTo(expected.DeadZone).Within(.0001f));
@@ -600,7 +605,7 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null; yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
             Assert.That(EventSystem.current.currentSelectedGameObject.name, Is.EqualTo("OpenOutfits"));
-            using (var blocked = new FileStream(Path.Combine(saveDirectory, "PlayerSkins.json.tmp"), FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var blocked = new FileStream(Path.Combine(saveDirectory, "PlayerSkins.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
                 Assert.That(world.TrySelectOutfit("Badman"), Is.False, "选择写入失败不能先换外观。");
             Assert.That(world.SelectedOutfitId, Is.EqualTo("Sailor"));
             world.SetPaused(false);
@@ -633,7 +638,7 @@ namespace Tests.Demo
             yield return WaitFor(() => fish == null || fish.IsConsumed, "烧焦生物未通过长按进食消费。");
             InputSystem.QueueStateEvent(mouse, new MouseState()); yield return null;
             var store = new HowToFishSaveStore(saveDirectory);
-            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("KioskLady"));
+            Assert.That(store.LoadSkinProfile().unlockedOutfits, Does.Contain("KioskLady"));
             world.Session.State.unlockedIsland = 4;
             var roulette = UnityEngine.Object.FindAnyObjectByType<HowToFishRoulette>();
             fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, false);
@@ -646,7 +651,7 @@ namespace Tests.Demo
             Assert.That(fish.IsConsumed, Is.False); Assert.That(fish.BettingMultiplier, Is.EqualTo(1));
             Assert.That(boss.TryConsume(() => { }), Is.True);
             Assert.That(world.TrySettleRoulette(roulette, bets, HowToFishRouletteColor.Green, out _), Is.True);
-            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("Andrei"));
+            Assert.That(store.LoadSkinProfile().unlockedOutfits, Does.Contain("Andrei"));
             Assert.That(fish.BettingMultiplier, Is.EqualTo(35));
             foreach (var reward in HowToFishSkinCatalog.Rewards(0, HowToFishSkinRarity.Legendary)) world.Session.UnlockSkin(reward.Id);
             fish = world.Spawn("Shrimp", world.Player.transform.position + Vector3.up, true);
@@ -667,7 +672,7 @@ namespace Tests.Demo
                 Assert.That(rewardText, Does.Contain("重复"));
             }
             finally { UnityEngine.Random.state = randomState; }
-            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("Jacob"), "重复传奇奖励也解锁人物服装。");
+            Assert.That(store.LoadSkinProfile().unlockedOutfits, Does.Contain("Jacob"), "重复传奇奖励也解锁人物服装。");
             var departure = UnityEngine.Object.FindObjectsByType<HowToFishStation>(FindObjectsSortMode.None)
                 .Single(value => value.Kind == HowToFishStationKind.MilitaryDeparture);
             world.Session.State.hasMilitaryBoatKey = true;
@@ -676,7 +681,7 @@ namespace Tests.Demo
             typeof(HowToFishWorld).GetMethod("Interact", BindingFlags.Instance | BindingFlags.NonPublic)
                 .Invoke(world, new object[] { departure.GetComponent<Collider>() });
             Assert.That(world.ShowEnding, Is.True);
-            Assert.That(store.LoadSkinProfile(out _).unlockedOutfits, Does.Contain("Scientist").And.Contain("Bean"));
+            Assert.That(store.LoadSkinProfile().unlockedOutfits, Does.Contain("Scientist").And.Contain("Bean"));
             Assert.That(world.InspectSlot(0).Data.hasFinished, Is.True);
             float finishedAt = world.Session.State.playedSeconds;
             yield return new WaitForSecondsRealtime(.2f);
@@ -3820,6 +3825,10 @@ namespace Tests.Demo
                 while (world != null && Time.realtimeSinceStartup < deadline) yield return null;
             }
             Time.timeScale = 1;
+            if (originalInputSettings != null)
+                InputSystem.settings = originalInputSettings;
+            if (testInputSettings != null)
+                UnityEngine.Object.Destroy(testInputSettings);
             if (saveDirectory != null && Directory.Exists(saveDirectory)) Directory.Delete(saveDirectory, true);
         }
 

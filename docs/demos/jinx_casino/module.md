@@ -36,11 +36,11 @@ UI根继续使用Core Canvas及View生命周期，所有面板、按钮、文字
 
 `JinxCasinoSceneEffects`只呈现已经提交的效果。角色视觉使用独立保存挂点，恢复精确原位置、姿态及材质；同目标保护先校验，失败不消耗道具。传送检查安全点和角色占位，移动赌桌使用完整包围盒及CharacterController skinWidth保留间距。当前Immersion未装配这些环境设施，保留的物理效果组件及资源候选不代表事件体验已完成。
 
-`Persistence/CasinoLocalSaveStore`默认使用`Application.persistentDataPath/JinxCasino/PrototypeV2`的三个独立槽。冒险快照仅接受版本4，缺失版本或旧版本均拒绝，不搜索旧目录和迁移数据。完整规则快照先校验再原子替换，保留上一不同快照；损坏主文件不能滚入有效备份，相同快照不滚动备份。主动选槽后阶段边界和退出保存，未选槽不会隐式覆盖其他槽。
+当前存档通过公共 LocalDataManager 原子写入，不创建或读取备份。合法候选先完成领域校验，IO 失败保留有效主档；读取缺失或损坏内容按空槽或新用户处理。
 
-永久成长由`CasinoProfile`统计已提交的正式局流水，按RunId去重；练习不给永久战绩。`Persistence/CasinoProfileStore`使用PrototypeV2/Profile目录的原子JSON/校验和备份。Game先保存候选再提交档案缓存，失败不吞掉待登记RunId，5秒后重试；已删除旧ProfileHost partial。配色、帽子和表情必须已经解锁，修改损坏档案不能被静默重置覆盖。
+永久成长由`CasinoProfile`统计已提交的正式局流水，按RunId去重；练习不给永久战绩。`Persistence/CasinoProfileStore`在JinxCasino/Profile目录保存领域快照，底层调用公共原子读写。Game先保存候选再提交档案缓存，失败不吞掉待登记RunId，5秒后重试；已删除旧ProfileHost partial。配色、帽子和表情必须已经解锁，损坏档案按新用户读取，读取不会自动覆盖文件；明确保存合法候选时才写入。
 
-本机偏好由`UI/JinxCasinoLocalSettings`管理加载/预览/保存，`CasinoLocalPreferencesStore`使用独立PlayerPrefs键保存，不进入旅程/网络状态。设置预览只影响本机场景，关闭、事件打断或View释放都会撤销未确认修改；明确保存后先写盘，再提交偏好。PC和触控增量先分别乘各自倍率，再沿用原基础灵敏度。左右手仅镜像保存的触控区域并清理持有指针，不修改Core安全区。
+本机输入/音量偏好由 JinxCasinoLocalSettings 持有独立副本，使用 LocalDataKeys.CasinoPreferences 与 LocalDataManager 加载、明确保存。预览不写盘，保存失败不提交候选；损坏回默认并提示，不读取旧键或备份。
 
 双人扳手通过`TryApplyCooperationHelp()`落实为每局一次真实帮助：拉杆窗口前后各扩大100毫秒，金库揭示首个尚未查看的线索。帮助标志进入单局快照，读档不重复放宽；已用或全部已知时拒绝并保留库存。操作者仍须拉杆/输入正确密码，不能靠帮助伪造接管资格。
 
@@ -78,7 +78,7 @@ LocalPauseState记录后台/失焦/手柄断连并要求显式继续；它只提
 
 ## 手柄本机偏好
 
-CasinoLocalPreferences当前记录版本2包含手柄死区、最大半径、视角速度/倍率、反转Y、震动开关/强度。PlayerPrefs使用JinxCasino.PrototypeV2.LocalPreferences，只读完整当前记录，不查询旧键或迁移旧参数；坏记录只读回退，取消预览不写盘。ToInputSettings输出独立公共输入参数，不能在每帧构建；宿主在加载/预览/取消时ApplySettings。偏好版本独立于冒险版本4和公共输入DTO版本1。
+CasinoLocalPreferences当前记录版本2包含手柄死区、最大半径、视角速度/倍率、反转Y、震动开关/强度。PlayerPrefs使用JinxCasino.LocalPreferences，只读完整当前记录，不查询旧键或迁移旧参数；坏记录只读回退，取消预览不写盘。ToInputSettings输出独立公共输入参数，不能在每帧构建；宿主在加载/预览/取消时ApplySettings。偏好版本独立于冒险版本4和公共输入DTO版本1。
 
 数据存储、三页设置控件与公共输入宿主已接入；Editor真实控件操作仍不代表Xbox实物或Android设置体验已验收。
 
@@ -119,7 +119,7 @@ Player.SetMenuState可选取消回调仅在菜单打开时保存。Core Cancel�
 
 JinxCasinoImmersionHudSave复用GetSaveSlotInfo、SaveAdventure和LoadAdventure；不另建文件格式或存储目录。主菜单读取、暂停保存/读取共用三槽列表；空槽禁用读取，覆盖已有槽及替换当前局先进入确认卡。取消只退当前层级并保留暂停，读取成功后显式继续，后台/手柄断连仍由LocalPauseState阻止恢复。
 
-槽摘要仅在打开和操作后重读，包含模式、区域、筹码、时间及备份恢复提示。确认前重新读取可用性，并核对打开列表时的RunId，避免界面旧选择写入另一个新局。保存后继续使用选定槽的原自动保存契约。Core Cancel和手柄Menu统一经过CancelSaveWindow，未打开存档时交回教学/暂停逻辑；自身按帧去重，菜单销毁清理监听。
+槽摘要仅在打开和操作后重读，包含模式、区域、筹码和时间。确认前重新读取可用性，并核对打开列表时的RunId，避免界面旧选择写入另一个新局。保存后沿用选定槽的自动保存契约。Core Cancel和手柄Menu统一经过CancelSaveWindow，未打开存档时交回教学或暂停逻辑；同帧去重，页面销毁清理监听。底层读写和损坏处理见[公共本地存储](../../modules/local-data.md)。
 
 
 ## S1现场验票、撤离与结果卡
@@ -138,7 +138,7 @@ LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对�
 
 公共输入设备区分实际操作与提示设备：连接手柄优先显示其实际动作绑定，键鼠/触控操作仍可用。Switch 确认/返回通过 Submit/Cancel 用途解析为 A/B；HUD 绑定文案按设备与绑定变化失效，不每帧解析按键。触控仅保留业务选中视觉，菜单仍由 Core EventSystem 提交和返回。
 
-设置页由 JinxCasinoSettingsView 与原 CasinoLocalPreferencesStore 维护。主菜单与暂停菜单均有设置入口，设置状态优先于其它菜单；关闭时回原菜单，不隐式恢复暂停。首次绑定加载原本机键，预览通过宿主立即应用到Core公共输入与场景音源，明确保存才写盘；取消、关闭和View释放撤销未保存预览。
+设置页由JinxCasinoSettingsView显示，Handler处理设置草稿。主菜单与暂停均有入口，关闭后回到原菜单，不隐式恢复暂停。预览立即应用到公共输入与场景音源，明确保存才写盘；取消、关闭或离场同步撤销未保存预览。
 
 保存Prefab将键鼠/触控、手柄、声音分为三页。手柄页暴露倍率、角速度、死区、最大半径、反转Y、震动开关与强度；设置页面通过保存的控件预览本机偏好。菜单焦点复用Core EventSystem，每页使用保存控件，不创建运行时UI。场景音乐与SFX接入既有AudioDirector，不新增AudioListener。此处不代表画质/分辨率与真机体验已经完成。
 
@@ -149,7 +149,7 @@ LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对�
 
 `JinxCasinoData` 提供现有 Game、Player、Settings 的读取入口，并持有存档/教学确认和设置草稿。`JinxCasinoPage` 明确标识主菜单、暂停、探索、教学、存档、结局与设置状态。按钮和交互命令经具体 Action 进入 Handler，同步结果字段保留交易/投入回执的原时序；请求匹配当前 Game 或场景实例。
 
-`JinxCasinoUIController` 订阅 Data，负责实际 View 的串行导航和来源焦点恢复。每个 View 自己维护控件与显示逻辑，通过 Core 的 BindData 声明显示订阅，隐藏与销毁由 Core 清理。页面根节点的 UICancelRelay 传递取消，导航继续复用 Player 的公共 MenuInputScope。
+Handler 在业务页面变化后直接调用 UIManager，设置和存档弹窗隐藏并保留底页。View 通过 BindData 管理显示订阅，负责首选控件与焦点恢复；玩家继续使用公共 MenuInputScope。Controller 管理初始 HUD 和离场关闭，不再创建独立页面控制器。
 
 场景时钟、连续输入、射线与机台演出保持原链路。Player 的机台请求通过 Handler 调用原 TableSession，经济和随机仍由同一 Game / AdventureSession 修改；规则对象与存档 DTO 未复制。场景初始化注册 Data，退出先关闭页面、取消任务和保存，再移除注册实例。
 
@@ -159,4 +159,14 @@ LoadAdventure先完成原Store的格式/领域恢复，再由沉浸宿主核对�
 
 ## Flux 代码整理
 
-Action 参数使用 PascalCase 字段与显式构造函数，规则结果由 Handler 同步回填。存档、教学窗口对象只保存快照、确认及查询；命令和 IO 在 Handler，嵌套规则事件延后到完整操作结束后发布。Data 清理通过纯规则重置，不触发场景替换或中间发布；公开 ClearAdventure 仍保留原场景复位契约。页面从 Data 读取规则、交互和窗口状态，UI 协调器只处理导航与焦点。
+Action 参数使用 PascalCase 字段与显式构造函数，规则结果由 Handler 同步回填。存档、教学窗口对象只保存快照、确认及查询；命令和 IO 在 Handler，嵌套规则事件延后到完整操作结束后发布。Data 清理通过纯规则重置，不触发场景替换或中间发布；公开 ClearAdventure 仍保留原场景复位契约。页面从 Data 读取规则、交互和窗口状态；Handler 处理必要导航，View 保存自身焦点。
+
+## 当前本机存储与清理
+
+公共接口见[本地存储](../../modules/local-data.md)。本场 Data 随场景注册、同步清空并移除；UI、输入和规则事件由实际持有者释放。只有成功保存才提交永久状态；不维护旧记录迁移或备份恢复。两个存档 Demo 的损坏槽按空槽、损坏永久档案按新用户处理。
+
+## 本轮定向验证
+
+2026-10-09 UI 与存储整理：偏好 12/12、三槽存档 4/4、永久档案 6/6、教学存档 1/1；设置、独立窗口、三槽支付去重、入口焦点/相机、完整教学、独立场景退出及不支持内容拒绝七个定向 PlayMode 用例通过。未执行全量测试或 Player 构建。
+
+独立场景退出用例首次在Hub进入阶段超时，未到退出流程；同一代码单独重跑通过。此结果与其他定向通过分别记录，不视为全量或真机验收。

@@ -138,7 +138,7 @@ namespace Hotfix
             if (shownState != state)
             {
                 shownState = state;
-                owner.UI.SetFirstSelection(First(state));
+                owner.SetFirstSelection(RestoreMenuSelection(First(state)));
             }
         }
 
@@ -153,7 +153,7 @@ namespace Hotfix
                 return title + "无法恢复\n保存可替换损坏的数据";
             string mode = info.Mode == "Practice" ? "自由练习" : info.Mode == "Endless" ? "无尽旅程" : "正式冒险";
             string date = TimeUtil.TryParseIso8601(info.SavedUtc, out var savedAt) ? TimeUtil.FormatTimestamp(savedAt.ToUnixTimeMilliseconds(), "MM-dd HH:mm") : "时间未知";
-            return title + mode + "\n第 " + (info.StageIndex + 1) + (info.Mode == "Endless" ? " 轮" : " 区") + " · 筹码 " + info.Coins + " · " + date + (info.UsesBackup ? "\n将恢复上一个有效备份" : string.Empty);
+            return title + mode + "\n第 " + (info.StageIndex + 1) + (info.Mode == "Endless" ? " 轮" : " 区") + " · 筹码 " + info.Coins + " · " + date;
         }
 
         private Button SaveSlotButton(int slot) => slot == 1 ? saveSlot1Button : slot == 2 ? saveSlot2Button : saveSlot3Button;

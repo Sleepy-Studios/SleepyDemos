@@ -27,14 +27,6 @@ namespace Hotfix.HowToFish
             this.state = state ?? throw new ArgumentNullException(nameof(state));
             catalog.Validate();
             state.Validate();
-            if (state.equipmentSlots == null || state.equipmentSlots.Count == 0)
-            {
-                var equipment = state.inventory.FindAll(item => catalog.FindItem(item.id)?.IsEquipment == true);
-                state.equipmentSlots = new List<string>();
-                // 旧原型没有容量限制，迁移时保留全部已有装备；新档从三个栏位开始。
-                for (int i = 0; i < Math.Max(3, equipment.Count); i++) state.equipmentSlots.Add(i < equipment.Count ? equipment[i].id : "");
-                state.selectedEquipmentSlot = Math.Max(0, state.equipmentSlots.IndexOf(state.equippedItemId));
-            }
             foreach (string id in state.equipmentSlots)
                 if (!string.IsNullOrEmpty(id) && catalog.FindItem(id)?.IsEquipment != true) throw new FormatException("装备栏包含不能装备的物品。");
             if (!string.IsNullOrEmpty(state.equippedItemId) && (Count(state.equippedItemId) == 0 || catalog.FindItem(state.equippedItemId)?.IsEquipment != true))
@@ -43,7 +35,7 @@ namespace Hotfix.HowToFish
                 throw new FormatException("存档包含多件未收纳装备。");
             foreach (var item in state.inventory)
                 if (catalog.FindItem(item.id)?.IsEquipment == true && !HasCompatibleEquipmentState(item)) throw new FormatException("存档装备配件不兼容：" + item.id);
-            // 旧进度中已击败的首领同样满足普通与 Drip 两种登记。
+            // 首领同时满足普通与 Drip 两种登记，保持规则查询一致。
             foreach (string id in state.defeatedCreatures)
                 if (catalog.FindCreature(id)?.IsBoss == true && !state.defeatedDripCreatures.Contains(id)) state.defeatedDripCreatures.Add(id);
             ReconcileOutfitUnlocks();

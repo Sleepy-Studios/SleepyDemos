@@ -145,7 +145,11 @@ namespace Hotfix
         private void Unbind()
         {
             if (world != null)
+            {
+                if (!world.Data.IsExiting && ReferenceEquals(GlobalData.Get<HowToFishData>(), world.Data))
+                    CloseOutfits();
                 GlobalData.Dispatch(new HowToFishSetEditingSettingsAction(world, false));
+            }
             outfitOpen = false;
             world = null;
             data = null;

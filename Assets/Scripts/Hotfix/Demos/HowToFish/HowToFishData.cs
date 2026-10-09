@@ -59,7 +59,7 @@ namespace Hotfix.HowToFish
 
         internal HowToFishLocalPreferences SettingsSnapshot;
 
-        /// 按规则与暂停状态确定主页面，弹层导航仍由协调器负责。
+        /// 按规则与暂停状态确定主页面，页面导航由 Handler 在业务变化后执行。
         public HowToFishPage MainPage
         {
             get

@@ -50,6 +50,7 @@
   - [通用网络会话边界](./modules/network-session.md)
   - [Core 事件系统](./modules/eventing/README.md)
   - [Core Flux 状态流](./modules/flux.md)
+  - [公共本地存储](./modules/local-data.md)
   - [Hotfix 启动系统](./modules/hotfix-boot-systems.md)
   - [Luban 配置模块](./modules/luban-config.md)
   - [Hotfix 主入口](./modules/hotfix-main.md)

@@ -1,4 +1,8 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 
@@ -8,13 +12,17 @@ namespace Hotfix.DroneFlight
     internal sealed class DroneFlightHandler : HandlerBase<DroneFlightAction, DroneFlightData>, IDisposable
     {
         private Action<DroneVehicleKind> start;
-
         private Action back;
-
         private DronePlayerInput input;
-
-        private DroneFlightUIController ui;
-
+        private DroneFlightViewData viewData;
+        private DroneFlightDebugDrawRenderer debugRenderer;
+        private View helpView;
+        private View debugView;
+        private CancellationToken lifetime;
+        private CancellationTokenSource helpLifetime;
+        private CancellationTokenSource debugLifetime;
+        private Task helpChange = Task.CompletedTask;
+        private Task debugChange = Task.CompletedTask;
         internal DroneFlightHandler(Action<DroneVehicleKind> start, Action back)
         {
             this.start = start;
@@ -27,21 +35,19 @@ namespace Hotfix.DroneFlight
             RefreshInput();
         }
 
-        internal void ConfigureSelection(Action<DroneVehicleKind> start, Action back, DroneFlightUIController ui)
+        internal void ConfigureSelection(Action<DroneVehicleKind> start, Action back)
         {
             this.start = start;
             this.back = back;
-            this.ui = ui;
         }
 
-        internal void AttachInput(DronePlayerInput value, DroneFlightUIController controller = null)
+        internal void AttachInput(DronePlayerInput value)
         {
-            if (controller != null)
-                ui = controller;
             if (!ReferenceEquals(input, value))
             {
                 if (input != null)
                 {
+                    input.PresentationRequested -= OnPresentation;
                     input.PanelChanged -= OnInputChanged;
                     input.HelpChanged -= OnInputChanged;
                     input.DebugChanged -= OnInputChanged;
@@ -50,6 +56,7 @@ namespace Hotfix.DroneFlight
                 input = value;
                 if (input != null)
                 {
+                    input.PresentationRequested += OnPresentation;
                     input.PanelChanged += OnInputChanged;
                     input.HelpChanged += OnInputChanged;
                     input.DebugChanged += OnInputChanged;
@@ -60,7 +67,7 @@ namespace Hotfix.DroneFlight
         }
 
         private void OnInputChanged(bool value) => RefreshInput();
-
+        private void OnPresentation(string command) => GlobalData.Dispatch(new DroneFlightControlAction(command));
         private void RefreshInput()
         {
             State.DeviceKind = InputDeviceState.ActiveKind;
@@ -199,20 +206,19 @@ namespace Hotfix.DroneFlight
                     {
                         case "Help":
                             SetHelpRequested(!State.HelpRequested);
-                            ui?.SynchronizeHelp();
+                            ChangeHelp();
                             return;
                         case "DebugPanel":
-                            if (ui?.DebugChanging == true)
-                                return;
-                            State.DebugRequested = !State.DebugVisible;
+                            State.DebugRequested = !State.DebugRequested;
                             input?.SetDebugOpen(State.DebugRequested);
                             ApplyState();
-                            ui?.SynchronizeDebug();
+                            ChangeDebug();
                             return;
                         case "DebugDraw":
                             State.DebugDrawVisible = !State.DebugDrawVisible;
                             ApplyState();
-                            ui?.ApplyDebugDraw();
+                            if (debugRenderer != null)
+                                debugRenderer.enabled = State.DebugDrawVisible;
                             return;
                         case "CopyTelemetry":
                             input?.GetComponent<DroneTelemetryRecorder>()?.CopySummary();
@@ -238,11 +244,139 @@ namespace Hotfix.DroneFlight
             ApplyState();
         }
 
+        internal void ConfigureViews(DroneFlightViewData value, DroneFlightDebugDrawRenderer renderer, CancellationToken token)
+        {
+            viewData = value;
+            debugRenderer = renderer;
+            lifetime = token;
+            SetShuttingDown(false);
+            SetDebugDraw(false);
+            if (debugRenderer != null)
+                debugRenderer.enabled = false;
+        }
+
+        private void ChangeHelp()
+        {
+            if (viewData == null || State.ShuttingDown)
+                return;
+            helpLifetime?.Cancel();
+            helpLifetime?.Dispose();
+            helpLifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
+            helpChange = ChangeOverlayAsync(true, State.HelpRequested, helpLifetime.Token).AsTask();
+            helpChange.AsUniTask().Forget();
+        }
+
+        private void ChangeDebug()
+        {
+            if (viewData == null || State.ShuttingDown)
+                return;
+            debugLifetime?.Cancel();
+            debugLifetime?.Dispose();
+            debugLifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
+            debugChange = ChangeOverlayAsync(false, State.DebugRequested, debugLifetime.Token).AsTask();
+            debugChange.AsUniTask().Forget();
+        }
+
+        private async UniTask ChangeOverlayAsync(bool help, bool show, CancellationToken token)
+        {
+            try
+            {
+                View current = help ? helpView : debugView;
+                var options = new UIShowOptions(animated: false, hidePrevious: false);
+                UIOperationResult result;
+                if (show)
+                    result = help
+                        ? await UIManager.Instance.ShowAsync<DroneFlightHelpView, DroneFlightViewData>(viewData, options, token)
+                        : await UIManager.Instance.ShowAsync<DroneFlightDebugView, DroneFlightViewData>(viewData, options, token);
+                else
+                    result = await UIManager.Instance.CloseAsync(current, false, token);
+                if (token.IsCancellationRequested || !ReferenceEquals(GlobalData.Get<DroneFlightData>(), State) || State.ShuttingDown)
+                    return;
+                if (result.Status == UIOperationStatus.Failed)
+                {
+                    SetFeedback("页面操作失败：" + result.Exception?.Message);
+                    if (help)
+                        SetHelpRequested(current != null);
+                    else
+                        SetDebugVisible(current != null);
+                    return;
+                }
+
+                if (result.Status == UIOperationStatus.Canceled && show)
+                    return;
+                if (help)
+                {
+                    helpView = show ? result.View : null;
+                    SetHelpRequested(helpView != null);
+                }
+                else
+                {
+                    debugView = show ? result.View : null;
+                    SetDebugVisible(debugView != null);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        internal async UniTask CloseOverlaysAsync()
+        {
+            SetShuttingDown(true);
+            CancelOverlayRequests();
+            await helpChange;
+            await debugChange;
+            foreach (var view in new[]
+            {
+                helpView,
+                debugView
+            }
+
+            )
+            {
+                if (view == null)
+                    continue;
+                var result = await UIManager.Instance.CloseAsync(view, false);
+                if (result.Status == UIOperationStatus.Failed)
+                    throw result.Exception;
+            }
+
+            helpView = debugView = null;
+            SetHelpRequested(false);
+            SetDebugVisible(false);
+            if (debugRenderer != null)
+                debugRenderer.enabled = false;
+        }
+
+        private void CancelOverlayRequests()
+        {
+            helpLifetime?.Cancel();
+            helpLifetime?.Dispose();
+            helpLifetime = null;
+            debugLifetime?.Cancel();
+            debugLifetime?.Dispose();
+            debugLifetime = null;
+        }
+
         public void Dispose()
         {
             InputDeviceState.Changed -= RefreshInput;
             AttachInput(null);
-            ui = null;
+            CancelOverlayRequests();
+            foreach (var view in new[]
+            {
+                helpView,
+                debugView
+            }
+
+            )
+                if (view != null)
+                    UIManager.Instance.CloseAsync(view, false).Forget();
+            helpView = debugView = null;
+            viewData = null;
+            if (debugRenderer != null)
+                debugRenderer.enabled = false;
+            debugRenderer = null;
             start = null;
             back = null;
         }

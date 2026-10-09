@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Core.Runtime
 {
     public class View
     {
         private IResourceLoader loader;
+        private GameObject menuSelection;
         private readonly List<IDisposable> bindings = new List<IDisposable>();
         private readonly Dictionary<Delegate, (Action subscribe, Action unsubscribe)> dataBindings = new();
         private bool dataBindingsActive;
@@ -113,6 +116,24 @@ namespace Core.Runtime
             if (dataBindings.ContainsKey(onChanged)) return;
             dataBindings.Add(onChanged, (() => GlobalData.Subscribe(onChanged), () => GlobalData.UnSubscribe(onChanged)));
             if (dataBindingsActive) GlobalData.Subscribe(onChanged);
+        }
+
+        /// <summary>页面重新露出时优先恢复自身可用焦点，控件失效时使用首选项。</summary>
+        /// <param name="firstSelection">页面提供的默认首选控件。</param>
+        /// <returns>仍属于本页面且可交互的保存控件，或默认控件。</returns>
+        protected GameObject RestoreMenuSelection(GameObject firstSelection)
+        {
+            var selectable = menuSelection != null ? menuSelection.GetComponent<Selectable>() : null;
+            return selectable != null && selectable.IsActive() && selectable.IsInteractable() && menuSelection.transform.IsChildOf(transform)
+                ? menuSelection : firstSelection;
+        }
+
+        internal void CaptureMenuSelection()
+        {
+            var selected = EventSystem.current?.currentSelectedGameObject;
+            if (selected != null && selected.transform.IsChildOf(transform))
+                menuSelection = selected;
+            gameObject.GetComponent<Core.Runtime.Inputs.UIMenuScope>()?.CaptureSelection();
         }
 
         private void SetDataBindingsActive(bool active)
@@ -361,6 +382,7 @@ namespace Core.Runtime
                 return;
             }
 
+            CaptureMenuSelection();
             State = ViewState.Exiting;
             try
             {

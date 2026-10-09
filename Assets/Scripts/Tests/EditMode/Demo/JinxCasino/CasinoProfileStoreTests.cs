@@ -36,75 +36,73 @@ namespace Tests.Demo
             Assert.That(File.Exists(Path.Combine(directory, "save-1.json")), Is.False);
             var loaded = store.LoadOrCreate(); Assert.That(loaded.RecordFinishedRun(run), Is.False);
             Assert.That(loaded.ToJson(), Is.EqualTo(profile.ToJson()));
-            Assert.That(store.UsesBackup, Is.False);
         }
 
         [Test]
-        public void CorruptPrimaryRecoversAndRepairSavePreservesValidBackup()
+        public void CorruptProfileStartsFreshOnlyAfterExplicitSave()
         {
-            var profile = CasinoProfile.Create(); profile.RecordFinishedRun(CasinoProfileTests.FinishedRun(1)); store.Save(profile);
-            string first = profile.ToJson(); profile.RecordFinishedRun(CasinoProfileTests.FinishedRun(2)); store.Save(profile);
-            string primary = Path.Combine(directory, "profile.json"), backup = primary + ".bak";
-            string backupText = File.ReadAllText(backup);
+            var profile = CasinoProfile.Create();
+            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun(1));
+            store.Save(profile);
+            string primary = Path.Combine(directory, "profile.json");
             File.WriteAllText(primary, "{broken}");
-            var recovered = store.LoadOrCreate(); Assert.That(store.UsesBackup, Is.True); Assert.That(recovered.ToJson(), Is.EqualTo(first));
-            recovered.RecordFinishedRun(CasinoProfileTests.FinishedRun(3)); store.Save(recovered);
-            Assert.That(File.ReadAllText(backup), Is.EqualTo(backupText));
-            File.WriteAllText(primary, "{broken-again}");
-            Assert.That(store.LoadOrCreate().ToJson(), Is.EqualTo(first));
-            Assert.That(store.UsesBackup, Is.True);
+            Assert.That(store.LoadOrCreate().Data.FinishedRuns, Is.Zero);
+            Assert.That(File.ReadAllText(primary), Is.EqualTo("{broken}"));
+            store.Save(CasinoProfile.Create());
+            Assert.That(store.LoadOrCreate().Data.FinishedRuns, Is.Zero);
         }
 
         [Test]
-        public void IdenticalPayloadDoesNotRollPreviousDifferentBackup()
+        public void RepeatedSaveKeepsCompleteProfileWithoutBackup()
         {
-            var profile = CasinoProfile.Create(); store.Save(profile);
-            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun()); store.Save(profile);
-            string primary = Path.Combine(directory, "profile.json"), backup = primary + ".bak";
-            string beforePrimary = File.ReadAllText(primary), beforeBackup = File.ReadAllText(backup);
-            store.Save(profile); store.Save(CasinoProfile.Restore(profile.ToJson()));
-            Assert.That(File.ReadAllText(primary), Is.EqualTo(beforePrimary));
-            Assert.That(File.ReadAllText(backup), Is.EqualTo(beforeBackup));
+            var profile = CasinoProfile.Create();
+            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun());
+            store.Save(profile);
+            string primary = Path.Combine(directory, "profile.json");
+            string before = File.ReadAllText(primary);
+            store.Save(CasinoProfile.Restore(profile.ToJson()));
+            Assert.That(File.ReadAllText(primary), Is.EqualTo(before));
+            Assert.That(File.Exists(primary + ".bak"), Is.False);
         }
 
         [Test]
-        public void InvalidCandidateCannotReplacePriorProfileOrBackupAndTemporaryIsCleaned()
+        public void InvalidCandidateCannotReplaceValidProfile()
         {
-            var profile = CasinoProfile.Create(); store.Save(profile);
-            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun()); store.Save(profile);
-            string primary = Path.Combine(directory, "profile.json"), backup = primary + ".bak";
-            string beforePrimary = File.ReadAllText(primary), beforeBackup = File.ReadAllText(backup);
-            // 故障注入只破坏测试对象内的摘要，证明临时文件验证发生在原子替换之前。
-            var invalid = profile.Data; invalid.Fame++;
+            var profile = CasinoProfile.Create();
+            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun());
+            store.Save(profile);
+            string primary = Path.Combine(directory, "profile.json");
+            string before = File.ReadAllText(primary);
+            var invalid = profile.Data;
+            invalid.Fame++;
             typeof(CasinoProfile).GetField("data", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(profile, invalid);
             Assert.Throws<ArgumentException>(() => store.Save(profile));
-            Assert.That(File.ReadAllText(primary), Is.EqualTo(beforePrimary)); Assert.That(File.ReadAllText(backup), Is.EqualTo(beforeBackup));
-            Assert.That(Directory.GetFiles(directory, "*.new-*").Length, Is.Zero);
+            Assert.That(File.ReadAllText(primary), Is.EqualTo(before));
+            Assert.That(Directory.GetFiles(directory, "*.tmp-*").Length, Is.Zero);
             Assert.That(store.LoadOrCreate().Data.FinishedRuns, Is.EqualTo(1));
         }
 
         [Test]
-        public void BothInvalidFilesFailExplicitlyInsteadOfResettingPermanentProgress()
+        public void CorruptProfileDoesNotReadOldBackup()
         {
-            var profile = CasinoProfile.Create(); store.Save(profile);
-            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun()); store.Save(profile);
+            store.Save(CasinoProfile.Create());
             string primary = Path.Combine(directory, "profile.json");
-            File.WriteAllText(primary, "{bad-main}"); File.WriteAllText(primary + ".bak", "{bad-backup}");
-            Assert.Throws<InvalidDataException>(() => store.LoadOrCreate());
+            File.WriteAllText(primary, "{bad-main}");
+            File.WriteAllText(primary + ".bak", CasinoProfile.Create().ToJson());
+            Assert.That(store.LoadOrCreate().Data.FinishedRuns, Is.Zero);
             Assert.That(File.ReadAllText(primary), Is.EqualTo("{bad-main}"));
-            Assert.That(File.ReadAllText(primary + ".bak"), Is.EqualTo("{bad-backup}"));
         }
 
         [Test]
-        public void MissingPrimaryUsesVerifiedBackupAndChecksumChangesAreRejected()
+        public void MissingProfileDoesNotReadOldBackup()
         {
-            var profile = CasinoProfile.Create(); profile.RecordFinishedRun(CasinoProfileTests.FinishedRun()); store.Save(profile);
-            string first = profile.ToJson(); profile.Equip("color_pink"); store.Save(profile);
-            string primary = Path.Combine(directory, "profile.json"); File.Delete(primary);
-            Assert.That(store.LoadOrCreate().ToJson(), Is.EqualTo(first)); Assert.That(store.UsesBackup, Is.True);
-            string backup = primary + ".bak";
-            File.WriteAllText(backup, File.ReadAllText(backup).Replace("\"Checksum\":\"", "\"Checksum\":\"changed"));
-            Assert.Throws<InvalidDataException>(() => store.LoadOrCreate());
+            Directory.CreateDirectory(directory);
+            var profile = CasinoProfile.Create();
+            profile.RecordFinishedRun(CasinoProfileTests.FinishedRun());
+            File.WriteAllText(Path.Combine(directory, "profile.json.bak"), profile.ToJson());
+            Assert.That(store.LoadOrCreate().Data.FinishedRuns, Is.Zero);
+            Assert.That(File.Exists(Path.Combine(directory, "profile.json")), Is.False);
         }
+
     }
 }

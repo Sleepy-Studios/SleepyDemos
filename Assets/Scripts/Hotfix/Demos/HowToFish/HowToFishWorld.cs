@@ -47,17 +47,15 @@ namespace Hotfix.HowToFish
 
         private HowToFishInput input;
 
-        private HowToFishUIController ui;
-
-        internal HowToFishUIController UI => ui;
+        private View hud;
 
         internal HowToFishData Data { get; private set; }
+
+        internal CancellationToken Lifetime => lifetime?.Token ?? default;
 
         private HowToFishSession session => Data?.Session;
 
         private HowToFishSaveStore saves;
-
-        private HowToFishLocalPreferencesStore preferencesStore;
 
         private bool settingsPauseGate;
 
@@ -92,8 +90,6 @@ namespace Hotfix.HowToFish
         internal Transform StartPoint => startPoint;
 
         internal HowToFishSaveStore SaveStore => saves;
-
-        internal HowToFishLocalPreferencesStore PreferencesStore => preferencesStore;
 
         internal IReadOnlyList<HowToFishWorldItem> Items => items;
 
@@ -210,10 +206,12 @@ namespace Hotfix.HowToFish
                     crater.WhaleOffered += OfferWhale;
                 islands = FindObjectsByType<HowToFishIsland>(FindObjectsSortMode.None).Where(island => island.gameObject.scene == gameObject.scene).OrderBy(island => island.Index).ToArray();
                 input = new HowToFishInput(inputTemplate);
-                preferencesStore = new HowToFishLocalPreferencesStore();
                 try
                 {
-                    ApplyPreferences(preferencesStore.Load());
+                    var preferences = LocalDataManager.LoadData(LocalDataKeys.HowToFishPreferences, new HowToFishLocalPreferences(), out var warning, HowToFishLocalPreferences.Validate);
+                    ApplyPreferences(preferences);
+                    if (!string.IsNullOrEmpty(warning))
+                        Notify(warning);
                 }
                 catch (ArgumentException)
                 {
@@ -221,9 +219,7 @@ namespace Hotfix.HowToFish
                     Notify("输入绑定无法加载，已使用默认值；原设置保留，请在设置中重新确认。");
                 }
 
-                if (!string.IsNullOrEmpty(preferencesStore.LastLoadWarning))
-                    Notify(preferencesStore.LastLoadWarning);
-                saves = new HowToFishSaveStore(Path.Combine(Application.persistentDataPath, "HowToFish"));
+                saves = new HowToFishSaveStore(Path.Combine(Application.persistentDataPath, LocalDataKeys.HowToFishDirectory));
                 foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
                     if (light.enabled && light.gameObject.scene != gameObject.scene)
                     {
@@ -232,10 +228,10 @@ namespace Hotfix.HowToFish
                     }
 
                 Data.Handler.Initialize();
-                ui = new HowToFishUIController(this, lifetime.Token);
                 var shown = await UIManager.Instance.ShowAsync<HowToFishHudView>(view => view.SetData(this), new UIShowOptions(animated: false), lifetime.Token);
                 if (shown.Status == UIOperationStatus.Failed)
                     throw shown.Exception;
+                hud = shown.View;
                 initialized = true;
                 SetPaused(true);
             }
@@ -255,8 +251,7 @@ namespace Hotfix.HowToFish
         /// <summary>从选定槽开始。已有存档的重开必须由界面确认后调用。</summary>
         /// <param name="index">槽号。</param>
         /// <param name="newGame">是否新建进度。</param>
-        /// <param name="recoverBackup">是否明确选择了备份恢复。</param>
-        public void StartSlot(int index, bool newGame, bool recoverBackup = false) => GlobalData.Dispatch(new HowToFishStartSlotAction(this, index, newGame, recoverBackup));
+        public void StartSlot(int index, bool newGame) => GlobalData.Dispatch(new HowToFishStartSlotAction(this, index, newGame));
 
         internal void BuildSession(bool newGame, HowToFishSaveData state, string profileNotice)
         {
@@ -505,17 +500,19 @@ namespace Hotfix.HowToFish
             SetPaused(true);
             try
             {
-                await ui.CloseAsync();
-                await UIManager.Instance.CloseAsync<HowToFishHudView>();
+                await Data.Handler.CloseWindowsAsync();
+                await UIManager.Instance.CloseAsync(hud);
+                hud = null;
                 Time.timeScale = previousTimeScale;
                 var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (IsCurrent && (result.Status == GameSceneSwitchStatus.Failed || result.Status == GameSceneSwitchStatus.Busy))
                 {
-                    await UIManager.Instance.ShowAsync<HowToFishHudView>(view => view.SetData(this), new UIShowOptions(animated: false));
+                    var restored = await UIManager.Instance.ShowAsync<HowToFishHudView>(view => view.SetData(this), new UIShowOptions(animated: false));
+                    hud = restored.View;
                     if (!ReferenceEquals(GlobalData.Get<HowToFishData>(), Data))
                         GlobalData.Add(Data);
                     GlobalData.Dispatch(new HowToFishExitingAction(this, false));
-                    ui.Restore();
+                    Data.Handler.Publish();
                     SetPaused(true);
                     Notify("返回失败：" + result.Error);
                 }
@@ -759,7 +756,8 @@ namespace Hotfix.HowToFish
 
         private void OnDestroy()
         {
-            ui?.Dispose();
+            if (hud != null)
+                UIManager.Instance.CloseAsync(hud, false).Forget();
             lifetime?.Cancel();
             lifetime?.Dispose();
             if (crater != null)
@@ -781,6 +779,7 @@ namespace Hotfix.HowToFish
             if (player != null)
                 player.CreatureEaten -= OnCreatureEaten;
             Data?.Handler.Dispose();
+            Data?.ClearData();
             if (ReferenceEquals(GlobalData.Get<HowToFishData>(), Data))
                 GlobalData.Remove<HowToFishData>();
             input?.Dispose();

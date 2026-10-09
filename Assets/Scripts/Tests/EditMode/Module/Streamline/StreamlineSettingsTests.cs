@@ -1,6 +1,7 @@
 using Core.Runtime.Rendering.Streamline;
 using NUnit.Framework;
 using UnityEngine;
+using Core.Runtime;
 
 namespace Tests.Module
 {
@@ -19,7 +20,7 @@ namespace Tests.Module
         {
             const string key = "SleepyDemos.Graphics.DlssMode";
             bool existed = PlayerPrefs.HasKey(key);
-            int previous = PlayerPrefs.GetInt(key);
+            string previous = PlayerPrefs.GetString(key);
             try
             {
                 PlayerPrefs.DeleteKey(key);
@@ -27,14 +28,14 @@ namespace Tests.Module
                 foreach (var mode in new[] { StreamlineDlssMode.Quality, StreamlineDlssMode.Balanced,
                     StreamlineDlssMode.Performance, StreamlineDlssMode.UltraPerformance, StreamlineDlssMode.Dlaa })
                 {
-                    PlayerPrefs.SetInt(key, (int)mode);
+                    LocalDataManager.SaveData(key, (int)mode);
                     PlayerPrefs.Save();
                     Assert.AreEqual(mode, StreamlineRuntime.ReadSavedMode());
                 }
             }
             finally
             {
-                if (existed) PlayerPrefs.SetInt(key, previous); else PlayerPrefs.DeleteKey(key);
+                if (existed) PlayerPrefs.SetString(key, previous); else PlayerPrefs.DeleteKey(key);
                 PlayerPrefs.Save();
             }
         }

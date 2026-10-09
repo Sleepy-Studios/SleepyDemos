@@ -43,7 +43,7 @@ namespace Hotfix.JinxCasino
 
         internal JinxCasinoTutorialWindowState Tutorial { get; }
 
-        /// 当前业务请求的页面类型，导航实例由 UI 协调器持有。
+        /// 当前业务请求的页面类型，实际导航由 Handler 执行。
         public JinxCasinoPage Page { get; internal set; } = JinxCasinoPage.None;
 
         /// 是否正在离场并阻断新的玩法命令。

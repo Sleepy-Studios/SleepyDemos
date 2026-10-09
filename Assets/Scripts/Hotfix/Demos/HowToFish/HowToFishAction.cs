@@ -201,33 +201,28 @@ namespace Hotfix.HowToFish
         /// true 开始新航程，false 恢复已保存航程。
         public bool NewGame;
 
-        /// 是否先恢复该槽备份，默认为 false。
-        public bool RecoverBackup;
-
         /// <summary>
         /// 开始或恢复一个存档槽的航程。构造后需通过 GlobalData.Dispatch 派发。
         /// </summary>
         /// <param name="source">发起命令的场景或规则实例；其它会话的命令被忽略。</param>
         /// <param name="index">从零开始的航程存档索引，范围为 0 到 2。</param>
         /// <param name="newGame">true 开始新航程，false 恢复已保存航程。</param>
-        /// <param name="recoverBackup">是否先恢复该槽备份，默认为 false。</param>
-        public HowToFishStartSlotAction(HowToFishWorld source, int index, bool newGame, bool recoverBackup = false)
+        public HowToFishStartSlotAction(HowToFishWorld source, int index, bool newGame)
         {
             Source = source;
             Index = index;
             NewGame = newGame;
-            RecoverBackup = recoverBackup;
         }
     }
 
-    /// 保存当前航程，保留现有原子保存与备份规则。
+    /// 保存当前航程，使用公共原子保存入口。
     public sealed class HowToFishSaveAction : HowToFishAction
     {
         /// 发起命令的场景或规则实例；其它会话的命令被忽略。
         internal HowToFishWorld Source;
 
         /// <summary>
-        /// 保存当前航程，保留现有原子保存与备份规则。构造后需通过 GlobalData.Dispatch 派发。
+        /// 保存当前航程，使用公共原子保存入口。构造后需通过 GlobalData.Dispatch 派发。
         /// </summary>
         /// <param name="source">发起命令的场景或规则实例；其它会话的命令被忽略。</param>
         public HowToFishSaveAction(HowToFishWorld source)

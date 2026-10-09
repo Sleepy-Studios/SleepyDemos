@@ -297,8 +297,6 @@ namespace Tests.Demo
                 Assert.Throws<FormatException>(() => state.Validate());
             }
 
-            var legacy = JsonUtility.FromJson<HowToFishWorldItemData>("{\"styleMultiplier\":2}");
-            Assert.That(legacy.styleMultiplier, Is.EqualTo(2), "旧档整数倍率必须仍可读取。");
             Assert.That(session.State.money, Is.Zero, "查看售价不应改变金钱。");
             foreach (float invalid in new[]
             {
@@ -381,7 +379,7 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void EquipmentSlots_ExpandPreserveDroppedStateAndMigrateLegacyGearWithoutLoss()
+        public void EquipmentSlots_ExpandAndPreserveDroppedState()
         {
             JsonUtility.FromJsonOverwrite("{\"extendedMagazineSize\":17,\"attachmentPrices\":[310,940,400,2500,100,90]}", catalog.FindItem("Pistol"));
             var session = new HowToFishSession(catalog, new HowToFishSaveData { money = 1000, unlockedIsland = 4 });
@@ -443,20 +441,9 @@ namespace Tests.Demo
             session.TryConsume("Shotgun");
             Assert.Throws<ArgumentException>(() => session.GrantEquipment(new HowToFishOwnedItem { id = "Shotgun", count = 1, hasExtendedMag = true }));
             Assert.That(session.Count("Shotgun"), Is.Zero);
-            var definitions = new string[9];
-            var legacy = new HowToFishSaveData();
-            for (int i = 0; i < 9; i++)
-            {
-                definitions[i] = "{\"id\":\"Gear" + i + "\",\"kind\":0,\"reloadSeconds\":1}";
-                legacy.inventory.Add(new HowToFishOwnedItem { id = "Gear" + i, count = 1 });
-            }
+            var missingSlots = new HowToFishSaveData { equipmentSlots = null };
+            Assert.Throws<FormatException>(() => new HowToFishSession(catalog, missingSlots));
 
-            JsonUtility.FromJsonOverwrite("{\"items\":[" + string.Join(",", definitions) + "],\"creatures\":[]}", catalog);
-            var migrated = new HowToFishSession(catalog, legacy);
-            Assert.That(migrated.EquipmentCapacity, Is.EqualTo(9), "旧原型无容量上限，迁移不得丢弃第九件装备。");
-            Assert.That(migrated.UnstoredEquipment, Is.Null);
-            Assert.That(migrated.NextSlotCost, Is.Zero);
-            Assert.DoesNotThrow(legacy.Validate);
         }
 
         [Test]

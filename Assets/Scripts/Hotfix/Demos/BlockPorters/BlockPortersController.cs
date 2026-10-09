@@ -96,10 +96,6 @@ namespace Hotfix.BlockPorters
 
         private BlockPortersHudView hud;
 
-        private BlockPortersUIController ui;
-
-        internal BlockPortersUIController UI => ui;
-
         private CancellationTokenSource lifetime;
 
         private bool isApplicationPaused;
@@ -163,7 +159,6 @@ namespace Hotfix.BlockPorters
 
                 data = GlobalData.Add(new BlockPortersData(this, uiStyle));
                 LoadLevel(0);
-                ui = new BlockPortersUIController(this, lifetime.Token);
                 var result = await UIManager.Instance.ShowAsync<BlockPortersHudView>(new UIShowOptions(animated: false), lifetime.Token);
                 if (result.Status == UIOperationStatus.Failed)
                     throw result.Exception;
@@ -330,7 +325,7 @@ namespace Hotfix.BlockPorters
             themeLoader?.Invalidate();
             try
             {
-                await ui.CloseAsync();
+                await data.Handler.CloseWindowsAsync();
                 if (hud != null)
                 {
                     var closed = await UIManager.Instance.CloseAsync(hud, animated: false);
@@ -342,7 +337,7 @@ namespace Hotfix.BlockPorters
                 if (result.Status != GameSceneSwitchStatus.Succeeded)
                 {
                     GlobalData.Dispatch(new BlockPortersRestoreAction(data));
-                    ui.Restore();
+                    data.Handler.Publish();
                     var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView>(new UIShowOptions(animated: false), lifetime.Token);
                     if (restored.Status == UIOperationStatus.Failed)
                         throw restored.Exception;
@@ -355,7 +350,7 @@ namespace Hotfix.BlockPorters
             catch (Exception exception)
             {
                 GlobalData.Dispatch(new BlockPortersRestoreAction(data));
-                ui.Restore();
+                data.Handler.Publish();
                 Debug.LogException(exception, this);
                 var restored = await UIManager.Instance.ShowAsync<BlockPortersHudView>(new UIShowOptions(animated: false), lifetime.Token);
                 if (restored.Status == UIOperationStatus.Failed)
@@ -523,7 +518,9 @@ namespace Hotfix.BlockPorters
 
         private void OnDestroy()
         {
-            ui?.Dispose();
+            data?.Handler.ReleasePages();
+            if (hud != null)
+                UIManager.Instance.CloseAsync(hud, false).Forget();
             RestoreLighting();
             themeLoader?.Dispose();
             if (levelMaterials != null)
@@ -532,6 +529,7 @@ namespace Hotfix.BlockPorters
             data?.Handler.CancelReward();
             lifetime?.Cancel();
             lifetime?.Dispose();
+            data?.ClearData();
             if (ReferenceEquals(GlobalData.Get<BlockPortersData>(), data))
                 GlobalData.Remove<BlockPortersData>();
         }

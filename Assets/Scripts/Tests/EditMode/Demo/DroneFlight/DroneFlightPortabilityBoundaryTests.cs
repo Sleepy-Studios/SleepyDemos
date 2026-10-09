@@ -28,7 +28,7 @@ namespace Tests.Demo
 
         private static readonly string[] PresentationConcreteTypes =
         {
-            "DroneRemoteControllerExperience", "DroneFlightUIController", "DroneFlightSceneCoordinator",
+            "DroneRemoteControllerExperience", "DroneFlightSceneCoordinator",
             "DroneFlightDemoExit", "DroneFishingMissionCoordinator", "DroneBezierMissionPath",
             "DroneCinematicCameraTracker", "DroneFlightViewData", "DroneFlightHudView",
             "DroneFlightDebugView", "DroneFlightVehicleSelectView"

@@ -20,8 +20,6 @@ namespace Hotfix.DroneFlight
         [SerializeField]
         private Transform spawnPoint;
         [SerializeField]
-        private DroneFlightUIController uiController;
-        [SerializeField]
         private DroneFlightDemoExit demoExit;
 
         private IResourceLoader resourceLoader;
@@ -33,6 +31,10 @@ namespace Hotfix.DroneFlight
         private CancellationTokenSource lifetimeCancellation;
 
         private DroneFlightData data;
+        private View selectionView;
+        private View hudView;
+        private DroneFlightViewData viewData;
+        private bool hasSelection;
 
         private bool isChangingScene => data.Mode == DroneFlightSessionMode.Leaving;
 
@@ -43,6 +45,12 @@ namespace Hotfix.DroneFlight
         private void Awake()
         {
             lifetimeCancellation = new CancellationTokenSource();
+            var previous = GlobalData.Get<DroneFlightData>();
+            if (previous != null)
+            {
+                previous.Handler.Dispose();
+                GlobalData.Remove<DroneFlightData>();
+            }
             data = GlobalData.Add<DroneFlightData>();
             // 场景协调组件按同对象组合，生命周期固定但不属于 View Prefab 子节点。
             demoExit ??= GetComponent<DroneFlightDemoExit>();
@@ -69,15 +77,18 @@ namespace Hotfix.DroneFlight
             ReleaseCurrentDrone();
             resourceLoader?.Dispose();
             data?.Handler.Dispose();
+            foreach (var view in new[] { hudView, selectionView })
+                if (view != null)
+                    UIManager.Instance.CloseAsync(view, false).Forget();
+            data?.ClearData();
             if (ReferenceEquals(GlobalData.Get<DroneFlightData>(), data))
                 GlobalData.Remove<DroneFlightData>();
         }
 
-        internal void Configure(Camera waitingCamera, Transform point, DroneFlightUIController controller)
+        internal void Configure(Camera waitingCamera, Transform point)
         {
             playerCamera = waitingCamera;
             spawnPoint = point;
-            uiController = controller;
         }
 
         private async UniTaskVoid BeginAsync(CancellationToken cancellationToken)
@@ -96,15 +107,9 @@ namespace Hotfix.DroneFlight
             }
 
             await navigator.WaitUntilStableAsync(GameSceneId.DroneFlight, cancellationToken);
-            // UIController 在场景根对象上管理本会话界面，不是 View 内部节点。
-            uiController ??= GetComponent<DroneFlightUIController>();
-            if (uiController == null)
-            {
-                Debug.LogError("[DroneFlight] 场景缺少 DroneFlightUIController。", this);
-                return;
-            }
-
-            await uiController.ShowVehicleSelectAsync(selection => StartSelectedAsync(selection).Forget(), () => ChangeSceneAsync(false).Forget(), cancellationToken);
+            data.Handler.ConfigureSelection(selection => StartSelectedAsync(selection).Forget(), () => ChangeSceneAsync(false).Forget());
+            hasSelection = true;
+            await ShowVehicleSelectAsync(cancellationToken);
         }
 
         private async UniTask StartSelectedAsync(DroneVehicleKind selection)
@@ -127,8 +132,8 @@ namespace Hotfix.DroneFlight
                 if (cancellationToken.IsCancellationRequested)
                     return;
                 Debug.LogError($"[DroneFlight] 机型准备失败：{exception.Message}", this);
-                await uiController.ClearFlightViewsAsync();
-                uiController.SetSelectionFeedback("准备失败，请重试");
+                await ClearFlightViewsAsync();
+                GlobalData.Dispatch(new DroneFlightFeedbackAction(data, "准备失败，请重试"));
             }
             finally
             {
@@ -146,6 +151,7 @@ namespace Hotfix.DroneFlight
                 currentInput.enabled = false;
             }
 
+            data?.Handler.AttachInput(null);
             currentInput = null;
             if (currentDrone != null)
             {
@@ -201,14 +207,14 @@ namespace Hotfix.DroneFlight
                 currentInput = runtime.Input;
                 currentInput.ReloadRequested += HandleReloadRequested;
                 currentInput.ExitRequested += HandleExitRequested;
-                uiController.ConfigureInput(currentInput);
+                data.Handler.AttachInput(currentInput);
                 demoExit?.ConfigureInput(currentInput);
                 runtime.Activate();
                 await UniTask.Yield(PlayerLoopTiming.FixedUpdate, cancellationToken);
-                if (!await uiController.ShowFlightViewsAsync(runtime.Telemetry, runtime.DebugRenderer, sessionId))
+                if (!await ShowFlightViewsAsync(runtime.Telemetry, runtime.DebugRenderer, sessionId))
                     throw new InvalidOperationException("飞行界面未能准备完成。");
                 cancellationToken.ThrowIfCancellationRequested();
-                await uiController.CompleteVehicleSelectAsync();
+                await CompleteVehicleSelectAsync();
                 if (remote != null)
                 {
                     remote.enabled = true;
@@ -247,7 +253,7 @@ namespace Hotfix.DroneFlight
                 currentInput.enabled = false;
             }
 
-            await uiController.CloseOwnedViewsAsync();
+            await CloseOwnedViewsAsync();
             var result = reload ? await navigator.ReloadCurrentAsync() : await navigator.SwitchAsync(GameSceneId.Hub);
             if (result.Status == GameSceneSwitchStatus.Failed)
             {
@@ -257,8 +263,8 @@ namespace Hotfix.DroneFlight
                     currentInput.enabled = true;
                 }
 
-                await uiController.RestoreFlightViewsAsync();
-                uiController.SetSelectionFeedback("返回失败，请重试");
+                await RestoreFlightViewsAsync();
+                GlobalData.Dispatch(new DroneFlightFeedbackAction(data, "返回失败，请重试"));
                 Debug.LogError(reload ? $"[DroneFlight] 重新运行场景失败：{result.Error}" : $"[DroneFlight] 无法返回主界面：{result.Error}", this);
             }
             else if (result.Status is GameSceneSwitchStatus.Busy or GameSceneSwitchStatus.Ignored)
@@ -269,8 +275,75 @@ namespace Hotfix.DroneFlight
                     currentInput.enabled = true;
                 }
 
-                await uiController.RestoreFlightViewsAsync();
+                await RestoreFlightViewsAsync();
             }
+        }
+        private async UniTask<bool> ShowVehicleSelectAsync(CancellationToken token = default)
+        {
+            GlobalData.Dispatch(new DroneFlightShuttingDownAction(data, false));
+            var result = await UIManager.Instance.ShowAsync<DroneFlightVehicleSelectView>(new UIShowOptions(animated: true, hidePrevious: false), token);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            selectionView = result.View;
+            return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
+        }
+
+        private async UniTask CompleteVehicleSelectAsync()
+        {
+            await CloseViewAsync(selectionView);
+            selectionView = null;
+            hasSelection = false;
+        }
+
+        private async UniTask<bool> ShowFlightViewsAsync(DroneFlightUiTelemetrySource telemetry, DroneFlightDebugDrawRenderer renderer, string id)
+        {
+            viewData = new DroneFlightViewData(telemetry, id, currentInput);
+            data.Handler.ConfigureViews(viewData, renderer, lifetimeCancellation.Token);
+            var result = await UIManager.Instance.ShowAsync<DroneFlightHudView, DroneFlightViewData>(viewData,
+                new UIShowOptions(animated: false, hidePrevious: false), lifetimeCancellation.Token);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            hudView = result.View;
+            return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
+        }
+
+        private async UniTask ClearFlightViewsAsync()
+        {
+            await data.Handler.CloseOverlaysAsync();
+            await CloseViewAsync(hudView);
+            hudView = null;
+            viewData = null;
+            data.Handler.AttachInput(null);
+        }
+
+        private async UniTask CloseOwnedViewsAsync()
+        {
+            await data.Handler.CloseOverlaysAsync();
+            await CloseViewAsync(selectionView);
+            await CloseViewAsync(hudView);
+            selectionView = hudView = null;
+        }
+
+        private async UniTask<bool> RestoreFlightViewsAsync()
+        {
+            if (viewData == null)
+                return hasSelection && await ShowVehicleSelectAsync(lifetimeCancellation.Token);
+            GlobalData.Dispatch(new DroneFlightShuttingDownAction(data, false));
+            var result = await UIManager.Instance.ShowAsync<DroneFlightHudView, DroneFlightViewData>(viewData,
+                new UIShowOptions(animated: false, hidePrevious: false), lifetimeCancellation.Token);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            hudView = result.View;
+            return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
+        }
+
+        private static async UniTask CloseViewAsync(View view)
+        {
+            if (view == null)
+                return;
+            var result = await UIManager.Instance.CloseAsync(view, false);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
         }
     }
 }

@@ -1,3 +1,5 @@
+> 当前 UI 与存储入口见 [模块说明](module.md) 和 [公共本地存储](../../modules/local-data.md)。本文保留原阶段实现与验证记录，其中旧 UIController、PrototypeV2 存储路径及备份恢复描述仅用于历史追溯。
+
 # 单机沉浸进度
 
 更新：2026-10-02。Goal active，无Token预算。当前 S0/S1准备中；S1体验尚未实现或验收，S2禁止提前扩展。

@@ -409,9 +409,9 @@ namespace Tests.Demo
             var presenter = UIManager.Instance.Get<JinxCasinoImmersionHudView>();
             JinxCasinoSettingsView local;
             settingsTestKey = "JinxCasino.SettingsEntry." + Guid.NewGuid().ToString("N");
-            var store = new CasinoLocalPreferencesStore(settingsTestKey);
-            store.Save(new CasinoLocalPreferences { PcLookMultiplier = 1.2f, Volume = .4f });
-            owner.Settings.Load(store);
+            var preferences = new JinxCasinoLocalSettings(settingsTestKey);
+            preferences.Save(new CasinoLocalPreferences { PcLookMultiplier = 1.2f, Volume = .4f });
+            owner.Settings.Load(settingsTestKey);
             Assert.That(owner.Player.InputSettings.MouseLookMultiplier, Is.EqualTo(1.2f));
             var audio = owner.GetComponent<JinxCasinoAudioDirector>(); Assert.That(audio, Is.Not.Null);
             Assert.That(audio.Volume, Is.EqualTo(.4f));
@@ -425,11 +425,22 @@ namespace Tests.Demo
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == pc.gameObject, "设置默认焦点", 3);
             yield return PadPress(GamepadButton.DpadRight);
             Assert.That(owner.Settings.Value.PcLookMultiplier, Is.GreaterThan(1.2f));
-            Assert.That(store.Load().PcLookMultiplier, Is.EqualTo(1.2f), "预览不写盘");
+            Assert.That(LocalDataManager.LoadData(settingsTestKey, new CasinoLocalPreferences(), CasinoLocalPreferences.Validate).PcLookMultiplier, Is.EqualTo(1.2f), "预览不写盘");
             yield return PadPress(GamepadButton.East);
             Assert.That(UIManager.Instance.Get<JinxCasinoSettingsView>(), Is.Null);
             yield return Wait(() => EventSystem.current.currentSelectedGameObject == Field<Button>(presenter, "settingsMainButton").gameObject, "设置取消恢复入口焦点", 3);
             Assert.That(owner.Settings.Value.PcLookMultiplier, Is.EqualTo(1.2f));
+            GlobalData.Dispatch(new JinxCasinoUiAction(owner, JinxCasinoUiCommand.OpenSettings));
+            GlobalData.Dispatch(new JinxCasinoUiAction(owner, JinxCasinoUiCommand.CloseSettings));
+            yield return WaitWindowNavigation();
+            Assert.That(UIManager.Instance.Get<JinxCasinoMainMenuView>()?.State, Is.EqualTo(ViewState.Visible), "连续开关保留底页");
+            yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
+            local = UIManager.Instance.Get<JinxCasinoSettingsView>();
+            var closing = UIManager.Instance.CloseAsync(local, false).AsTask();
+            yield return Wait(() => closing.IsCompleted, "直接关闭设置", 5);
+            Assert.That(closing.Result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            yield return WaitWindowNavigation();
+            Assert.That(owner.Data.SettingsOpen, Is.False, "直接关闭同步撤销页面请求");
             yield return MouseClick(Field<Button>(presenter, "settingsMainButton"));
             yield return Wait(() => UIManager.Instance.Get<JinxCasinoSettingsView>()?.State == ViewState.Visible, "独立设置页", 5);
             local = UIManager.Instance.Get<JinxCasinoSettingsView>();
@@ -442,7 +453,7 @@ namespace Tests.Demo
             Assert.That(chosen, Is.GreaterThan(1)); Assert.That(owner.Player.InputSettings.GamepadLookMultiplier, Is.EqualTo(chosen));
             yield return MouseClick(Field<Toggle>(local, "gamepadInvertY"));
             yield return MouseClick(Field<Button>(local, "saveButton"));
-            Assert.That(store.Load().GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(store.Load().GamepadInvertY, Is.True);
+            Assert.That(LocalDataManager.LoadData(settingsTestKey, new CasinoLocalPreferences(), CasinoLocalPreferences.Validate).GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(LocalDataManager.LoadData(settingsTestKey, new CasinoLocalPreferences(), CasinoLocalPreferences.Validate).GamepadInvertY, Is.True);
             yield return Screenshot("S1GamepadSettings");
             yield return PadPress(GamepadButton.East);
             yield return MouseClick(Field<Button>(presenter, "start"));
@@ -461,7 +472,7 @@ namespace Tests.Demo
             Assert.That(Field<AudioSource>(audio, "music").mute || Field<AudioSource>(audio, "sfx").mute, Is.False);
             Assert.That(owner.Game.State.RemainingMilliseconds, Is.EqualTo(time));
             Assert.That(UIManager.Instance.Get<JinxCasinoSettingsView>(), Is.Null);
-            owner.Settings.Load(store);
+            owner.Settings.Load(settingsTestKey);
             Assert.That(owner.Player.InputSettings.GamepadLookMultiplier, Is.EqualTo(chosen)); Assert.That(owner.Player.InputSettings.GamepadInvertY, Is.True);
             yield return MouseClick(Field<Button>(presenter, "leave"));
             yield return Wait(() => owner == null && IsStableHub(), "设置退出后正常返回Hub", 45);
@@ -861,7 +872,7 @@ namespace Tests.Demo
         }
         private IEnumerator MouseClick(Selectable button)
         {
-            Assert.That(button != null && button.isActiveAndEnabled && button.interactable, Is.True, $"点击前控件必须可用：{button?.name}，菜单={owner?.Player.IsMenuOpen}，暂停={owner?.Player.IsPaused}，页面={owner?.UI.State}");
+            Assert.That(button != null && button.isActiveAndEnabled && button.interactable, Is.True, $"点击前控件必须可用：{button?.name}，菜单={owner?.Player.IsMenuOpen}，暂停={owner?.Player.IsPaused}，页面={owner?.Data.Page}");
             yield return null; yield return null; Canvas.ForceUpdateCanvases();
             var rect = (RectTransform)button.transform; var canvas = button.GetComponentInParent<Canvas>();
             Vector2 point = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, rect.TransformPoint(rect.rect.center)); point = new Vector2(Mathf.Round(point.x), Mathf.Round(point.y));
@@ -921,7 +932,7 @@ namespace Tests.Demo
 
         private IEnumerator TouchTap(Selectable button)
         {
-            Assert.That(button != null && button.isActiveAndEnabled && button.interactable, Is.True, $"点击前控件必须可用：{button?.name}，菜单={owner?.Player.IsMenuOpen}，暂停={owner?.Player.IsPaused}，页面={owner?.UI.State}");
+            Assert.That(button != null && button.isActiveAndEnabled && button.interactable, Is.True, $"点击前控件必须可用：{button?.name}，菜单={owner?.Player.IsMenuOpen}，暂停={owner?.Player.IsPaused}，页面={owner?.Data.Page}");
             yield return null; yield return null;
             var point = UiPosition(button);
             var hits = new List<RaycastResult>();
@@ -1082,8 +1093,26 @@ namespace Tests.Demo
         }
         private IEnumerator WaitWindowNavigation()
         {
-            yield return null;
-            yield return Wait(() => owner == null || owner.UI == null || !Field<bool>(owner.UI, "changing"), "当前窗口导航完成", 10);
+            yield return Wait(() =>
+            {
+                if (owner == null)
+                    return true;
+                Type expected = owner.Data.Page switch
+                {
+                    JinxCasinoPage.MainMenu => typeof(JinxCasinoMainMenuView),
+                    JinxCasinoPage.Pause => typeof(JinxCasinoPauseView),
+                    JinxCasinoPage.Settings => typeof(JinxCasinoSettingsView),
+                    JinxCasinoPage.SaveSlots or JinxCasinoPage.SaveConfirm => typeof(JinxCasinoSaveView),
+                    JinxCasinoPage.TutorialReady or JinxCasinoPage.TutorialChoice or JinxCasinoPage.TutorialConfirm => typeof(JinxCasinoTutorialView),
+                    JinxCasinoPage.Ending => typeof(JinxCasinoEndingView),
+                    _ => null
+                };
+                if (expected != null)
+                    return UIManager.Instance.cacheStack.GetView(expected)?.State == ViewState.Visible;
+                return UIManager.Instance.Get<JinxCasinoPauseView>()?.IsEnable != true
+                    && UIManager.Instance.Get<JinxCasinoTutorialView>()?.IsEnable != true
+                    && UIManager.Instance.Get<JinxCasinoSaveView>()?.IsEnable != true;
+            }, "当前业务页面可见", 10);
         }
         private static T Field<T>(object value, string name)
         {

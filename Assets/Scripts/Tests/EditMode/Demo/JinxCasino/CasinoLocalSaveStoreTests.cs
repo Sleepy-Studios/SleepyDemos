@@ -42,53 +42,47 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void CorruptPrimaryRecoversPreviousValidVersion()
+        public void CorruptPrimaryIsEmptyAndExplicitSaveStartsFresh()
         {
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Practice, 1);
             store.Save(1, session);
-            long previous = session.State.Coins;
-            session.BeginGame("next", CasinoGameKind.CoinFlip, 100, 0);
-            store.Save(1, session);
-            File.WriteAllText(Path.Combine(directory, "save-1.json"), "{broken}");
-            Assert.That(store.GetInfo(1).UsesBackup, Is.True);
-            var recovered = store.Load(1);
-            Assert.That(recovered.State.Coins, Is.EqualTo(previous));
-            recovered.BeginGame("after-recovery", CasinoGameKind.CoinFlip, 100, 0);
-            store.Save(1, recovered);
-            File.WriteAllText(Path.Combine(directory, "save-1.json"), "{broken-again}");
-            Assert.That(store.GetInfo(1).UsesBackup, Is.True);
-            Assert.That(store.Load(1).State.Coins, Is.EqualTo(previous), "新保存不能把损坏主文件移入有效备份。");
+            string path = Path.Combine(directory, "save-1.json");
+            File.WriteAllText(path, "{broken}");
+            Assert.That(store.GetInfo(1).IsEmpty, Is.True);
+            Assert.That(store.Load(1), Is.Null);
+            Assert.That(File.ReadAllText(path), Is.EqualTo("{broken}"));
+            store.Save(1, CasinoAdventureSession.Start(2, CasinoAdventureMode.Standard, 1));
+            Assert.That(store.Load(1).State.Mode, Is.EqualTo(CasinoAdventureMode.Standard));
         }
 
         [Test]
-        public void RepeatedSaveDoesNotReplacePreviousDifferentCheckpoint()
+        public void RepeatedSaveKeepsSnapshotAndLeavesNoTemporaryOrBackup()
         {
             var session = CasinoAdventureSession.Start(1, CasinoAdventureMode.Practice, 1);
             store.Save(1, session);
-            long firstCoins = session.State.Coins;
             Assert.That(session.BeginGame("changed", CasinoGameKind.CoinFlip, 100, 0).Success, Is.True);
             store.Save(1, session);
-            string backupPath = Path.Combine(directory, "save-1.json.bak");
-            string backup = File.ReadAllText(backupPath);
-            string primary = File.ReadAllText(Path.Combine(directory, "save-1.json"));
+            string primary = Path.Combine(directory, "save-1.json");
+            string before = File.ReadAllText(primary);
             store.Save(1, session);
-            Assert.That(File.ReadAllText(backupPath), Is.EqualTo(backup));
-            Assert.That(File.ReadAllText(Path.Combine(directory, "save-1.json")), Is.EqualTo(primary));
-            File.WriteAllText(Path.Combine(directory, "save-1.json"), "{broken}");
-            Assert.That(store.Load(1).State.Coins, Is.EqualTo(firstCoins));
+            Assert.That(File.ReadAllText(primary), Is.EqualTo(before));
+            Assert.That(File.Exists(primary + ".bak"), Is.False);
+            Assert.That(Directory.GetFiles(directory, "*.tmp-*").Length, Is.Zero);
         }
 
         [Test]
-        public void ChangedPayloadAndEmptySlotsAreReportedWithoutLoadingOtherSlots()
+        public void InvalidStructureAndEmptySlotsDoNotLoadOtherSlots()
         {
             store.Save(2, CasinoAdventureSession.Start(1, CasinoAdventureMode.Standard, 1));
             string path = Path.Combine(directory, "save-2.json");
-            File.WriteAllText(path, File.ReadAllText(path).Replace("\"Checksum\":\"", "\"Checksum\":\"changed"));
-            Assert.That(store.GetInfo(2).Error, Is.Not.Empty);
-            Assert.Throws<InvalidDataException>(() => store.Load(2));
+            File.WriteAllText(path, "{\"SchemaVersion\":99}");
+            Assert.That(store.GetInfo(2).IsEmpty, Is.True);
+            Assert.That(store.Load(2), Is.Null);
             Assert.That(store.GetInfo(1).IsEmpty, Is.True);
-            Assert.Throws<FileNotFoundException>(() => store.Load(1));
+            Assert.That(store.Load(1), Is.Null);
             Assert.Throws<ArgumentOutOfRangeException>(() => store.GetInfo(4));
+            Assert.Throws<ArgumentOutOfRangeException>(() => store.Save(0, CasinoAdventureSession.Start(1, CasinoAdventureMode.Practice, 1)));
         }
+
     }
 }

@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Core.Runtime;
 using UnityEngine;
 
@@ -11,22 +14,25 @@ namespace Hotfix.HowToFish
     internal sealed class HowToFishHandler : HandlerBase<HowToFishAction, HowToFishData>, IDisposable
     {
         private readonly HowToFishWorld scene;
-
         private int reducing;
-
         private float sampleAt;
-
         private HowToFishSaveStore summaryStore;
-
+        private bool uiReady;
+        private View mainView;
+        private View overlayView;
+        private HowToFishPage requestedMain;
+        private HowToFishPage requestedOverlay;
+        private CancellationTokenSource pageLifetime;
+        private Task pageChange = Task.CompletedTask;
         internal HowToFishHandler(HowToFishWorld scene)
         {
             this.scene = scene;
         }
 
         private HowToFishWorldItem Spawn(string id, Vector3 position, bool drip) => scene.Spawn(id, position, drip);
-
         internal void Initialize()
         {
+            uiReady = true;
             RefreshSlots();
             Publish();
         }
@@ -46,6 +52,7 @@ namespace Hotfix.HowToFish
             if (State.MainPage == HowToFishPage.None)
                 State.RequestedOverlay = HowToFishPage.None;
             ApplyState();
+            UpdatePages();
         }
 
         /// <summary>
@@ -84,7 +91,7 @@ namespace Hotfix.HowToFish
                         State.Session.RegisterCreature(request.CreatureId, request.Defeated, request.Drip);
                         break;
                     case HowToFishStartSlotAction request when ReferenceEquals(request.Source, scene):
-                        StartSlot(request.Index, request.NewGame, request.RecoverBackup);
+                        StartSlot(request.Index, request.NewGame);
                         break;
                     case HowToFishSaveAction request when ReferenceEquals(request.Source, scene):
                         TrySave();
@@ -196,7 +203,7 @@ namespace Hotfix.HowToFish
         {
             try
             {
-                scene.PreferencesStore.Save(scene.GetPreferences());
+                LocalDataManager.SaveData(LocalDataKeys.HowToFishPreferences, scene.GetPreferences(), HowToFishLocalPreferences.Validate);
                 Notify("输入设置已保存。");
                 return true;
             }
@@ -220,7 +227,7 @@ namespace Hotfix.HowToFish
                 return false;
             try
             {
-                var profile = scene.SaveStore.LoadSkinProfile(out bool recovered);
+                var profile = scene.SaveStore.LoadSkinProfile();
                 foreach (string unlocked in State.Session.State.unlockedOutfits)
                     if (!profile.unlockedOutfits.Contains(unlocked))
                         profile.unlockedOutfits.Add(unlocked);
@@ -228,7 +235,7 @@ namespace Hotfix.HowToFish
                 scene.SaveStore.SaveSkinProfile(profile);
                 State.SelectedOutfitId = id;
                 scene.Player.SetOutfit(scene.Catalog.FindOutfit(id));
-                Notify("当前服装：" + HowToFishOutfitCatalog.Find(id).Name + (recovered ? "；共享档案已从备份恢复，损坏原件已保留。" : ""));
+                Notify("当前服装：" + HowToFishOutfitCatalog.Find(id).Name);
                 return true;
             }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is NotSupportedException)
@@ -944,7 +951,7 @@ namespace Hotfix.HowToFish
                 State.Session.State.selectedEquipmentSlot = slot;
         }
 
-        private void StartSlot(int index, bool newGame, bool recoverBackup = false)
+        private void StartSlot(int index, bool newGame)
         {
             if (State.Session != null)
             {
@@ -954,15 +961,7 @@ namespace Hotfix.HowToFish
 
             try
             {
-                if (recoverBackup)
-                    scene.SaveStore.RestoreBackup(index);
                 var loaded = scene.SaveStore.Load(index);
-                if (loaded.Status != HowToFishLoadStatus.Ready && loaded.Status != HowToFishLoadStatus.Empty)
-                {
-                    Notify(loaded.Error);
-                    return;
-                }
-
                 if (!newGame && loaded.Status != HowToFishLoadStatus.Ready)
                 {
                     Notify("此槽还没有存档。");
@@ -1051,7 +1050,6 @@ namespace Hotfix.HowToFish
                         return;
                     if (action.Command == HowToFishUiCommand.OpenOutfits && State.Session == null)
                         return;
-                    scene.UI.CaptureReturnFocus();
                     State.RequestedOverlay = action.Command == HowToFishUiCommand.OpenSettings ? HowToFishPage.Settings : HowToFishPage.Outfits;
                     break;
                 case HowToFishUiCommand.CloseSettings:
@@ -1068,14 +1066,14 @@ namespace Hotfix.HowToFish
                     break;
                 case HowToFishUiCommand.ContinueSlot:
                     var inspected = scene.SaveStore.Load(action.Slot);
-                    StartSlot(action.Slot, inspected.Status == HowToFishLoadStatus.Empty, inspected.Status == HowToFishLoadStatus.RecoveryAvailable);
+                    StartSlot(action.Slot, inspected.Status == HowToFishLoadStatus.Empty);
                     break;
                 case HowToFishUiCommand.NewSlot:
                     var saved = scene.SaveStore.Load(action.Slot);
                     if (saved.Status == HowToFishLoadStatus.Ready && State.ConfirmNewSlot != action.Slot)
                     {
                         State.ConfirmNewSlot = action.Slot;
-                        Notify("再次点击此槽的“重开”，确认覆盖当前航程；上一份进度会保留为备份。");
+                        Notify("再次点击此槽的“重开”，确认覆盖当前航程。");
                         return;
                     }
 
@@ -1087,12 +1085,7 @@ namespace Hotfix.HowToFish
                     SetEditingSettings(true);
                     break;
                 case HowToFishUiCommand.CancelSettings:
-                    scene.Input.CancelRebind();
-                    if (State.SettingsOpen && State.SettingsSnapshot != null)
-                        ApplyPreferences(State.SettingsSnapshot);
-                    State.SettingsOpen = false;
-                    State.SettingsSnapshot = null;
-                    SetEditingSettings(false);
+                    CancelSettings();
                     break;
                 case HowToFishUiCommand.SaveSettings:
                     if (!SavePreferences())
@@ -1106,6 +1099,130 @@ namespace Hotfix.HowToFish
             action.Success = true;
         }
 
+        private void UpdatePages()
+        {
+            if (!uiReady)
+                return;
+            var main = State.IsExiting ? HowToFishPage.None : State.MainPage;
+            var overlay = main is HowToFishPage.None or HowToFishPage.Journal ? HowToFishPage.None : State.RequestedOverlay;
+            if (main == requestedMain && overlay == requestedOverlay)
+                return;
+            requestedMain = main;
+            requestedOverlay = overlay;
+            CancelPageRequest();
+            pageLifetime = CancellationTokenSource.CreateLinkedTokenSource(scene.Lifetime);
+            pageChange = ChangePagesAsync(main, overlay, pageLifetime.Token).AsTask();
+            pageChange.AsUniTask().Forget();
+        }
+
+        private async UniTask ChangePagesAsync(HowToFishPage main, HowToFishPage overlay, CancellationToken token)
+        {
+            try
+            {
+                if (overlayView != null && (overlayView.GetType() != PageType(overlay) || mainView?.GetType() != PageType(main)))
+                {
+                    await ClosePageAsync(overlayView, token);
+                    overlayView = null;
+                }
+
+                if (mainView != null && mainView.GetType() != PageType(main))
+                {
+                    await ClosePageAsync(mainView, token);
+                    mainView = null;
+                }
+
+                if (main != HowToFishPage.None && mainView == null)
+                    mainView = await OpenPageAsync(main, token);
+                token.ThrowIfCancellationRequested();
+                if (overlay != HowToFishPage.None && overlayView == null)
+                    overlayView = await OpenPageAsync(overlay, token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, scene);
+            }
+        }
+
+        private static Type PageType(HowToFishPage page) => page switch
+        {
+            HowToFishPage.MainMenu => typeof(HowToFishMainMenuView),
+            HowToFishPage.Pause => typeof(HowToFishPauseView),
+            HowToFishPage.Journal => typeof(HowToFishJournalView),
+            HowToFishPage.Ending => typeof(HowToFishEndingView),
+            HowToFishPage.Settings => typeof(HowToFishSettingsView),
+            HowToFishPage.Outfits => typeof(HowToFishOutfitsView),
+            _ => null
+        };
+        private async UniTask<View> OpenPageAsync(HowToFishPage page, CancellationToken token)
+        {
+            var options = new UIShowOptions(animated: false, hidePrevious: page is HowToFishPage.Settings or HowToFishPage.Outfits);
+            var result = page switch
+            {
+                HowToFishPage.MainMenu => await UIManager.Instance.ShowAsync<HowToFishMainMenuView>(view => view.SetData(scene), options, token),
+                HowToFishPage.Pause => await UIManager.Instance.ShowAsync<HowToFishPauseView>(view => view.SetData(scene), options, token),
+                HowToFishPage.Journal => await UIManager.Instance.ShowAsync<HowToFishJournalView>(view => view.SetData(scene), options, token),
+                HowToFishPage.Ending => await UIManager.Instance.ShowAsync<HowToFishEndingView>(view => view.SetData(scene), options, token),
+                HowToFishPage.Settings => await UIManager.Instance.ShowAsync<HowToFishSettingsView>(view => view.SetData(scene), options, token),
+                HowToFishPage.Outfits => await UIManager.Instance.ShowAsync<HowToFishOutfitsView>(view => view.SetData(scene), options, token),
+                _ => throw new ArgumentOutOfRangeException(nameof(page))};
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            if (result.Status == UIOperationStatus.Canceled)
+                throw new OperationCanceledException(token);
+            return result.View;
+        }
+
+        private static async UniTask ClosePageAsync(View view, CancellationToken token = default)
+        {
+            var result = await UIManager.Instance.CloseAsync(view, false, token);
+            if (result.Status == UIOperationStatus.Failed)
+                throw result.Exception;
+            token.ThrowIfCancellationRequested();
+        }
+
+        private void CancelPageRequest()
+        {
+            pageLifetime?.Cancel();
+            pageLifetime?.Dispose();
+            pageLifetime = null;
+        }
+
+        internal void CancelSettings()
+        {
+            if (State.RequestedOverlay == HowToFishPage.Settings)
+                State.RequestedOverlay = HowToFishPage.None;
+            if (!State.SettingsOpen && !State.IsEditingSettings)
+                return;
+            scene.Input?.CancelRebind();
+            if (State.SettingsOpen && State.SettingsSnapshot != null)
+                ApplyPreferences(State.SettingsSnapshot);
+            State.SettingsOpen = false;
+            State.SettingsSnapshot = null;
+            SetEditingSettings(false);
+        }
+
+        internal async UniTask CloseWindowsAsync()
+        {
+            CancelSettings();
+            CancelPageRequest();
+            await pageChange;
+            requestedMain = requestedOverlay = HowToFishPage.None;
+            if (overlayView != null)
+            {
+                await ClosePageAsync(overlayView);
+                overlayView = null;
+            }
+
+            if (mainView != null)
+            {
+                await ClosePageAsync(mainView);
+                mainView = null;
+            }
+        }
+
         internal void DetachSession()
         {
             if (State.Session != null)
@@ -1116,6 +1233,19 @@ namespace Hotfix.HowToFish
 
         public void Dispose()
         {
+            uiReady = false;
+            CancelSettings();
+            CancelPageRequest();
+            foreach (var view in new[]
+            {
+                overlayView,
+                mainView
+            }
+
+            )
+                if (view != null)
+                    UIManager.Instance.CloseAsync(view, false).Forget();
+            overlayView = mainView = null;
             if (State.Session != null)
                 State.Session.Changed -= OnRulesChanged;
             State.Version++;

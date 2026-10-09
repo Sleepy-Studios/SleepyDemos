@@ -138,7 +138,7 @@ await SendMsg<MyRequest, MyResponse>(request, response =>
 
 Action 使用 PascalCase 公开参数字段与显式构造函数，说明动作、来源、参数范围和结果；调用方构造后派发，同步结果由 Handler 回填，不在 Action 内隐藏静态 Send。具体生成和维护遵循项目 gen-module 技能及 [C# 规范](../architecture/documentation-rules.md)。
 
-Data 保存同一份业务真源及查询入口，Handler 负责命令执行和状态发布，View 通过 BindData 刷新。配置、采样和释放入口保留生命周期职责；页面请求、反馈及导航恢复走 Action。清理必须说明任务取消、退订、版本失效和状态重置顺序，不能开始新的玩法、存档或导航操作。
+Data 保存同一份业务真源及查询入口，Handler 负责命令执行和状态发布，View 通过 BindData 刷新。配置、采样和释放入口保留生命周期职责；涉及业务状态的页面请求、反馈及导航恢复走 Action；普通信息弹窗可由 View 直接调用 UIManager。清理必须说明任务取消、退订、版本失效和状态重置顺序，不能开始新的玩法、存档或导航操作。
 
 ## Data 模板
 
@@ -224,3 +224,9 @@ namespace Hotfix
 同类型 Demo 重载时，目标场景使用新的 Data 实例；旧场景的销毁仅移除自己仍持有的注册实例。异步完成先核对当前注册实例与会话版本，View 隐藏、任务取消后再移除场景 Data。需要同步结果的玩法 Action 保存结果字段，Handler 处理后由调用方读取。
 
 大厅导航捕获 MainMenuData 的版本；Data 清理或重新注册后，迟到结果不更新选择、反馈或进入标志。Demo 的页面与导航结果同时携带所属 Data，Handler 拒绝其它实例的结果。
+
+## Demo 页面职责
+
+Demo 不再维护独立 UIController 或订阅 Data 的页面调度循环。Data 保留业务与页面状态，Handler 在实际 Action/规则变化后执行必要导航；View 管理控件、菜单焦点和自身订阅，场景入口管理初始 HUD 与离场关闭。异步请求只保留实际需要的取消和来源检查，不在 Data 存放 View 或按钮。
+
+ClearData 保持同步并只重置本场状态。任务取消、业务退订和未保存预览撤销由实际持有者在释放入口处理；页面隐藏不再承担离场业务清理。导航失败且原场景仍在时保留当前 Data，真正离场才清空并按实例移除。

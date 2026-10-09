@@ -63,3 +63,5 @@
 - [通用网络会话边界](./network-session.md)
 - [Unity 自动化测试架构](../architecture/testing.md)
 - [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)
+
+本机偏好与文件快照统一通过 [LocalDataManager](local-data.md) 读写，业务键和校验留在 Hotfix。

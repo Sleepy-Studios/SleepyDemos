@@ -2,7 +2,7 @@
 
 此文记录沉浸重做前可复用的规则与持久化边界，不能作为体验完成证明。
 
-PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案默认使用PrototypeV2目录；不迁移v1/v2/v3，也不保存旧迁移原件。本机偏好使用独立PrototypeV2键，只读当前完整记录。旧局认领、旧房间、旧面板及旧Main入口已删除，Controller玩家交互已拆为具体类，Adapters目录与命名空间已移除。
+PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽默认使用persistentDataPath/JinxCasino，档案使用其Profile子目录；不迁移v1/v2/v3，也不保存旧迁移原件。本机偏好使用LocalDataKeys.CasinoPreferences，只读当前完整记录。旧局认领、旧房间、旧面板及旧Main入口已删除，Controller玩家交互已拆为具体类，Adapters目录与命名空间已移除。
 
 ## 入口与职责
 
@@ -34,11 +34,11 @@ PrototypeV2只保证新版本。冒险已改为SchemaVersion=4，三槽和档案
 
 CasinoAdventureState现在保存ActiveStationId和LastStationId。新桌面BeginGame/Act必须传稳定实例ID，同玩法的其它机台请求被拒绝；指纹包含机台ID，相同requestId不能改成另一张桌。结算把活动定位移至最近结果定位，退出桌面不调用取消或重新Begin。
 
-Restore只接受版本4，缺失版本同样拒绝；当前数据在Application.persistentDataPath/JinxCasino/PrototypeV2/save-N.json。BindActiveStation、BindAdventureStation、桌面认领状态及命令已删除；沉浸入口读取活动局时必须提供当前区域已保存的准确机台ID。缺失或错误ID不能按同类游戏补绑定，拒绝读取不改变当前旅程或存档。
+Restore只接受版本4，缺失版本同样拒绝；当前数据在Application.persistentDataPath/JinxCasino/save-N.json。BindActiveStation、BindAdventureStation、桌面认领状态及命令已删除；沉浸入口读取活动局时必须提供当前区域已保存的准确机台ID。缺失或错误ID不能按同类游戏补绑定，拒绝读取不改变当前旅程或存档。
 
-三槽Save保留上一个不同的当前版本快照到普通.bak；重复保存不滚动备份，损坏主文件不能覆盖有效备份。读取不写盘，不创建.v1/.v2迁移原件。存档封装Version仍是1，内层冒险SchemaVersion为4；小游戏局和成长档案有自己的版本，不能统一替换所有SchemaVersion。
+当前存档通过公共 LocalDataManager 原子写入，不创建或读取备份。合法候选先完成领域校验，IO 失败保留有效主档；读取缺失或损坏内容按空槽或新用户处理。
 
-永久档案使用PrototypeV2/Profile/profile.json，保持独立原子保存、完整校验、RunId登记去重和损坏恢复。原JinxCasino目录不读取也不删除，开发测试仍可注入Library下的独立目录。
+永久档案使用JinxCasino/Profile/profile.json，通过公共原子读写保存，保留完整领域校验和RunId登记去重。损坏按新用户读取；测试可注入独立目录。
 
 ## 当前互动教学检查点
 
