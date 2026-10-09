@@ -10,7 +10,7 @@
         "com.unity.timeline": "1.7.7",
         "com.unity.ugui": "1.0.0"
       },
-      "hash": "4142006f4ed63795eaaac99c0324addfedd0340a"
+      "hash": "15a1925bcbeebdd4282589c6464f6e2f02041401"
     },
     "com.code-philosophy.hybridclr": {
       "version": "https://github.com/focus-creative-games/hybridclr_unity.git",
@@ -60,7 +60,7 @@
       "hash": "a95aeb3782233721d187d8c2eb7fedb9b8d73998"
     },
     "com.tuyoogame.yooasset": {
-      "version": "3.0.5",
+      "version": "3.0.6",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -78,7 +78,7 @@
       "dependencies": {}
     },
     "com.unity.ai.navigation": {
-      "version": "2.0.14",
+      "version": "2.0.16",
       "depth": 0,
       "source": "registry",
       "dependencies": {
