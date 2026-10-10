@@ -56,6 +56,13 @@ namespace Tests.Demo
                 stage.ShowChapter("meadow");
                 Advance(stage, 1.5f);
                 Assert.That(stage.ChapterId, Is.EqualTo("meadow"));
+                stage.SetPodium(false);
+                Assert.That(stage.ChapterId, Is.EqualTo("desk"));
+                Assert.That(stage.Turning, Is.False);
+                Assert.That(stage.CurrentCharacterId, Is.Null);
+                var podiumCamera = cameraObject.transform.position;
+                Advance(stage, 1.5f);
+                Assert.That(cameraObject.transform.position, Is.EqualTo(podiumCamera), "领奖镜头由颁奖舞台接管。");
                 stage.SetPage(KagitKartCommand.Title, "kurbaga", "meadow");
                 Advance(stage, 1.5f);
                 Assert.That(stage.ClosedFraction, Is.EqualTo(1));

@@ -1,0 +1,160 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &413163877752729886
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5927758358019030578}
+  - component: {fileID: 4008706048185384578}
+  - component: {fileID: 2632035239070074518}
+  m_Layer: 0
+  m_Name: PodiumBlocks
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &5927758358019030578
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 413163877752729886}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1053513188786090761}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4008706048185384578
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 413163877752729886}
+  m_Mesh: {fileID: 4300000, guid: 65d69209a6e4e2740a80837bc55d46c6, type: 2}
+--- !u!23 &2632035239070074518
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 413163877752729886}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: ab0c93a69c8ff514b8f98e9134e6ebf2, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &4030720027687762946
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1053513188786090761}
+  - component: {fileID: 2277515865903096513}
+  m_Layer: 0
+  m_Name: PodiumStage
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1053513188786090761
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4030720027687762946}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5927758358019030578}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2277515865903096513
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4030720027687762946}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f1b1470f9a5baa428a2f199acf6fc54, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.KagitKart.KagitKartPodiumStage
+  sourceData: {fileID: 4900000, guid: 29ff66beb580eb24195617db4b010511, type: 3}
+  blocksFilter: {fileID: 4008706048185384578}
+  blockMaterial: {fileID: 2100000, guid: ab0c93a69c8ff514b8f98e9134e6ebf2, type: 2}
+  confettiMaterial: {fileID: 2100000, guid: 7934210078589774584d8702a8b363c0, type: 2}
+  confettiShape: {fileID: 4300000, guid: 62d8d80186fd1804cae087e5b3cb8b15, type: 2}
+  drivers:
+  - {fileID: 7307146963745081122, guid: 1d61fab3fc3ff1d42a1d8e760dc5ce89, type: 3}
+  - {fileID: 2709670341946740471, guid: ca454c5c51c424b4aa4adf7faca3f2c1, type: 3}
+  - {fileID: 8260974111180387869, guid: 977eef17d94d85942ba6052f2efb1657, type: 3}
+  - {fileID: 4198496058964178535, guid: d55c8273a09a6084896900cd72ac1ad2, type: 3}
+  - {fileID: 8047677386057542585, guid: 8188a269255702848b915ab9ded373dd, type: 3}
+  - {fileID: 1429382660982258350, guid: 7dedc451dc2be1946858adc78fe7c83b, type: 3}
+  - {fileID: 9002316866871917072, guid: 929790cbc629be04d8a6180c3de90370, type: 3}
+  - {fileID: 5592789173068967477, guid: 93ec151dd71694542a6798cc41378872, type: 3}
+  driverIds:
+  - tilki
+  - kurbaga
+  - penguen
+  - ayi
+  - kedi
+  - baykus
+  - tavsan
+  - ahtapot

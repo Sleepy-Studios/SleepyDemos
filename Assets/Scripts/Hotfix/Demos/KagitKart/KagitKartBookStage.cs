@@ -35,6 +35,7 @@ namespace Hotfix.KagitKart
         private MaterialPropertyBlock block;
         private KagitKartCommand page;
         private bool initialized;
+        private bool podiumMode;
         private int chapter;
         private int nextChapter;
         private int pendingChapter = -1;
@@ -133,7 +134,7 @@ namespace Hotfix.KagitKart
 
         private sealed class Piece
         {
-            public string kind;
+            public string kind, tag;
             public float x, y, z, yaw;
             public int fdir, start, count;
             public float[] local, localN;
@@ -222,6 +223,8 @@ namespace Hotfix.KagitKart
         /// <param name="trackId">当前章节。</param>
         public void SetPage(KagitKartCommand next, string characterId, string trackId)
         {
+            bool wasPodium = podiumMode;
+            podiumMode = false;
             gameObject.SetActive(true);
             stageCamera.clearFlags = CameraClearFlags.Skybox;
             stageCamera.GetComponent<Skybox>().material = sky;
@@ -259,7 +262,7 @@ namespace Hotfix.KagitKart
                     deskHero.delay = 0;
                 }
                 SetBook(0, !initialized);
-                if (wasTitle || !initialized)
+                if (wasTitle || wasPodium || !initialized)
                 {
                     Fold(true, !initialized);
                 }
@@ -278,6 +281,42 @@ namespace Hotfix.KagitKart
             {
                 cameraOpen = cameraFrom = cameraTarget = next == KagitKartCommand.Title ? 0 : 1;
             }
+            initialized = true;
+        }
+
+        /// <summary>原作颁奖镜头打开最后一章，收起转盘与挡住领奖台的纸景。</summary>
+        /// <param name="reducedMotion">减少动态时直接展开纸景。</param>
+        public void SetPodium(bool reducedMotion)
+        {
+            gameObject.SetActive(true);
+            stageCamera.clearFlags = CameraClearFlags.Skybox;
+            stageCamera.GetComponent<Skybox>().material = sky;
+            ColorUtility.TryParseHtmlString("#ffc47e", out var color);
+            stageSun.color = color;
+            stageSun.intensity = 2.5f;
+            stageSun.transform.rotation = Quaternion.LookRotation(-new Vector3(0.72f, 0.53f, 0.45f));
+            podiumMode = true;
+            turnPhase = 0;
+            pendingChapter = -1;
+            turnHero = null;
+            sheet.gameObject.SetActive(false);
+            foreach (var hero in heroes)
+            {
+                hero.holder.gameObject.SetActive(false);
+                Destroy(hero.holder.gameObject);
+            }
+            heroes.Clear();
+            currentHero = null;
+            if (deskHero != null)
+            {
+                deskHero.holder.gameObject.SetActive(false);
+                Destroy(deskHero.holder.gameObject);
+                deskHero = null;
+            }
+            ApplyChapter(KagitKartCatalog.Tracks.Count - 1);
+            SetBook(0, true);
+            Fold(false, true);
+            Fold(true, reducedMotion);
             initialized = true;
         }
 
@@ -327,7 +366,9 @@ namespace Hotfix.KagitKart
                 {
                     var piece = data.dynamics.popups[b].pieces[p];
                     ref var pose = ref piecePoses[b][p];
-                    pose.target = up ? 1 : 0;
+                    // arch 是原作固定的左页拱门，导出数据中的其余遮挡件已有 podiumFold 标记。
+                    bool folded = podiumMode && (piece.tag == "podiumFold" || piece.x == -5.25f && piece.z == 1.75f);
+                    pose.target = up && !folded ? 1 : 0;
                     pose.delay = snap ? 0 : up
                         ? 0.05f + Mathf.Abs(piece.x) / 12 * 0.28f + (piece.z + 8.25f) / 16.5f * 0.12f
                             + (piece.x < 0 ? remaining : Mathf.Max(0, remaining - bookDuration * 0.5f))
@@ -500,7 +541,7 @@ namespace Hotfix.KagitKart
             cameraTime += dt;
             float blend = cameraDuration > 0 ? Mathf.Min(1, cameraTime / cameraDuration) : 1;
             cameraOpen = Mathf.LerpUnclamped(cameraFrom, cameraTarget, 0.5f - 0.5f * Mathf.Cos(Mathf.PI * blend));
-            ApplyCamera(dt);
+            if (!podiumMode) ApplyCamera(dt);
         }
 
         private static float Ease(float t) => t < 0.5f ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
@@ -600,7 +641,7 @@ namespace Hotfix.KagitKart
             }
             Named("cinematics:popupsLeft").gameObject.SetActive(closed < 0.999f);
             Named("cinematics:popups").gameObject.SetActive(closed < 0.45f);
-            turntable.gameObject.SetActive(closed < 0.999f && turnPhase == 0);
+            turntable.gameObject.SetActive(!podiumMode && closed < 0.999f && turnPhase == 0);
             for (int b = 0; b < piecePoses.Length; b++)
             {
                 if (data.nodes[data.dynamics.popups[b].node].name == "cinematics:popupsLeft")

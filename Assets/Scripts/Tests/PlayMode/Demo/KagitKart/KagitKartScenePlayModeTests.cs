@@ -275,6 +275,56 @@ namespace Tests.Demo
             return RectTransformUtility.WorldToScreenPoint(canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, target.position);
         }
 
+        [UnityTest, Timeout(240000)]
+        public IEnumerator FourChapterGrandPrixReachesPodiumAndReturnsToCover()
+        {
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+            KagitKartWorld world = null;
+            yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "封面就绪");
+            yield return world.StartRaceAsync(KagitKartRaceMode.GrandPrix, "meadow", "tilki", 120).ToCoroutine();
+            for (int round = 0; round < 4; round++)
+            {
+                yield return Wait(() => world.Session != null && !world.Busy && world.IntroPlaying, "第 " + (round + 1) + " 章开场");
+                world.Dispatch(KagitKartCommand.SkipIntro);
+                var session = world.Session;
+                typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Autopilot)).SetValue(session.Player, true);
+                // 使用正式固定步模拟与原作 AI 完赛，避免测试耗费四场真实等待时间。
+                for (int step = 0; step < 120 * 480 && session.Race.State != KagitKartRaceState.Done; step++)
+                {
+                    session.AdvanceFrame(KagitKartSimulationClock.Step, default);
+                    if (step % 240 == 0) yield return null;
+                }
+                Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Done), world.TrackId);
+                Assert.That(world.PlayerEntry.Progress.LapTimes.Count, Is.EqualTo(3), world.TrackId + " 三圈");
+                Assert.That(world.GrandPrix.SortedStandings().Sum(row => row.Points), Is.EqualTo(58 * (round + 1)));
+                yield return Wait(() => UIManager.Instance.Get<KagitKartResultsView>()?.State == ViewState.Visible, "本场结算");
+                var next = Button(UIManager.Instance.Get<KagitKartResultsView>(), "Next");
+                Assert.That(next.gameObject.activeInHierarchy, Is.True, "最终场也必须提供颁奖入口。");
+                EventSystem.current.SetSelectedGameObject(next.gameObject);
+                yield return KeyPress(Key.Enter);
+            }
+            yield return Wait(() => world.PodiumPlaying && world.Session == null, "退出比赛并进入立体书领奖台");
+            Assert.That(world.GrandPrix.Completed, Is.True);
+            Assert.That(Object.FindObjectsByType<KagitKartSceneryWorld>(FindObjectsSortMode.None), Is.Empty);
+            var book = Object.FindFirstObjectByType<KagitKartBookStage>();
+            Assert.That(book.ChapterId, Is.EqualTo("desk"));
+            Assert.That(book.ClosedFraction, Is.Zero);
+            Assert.That(book.CurrentCharacterId, Is.Null, "菜单车手应让出领奖台。");
+            yield return Wait(() => UIManager.Instance.Get<KagitKartPodiumView>()?.State == ViewState.Visible && !world.Busy, "中文领奖纸卡");
+            yield return Wait(() => UIManager.Instance.Get<KagitKartPodiumView>().gameObject.GetComponentsInChildren<CanvasGroup>()
+                .All(group => group.alpha > 0.99f), "前三名及返回纸卡全部显示");
+            yield return Capture("GrandPrixPodium");
+            var podium = Object.FindFirstObjectByType<KagitKartPodiumStage>();
+            Assert.That(podium.IsComplete, Is.True);
+            EventSystem.current.SetSelectedGameObject(Button(UIManager.Instance.Get<KagitKartPodiumView>(), "Menu").gameObject);
+            yield return KeyPress(Key.Enter);
+            yield return Wait(() => UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible && !world.Busy, "领奖后返回封面");
+            Assert.That(world.PodiumPlaying, Is.False);
+            Assert.That(podium.IsComplete, Is.False);
+            Assert.That(UIManager.Instance.Get<KagitKartPodiumView>(), Is.Null);
+        }
+
         private static IEnumerator Capture(string name)
         {
             yield return new WaitForSecondsRealtime(2);

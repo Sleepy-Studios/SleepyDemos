@@ -55,7 +55,7 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            elapsed += Mathf.Min(Time.unscaledDeltaTime, 0.1f);
+            elapsed += Time.unscaledDeltaTime;
             Apply();
         }
 

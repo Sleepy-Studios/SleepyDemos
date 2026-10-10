@@ -37,6 +37,7 @@ namespace Hotfix.KagitKart
         private View modal;
         private View menu;
         private KagitKartBookStage bookStage;
+        private KagitKartPodiumStage podium;
         private KagitKartAudio audio;
         private KagitKartRaceCinematics cinematics;
         private TextAsset introPaths;
@@ -61,6 +62,7 @@ namespace Hotfix.KagitKart
         public bool Busy => busy || exiting;
         public string Feedback { get; private set; }
         public bool IntroPlaying => cinematics?.IntroPlaying == true;
+        public bool PodiumPlaying { get; private set; }
         /// 首次开书时纸卡等待封面落下。
         public float MenuEntranceDelay { get; private set; }
         /// 菜单预览直接读取原作属性，不复制比赛配置。
@@ -303,6 +305,7 @@ namespace Hotfix.KagitKart
             if (Session == null && bookStage != null && bookStage.gameObject.activeInHierarchy)
             {
                 bookStage.Advance(Time.unscaledDeltaTime);
+                if (PodiumPlaying) podium.Advance(Time.unscaledDeltaTime);
                 return;
             }
             if (Busy || Session == null || actors == null || scenery == null)
@@ -452,7 +455,11 @@ namespace Hotfix.KagitKart
                     ChangeRoundAsync().Forget();
                     break;
                 case KagitKartCommand.NextRound:
-                    if (GrandPrix?.NextRound() == true)
+                    if (GrandPrix?.Completed == true)
+                    {
+                        ShowPodiumAsync().Forget();
+                    }
+                    else if (GrandPrix?.NextRound() == true)
                     {
                         TrackId = GrandPrix.TrackId;
                         ChangeRoundAsync().Forget();
@@ -516,6 +523,75 @@ namespace Hotfix.KagitKart
             {
                 Feedback = "页面加载失败，请返回大厅重试。";
                 Debug.LogException(exception, this);
+            }
+            finally
+            {
+                busy = false;
+                Dispatch(KagitKartCommand.Refresh);
+            }
+        }
+
+        private async UniTaskVoid ShowPodiumAsync()
+        {
+            busy = true;
+            Input.SetDriving(false);
+            Dispatch(KagitKartCommand.Refresh);
+            try
+            {
+                while (uiBusy) await UniTask.Yield();
+                await CloseViewsAsync();
+                StopRound();
+                var token = this.GetCancellationTokenOnDestroy();
+                if (podium == null)
+                {
+                    var instance = await loader.InstantiateAsync(Root + "Prefabs/PodiumStage", transform);
+                    token.ThrowIfCancellationRequested();
+                    podium = instance.GetComponent<KagitKartPodiumStage>();
+                    podium.Initialize(worldCamera);
+                    podium.Completed += OnPodiumCompleted;
+                }
+                var standings = GrandPrix.SortedStandings();
+                bookStage.SetPodium(false);
+                podium.Show(new[] { standings[0].CharacterId, standings[1].CharacterId, standings[2].CharacterId }, CharacterId);
+                PodiumPlaying = true;
+                audio.PlayMenu(true);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Feedback = "颁奖典礼加载失败，请返回菜单重试。";
+                Debug.LogException(exception, this);
+                await OpenMenuAsync(KagitKartCommand.Title);
+            }
+            finally
+            {
+                busy = false;
+                Dispatch(KagitKartCommand.Refresh);
+            }
+        }
+
+        private void OnPodiumCompleted() => ShowPodiumPageAsync().Forget();
+
+        private async UniTaskVoid ShowPodiumPageAsync()
+        {
+            if (!PodiumPlaying || menu != null || Busy) return;
+            busy = true;
+            try
+            {
+                var shown = await UIManager.Instance.ShowAsync<KagitKartPodiumView>(view => view.SetData(this),
+                    new UIShowOptions(animated: false), this.GetCancellationTokenOnDestroy());
+                if (shown.Status == UIOperationStatus.Failed) throw shown.Exception;
+                menu = shown.View;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception, this);
+                await OpenMenuAsync(KagitKartCommand.Title);
             }
             finally
             {
@@ -781,6 +857,8 @@ namespace Hotfix.KagitKart
 
         private void StopRound()
         {
+            PodiumPlaying = false;
+            podium?.Hide();
             audio?.Unbind();
             cinematics = null;
             if (Session != null)
@@ -818,6 +896,7 @@ namespace Hotfix.KagitKart
                 Input = null;
             }
             StopRound();
+            if (podium != null) podium.Completed -= OnPodiumCompleted;
             if (bookStage != null && audio != null)
             {
                 bookStage.PageTurnStarted -= audio.PageTurn;

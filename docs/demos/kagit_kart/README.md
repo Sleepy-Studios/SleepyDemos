@@ -1,6 +1,6 @@
 # 纸艺卡丁车
 
-`KagitKart` / `kagit_kart` 是 Kâğıt Kart 的中文 Unity 迁移，目标为 Windows 与 Android 横屏单人游戏。源码规则、八角色动画和四章纸艺赛道已迁移；中文封面、3D 选赛、赛前镜头、道具表现、纸鹤救援与比赛特效、音频、HUD、暂停与结算已接入。最终移植尚未完成，设置与操作说明、章节动态与中文路牌、领奖台及完整 Editor 验收仍在推进。
+`KagitKart` / `kagit_kart` 是 Kâğıt Kart 的中文 Unity 迁移，目标为 Windows 与 Android 横屏单人游戏。源码规则、八角色动画和四章纸艺赛道已迁移；中文封面、3D 选赛、赛前镜头、道具表现、纸鹤救援与比赛特效、音频、HUD、暂停、结算及大奖赛领奖台已接入。最终移植尚未完成，设置与操作说明、章节动态与中文路牌、渲染和音频差异及完整 Editor 验收仍在推进。
 
 - [模块与当前能力](module.md)
 - [原作对应与源码维护](runbooks/source-migration.md)

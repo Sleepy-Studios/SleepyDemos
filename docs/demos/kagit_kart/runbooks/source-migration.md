@@ -28,7 +28,8 @@
 | `scenery/*`、`track/trackBuilder.js` | 四章原作网格、纸景、材质与折起数据已保存为原生赛道 Prefab；弹簧折起已迁移，章节附属动画和文字中文化仍待完成。 |
 | `characters/animate.js` | `KagitKartCharacterVisual` 接入八角色比赛和菜单动画；固定 JS 导出 50 组逐骨姿态，8/8 通过。 |
 | `ui/menus.js`、`icons.js`、`nav.js` | 中文封面、模式、克重、八车手和四章节已接入；焦点按原作更新选择与 3D 预览，确认才推进，大奖赛跳过章节选择。设置与操作说明待完成。 |
-| `cinematics/stage.js`、`popups.js`、`shots.js`、`campath.js` | `KagitKartBookStage` 接入开书、呼吸、翻页、车手弹出/旋转、镜头与中文印刷。`KagitKartRaceCinematics` 使用原作四章八网格、普通/减少动态赛前路径，时间曲线与向心样条对照通过。冲线镜头已接入，领奖台待迁移。 |
+| `cinematics/stage.js`、`popups.js`、`shots.js`、`campath.js` | `KagitKartBookStage` 接入开书、呼吸、翻页、车手弹出/旋转、镜头与中文印刷。`KagitKartRaceCinematics` 使用原作四章八网格、普通/减少动态赛前路径，时间曲线与向心样条对照通过。冲线和领奖镜头已接入。 |
+| `cinematics/podium.js`、`ui/panels.js` 领奖部分 | `KagitKartPodiumStage` 保存原网格与纸台弹簧、角色落台、纸屑、失落车手；`KagitKartPodiumView` 显示中文奖杯标题与前三积分。四组源快照和完整四场流程通过定向测试。 |
 | `fx/fx.js`、`fx/crane.js` | `KagitKartRaceFx` 与 `KagitKartRescueCrane` 接入原作纸艺特效与救援，源码快照 20/20 通过；全 GPU 变体与实际救援待验收。 |
 | `audio/*` | 源码生成音乐与音效，`KagitKartAudio` 订阅真实比赛事件；音频算法与资产契约 9/9、新增加速采样 1/1 通过；[音频维护](audio.md) 记录实时引擎与音乐滤波差异。 |
 
@@ -53,6 +54,8 @@
 `export-stage.mjs` 直接执行原作 `cinematics/stage.js` 与 `print.js`，在内存中暴露原有变形与纸景数据，不修改参考仓库。独立参考输出位于 `SourceExports/Stage/book/`，保留封面与卷页基础顶点、29 个纸景/文具部件铰链数据和四章印刷。中文文字以项目 `HarmonyOS_CN.ttf` 替换拉丁字模。Unity 中保存 16 个 Mesh、12 个纸材质、立体书 Prefab 和精简动态数据；菜单开合、翻页、纸景与车手联动已接入并通过新版三端场景测试。
 
 `export-intro.mjs` 直接执行原作赛前选路、障碍探测和镜头路径，为四章八网格保存普通/减少动态关键帧。`IntroPaths.json` 约 83 KB；运行时以 Unity `AnimationCurve` 保存原作单调时间切线，计算向心 Catmull–Rom，视野依横屏比例计算。源参考 `OriginalIntro.json` 的全网格曲线对照 1/1 通过（`45f13610`），不是 C# 自生成期望值。
+
+`export-podium.mjs` 直接执行 `createPodium` 与 `podiumShot`；原生领奖台 Mesh、图集与配置保存在 Demo 独立目录，`Fixtures/OriginalPodium.json` 保存四场景 44 组源码快照。书本在颁奖时直接打开最终章，收起拱门与 `podiumFold` 纸景，镜头由领奖台接管。Unity 浮点四元数每步归一化，避免原作双精度旋转迁入后积累误差触发原生矩阵断言。中文纸卡沿用原作壁钟入场时序，不使用比赛固定时钟。
 
 纸艺 Shader 的光照保留 Three.js `RE_Direct_Toon` / `RE_IndirectDiffuse_Toon` 调用的 `BRDF_Lambert`（1/π），避免沿用相同原作灯光强度时画面过曝。该修正同时影响四章赛道和书本舞台；外部 Shader 导出入口与正式 Shader 同步，未修改项目全局画面设置。
 

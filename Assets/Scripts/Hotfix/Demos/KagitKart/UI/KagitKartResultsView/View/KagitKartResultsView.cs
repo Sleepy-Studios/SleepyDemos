@@ -3,15 +3,18 @@ namespace Hotfix
     using Core.Runtime;
     using Hotfix.KagitKart;
     using System.Text;
+    using TMPro;
 
     [Module("KagitKart")]
     [UIBind("KagitKartResultsView")]
     public partial class KagitKartResultsView : View
     {
         private KagitKartWorld world;
+        private TextMeshProUGUI nextLabel;
 
         protected override void OnGameObjectInitialize()
         {
+            nextLabel = Button_Next.GetComponentInChildren<TextMeshProUGUI>();
             Button_Next.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.NextRound));
             Button_Restart.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.Restart));
             Button_Hub.onClick.AddListener(Hub);
@@ -55,7 +58,8 @@ namespace Hotfix
             }
             text.AppendLine(world.Feedback);
             TextMeshProUGUI_Detail.text = text.ToString();
-            Button_Next.transform.parent.gameObject.SetActive(world.GrandPrix?.RoundComplete == true && !world.GrandPrix.Completed);
+            nextLabel.text = world.GrandPrix?.Completed == true ? "颁奖典礼" : "下一章";
+            Button_Next.transform.parent.gameObject.SetActive(world.GrandPrix?.RoundComplete == true);
             Button_Next.interactable = Button_Restart.interactable = Button_Hub.interactable = !world.Busy;
         }
 
