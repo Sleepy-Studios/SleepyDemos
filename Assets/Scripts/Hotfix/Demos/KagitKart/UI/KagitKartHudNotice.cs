@@ -397,6 +397,8 @@ namespace Hotfix.KagitKart
 
         private void OnRace(KagitKartRaceEvent signal)
         {
+            // 取消订阅不会撤回本次事件已经复制的回调列表。
+            if (session == null) return;
             if (signal.Kind == "countdown")
             {
                 ShowCountdown(signal.Number);
@@ -465,6 +467,7 @@ namespace Hotfix.KagitKart
 
         private void OnVehicle(KagitKartVehicle kart, KagitKartVehicleSignal signal)
         {
+            if (session == null) return;
             if (signal == KagitKartVehicleSignal.Hit && kart.SpinCause == "burnout")
             {
                 Tag("起步熄火了", true, 1.5f);
@@ -473,6 +476,7 @@ namespace Hotfix.KagitKart
 
         private void OnItem(KagitKartItemEvent signal)
         {
+            if (session == null) return;
             if (signal.Kind != "threat" || signal.Kart != session.Player)
             {
                 return;

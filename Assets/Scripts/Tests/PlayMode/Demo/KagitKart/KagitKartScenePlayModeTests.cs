@@ -289,11 +289,14 @@ namespace Tests.Demo
             yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
                 && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "封面就绪");
             yield return world.StartRaceAsync(KagitKartRaceMode.GrandPrix, "meadow", "tilki", 120).ToCoroutine();
+            string[] firstCupOrder = null;
             for (int round = 0; round < 4; round++)
             {
                 yield return Wait(() => world.Session != null && !world.Busy && world.IntroPlaying, "第 " + (round + 1) + " 章开场");
                 world.Dispatch(KagitKartCommand.SkipIntro);
                 var session = world.Session;
+                var beforePoints = world.GrandPrix.SortedStandings().ToDictionary(row => row.CharacterId, row => row.Points);
+                var previousOrder = firstCupOrder?.OrderByDescending(id => beforePoints[id]).ToArray();
                 typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Autopilot)).SetValue(session.Player, true);
                 // 使用正式固定步模拟与原作 AI 完赛，避免测试耗费四场真实等待时间。
                 for (int step = 0; step < 120 * 480 && session.Race.State != KagitKartRaceState.Done; step++)
@@ -305,9 +308,61 @@ namespace Tests.Demo
                 Assert.That(world.PlayerEntry.Progress.LapTimes.Count, Is.EqualTo(3), world.TrackId + " 三圈");
                 Assert.That(world.GrandPrix.SortedStandings().Sum(row => row.Points), Is.EqualTo(58 * (round + 1)));
                 yield return Wait(() => UIManager.Instance.Get<KagitKartResultsView>()?.State == ViewState.Visible, "本场结算");
-                var next = Button(UIManager.Instance.Get<KagitKartResultsView>(), "Next");
-                Assert.That(next.gameObject.activeInHierarchy, Is.True, "最终场也必须提供颁奖入口。");
+                var resultsView = UIManager.Instance.Get<KagitKartResultsView>();
+                var resultRows = resultsView.gameObject.GetComponentsInChildren<KagitKartResultRow>()
+                    .OrderBy(row => row.name).ToArray();
+                Assert.That(resultRows.Length, Is.EqualTo(session.Race.Results.Count));
+                for (int i = 0; i < resultRows.Length; i++)
+                {
+                    var result = session.Race.Results[i];
+                    var row = resultRows[i].transform;
+                    Assert.That(row.Find("Driver").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo(KagitKartCatalog.CharacterName(result.CharacterId)));
+                    Assert.That(row.Find("Time").GetComponent<TMPro.TMP_Text>().text,
+                        Is.EqualTo((result.Estimated ? "≈ " : "") + KagitKartHudMotion.TimeText(result.Time)));
+                    Assert.That(row.Find("BestLap").GetComponent<TMPro.TMP_Text>().text,
+                        Is.EqualTo(result.BestLap.HasValue ? KagitKartHudMotion.TimeText(result.BestLap.Value) : "—"));
+                    Assert.That(row.Find("Points").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo(result.TotalPoints.ToString()));
+                }
+                Assert.That(UIManager.Instance.Get<KagitKartHudView>().transform.Find("Viewport").gameObject.activeSelf, Is.False, "源results隐藏比赛HUD");
+                if (round == 0) yield return Capture("GrandPrixRaceResults");
+                if (round == 0) firstCupOrder = session.Race.Results.Select(row => row.CharacterId).ToArray();
+                var next = Button(resultsView, "Next");
+                Assert.That(next.gameObject.GetComponentInChildren<TMPro.TMP_Text>().text, Is.EqualTo("总积分榜"));
+                Assert.That(resultsView.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Restart").gameObject.activeInHierarchy,
+                    Is.False, "原 GP 结算没有重赛按钮");
                 EventSystem.current.SetSelectedGameObject(next.gameObject);
+                yield return KeyPress(Key.Enter);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartStandingsView>()?.State == ViewState.Visible, "独立总积分榜");
+                Assert.That(UIManager.Instance.Get<KagitKartResultsView>(), Is.Null, "旧成绩页明确关闭，不留隐藏返回层");
+                Assert.That(world.Session, Is.SameAs(session), "积分榜不启动下一场");
+                Assert.That(world.GrandPrix.Index, Is.EqualTo(round), "本场结果先进入榜，点击榜的Next后才推进");
+                var standingsView = UIManager.Instance.Get<KagitKartStandingsView>();
+                var standingRows = standingsView.gameObject.GetComponentsInChildren<KagitKartResultRow>().OrderBy(row => row.name).ToArray();
+                yield return Wait(() => standingRows.All(row => row.GetComponent<CanvasGroup>().alpha > 0.999f), "源积分行入场结束");
+                Canvas.ForceUpdateCanvases();
+                var standings = world.GrandPrix.SortedStandings();
+                int highest = standings.Max(row => row.Points);
+                for (int i = 0; i < standings.Count; i++)
+                {
+                    var row = standingRows[i].transform;
+                    var standing = standings[i];
+                    Assert.That(row.Find("Driver").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo(KagitKartCatalog.CharacterName(standing.CharacterId)));
+                    Assert.That(row.Find("Points").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo(standing.Points.ToString()));
+                    Assert.That(row.Find("PlayerPrint").gameObject.activeSelf, Is.EqualTo(standing.CharacterId == world.CharacterId));
+                    int movement = previousOrder == null ? 0 : Array.IndexOf(previousOrder, standing.CharacterId) - i;
+                    string expected = movement > 0 ? "▲" + movement : movement < 0 ? "▼" + -movement : "";
+                    Assert.That(row.Find("Movement").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo(expected));
+                    var bar = row.Find("PointsBar").GetComponent<KagitKartResultShape>();
+                    var mesh = bar.canvasRenderer.GetMesh();
+                    Assert.That(mesh.vertexCount, Is.GreaterThanOrEqualTo(4), "积分条应有原生UI网格");
+                    Assert.That(mesh.vertices[1].x - mesh.vertices[0].x,
+                        Is.EqualTo(bar.rectTransform.rect.width * standing.Points / highest).Within(0.01));
+                }
+                if (round == 0) yield return Capture("GrandPrixStandings");
+                var primary = Button(standingsView, "Next");
+                Assert.That(primary.gameObject.GetComponentInChildren<TMPro.TMP_Text>().text,
+                    Is.EqualTo(round == 3 ? "颁奖典礼" : "下一章：" + KagitKartCatalog.TrackName(KagitKartCatalog.Tracks[round + 1])));
+                EventSystem.current.SetSelectedGameObject(primary.gameObject);
                 yield return KeyPress(Key.Enter);
             }
             yield return Wait(() => world.PodiumPlaying && world.Session == null, "退出比赛并进入立体书领奖台");
@@ -623,6 +678,24 @@ namespace Tests.Demo
                     Assert.That(saved.ghost.lapTimes.Length, Is.EqualTo(3));
                     if (run == 0)
                     {
+                        yield return Wait(() => UIManager.Instance.Get<KagitKartResultsView>()?.State == ViewState.Visible, "原生计时成绩页");
+                        var ttView = UIManager.Instance.Get<KagitKartResultsView>();
+                        var lapRows = ttView.gameObject.GetComponentsInChildren<KagitKartResultRow>().OrderBy(row => row.name).ToArray();
+                        Assert.That(lapRows.Length, Is.EqualTo(world.PlayerEntry.Progress.LapTimes.Count + 1));
+                        double bestLap = world.PlayerEntry.Progress.LapTimes.Min();
+                        for (int i = 0; i < world.PlayerEntry.Progress.LapTimes.Count; i++)
+                        {
+                            Assert.That(lapRows[i].transform.Find("Time").GetComponent<TMPro.TMP_Text>().text,
+                                Is.EqualTo(KagitKartHudMotion.TimeText(world.PlayerEntry.Progress.LapTimes[i])));
+                            Assert.That(lapRows[i].transform.Find("BestTagGroup").gameObject.activeSelf,
+                                Is.EqualTo(world.PlayerEntry.Progress.LapTimes[i] == bestLap));
+                        }
+                        Assert.That(lapRows[^1].transform.Find("Time").GetComponent<TMPro.TMP_Text>().text,
+                            Is.EqualTo(KagitKartHudMotion.TimeText(world.PlayerEntry.FinishTime)));
+                        Assert.That(ttView.transform.Find("Viewport/BoardFrame/SheetGroup/Sheet/NewRecord").gameObject.activeSelf, Is.True);
+                        Assert.That(ttView.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Next").gameObject.activeInHierarchy, Is.False);
+                        Assert.That(Button(ttView, "Restart").gameObject.activeInHierarchy, Is.True);
+                        yield return Capture("TimeTrialResults");
                         best = saved;
                         Assert.That(saved.bestRace.Value, Is.EqualTo(world.PlayerEntry.FinishTime).Within(0.000001));
                         CollectionAssert.AreEqual(session.Race.GhostRecorder.Snapshot(world.PlayerEntry.FinishTime,

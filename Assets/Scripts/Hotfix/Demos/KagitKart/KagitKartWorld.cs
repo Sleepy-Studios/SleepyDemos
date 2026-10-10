@@ -166,6 +166,7 @@ namespace Hotfix.KagitKart
                 await CloseViewsAsync();
                 bookStage.gameObject.SetActive(false);
                 StopRound();
+                CapturePreviousStandings();
                 var token = this.GetCancellationTokenOnDestroy();
                 var owned = ResourceServices.CreateLoader();
                 raceLoader = owned;
@@ -319,6 +320,8 @@ namespace Hotfix.KagitKart
         {
             hintsView?.RefreshFrameRate(FramesPerSecond);
             hud?.AdvanceVisual();
+            if (modal is KagitKartResultsView resultView) resultView.AdvanceVisual();
+            else if (modal is KagitKartStandingsView standingsView) standingsView.AdvanceVisual();
             UpdateHints();
             if (Session == null && bookStage != null && bookStage.gameObject.activeInHierarchy)
             {
@@ -499,6 +502,9 @@ namespace Hotfix.KagitKart
                 case KagitKartCommand.Restart:
                     GrandPrix?.RestartRound();
                     ChangeRoundAsync().Forget();
+                    break;
+                case KagitKartCommand.ShowStandings:
+                    ShowStandingsAsync().Forget();
                     break;
                 case KagitKartCommand.NextRound:
                     if (GrandPrix?.Completed == true)
@@ -709,6 +715,7 @@ namespace Hotfix.KagitKart
             if (signal.Kind == "raceEnd")
             {
                 Input.SetDriving(false);
+                RememberCupResultOrder();
                 if (Mode == KagitKartRaceMode.TimeTrial)
                 {
                     try

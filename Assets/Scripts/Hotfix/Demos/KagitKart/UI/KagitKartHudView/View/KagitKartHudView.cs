@@ -117,6 +117,14 @@
             }
             var session = world.Session;
             var player = session.Player;
+            bool results = session.Race.State == KagitKartRaceState.Done;
+            if (results && RectTransform_Viewport.gameObject.activeSelf)
+            {
+                KagitKartHudNotice_HudNotice.Clear();
+                KagitKartHudInk_Ink.Clear();
+            }
+            RectTransform_Viewport.gameObject.SetActive(!results);
+            KagitKartHudInk_Ink.gameObject.SetActive(!results);
             bool driving = !world.Busy && !session.Pause.IsPaused && session.Race.State != KagitKartRaceState.Done;
             bool touch = world.ShowTouchControls;
             bool showTouch = driving && !world.IntroPlaying && touch;

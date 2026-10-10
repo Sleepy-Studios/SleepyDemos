@@ -1,4 +1,4 @@
-using Core.Runtime;
+﻿using Core.Runtime;
 
 namespace Hotfix.KagitKart
 {
@@ -27,7 +27,8 @@ namespace Hotfix.KagitKart
         ChangeSetting,
         GraphicsSettings,
         CloseOptions,
-        MarkTutorialSeen
+        MarkTutorialSeen,
+        ShowStandings
     }
 
     /// 页面与输入提交的本场流程请求。
