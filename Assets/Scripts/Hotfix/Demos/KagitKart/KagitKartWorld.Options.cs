@@ -9,8 +9,7 @@ namespace Hotfix.KagitKart
     {
         private View optionsView;
         private View graphicsSettingsView;
-        // shortcut: 系统模式暂取 false，接入 Core 平台动态偏好后替换。
-        private bool systemReducedMotion = false;
+        private bool systemReducedMotion;
         private float fpsElapsed;
         private int fpsFrames;
 
@@ -18,7 +17,7 @@ namespace Hotfix.KagitKart
         public KagitKartSettings Settings { get; private set; } = new();
         /// 设置读取/保存反馈，不覆盖比赛结果反馈。
         public string SettingsFeedback { get; private set; }
-        /// 当前低动态策略；显式开关已生效，系统偏好查询尚待接入。
+        /// 当前低动态策略；自动使用启动或选项变更时读取的系统偏好。
         public bool ReducedMotion => Settings.ResolveReducedMotion(systemReducedMotion);
         /// 触控显示策略独立于当前输入设备。
         public bool ShowTouchControls => Settings.ResolveTouch(Core.Runtime.Inputs.InputDeviceState.ActiveKind);
@@ -38,6 +37,7 @@ namespace Hotfix.KagitKart
         private void LoadSettings()
         {
             Settings = LocalDataManager.LoadData(LocalDataKeys.KagitKartPreferences, new KagitKartSettings(), out string warning, ValidateSettings);
+            systemReducedMotion = Settings.ReducedMotion == "auto" && SystemMotionPreference.ReadReducedMotion();
             SettingsFeedback = warning == null ? null : "本机设置损坏，已使用默认设置。";
         }
 
@@ -48,6 +48,10 @@ namespace Hotfix.KagitKart
                 var next = Settings.WithValue(action.Id, action.Number);
                 LocalDataManager.SaveData(LocalDataKeys.KagitKartPreferences, next, ValidateSettings);
                 Settings = next;
+                if (action.Id == "ReducedMotion")
+                {
+                    systemReducedMotion = Settings.ReducedMotion == "auto" && SystemMotionPreference.ReadReducedMotion();
+                }
                 SettingsFeedback = null;
                 ApplySettings();
             }

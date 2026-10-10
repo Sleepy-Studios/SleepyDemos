@@ -21,6 +21,7 @@ namespace Tests.Demo
             Assert.That(original.CameraShake, Is.True);
             Assert.That(original.ResolveReducedMotion(true), Is.True);
             Assert.That(original.ResolveReducedMotion(false), Is.False);
+            Assert.That(original.WithValue("ReducedMotion", 1).ResolveReducedMotion(false), Is.True);
             Assert.That(original.ResolveTouch(InputDeviceKind.Touch), Is.True);
             Assert.That(original.ResolveTouch(InputDeviceKind.Gamepad), Is.False);
             var changed = original.WithValue("MusicVolume", 0).WithValue("TouchControls", 1)
