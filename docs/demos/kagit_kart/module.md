@@ -36,7 +36,7 @@
 
 宿主复用 URP 的 `FullScreenPassRendererFeature` 和 `CopyDepthPass`，在透明绘制后补充最终深度，避免 SSAO 提前复制而漏掉透明幽灵的深度。运行时只安装到当前管线 Renderer，退出或切换管线时移除自有 Feature、恢复深度复制模式，不保存共享管线资产。相机过滤与整像素线宽、生命周期测试通过 2/2（`88220e62`）；GPU 的倒数深度平面、台阶墨边与屏幕错版方向复验 1/1（`9a87b8b2`），纵向方向按真实 GPU 结果修正，未改测试预期。
 
-四章正常驾驶、赛道切换和退出测试通过 1/1（`f153aef9`），并保存画面与性能记录。当前验证为 Windows Editor 的 RenderGraph；兼容模式明确关闭效果并提示，Vulkan、Player 和 Android 未验证。最佳幽灵的实际透明轮廓及公共画质切换仍需结合后续页面验收。
+四章正常驾驶、赛道切换和退出测试通过 1/1（`f153aef9`），并保存画面与性能记录。当前验证为 Windows Editor 的 RenderGraph；兼容模式明确关闭效果并提示，Vulkan、Player 和 Android 未验证。公共画质切换的页面流程已定向验证；正常起步后的透明幽灵与纸印轮廓已实拍确认（`7488e02f`），不同后端仍保留未验边界。
 
 ## 数据与边界
 
@@ -232,3 +232,13 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 源码回查补齐倒计时0.9秒退赛前曲、每车撞墙0.2秒再共享world桶0.02秒，以及tier/threat/rouletteTick按源配方共用桶。原全局P/R/M不追加UI click，已暂停P继续与UI按钮保留click。`NativeAudioMixerHasRealOutput` 1/1（`9c1f1c0d`），核真实Intro→Countdown→Race、P暂停/菜单Enter继续路由及最终混音，峰值0.6997126；未修改全局Editor静音、项目AudioManager或用户偏好。
 
 纸景原先缺少实际Popup音频出口，现由SceneryWorld的真实目标false→true发源最大尺寸/0.18秒波次和坡台位置，World订阅/StopRound退订，Audio聚合rustle。四World资产仅补存源1401项size（766/227/363/45），逐项核源版本/顺序/位置/尺度，GUID保留；一次性补存脚本及.meta已清理。正常行驶中的纸景声与四章长圈性能另在后续记录，未把源码接线当长期性能通过。本阶段仅Hotfix、Demo数据资源、现有PlayMode测试与文档；Editor编译成功、Console错误0，未执行全量测试、Player/Android或人工听音。
+
+## 最终定向 Editor 验收（2026-10-11）
+
+四章正常长圈按宿主真实帧运行，各至少45秒且完成一圈；前两章1/1（`a975b049`）、后两章1/1（`62f99115`）。平均7.08–8.20ms，P95 10.74–12.39ms；草原保留74.96ms单次峰值，未精确定因。已定位本机独立Game View VSync造成的DX12长呈现等待，测试临时关闭并finally恢复原值；项目时间和画质未改。详见[性能记录](runbooks/editor-performance.md)，不能推论整场所有组合或Player性能。
+
+领奖主按钮复用既有UIState/UIStateInteraction五态，恢复源primary墨底浅字、焦点红内沿和硬影；本页父卡取消重复焦点抬升。正式GP四场三圈、成绩/总榜、领奖与封面复验1/1（`3c1f80d5`），已查看更新实拍；一次性装配脚本及.meta已清理。
+
+计时真实三圈存取、同身份回放、慢场不覆盖和退出复验1/1（`7488e02f`）。截图在正常起步且GO结束、幽灵分离时立即保存本帧像素；此前规则快进后的远处截图不能证明透明轮廓。已查看近处描图纸幽灵和纸印轮廓，无需改动生产材质；真实Renderer可见性断言保留。测试截图复用ScreenCapture原生帧纹理并及时释放，避免异步保存与后续快进串帧。
+
+本阶段改动仅Demo正式Prefab、现有PlayMode测试与Demo文档；完整功能/三端输入/中文与原作对照统一见[验收清单](runbooks/acceptance.md)。最新Editor编译成功、Console Error为0；未执行全量测试、Player/IL2CPP、Android真机或人工听感验收。

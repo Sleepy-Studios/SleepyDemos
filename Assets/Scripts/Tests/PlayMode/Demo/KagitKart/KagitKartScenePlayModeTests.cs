@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.IO;
@@ -375,6 +375,22 @@ namespace Tests.Demo
             yield return Wait(() => UIManager.Instance.Get<KagitKartPodiumView>()?.State == ViewState.Visible && !world.Busy, "中文领奖纸卡");
             yield return Wait(() => UIManager.Instance.Get<KagitKartPodiumView>().gameObject.GetComponentsInChildren<CanvasGroup>()
                 .All(group => group.alpha > 0.99f), "前三名及返回纸卡全部显示");
+            yield return KeyPress(Key.LeftArrow);
+            var podiumMenu = Button(UIManager.Instance.Get<KagitKartPodiumView>(), "Menu");
+            EventSystem.current.SetSelectedGameObject(podiumMenu.gameObject);
+            yield return null;
+            Assert.That(podiumMenu.GetComponent<UIStateInteraction>().InteractionState, Is.EqualTo("Focused"));
+            Assert.That(podiumMenu.targetGraphic.color, Is.EqualTo((Color)new Color32(45, 42, 50, 255)), "原领奖 primary 墨底，选中不染暖黄");
+            Assert.That(podiumMenu.GetComponentInChildren<TMPro.TMP_Text>().color,
+                Is.EqualTo((Color)new Color32(250, 244, 228, 255)), "原领奖 primary 浅字");
+            Assert.That(podiumMenu.transform.Find("FocusInnerEdge").gameObject.activeSelf, Is.True);
+            Assert.That(((RectTransform)podiumMenu.transform).anchoredPosition.y, Is.GreaterThan(0));
+            EventSystem.current.SetSelectedGameObject(null);
+            yield return null;
+            Assert.That(podiumMenu.transform.Find("FocusInnerEdge").gameObject.activeSelf, Is.False);
+            Assert.That(((RectTransform)podiumMenu.transform).anchoredPosition.y, Is.Zero);
+            EventSystem.current.SetSelectedGameObject(podiumMenu.gameObject);
+            yield return null;
             yield return Capture("GrandPrixPodium");
             var podium = Object.FindFirstObjectByType<KagitKartPodiumStage>();
             Assert.That(podium.IsComplete, Is.True);
@@ -384,57 +400,6 @@ namespace Tests.Demo
             Assert.That(world.PodiumPlaying, Is.False);
             Assert.That(podium.IsComplete, Is.False);
             Assert.That(UIManager.Instance.Get<KagitKartPodiumView>(), Is.Null);
-        }
-
-        [Serializable]
-        private sealed class EditorTrackTiming
-        {
-            public string track, gpu;
-            public int width, height, frames;
-            public float averageMs, maximumMs;
-            public long allocatedBytes, managedBytes;
-        }
-
-        [UnityTest, Timeout(180000)]
-        public IEnumerator NormalDrivingRecordsEditorTimingsForAllChapters()
-        {
-            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
-            KagitKartWorld world = null;
-            yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
-                && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "性能场景启动");
-            string folder = "D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews";
-            Directory.CreateDirectory(folder);
-            foreach (string id in KagitKartCatalog.Tracks)
-            {
-                yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, id, "tilki", 120).ToCoroutine();
-                world.Dispatch(KagitKartCommand.SkipIntro);
-                yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "正常倒计时结束");
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
-                yield return new WaitForSecondsRealtime(2);
-                var timing = new EditorTrackTiming { track = id, gpu = SystemInfo.graphicsDeviceName, width = Screen.width, height = Screen.height };
-                float end = Time.realtimeSinceStartup + 3;
-                while (Time.realtimeSinceStartup < end)
-                {
-                    yield return null;
-                    float ms = Time.unscaledDeltaTime * 1000;
-                    timing.averageMs += ms;
-                    timing.maximumMs = Mathf.Max(timing.maximumMs, ms);
-                    timing.frames++;
-                }
-                Assert.That(timing.frames, Is.GreaterThan(0));
-                Assert.That(world.Session.Pause.IsPaused, Is.False, "采样必须在实际行驶时进行。");
-                Assert.That(world.Session.Player.Controls.Throttle, Is.GreaterThan(0.5f));
-                timing.averageMs /= timing.frames;
-                timing.allocatedBytes = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
-                timing.managedBytes = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
-                File.WriteAllText(folder + "/EditorTiming_" + id + ".json", JsonUtility.ToJson(timing, true));
-                ScreenCapture.CaptureScreenshot(folder + "/Race_" + id + ".png");
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                yield return null;
-            }
-            world.Dispatch(KagitKartCommand.Hub);
-            yield return Wait(() => Object.FindFirstObjectByType<KagitKartWorld>() == null, "四章采样后释放场景");
-            Assert.That(Object.FindObjectsByType<KagitKartSceneryWorld>(FindObjectsSortMode.None), Is.Empty);
         }
 
         [UnityTest, Timeout(240000)]
@@ -619,6 +584,19 @@ namespace Tests.Demo
                         }
                         Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Running));
                         Vector3 previousPose = actor.position;
+                        var notice = UIManager.Instance.Get<KagitKartHudView>().gameObject.GetComponentInChildren<KagitKartHudNotice>(true);
+                        var countdown = NativeField<RectTransform>(notice, "countdown");
+                        var ghostCamera = world.GetComponentsInChildren<Camera>(true).First(camera => camera.enabled);
+                        yield return Wait(() =>
+                        {
+                            Vector3 viewport = ghostCamera.WorldToViewportPoint(actor.position + Vector3.up * 0.5f);
+                            return !countdown.gameObject.activeSelf && Vector3.Distance(actor.position,
+                                KagitKartVehicle.ToUnity(session.Player.Position)) > 2 && viewport.z > 0
+                                && viewport.x > 0.1f && viewport.x < 0.9f && viewport.y > 0.1f && viewport.y < 0.9f;
+                        }, "正常逐帧回放，GO结束后幽灵分离且仍在视口内");
+                        var ghostSkin = actor.GetComponent<SkinnedMeshRenderer>();
+                        Assert.That(ghostSkin.isVisible, Is.True, "实际幽灵SkinnedMesh通过相机可见性");
+                        yield return Capture("TimeTrialGhost", 0);
                         foreach (double target in new[] { 0.4, 1.4 })
                         {
                             while (session.RaceTime < target)
@@ -636,7 +614,6 @@ namespace Tests.Demo
                             world.Dispatch(KagitKartCommand.Resume);
                             yield return Wait(() => !session.Pause.IsPaused, "继续幽灵回放");
                         }
-                        yield return Capture("TimeTrialGhost");
                         // 正式零油门固定步等待：保证第二场全程更慢，不能用伪造 total 的快照代替。
                         double delay = best.bestRace.Value + 5;
                         int limit = (int)Math.Ceiling(delay / KagitKartSimulationClock.Step) + 120;
@@ -758,11 +735,23 @@ namespace Tests.Demo
 
         private static IEnumerator Capture(string name, float settleSeconds = 2)
         {
-            if (settleSeconds > 0) yield return new WaitForSecondsRealtime(settleSeconds);
-            else yield return new WaitForEndOfFrame();
+            if (settleSeconds > 0)
+            {
+                yield return new WaitForSecondsRealtime(settleSeconds);
+            }
+            yield return new WaitForEndOfFrame();
             string folder = "D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews";
             Directory.CreateDirectory(folder);
-            ScreenCapture.CaptureScreenshot(folder + "/" + name + ".png");
+            // 立即保留本帧像素；异步截图可能落在测试继续快进后的下一帧。
+            var snapshot = ScreenCapture.CaptureScreenshotAsTexture();
+            try
+            {
+                File.WriteAllBytes(folder + "/" + name + ".png", snapshot.EncodeToPNG());
+            }
+            finally
+            {
+                Object.Destroy(snapshot);
+            }
             yield return null;
         }
 
