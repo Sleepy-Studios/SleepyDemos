@@ -693,6 +693,7 @@ namespace Hotfix.KagitKart
 
         private void FinishIntro()
         {
+            audio.BeginCountdown();
             cameraRig.Advance(0, actors[PlayerIndex()].position);
             Input.SetDriving(true);
             Dispatch(KagitKartCommand.Refresh);

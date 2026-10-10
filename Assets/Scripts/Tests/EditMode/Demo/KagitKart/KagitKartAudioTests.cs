@@ -122,6 +122,27 @@ namespace Tests.Demo
             Assert.That(KagitKartAudio.Rpm(speed, throttle), Is.EqualTo(expected).Within(0.0001f));
         }
 
+        [Serializable]
+        private sealed class ShaperReference
+        {
+            public float[] input;
+            public float[] expected;
+        }
+
+        [Test]
+        public void EngineSoftClipMatchesNativeTwoTimesOversampling()
+        {
+            var reference = JsonUtility.FromJson<ShaperReference>(File.ReadAllText(
+                "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures/OriginalEngineSoftClip.json"));
+            var clipper = new KagitKartEngineSynth.OversampledClipper();
+            double maximumError = 0;
+            for (int i = 0; i < reference.input.Length; i++)
+            {
+                maximumError = Math.Max(maximumError, Math.Abs(clipper.Tick(reference.input[i]) - reference.expected[i]));
+            }
+            Assert.That(maximumError, Is.LessThan(0.000005), "原作引擎 2x 软削波滤波及延迟采样误差");
+        }
+
         [Test]
         public void OriginalAudioManifestResolvesCompletePlayableBank()
         {

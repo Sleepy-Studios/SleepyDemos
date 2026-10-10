@@ -22,11 +22,6 @@ async function save(name, buffer, from = 0, duration = buffer.duration - from, l
     let peak = 0, energy = 0;
     for (let i = 0; i < count; i++) for (let c = 0; c < channels; c++) {
         let value = data[c][offset + i] || 0;
-        // Noise and detuned engine oscillators are not periodic; soften only their boundary.
-        if (loop && name.startsWith('engine_')) {
-            const fade = Math.round(sr * 0.008);
-            value *= Math.min(1, i / fade, (count - 1 - i) / fade);
-        }
         peak = Math.max(peak, Math.abs(value)); energy += value * value;
         view.setInt16(44 + (i * channels + c) * 2, Math.round(Math.max(-1, Math.min(1, value)) * 32767), true);
     }
@@ -105,33 +100,6 @@ async function music(name, theme, options = {}) {
     return instance;
 }
 
-async function engines() {
-    const profiles = ['body', 'cpu', 'flutter', 'rattle', 'sand', 'out', 'ice', 'drift', 'drift1', 'drift2', 'drift3', 'roar', 'wind', 'shimmer'];
-    for (const profile of profiles) {
-        const layer = ['sand', 'out', 'ice'].includes(profile) ? 'rattle' : profile.startsWith('drift') ? 'drift' : profile;
-        const { createEngines } = await import('/engine-' + layer + '.js');
-        const ctx = context(4), bank = createBank(ctx), { mixer } = bus(ctx, bank, 'engine');
-        const kart = { speed: ['body', 'cpu'].includes(profile) ? 0 : 10, baseTop: 25, grounded: true,
-            controls: { throttle: 0.6 }, drift: { active: true, tier: +(profile.slice(-1)) || 0 },
-            boostTime: 1, boostStrength: 1, draft: { charge: 1 }, invincibleTime: 1,
-            surface: ['sand', 'out', 'ice'].includes(profile) ? profile : 'offroad', pos: { x: 0, y: 0, z: 0 }, index: 0 };
-        if (profile === 'body' || profile === 'cpu') kart.boostTime = 0;
-        // The original update reads ctx.currentTime. Proxy advances its automation clock during offline scheduling.
-        const original = ctx;
-        const timed = new Proxy(original, { get(target, key) {
-            if (key === 'currentTime') return timed.now || 0;
-            const value = Reflect.get(target, key, target); return typeof value === 'function' ? value.bind(target) : value;
-        } });
-        const active = createEngines(timed, mixer.engineIn, bank);
-        active.setActive(true);
-        for (let t = 0; t < 4; t += 1 / 60) {
-            timed.now = t;
-            active.update({ player: profile === 'cpu' ? null : kart, karts: profile === 'cpu' ? [kart] : [] }, { x: 0, y: 0, z: 0, rx: 1, ry: 0, rz: 0 }, 1, 1 / 60);
-        }
-        await save('engine_' + profile, await ctx.startRendering(), 2, 2, true);
-    }
-}
-
 async function dynamicsReference() {
     const rate = 48000, frames = 16384, step = 16;
     const ctx = new OfflineAudioContext(2, frames, rate);
@@ -171,15 +139,31 @@ async function boostReference() {
     await fetch('/boost-reference.json', { method: 'POST', body: JSON.stringify({ duration, sampleRate: sr, seed: 1234, step, expected }) });
 }
 
+async function shaperReference() {
+    const rate = 48000, frames = 4096, ctx = new OfflineAudioContext(1, frames, rate);
+    const buffer = ctx.createBuffer(1, frames, rate), input = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) input[i] = 0.8 * Math.sin(2 * Math.PI * 173 * i / rate) + 0.4 * Math.sin(2 * Math.PI * 901 * i / rate);
+    input[300] += 0.7;
+    const source = ctx.createBufferSource(); source.buffer = buffer;
+    const shaper = ctx.createWaveShaper(), curve = new Float32Array(1024);
+    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh((i / (curve.length - 1) * 2 - 1) * 2.2) / Math.tanh(2.2);
+    shaper.curve = curve; shaper.oversample = '2x';
+    source.connect(shaper).connect(ctx.destination); source.start(0);
+    const output = await ctx.startRendering();
+    await fetch('/shaper-reference.json', { method: 'POST', body: JSON.stringify({ input: [...input], expected: [...output.getChannelData(0)] }) });
+}
+
 try {
     await dynamicsReference();
     await boostReference();
+    await shaperReference();
     if (window.location.search === '?checks') {
         await fetch('/done', { method: 'POST', body: '' });
     } else {
     await sfx();
     const noiseContext = context(3), noiseBank = createBank(noiseContext);
     await save('bank_white', noiseBank.white);
+    await save('bank_pink', noiseBank.pink);
     await save('bank_crackle', noiseBank.crackle);
     const tempos = { meadow: 118, bosphorus: 96, glacier: 128, desk: 124 };
     for (const [name, theme] of Object.entries(THEMES)) await music('music_' + name, theme, { tempo: tempos[name] || theme.tempo });
@@ -189,7 +173,6 @@ try {
         await music('sting_finalLap_' + name, STINGERS.finalLap, { transpose: theme.key + 2 - STINGERS.finalLap.key });
     }
     for (const [name, theme] of Object.entries(STINGERS)) await music('sting_' + name, theme);
-    await engines();
     await fetch('/manifest.json', { method: 'POST', body: JSON.stringify({ sampleRate: sr, clips }) });
     }
 } catch (error) {

@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using Newtonsoft.Json;
 using UnityEngine.Rendering;
 
 namespace Hotfix.KagitKart
@@ -18,6 +19,8 @@ namespace Hotfix.KagitKart
         private PopupState[] rampStates;
         private Quaternion[] rampRotations;
         private MaterialPropertyBlock staticBlock;
+        private Dynamics dynamics;
+        private double dynamicsTime;
 
         private struct PopupState
         {
@@ -69,6 +72,11 @@ namespace Hotfix.KagitKart
                 rampRotations[i] = rampTransforms[i].localRotation;
             }
             staticBlock = new MaterialPropertyBlock();
+            dynamics = JsonConvert.DeserializeObject<Dynamics>(asset.dynamicsData.text);
+            if (dynamics.sourceCommit != KagitKartCatalog.SourceCommit)
+            {
+                throw new InvalidOperationException("纸景动态源码版本不匹配。");
+            }
         }
 
         /// <summary>推进纸景并提交给指定摄像机；暂停时 dt 为零，演出和动画时间由宿主冻结。</summary>
@@ -127,6 +135,7 @@ namespace Hotfix.KagitKart
                 rampTransforms[i].localRotation = rampRotations[i] * Quaternion.AngleAxis(
                     asset.ramps[i].theta * (1 - Mathf.Clamp(state.angle, 0, 1.25f)) * Mathf.Rad2Deg, Vector3.right);
             }
+            AdvanceDynamics(dt, camera);
             staticBlock.SetFloat("uTime", time);
             foreach (var renderer in staticRenderers)
             {
@@ -137,16 +146,8 @@ namespace Hotfix.KagitKart
             {
                 var batch = asset.batches[b];
                 Matrix4x4 parent = root * batch.parent;
-                bool faceCamera = batch.sourceName == "scenery:clouds" || batch.sourceName == "scenery:strings";
-                Vector3 reader = faceCamera ? parent.inverse.MultiplyPoint3x4(camera.transform.position) : Vector3.zero;
                 for (int i = 0; i < poses[b].Length; i++)
                 {
-                    if (faceCamera)
-                    {
-                        Vector3 p = poses[b][i].GetColumn(3);
-                        float yaw = Mathf.Atan2(reader.x - p.x, reader.z - p.z) * Mathf.Rad2Deg;
-                        poses[b][i] = Matrix4x4.TRS(p, Quaternion.Euler(0, yaw, 0), poses[b][i].lossyScale);
-                    }
                     worldPoses[b][i] = parent * poses[b][i];
                 }
                 blocks[b].SetFloat("uTime", time);
@@ -159,6 +160,161 @@ namespace Hotfix.KagitKart
                         batch.receiveShadow, gameObject.layer, camera, LightProbeUsage.Off);
                 }
             }
+        }
+
+        [Serializable]
+        private sealed class Dynamics
+        {
+            public string sourceCommit, id;
+            public Bindings bindings;
+            public int mill = -1;
+            public Cloud[] clouds;
+            public Windmill[] windmills;
+            public Ferry[] ferries;
+            public Puff[] puffs;
+            public Point[] cable;
+            public Point chimney;
+            public Mug mug;
+            public double west, east, pageY;
+        }
+
+        [Serializable]
+        private sealed class Bindings
+        {
+            public int cloud = -1, strings = -1, sails = -1, ferry = -1, ferryLights = -1, smoke = -1, gondola = -1, steam = -1;
+        }
+
+        [Serializable]
+        private sealed class Cloud
+        {
+            public double x, y, z, yaw, sc;
+        }
+
+        [Serializable]
+        private sealed class Windmill
+        {
+            public int i;
+            public double spin, phase;
+        }
+
+        [Serializable]
+        private sealed class Ferry
+        {
+            public double z, t, speed, x;
+            public int dir;
+        }
+
+        [Serializable]
+        private sealed class Puff
+        {
+            public int ferry;
+            public double age;
+        }
+
+        [Serializable]
+        private class Point
+        {
+            public double x, y, z;
+        }
+
+        [Serializable]
+        private sealed class Mug : Point
+        {
+            public double top;
+        }
+
+        // 四章实际 onUpdate 的逐句迁移；仅本地实例矩阵变化，共享资产保持不变。
+        private void AdvanceDynamics(double dt, Camera camera)
+        {
+            dynamicsTime += dt;
+            double time = dynamicsTime;
+            var bind = dynamics.bindings;
+            Vector3 cameraLocal = transform.InverseTransformPoint(camera.transform.position);
+            double cameraX = -cameraLocal.x, cameraZ = cameraLocal.z;
+            for (int i = 0; i < dynamics.windmills.Length; i++)
+            {
+                var w = dynamics.windmills[i];
+                poses[bind.sails][i] = poses[dynamics.mill][w.i]
+                    * Matrix4x4.Translate(new Vector3(0, 9.3f, 2.75f))
+                    * Matrix4x4.Rotate(Quaternion.AngleAxis((float)(-(w.phase + time * w.spin) * 180 / Math.PI), Vector3.forward));
+            }
+            for (int i = 0; i < dynamics.clouds.Length; i++)
+            {
+                var c = dynamics.clouds[i];
+                double yaw = Math.Atan2(cameraX - c.x, cameraZ - c.z);
+                var matrix = Pose(c.x, c.y, c.z, yaw, c.sc, c.sc, c.sc);
+                poses[bind.cloud][i] = matrix;
+                poses[bind.strings][i] = matrix;
+            }
+            for (int i = 0; i < dynamics.ferries.Length; i++)
+            {
+                var f = dynamics.ferries[i];
+                f.t += dt;
+                double width = dynamics.east - dynamics.west - 36, cycle = width / f.speed + 8;
+                double phase = (f.t % (2 * cycle)) / cycle, go = phase < 1 ? phase : phase - 1;
+                double u = Math.Min(1, Math.Max(0, (go * cycle - 4) / (cycle - 8))), ease = u * u * (3 - 2 * u);
+                bool toEast = (phase < 1) == (f.dir > 0);
+                f.x = toEast ? dynamics.west + 18 + ease * width : dynamics.east - 18 - ease * width;
+                double bob = Math.Sin(time * 1.3 + i) * 0.12;
+                var matrix = Pose(f.x, dynamics.pageY + 0.2 + bob, f.z, toEast ? Math.PI / 2 : -Math.PI / 2);
+                poses[bind.ferry][i] = matrix;
+                poses[bind.ferryLights][i] = matrix;
+            }
+            for (int i = 0; i < dynamics.puffs.Length; i++)
+            {
+                var p = dynamics.puffs[i];
+                p.age += dt;
+                if (p.age > 4)
+                {
+                    p.age -= 4;
+                }
+                var ferry = dynamics.ferries[p.ferry];
+                double g = p.age / 4, scale = 0.6 + g * 2.4;
+                poses[bind.smoke][i] = Pose(ferry.x + Math.Sin(i * 1.7 + time) * g * 2 - g * 3,
+                    dynamics.pageY + 8.6 + g * 11, ferry.z + g * 1.5, 0, scale, scale * 0.85, scale);
+            }
+            if (dynamics.chimney != null)
+            {
+                var c = dynamics.chimney;
+                for (int i = 0; i < 14; i++)
+                {
+                    double g = (time * 0.28 + i / 14.0) % 1, scale = 0.5 + g * 2.6;
+                    poses[bind.smoke][i] = Pose(c.x + Math.Sin(i * 2.1 + time * 0.5) * g * 2 + g * 5,
+                        c.y + g * 16, c.z + g * 2, 0, scale, scale * 0.8, scale);
+                }
+            }
+            if (dynamics.cable.Length > 1)
+            {
+                int segments = dynamics.cable.Length - 1;
+                for (int k = 0; k < 4; k++)
+                {
+                    double f = (time * 0.018 + k / 4.0) % 1, u = f < 0.5 ? f * 2 : 2 - f * 2;
+                    double position = u * segments;
+                    int i = Math.Min(segments - 1, (int)Math.Floor(position));
+                    double w = position - i;
+                    var a = dynamics.cable[i];
+                    var b = dynamics.cable[i + 1];
+                    double yaw = Math.Atan2(b.x - a.x, b.z - a.z) + Math.Sin(time * 1.3 + k) * 0.03;
+                    poses[bind.gondola][k] = Pose(a.x + (b.x - a.x) * w, a.y + (b.y - a.y) * w, a.z + (b.z - a.z) * w, yaw);
+                }
+            }
+            if (dynamics.mug != null)
+            {
+                var mug = dynamics.mug;
+                for (int i = 0; i < 8; i++)
+                {
+                    double g = (time * 0.12 + i / 8.0) % 1, scale = 1.2 + g * 2.2 * (1 - g * 0.5);
+                    double yaw = Math.Atan2(cameraX - mug.x, cameraZ - mug.z) + Math.Sin(i * 1.7) * 0.4;
+                    poses[bind.steam][i] = Pose(mug.x + Math.Sin(time * 0.6 + i) * 3 * g, mug.top + g * 30,
+                        mug.z + Math.Cos(time * 0.5 + i * 2) * 3 * g, yaw, scale * (1 - g * 0.3), scale, scale);
+                }
+            }
+        }
+
+        private static Matrix4x4 Pose(double x, double y, double z, double yaw, double sx = 1, double sy = 1, double sz = 1)
+        {
+            return Matrix4x4.TRS(new Vector3((float)-x, (float)y, (float)z),
+                Quaternion.AngleAxis((float)(-yaw * 180 / Math.PI), Vector3.up), new Vector3((float)sx, (float)sy, (float)sz));
         }
 
         private float Wrap(float distance)

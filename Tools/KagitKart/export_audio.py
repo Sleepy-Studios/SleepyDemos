@@ -16,6 +16,7 @@ def main():
     parser.add_argument("source", type=Path)
     parser.add_argument("--checks-only", action="store_true", help="Refresh native WebAudio regression fixtures without re-rendering songs")
     parser.add_argument("--reference-dir", type=Path, help="Optional fixture folder; defaults to Tests/EditMode/Demo/KagitKart/Fixtures")
+    parser.add_argument("--output-dir", type=Path, help="Optional staging folder; defaults to the Demo resource folder")
     parser.add_argument("--edge", type=Path, default=Path(os.environ.get("PROGRAMFILES(X86)", "C:/Program Files (x86)")) / "Microsoft/Edge/Application/msedge.exe")
     args = parser.parse_args()
     revision = subprocess.check_output(["git", "-C", str(args.source), "rev-parse", "HEAD"], text=True).strip()
@@ -24,8 +25,9 @@ def main():
     if subprocess.call(["git", "-C", str(args.source), "diff", "--quiet", "HEAD", "--", "src/audio", "src/track/defs"]):
         raise SystemExit("Original audio/track source has uncommitted edits; export requires the pinned source.")
     project = Path(__file__).resolve().parents[2]
-    destination = project / "Assets/LoadResources/Demos/kagit_kart"
+    destination = args.output_dir or project / "Assets/LoadResources/Demos/kagit_kart"
     destination.mkdir(parents=True, exist_ok=True)
+    (destination / "Data").mkdir(exist_ok=True)
     done = threading.Event()
     failure = []
 
@@ -39,18 +41,10 @@ def main():
                 content_type = "application/javascript"
             elif self.path.startswith("/src/") and ".." not in self.path:
                 payload = (args.source / self.path.lstrip("/")).read_bytes()
-                content_type = "application/javascript"
-            elif self.path.startswith("/engine-"):
-                layer = self.path.split("-")[1].split(".")[0]
-                source = (args.source / "src/audio/engine.js").read_text(encoding="utf-8")
-                names = ["body", "flutter", "rattle", "squeak", "whine", "roar", "wind", "shimmer"]
-                keep = {"drift": {"squeak", "whine"}}.get(layer, {layer})
-                muted = [name + ".gain" for name in names if name not in keep]
-                source = source.replace("param.setTargetAtTime(v, now, tc);", f"if ([{','.join(muted)}].includes(param)) v = 0; param.setTargetAtTime(v, now, tc);")
-                if layer == "body" or layer == "cpu":
-                    source = source.replace("set(lp.frequency, 300 +", "set(lp.frequency, 20000 + 0 *")
-                    source = source.replace("set(v.f.frequency, 500 +", "set(v.f.frequency, 20000 + 0 *")
-                payload = source.encode("utf-8")
+                if self.path == "/src/audio/mixer.js":
+                    # Save the music before its live duck filter. Runtime applies that filter once.
+                    payload = payload.replace(b"musicIn.connect(duckFilter)", b"musicIn.connect(duck)")
+                    payload = payload.replace(b"reverbOut.connect(duckFilter)", b"reverbOut.connect(duck)")
                 content_type = "application/javascript"
             else:
                 self.send_error(404)
@@ -77,6 +71,10 @@ def main():
                 reference_dir = args.reference_dir or project / "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures"
                 reference_dir.mkdir(parents=True, exist_ok=True)
                 (reference_dir / "OriginalAudioBoost.json").write_bytes(payload)
+            elif name == "shaper-reference.json":
+                reference_dir = args.reference_dir or project / "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures"
+                reference_dir.mkdir(parents=True, exist_ok=True)
+                (reference_dir / "OriginalEngineSoftClip.json").write_bytes(payload)
             elif name == "manifest.json":
                 manifest = json.loads(payload)
                 manifest["sourceRevision"] = REVISION
@@ -85,7 +83,7 @@ def main():
             elif name.endswith(".wav") and Path(name).name == name:
                 segments = Path(name).stem.split("_")
                 semantic = "_".join(part.zfill(2) if part.isdigit() else part[0].upper() + part[1:] for part in segments)
-                group = {"music": "Music", "sting": "Stingers", "engine": "Engines"}.get(segments[0], "")
+                group = {"music": "Music", "sting": "Stingers"}.get(segments[0], "")
                 target = destination / "Audio/SFX" / group / (semantic + ".wav")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(payload)

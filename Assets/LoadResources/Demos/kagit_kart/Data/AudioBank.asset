@@ -14,21 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hotfix::Hotfix.KagitKart.KagitKartAudioBank
   clips:
   - {fileID: 8300000, guid: 06bf8e4580f5dd04586e382b95e7acd0, type: 3}
+  - {fileID: 8300000, guid: ed1fc7abe8cae184aaf811e6991c17e6, type: 3}
   - {fileID: 8300000, guid: bf0f6e9cbf250a345ac19e08c77b5fba, type: 3}
-  - {fileID: 8300000, guid: 2a1d7f12da3c19d40b01389aa0846afe, type: 3}
-  - {fileID: 8300000, guid: 1691c41056dbbe64d9ce57d00ced8d99, type: 3}
-  - {fileID: 8300000, guid: 6f810c5ff5e7056428f24747f0e873a9, type: 3}
-  - {fileID: 8300000, guid: b4eabcbb084adb944ad58ab45e001e4f, type: 3}
-  - {fileID: 8300000, guid: b693df95965d00d4d8b4ac046948e332, type: 3}
-  - {fileID: 8300000, guid: c6a76205567969a42a6c16a68904ed6d, type: 3}
-  - {fileID: 8300000, guid: 9c26b6202c546d04e9e56660a39f8e2e, type: 3}
-  - {fileID: 8300000, guid: da981ab1995a7934a87de9d90f42cf94, type: 3}
-  - {fileID: 8300000, guid: 454c390acacfa0a49bc65d7273a65cb0, type: 3}
-  - {fileID: 8300000, guid: e09373baf50276241aad91eb6fcbc4c8, type: 3}
-  - {fileID: 8300000, guid: 0cdcb2d253c1d704a9bfa190172172c4, type: 3}
-  - {fileID: 8300000, guid: c02eb3a6dbe1ecc4899e65d22691902f, type: 3}
-  - {fileID: 8300000, guid: 3312501c68fc293419f5143d88db94b8, type: 3}
-  - {fileID: 8300000, guid: ad09f47589f75f048abc6bdc2b3f85b6, type: 3}
   - {fileID: 8300000, guid: 9c8c6c4255554eb419569b5f2994602d, type: 3}
   - {fileID: 8300000, guid: 0e058cbe6b418d144b28c4a385f31711, type: 3}
   - {fileID: 8300000, guid: 5ec489a2ec1184448a584afc6662e289, type: 3}

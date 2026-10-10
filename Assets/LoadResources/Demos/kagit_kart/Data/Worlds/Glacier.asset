@@ -15454,3 +15454,4 @@ MonoBehaviour:
     theta: 0.2093854
   - distance: 976.67255
     theta: 0.19739556
+  dynamicsData: {fileID: 4900000, guid: 4c1035afb0f6dc042acfa6fca09494b9, type: 3}

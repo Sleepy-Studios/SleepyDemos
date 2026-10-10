@@ -17,6 +17,7 @@ namespace Hotfix.KagitKart
         [SerializeField] internal KagitKartSceneryBatch[] batches;
         [SerializeField] internal KagitKartPopupGroup[] popups;
         [SerializeField] internal KagitKartSceneryRamp[] ramps;
+        [SerializeField] internal TextAsset dynamicsData;
 
         public string TrackId => trackId;
         public Color SkyTop => skyTop;

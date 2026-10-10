@@ -25,13 +25,13 @@
 | `ai/ai.js` | 原作路线规划保存为四份 `Data/AiPlans`；实时性格、技能、起步、漂移、追赶、道具、避障、捷径和救援迁移到 `KagitKartAi`，原作命令对照和完整规则模拟测试已通过。 |
 | `items/visuals.js` | `KagitKartItemVisuals` 迁移箱体、钢笔、口香糖、飞机、墨水、剪刀、纸壳和世界虚线；原作 14 场景 / 56 实例快照对照通过，GPU 视觉另行检查。 |
 | `render/materials.js`、`surfaces.js`、`renderer.js` 的天空片段 | 已转译原生纸纹印刷、道路、加速贴纸、水波、纸洞深度与天空 Shader；后处理轮廓与错版待接入。 |
-| `scenery/*`、`track/trackBuilder.js` | 四章原作网格、纸景、材质与折起数据已保存为原生赛道 Prefab；弹簧折起已迁移，章节附属动画和文字中文化仍待完成。 |
+| `scenery/*`、`track/trackBuilder.js` | 四章原作网格、纸景、材质与折起数据保存为原生 Prefab；章节 updater、风车、云、渡轮、烟、缆车、蒸汽及中文路牌已接入，四章源码矩阵对照通过。 |
 | `characters/animate.js` | `KagitKartCharacterVisual` 接入八角色比赛和菜单动画；固定 JS 导出 50 组逐骨姿态，8/8 通过。 |
 | `ui/menus.js`、`icons.js`、`nav.js` | 中文封面、模式、克重、八车手和四章节已接入；焦点按原作更新选择与 3D 预览，确认才推进，大奖赛跳过章节选择。设置与操作说明待完成。 |
 | `cinematics/stage.js`、`popups.js`、`shots.js`、`campath.js` | `KagitKartBookStage` 接入开书、呼吸、翻页、车手弹出/旋转、镜头与中文印刷。`KagitKartRaceCinematics` 使用原作四章八网格、普通/减少动态赛前路径，时间曲线与向心样条对照通过。冲线和领奖镜头已接入。 |
 | `cinematics/podium.js`、`ui/panels.js` 领奖部分 | `KagitKartPodiumStage` 保存原网格与纸台弹簧、角色落台、纸屑、失落车手；`KagitKartPodiumView` 显示中文奖杯标题与前三积分。四组源快照和完整四场流程通过定向测试。 |
 | `fx/fx.js`、`fx/crane.js` | `KagitKartRaceFx` 与 `KagitKartRescueCrane` 接入原作纸艺特效与救援，源码快照 20/20 通过；全 GPU 变体与实际救援待验收。 |
-| `audio/*` | 源码生成音乐与音效，`KagitKartAudio` 订阅真实比赛事件；音频算法与资产契约 9/9、新增加速采样 1/1 通过；[音频维护](audio.md) 记录实时引擎与音乐滤波差异。 |
+| `audio/*` | 源码生成音乐与音效，`KagitKartAudio` 订阅真实比赛事件；`EngineSynth` 实时保留固定噪声谱和独立调制，音乐只低通一次。音频算法、采样与资产契约 11/11 通过，平台采样边界见[音频维护](audio.md)。 |
 
 ## 导出维护
 
@@ -45,7 +45,7 @@
 
 原始网格数组、骨骼、动画链与挂点保存到独立美术目录 `SleepyDemos-ArtSource/ArtSource/kagit_kart/SourceExports/`。正式 Mesh 的顶点和法线反射 X，三角绕序与骨骼绑定一并转换，PNG 使用原作 UV；Native Unity 预览保存于同级 `Previews/`。源导出及预览不作为 Player 运行依赖。
 
-四章赛道与纸景同样直接执行 `trackBuilder.js`、`scenery.js` 和章节造型模块，外部维护入口为参考工具目录中的 `export-world.mjs`。完整参考数据与 PNG 保存在 `SourceExports/Worlds/<赛道>/`，保留顶点色、UV、自定义道路属性、材质参数、层级、实例矩阵、纸景折起距离与触发阈值。155 个独立几何、46 张贴图和 2926 个实例已装配为四章原生赛道资源。动态折起由 `KagitKartSceneryWorld` 根据本场摄像机沿程推进，场景文字中文化与章节附属动画尚未完成。
+四章赛道与纸景直接执行 `trackBuilder.js`、`scenery.js` 和章节造型模块，外部维护入口为参考工具目录中的 `export-world.mjs`。完整参考数据与 PNG 保存在 `SourceExports/Worlds/<赛道>/`，保留顶点色、UV、自定义道路属性、材质参数、层级、实例矩阵、纸景折起距离与触发阈值。155 个独立几何、46 张贴图和 2926 个实例已装配为四章原生赛道资源。`KagitKartSceneryWorld` 迁移实际章节 updater，独立表现时间在暂停时冻结；源码动态数据保存到 `Data/Worlds/*Dynamics.json`，原 JS 参考位于 `Fixtures/OriginalSceneryDynamics.json`。四章路牌的中文绘图沿用项目字体与原作排版，替换图集内容时保留 GUID，不重建模型。
 
 `export-paper-shader.mjs` 将固定原作的印刷算法转译为 Unity HLSL，保留原作计算，只替换纹理采样、GLSL 类型与 HLSL 保留字、源坐标和深度接口。正式 Shader 保存到 Demo 的 `Art/Shaders/`，不依赖外部工具运行。原生预览使用隔离 Preview Scene 与 URP Render Request，未修改用户场景；原生 Shader 变体的编译错误需在渲染后检查，不能只依赖 C# 编译通过。
 

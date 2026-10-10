@@ -15,6 +15,7 @@ namespace Hotfix.KagitKart
         private Compressor limiter;
         private AudioClip carrier;
         private int sampleRate;
+        internal volatile KagitKartEngineSynth Engine;
 
         internal sealed class Samples
         {
@@ -23,7 +24,6 @@ namespace Hotfix.KagitKart
             internal int Channels;
             internal int Rate;
             internal int References;
-            internal bool IsEngine;
             internal bool IsEffect;
             internal int Frames => Data.Length / Channels;
         }
@@ -152,14 +152,9 @@ namespace Hotfix.KagitKart
                     l += sl * Volume;
                     r += sr * Volume;
                 }
-                else if (samples.IsEngine || samples.IsEffect || samples.Channels == 1)
+                else if (samples.IsEffect || samples.Channels == 1)
                 {
                     double angle = (Pan + 1) * Math.PI / 4;
-                    if (samples.IsEngine)
-                    {
-                        sl *= 1.41421356f;
-                        sr = sl;
-                    }
                     l += sl * Volume * (float)Math.Cos(angle);
                     r += sr * Volume * (float)Math.Sin(angle);
                 }
@@ -214,7 +209,7 @@ namespace Hotfix.KagitKart
             Samples next = null;
             if (clip != null && !loaded.TryGetValue(clip, out next))
             {
-                next = new Samples { Asset = clip, Rate = clip.frequency, Channels = clip.channels, Data = new float[clip.samples * clip.channels], IsEngine = clip.name.StartsWith("Engine_", StringComparison.Ordinal), IsEffect = clip.name.StartsWith("Sfx_", StringComparison.Ordinal) };
+                next = new Samples { Asset = clip, Rate = clip.frequency, Channels = clip.channels, Data = new float[clip.samples * clip.channels], IsEffect = clip.name.StartsWith("Sfx_", StringComparison.Ordinal) };
                 if (!clip.LoadAudioData() || !clip.GetData(next.Data, 0))
                 {
                     throw new InvalidOperationException("原作音频必须使用 DecompressOnLoad：" + clip.name);
@@ -258,22 +253,32 @@ namespace Hotfix.KagitKart
                 {
                     voice.Prepare();
                 }
-                for (int frame = 0; frame < data.Length / channels; frame++)
+                var engine = Engine;
+                engine?.Begin();
+                try
                 {
-                    float l = 0, r = 0;
-                    double at = now + (double)frame / sampleRate;
-                    foreach (var voice in voices)
+                    for (int frame = 0; frame < data.Length / channels; frame++)
                     {
-                        voice.Mix(at, ref l, ref r);
+                        float l = 0, r = 0;
+                        double at = now + (double)frame / sampleRate;
+                        foreach (var voice in voices)
+                        {
+                            voice.Mix(at, ref l, ref r);
+                        }
+                        engine?.Mix(ref l, ref r);
+                        l *= 1.25f;
+                        r *= 1.25f;
+                        glue.Process(ref l, ref r);
+                        limiter.Process(ref l, ref r);
+                        for (int channel = 0; channel < channels; channel++)
+                        {
+                            data[frame * channels + channel] = channels == 1 ? (l + r) * 0.5f : channel == 0 ? l : channel == 1 ? r : 0;
+                        }
                     }
-                    l *= 1.25f;
-                    r *= 1.25f;
-                    glue.Process(ref l, ref r);
-                    limiter.Process(ref l, ref r);
-                    for (int channel = 0; channel < channels; channel++)
-                    {
-                        data[frame * channels + channel] = channels == 1 ? (l + r) * 0.5f : channel == 0 ? l : channel == 1 ? r : 0;
-                    }
+                }
+                finally
+                {
+                    engine?.End();
                 }
             }
         }

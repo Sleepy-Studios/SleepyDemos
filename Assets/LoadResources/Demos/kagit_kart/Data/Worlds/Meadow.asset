@@ -31247,3 +31247,4 @@ MonoBehaviour:
   ramps:
   - distance: 302.90872
     theta: 0.17670886
+  dynamicsData: {fileID: 4900000, guid: 05996c2b086dd8641a27dc34760ea958, type: 3}

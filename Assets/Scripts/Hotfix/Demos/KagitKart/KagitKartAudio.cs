@@ -7,7 +7,6 @@ namespace Hotfix.KagitKart
     /// 原作 audio.js 的事件桥接；所有声音随场景释放，不建立全局音频框架。
     public sealed class KagitKartAudio : MonoBehaviour
     {
-        private static readonly string[] EngineLayers = { "body", "flutter", "rattle", "drift", "roar", "wind", "shimmer" };
         private readonly Dictionary<string, double> lastPlayed = new();
         private readonly double[] bumpSeen = new double[64];
         private readonly double[] bumpPlayed = new double[64];
@@ -16,8 +15,8 @@ namespace Hotfix.KagitKart
         private readonly double[] ends = new double[28];
         private readonly float[] effectGains = new float[28];
         private readonly bool[] effectMusic = new bool[28];
-        private readonly KagitKartAudioDsp.Voice[] engines = new KagitKartAudioDsp.Voice[7];
-        private readonly KagitKartAudioDsp.Voice[] cpu = new KagitKartAudioDsp.Voice[3];
+        private KagitKartEngineSynth engine;
+        private readonly bool[] cpuFresh = new bool[3];
         private readonly KagitKartVehicle[] cpuKart = new KagitKartVehicle[3];
         private readonly float[] cpuDistance = new float[3];
         private readonly KagitKartVehicle[] nearest = new KagitKartVehicle[3];
@@ -30,8 +29,6 @@ namespace Hotfix.KagitKart
         private readonly float[] pairStingDuck = { 1, 1 };
         private readonly double[] pairDuckStart = new double[2];
         private int musicPair;
-        private KagitKartAudioDsp.Voice bodyFilter;
-        private readonly KagitKartAudioDsp.Voice[] cpuFilters = new KagitKartAudioDsp.Voice[3];
         private KagitKartAudioBank bank;
         private KagitKartAudioDsp dsp;
         private float[] white;
@@ -53,6 +50,7 @@ namespace Hotfix.KagitKart
         private bool playerFinished;
         private bool initialized;
         private bool finalLap;
+        private bool intro;
         private Vector3 popupSum;
         private int popupCount;
         private float popupSize;
@@ -84,26 +82,8 @@ namespace Hotfix.KagitKart
                 filter.FilterEnabled = true;
                 filter.Cutoff = 20000;
             }
-            for (int i = 0; i < engines.Length; i++)
-            {
-                engines[i] = dsp.CreateVoice();
-                engines[i].Clip = bank.GetClip("engine_" + EngineLayers[i]);
-                engines[i].Loop = true;
-                engines[i].Play();
-            }
-            bodyFilter = engines[0];
-            bodyFilter.FilterEnabled = true;
-            bodyFilter.Resonance = 1.4f;
-            for (int i = 0; i < cpu.Length; i++)
-            {
-                cpu[i] = dsp.CreateVoice();
-                cpu[i].Clip = bank.GetClip("engine_cpu");
-                cpu[i].Loop = true;
-                cpu[i].Play();
-                cpuFilters[i] = cpu[i];
-                cpuFilters[i].FilterEnabled = true;
-                cpuFilters[i].Resonance = 1.2f;
-            }
+            engine = new KagitKartEngineSynth(AudioSettings.outputSampleRate, white, ReadNoise("bank_pink"), bank.GetClip("bank_white").frequency);
+            dsp.Engine = engine;
             PlayMenu();
             initialized = true;
         }
@@ -147,26 +127,14 @@ namespace Hotfix.KagitKart
                 }
             }
             session = null;
+            intro = false;
             paused = false;
             rouletteTime = 0;
             popupCount = 0;
             popupSize = 0;
             popupSum = Vector3.zero;
             lastPlayed.Clear();
-            foreach (var source in engines)
-            {
-                if (source != null)
-                {
-                    source.Volume = 0;
-                }
-            }
-            foreach (var source in cpu)
-            {
-                if (source != null)
-                {
-                    source.Volume = 0;
-                }
-            }
+            engine?.Silence();
             foreach (var source in effects)
             {
                 if (source != null)
@@ -186,8 +154,16 @@ namespace Hotfix.KagitKart
         /// <param name="chapterId">meadow、bosphorus、glacier 或 desk。</param>
         public void PlayIntro(string chapterId)
         {
+            intro = true;
             chapter = chapterId;
             PlayMusic("intro_" + chapterId, 0.8f);
+        }
+
+        /// 赛前镜头结束后启用引擎，并播放原作倒计时的第一声。
+        public void BeginCountdown()
+        {
+            intro = false;
+            Play("count", important: true);
         }
 
         /// <summary>沿用原作音量平方曲线，静音只作用于本 Demo。</summary>
@@ -248,6 +224,7 @@ namespace Hotfix.KagitKart
             double now = AudioSettings.dspTime;
             duck = Mathf.Lerp(duck, paused ? 0.28f : 1, 1 - Mathf.Exp(-dt / 0.12f));
             float musicGain = muted ? 0 : musicVolume * musicVolume * duck;
+            engine.SetVolume(sfxVolume * sfxVolume, muted);
             for (int i = 0; i < music.Length; i++)
             {
                 var source = music[i];
@@ -264,6 +241,10 @@ namespace Hotfix.KagitKart
             for (int i = 0; i < effects.Length; i++)
             {
                 effects[i].Volume = effectGains[i] * (effectMusic[i] ? musicGain : muted ? 0 : sfxVolume * sfxVolume);
+                if (effectMusic[i])
+                {
+                    effects[i].Cutoff = music[0].Cutoff;
+                }
             }
             if (session != null)
             {
@@ -439,6 +420,8 @@ namespace Hotfix.KagitKart
             source.Pan = pan;
             effectGains[slot] = gain * intensity;
             effectMusic[slot] = isMusic;
+            source.FilterEnabled = effectMusic[slot];
+            source.Cutoff = music[0].Cutoff;
             source.Volume = effectGains[slot] * (isMusic ? musicVolume * musicVolume * duck : sfxVolume * sfxVolume);
             if (at > now)
             {
@@ -462,7 +445,7 @@ namespace Hotfix.KagitKart
             }
             paused = next;
             // 原作暂停仅冻结比赛与引擎，音乐继续播放并降音量、低通。
-            Play(paused ? "pause" : "unpause");
+            Play(paused ? "pause" : "unpause", important: true);
         }
 
         private void OnRace(KagitKartRaceEvent signal)
@@ -695,71 +678,28 @@ namespace Hotfix.KagitKart
 
         private void UpdateEngines(float dt)
         {
-            if (paused)
+            engine.SetActive(!paused && !intro);
+            if (paused || intro)
             {
-                foreach (var source in engines)
-                {
-                    source.Volume = Mathf.Lerp(source.Volume, 0, 1 - Mathf.Exp(-dt / 0.05f));
-                }
-                foreach (var source in cpu)
-                {
-                    source.Volume = Mathf.Lerp(source.Volume, 0, 1 - Mathf.Exp(-dt / 0.05f));
-                }
                 return;
             }
             var kart = session.Player;
-            float level = paused || muted ? 0 : sfxVolume * sfxVolume * (session.Race.State == KagitKartRaceState.Done ? 0.5f : 1);
+            float level = session.Race.State == KagitKartRaceState.Done ? 0.5f : 1;
             float speed = Mathf.Abs(kart.Speed), ratio = speed / kart.BaseTop, throttle = Mathf.Clamp01(kart.Controls.Throttle);
-            float boost = kart.BoostTime > 0 ? 1 : 0;
-            float nextRpm = Rpm(ratio, throttle) + (!kart.Grounded ? 0.12f * throttle : 0) + 0.1f * boost;
+            float nextRpm = Rpm(ratio, throttle) + (!kart.Grounded ? 0.12f * throttle : 0) + (kart.BoostTime > 0 ? 0.1f : 0);
             if (kart.SpinTime > 0)
             {
                 nextRpm *= 0.8f + 0.1f * Mathf.Sin((float)AudioSettings.dspTime * 40);
             }
             rpm = Mathf.Lerp(rpm, nextRpm, 1 - Mathf.Exp(-dt / 0.05f));
-            float ground = !kart.Grounded || kart.Rescuing ? 0.15f : 1;
-            float pan = Mathf.Clamp(kart.SteerInput * 0.12f + (kart.Drifting ? kart.DriftDirection * 0.08f : 0), -0.3f, 0.3f);
-            foreach (var source in engines)
-            {
-                source.Pan = pan;
-            }
-            // shortcut: 离线引擎分层变速同时移动噪声谐波；逐采样一致时需整体移植实时 DSP。
-            engines[0].Pitch = 58 * Mathf.Pow(2, rpm * 2) / 116;
-            bodyFilter.Cutoff = 300 + 1500 * (0.25f + 0.75f * throttle) * (0.4f + 0.6f * Mathf.Min(1.2f, rpm)) + boost * 1300;
-            SetEngine(0, level * (0.13f + 0.12f * throttle + 0.06f * boost) / 0.202f * (kart.Rescuing ? 0.25f : 1), dt);
-            engines[1].Pitch = Mathf.Clamp(speed / 10, 0.17f, 3);
-            SetEngine(1, level * Mathf.Min(1.2f, ratio) / 0.4f * ground, dt);
-            string surface = kart.Surface;
-            string layer = surface == "sand" || surface == "out" || surface == "ice" ? surface : "rattle";
-            AudioClip rattle = bank.GetClip("engine_" + layer);
-            if (engines[2].Clip != rattle)
-            {
-                engines[2].Clip = rattle;
-                engines[2].Play();
-            }
-            bool rough = surface == "sand" || surface == "out" || surface == "offroad";
-            SetEngine(2, level * (rough || surface == "ice" ? 1 : 0) * Mathf.Min(1, ratio * 1.5f) / 0.6f * ground, dt);
-            int tier = Mathf.Clamp(kart.DriftTier, 0, 3);
-            AudioClip drift = bank.GetClip("engine_drift" + (tier > 0 ? tier.ToString() : ""));
-            if (engines[3].Clip != drift)
-            {
-                engines[3].Clip = drift;
-                engines[3].Play();
-            }
-            SetEngine(3, level * (kart.Drifting && kart.Grounded ? 1 : 0), dt);
-            SetEngine(4, level * boost * Mathf.Min(1, kart.BoostTime * 3), dt);
-            float draft = session.Collisions.GetDraftCharge(IndexOf(kart));
-            SetEngine(5, level * draft, dt);
-            SetEngine(6, level * (kart.InvincibleTime > 0 ? 1 : 0), dt);
-            UpdateCpus(level, dt);
+            float pan = kart.SteerInput * 0.12f + (kart.Drifting ? kart.DriftDirection * 0.08f : 0);
+            engine.SetPlayer(rpm, speed, ratio, throttle, level, !kart.Grounded, kart.Rescuing, kart.Surface,
+                kart.Drifting, kart.DriftTier, kart.BoostTime, kart.BoostStrength,
+                session.Collisions.GetDraftCharge(IndexOf(kart)), kart.InvincibleTime > 0, pan);
+            UpdateCpus(level);
         }
 
-        private void SetEngine(int index, float volume, float dt)
-        {
-            engines[index].Volume = Mathf.Lerp(engines[index].Volume, Mathf.Max(0, volume), 1 - Mathf.Exp(-dt / 0.06f));
-        }
-
-        private void UpdateCpus(float level, float dt)
+        private void UpdateCpus(float level)
         {
             Array.Clear(nearest, 0, nearest.Length);
             Array.Fill(cpuDistance, float.PositiveInfinity);
@@ -803,29 +743,33 @@ namespace Hotfix.KagitKart
             {
                 if (kart != null && Array.IndexOf(cpuKart, kart) < 0)
                 {
-                    cpuKart[Array.IndexOf(cpuKart, null)] = kart;
+                    int slot = Array.IndexOf(cpuKart, null);
+                    cpuKart[slot] = kart;
+                    cpuFresh[slot] = true;
                 }
             }
-            for (int i = 0; i < cpu.Length; i++)
+            for (int i = 0; i < cpuKart.Length; i++)
             {
                 var kart = cpuKart[i];
-                float volume = 0;
-                if (kart != null)
+                if (kart == null)
                 {
-                    Vector3 offset = KagitKartVehicle.ToUnity(kart.Position) - listener.transform.position;
-                    float distance = Mathf.Max(1, offset.magnitude);
-                    float throttle = kart.Controls.Throttle;
-                    float nextRpm = Rpm(Mathf.Abs(kart.Speed) / kart.BaseTop, throttle) + (kart.BoostTime > 0 ? 0.1f : 0);
-                    Vector3 velocity = KagitKartVehicle.ToUnity(kart.Velocity - session.Player.Velocity);
-                    float relative = (velocity.x * offset.x + velocity.z * offset.z) / distance;
-                    float doppler = Mathf.Clamp(1 / (1 + relative / 140), 0.86f, 1.14f);
-                    float persona = 0.9f + 0.05f * (IndexOf(kart) % 5);
-                    cpu[i].Pitch = Mathf.Clamp(62 * Mathf.Pow(2, nextRpm * 1.9f) * doppler * persona / (62 * Mathf.Pow(2, 0.95f) * 0.9f), 0.2f, 3);
-                    cpuFilters[i].Cutoff = 500 + 1800 * Mathf.Min(1.2f, nextRpm) * (0.5f + 0.5f * throttle);
-                    volume = distance > 160 ? 0 : level * Mathf.Pow(Mathf.Min(1, 10 / Mathf.Max(distance, 10)), 1.15f) * (0.6f + 0.4f * throttle) / 0.84f;
-                    cpu[i].Pan = Mathf.Clamp(Vector3.Dot(offset / distance, listener.transform.right) * 0.85f, -0.85f, 0.85f);
+                    engine.SetCpu(i, 70, 900, 0, 0, false, present: false);
+                    continue;
                 }
-                cpu[i].Volume = Mathf.Lerp(cpu[i].Volume, volume, 1 - Mathf.Exp(-dt / 0.08f));
+                Vector3 offset = KagitKartVehicle.ToUnity(kart.Position) - listener.transform.position;
+                float distance = Mathf.Max(1, offset.magnitude);
+                float throttle = kart.Controls.Throttle;
+                float nextRpm = Rpm(Mathf.Abs(kart.Speed) / kart.BaseTop, throttle) + (kart.BoostTime > 0 ? 0.1f : 0);
+                Vector3 velocity = KagitKartVehicle.ToUnity(kart.Velocity - session.Player.Velocity);
+                float relative = (velocity.x * offset.x + velocity.z * offset.z) / distance;
+                float doppler = Mathf.Clamp(1 / (1 + relative / 140), 0.86f, 1.14f);
+                float persona = 0.9f + 0.05f * (IndexOf(kart) % 5);
+                float frequency = 62 * Mathf.Pow(2, nextRpm * 1.9f) * doppler * persona;
+                float cutoff = 500 + 1800 * Mathf.Min(1.2f, nextRpm) * (0.5f + 0.5f * throttle);
+                float volume = distance > 160 ? 0 : level * 0.065f * Mathf.Pow(Mathf.Min(1, 10 / Mathf.Max(distance, 10)), 1.15f) * (0.6f + 0.4f * throttle);
+                float pan = Mathf.Clamp(Vector3.Dot(offset / distance, listener.transform.right) * 0.85f, -0.85f, 0.85f);
+                engine.SetCpu(i, frequency, cutoff, volume, pan, cpuFresh[i]);
+                cpuFresh[i] = false;
             }
         }
 

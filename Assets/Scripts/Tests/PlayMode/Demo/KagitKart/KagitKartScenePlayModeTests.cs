@@ -325,6 +325,57 @@ namespace Tests.Demo
             Assert.That(UIManager.Instance.Get<KagitKartPodiumView>(), Is.Null);
         }
 
+        [Serializable]
+        private sealed class EditorTrackTiming
+        {
+            public string track, gpu;
+            public int width, height, frames;
+            public float averageMs, maximumMs;
+            public long allocatedBytes, managedBytes;
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator NormalDrivingRecordsEditorTimingsForAllChapters()
+        {
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+            KagitKartWorld world = null;
+            yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "性能场景启动");
+            string folder = "D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews";
+            Directory.CreateDirectory(folder);
+            foreach (string id in KagitKartCatalog.Tracks)
+            {
+                yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, id, "tilki", 120).ToCoroutine();
+                world.Dispatch(KagitKartCommand.SkipIntro);
+                yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "正常倒计时结束");
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                yield return new WaitForSecondsRealtime(2);
+                var timing = new EditorTrackTiming { track = id, gpu = SystemInfo.graphicsDeviceName, width = Screen.width, height = Screen.height };
+                float end = Time.realtimeSinceStartup + 3;
+                while (Time.realtimeSinceStartup < end)
+                {
+                    yield return null;
+                    float ms = Time.unscaledDeltaTime * 1000;
+                    timing.averageMs += ms;
+                    timing.maximumMs = Mathf.Max(timing.maximumMs, ms);
+                    timing.frames++;
+                }
+                Assert.That(timing.frames, Is.GreaterThan(0));
+                Assert.That(world.Session.Pause.IsPaused, Is.False, "采样必须在实际行驶时进行。");
+                Assert.That(world.Session.Player.Controls.Throttle, Is.GreaterThan(0.5f));
+                timing.averageMs /= timing.frames;
+                timing.allocatedBytes = UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong();
+                timing.managedBytes = UnityEngine.Profiling.Profiler.GetMonoUsedSizeLong();
+                File.WriteAllText(folder + "/EditorTiming_" + id + ".json", JsonUtility.ToJson(timing, true));
+                ScreenCapture.CaptureScreenshot(folder + "/Race_" + id + ".png");
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+            }
+            world.Dispatch(KagitKartCommand.Hub);
+            yield return Wait(() => Object.FindFirstObjectByType<KagitKartWorld>() == null, "四章采样后释放场景");
+            Assert.That(Object.FindObjectsByType<KagitKartSceneryWorld>(FindObjectsSortMode.None), Is.Empty);
+        }
+
         private static IEnumerator Capture(string name)
         {
             yield return new WaitForSecondsRealtime(2);
