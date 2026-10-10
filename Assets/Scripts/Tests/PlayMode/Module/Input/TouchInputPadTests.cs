@@ -108,6 +108,25 @@ namespace Tests.Module
             AssertVector(movePad.Move, Vector2.right, "释放所有权后可以接收新的手指。");
         }
 
+        [UnityTest]
+        public IEnumerator HorizontalPadIgnoresVerticalTravelAndRetainsPointerOwnership()
+        {
+            movePad.ConfigureHorizontal(96);
+            movePad.OnPointerDown(Pointer(11, Vector2.zero));
+            float travel = 96 * Screen.height / 720f;
+            movePad.OnDrag(Pointer(11, new Vector2(travel * 0.5f, travel * 20)));
+            AssertVector(movePad.Move, new Vector2(0.5f, 0), "纵向拖动不能压缩方向滑条。");
+            movePad.OnDrag(Pointer(22, new Vector2(-travel, 0)));
+            AssertVector(movePad.Move, new Vector2(0.5f, 0), "第二个指针不能接管滑条。");
+            movePad.OnPointerUp(Pointer(22, Vector2.zero));
+            AssertVector(movePad.Move, new Vector2(0.5f, 0), "其他按钮指针松开不能清空转向。");
+            movePad.OnDrag(Pointer(11, new Vector2(travel * 2, 0)));
+            AssertVector(movePad.Move, Vector2.right, "方向滑条必须钳制到满幅。");
+            movePad.OnPointerUp(Pointer(11, Vector2.zero));
+            AssertVector(movePad.Move, Vector2.zero, "松开滑条清空转向。");
+            yield return null;
+        }
+
         private static PointerEventData Pointer(int id, Vector2 position, Vector2 delta = default)
         {
             return new PointerEventData(EventSystem.current) { pointerId = id, position = position, delta = delta };

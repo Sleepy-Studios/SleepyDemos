@@ -60,6 +60,11 @@ namespace Core.Runtime.Inputs
             foreach (var target in targets)
             {
                 if (target.navigation.mode == Navigation.Mode.None || target.GetComponentInParent<UIMenuScope>() != this) continue;
+                // UI Module 不向父级冒泡 Cancel；已有取消处理的下拉框等控件保留自己的行为。
+                if (target.GetComponent<ICancelHandler>() == null)
+                {
+                    target.gameObject.AddComponent<UIMenuCancelRelay>();
+                }
                 originalNavigation.TryAdd(target, target.navigation);
                 var navigation = target.navigation; navigation.mode = Navigation.Mode.Explicit;
                 navigation.selectOnLeft = Nearest(target, targets, Vector2.left);

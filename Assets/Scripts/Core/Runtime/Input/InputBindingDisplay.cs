@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 namespace Core.Runtime.Inputs
 {
@@ -38,8 +39,9 @@ namespace Core.Runtime.Inputs
                 {
                     if (!MatchesDevice(control, device)) continue;
                     if (!InputControlPath.Matches(binding.effectivePath, control)) continue;
-                    controlPath = control.path.Substring(control.device.path.Length + 1);
-                    return control.displayName;
+                    var displayControl = control is AxisControl && control.parent is StickControl ? control.parent : control;
+                    controlPath = displayControl.path.Substring(displayControl.device.path.Length + 1);
+                    return displayControl.displayName;
                 }
                 // 无键盘硬件时仍可显示保存的绑定；手柄则必须匹配真实连接设备。
                 if (InputDeviceState.PromptKind == InputDeviceKind.KeyboardMouse &&

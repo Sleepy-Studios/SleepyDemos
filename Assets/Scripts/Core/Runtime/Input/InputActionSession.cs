@@ -65,6 +65,48 @@ namespace Core.Runtime.Inputs
                 : action.ReadValue<Vector2>();
         }
 
+        /// <summary>手柄单轴读取原始值后只应用一次死区，避免布局处理器与专属动作处理器叠加。</summary>
+        /// <param name="name">标量动作名称。</param>
+        /// <param name="deadzone">轴死区，范围 [0,1)。</param>
+        public float ReadAxis(string name, float deadzone = .2f)
+        {
+            if (float.IsNaN(deadzone) || float.IsInfinity(deadzone) || deadzone < 0 || deadzone >= 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(deadzone));
+            }
+            if (!Available(name, out var action))
+            {
+                return 0;
+            }
+            if (action.activeControl is AxisControl axis && axis.device is Gamepad)
+            {
+                float value = axis.ReadUnprocessedValue();
+                return Mathf.Sign(value) * Mathf.Clamp01((Mathf.Abs(value) - deadzone) / (1 - deadzone));
+            }
+            return action.ReadValue<float>();
+        }
+
+        /// <summary>实际设备切换时只锁住旧设备仍保持的动作，不吞掉新设备的首次操作。</summary>
+        /// <param name="device">离开的输入设备；为空时不改变动作。</param>
+        public void RequireRelease(InputDevice device)
+        {
+            if (device == null || Map == null || disposed)
+            {
+                return;
+            }
+            foreach (var action in Map.actions)
+            {
+                foreach (var control in action.controls)
+                {
+                    if (control.device == device && HasInput(control, action.type))
+                    {
+                        awaitingRelease.Add(action);
+                        break;
+                    }
+                }
+            }
+        }
+
         private bool Available(string name, out InputAction action)
         {
             action = Map?.FindAction(name);
@@ -78,9 +120,29 @@ namespace Core.Runtime.Inputs
         {
             foreach (var control in action.controls)
             {
-                if (control is ButtonControl button && button.isPressed) return true;
-                // 仅手柄持续轴需要回中；屏幕坐标是绝对位置，不能要求鼠标回到 (0,0)。
-                if (control.device is Gamepad && control is Vector2Control vector && vector.ReadValue().sqrMagnitude > 0.04f) return true;
+                if (HasInput(control, action.type))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool HasInput(InputControl control, InputActionType type)
+        {
+            if (control is ButtonControl button && button.isPressed)
+            {
+                return true;
+            }
+            // 屏幕位置是绝对坐标，不要求鼠标回到屏幕原点。
+            if (control.device is Gamepad && control is Vector2Control vector && vector.ReadValue().sqrMagnitude > 0.04f)
+            {
+                return true;
+            }
+            if (control.device is Gamepad && control is AxisControl axis)
+            {
+                float neutral = control is ButtonControl && type == InputActionType.Value ? 0.01f : 0.2f;
+                return Mathf.Abs(axis.ReadValue()) > neutral;
             }
             return false;
         }

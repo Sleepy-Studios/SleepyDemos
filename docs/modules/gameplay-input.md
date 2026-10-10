@@ -8,14 +8,20 @@
 - `GameplayInputContracts`：设备无关动作/帧、参数校验、角度与死区换算。鼠标与触屏是增量，手柄视角是角速度。
 - `MenuInputScope`：借用既有EventSystem及InputSystemUIInputModule，切换时等待按键释放，菜单导航和提交只由公共UI处理。
 
-- `TouchInputPad`：两个触控区域分别占有指针，移动归一化，视角换算为720p参考像素；隐藏时清空输入。
+- `TouchInputPad`：两个触控区域分别占有指针，移动归一化，视角换算为720p参考像素；`ConfigureHorizontal` 提供只读取横向拖动的滑条，纵向位移不压缩横轴；隐藏时清空输入。
 - `LocalPauseState`：失焦、后台、当前手柄断连的暂停门闩，恢复设备后仍须明确继续。
 
 公共Hub页面直接复用MenuInputScope：显示时建立唯一作用域，以LoopScrollMenuNavigation.FirstSelection设置当前可用焦点，每帧调用Update(当前焦点)，隐藏/销毁时Dispose。更新默认焦点不重置松键门闩；默认目标从不可用变为可用时恢复选择，列表刷新则只恢复同一个仍可见的业务Key，不提交。触屏点击空白清焦点不会被普通更新抢回。不需要GameplayInputRouter、业务按钮字典或指针模拟。循环按具体作用域身份结束，旧页面不得驱动恢复后页面的作用域；卡片按钮使用公共LoopScrollMenuButton的选中态。
 
 鼠标/触屏点击空白清除焦点后，MenuInputScope在后续Move、Submit或Cancel到达时恢复仍可用的初始控件；已有指针选中项保持。恢复等待旧按键释放，不选择禁用/隐藏控件，不手动执行导航或提交。Move/Point/Submit/Cancel向可选Router通知实际设备，隐藏时完整退订。
 
+`UIMenuScope` 为作用域内没有取消处理的普通可导航控件添加 `UIMenuCancelRelay`。Input System UI Module 将 Cancel 直接发送给当前选中对象，不向父级冒泡；Relay 只转交最近的菜单作用域。嵌套菜单不触发外层返回，下拉框等已有 `ICancelHandler` 的控件继续处理自己的取消操作；确认与方向导航仍由现有 UI Module 执行。
+
 ## 边界
+
+`InputActionSession.ReadAxis` 与 `ReadVector` 都可在原始手柄值上只应用一次死区，避免布局处理器叠加。标量 Value 动作重新启用时也须释放旧轴；模拟扳机的中性门闩保留低于按钮按下阈值的保持值。`InputBindingDisplay` 将摇杆子轴归到父摇杆的图标路径，实际绑定仍为原始轴。
+
+需要清理设备切换前的保持输入时，调用 `InputActionSession.RequireRelease(旧设备)`，只锁住旧设备仍按住的动作，不以重新开启整张 Map 的方式吞掉新设备首次按键。
 
 Core不处理下注、机台、牌局、角色运动约束或游戏时钟，也不创建界面、相机和第二套EventSystem。宿主保留自己的inputactions、动作到玩法命令的映射、提示文案、触控布局和设置存储。参数对象可由任意设置系统提供，模块不另建PlayerPrefs键或存档格式。
 

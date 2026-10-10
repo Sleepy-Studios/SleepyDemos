@@ -9,6 +9,8 @@ namespace Core.Runtime.Inputs
         private const float ReferenceHeight = 720f;
         private const float MoveRadius = 80f;
         [SerializeField] private bool isLookPad;
+        [SerializeField] private bool horizontalOnly;
+        [SerializeField, Min(1)] private float fullTravel = MoveRadius;
         private int pointerId = int.MinValue;
         private Vector2 origin;
         private Vector2 move;
@@ -26,7 +28,26 @@ namespace Core.Runtime.Inputs
 
         /// <summary>装配移动或视角区域。</summary>
         /// <param name="lookPad">true 为视角增量；false 为移动摇杆。</param>
-        public void Configure(bool lookPad) => isLookPad = lookPad;
+        public void Configure(bool lookPad)
+        {
+            isLookPad = lookPad;
+            horizontalOnly = false;
+            fullTravel = MoveRadius;
+        }
+
+        /// <summary>配置横向滑动轴，纵向拖动不压缩横向输入，保留公共指针所有权与生命周期。</summary>
+        /// <param name="referenceTravel">到达满幅所需的横向距离，以 720p 参考像素计。</param>
+        public void ConfigureHorizontal(float referenceTravel)
+        {
+            if (float.IsNaN(referenceTravel) || float.IsInfinity(referenceTravel) || referenceTravel < 1)
+            {
+                throw new System.ArgumentOutOfRangeException(nameof(referenceTravel));
+            }
+            ResetInput();
+            isLookPad = false;
+            horizontalOnly = true;
+            fullTravel = referenceTravel;
+        }
 
         /// <summary>占用当前区域；已有手指操作时不允许额外指针接管。</summary>
         /// <param name="eventData">由EventSystem提供的独立指针编号和起始屏幕位置。</param>
@@ -46,7 +67,11 @@ namespace Core.Runtime.Inputs
             // 保持相同屏幕比例的滑动产生相同输入；低分辨率也必须参与缩放，键鼠仍使用原始增量。
             float referenceScale = ReferenceHeight / Mathf.Max(1, Screen.height);
             if (isLookPad) look += eventData.delta * referenceScale;
-            else move = Vector2.ClampMagnitude((eventData.position - origin) * (referenceScale / MoveRadius), 1);
+            else if (horizontalOnly)
+            {
+                move = new Vector2(Mathf.Clamp((eventData.position.x - origin.x) * referenceScale / fullTravel, -1, 1), 0);
+            }
+            else move = Vector2.ClampMagnitude((eventData.position - origin) * (referenceScale / Mathf.Max(1, fullTravel)), 1);
         }
 
         /// <summary>仅释放拥有当前区域的指针，并丢弃未消费输入。</summary>

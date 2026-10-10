@@ -17,6 +17,55 @@ namespace Tests.Module
     public sealed class UnifiedInputPlayModeTests
     {
         [UnityTest]
+        public IEnumerator MenuCancelFromSelectedButtonTargetsNearestScope()
+        {
+            var previous = EventSystem.current;
+            var root = new GameObject("MenuCancelTest", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            EventSystem.current = root.GetComponent<EventSystem>();
+            var parent = new GameObject("Parent", typeof(RectTransform));
+            parent.transform.SetParent(root.transform);
+            var parentButton = new GameObject("ParentButton", typeof(RectTransform), typeof(Button));
+            parentButton.transform.SetParent(parent.transform);
+            var parentMenu = parent.AddComponent<UIMenuScope>();
+            int parentCanceled = 0;
+            parentMenu.Canceled += () => parentCanceled++;
+            var child = new GameObject("Child", typeof(RectTransform));
+            child.transform.SetParent(parent.transform);
+            var childButton = new GameObject("ChildButton", typeof(RectTransform), typeof(Button));
+            childButton.transform.SetParent(child.transform);
+            var dropdown = new GameObject("Dropdown", typeof(RectTransform), typeof(Dropdown));
+            dropdown.transform.SetParent(child.transform);
+            var childMenu = child.AddComponent<UIMenuScope>();
+            int childCanceled = 0;
+            childMenu.Canceled += () => childCanceled++;
+            try
+            {
+                yield return null;
+                ExecuteEvents.Execute(childButton, new BaseEventData(EventSystem.current), ExecuteEvents.cancelHandler);
+                Assert.That(childCanceled, Is.EqualTo(1));
+                Assert.That(parentCanceled, Is.Zero);
+                Assert.That(dropdown.GetComponent<UIMenuCancelRelay>(), Is.Null, "下拉框应保留自己的取消处理。");
+                childButton.SetActive(false);
+                yield return null;
+                childButton.SetActive(true);
+                yield return null;
+                Assert.That(childButton.GetComponents<UIMenuCancelRelay>().Length, Is.EqualTo(1), "重新显示控件不重复添加取消转发。");
+                child.SetActive(false);
+                ExecuteEvents.Execute(parentButton, new BaseEventData(EventSystem.current), ExecuteEvents.cancelHandler);
+                Assert.That(parentCanceled, Is.EqualTo(1));
+            }
+            finally
+            {
+                Object.Destroy(root);
+                if (previous != null)
+                {
+                    EventSystem.current = previous;
+                }
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ConnectedPadDoesNotChangeActualDeviceAndUsageBindingResolvesSwitchA()
         {
             var keyboard = InputSystem.AddDevice<Keyboard>();
@@ -131,6 +180,45 @@ namespace Tests.Module
             finally { InputSystem.RemoveDevice(pad); }
         }
 #endif
+
+        [UnityTest]
+        public IEnumerator ScalarGamepadAxesRequireNeutralWhenGameplayMapReopens()
+        {
+            var pad = InputSystem.AddDevice<Gamepad>();
+            var asset = ScriptableObject.CreateInstance<InputActionAsset>();
+            var map = asset.AddActionMap("Drive");
+            map.AddAction("Steer", InputActionType.Value, "<Gamepad>/leftStick/x", expectedControlLayout: "Axis");
+            map.AddAction("Throttle", InputActionType.Value, "<Gamepad>/rightTrigger", expectedControlLayout: "Axis");
+            using var session = new InputActionSession(asset);
+            session.Asset.devices = new InputDevice[] { pad };
+            session.SetMap("Drive");
+            try
+            {
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(0.8f, 0), rightTrigger = 0.1f });
+                yield return null;
+                yield return null;
+                Assert.That(session.Read<float>("Steer"), Is.GreaterThan(0));
+                Assert.That(session.Read<float>("Throttle"), Is.GreaterThan(0));
+                session.SetMap(null);
+                session.SetMap("Drive");
+                yield return null;
+                Assert.That(session.Read<float>("Steer"), Is.Zero);
+                Assert.That(session.Read<float>("Throttle"), Is.Zero);
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                yield return null;
+                session.Read<float>("Steer");
+                session.Read<float>("Throttle");
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(-0.8f, 0), rightTrigger = 0.1f });
+                yield return null;
+                Assert.That(session.Read<float>("Steer"), Is.LessThan(0));
+                Assert.That(session.Read<float>("Throttle"), Is.GreaterThan(0));
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(pad);
+                Object.Destroy(asset);
+            }
+        }
 
         [UnityTest]
         public IEnumerator MapActivationKeepsAbsolutePointerWithoutRequiringScreenOrigin()
