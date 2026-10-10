@@ -111,6 +111,7 @@ namespace Hotfix.KagitKart
                 bookStage = book.GetComponent<KagitKartBookStage>();
                 bookStage.Initialize(worldCamera, sun);
                 ApplySettings();
+                await InitializeHintsAsync(token);
                 bookStage.PageTurnStarted += audio.PageTurn;
                 ready = true;
                 await OpenMenuAsync(KagitKartCommand.Title);
@@ -249,6 +250,9 @@ namespace Hotfix.KagitKart
                 cinematics = new KagitKartRaceCinematics(introPaths.text, worldCamera, Session, source.config.camera, ReducedMotion);
                 audio.Bind(Session);
                 audio.PlayIntro(TrackId);
+                Hints.Bind(Session.Track.Track.data);
+                Session.Player.Signaled += OnPlayerHintSignal;
+                Session.Items.Signaled += OnItemHintSignal;
                 Session.Pause.Changed += OnPauseChanged;
                 Session.Race.Signaled += OnRaceSignal;
                 Session.Collisions.Bumped += OnBumped;
@@ -320,6 +324,7 @@ namespace Hotfix.KagitKart
 
         private void LateUpdate()
         {
+            UpdateHints();
             if (Session == null && bookStage != null && bookStage.gameObject.activeInHierarchy)
             {
                 bookStage.Advance(Time.unscaledDeltaTime);
@@ -386,7 +391,7 @@ namespace Hotfix.KagitKart
                 return;
             }
             var command = action.Command;
-            if (command != KagitKartCommand.Refresh && command != KagitKartCommand.PreviewCharacter && command != KagitKartCommand.PreviewTrack)
+            if (command != KagitKartCommand.Refresh && command != KagitKartCommand.PreviewCharacter && command != KagitKartCommand.PreviewTrack && command != KagitKartCommand.MarkTutorialSeen)
             {
                 audio.Click();
             }
@@ -397,6 +402,9 @@ namespace Hotfix.KagitKart
             }
             switch (command)
             {
+                case KagitKartCommand.MarkTutorialSeen:
+                    SaveSetting(new KagitKartAction(this, KagitKartCommand.ChangeSetting, 1, "SeenTutorial"));
+                    return;
                 case KagitKartCommand.Settings:
                     OpenOptionsAsync(false).Forget();
                     return;
@@ -729,6 +737,7 @@ namespace Hotfix.KagitKart
         private void FinishIntro()
         {
             audio.BeginCountdown();
+            Hints.OnCountdown(3, Settings.SeenTutorial);
             cameraRig.Advance(0, actors[PlayerIndex()].position);
             Input.SetDriving(true);
             Dispatch(KagitKartCommand.Refresh);
@@ -832,6 +841,7 @@ namespace Hotfix.KagitKart
                     await UniTask.Yield();
                 }
                 await CloseViewsAsync();
+                await CloseHintsViewAsync();
                 var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status == GameSceneSwitchStatus.Failed)
                 {
@@ -844,6 +854,14 @@ namespace Hotfix.KagitKart
             catch (Exception exception)
             {
                 exiting = false;
+                try
+                {
+                    await ShowHintsViewAsync();
+                }
+                catch (Exception hintException)
+                {
+                    Debug.LogException(hintException, this);
+                }
                 Session?.Pause.RequestPause(LocalPauseReason.User);
                 Debug.LogException(exception, this);
                 if (Session == null)
@@ -894,12 +912,15 @@ namespace Hotfix.KagitKart
 
         private void StopRound()
         {
+            Hints?.Unbind();
             PodiumPlaying = false;
             podium?.Hide();
             audio?.Unbind();
             cinematics = null;
             if (Session != null)
             {
+                Session.Player.Signaled -= OnPlayerHintSignal;
+                Session.Items.Signaled -= OnItemHintSignal;
                 Session.Pause.Changed -= OnPauseChanged;
                 Session.Race.Signaled -= OnRaceSignal;
                 Session.Collisions.Bumped -= OnBumped;
@@ -923,6 +944,7 @@ namespace Hotfix.KagitKart
         private void OnDestroy()
         {
             ready = false;
+            DisposeHints();
             gameplayMenuScope?.Dispose();
             gameplayMenuScope = null;
             if (Input != null)

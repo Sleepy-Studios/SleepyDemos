@@ -26,7 +26,8 @@ namespace Hotfix.KagitKart
         Controls,
         ChangeSetting,
         GraphicsSettings,
-        CloseOptions
+        CloseOptions,
+        MarkTutorialSeen
     }
 
     /// 页面与输入提交的本场流程请求。

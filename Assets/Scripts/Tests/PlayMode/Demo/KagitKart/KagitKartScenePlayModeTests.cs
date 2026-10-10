@@ -378,6 +378,78 @@ namespace Tests.Demo
             Assert.That(Object.FindObjectsByType<KagitKartSceneryWorld>(FindObjectsSortMode.None), Is.Empty);
         }
 
+        [UnityTest, Timeout(240000)]
+        public IEnumerator FirstTutorialSurvivesCountdownAndPauseThenPersistsAfterSevenRunningSeconds()
+        {
+            string key = LocalDataKeys.KagitKartPreferences;
+            bool existed = PlayerPrefs.HasKey(key);
+            string previous = PlayerPrefs.GetString(key);
+            string hintKey = LocalDataKeys.KagitKartHintsPreferences;
+            bool hadHints = PlayerPrefs.HasKey(hintKey);
+            string previousHints = PlayerPrefs.GetString(hintKey);
+            PlayerPrefs.DeleteKey(key);
+            PlayerPrefs.Save();
+
+            try
+            {
+                yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+                KagitKartWorld world = null;
+                yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                    && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "首次教程入口");
+                yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
+                world.SendMessage("OnApplicationFocus", true);
+                world.Dispatch(KagitKartCommand.SkipIntro);
+                Assert.That(world.Hints.TutorialVisible, Is.True, "跳过赛前电影仍打开倒计时3教程。");
+                Assert.That(world.Settings.SeenTutorial, Is.False);
+                var view = UIManager.Instance.Get<KagitKartHintsView>();
+                Assert.That(view, Is.Not.Null);
+                Assert.That(view.ViewMode, Is.EqualTo(UIViewMode.Widget));
+                Assert.That(view.gameObject.GetComponentsInChildren<Button>(true), Is.Empty);
+                Assert.That(view.gameObject.GetComponent<CanvasGroup>().blocksRaycasts, Is.False);
+                Assert.That(view.gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>()
+                    .Any(text => text.text == "怎么驾驶？" && text.gameObject.activeInHierarchy), Is.True,
+                    "教程状态为真时，实际纸卡与文字必须显示。");
+                world.Dispatch(KagitKartCommand.Pause);
+                yield return Wait(() => world.Session.Pause.IsPaused, "倒计时暂停");
+                yield return new WaitForSecondsRealtime(0.5f);
+                Assert.That(world.Hints.TutorialVisible, Is.True);
+                Assert.That(world.Settings.SeenTutorial, Is.False);
+                yield return Capture("TutorialKeyboard");
+                world.Dispatch(KagitKartCommand.Resume);
+                yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "起跑");
+                Assert.That(world.Hints.TutorialVisible, Is.True, "倒计时三秒不占教程七秒。");
+                yield return new WaitForSecondsRealtime(3);
+                Assert.That(world.Hints.TutorialVisible, Is.True);
+                yield return Capture("TutorialKeyboard");
+                world.Dispatch(KagitKartCommand.Pause);
+                yield return Wait(() => world.Session.Pause.IsPaused, "教程中暂停");
+                yield return new WaitForSecondsRealtime(0.5f);
+                Assert.That(world.Hints.TutorialVisible, Is.True);
+                world.Dispatch(KagitKartCommand.Resume);
+                yield return Wait(() => !world.Hints.TutorialVisible, "累计比赛七秒自动收起");
+                Assert.That(world.Settings.SeenTutorial, Is.True);
+                Assert.That(LocalDataManager.LoadData(key, new KagitKartSettings()).SeenTutorial, Is.True);
+                yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
+                world.Dispatch(KagitKartCommand.SkipIntro);
+                Assert.That(world.Hints.TutorialVisible, Is.False, "已看教程下场不重复。");
+            }
+            finally
+            {
+                if (existed)
+                {
+                    PlayerPrefs.SetString(key, previous);
+                }
+                else
+                {
+                    PlayerPrefs.DeleteKey(key);
+                }
+                if (hadHints) PlayerPrefs.SetString(hintKey, previousHints);
+                else PlayerPrefs.DeleteKey(hintKey);
+                PlayerPrefs.Save();
+            }
+        }
+
+
         private static IEnumerator Capture(string name)
         {
             yield return new WaitForSecondsRealtime(2);

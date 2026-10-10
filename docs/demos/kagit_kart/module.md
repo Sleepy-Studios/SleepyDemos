@@ -94,7 +94,7 @@
 
 模式页和暂停页均可打开独立 `KagitKartSettingsView` / `KagitKartControlsView`，各自保存正式 Prefab 与生命周期。设置复用公共 `LocalDataManager`，键为 `LocalDataKeys.KagitKartPreferences`；音乐默认 0.7、音效 0.9、自动油门和帧率默认关。保存成功才替换场景偏好，损坏记录回退默认而不覆盖存储，失败显示中文反馈。画面行按需打开已有 `DlssSettingsView`，不复制公共画质实现。
 
-音乐/音效和静音交付现有音频宿主，自动油门仍允许主动刹车，触控显示独立于真实输入设备。帧率按真实 `Time.unscaledDeltaTime` 每半秒采样，独立于固定步比赛时钟。低动态显式开关覆盖纸卡、立体书、角色、纸景、赛前与冲线演出，并关闭镜头震动；切换赛前路线保留原有进度。`ReducedMotion=auto` 通过 Core.Runtime 的 `SystemMotionPreference` 在启动及修改该选项时读取：Windows 使用原生客户区动画开关，Android 使用系统动画尺度是否为零；查询失败使用正常动态，不修改系统偏好。Windows 真实读取 Test Runner 1/1（`09ae1204`），设置回归 2/2（`71fa701a`）。Android 条件分支尚未在 Player 或真机执行。教程尚未接入，`SeenTutorial` 字段不能视为已完成教程流程。
+音乐/音效和静音交付现有音频宿主，自动油门仍允许主动刹车，触控显示独立于真实输入设备。帧率按真实 `Time.unscaledDeltaTime` 每半秒采样，独立于固定步比赛时钟。低动态显式开关覆盖纸卡、立体书、角色、纸景、赛前与冲线演出，并关闭镜头震动；切换赛前路线保留原有进度。`ReducedMotion=auto` 通过 Core.Runtime 的 `SystemMotionPreference` 在启动及修改该选项时读取：Windows 使用原生客户区动画开关，Android 使用系统动画尺度是否为零；查询失败使用正常动态，不修改系统偏好。Windows 真实读取 Test Runner 1/1（`09ae1204`），设置回归 2/2（`71fa701a`）。Android 条件分支尚未在 Player 或真机执行。首次四行操作卡与五类驾驶提示接入独立非交互 Widget，不创建输入作用域。
 
 暂停页与设置页在叠加 Modal 的 `OnHide` 时保留场景来源，在销毁时解除。UIManager 关闭上层 Modal 后只重新显示下层实例，不再交付 SetData，故隐藏时清空 world 会使恢复后的按钮失效。操作说明读取本场动作副本及 override，设备图标沿用公共绑定提示，菜单确认和返回仍走公共作用域。
 
@@ -150,7 +150,7 @@ HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建 
 
 `KagitKartPodiumStage` 接入原作三层纸台、前三车手落台、失落玩家、纸屑和推进镜头；最后一场结算提供颁奖入口，结束后显示独立 `KagitKartPodiumView`，可返回封面。正常、减少动态、窄屏与角色回退四组原作快照 4/4 通过（`a89d7a35`）；四章三圈、逐场积分、领奖与返回封面的 Editor 流程 1/1 通过（`b0e63dc7`），使用原作 AI 与加快推进的正式固定步模拟，包含前三纸卡与返回按钮完全显示断言。书本切换及共享网格释放回归 1/1 通过（`9896c879`）。这不是人工驾驶或真实设备验收。
 
-设置、操作说明及原作后处理现已接入；完整 HUD、教程及完整 Editor 验收仍未完成。资源命名与标签定向检查 1/1 通过（`67cb0b7a`）。上述检查不包含全量测试、Player 构建或 Android 真机。
+设置、操作说明及原作后处理现已接入；完整 HUD 及完整 Editor 验收仍未完成。资源命名与标签定向检查 1/1 通过（`67cb0b7a`）。上述检查不包含全量测试、Player 构建或 Android 真机。
 
 四章动态与实时音频接入后的大奖赛完整流程 1/1 通过（`50adbd88`），键盘驾驶、暂停、重赛与返回 Hub 1/1 通过（`beecf0dd`）。四章正常运行及退出释放采样 1/1 通过（`4d64beb6`），实际数据见 [Editor 性能记录](runbooks/editor-performance.md)。
 
@@ -163,3 +163,11 @@ HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建 
 运行截图暴露的起点纸景遮挡已定位到原作章节 updater 未初始化：导出时先推进零时刻 updater，再保存真实云、吊线和风车附属部件姿态；运行时云和吊线继续朝向摄像机，折起触发使用摄像机对应赛道距离。小地图显式保存 CanvasRenderer，防止只保存 Graphic 脚本导致没有实际 UI 网格。
 
 场景保存对话框解除后，同一驾驶流程含小地图网格断言复验 1/1 通过（Unity Test Runner 作业 `141ee108`）；实际截图确认路线与车手标记可见。临时页面装配使用隔离 Preview Scene，避免在当前编辑场景创建和删除临时节点而标记其修改；页面装配工具仍用于后续菜单制作，全部资源保存验证后清理。
+
+## 首次教程与驾驶提示
+
+`KagitKartHints` 直接迁移 `hints.js`：倒计时3打开首次四行卡，倒计时不扣七秒，Running累计七秒后写既有设置的 `SeenTutorial`；暂停传零表现时间，重赛与离场取消卡片且不记完成。Corner/Tier/Ramp/Item/Portrait提示沿用原阈值、队列与3.8/4.5秒时长，真正显示时才写 `KagitKart.UiHints`，缺失或损坏使用空历史，写入失败只警告并保留本场一次性状态。
+
+`KagitKartHintsView` 使用 Foreground Widget 正式 Prefab、UIBind、中文字体和真实绑定提示；没有按钮、菜单作用域或射线阻挡。纸卡沿底边弹起复用 `KagitKartMenuPaperMotion`，教程0.62秒、情境卡0.5秒，低动态直接显示终态。Widget跨菜单/重赛保留，离开Demo精确关闭本实例，切场失败恢复。原网页软件渲染器的浏览器硬件加速说明没有Unity对应条件，因此不显示该浏览器专属说明。
+
+教程规则 Test Runner 4/4（`80aa1588`），覆盖倒计时/暂停、退出不提前标记、源码队列与阈值、提示历史及竖屏时长；真实场景 Test Runner 1/1（`2513c7c4`）验证跳过电影、倒计时/暂停冻结、累计七秒保存、下场不重复及实际中文纸卡可见；截图保存为外部 `Previews/TutorialKeyboard.png`。一次性教程 Bake 及其 `.meta` 已清理。该检查不代表真实手柄、Android 或全量回归通过。

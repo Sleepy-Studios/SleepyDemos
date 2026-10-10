@@ -9,6 +9,7 @@ namespace Hotfix.KagitKart
     {
         [SerializeField] internal RectTransform[] cards;
         [SerializeField] internal float[] delays;
+        [SerializeField] internal float duration = 0.62f;
         private Vector3[] positions;
         private Vector3[] scales;
         private float[] tilts;
@@ -66,7 +67,7 @@ namespace Hotfix.KagitKart
         {
             for (int i = 0; i < cards.Length; i++)
             {
-                float t = reducedMotion ? 1 : Mathf.Clamp01((elapsed - extraDelay - delays[i]) / 0.62f);
+                float t = reducedMotion ? 1 : Mathf.Clamp01((elapsed - extraDelay - delays[i]) / duration);
                 float angle = t < 0.55f ? Mathf.LerpUnclamped(-92, 9, Ease(t / 0.55f))
                     : t < 0.78f ? Mathf.LerpUnclamped(9, -3, Ease((t - 0.55f) / 0.23f))
                     : Mathf.LerpUnclamped(-3, 0, Ease((t - 0.78f) / 0.22f));
