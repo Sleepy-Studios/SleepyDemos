@@ -236,6 +236,7 @@ namespace Hotfix.KagitKart
                     ghostVisual = ghostActor.GetComponent<KagitKartCharacterVisual>();
                     ghostVisual.Bind(null, source.config.kart, isGhost: true);
                     ghostVisual.SetEnvironment(scenery.Asset.batches[0].materials[0]);
+                    ghostActor.gameObject.SetActive(false);
                 }
                 cameraRig = new KagitKartCameraRig(worldCamera, source.config.camera, Session.Player, Session.Track.PageY);
                 ApplySettings();
@@ -345,10 +346,18 @@ namespace Hotfix.KagitKart
                 actors[i].rotation = Quaternion.SlerpUnclamped(kart.PreviousRotation, kart.Rotation, alpha);
                 actorVisuals[i].Advance(dt, ReducedMotion);
             }
-            if (ghostActor != null && KagitKartGhostPlayback.TrySample(ghost, Session.RaceTime, out Vector3 p, out float heading))
+            if (ghostActor != null)
             {
-                ghostActor.position = KagitKartVehicle.ToUnity(p);
-                ghostActor.rotation = Quaternion.Euler(0, -heading * Mathf.Rad2Deg, 0);
+                if (IntroPlaying || Session.Race.State != KagitKartRaceState.Countdown)
+                {
+                    bool visible = KagitKartGhostPlayback.TrySample(ghost, Session.RaceTime, out Vector3 p, out float heading);
+                    ghostActor.gameObject.SetActive(visible);
+                    if (visible)
+                    {
+                        ghostActor.position = KagitKartVehicle.ToUnity(p);
+                        ghostActor.rotation = Quaternion.Euler(0, -heading * Mathf.Rad2Deg, 0);
+                    }
+                }
                 ghostVisual.Advance(dt, ReducedMotion, topSpeed: Session.Player.BaseTop);
             }
             presentationTime += dt;

@@ -491,6 +491,194 @@ namespace Tests.Demo
             Assert.That(nextInk.mainTexture, Is.Not.InstanceOf<RenderTexture>());
         }
 
+        [UnityTest, Timeout(240000)]
+        public IEnumerator NativeTimeTrialSavesThreeLapsReplaysBestGhostAndKeepsItAfterSlowerFinish()
+        {
+            const string track = "meadow", character = "tilki";
+            const int speedClass = 120;
+            string directory = Path.Combine(Path.GetTempPath(), "KagitKartNativeGhost-" + Guid.NewGuid().ToString("N"));
+            string recordPath = Path.Combine(directory, LocalDataKeys.KagitKartRecord(track, speedClass, character));
+            string[] preferenceKeys = { LocalDataKeys.KagitKartPreferences, LocalDataKeys.KagitKartHintsPreferences };
+            bool[] preferenceExists = preferenceKeys.Select(PlayerPrefs.HasKey).ToArray();
+            string[] preferences = preferenceKeys.Select(key => PlayerPrefs.GetString(key)).ToArray();
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var storeField = typeof(KagitKartWorld).GetField("records", flags);
+            var actorField = typeof(KagitKartWorld).GetField("ghostActor", flags);
+            var ghostField = typeof(KagitKartWorld).GetField("ghost", flags);
+            KagitKartWorld world = null;
+            KagitKartRecordStore originalStore = null;
+            var store = new KagitKartRecordStore(directory);
+            KagitKartTimeTrialRecord best = null;
+            try
+            {
+                foreach (string key in preferenceKeys)
+                {
+                    PlayerPrefs.DeleteKey(key);
+                }
+                PlayerPrefs.Save();
+                Core.Runtime.Inputs.InputDeviceState.Notify(keyboard);
+                yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+                yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                    && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "计时回归封面");
+                originalStore = (KagitKartRecordStore)storeField.GetValue(world);
+                // 只注入已有存储入口的独立目录；实际 raceEnd/SaveBest/重开加载仍走正式场景代码。
+                storeField.SetValue(world, store);
+                for (int run = 0; run < 2; run++)
+                {
+                    yield return world.StartRaceAsync(KagitKartRaceMode.TimeTrial, track, character, speedClass).ToCoroutine();
+                    world.SendMessage("OnApplicationFocus", true);
+                    world.Dispatch(KagitKartCommand.Resume);
+                    var session = world.Session;
+                    Assert.That(session.Karts.Count, Is.EqualTo(1), "幽灵只参加表现，不进入赛车规则数组。");
+                    if (run == 0)
+                    {
+                        Assert.That(actorField.GetValue(world), Is.Null, "没有历史记录的第一场不能伪造幽灵。");
+                    }
+                    else
+                    {
+                        var actor = (Transform)actorField.GetValue(world);
+                        var loadedGhost = (KagitKartGhostData)ghostField.GetValue(world);
+                        Assert.That(actor, Is.Not.Null, "同身份重开必须从实际保存记录创建原生幽灵角色。");
+                        Assert.That(loadedGhost, Is.Not.Null);
+                        Assert.That(loadedGhost.IsValid(), Is.True);
+                        CollectionAssert.AreEqual(best.ghost.frames, loadedGhost.frames);
+                        yield return new WaitForEndOfFrame();
+                        Assert.That(world.IntroPlaying, Is.True);
+                        Assert.That(actor.gameObject.activeSelf, Is.True, "原作非countdown包含intro，赛前帧会显示第0帧。");
+                        world.Dispatch(KagitKartCommand.SkipIntro);
+                        world.Dispatch(KagitKartCommand.Pause);
+                        bool countdownVisible = actor.gameObject.activeSelf;
+                        Vector3 countdownPosition = actor.position;
+                        yield return new WaitForEndOfFrame();
+                        Assert.That(actor.gameObject.activeSelf, Is.EqualTo(countdownVisible), "倒计时沿用上一显隐状态。");
+                        Assert.That(actor.position, Is.EqualTo(countdownPosition), "倒计时不调用幽灵位置采样。");
+                        world.Dispatch(KagitKartCommand.Resume);
+                        yield return Wait(() => !session.Pause.IsPaused, "恢复计时倒计时");
+                        for (int step = 0; step < 400 && session.Race.State == KagitKartRaceState.Countdown; step++)
+                        {
+                            session.AdvanceFrame(KagitKartSimulationClock.Step, default);
+                        }
+                        Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Running));
+                        Vector3 previousPose = actor.position;
+                        foreach (double target in new[] { 0.4, 1.4 })
+                        {
+                            while (session.RaceTime < target)
+                            {
+                                session.AdvanceFrame(KagitKartSimulationClock.Step, default);
+                            }
+                            world.Dispatch(KagitKartCommand.Pause);
+                            yield return new WaitForEndOfFrame();
+                            Assert.That(KagitKartGhostPlayback.TrySample(best.ghost, session.RaceTime, out Vector3 position, out float heading), Is.True);
+                            Assert.That(actor.gameObject.activeInHierarchy, Is.True);
+                            Assert.That(Vector3.Distance(actor.position, KagitKartVehicle.ToUnity(position)), Is.LessThan(0.0001f));
+                            Assert.That(Quaternion.Angle(actor.rotation, Quaternion.Euler(0, -heading * Mathf.Rad2Deg, 0)), Is.LessThan(0.001f));
+                            Assert.That(Vector3.Distance(actor.position, previousPose), Is.GreaterThan(0.01f), "原生角色必须跟随时间移动，不能只读出DTO。");
+                            previousPose = actor.position;
+                            world.Dispatch(KagitKartCommand.Resume);
+                            yield return Wait(() => !session.Pause.IsPaused, "继续幽灵回放");
+                        }
+                        yield return Capture("TimeTrialGhost");
+                        // 正式零油门固定步等待：保证第二场全程更慢，不能用伪造 total 的快照代替。
+                        double delay = best.bestRace.Value + 5;
+                        int limit = (int)Math.Ceiling(delay / KagitKartSimulationClock.Step) + 120;
+                        for (int step = 0; step < limit && session.RaceTime <= delay; step++)
+                        {
+                            session.AdvanceFrame(KagitKartSimulationClock.Step, default);
+                            if (step % 240 == 0)
+                            {
+                                yield return null;
+                            }
+                        }
+                        Assert.That(session.RaceTime, Is.GreaterThan(best.bestRace.Value));
+                        Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Running));
+                        yield return new WaitForEndOfFrame();
+                        Assert.That(actor.gameObject.activeSelf, Is.False, "原作超过末采样时隐藏幽灵，不能停在最后一帧。");
+                    }
+                    if (run == 0)
+                    {
+                        world.Dispatch(KagitKartCommand.SkipIntro);
+                    }
+                    typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Autopilot)).SetValue(session.Player, true);
+                    for (int step = 0; step < 120 * 480 && session.Race.State != KagitKartRaceState.Done; step++)
+                    {
+                        session.AdvanceFrame(KagitKartSimulationClock.Step, default);
+                        if (step % 240 == 0)
+                        {
+                            yield return null;
+                        }
+                    }
+                    Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Done), "使用已有原作AI和规则真正完赛。");
+                    Assert.That(world.PlayerEntry.Progress.LapTimes.Count, Is.EqualTo(3));
+                    Assert.That(world.PlayerEntry.Estimated, Is.False);
+                    yield return Wait(() => UIManager.Instance.Get<KagitKartResultsView>()?.State == ViewState.Visible, "实际计时结算");
+                    Assert.That(File.Exists(recordPath), Is.True);
+                    var saved = world.LoadRecord(track);
+                    Assert.That(saved?.ghost, Is.Not.Null, world.Feedback);
+                    Assert.That(saved.ghost.IsValid(), Is.True);
+                    Assert.That(saved.ghost.checkpoints.Length, Is.EqualTo(12));
+                    Assert.That(saved.ghost.lapTimes.Length, Is.EqualTo(3));
+                    if (run == 0)
+                    {
+                        best = saved;
+                        Assert.That(saved.bestRace.Value, Is.EqualTo(world.PlayerEntry.FinishTime).Within(0.000001));
+                        CollectionAssert.AreEqual(session.Race.GhostRecorder.Snapshot(world.PlayerEntry.FinishTime,
+                            world.PlayerEntry.Progress.LapTimes).frames, saved.ghost.frames);
+                    }
+                    else
+                    {
+                        Assert.That(world.PlayerEntry.FinishTime, Is.GreaterThan(best.bestRace.Value));
+                        Assert.That(saved.bestRace, Is.EqualTo(best.bestRace));
+                        Assert.That(saved.ghost.total, Is.EqualTo(best.ghost.total));
+                        CollectionAssert.AreEqual(best.ghost.frames, saved.ghost.frames);
+                        CollectionAssert.AreEqual(best.ghost.checkpoints, saved.ghost.checkpoints);
+                        CollectionAssert.AreEqual(best.ghost.lapTimes, saved.ghost.lapTimes);
+                        Assert.That(saved.bestLap.Value, Is.EqualTo(Math.Min(best.bestLap.Value,
+                            world.PlayerEntry.Progress.LapTimes.Min())).Within(0.000001), "单圈最佳独立更新，不被更慢全程覆盖规则误伤。");
+                    }
+                }
+                world.Dispatch(KagitKartCommand.Hub);
+                yield return Wait(() => Object.FindFirstObjectByType<KagitKartWorld>() == null, "收口临時計时场景");
+            }
+            finally
+            {
+                if (world != null)
+                {
+                    // 失败路径先停宿主帧，避免恢复偏好后教程继续写入；既有TearDown仍能Dispatch返回大厅。
+                    world.enabled = false;
+                    if (originalStore != null)
+                    {
+                        storeField.SetValue(world, originalStore);
+                    }
+                }
+                for (int i = 0; i < preferenceKeys.Length; i++)
+                {
+                    if (preferenceExists[i])
+                    {
+                        PlayerPrefs.SetString(preferenceKeys[i], preferences[i]);
+                    }
+                    else
+                    {
+                        PlayerPrefs.DeleteKey(preferenceKeys[i]);
+                    }
+                }
+                PlayerPrefs.Save();
+                if (File.Exists(recordPath))
+                {
+                    File.Delete(recordPath);
+                }
+                string recordsDirectory = Path.GetDirectoryName(recordPath);
+                if (Directory.Exists(recordsDirectory))
+                {
+                    Directory.Delete(recordsDirectory);
+                }
+                if (Directory.Exists(directory))
+                {
+                    Directory.Delete(directory);
+                }
+            }
+        }
+
+
         private static IEnumerator Capture(string name)
         {
             yield return new WaitForSecondsRealtime(2);
