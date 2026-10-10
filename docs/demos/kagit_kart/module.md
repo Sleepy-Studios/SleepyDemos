@@ -128,7 +128,7 @@ Unity Test Runner 的 `KagitKartSceneryTests` 4/4 通过（`8df7f53d`），覆�
 
 `World` 等待 `DemoIslandEditorBootstrap.EnsureReadyAsync` 和 `GameSceneNavigator.WaitUntilStableAsync`，通过公共 Loader 加载原作配置、赛道、AI 路线和角色资产。比赛 Loader 每场独立释放，退出同时解除输入、暂停与镜头订阅；不在 MonoBehaviour 字段初始化中读取本地存储路径。大奖赛下一章使用现有积分状态，重赛调用原作回滚；计时赛读取最佳幽灵并在实际完赛后原子保存。
 
-HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建 Canvas/EventSystem，触控按钮复用 `InputCommandButton`，横向滑条复用 `TouchInputPad`，提示绑定实际动作并复用 `InputBindingPrompt` 和项目图标目录。驾驶使用公共 `MenuInputScope.Interaction` 关闭菜单 Submit，暂停和结算通过 `UIMenuScope` 接管焦点，避免漂移 Space 同时确认 HUD 按钮。
+HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建全局 Canvas/EventSystem，触控按钮复用 `InputCommandButton`，横向滑条复用 `TouchInputPad`，提示绑定实际动作并复用 `InputBindingPrompt` 和项目图标目录。驾驶使用公共 `MenuInputScope.Interaction` 关闭菜单 Submit，暂停和结算通过 `UIMenuScope` 接管焦点，避免漂移 Space 同时确认 HUD 按钮。
 
 页面显示前交付场景来源；隐藏后解除来源，退出前等待关闭本场具体 View，不在 `OnDestroy` 发起按类型异步关闭。暂停同时冻结规则与纸景、镜头的表现时间，不改变全局 Time 设置。场景切换回滚时恢复本场页面并保留明确继续门闩。
 
@@ -171,3 +171,10 @@ HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建 
 `KagitKartHintsView` 使用 Foreground Widget 正式 Prefab、UIBind、中文字体和真实绑定提示；没有按钮、菜单作用域或射线阻挡。纸卡沿底边弹起复用 `KagitKartMenuPaperMotion`，教程0.62秒、情境卡0.5秒，低动态直接显示终态。Widget跨菜单/重赛保留，离开Demo精确关闭本实例，切场失败恢复。原网页软件渲染器的浏览器硬件加速说明没有Unity对应条件，因此不显示该浏览器专属说明。
 
 教程规则 Test Runner 4/4（`80aa1588`），覆盖倒计时/暂停、退出不提前标记、源码队列与阈值、提示历史及竖屏时长；真实场景 Test Runner 1/1（`2513c7c4`）验证跳过电影、倒计时/暂停冻结、累计七秒保存、下场不重复及实际中文纸卡可见；截图保存为外部 `Previews/TutorialKeyboard.png`。一次性教程 Bake 及其 `.meta` 已清理。该检查不代表真实手柄、Android 或全量回归通过。
+## HUD 屏幕墨水
+
+`KagitKartHudInk` 直接迁移源三团曲线、触须、六条滴落与最后35%的整层渐隐，表现随机独立于比赛。墨斑先在活跃期间的单张局部RT按源sRGB数值合成，UGUI仅应用一次整层透明度，避免重叠墨斑渐隐变黑。`LastInkDuration`保存本次事件时长，规则 `InkTime` 仍取max；连续中墨重新生成全部形状。
+
+HUD使用 Foreground Widget，先创建的教程在其下方、Pop暂停在其上方。墨水子Canvas只改变自身排序，位于Foreground之前，因此遮挡3D但不遮挡教程、HUD、触控或暂停；不改公共UI层定义。Canvas尺寸按根Canvas缩放取实际像素，满屏不受safe-area内缩影响。原作CSS滴落按墙钟继续，暂停只冻结规则剩余时间及渐隐；低动态取消滴落、显示完整形状。结束/隐藏释放RT，销毁释放Mesh与自有材质，换场解除玩家订阅。
+
+原JavaScript曲线/滴落/渐隐fixture Test Runner 1/1（`0d38c85c`），真实Camera+Canvas GPU单层/重叠/高光/UV/整体渐隐与释放1/1（`18af6422`）。层级调整后实际比赛 Test Runner 1/1（`568e176b`），验证玩家事件、连续中墨、暂停剩余时间、教程/HUD排序与重赛释放，并已检查 `Previews/RaceInk.png`；覆盖排序在OnShow进入实际UI层后设置。手柄完整选赛及三指触控/暂停/继续复验1/1（`d72d6811`）；未执行全量测试、Player构建或Android真机。

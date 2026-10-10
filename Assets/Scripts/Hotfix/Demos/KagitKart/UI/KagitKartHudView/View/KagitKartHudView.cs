@@ -15,9 +15,12 @@ namespace Hotfix
         private InputCommandButton[] holds;
         private Rect lastSafe;
         private Vector2 lastScreen;
+        private KagitKartVehicle inkPlayer;
+        private KagitKartRandom inkRandom;
 
         protected override void OnGameObjectInitialize()
         {
+            inkRandom = new KagitKartRandom(unchecked((uint)Environment.TickCount)).Fork("hudInk");
             holds = new[] { InputCommandButton_Throttle, InputCommandButton_Brake, InputCommandButton_Drift,
                 InputCommandButton_Item, InputCommandButton_LookBack };
             foreach (var button in holds)
@@ -37,13 +40,45 @@ namespace Hotfix
             BindData<KagitKartData>(_ => Render());
         }
 
+        protected override void OnShow()
+        {
+            var foreground = UIRootManager.Instance.GetRoot(UILayer.Foreground).GetComponent<Canvas>();
+            Canvas_Ink.overrideSorting = true;
+            Canvas_Ink.sortingLayerID = foreground.sortingLayerID;
+            Canvas_Ink.sortingOrder = foreground.sortingOrder - 1;
+        }
+
         /// <summary>导航显示前交付当前场景，不拥有比赛或输入实例。</summary>
         /// <param name="owner">当前场景宿主。</param>
         public void SetData(KagitKartWorld owner)
         {
+            UnbindInk();
             world = owner;
+            inkPlayer = owner.Session.Player;
+            inkPlayer.Signaled += OnInkSignal;
             KagitKartMinimap_Minimap.SetData(owner.Session);
             Render();
+        }
+
+        /// 滴落按原作CSS墙钟更新，渐隐读取暂停感知的规则剩余时间。
+        public void AdvanceVisual()
+        {
+            if (inkPlayer != null) KagitKartHudInk_Ink.Advance(Time.unscaledDeltaTime, inkPlayer.InkTime, world.ReducedMotion);
+        }
+
+        private void OnInkSignal(KagitKartVehicle player, KagitKartVehicleSignal signal)
+        {
+            if (signal == KagitKartVehicleSignal.Inked)
+            {
+                KagitKartHudInk_Ink.Splat(player.LastInkDuration, (uint)(inkRandom.Next() * 1e9));
+            }
+        }
+
+        private void UnbindInk()
+        {
+            if (inkPlayer != null) inkPlayer.Signaled -= OnInkSignal;
+            inkPlayer = null;
+            if (KagitKartHudInk_Ink != null) KagitKartHudInk_Ink.Clear();
         }
 
         /// 每帧交付触屏滑条，按钮保持由公共组件的事件交付。
@@ -139,6 +174,7 @@ namespace Hotfix
 
         protected override void OnHide()
         {
+            UnbindInk();
             ClearTouch();
             world = null;
             KagitKartMinimap_Minimap.SetData(null);
@@ -146,6 +182,7 @@ namespace Hotfix
 
         protected override void OnDestroy()
         {
+            UnbindInk();
             foreach (var button in holds)
             {
                 button.HoldChanged -= Hold;

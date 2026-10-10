@@ -114,6 +114,8 @@ namespace Hotfix.KagitKart
         public float BoostTime { get; private set; }
         /// 最近一次加速的实际时长，供原作音效使用；不受重叠加速的 max 影响。
         public float LastBoostDuration { get; private set; }
+        /// 最近一次墨水事件时长，供整层渐隐使用；重叠墨水仍按规则保留 max。
+        public float LastInkDuration { get; private set; }
         public float AirTime => airTime;
         public float VerticalSpeed => verticalSpeed;
         public float OutTime => outTime;
@@ -258,6 +260,7 @@ namespace Hotfix.KagitKart
         /// <param name="duration">秒数。</param>
         public void ApplyInk(float duration)
         {
+            LastInkDuration = duration;
             InkTime = Mathf.Max(InkTime, duration);
             Emit(KagitKartVehicleSignal.Inked);
         }

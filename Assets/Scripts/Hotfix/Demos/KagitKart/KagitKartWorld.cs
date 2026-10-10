@@ -324,6 +324,7 @@ namespace Hotfix.KagitKart
 
         private void LateUpdate()
         {
+            hud?.AdvanceVisual();
             UpdateHints();
             if (Session == null && bookStage != null && bookStage.gameObject.activeInHierarchy)
             {

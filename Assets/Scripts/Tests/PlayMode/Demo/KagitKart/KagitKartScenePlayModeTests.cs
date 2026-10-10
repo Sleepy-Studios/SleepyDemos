@@ -450,6 +450,47 @@ namespace Tests.Demo
         }
 
 
+        [UnityTest, Timeout(240000)]
+        public IEnumerator InkUsesPlayerEventsKeepsHudVisibleAndReleasesOnRestart()
+        {
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+            KagitKartWorld world = null;
+            yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "墨水验收入口");
+            yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
+            world.SendMessage("OnApplicationFocus", true);
+            world.Dispatch(KagitKartCommand.SkipIntro);
+            yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "墨水起跑");
+            var hud = UIManager.Instance.Get<KagitKartHudView>();
+            var ink = hud.gameObject.GetComponentInChildren<KagitKartHudInk>();
+            Assert.That(ink.transform.GetSiblingIndex(), Is.Zero, "墨水必须位于全部HUD与触控之下。");
+            Assert.That(hud.Level, Is.EqualTo(UILayer.Foreground), "HUD在提示之后、暂停弹窗之前。");
+            Assert.That(ink.canvas.sortingOrder, Is.LessThan(UIRootManager.Instance.GetRoot(UILayer.Foreground).GetComponent<Canvas>().sortingOrder),
+                "墨水还必须低于独立的教程与驾驶提示层。");
+            Assert.That(ink.mainTexture, Is.Not.InstanceOf<RenderTexture>());
+            world.Session.Player.ApplyInk(6);
+            yield return null;
+            Assert.That(ink.mainTexture, Is.InstanceOf<RenderTexture>());
+            Assert.That(ink.raycastTarget, Is.False);
+            yield return Capture("RaceInk");
+            world.Dispatch(KagitKartCommand.Pause);
+            yield return Wait(() => world.Session.Pause.IsPaused, "墨水暂停");
+            float left = world.Session.Player.InkTime;
+            float opacity = ink.Opacity;
+            yield return new WaitForSecondsRealtime(0.4f);
+            Assert.That(world.Session.Player.InkTime, Is.EqualTo(left));
+            Assert.That(ink.Opacity, Is.EqualTo(opacity));
+            world.Session.Player.ApplyInk(1);
+            Assert.That(world.Session.Player.LastInkDuration, Is.EqualTo(1));
+            Assert.That(world.Session.Player.InkTime, Is.EqualTo(left), "规则仍保留重叠墨水的max时长。");
+            Assert.That(ink.Opacity, Is.EqualTo(1), "新事件重建整层，而不是继承上一事件的渐隐。");
+            yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
+            yield return null;
+            Assert.That(ink == null, Is.True, "重赛释放旧HUD及合成纹理。");
+            var nextInk = UIManager.Instance.Get<KagitKartHudView>().gameObject.GetComponentInChildren<KagitKartHudInk>();
+            Assert.That(nextInk.mainTexture, Is.Not.InstanceOf<RenderTexture>());
+        }
+
         private static IEnumerator Capture(string name)
         {
             yield return new WaitForSecondsRealtime(2);
