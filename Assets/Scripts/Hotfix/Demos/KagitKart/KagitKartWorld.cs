@@ -292,19 +292,11 @@ namespace Hotfix.KagitKart
             {
                 GlobalData.Dispatch(new KagitKartAction(this, KagitKartCommand.ChangeSetting, Settings.Muted ? 0 : 1, "Muted"));
             }
+            if (TryHandleRaceShortcuts()) return;
             if (Session == null || OptionsOpen) return;
             if (IntroPlaying && !Session.Pause.IsPaused && Input.Pressed("Skip"))
             {
                 Dispatch(KagitKartCommand.SkipIntro);
-                return;
-            }
-            if (Input.Pressed("Pause") && Session.Race.State != KagitKartRaceState.Done)
-            {
-                Dispatch(Session.Pause.IsPaused ? KagitKartCommand.Resume : KagitKartCommand.Pause);
-            }
-            if (Input.Pressed("Restart") && Mode == KagitKartRaceMode.TimeTrial)
-            {
-                Dispatch(KagitKartCommand.Restart);
                 return;
             }
             hud?.ReadTouch();
@@ -500,7 +492,9 @@ namespace Hotfix.KagitKart
                     Session.Pause.RequestPause(LocalPauseReason.User);
                     break;
                 case KagitKartCommand.Resume:
-                    Session.Pause.TryResume();
+                    if (GraphicsOptionsVisible) break;
+                    if (optionsView != null) ResumeFromOptionsAsync().Forget();
+                    else Session.Pause.TryResume();
                     break;
                 case KagitKartCommand.Restart:
                     GrandPrix?.RestartRound();
@@ -537,7 +531,7 @@ namespace Hotfix.KagitKart
                 audio.PlayMenu();
                 postProcess.SetInk(bookInk);
                 bookStage.SetPage(page, CharacterId, TrackId);
-                if (page == KagitKartCommand.Modes)
+                if (page == KagitKartCommand.Modes || page == KagitKartCommand.Title)
                 {
                     GrandPrix = null;
                 }

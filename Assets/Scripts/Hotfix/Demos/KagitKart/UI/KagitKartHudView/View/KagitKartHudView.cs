@@ -122,7 +122,7 @@
             bool showTouch = driving && !world.IntroPlaying && touch;
             if (!showTouch && RectTransform_TouchControls.gameObject.activeSelf) ClearTouch();
             RectTransform_TouchControls.gameObject.SetActive(showTouch);
-            Button_SkipIntro.gameObject.SetActive(world.IntroPlaying && !session.Pause.IsPaused);
+            Button_SkipIntro.transform.parent.gameObject.SetActive(world.IntroPlaying && !session.Pause.IsPaused);
             RectTransform_IntroCardGroup.gameObject.SetActive(world.IntroPlaying);
             TextMeshProUGUI_IntroChapter.text = $"第{world.Session.Track.Track.definition.chapter}章";
             TextMeshProUGUI_IntroName.text = KagitKartCatalog.TrackName(world.TrackId);

@@ -32,6 +32,7 @@ namespace Hotfix
         private Button Button_Settings;
         private Button Button_Controls;
         private Button Button_Hub;
+        private Button Button_Title;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -51,6 +52,7 @@ namespace Hotfix
             Button_Settings = componentItemIndex.Get<Button>(5);
             Button_Controls = componentItemIndex.Get<Button>(6);
             Button_Hub = componentItemIndex.Get<Button>(7);
+            Button_Title = componentItemIndex.Get<Button>(8);
         }
     }
 }
