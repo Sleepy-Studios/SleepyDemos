@@ -12,7 +12,7 @@ using UnityEngine.InputSystem;
 namespace Hotfix.KagitKart
 {
     /// 场景组合根：资源、规则会话、赛车表现与页面按本场生命周期收口。
-    public sealed class KagitKartWorld : MonoBehaviour
+    public sealed partial class KagitKartWorld : MonoBehaviour
     {
         private const string Root = "LoadResources/Demos/kagit_kart/";
         [SerializeField] private Camera worldCamera;
@@ -77,6 +77,7 @@ namespace Hotfix.KagitKart
             try
             {
                 records = new KagitKartRecordStore();
+                LoadSettings();
                 var token = this.GetCancellationTokenOnDestroy();
                 if (!await DemoIslandEditorBootstrap.EnsureReadyAsync(token))
                 {
@@ -98,6 +99,7 @@ namespace Hotfix.KagitKart
                 postProcess = gameObject.AddComponent<KagitKartPostProcess>();
                 postProcess.Initialize(worldCamera, postTemplate);
                 Input = new KagitKartInput(inputTemplate);
+                ApplySettings();
                 gameplayMenuScope = new MenuInputScope(EventSystem.current);
                 gameplayMenuScope.SetContext(GameplayInputContext.Interaction);
                 Input.InputCleared += ClearInput;
@@ -108,6 +110,7 @@ namespace Hotfix.KagitKart
                 token.ThrowIfCancellationRequested();
                 bookStage = book.GetComponent<KagitKartBookStage>();
                 bookStage.Initialize(worldCamera, sun);
+                ApplySettings();
                 bookStage.PageTurnStarted += audio.PageTurn;
                 ready = true;
                 await OpenMenuAsync(KagitKartCommand.Title);
@@ -234,6 +237,7 @@ namespace Hotfix.KagitKart
                     ghostVisual.SetEnvironment(scenery.Asset.batches[0].materials[0]);
                 }
                 cameraRig = new KagitKartCameraRig(worldCamera, source.config.camera, Session.Player, Session.Track.PageY);
+                ApplySettings();
                 var items = await owned.InstantiateAsync(Root + "Prefabs/ItemVisuals", transform);
                 token.ThrowIfCancellationRequested();
                 itemVisuals = items.GetComponent<KagitKartItemVisuals>();
@@ -242,7 +246,7 @@ namespace Hotfix.KagitKart
                 token.ThrowIfCancellationRequested();
                 raceFx = fx.GetComponent<KagitKartRaceFx>();
                 raceFx.Bind(Session, actors, scenery.Asset.batches[0].materials[0], sun, seed, source.config.kart);
-                cinematics = new KagitKartRaceCinematics(introPaths.text, worldCamera, Session, source.config.camera);
+                cinematics = new KagitKartRaceCinematics(introPaths.text, worldCamera, Session, source.config.camera, ReducedMotion);
                 audio.Bind(Session);
                 audio.PlayIntro(TrackId);
                 Session.Pause.Changed += OnPauseChanged;
@@ -274,10 +278,16 @@ namespace Hotfix.KagitKart
 
         private void Update()
         {
-            if (!ready || Busy || Session == null)
+            SampleFrameRate();
+            if (!ready || Busy)
             {
                 return;
             }
+            if (Input.Pressed("Mute"))
+            {
+                GlobalData.Dispatch(new KagitKartAction(this, KagitKartCommand.ChangeSetting, Settings.Muted ? 0 : 1, "Muted"));
+            }
+            if (Session == null || OptionsOpen) return;
             if (IntroPlaying && !Session.Pause.IsPaused && Input.Pressed("Skip"))
             {
                 Dispatch(KagitKartCommand.SkipIntro);
@@ -327,16 +337,16 @@ namespace Hotfix.KagitKart
                 var kart = Session.Karts[i];
                 actors[i].position = KagitKartVehicle.ToUnity(Vector3.LerpUnclamped(kart.PreviousPosition, kart.Position, alpha));
                 actors[i].rotation = Quaternion.SlerpUnclamped(kart.PreviousRotation, kart.Rotation, alpha);
-                actorVisuals[i].Advance(dt);
+                actorVisuals[i].Advance(dt, ReducedMotion);
             }
             if (ghostActor != null && KagitKartGhostPlayback.TrySample(ghost, Session.RaceTime, out Vector3 p, out float heading))
             {
                 ghostActor.position = KagitKartVehicle.ToUnity(p);
                 ghostActor.rotation = Quaternion.Euler(0, -heading * Mathf.Rad2Deg, 0);
-                ghostVisual.Advance(dt, topSpeed: Session.Player.BaseTop);
+                ghostVisual.Advance(dt, ReducedMotion, topSpeed: Session.Player.BaseTop);
             }
             presentationTime += dt;
-            itemVisuals.Advance(dt, worldCamera);
+            itemVisuals.Advance(dt, worldCamera, ReducedMotion);
             if (IntroPlaying)
             {
                 cinematics.AdvanceIntro(dt);
@@ -350,11 +360,11 @@ namespace Hotfix.KagitKart
             {
                 cameraRig.Advance(dt, actors[PlayerIndex()].position);
             }
-            raceFx.Advance(dt, worldCamera, chaseView: !IntroPlaying && !cinematics.Finishing);
+            raceFx.Advance(dt, worldCamera, reduceMotion: ReducedMotion, chaseView: !IntroPlaying && !cinematics.Finishing);
             Vector3 cameraPosition = worldCamera.transform.position;
             Session.Track.Query(new Vector3(-cameraPosition.x, cameraPosition.y, cameraPosition.z), cameraTrackHint, ref cameraTrackInfo);
             cameraTrackHint = cameraTrackInfo.Index;
-            scenery.Render(worldCamera, (float)cameraTrackInfo.Distance, dt, presentationTime, cameraRig.LookBack);
+            scenery.Render(worldCamera, (float)cameraTrackInfo.Distance, dt, presentationTime, cameraRig.LookBack, ReducedMotion);
         }
 
         private int PlayerIndex()
@@ -387,6 +397,21 @@ namespace Hotfix.KagitKart
             }
             switch (command)
             {
+                case KagitKartCommand.Settings:
+                    OpenOptionsAsync(false).Forget();
+                    return;
+                case KagitKartCommand.Controls:
+                    OpenOptionsAsync(true).Forget();
+                    return;
+                case KagitKartCommand.ChangeSetting:
+                    SaveSetting(action);
+                    return;
+                case KagitKartCommand.GraphicsSettings:
+                    OpenGraphicsSettingsAsync().Forget();
+                    return;
+                case KagitKartCommand.CloseOptions:
+                    CloseOptionsCommandAsync().Forget();
+                    return;
                 case KagitKartCommand.Modes:
                 case KagitKartCommand.Classes:
                 case KagitKartCommand.Characters:
@@ -561,8 +586,8 @@ namespace Hotfix.KagitKart
                 }
                 postProcess.SetInk(bookInk);
                 var standings = GrandPrix.SortedStandings();
-                bookStage.SetPodium(false);
-                podium.Show(new[] { standings[0].CharacterId, standings[1].CharacterId, standings[2].CharacterId }, CharacterId);
+                bookStage.SetPodium(ReducedMotion);
+                podium.Show(new[] { standings[0].CharacterId, standings[1].CharacterId, standings[2].CharacterId }, CharacterId, ReducedMotion);
                 PodiumPlaying = true;
                 audio.PlayMenu(true);
             }
@@ -766,6 +791,7 @@ namespace Hotfix.KagitKart
 
         private async UniTask CloseViewsAsync()
         {
+            await CloseOptionsAsync();
             if (menu != null)
             {
                 var result = await UIManager.Instance.CloseAsync(menu);

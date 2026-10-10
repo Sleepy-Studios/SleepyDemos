@@ -21,7 +21,12 @@ namespace Hotfix.KagitKart
         ChooseSpeedClass,
         ChooseCharacter,
         ChooseTrack,
-        SkipIntro
+        SkipIntro,
+        Settings,
+        Controls,
+        ChangeSetting,
+        GraphicsSettings,
+        CloseOptions
     }
 
     /// 页面与输入提交的本场流程请求。

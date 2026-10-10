@@ -17,11 +17,14 @@ namespace Hotfix.KagitKart
         private Transform[] ribbons;
         private float elapsed;
         private float extraDelay;
+        private bool reducedMotion;
 
         /// <summary>从本页保存姿态播放原作纸卡弹起，模式页等待封面落下。</summary>
         /// <param name="delay">封面打开时为 0.8 秒，其余页面为 0。</param>
-        public void Play(float delay)
+        /// <param name="reduceMotion">开启时直接显示纸卡终态，仍显示焦点和书签。</param>
+        public void Play(float delay, bool reduceMotion = false)
         {
+            reducedMotion = reduceMotion;
             if (positions == null)
             {
                 positions = new Vector3[cards.Length];
@@ -63,7 +66,7 @@ namespace Hotfix.KagitKart
         {
             for (int i = 0; i < cards.Length; i++)
             {
-                float t = Mathf.Clamp01((elapsed - extraDelay - delays[i]) / 0.62f);
+                float t = reducedMotion ? 1 : Mathf.Clamp01((elapsed - extraDelay - delays[i]) / 0.62f);
                 float angle = t < 0.55f ? Mathf.LerpUnclamped(-92, 9, Ease(t / 0.55f))
                     : t < 0.78f ? Mathf.LerpUnclamped(9, -3, Ease((t - 0.55f) / 0.23f))
                     : Mathf.LerpUnclamped(-3, 0, Ease((t - 0.78f) / 0.22f));

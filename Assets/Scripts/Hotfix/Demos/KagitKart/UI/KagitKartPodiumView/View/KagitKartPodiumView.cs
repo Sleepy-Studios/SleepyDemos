@@ -49,7 +49,7 @@ namespace Hotfix
                 names[i].text = KagitKartCatalog.CharacterName(standings[i].CharacterId);
                 points[i].text = standings[i].Points + " 分";
             }
-            KagitKartMenuPaperMotion_Viewport.Play(0);
+            KagitKartMenuPaperMotion_Viewport.Play(0, owner.ReducedMotion);
         }
 
         protected override void OnShow() => EventSystem.current?.SetSelectedGameObject(Button_Menu.gameObject);

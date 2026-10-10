@@ -100,6 +100,16 @@ namespace Hotfix.KagitKart
                     LookBack = session.Held(prefix + "LookBack")
                 };
             }
+            // 原作按命令合并触控与物理输入；显式显示触控区时鼠标也能操作保存的触控组件。
+            if (Mathf.Abs(touch.Steer) > Mathf.Abs(result.Steer))
+            {
+                result.Steer = touch.Steer;
+            }
+            result.Throttle = Mathf.Max(result.Throttle, touch.Throttle);
+            result.Brake = Mathf.Max(result.Brake, touch.Brake);
+            result.Drift |= touch.Drift;
+            result.Item |= touch.Item;
+            result.LookBack |= touch.LookBack;
             result.Drift |= pendingDrift;
             result.Item |= pendingItem;
             pendingDrift = pendingItem = false;

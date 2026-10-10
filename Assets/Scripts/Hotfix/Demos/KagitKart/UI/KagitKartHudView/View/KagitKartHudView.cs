@@ -30,8 +30,8 @@ namespace Hotfix
             {
                 if (world?.Input != null)
                 {
-                    world.Input.AutoAccelerate = !world.Input.AutoAccelerate;
-                    Render();
+                    GlobalData.Dispatch(new KagitKartAction(world, KagitKartCommand.ChangeSetting,
+                        world.Input.AutoAccelerate ? 0 : 1, "AutoAccelerate"));
                 }
             });
             BindData<KagitKartData>(_ => Render());
@@ -61,6 +61,7 @@ namespace Hotfix
         public void ClearTouch()
         {
             TouchInputPad_Steering.ResetInput();
+            world?.Input?.SetTouchSteer(0);
             RectTransform_TouchControls.gameObject.SetActive(false);
         }
 
@@ -75,8 +76,12 @@ namespace Hotfix
             var session = world.Session;
             var player = session.Player;
             bool driving = !world.Busy && !session.Pause.IsPaused && session.Race.State != KagitKartRaceState.Done;
-            bool touch = world.Input.IsTouch;
-            RectTransform_TouchControls.gameObject.SetActive(driving && !world.IntroPlaying && touch);
+            bool touch = world.ShowTouchControls;
+            TextMeshProUGUI_Fps.gameObject.SetActive(world.Settings.ShowFps);
+            TextMeshProUGUI_Fps.text = "帧率 " + world.FramesPerSecond;
+            bool showTouch = driving && !world.IntroPlaying && touch;
+            if (!showTouch && RectTransform_TouchControls.gameObject.activeSelf) ClearTouch();
+            RectTransform_TouchControls.gameObject.SetActive(showTouch);
             Button_SkipIntro.gameObject.SetActive(world.IntroPlaying && !session.Pause.IsPaused);
             RectTransform_IntroCardGroup.gameObject.SetActive(world.IntroPlaying);
             TextMeshProUGUI_IntroChapter.text = $"第{world.Session.Track.Track.definition.chapter}章";

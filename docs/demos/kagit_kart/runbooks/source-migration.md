@@ -18,7 +18,7 @@
 | `track/defs/*.js`、`trackSampler.js` | 用原版 `sampleTrack(def, config.track)` 导出四条定义及采样；Unity 查询与原生四章场景已接入。 |
 | `items/items.js` | 已迁移八行名次概率、近领跑者限制、道具箱及轮盘、八种道具效果、投射物碰撞、预警和复用；世界道具表现已接入，HUD 图标轮盘待补齐。 |
 | `core/config.js`、`characters/characters.js` | 保存参数与完整 roster，中文显示名统一由 Unity 目录提供。 |
-| `input/input.js`、`ui/touch.js` | 正式 `Data/PlayerInput.asset` 与 `KagitKartInput` 保留原版键盘、标准手柄、横向滑条、保持按钮和短按锁存，复用公共输入；HUD、选赛、暂停与重赛三端流程通过定向场景测试，设置与操作说明待完成。 |
+| `input/input.js`、`ui/touch.js` | 正式 `Data/PlayerInput.asset` 与 `KagitKartInput` 保留原版键盘、标准手柄、横向滑条、保持按钮和短按锁存，复用公共输入；HUD、选赛、暂停与重赛三端流程通过定向场景测试，中文设置与三设备操作说明已接入，画面设置复用公共 Modal；系统低动态查询和教程待完成。 |
 | `track/trackQuery.js` | 已迁移高度加权查找、空间网格、捷径换段、坡度、道路两侧、水面、跳台、加速带、表面定位及网格位置。 |
 | `kart/kart.js`、`kart/collisions.js` | 已迁移车辆运动、漂移、特技、壁碰、救援、保护、质量互撞和尾流；使用独立规则事件供后续表现与音频接入。 |
 | `characters/models.js`、`paperkit.js`、`atlas.js` | 直接执行固定原作的建模与绘图算法导出八角色，不重画造型。已转换为正式骨骼 Mesh、图集、材质与 Prefab，比赛与菜单骨链动画已接入。 |
@@ -27,7 +27,7 @@
 | `render/materials.js`、`surfaces.js`、`renderer.js` 的天空片段、`post.js` | 已转译原生纸纹印刷、道路、加速贴纸、水波、纸洞深度与天空 Shader；原作倒数深度描边、整像素错版、双层纸纤维与暗角已接入本场世界相机。 |
 | `scenery/*`、`track/trackBuilder.js` | 四章原作网格、纸景、材质与折起数据保存为原生 Prefab；章节 updater、风车、云、渡轮、烟、缆车、蒸汽及中文路牌已接入，四章源码矩阵对照通过。 |
 | `characters/animate.js` | `KagitKartCharacterVisual` 接入八角色比赛和菜单动画；固定 JS 导出 50 组逐骨姿态，8/8 通过。 |
-| `ui/menus.js`、`icons.js`、`nav.js` | 中文封面、模式、克重、八车手和四章节已接入；焦点按原作更新选择与 3D 预览，确认才推进，大奖赛跳过章节选择。设置与操作说明待完成。 |
+| `ui/menus.js`、`icons.js`、`nav.js` | 中文封面、模式、克重、八车手和四章节已接入；焦点按原作更新选择与 3D 预览，确认才推进，大奖赛跳过章节选择。中文设置与三设备操作说明已接入，画面设置复用公共 Modal；系统低动态查询和教程待完成。 |
 | `cinematics/stage.js`、`popups.js`、`shots.js`、`campath.js` | `KagitKartBookStage` 接入开书、呼吸、翻页、车手弹出/旋转、镜头与中文印刷。`KagitKartRaceCinematics` 使用原作四章八网格、普通/减少动态赛前路径，时间曲线与向心样条对照通过。冲线和领奖镜头已接入。 |
 | `cinematics/podium.js`、`ui/panels.js` 领奖部分 | `KagitKartPodiumStage` 保存原网格与纸台弹簧、角色落台、纸屑、失落车手；`KagitKartPodiumView` 显示中文奖杯标题与前三积分。四组源快照和完整四场流程通过定向测试。 |
 | `fx/fx.js`、`fx/crane.js` | `KagitKartRaceFx` 与 `KagitKartRescueCrane` 接入原作纸艺特效与救援，源码快照 20/20 通过；全 GPU 变体与实际救援待验收。 |

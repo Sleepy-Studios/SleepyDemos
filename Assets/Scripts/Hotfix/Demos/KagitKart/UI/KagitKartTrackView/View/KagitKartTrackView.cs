@@ -53,7 +53,7 @@ namespace Hotfix
             var safe = Screen.safeArea;
             RectTransform_Viewport.anchorMin = new Vector2(safe.xMin / Screen.width, safe.yMin / Screen.height);
             RectTransform_Viewport.anchorMax = new Vector2(safe.xMax / Screen.width, safe.yMax / Screen.height);
-            KagitKartMenuPaperMotion_Viewport.Play(0);
+            KagitKartMenuPaperMotion_Viewport.Play(0, owner.ReducedMotion);
             Preview(preview);
         }
 

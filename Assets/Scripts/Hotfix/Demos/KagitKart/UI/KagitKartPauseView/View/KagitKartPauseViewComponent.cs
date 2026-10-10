@@ -29,6 +29,8 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Detail;
         private Button Button_Resume;
         private Button Button_Restart;
+        private Button Button_Settings;
+        private Button Button_Controls;
         private Button Button_Hub;
 
         private ComponentItemIndex componentItemIndex;
@@ -46,7 +48,9 @@ namespace Hotfix
             TextMeshProUGUI_Detail = componentItemIndex.Get<TextMeshProUGUI>(2);
             Button_Resume = componentItemIndex.Get<Button>(3);
             Button_Restart = componentItemIndex.Get<Button>(4);
-            Button_Hub = componentItemIndex.Get<Button>(5);
+            Button_Settings = componentItemIndex.Get<Button>(5);
+            Button_Controls = componentItemIndex.Get<Button>(6);
+            Button_Hub = componentItemIndex.Get<Button>(7);
         }
     }
 }

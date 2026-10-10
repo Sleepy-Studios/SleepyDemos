@@ -71,6 +71,8 @@ namespace Hotfix.KagitKart
         /// 正在展示或翻向的章节。
         public string ChapterId => KagitKartCatalog.Tracks[turnPhase == 0 ? chapter : nextChapter];
         public bool Turning => turnPhase != 0;
+        /// 低动态复用原作纸景直接落位、缓慢叶片及角色减幅。
+        public bool ReducedMotion { get; set; }
         public string CurrentCharacterId => currentHero?.id;
         public event Action PageTurnStarted;
 
@@ -243,7 +245,7 @@ namespace Hotfix.KagitKart
                 blendRotation = stageCamera.transform.rotation;
                 blendFov = stageCamera.fieldOfView;
                 blendTime = 0;
-                blendDuration = selecting ? 1.15f : 1.3f;
+                blendDuration = ReducedMotion ? 0 : selecting ? 1.15f : 1.3f;
             }
             spinTarget = selecting ? 0.22f : 0;
             if (next == KagitKartCommand.Title)
@@ -322,6 +324,7 @@ namespace Hotfix.KagitKart
 
         private void SetBook(float target, bool snap)
         {
+            snap |= ReducedMotion;
             if (target == 1 && turnPhase != 0)
             {
                 FinishTurn();
@@ -347,6 +350,12 @@ namespace Hotfix.KagitKart
 
         private void MoveCamera(float target, float duration)
         {
+            if (ReducedMotion)
+            {
+                cameraOpen = cameraFrom = cameraTarget = target;
+                cameraDuration = 0;
+                return;
+            }
             if (cameraTarget == target)
             {
                 return;
@@ -359,6 +368,7 @@ namespace Hotfix.KagitKart
 
         private void Fold(bool up, bool snap = false)
         {
+            snap |= ReducedMotion;
             float remaining = bookTo == 0 ? Mathf.Max(0, bookDuration - bookTime) : 0;
             for (int b = 0; b < piecePoses.Length; b++)
             {
@@ -415,6 +425,7 @@ namespace Hotfix.KagitKart
 
         private void SetHero(string id, bool animate, float face, float delay)
         {
+            animate &= !ReducedMotion;
             if (currentHero?.id == id && currentHero.target > 0)
             {
                 return;
@@ -451,6 +462,7 @@ namespace Hotfix.KagitKart
 
         private void SetDeskHero(string id, bool snap, float delay)
         {
+            snap |= ReducedMotion;
             if (deskHero?.id != id)
             {
                 if (deskHero != null)
@@ -503,6 +515,31 @@ namespace Hotfix.KagitKart
                 return;
             }
             dt = Mathf.Clamp(dt, 0, 0.1f);
+            if (ReducedMotion)
+            {
+                if (bookDuration > 0)
+                {
+                    SetBook(bookTo, true);
+                }
+                if (turnPhase != 0)
+                {
+                    FinishTurn();
+                    if (pendingChapter >= 0 && pendingChapter != chapter)
+                    {
+                        ApplyChapter(pendingChapter);
+                    }
+                    pendingChapter = -1;
+                    Fold(true, true);
+                    if (turnHero != null)
+                    {
+                        SetHero(turnHero, false, 1.25f, 0);
+                    }
+                    turnHero = null;
+                }
+                cameraOpen = cameraFrom = cameraTarget;
+                cameraDuration = blendDuration = 0;
+            }
+            spinTarget = page == KagitKartCommand.Characters ? ReducedMotion ? 0.1f : 0.22f : 0;
             shotTime += dt;
             if (bookDuration > 0)
             {
@@ -533,7 +570,7 @@ namespace Hotfix.KagitKart
             {
                 float worldYaw = spinYaw - currentHero.holder.localEulerAngles.y * Mathf.Deg2Rad;
                 float difference = Mathf.Atan2(Mathf.Sin(1.25f - worldYaw), Mathf.Cos(1.25f - worldYaw));
-                spinYaw += difference * Mathf.Min(1, dt * 1.6f);
+                spinYaw += difference * Mathf.Min(1, dt * (ReducedMotion ? 1.2f : 1.6f));
             }
             spin.localRotation = Quaternion.Euler(0, -spinYaw * Mathf.Rad2Deg, 0);
             UpdateHeroes(dt);
@@ -564,9 +601,14 @@ namespace Hotfix.KagitKart
             }
         }
 
-        private static void UpdateHero(Hero h, float dt, float size, bool desk = false)
+        private void UpdateHero(Hero h, float dt, float size, bool desk = false)
         {
-            if (h.delay > 0)
+            if (ReducedMotion)
+            {
+                h.s = h.target;
+                h.v = h.delay = 0;
+            }
+            else if (h.delay > 0)
             {
                 h.delay -= dt;
             }
@@ -586,7 +628,7 @@ namespace Hotfix.KagitKart
             }
             if (h.holder.gameObject.activeSelf)
             {
-                h.visual.Advance(dt);
+                h.visual.Advance(dt, ReducedMotion);
             }
         }
 
@@ -668,7 +710,13 @@ namespace Hotfix.KagitKart
                     ref var pose = ref piecePoses[b][p];
                     if (piece.kind != "static" && (pose.u != pose.target || pose.v != 0))
                     {
-                        if (pose.delay > 0)
+                        if (ReducedMotion)
+                        {
+                            pose.u = pose.target;
+                            pose.v = pose.delay = 0;
+                            pose.dirty = true;
+                        }
+                        else if (pose.delay > 0)
                         {
                             pose.delay -= dt;
                         }
@@ -735,11 +783,11 @@ namespace Hotfix.KagitKart
         {
             bool want = closed == 0 && bookDuration == 0 && turnPhase == 0;
             leafAmount += ((want ? 1 : 0) - leafAmount) * Mathf.Min(1, dt * (want ? 1.5f : 6));
-            leafTime += dt;
+            leafTime += dt * (ReducedMotion ? 0.5f : 1);
             foreach (var leaf in data.dynamics.leaves)
             {
                 float wave = Mathf.Max(0, Mathf.Sin((leafTime - leaf.k * 0.45f) / 6.5f * Mathf.PI * 2 - 0.6f));
-                float amount = leafAmount * (0.06f + 0.62f * wave * wave) * (leaf.k == 0 ? 1 : 0.55f);
+                float amount = leafAmount * (0.06f + 0.62f * wave * wave) * (leaf.k == 0 ? 1 : 0.55f) * (ReducedMotion ? 0.5f : 1);
                 var pose = Mutable(leaf.geometry);
                 if (Mathf.Abs(amount - pose.amount) <= 0.0001f)
                 {
@@ -789,7 +837,7 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            if (closed > 0 || bookDuration > 0)
+            if (ReducedMotion || closed > 0 || bookDuration > 0)
             {
                 ApplyChapter(index);
                 return;
@@ -901,7 +949,7 @@ namespace Hotfix.KagitKart
             {
                 var subject = turntable.TransformPoint(new Vector3(0, 0.905f, 0));
                 focus = KagitKartVehicle.ToUnity(subject);
-                azimuth = 0.3f + Mathf.Sin(shotTime * 0.21f) * 0.05f;
+                azimuth = 0.3f + (ReducedMotion ? 0 : Mathf.Sin(shotTime * 0.21f) * 0.05f);
                 elevation = 0.13f;
                 distance = 9.6f;
                 fov = KagitKartBookGeometry.FitFov(aspect, 32, 44);
@@ -910,9 +958,10 @@ namespace Hotfix.KagitKart
             else
             {
                 float narrow = Mathf.Clamp01((1.25f - aspect) / 0.8f);
-                float closedAz = 0.2f - 0.12f * narrow + Mathf.Sin(shotTime / 40 * Mathf.PI * 2) * 0.035f;
-                float openAz = 0.3f + Mathf.Sin(shotTime / 64 * Mathf.PI * 2) * 0.42f;
-                float openEl = 0.19f + Mathf.Sin(shotTime / 64 * Mathf.PI * 2 + 1.1f) * 0.02f;
+                float closedAz = 0.2f - 0.12f * narrow + Mathf.Sin(shotTime / 40 * Mathf.PI * 2) * (ReducedMotion ? 0.01f : 0.035f);
+                float period = ReducedMotion ? 110 : 64;
+                float openAz = 0.3f + Mathf.Sin(shotTime / period * Mathf.PI * 2) * (ReducedMotion ? 0.22f : 0.42f);
+                float openEl = 0.19f + Mathf.Sin(shotTime / period * Mathf.PI * 2 + 1.1f) * (ReducedMotion ? 0.01f : 0.02f);
                 float smoothed = cameraOpen * cameraOpen * (3 - 2 * cameraOpen);
                 focus = Vector3.LerpUnclamped(new Vector3(6.25f, 1.5f, 0.5f), new Vector3(3, 2.7f, -1.4f), smoothed);
                 azimuth = Mathf.LerpUnclamped(closedAz, openAz, cameraOpen);

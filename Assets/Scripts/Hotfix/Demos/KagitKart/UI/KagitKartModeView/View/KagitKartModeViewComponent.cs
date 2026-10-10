@@ -33,6 +33,8 @@ namespace Hotfix
         private Button Button_GrandPrix;
         private Button Button_SingleRace;
         private Button Button_TimeTrial;
+        private Button Button_Settings;
+        private Button Button_Controls;
         private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
 
         private ComponentItemIndex componentItemIndex;
@@ -53,7 +55,9 @@ namespace Hotfix
             Button_GrandPrix = componentItemIndex.Get<Button>(5);
             Button_SingleRace = componentItemIndex.Get<Button>(6);
             Button_TimeTrial = componentItemIndex.Get<Button>(7);
-            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(8);
+            Button_Settings = componentItemIndex.Get<Button>(8);
+            Button_Controls = componentItemIndex.Get<Button>(9);
+            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(10);
         }
     }
 }

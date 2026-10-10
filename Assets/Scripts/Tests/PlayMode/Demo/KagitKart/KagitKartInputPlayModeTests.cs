@@ -311,6 +311,55 @@ namespace Tests.Demo
         {
             InputSystem.QueueStateEvent(screen, new TouchState { touchId = id, phase = phase, position = position });
         }
+        [UnityTest]
+        public IEnumerator VisibleTouchCommandsMergeWithPhysicalInputAndReleaseCleanly()
+        {
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            Initialize(keyboard);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+            yield return null;
+            yield return null;
+            input.SetTouchSteer(-0.8f);
+            input.SetTouchHold("Brake", true);
+            input.SetTouchHold("Item", true);
+            var mixed = input.ReadControls(false);
+            Assert.That(mixed.Steer, Is.EqualTo(-0.8f));
+            Assert.That(mixed.Throttle, Is.EqualTo(1), "触控刹车不丢键盘油门，规则层决定加减速。");
+            Assert.That(mixed.Brake, Is.EqualTo(1));
+            Assert.That(mixed.Item, Is.True);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D));
+            yield return null;
+            Assert.That(input.ReadControls(false).Steer, Is.EqualTo(1), "原作采用绝对值较大的转向命令。");
+            input.SetTouchSteer(0);
+            input.SetTouchHold("Brake", false);
+            input.SetTouchHold("Item", false);
+            var released = input.ReadControls(false);
+            Assert.That(released.Brake, Is.Zero);
+            Assert.That(released.Item, Is.False);
+            input.SetDriving(false);
+            Assert.That(input.ReadControls(false).Throttle, Is.Zero);
+        }
+
+
+        [Test]
+        public void ControlsReadEveryActualBindingAndItsOverrideWithoutInventingKeys()
+        {
+            using var key = new InputAction("KeyItem");
+            key.AddBinding("<Keyboard>/e");
+            key.AddBinding("<Keyboard>/x");
+            key.AddBinding("<Gamepad>/buttonWest");
+            string before = Hotfix.KagitKartControlsView.Bindings(key, false);
+            Assert.That(before, Does.Contain("E").IgnoreCase);
+            Assert.That(before, Does.Contain("X").IgnoreCase);
+            key.ApplyBindingOverride(0, "<Keyboard>/q");
+            string after = Hotfix.KagitKartControlsView.Bindings(key, false);
+            Assert.That(after, Does.Contain("Q").IgnoreCase);
+            Assert.That(after, Does.Not.Contain("E").IgnoreCase);
+            using var composite = new InputAction("Steer");
+            composite.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/a").With("Positive", "<Keyboard>/d");
+            Assert.That(Hotfix.KagitKartControlsView.Bindings(composite, false), Does.Contain("A").IgnoreCase.And.Contain("D").IgnoreCase);
+            Assert.That(Hotfix.KagitKartControlsView.Bindings(composite, true), Is.EqualTo("无此设备绑定"));
+        }
     }
 }
 #endif

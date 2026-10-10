@@ -84,6 +84,48 @@ namespace Tests.Demo
                 stage.Advance(1f / 120);
             }
         }
+
+        [UnityTest]
+        public IEnumerator ReducedBookChangesChapterAndCoverWithoutLeavingTurnAnimations()
+        {
+            var template = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/kagit_kart/Prefabs/BookStage.prefab");
+            var root = Object.Instantiate(template);
+            var cameraObject = new GameObject("ReducedBookCamera", typeof(Camera), typeof(Skybox));
+            var lightObject = new GameObject("ReducedBookLight", typeof(Light));
+            try
+            {
+                var stage = root.GetComponent<KagitKartBookStage>();
+                stage.Initialize(cameraObject.GetComponent<Camera>(), lightObject.GetComponent<Light>());
+                stage.ReducedMotion = true;
+                stage.SetPage(KagitKartCommand.Title, "tilki", "meadow");
+                stage.SetPage(KagitKartCommand.Modes, "tilki", "meadow");
+                stage.Advance(0);
+                Assert.That(stage.ClosedFraction, Is.Zero);
+                stage.ShowChapter("desk");
+                Assert.That(stage.ChapterId, Is.EqualTo("desk"));
+                Assert.That(stage.Turning, Is.False);
+                stage.ReducedMotion = false;
+                stage.ShowChapter("meadow");
+                Advance(stage, 0.5f);
+                Assert.That(stage.Turning, Is.True);
+                stage.ReducedMotion = true;
+                stage.Advance(0);
+                Assert.That(stage.Turning, Is.False, "运行中开启低动态应落到已请求章节。");
+                Assert.That(stage.ChapterId, Is.EqualTo("meadow"));
+                Assert.That(stage.CurrentCharacterId, Is.EqualTo("tilki"), "直接落位仍须恢复选赛车手与展开纸景。");
+                stage.SetPage(KagitKartCommand.Title, "tilki", "meadow");
+                Assert.That(stage.ClosedFraction, Is.EqualTo(1));
+            }
+            finally
+            {
+                Object.Destroy(root);
+                Object.Destroy(cameraObject);
+                Object.Destroy(lightObject);
+            }
+            yield return null;
+        }
+
+
     }
 }
 #endif

@@ -17,9 +17,21 @@ namespace Hotfix.KagitKart
         private Vector3 offset;
         private float shakeAmount;
         private float shakeTime;
+        private bool shakeEnabled = true;
 
         public bool LookBack { get; private set; }
-        public bool ShakeEnabled { get; set; } = true;
+        public bool ShakeEnabled
+        {
+            get => shakeEnabled;
+            set
+            {
+                shakeEnabled = value;
+                if (!value)
+                {
+                    shakeAmount = 0;
+                }
+            }
+        }
 
         /// <summary>绑定本场摄像机与玩家，退出时 Dispose 解除规则订阅。</summary>
         /// <param name="camera">场景唯一主相机。</param>

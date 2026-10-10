@@ -30,5 +30,54 @@ namespace Tests.Demo
                 Assert.That(fov, Is.EqualTo(frame.fov).Within(0.001f), frame.track);
             }
         }
+        [Test]
+        public void SwitchingReducedIntroKeepsProgressAndDoesNotRestartRaceClock()
+        {
+            const string root = "Assets/LoadResources/Demos/kagit_kart/Data/";
+            var source = KagitKartSourceCatalog.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(root + "SourceCatalog.json").text);
+            string name = KagitKartCatalog.TrackAssetName("meadow");
+            var track = KagitKartTrackData.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(root + "Tracks/" + name + ".json").text);
+            var plan = KagitKartAiPlan.Parse(AssetDatabase.LoadAssetAtPath<TextAsset>(root + "AiPlans/" + name + ".json").text, track);
+            string json = AssetDatabase.LoadAssetAtPath<TextAsset>(root + "IntroPaths.json").text;
+            var data = JsonUtility.FromJson<KagitKartRaceCinematics.Data>(json);
+            using var session = new KagitKartSession(source, track, plan, KagitKartRaceMode.TimeTrial, "tilki", 120, 1);
+            var entries = Array.Find(data.tracks, value => value.id == "meadow").entries;
+            var normal = Array.Find(entries, value => !value.reducedMotion
+                && Vector3.Distance(KagitKartRaceCinematics.Point(value.position), session.Player.Position) < 0.01f);
+            var reduced = Array.Find(entries, value => value.reducedMotion
+                && Vector3.Distance(KagitKartRaceCinematics.Point(value.position), session.Player.Position) < 0.01f);
+            var cameraObject = new GameObject("ReducedIntroTestCamera", typeof(Camera));
+            try
+            {
+                var shot = new KagitKartRaceCinematics(json, cameraObject.GetComponent<Camera>(), session, source.config.camera);
+                for (int i = 0; i < 10; i++)
+                {
+                    shot.AdvanceIntro(0.1f);
+                }
+                shot.SetReducedMotion(true);
+                float remaining = reduced.duration * (1 - 1 / normal.duration);
+                float elapsed = 0;
+                while (elapsed + 0.1f < remaining - 0.02f)
+                {
+                    shot.AdvanceIntro(0.1f);
+                    elapsed += 0.1f;
+                }
+                Assert.That(shot.IntroPlaying, Is.True);
+                while (elapsed < remaining + 0.05f)
+                {
+                    shot.AdvanceIntro(0.05f);
+                    elapsed += 0.05f;
+                }
+                Assert.That(shot.IntroPlaying, Is.False, "切换应接续原进度，而非从低动态起点重播。");
+                Assert.That(session.RaceTime, Is.Zero);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(cameraObject);
+            }
+        }
+
+
+
     }
 }

@@ -15,8 +15,11 @@ namespace Hotfix.KagitKart
         private readonly Camera camera;
         private readonly KagitKartSession session;
         private readonly KagitKartCameraTuning tuning;
-        private readonly Entry intro;
-        private readonly Path[] paths;
+        private Entry intro;
+        private Path[] paths;
+        private readonly Entry[] entries;
+        private readonly Vector3 introStart;
+        private bool reducedMotion;
         private float time;
         private KagitKartQueryInfo ground;
         private int groundHint = -1;
@@ -44,10 +47,26 @@ namespace Hotfix.KagitKart
                 throw new ArgumentException("赛前镜头数据缺失或版本不匹配。");
             }
             var track = Array.Find(data.tracks, t => t.id == session.Track.Track.definition.id);
-            float best = float.PositiveInfinity;
-            foreach (var entry in track.entries)
+            entries = track.entries;
+            introStart = session.Player.Position;
+            SetReducedMotion(reducedMotion);
+        }
+
+        /// <summary>切换原作低动态镜头；已开始赛前按原进度换路线，不从头重播。</summary>
+        /// <param name="value">减少动态使用原作静态切镜和温和冲线构图。</param>
+        public void SetReducedMotion(bool value)
+        {
+            if (intro != null && reducedMotion == value)
             {
-                float distance = (Point(entry.position) - session.Player.Position).sqrMagnitude;
+                return;
+            }
+            reducedMotion = value;
+            float progress = intro == null ? 0 : time / Mathf.Max(0.001f, intro.duration);
+            intro = null;
+            float best = float.PositiveInfinity;
+            foreach (var entry in entries)
+            {
+                float distance = (Point(entry.position) - introStart).sqrMagnitude;
                 if (entry.reducedMotion == reducedMotion && distance < best)
                 {
                     best = distance;
@@ -63,6 +82,7 @@ namespace Hotfix.KagitKart
             {
                 paths[i] = new Path(intro.segments[i].keys);
             }
+            time = progress * intro.duration;
         }
 
         /// 跳过演出，下一帧由原作跟随镜头接管并开始倒计时。
@@ -102,6 +122,13 @@ namespace Hotfix.KagitKart
             float radius = Mathf.LerpUnclamped(startRadius, 8, k) + 0.8f * resultsBlend;
             float height = Mathf.LerpUnclamped(startHeight, 1.9f, k) + 0.6f * resultsBlend;
             float fov = Mathf.LerpUnclamped(startFov, KagitKartBookGeometry.FitFov(camera.aspect, 38, 58), Mathf.SmoothStep(0, 1, finishTime / 1.2f));
+            if (reducedMotion)
+            {
+                az = finishSide * 0.62f + Mathf.Sin(finishTime * 0.08f) * 0.05f;
+                radius = 8.8f;
+                height = 2.4f;
+                fov = KagitKartBookGeometry.FitFov(camera.aspect, 38, 58);
+            }
             Vector3 p = KagitKartVehicle.ToUnity(playerPosition);
             Vector3 position = p + new Vector3(Mathf.Sin(finishYaw + az) * radius, height, Mathf.Cos(finishYaw + az) * radius);
             session.Track.Query(position, groundHint, ref ground);
@@ -109,7 +136,7 @@ namespace Hotfix.KagitKart
             if (ground.HasGround) position.y = Mathf.Max(position.y, ground.GroundY + 0.9f);
             Vector3 look = KagitKartBookGeometry.FrameAt(position, p + Vector3.up * 0.85f,
                 new Vector2(0.72f * resultsBlend, -0.33f * (1 - resultsBlend) - 0.05f * resultsBlend), fov, camera.aspect);
-            if (finishTime < 1) look = Vector3.LerpUnclamped(startLook, look, Mathf.SmoothStep(0, 1, finishTime));
+            if (!reducedMotion && finishTime < 1) look = Vector3.LerpUnclamped(startLook, look, Mathf.SmoothStep(0, 1, finishTime));
             camera.transform.position = KagitKartVehicle.ToUnity(position);
             camera.transform.LookAt(KagitKartVehicle.ToUnity(look));
             camera.fieldOfView = fov;

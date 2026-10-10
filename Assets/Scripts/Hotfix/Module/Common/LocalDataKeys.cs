@@ -13,6 +13,7 @@ namespace Hotfix
         public const string HowToFishSkins = "PlayerSkins.json";
         public const string CasinoProfile = "profile.json";
         public const string KagitKartDirectory = "KagitKart";
+        public const string KagitKartPreferences = "KagitKart.LocalPreferences";
 
         /// <summary>计时记录按赛道、速度组别和角色隔离，不改变原作记录粒度。</summary>
         /// <param name="track">原作赛道标识。</param>

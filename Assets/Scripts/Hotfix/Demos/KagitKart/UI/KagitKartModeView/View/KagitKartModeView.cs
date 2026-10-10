@@ -23,6 +23,8 @@ namespace Hotfix
             }
             Button_Back.onClick.AddListener(Back);
             Button_Hub.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.Hub));
+            Button_Settings.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.Settings));
+            Button_Controls.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.Controls));
             UIMenuScope_Viewport.Canceled += Back;
             BindData<KagitKartData>(_ => Render());
         }
@@ -35,7 +37,7 @@ namespace Hotfix
             var safe = Screen.safeArea;
             RectTransform_Viewport.anchorMin = new Vector2(safe.xMin / Screen.width, safe.yMin / Screen.height);
             RectTransform_Viewport.anchorMax = new Vector2(safe.xMax / Screen.width, safe.yMax / Screen.height);
-            KagitKartMenuPaperMotion_Viewport.Play(owner.MenuEntranceDelay);
+            KagitKartMenuPaperMotion_Viewport.Play(owner.MenuEntranceDelay, owner.ReducedMotion);
             Render();
         }
 
@@ -51,7 +53,7 @@ namespace Hotfix
             {
                 choice.interactable = !world.Busy;
             }
-            Button_Back.interactable = Button_Hub.interactable = !world.Busy;
+            Button_Back.interactable = Button_Hub.interactable = Button_Settings.interactable = Button_Controls.interactable = !world.Busy;
             TextMeshProUGUI_Status.text = world.Feedback ?? "";
         }
 

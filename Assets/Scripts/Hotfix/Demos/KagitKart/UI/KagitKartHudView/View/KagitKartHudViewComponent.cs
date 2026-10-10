@@ -26,6 +26,7 @@ namespace Hotfix
         }
 
         private RectTransform RectTransform_Viewport;
+        private TextMeshProUGUI TextMeshProUGUI_Fps;
         private RectTransform RectTransform_ItemCardGroup;
         private TextMeshProUGUI TextMeshProUGUI_Item;
         private TextMeshProUGUI TextMeshProUGUI_ItemCount;
@@ -74,42 +75,43 @@ namespace Hotfix
             }
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
-            RectTransform_ItemCardGroup = componentItemIndex.Get<RectTransform>(1);
-            TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(2);
-            TextMeshProUGUI_ItemCount = componentItemIndex.Get<TextMeshProUGUI>(3);
-            RectTransform_LapCardGroup = componentItemIndex.Get<RectTransform>(4);
-            TextMeshProUGUI_Lap = componentItemIndex.Get<TextMeshProUGUI>(5);
-            TextMeshProUGUI_Clock = componentItemIndex.Get<TextMeshProUGUI>(6);
-            Button_Pause = componentItemIndex.Get<Button>(7);
-            Button_SkipIntro = componentItemIndex.Get<Button>(8);
-            RectTransform_IntroCardGroup = componentItemIndex.Get<RectTransform>(9);
-            TextMeshProUGUI_IntroChapter = componentItemIndex.Get<TextMeshProUGUI>(10);
-            TextMeshProUGUI_IntroName = componentItemIndex.Get<TextMeshProUGUI>(11);
-            TextMeshProUGUI_IntroSubtitle = componentItemIndex.Get<TextMeshProUGUI>(12);
-            RectTransform_PlaceCardGroup = componentItemIndex.Get<RectTransform>(13);
-            TextMeshProUGUI_Place = componentItemIndex.Get<TextMeshProUGUI>(14);
-            RectTransform_MapCardGroup = componentItemIndex.Get<RectTransform>(15);
-            KagitKartMinimap_Minimap = componentItemIndex.Get<KagitKartMinimap>(16);
-            TextMeshProUGUI_Countdown = componentItemIndex.Get<TextMeshProUGUI>(17);
-            TextMeshProUGUI_Banner = componentItemIndex.Get<TextMeshProUGUI>(18);
-            TextMeshProUGUI_Drift = componentItemIndex.Get<TextMeshProUGUI>(19);
-            InputBindingPrompt_ThrottlePrompt = componentItemIndex.Get<InputBindingPrompt>(20);
-            InputBindingPrompt_DriftPrompt = componentItemIndex.Get<InputBindingPrompt>(21);
-            InputBindingPrompt_ItemPrompt = componentItemIndex.Get<InputBindingPrompt>(22);
-            RectTransform_TouchControls = componentItemIndex.Get<RectTransform>(23);
-            TouchInputPad_Steering = componentItemIndex.Get<TouchInputPad>(24);
-            RectTransform_SteerKnob = componentItemIndex.Get<RectTransform>(25);
-            Button_Throttle = componentItemIndex.Get<Button>(26);
-            InputCommandButton_Throttle = componentItemIndex.Get<InputCommandButton>(27);
-            Button_Brake = componentItemIndex.Get<Button>(28);
-            InputCommandButton_Brake = componentItemIndex.Get<InputCommandButton>(29);
-            Button_Drift = componentItemIndex.Get<Button>(30);
-            InputCommandButton_Drift = componentItemIndex.Get<InputCommandButton>(31);
-            Button_Item = componentItemIndex.Get<Button>(32);
-            InputCommandButton_Item = componentItemIndex.Get<InputCommandButton>(33);
-            Button_LookBack = componentItemIndex.Get<Button>(34);
-            InputCommandButton_LookBack = componentItemIndex.Get<InputCommandButton>(35);
-            Button_Auto = componentItemIndex.Get<Button>(36);
+            TextMeshProUGUI_Fps = componentItemIndex.Get<TextMeshProUGUI>(1);
+            RectTransform_ItemCardGroup = componentItemIndex.Get<RectTransform>(2);
+            TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_ItemCount = componentItemIndex.Get<TextMeshProUGUI>(4);
+            RectTransform_LapCardGroup = componentItemIndex.Get<RectTransform>(5);
+            TextMeshProUGUI_Lap = componentItemIndex.Get<TextMeshProUGUI>(6);
+            TextMeshProUGUI_Clock = componentItemIndex.Get<TextMeshProUGUI>(7);
+            Button_Pause = componentItemIndex.Get<Button>(8);
+            Button_SkipIntro = componentItemIndex.Get<Button>(9);
+            RectTransform_IntroCardGroup = componentItemIndex.Get<RectTransform>(10);
+            TextMeshProUGUI_IntroChapter = componentItemIndex.Get<TextMeshProUGUI>(11);
+            TextMeshProUGUI_IntroName = componentItemIndex.Get<TextMeshProUGUI>(12);
+            TextMeshProUGUI_IntroSubtitle = componentItemIndex.Get<TextMeshProUGUI>(13);
+            RectTransform_PlaceCardGroup = componentItemIndex.Get<RectTransform>(14);
+            TextMeshProUGUI_Place = componentItemIndex.Get<TextMeshProUGUI>(15);
+            RectTransform_MapCardGroup = componentItemIndex.Get<RectTransform>(16);
+            KagitKartMinimap_Minimap = componentItemIndex.Get<KagitKartMinimap>(17);
+            TextMeshProUGUI_Countdown = componentItemIndex.Get<TextMeshProUGUI>(18);
+            TextMeshProUGUI_Banner = componentItemIndex.Get<TextMeshProUGUI>(19);
+            TextMeshProUGUI_Drift = componentItemIndex.Get<TextMeshProUGUI>(20);
+            InputBindingPrompt_ThrottlePrompt = componentItemIndex.Get<InputBindingPrompt>(21);
+            InputBindingPrompt_DriftPrompt = componentItemIndex.Get<InputBindingPrompt>(22);
+            InputBindingPrompt_ItemPrompt = componentItemIndex.Get<InputBindingPrompt>(23);
+            RectTransform_TouchControls = componentItemIndex.Get<RectTransform>(24);
+            TouchInputPad_Steering = componentItemIndex.Get<TouchInputPad>(25);
+            RectTransform_SteerKnob = componentItemIndex.Get<RectTransform>(26);
+            Button_Throttle = componentItemIndex.Get<Button>(27);
+            InputCommandButton_Throttle = componentItemIndex.Get<InputCommandButton>(28);
+            Button_Brake = componentItemIndex.Get<Button>(29);
+            InputCommandButton_Brake = componentItemIndex.Get<InputCommandButton>(30);
+            Button_Drift = componentItemIndex.Get<Button>(31);
+            InputCommandButton_Drift = componentItemIndex.Get<InputCommandButton>(32);
+            Button_Item = componentItemIndex.Get<Button>(33);
+            InputCommandButton_Item = componentItemIndex.Get<InputCommandButton>(34);
+            Button_LookBack = componentItemIndex.Get<Button>(35);
+            InputCommandButton_LookBack = componentItemIndex.Get<InputCommandButton>(36);
+            Button_Auto = componentItemIndex.Get<Button>(37);
         }
     }
 }
