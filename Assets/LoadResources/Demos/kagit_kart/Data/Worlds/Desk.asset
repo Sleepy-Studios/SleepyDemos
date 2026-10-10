@@ -1775,6 +1775,7 @@ MonoBehaviour:
       yaw: 2.3570304
       distance: 182.0325
       trigger: 86.11763
+      size: 26
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -1785,6 +1786,7 @@ MonoBehaviour:
       yaw: 3.6092772
       distance: 506.07407
       trigger: 82.92837
+      size: 3.02
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -1795,36 +1797,42 @@ MonoBehaviour:
       yaw: 5.9155197
       distance: 761.1114
       trigger: 108.95205
+      size: 33.326458
       alwaysUp: 0
     - position: {x: -90.37658, y: 2.1145847, z: 197.3025}
       scale: {x: 0.85935247, y: 0.85935247, z: 0.85935247}
       yaw: 5.696938
       distance: 804.11774
       trigger: 105.18421
+      size: 29.647661
       alwaysUp: 0
     - position: {x: -60.25861, y: 2.5953517, z: 212.49677}
       scale: {x: 1.0516592, y: 1.0516592, z: 1.0516592}
       yaw: 0.14415117
       distance: 846.12384
       trigger: 81.15788
+      size: 36.282246
       alwaysUp: 0
     - position: {x: 46.61807, y: 2.3355196, z: 144.34743}
       scale: {x: 0.9477264, y: 0.9477264, z: 0.9477264}
       yaw: 1.409849
       distance: 946.1385
       trigger: 95.87089
+      size: 32.69656
       alwaysUp: 0
     - position: {x: 76.611336, y: 2.7749598, z: 231.10706}
       scale: {x: 1.1235025, y: 1.1235025, z: 1.1235025}
       yaw: 0.89723784
       distance: 974.1426
       trigger: 76.06016
+      size: 38.760834
       alwaysUp: 0
     - position: {x: -132.35623, y: 2.8749478, z: 307.0024}
       scale: {x: 1.1634977, y: 1.1634977, z: 1.1634977}
       yaw: 3.5358179
       distance: 600.0878
       trigger: 73.213646
+      size: 40.14067
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -1835,18 +1843,21 @@ MonoBehaviour:
       yaw: 3.4230802
       distance: 761.1114
       trigger: 97.94703
+      size: 31.286741
       alwaysUp: 0
     - position: {x: -6.907568, y: 2.840662, z: 145.07034}
       scale: {x: 1.1497834, y: 1.1497834, z: 1.1497834}
       yaw: 1.585358
       distance: 875.1281
       trigger: 70.68063
+      size: 39.667526
       alwaysUp: 0
     - position: {x: -18.411688, y: 2.1585028, z: 205.00847}
       scale: {x: 0.87691975, y: 0.87691975, z: 0.87691975}
       yaw: 5.4814043
       distance: 889.1301
       trigger: 75.6991
+      size: 30.25373
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -1857,66 +1868,77 @@ MonoBehaviour:
       yaw: 1.4183218
       distance: 775.11346
       trigger: 72.821465
+      size: 26.482862
       alwaysUp: 0
     - position: {x: -105.65333, y: 2.4097445, z: 127.56566}
       scale: {x: 0.97741634, y: 0.97741634, z: 0.97741634}
       yaw: 3.02362
       distance: 789.11554
       trigger: 97.71978
+      size: 33.720863
       alwaysUp: 0
     - position: {x: -66.80663, y: 2.5992086, z: 196.88358}
       scale: {x: 1.053202, y: 1.053202, z: 1.053202}
       yaw: 5.3616447
       distance: 832.1218
       trigger: 94.08638
+      size: 36.33547
       alwaysUp: 0
     - position: {x: -46.30841, y: 2.4111998, z: 198.17308}
       scale: {x: 0.9779985, y: 0.9779985, z: 0.9779985}
       yaw: 4.082793
       distance: 860.1259
       trigger: 96.70319
+      size: 33.740948
       alwaysUp: 0
     - position: {x: -25.815424, y: 1.7256823, z: 144.48836}
       scale: {x: 0.7037915, y: 0.7037915, z: 0.7037915}
       yaw: 0.058593675
       distance: 860.1259
       trigger: 88.51524
+      size: 24.280807
       alwaysUp: 0
     - position: {x: 14.93269, y: 2.6447046, z: 145.93808}
       scale: {x: 1.0714004, y: 1.0714004, z: 1.0714004}
       yaw: 2.8742726
       distance: 903.1322
       trigger: 95.71704
+      size: 36.963314
       alwaysUp: 0
     - position: {x: 14.39138, y: 2.7544272, z: 214.13521}
       scale: {x: 1.1152894, y: 1.1152894, z: 1.1152894}
       yaw: 4.773438
       distance: 917.1343
       trigger: 95.08053
+      size: 38.477486
       alwaysUp: 0
     - position: {x: -252.82732, y: 2.0685291, z: 342.2621}
       scale: {x: 0.8409302, y: 0.8409302, z: 0.8409302}
       yaw: 0.7244675
       distance: 541.0792
       trigger: 78.73389
+      size: 29.012093
       alwaysUp: 0
     - position: {x: -226.19702, y: 2.9458997, z: 351.9235}
       scale: {x: 1.1918784, y: 1.1918784, z: 1.1918784}
       yaw: 3.707122
       distance: 553.08093
       trigger: 109.91001
+      size: 41.119804
       alwaysUp: 0
     - position: {x: -212.86426, y: 2.8241048, z: 354.2884}
       scale: {x: 1.1431605, y: 1.1431605, z: 1.1431605}
       yaw: 5.074
       distance: 559.08185
       trigger: 89.174614
+      size: 39.439037
       alwaysUp: 0
     - position: {x: -148.71805, y: 2.637578, z: 334.24435}
       scale: {x: 1.0685499, y: 1.0685499, z: 1.0685499}
       yaw: 3.0219655
       distance: 588.08606
       trigger: 91.58443
+      size: 36.864967
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -1927,36 +1949,42 @@ MonoBehaviour:
       yaw: 2.8017087
       distance: 818.11975
       trigger: 99.44421
+      size: 37.55519
       alwaysUp: 0
     - position: {x: -57.797123, y: 2.3765638, z: 123.6105}
       scale: {x: 0.9641441, y: 0.9641441, z: 0.9641441}
       yaw: 2.5481296
       distance: 832.1218
       trigger: 105.840004
+      size: 33.262974
       alwaysUp: 0
     - position: {x: 24.266708, y: 2.401895, z: 145.03506}
       scale: {x: 0.9742766, y: 0.9742766, z: 0.9742766}
       yaw: 0.2853107
       distance: 917.1343
       trigger: 96.03239
+      size: 33.61254
       alwaysUp: 0
     - position: {x: 47.253616, y: 2.0591595, z: 228.84244}
       scale: {x: 0.8371824, y: 0.8371824, z: 0.8371824}
       yaw: 2.6197278
       distance: 946.1385
       trigger: 90.173065
+      size: 28.882793
       alwaysUp: 0
     - position: {x: 61.322945, y: 2.7301698, z: 154.29376}
       scale: {x: 1.1055864, y: 1.1055864, z: 1.1055864}
       yaw: 6.2016816
       distance: 960.14056
       trigger: 92.928055
+      size: 38.142735
       alwaysUp: 0
     - position: {x: -153.65508, y: 2.0505347, z: 315.32635}
       scale: {x: 0.8337325, y: 0.8337325, z: 0.8337325}
       yaw: 4.2460747
       distance: 594.087
       trigger: 70.09787
+      size: 28.763771
       alwaysUp: 0
   - volume: 0
     flutter: 0
@@ -1967,18 +1995,21 @@ MonoBehaviour:
       yaw: 2.146227
       distance: 339.04962
       trigger: 89.98721
+      size: 0.7
       alwaysUp: 1
     - position: {x: -294.04697, y: -0.033796437, z: 180.07495}
       scale: {x: 1, y: 1, z: 1}
       yaw: 3.4644358
       distance: 398.05826
       trigger: 91.737434
+      size: 0.7
       alwaysUp: 1
     - position: {x: -271.06506, y: -0.033796437, z: 233.72997}
       scale: {x: 1, y: 1, z: 1}
       yaw: 5.403409
       distance: 458.06705
       trigger: 72.17913
+      size: 0.7
       alwaysUp: 1
   - volume: 1
     flutter: 1
@@ -1989,66 +2020,77 @@ MonoBehaviour:
       yaw: 0.38708842
       distance: 727.10645
       trigger: 83.518776
+      size: 7.937298
       alwaysUp: 0
     - position: {x: -148.11128, y: -0.033796437, z: 287.8325}
       scale: {x: 1.1516706, y: 0.97892004, z: 1.1516706}
       yaw: 2.0901349
       distance: 514.07526
       trigger: 80.15714
+      size: 5.8735204
       alwaysUp: 0
     - position: {x: -89.99424, y: -0.033796437, z: 119.6113}
       scale: {x: 1.5762326, y: 1.3397976, z: 1.5762326}
       yaw: 5.9093356
       distance: 805.11786
       trigger: 74.771225
+      size: 8.038786
       alwaysUp: 0
     - position: {x: -179.66101, y: -0.033796437, z: 42.90858}
       scale: {x: 1.2961702, y: 1.1017447, z: 1.2961702}
       yaw: 0.011322512
       distance: 191.02797
       trigger: 79.19018
+      size: 6.6104684
       alwaysUp: 0
     - position: {x: -148.1664, y: -0.033796437, z: 90.71357}
       scale: {x: 0.9008019, y: 0.7656816, z: 0.9008019}
       yaw: 0.47942966
       distance: 300.0439
       trigger: 83.6501
+      size: 4.5940895
       alwaysUp: 0
     - position: {x: -10.001464, y: -0.033796437, z: -59.046894}
       scale: {x: 0.91550523, y: 0.77817947, z: 0.91550523}
       yaw: 0.11477279
       distance: 10.001464
       trigger: 98.01441
+      size: 4.6690764
       alwaysUp: 0
     - position: {x: 34.00498, y: -0.033796437, z: 66.101845}
       scale: {x: 0.8702775, y: 0.7397359, z: 0.8702775}
       yaw: 0.9625948
       distance: 1250.183
       trigger: 89.22087
+      size: 4.4384155
       alwaysUp: 0
     - position: {x: 46.585434, y: -0.033796437, z: 124.93613}
       scale: {x: 1.4590989, y: 1.240234, z: 1.4590989}
       yaw: 1.3961142
       distance: 1017.14886
       trigger: 108.432556
+      size: 7.4414043
       alwaysUp: 0
     - position: {x: -47.871502, y: -0.033796437, z: 121.07912}
       scale: {x: 1.2946769, y: 1.1004753, z: 1.2946769}
       yaw: 2.137768
       distance: 839.12286
       trigger: 75.58549
+      size: 6.602852
       alwaysUp: 0
     - position: {x: -18.961575, y: -0.033796437, z: 249.37225}
       scale: {x: 0.93987656, y: 0.7988951, z: 0.93987656}
       yaw: 1.9203283
       distance: 899.1316
       trigger: 78.49265
+      size: 4.7933707
       alwaysUp: 0
     - position: {x: -45.189358, y: -0.033796437, z: 235.54657}
       scale: {x: 0.92951226, y: 0.79008543, z: 0.92951226}
       yaw: 3.526359
       distance: 879.12866
       trigger: 75.66038
+      size: 4.7405124
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -2059,6 +2101,7 @@ MonoBehaviour:
       yaw: 2.0238526
       distance: 532.0823
       trigger: 105.52694
+      size: 30
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -2069,6 +2112,7 @@ MonoBehaviour:
       yaw: 0.40773845
       distance: 761.1114
       trigger: 94.93939
+      size: 40
       alwaysUp: 0
   - volume: 0
     flutter: 1
@@ -2079,6 +2123,7 @@ MonoBehaviour:
       yaw: -1.2613269
       distance: 30.010246
       trigger: 109.63794
+      size: 12
       alwaysUp: 0
   ramps:
   - distance: 1053.1626

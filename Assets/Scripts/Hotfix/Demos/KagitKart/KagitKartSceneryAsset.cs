@@ -58,6 +58,7 @@ namespace Hotfix.KagitKart
         public float yaw;
         public float distance;
         public float trigger;
+        public float size;
         public bool alwaysUp;
     }
 

@@ -8,6 +8,7 @@ namespace Hotfix.KagitKart
     public sealed class KagitKartAudio : MonoBehaviour
     {
         private readonly Dictionary<string, double> lastPlayed = new();
+        private readonly double[] wallAt = new double[8];
         private readonly double[] bumpSeen = new double[64];
         private readonly double[] bumpPlayed = new double[64];
         private readonly int[] previousPlace = new int[8];
@@ -104,6 +105,7 @@ namespace Hotfix.KagitKart
                 session.Karts[i].Signaled += OnVehicle;
                 previousPlace[i] = session.Karts[i].Place;
             }
+            Array.Fill(wallAt, -9);
             Array.Fill(bumpSeen, -9);
             Array.Fill(bumpPlayed, -9);
             playerFinished = finalLap = false;
@@ -163,6 +165,7 @@ namespace Hotfix.KagitKart
         public void BeginCountdown()
         {
             intro = false;
+            StopMusic(0.9f);
             Play("count", important: true);
         }
 
@@ -251,7 +254,7 @@ namespace Hotfix.KagitKart
                 UpdateEngines(dt);
                 UpdateRoulette(dt);
             }
-            if (popupCount > 0 && !paused && now >= nextPopup)
+            if (popupCount > 0 && now >= nextPopup)
             {
                 float size = Mathf.Min(1, popupSize / 8 + 0.1f * (popupCount - 1));
                 Play("rustle", position: popupSum / popupCount, gain: 0.9f, reference: 45, intensity: 0.5f + 0.5f * size);
@@ -353,7 +356,7 @@ namespace Hotfix.KagitKart
         }
 
         private bool Play(string name, KagitKartVehicle kart = null, Vector3? position = null, float gain = 1,
-            float gap = 0.03f, bool important = false, float reference = 12, double at = 0, float intensity = 1)
+            float gap = 0.03f, bool important = false, float reference = 12, double at = 0, float intensity = 1, string rateKey = null)
         {
             if (bank == null || muted)
             {
@@ -377,7 +380,7 @@ namespace Hotfix.KagitKart
             {
                 return false;
             }
-            string bucket = name + (distant ? ":world" : "");
+            string bucket = (rateKey ?? name) + (distant ? ":world" : "");
             double now = AudioSettings.dspTime;
             if (lastPlayed.TryGetValue(bucket, out double last) && now - last < gap)
             {
@@ -556,7 +559,7 @@ namespace Hotfix.KagitKart
                     Play("hop", kart, gain: kart.IsPlayer ? 1 : 0.4f, gap: 0.02f);
                     break;
                 case KagitKartVehicleSignal.DriftTier:
-                    Play("tier_" + Mathf.Clamp(kart.DriftTier - 1, 0, 2), kart, gain: kart.IsPlayer ? 1 : 0.35f, gap: 0.01f);
+                    Play("tier_" + Mathf.Clamp(kart.DriftTier - 1, 0, 2), kart, gain: kart.IsPlayer ? 1 : 0.35f, gap: 0.01f, rateKey: "tier");
                     break;
                 case KagitKartVehicleSignal.DriftCancel:
                     if (kart.IsPlayer)
@@ -565,7 +568,14 @@ namespace Hotfix.KagitKart
                     }
                     break;
                 case KagitKartVehicleSignal.WallHit:
-                    Play("wall", kart, gain: gain, gap: 0.2f, intensity: Mathf.Clamp(kart.LastImpactSpeed / 25, 0.25f, 1));
+                    int wallIndex = IndexOf(kart);
+                    double wallTime = AudioSettings.dspTime;
+                    if (wallTime - wallAt[wallIndex] < 0.2)
+                    {
+                        return;
+                    }
+                    wallAt[wallIndex] = wallTime;
+                    Play("wall", kart, gain: gain, gap: 0.02f, intensity: Mathf.Clamp(kart.LastImpactSpeed / 25, 0.25f, 1));
                     break;
                 case KagitKartVehicleSignal.Trick:
                     Play("trick", kart, gain: gain);
@@ -622,7 +632,7 @@ namespace Hotfix.KagitKart
                 case "threat":
                     if (mine)
                     {
-                        Play(signal.Eta < 1 ? "threat_1" : "threat_0", important: true, gap: 0.05f);
+                        Play(signal.Eta < 1 ? "threat_1" : "threat_0", important: true, gap: 0.05f, rateKey: "threat");
                     }
                     break;
             }
@@ -672,7 +682,7 @@ namespace Hotfix.KagitKart
                 float left = Mathf.Clamp01((float)(kart.Roulette / kart.RouletteDuration));
                 rouletteTime = 0.055f + 0.13f * (1 - left) * (1 - left);
                 rouletteFlip = !rouletteFlip;
-                Play(rouletteFlip ? "rouletteTick_1" : "rouletteTick_0", gap: 0.02f);
+                Play(rouletteFlip ? "rouletteTick_1" : "rouletteTick_0", gap: 0.02f, rateKey: "rouletteTick");
             }
         }
 

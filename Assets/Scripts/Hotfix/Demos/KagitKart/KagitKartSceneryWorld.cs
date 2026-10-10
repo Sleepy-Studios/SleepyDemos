@@ -21,6 +21,11 @@ namespace Hotfix.KagitKart
         private MaterialPropertyBlock staticBlock;
         private Dynamics dynamics;
         private double dynamicsTime;
+        private float emitTimer, pendingSize;
+        private Vector3 pendingPosition;
+
+        /// 原作 popup.js 的抬纸波次；位置已还原为源世界坐标，供本场音频消费。
+        public event Action<Vector3, float> Popup;
 
         private struct PopupState
         {
@@ -108,7 +113,13 @@ namespace Hotfix.KagitKart
                     ref var state = ref states[g][i];
                     if (!item.alwaysUp)
                     {
+                        bool beforeTarget = state.target;
                         state.target = Target(state.target, Wrap(item.distance - cameraDistance), item.trigger, lookBack);
+                        if (state.target && !beforeTarget)
+                        {
+                            // 现有纸景资产为防止贴页冲突把 y 抬高 0.02；事件仍使用原作位置。
+                            QueuePopup(item.position - Vector3.up * 0.02f, item.size);
+                        }
                     }
                     float before = state.angle;
                     AdvanceSpring(ref state, dt, reducedMotion);
@@ -130,10 +141,24 @@ namespace Hotfix.KagitKart
             for (int i = 0; i < rampStates.Length; i++)
             {
                 ref var state = ref rampStates[i];
+                bool beforeTarget = state.target;
                 state.target = Target(state.target, Wrap(asset.ramps[i].distance - cameraDistance), 125, lookBack);
+                if (state.target && !beforeTarget)
+                {
+                    // 源坡台覆盖事件位置，同时只把当前最大尺寸提升至至少 3。
+                    pendingSize = Mathf.Max(pendingSize, 3);
+                    pendingPosition = rampTransforms[i].position;
+                }
                 AdvanceSpring(ref state, dt, reducedMotion);
                 rampTransforms[i].localRotation = rampRotations[i] * Quaternion.AngleAxis(
                     asset.ramps[i].theta * (1 - Mathf.Clamp(state.angle, 0, 1.25f)) * Mathf.Rad2Deg, Vector3.right);
+            }
+            emitTimer -= dt;
+            if (pendingSize > 0 && emitTimer <= 0)
+            {
+                Popup?.Invoke(new Vector3(-pendingPosition.x, pendingPosition.y, pendingPosition.z), pendingSize);
+                pendingSize = 0;
+                emitTimer = 0.18f;
             }
             AdvanceDynamics(dt, camera);
             staticBlock.SetFloat("uTime", time);
@@ -339,6 +364,18 @@ namespace Hotfix.KagitKart
             }
             return !((ahead < -60 && !lookBack) || ahead > trigger + 50);
         }
+
+        private void QueuePopup(Vector3 position, float size)
+        {
+            if (size < 1.5f || size <= pendingSize)
+            {
+                return;
+            }
+            pendingSize = size;
+            pendingPosition = transform.TransformPoint(position + Vector3.up * (size * 0.5f));
+        }
+
+        private void OnDestroy() => Popup = null;
 
         private static void AdvanceSpring(ref PopupState state, float dt, bool reduced)
         {

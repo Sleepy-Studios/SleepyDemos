@@ -10025,150 +10025,175 @@ MonoBehaviour:
       yaw: 1.3855188
       distance: 24.000355
       trigger: 86.11763
+      size: 14.803543
       alwaysUp: 0
     - position: {x: 98.69836, y: 0.8966051, z: 41.878376}
       scale: {x: 1.1250668, y: 1.1250668, z: 1.1250668}
       yaw: 0.073537566
       distance: 156.0023
       trigger: 82.92837
+      size: 14.850881
       alwaysUp: 0
     - position: {x: 142.98645, y: 0.8966051, z: 68.35277}
       scale: {x: 1.039509, y: 1.039509, z: 1.039509}
       yaw: 0.78641284
       distance: 180.00266
       trigger: 108.95205
+      size: 13.721519
       alwaysUp: 0
     - position: {x: 174.3906, y: 0.8966051, z: 68.005}
       scale: {x: 1.1973886, y: 1.1973886, z: 1.1973886}
       yaw: 0.99033684
       distance: 192.00284
       trigger: 105.18421
+      size: 15.80553
       alwaysUp: 0
     - position: {x: -87.80559, y: 0.8966051, z: 119.40655}
       scale: {x: 0.9656611, y: 0.9656611, z: 0.9656611}
       yaw: -0.19599408
       distance: 480.00708
       trigger: 81.15788
+      size: 12.746727
       alwaysUp: 0
     - position: {x: -111.76484, y: 0.8966051, z: 131.07434}
       scale: {x: 1.0361986, y: 1.0361986, z: 1.0361986}
       yaw: -0.25218526
       distance: 504.00745
       trigger: 95.87089
+      size: 13.677821
       alwaysUp: 0
     - position: {x: -123.70832, y: 0.8966051, z: 132.5649}
       scale: {x: 0.99634784, y: 0.99634784, z: 0.99634784}
       yaw: -0.26138487
       distance: 516.0076
       trigger: 76.06016
+      size: 13.151792
       alwaysUp: 0
     - position: {x: -147.29716, y: 0.8966051, z: 131.135}
       scale: {x: 1.2015971, y: 1.2015971, z: 1.2015971}
       yaw: -0.24484788
       distance: 540.008
       trigger: 73.213646
+      size: 15.861081
       alwaysUp: 0
     - position: {x: -160.78055, y: 0.8966051, z: 120.56153}
       scale: {x: 0.9797883, y: 0.9797883, z: 0.9797883}
       yaw: -0.22324952
       distance: 552.0082
       trigger: 97.94703
+      size: 12.933205
       alwaysUp: 0
     - position: {x: -183.56908, y: 0.8966051, z: 141.11972}
       scale: {x: 1.0576012, y: 1.0576012, z: 1.0576012}
       yaw: -0.65348357
       distance: 564.0083
       trigger: 70.68063
+      size: 13.960337
       alwaysUp: 0
     - position: {x: -225.75352, y: 0.8966051, z: 203.92323}
       scale: {x: 1.0092229, y: 1.0092229, z: 1.0092229}
       yaw: -1.9130105
       distance: 600.00885
       trigger: 75.6991
+      size: 13.321741
       alwaysUp: 0
     - position: {x: -194.0476, y: 0.8966051, z: 244.10614}
       scale: {x: 1.2021531, y: 1.2021531, z: 1.2021531}
       yaw: -2.8309865
       distance: 624.0092
       trigger: 72.821465
+      size: 15.868421
       alwaysUp: 0
     - position: {x: -153.39479, y: 0.8966051, z: 285.59488}
       scale: {x: 1.0638231, y: 1.0638231, z: 1.0638231}
       yaw: -1.7592444
       distance: 744.011
       trigger: 97.71978
+      size: 14.042464
       alwaysUp: 0
     - position: {x: -135.46742, y: 0.8966051, z: 321.59418}
       scale: {x: 0.9573919, y: 0.9573919, z: 0.9573919}
       yaw: -1.8531679
       distance: 780.01154
       trigger: 94.08638
+      size: 12.637573
       alwaysUp: 0
     - position: {x: -141.47314, y: 0.8966051, z: 333.59393}
       scale: {x: 1.0922463, y: 1.0922463, z: 1.0922463}
       yaw: -1.8130182
       distance: 792.0117
       trigger: 96.70319
+      size: 14.417651
       alwaysUp: 0
     - position: {x: -145.29733, y: 0.8966051, z: 357.59348}
       scale: {x: 1.0502157, y: 1.0502157, z: 1.0502157}
       yaw: -1.792818
       distance: 816.012
       trigger: 88.51524
+      size: 13.862847
       alwaysUp: 0
     - position: {x: -123.134895, y: 0.8966051, z: 449.18442}
       scale: {x: 1.124442, y: 1.124442, z: 1.124442}
       yaw: -2.5616536
       distance: 876.01294
       trigger: 95.71704
+      size: 14.842634
       alwaysUp: 0
     - position: {x: 67.61972, y: 0.8966051, z: 455.14783}
       scale: {x: 1.0090986, y: 1.0090986, z: 1.0090986}
       yaw: 2.7061234
       distance: 1032.0153
       trigger: 95.08053
+      size: 13.320102
       alwaysUp: 0
     - position: {x: 112.5218, y: 0.8966051, z: 450.281}
       scale: {x: 0.983882, y: 0.983882, z: 0.983882}
       yaw: 2.2574313
       distance: 1056.0156
       trigger: 78.73389
+      size: 12.987242
       alwaysUp: 0
     - position: {x: 55.27306, y: 0.8966051, z: 378.68488}
       scale: {x: 1.133759, y: 1.133759, z: 1.133759}
       yaw: -0.7244425
       distance: 1068.0157
       trigger: 109.91001
+      size: 14.965618
       alwaysUp: 0
     - position: {x: 152.66905, y: 0.8966051, z: 390.28165}
       scale: {x: 0.98690945, y: 0.98690945, z: 0.98690945}
       yaw: 1.4746212
       distance: 1092.0161
       trigger: 89.174614
+      size: 13.0272045
       alwaysUp: 0
     - position: {x: 52.071922, y: 0.8966051, z: 346.174}
       scale: {x: 1.2490996, y: 1.2490996, z: 1.2490996}
       yaw: -1.7776216
       distance: 1152.017
       trigger: 91.58443
+      size: 16.488115
       alwaysUp: 0
     - position: {x: 125.76168, y: 0.8966051, z: 291.32236}
       scale: {x: 0.96562344, y: 0.96562344, z: 0.96562344}
       yaw: 0.69532686
       distance: 1164.0172
       trigger: 99.44421
+      size: 12.746229
       alwaysUp: 0
     - position: {x: 59.473213, y: 0.8966051, z: 328.9988}
       scale: {x: 1.0328255, y: 1.0328255, z: 1.0328255}
       yaw: -1.9992728
       distance: 1176.0173
       trigger: 105.840004
+      size: 13.633296
       alwaysUp: 0
     - position: {x: 120.39029, y: 0.8966051, z: 268.9759}
       scale: {x: 1.1077067, y: 1.1077067, z: 1.1077067}
       yaw: 0.7882098
       distance: 1188.0176
       trigger: 96.03239
+      size: 14.621728
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -10179,120 +10204,140 @@ MonoBehaviour:
       yaw: 1.6414822
       distance: 216.00319
       trigger: 90.173065
+      size: 11.7543955
       alwaysUp: 0
     - position: {x: 199.2133, y: 0.8966051, z: 145.01198}
       scale: {x: 0.9607927, y: 0.9607927, z: 0.9607927}
       yaw: 1.909414
       distance: 228.00337
       trigger: 92.928055
+      size: 9.319689
       alwaysUp: 0
     - position: {x: 148.20946, y: 0.8966051, z: 203.90912}
       scale: {x: 0.98075044, y: 0.98075044, z: 0.98075044}
       yaw: 2.8643835
       distance: 264.0039
       trigger: 70.09787
+      size: 9.513279
       alwaysUp: 0
     - position: {x: -135.65178, y: 0.8966051, z: 138.3307}
       scale: {x: 1.1944999, y: 1.1944999, z: 1.1944999}
       yaw: -0.30657604
       distance: 528.0078
       trigger: 89.98721
+      size: 11.586648
       alwaysUp: 0
     - position: {x: -154.00652, y: 0.8966051, z: 256.81216}
       scale: {x: 1.0653877, y: 1.0653877, z: 1.0653877}
       yaw: 2.8222628
       distance: 648.0096
       trigger: 91.737434
+      size: 10.334261
       alwaysUp: 0
     - position: {x: -140.36533, y: 0.8966051, z: 309.59442}
       scale: {x: 1.043662, y: 1.043662, z: 1.043662}
       yaw: -1.8195606
       distance: 768.01135
       trigger: 72.17913
+      size: 10.123521
       alwaysUp: 0
     - position: {x: -133.05753, y: 0.8966051, z: 424.7313}
       scale: {x: 1.0173099, y: 1.0173099, z: 1.0173099}
       yaw: -2.2918942
       distance: 864.01276
       trigger: 83.518776
+      size: 9.867906
       alwaysUp: 0
     - position: {x: -98.32858, y: 0.8966051, z: 458.3143}
       scale: {x: 1.0635614, y: 1.0635614, z: 1.0635614}
       yaw: -2.8933508
       distance: 888.0131
       trigger: 80.15714
+      size: 10.3165455
       alwaysUp: 0
     - position: {x: 59.25954, y: 0.8966051, z: 383.75693}
       scale: {x: 0.9806757, y: 0.9806757, z: 0.9806757}
       yaw: -0.16043492
       distance: 1044.0154
       trigger: 74.771225
+      size: 9.512554
       alwaysUp: 0
     - position: {x: 127.89033, y: 0.8966051, z: 432.77325}
       scale: {x: 1.0666952, y: 1.0666952, z: 1.0666952}
       yaw: 1.9855468
       distance: 1068.0157
       trigger: 79.19018
+      size: 10.346944
       alwaysUp: 0
     - position: {x: 63.669968, y: 0.8966051, z: 382.9906}
       scale: {x: 1.0388489, y: 1.0388489, z: 1.0388489}
       yaw: -0.94170666
       distance: 1080.016
       trigger: 83.6501
+      size: 10.076834
       alwaysUp: 0
     - position: {x: 63.665287, y: 0.8966051, z: 381.85947}
       scale: {x: 1.1765127, y: 1.1765127, z: 1.1765127}
       yaw: -1.2219127
       distance: 1092.0161
       trigger: 98.01441
+      size: 11.412173
       alwaysUp: 0
     - position: {x: 72.717964, y: 0.8966051, z: 361.43314}
       scale: {x: 1.1599154, y: 1.1599154, z: 1.1599154}
       yaw: -1.2484925
       distance: 1116.0165
       trigger: 89.22087
+      size: 11.25118
       alwaysUp: 0
     - position: {x: 156.6468, y: 0.8966051, z: 349.21008}
       scale: {x: 1.0466852, y: 1.0466852, z: 1.0466852}
       yaw: 1.379188
       distance: 1128.0166
       trigger: 108.432556
+      size: 10.152847
       alwaysUp: 0
     - position: {x: 65.79035, y: 0.8966051, z: 349.91324}
       scale: {x: 0.9740449, y: 0.9740449, z: 0.9740449}
       yaw: -1.31639
       distance: 1128.0166
       trigger: 75.58549
+      size: 9.4482355
       alwaysUp: 0
     - position: {x: 152.51271, y: 0.8966051, z: 329.58118}
       scale: {x: 1.1217188, y: 1.1217188, z: 1.1217188}
       yaw: 1.2206473
       distance: 1140.0168
       trigger: 78.49265
+      size: 10.8806715
       alwaysUp: 0
     - position: {x: 66.567, y: 0.8966051, z: 343.43307}
       scale: {x: 1.1242568, y: 1.1242568, z: 1.1242568}
       yaw: -1.4565045
       distance: 1140.0168
       trigger: 75.66038
+      size: 10.905291
       alwaysUp: 0
     - position: {x: 63.23962, y: 0.8966051, z: 338.09775}
       scale: {x: 1.1657586, y: 1.1657586, z: 1.1657586}
       yaw: -1.9455225
       distance: 1164.0172
       trigger: 105.52694
+      size: 11.307858
       alwaysUp: 0
     - position: {x: 111.37552, y: 0.8966051, z: 284.10852}
       scale: {x: 1.2100399, y: 1.2100399, z: 1.2100399}
       yaw: 0.5762293
       distance: 1176.0173
       trigger: 94.93939
+      size: 11.737387
       alwaysUp: 0
     - position: {x: 119.17417, y: 0.8966051, z: 270.29785}
       scale: {x: 1.0811722, y: 1.0811722, z: 1.0811722}
       yaw: 1.0316952
       distance: 1200.0177
       trigger: 109.63794
+      size: 10.4873705
       alwaysUp: 0
   - volume: 0
     flutter: 1
@@ -10303,90 +10348,105 @@ MonoBehaviour:
       yaw: -0.6845596
       distance: 493.0073
       trigger: 98.389595
+      size: 7
       alwaysUp: 0
     - position: {x: -146.38075, y: 0.8966051, z: 138.66106}
       scale: {x: 1, y: 1, z: 1}
       yaw: -0.6000618
       distance: 539.00793
       trigger: 91.262726
+      size: 7
       alwaysUp: 0
     - position: {x: -195.97722, y: 0.8966051, z: 149.6817}
       scale: {x: 1, y: 1, z: 1}
       yaw: -1.1032109
       distance: 571.0084
       trigger: 102.56369
+      size: 7
       alwaysUp: 0
     - position: {x: -209.44353, y: 0.8966051, z: 233.05647}
       scale: {x: 1, y: 1, z: 1}
       yaw: -2.6882386
       distance: 615.0091
       trigger: 77.502235
+      size: 7
       alwaysUp: 0
     - position: {x: -133.2004, y: 0.8966051, z: 282.5949}
       scale: {x: 1, y: 1, z: 1}
       yaw: -2.3925204
       distance: 741.0109
       trigger: 78.756966
+      size: 7
       alwaysUp: 0
     - position: {x: -132.43677, y: 0.8966051, z: 323.59412}
       scale: {x: 1, y: 1, z: 1}
       yaw: -2.2785563
       distance: 782.01154
       trigger: 99.70616
+      size: 7
       alwaysUp: 0
     - position: {x: -132.52782, y: 0.8966051, z: 355.5935}
       scale: {x: 1, y: 1, z: 1}
       yaw: -2.3220928
       distance: 814.012
       trigger: 83.28717
+      size: 7
       alwaysUp: 0
     - position: {x: -131.13008, y: 0.8966051, z: 399.6609}
       scale: {x: 1, y: 1, z: 1}
       yaw: -2.2844644
       distance: 852.0126
       trigger: 81.200066
+      size: 7
       alwaysUp: 0
     - position: {x: 111.42065, y: 0.8966051, z: 435.19247}
       scale: {x: 1, y: 1, z: 1}
       yaw: 1.8433698
       distance: 1061.0156
       trigger: 99.91984
+      size: 7
       alwaysUp: 0
     - position: {x: 133.67654, y: 0.8966051, z: 392.1267}
       scale: {x: 1, y: 1, z: 1}
       yaw: 1.009727
       distance: 1090.0161
       trigger: 70.83979
+      size: 7
       alwaysUp: 0
     - position: {x: 133.78133, y: 0.8966051, z: 329.13235}
       scale: {x: 1, y: 1, z: 1}
       yaw: 0.7722394
       distance: 1142.0168
       trigger: 108.86411
+      size: 7
       alwaysUp: 0
     - position: {x: 102.29668, y: 0.8966051, z: 264.82376}
       scale: {x: 1, y: 1, z: 1}
       yaw: 0.7221131
       distance: 1222.0181
       trigger: 76.83056
+      size: 7
       alwaysUp: 0
     - position: {x: 154.49283, y: 0.8966051, z: 77.15914}
       scale: {x: 1, y: 1, z: 1}
       yaw: 1.1580439
       distance: 188.00278
       trigger: 80.58138
+      size: 7
       alwaysUp: 0
     - position: {x: 174.08963, y: 0.8966051, z: 157.36743}
       scale: {x: 1, y: 1, z: 1}
       yaw: 2.376353
       distance: 237.0035
       trigger: 80.4505
+      size: 7
       alwaysUp: 0
     - position: {x: 61.59628, y: 0.8966051, z: 327.16257}
       scale: {x: 1, y: 1, z: 1}
       yaw: -1.5154574
       distance: 1176.0173
       trigger: 75.96603
+      size: 7
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -10397,6 +10457,7 @@ MonoBehaviour:
       yaw: 0.7019414
       distance: 1232.0182
       trigger: 105.48915
+      size: 4.56
       alwaysUp: 0
   - volume: 0
     flutter: 1
@@ -10407,6 +10468,7 @@ MonoBehaviour:
       yaw: -2.1815126
       distance: 794.0117
       trigger: 78.170494
+      size: 8
       alwaysUp: 0
   - volume: 0
     flutter: 1
@@ -10417,504 +10479,588 @@ MonoBehaviour:
       yaw: -0.79456055
       distance: 553.0082
       trigger: 96.0072
+      size: 3.5
       alwaysUp: 0
     - position: {x: -162.91707, y: 0.8966051, z: 140.48613}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.7849284
       distance: 554.0082
       trigger: 101.022835
+      size: 3.5
       alwaysUp: 0
     - position: {x: -163.97911, y: 0.8966051, z: 145.09053}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.87117434
       distance: 555.0082
       trigger: 97.9862
+      size: 3.5
       alwaysUp: 0
     - position: {x: -166.0364, y: 0.8966051, z: 139.54356}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.78800803
       distance: 556.00824
       trigger: 74.91662
+      size: 3.5
       alwaysUp: 0
     - position: {x: -167.51878, y: 0.8966051, z: 145.62009}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.9069532
       distance: 557.00824
       trigger: 80.25368
+      size: 3.5
       alwaysUp: 0
     - position: {x: -170.34671, y: 0.8966051, z: 141.10892}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.85116965
       distance: 558.00824
       trigger: 109.674416
+      size: 3.5
       alwaysUp: 0
     - position: {x: -176.8693, y: 0.8966051, z: 140.9942}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.89964044
       distance: 561.0083
       trigger: 106.515076
+      size: 3.5
       alwaysUp: 0
     - position: {x: -179.03311, y: 0.8966051, z: 141.08327}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -0.9165101
       distance: 562.0083
       trigger: 73.24122
+      size: 3.5
       alwaysUp: 0
     - position: {x: -178.06805, y: 0.8966051, z: 150.0489}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.0629952
       distance: 563.0083
       trigger: 87.57833
+      size: 3.5
       alwaysUp: 0
     - position: {x: -180.93144, y: 0.8966051, z: 147.73875}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.0373827
       distance: 564.0083
       trigger: 88.7024
+      size: 3.5
       alwaysUp: 0
     - position: {x: -181.75548, y: 0.8966051, z: 150.6192}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.0947601
       distance: 565.00836
       trigger: 91.47693
+      size: 3.5
       alwaysUp: 0
     - position: {x: -183.303, y: 0.8966051, z: 151.62456}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.1222825
       distance: 566.00836
       trigger: 96.584816
+      size: 3.5
       alwaysUp: 0
     - position: {x: -185.21027, y: 0.8966051, z: 151.927}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.1381212
       distance: 567.00836
       trigger: 80.02644
+      size: 3.5
       alwaysUp: 0
     - position: {x: -189.41939, y: 0.8966051, z: 148.33716}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.0975327
       distance: 568.00836
       trigger: 76.579704
+      size: 3.5
       alwaysUp: 0
     - position: {x: -190.73431, y: 0.8966051, z: 150.09505}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.1344789
       distance: 569.0084
       trigger: 102.99484
+      size: 3.5
       alwaysUp: 0
     - position: {x: -190.56099, y: 0.8966051, z: 153.93329}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.2026958
       distance: 570.0084
       trigger: 71.8813
+      size: 3.5
       alwaysUp: 0
     - position: {x: -192.80937, y: 0.8966051, z: 154.03839}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.2150393
       distance: 571.0084
       trigger: 109.76488
+      size: 3.5
       alwaysUp: 0
     - position: {x: -194.48578, y: 0.8966051, z: 155.02596}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.2408419
       distance: 572.0084
       trigger: 76.582146
+      size: 3.5
       alwaysUp: 0
     - position: {x: -196.86005, y: 0.8966051, z: 155.23036}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.2547098
       distance: 573.0085
       trigger: 94.79032
+      size: 3.5
       alwaysUp: 0
     - position: {x: -196.12497, y: 0.8966051, z: 156.10243}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.2678807
       distance: 573.0085
       trigger: 83.477234
+      size: 3.5
       alwaysUp: 0
     - position: {x: -195.02556, y: 0.8966051, z: 160.22446}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.3459696
       distance: 574.0085
       trigger: 106.57186
+      size: 3.5
       alwaysUp: 0
     - position: {x: -197.66919, y: 0.8966051, z: 160.09805}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.3515714
       distance: 575.0085
       trigger: 71.01568
+      size: 3.5
       alwaysUp: 0
     - position: {x: -203.37596, y: 0.8966051, z: 157.22638}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.3155491
       distance: 576.0085
       trigger: 105.64095
+      size: 3.5
       alwaysUp: 0
     - position: {x: -202.97112, y: 0.8966051, z: 160.39128}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.3728182
       distance: 577.00854
       trigger: 82.784065
+      size: 3.5
       alwaysUp: 0
     - position: {x: -205.693, y: 0.8966051, z: 160.7563}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.386952
       distance: 578.00854
       trigger: 106.108315
+      size: 3.5
       alwaysUp: 0
     - position: {x: -202.56294, y: 0.8966051, z: 168.08177}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.5325396
       distance: 580.00854
       trigger: 70.17715
+      size: 3.5
       alwaysUp: 0
     - position: {x: -204.54482, y: 0.8966051, z: 168.94786}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.5524304
       distance: 581.0086
       trigger: 85.67558
+      size: 3.5
       alwaysUp: 0
     - position: {x: -204.3786, y: 0.8966051, z: 171.23524}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.6044245
       distance: 582.0086
       trigger: 76.1904
+      size: 3.5
       alwaysUp: 0
     - position: {x: -206.58662, y: 0.8966051, z: 172.0843}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.6216981
       distance: 583.0086
       trigger: 87.766045
+      size: 3.5
       alwaysUp: 0
     - position: {x: -208.78456, y: 0.8966051, z: 173.05565}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.6403801
       distance: 584.0086
       trigger: 93.72717
+      size: 3.5
       alwaysUp: 0
     - position: {x: -213.89954, y: 0.8966051, z: 172.75739}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.626606
       distance: 585.00867
       trigger: 107.10623
+      size: 3.5
       alwaysUp: 0
     - position: {x: -207.907, y: 0.8966051, z: 177.60278}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.7452666
       distance: 586.00867
       trigger: 101.09251
+      size: 3.5
       alwaysUp: 0
     - position: {x: -212.8464, y: 0.8966051, z: 177.64902}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.7277529
       distance: 587.00867
       trigger: 107.16598
+      size: 3.5
       alwaysUp: 0
     - position: {x: -216.65694, y: 0.8966051, z: 178.452}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.7304617
       distance: 588.00867
       trigger: 75.93489
+      size: 3.5
       alwaysUp: 0
     - position: {x: -215.37665, y: 0.8966051, z: 183.15497}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.8279659
       distance: 590.0087
       trigger: 79.65992
+      size: 3.5
       alwaysUp: 0
     - position: {x: -211.33948, y: 0.8966051, z: 186.13248}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.9163346
       distance: 591.0087
       trigger: 84.20711
+      size: 3.5
       alwaysUp: 0
     - position: {x: -210.79698, y: 0.8966051, z: 188.1037}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.963729
       distance: 592.0087
       trigger: 78.998024
+      size: 3.5
       alwaysUp: 0
     - position: {x: -218.86699, y: 0.8966051, z: 188.65382}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -1.9113858
       distance: 593.0088
       trigger: 101.78896
+      size: 3.5
       alwaysUp: 0
     - position: {x: -212.37042, y: 0.8966051, z: 191.5357}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.0217574
       distance: 594.0088
       trigger: 71.875534
+      size: 3.5
       alwaysUp: 0
     - position: {x: -213.51642, y: 0.8966051, z: 193.28069}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.0455413
       distance: 595.0088
       trigger: 76.13243
+      size: 3.5
       alwaysUp: 0
     - position: {x: -214.52753, y: 0.8966051, z: 195.11525}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.0708437
       distance: 596.0088
       trigger: 81.52291
+      size: 3.5
       alwaysUp: 0
     - position: {x: -216.89455, y: 0.8966051, z: 197.01947}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.0813868
       distance: 597.0088
       trigger: 82.007515
+      size: 3.5
       alwaysUp: 0
     - position: {x: -217.82582, y: 0.8966051, z: 199.07353}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.107935
       distance: 598.00885
       trigger: 90.18206
+      size: 3.5
       alwaysUp: 0
     - position: {x: -218.01015, y: 0.8966051, z: 203.18286}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.1753488
       distance: 600.00885
       trigger: 74.55539
+      size: 3.5
       alwaysUp: 0
     - position: {x: -213.57335, y: 0.8966051, z: 204.64713}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.2571964
       distance: 601.00885
       trigger: 74.14586
+      size: 3.5
       alwaysUp: 0
     - position: {x: -217.4263, y: 0.8966051, z: 207.19695}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.2467973
       distance: 602.0089
       trigger: 85.82788
+      size: 3.5
       alwaysUp: 0
     - position: {x: -219.20651, y: 0.8966051, z: 209.62961}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.2608685
       distance: 603.0089
       trigger: 99.92705
+      size: 3.5
       alwaysUp: 0
     - position: {x: -214.27354, y: 0.8966051, z: 210.6059}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.3432045
       distance: 604.0089
       trigger: 92.58344
+      size: 3.5
       alwaysUp: 0
     - position: {x: -212.69312, y: 0.8966051, z: 212.18275}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.3914957
       distance: 605.0089
       trigger: 81.63062
+      size: 3.5
       alwaysUp: 0
     - position: {x: -209.34135, y: 0.8966051, z: 213.1288}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.463196
       distance: 606.009
       trigger: 104.22903
+      size: 3.5
       alwaysUp: 0
     - position: {x: -214.7584, y: 0.8966051, z: 217.0016}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.4259417
       distance: 607.009
       trigger: 92.43135
+      size: 3.5
       alwaysUp: 0
     - position: {x: -213.50902, y: 0.8966051, z: 218.71883}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.4677641
       distance: 608.009
       trigger: 93.72033
+      size: 3.5
       alwaysUp: 0
     - position: {x: -210.44986, y: 0.8966051, z: 219.57956}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.530589
       distance: 609.009
       trigger: 87.775154
+      size: 3.5
       alwaysUp: 0
     - position: {x: -214.4832, y: 0.8966051, z: 223.67134}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.510653
       distance: 610.00903
       trigger: 80.38252
+      size: 3.5
       alwaysUp: 0
     - position: {x: -211.22955, y: 0.8966051, z: 224.3478}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.5717976
       distance: 611.00903
       trigger: 102.83654
+      size: 3.5
       alwaysUp: 0
     - position: {x: -205.68759, y: 0.8966051, z: 223.50633}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.6672926
       distance: 612.00903
       trigger: 97.975365
+      size: 3.5
       alwaysUp: 0
     - position: {x: -206.86845, y: 0.8966051, z: 226.42258}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.6731431
       distance: 613.00903
       trigger: 108.84533
+      size: 3.5
       alwaysUp: 0
     - position: {x: -206.57727, y: 0.8966051, z: 228.55145}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.6985474
       distance: 614.0091
       trigger: 94.31821
+      size: 3.5
       alwaysUp: 0
     - position: {x: -201.77835, y: 0.8966051, z: 227.47499}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.7886248
       distance: 615.0091
       trigger: 90.5703
+      size: 3.5
       alwaysUp: 0
     - position: {x: -202.15895, y: 0.8966051, z: 230.0606}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.8007925
       distance: 616.0091
       trigger: 96.40509
+      size: 3.5
       alwaysUp: 0
     - position: {x: -205.30042, y: 0.8966051, z: 235.16815}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.7746298
       distance: 617.0091
       trigger: 84.38765
+      size: 3.5
       alwaysUp: 0
     - position: {x: -199.15239, y: 0.8966051, z: 232.39458}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.8822258
       distance: 618.00916
       trigger: 108.389114
+      size: 3.5
       alwaysUp: 0
     - position: {x: -199.11179, y: 0.8966051, z: 234.91977}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.897225
       distance: 619.00916
       trigger: 93.73312
+      size: 3.5
       alwaysUp: 0
     - position: {x: -199.86717, y: 0.8966051, z: 238.45084}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.899046
       distance: 620.00916
       trigger: 75.520805
+      size: 3.5
       alwaysUp: 0
     - position: {x: -197.29367, y: 0.8966051, z: 238.57947}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.9525871
       distance: 621.00916
       trigger: 104.31996
+      size: 3.5
       alwaysUp: 0
     - position: {x: -198.71468, y: 0.8966051, z: 243.37474}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -2.9416804
       distance: 622.0092
       trigger: 107.870636
+      size: 3.5
       alwaysUp: 0
     - position: {x: -193.10808, y: 0.8966051, z: 239.55693}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -3.0465035
       distance: 623.0092
       trigger: 79.53683
+      size: 3.5
       alwaysUp: 0
     - position: {x: -191.28058, y: 0.8966051, z: 240.22551}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -3.0888076
       distance: 624.0092
       trigger: 88.613556
+      size: 3.5
       alwaysUp: 0
     - position: {x: -192.2119, y: 0.8966051, z: 244.9973}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: -3.0741584
       distance: 625.0092
       trigger: 94.19889
+      size: 3.5
       alwaysUp: 0
     - position: {x: -187.3702, y: 0.8966051, z: 240.94727}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 3.10348
       distance: 626.0093
       trigger: 83.21678
+      size: 3.5
       alwaysUp: 0
     - position: {x: -187.11691, y: 0.8966051, z: 244.19675}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 3.100678
       distance: 627.0093
       trigger: 79.75373
+      size: 3.5
       alwaysUp: 0
     - position: {x: -188.06454, y: 0.8966051, z: 250.19014}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 3.1253545
       distance: 628.0093
       trigger: 77.17622
+      size: 3.5
       alwaysUp: 0
     - position: {x: -185.60277, y: 0.8966051, z: 249.89766}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 3.0765872
       distance: 629.0093
       trigger: 78.90174
+      size: 3.5
       alwaysUp: 0
     - position: {x: -183.48842, y: 0.8966051, z: 250.17914}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 3.0347917
       distance: 630.0093
       trigger: 74.07968
+      size: 3.5
       alwaysUp: 0
     - position: {x: -180.32607, y: 0.8966051, z: 247.67282}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.9606848
       distance: 631.00934
       trigger: 108.54438
+      size: 3.5
       alwaysUp: 0
     - position: {x: -177.79884, y: 0.8966051, z: 246.26637}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.8981123
       distance: 632.00934
       trigger: 102.681816
+      size: 3.5
       alwaysUp: 0
     - position: {x: -177.64893, y: 0.8966051, z: 252.08015}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.92455
       distance: 633.00934
       trigger: 108.08781
+      size: 3.5
       alwaysUp: 0
     - position: {x: -175.91283, y: 0.8966051, z: 253.41362}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.8970435
       distance: 634.00934
       trigger: 77.068306
+      size: 3.5
       alwaysUp: 0
     - position: {x: -173.9847, y: 0.8966051, z: 254.12698}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.8638723
       distance: 635.0094
       trigger: 90.33916
+      size: 3.5
       alwaysUp: 0
     - position: {x: -171.97212, y: 0.8966051, z: 254.53369}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.8281736
       distance: 636.0094
       trigger: 81.11025
+      size: 3.5
       alwaysUp: 0
     - position: {x: -168.79991, y: 0.8966051, z: 248.02423}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.7125776
       distance: 637.0094
       trigger: 92.46924
+      size: 3.5
       alwaysUp: 0
     - position: {x: -166.9871, y: 0.8966051, z: 249.48463}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.688971
       distance: 638.0094
       trigger: 85.76488
+      size: 3.5
       alwaysUp: 0
     - position: {x: -165.23097, y: 0.8966051, z: 250.9792}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.6687775
       distance: 639.00946
       trigger: 84.00241
+      size: 3.5
       alwaysUp: 0
     - position: {x: -163.99872, y: 0.8966051, z: 256.53714}
       scale: {x: 1.4, y: 1.4, z: 1.4}
       yaw: 2.698339
       distance: 640.00946
       trigger: 93.15714
+      size: 3.5
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -10925,294 +11071,343 @@ MonoBehaviour:
       yaw: 1.2393562
       distance: 5.000074
       trigger: 94.35731
+      size: 20.63092
       alwaysUp: 0
     - position: {x: 66.87826, y: 0.8966051, z: 58.148827}
       scale: {x: 0.9274765, y: 1.1085545, z: 0.9274765}
       yaw: 5.2711196
       distance: 140.00208
       trigger: 73.59208
+      size: 18.29115
       alwaysUp: 0
     - position: {x: 79.52339, y: 0.8966051, z: 33.71895}
       scale: {x: 1.1942358, y: 1.4990349, z: 1.1942358}
       yaw: 3.2056322
       distance: 149.0022
       trigger: 81.91855
+      size: 24.734076
       alwaysUp: 0
     - position: {x: 121.34873, y: 0.8966051, z: 56.987633}
       scale: {x: 0.8419578, y: 1.0291245, z: 0.8419578}
       yaw: 4.4377346
       distance: 167.00247
       trigger: 97.69586
+      size: 16.980553
       alwaysUp: 0
     - position: {x: 160.3485, y: 0.8966051, z: 59.867996}
       scale: {x: 1.2103248, y: 1.4449936, z: 1.2103248}
       yaw: 3.8642035
       distance: 185.00273
       trigger: 100.89487
+      size: 23.842396
       alwaysUp: 0
     - position: {x: 164.7271, y: 0.8966051, z: 82.53203}
       scale: {x: 1.241056, y: 1.1472986, z: 1.241056}
       yaw: 5.248526
       distance: 194.00287
       trigger: 76.005356
+      size: 18.930426
       alwaysUp: 0
     - position: {x: 201.24983, y: 0.8966051, z: 106.94458}
       scale: {x: 1.2599627, y: 1.3895577, z: 1.2599627}
       yaw: 0.15868233
       distance: 212.00313
       trigger: 72.777016
+      size: 22.927702
       alwaysUp: 0
     - position: {x: 160.34822, y: 0.8966051, z: 171.31717}
       scale: {x: 1.3673831, y: 1.374702, z: 1.3673831}
       yaw: 4.4521537
       distance: 248.00366
       trigger: 98.632484
+      size: 22.682583
       alwaysUp: 0
     - position: {x: 138.35153, y: 0.8966051, z: 192.91635}
       scale: {x: 1.138554, y: 1.2988737, z: 1.138554}
       yaw: 4.5573335
       distance: 266.00394
       trigger: 85.23299
+      size: 21.431416
       alwaysUp: 0
     - position: {x: 130.87138, y: 0.8966051, z: 233.31505}
       scale: {x: 0.911422, y: 1.1679984, z: 0.911422}
       yaw: 0.57019097
       distance: 275.00406
       trigger: 86.05394
+      size: 19.271973
       alwaysUp: 0
     - position: {x: -107.78014, y: 0.8966051, z: 115.31103}
       scale: {x: 1.0231944, y: 0.99843746, z: 1.0231944}
       yaw: 5.6974587
       distance: 500.0074
       trigger: 109.07287
+      size: 16.474218
       alwaysUp: 0
     - position: {x: -116.741196, y: 0.8966051, z: 107.3231}
       scale: {x: 1.1511836, y: 1.2525486, z: 1.1511836}
       yaw: 0.11049745
       distance: 509.0075
       trigger: 71.343254
+      size: 20.667051
       alwaysUp: 0
     - position: {x: -125.69947, y: 0.8966051, z: 136.30626}
       scale: {x: 1.3349463, y: 1.5977705, z: 1.3349463}
       yaw: 2.1420064
       distance: 518.0076
       trigger: 83.77032
+      size: 26.363213
       alwaysUp: 0
     - position: {x: -143.51004, y: 0.8966051, z: 136.22275}
       scale: {x: 1.3269277, y: 1.3545563, z: 1.3269277}
       yaw: 5.6301217
       distance: 536.00793
       trigger: 75.883606
+      size: 22.35018
       alwaysUp: 0
     - position: {x: -152.20506, y: 0.8966051, z: 105.09845}
       scale: {x: 1.2030327, y: 1.5616534, z: 1.2030327}
       yaw: 1.88621
       distance: 545.00806
       trigger: 106.80147
+      size: 25.76728
       alwaysUp: 0
     - position: {x: -179.26274, y: 0.8966051, z: 146.71101}
       scale: {x: 1.0140854, y: 1.3178427, z: 1.0140854}
       yaw: 4.408009
       distance: 563.0083
       trigger: 108.431404
+      size: 21.744406
       alwaysUp: 0
     - position: {x: -237.2924, y: 0.8966051, z: 228.20428}
       scale: {x: 1.1536677, y: 1.1444767, z: 1.1536677}
       yaw: 0.44436643
       distance: 608.009
       trigger: 103.9175
+      size: 18.883865
       alwaysUp: 0
     - position: {x: -178.66402, y: 0.8966051, z: 274.46655}
       scale: {x: 1.2542348, y: 1.2077998, z: 1.2542348}
       yaw: 1.1520469
       distance: 635.0094
       trigger: 76.900024
+      size: 19.928696
       alwaysUp: 0
     - position: {x: -158.51225, y: 0.8966051, z: 258.86435}
       scale: {x: 1.1812799, y: 1.5271698, z: 1.1812799}
       yaw: 5.8371944
       distance: 644.0095
       trigger: 102.9627
+      size: 25.198301
       alwaysUp: 0
     - position: {x: -143.2175, y: 0.8966051, z: 290.182}
       scale: {x: 1.1925396, y: 1.140522, z: 1.1925396}
       yaw: 4.512579
       distance: 662.00977
       trigger: 84.97505
+      size: 18.818613
       alwaysUp: 0
     - position: {x: -140.30301, y: 0.8966051, z: 264.367}
       scale: {x: 1.0236868, y: 1.2762653, z: 1.0236868}
       yaw: 6.2593207
       distance: 680.0101
       trigger: 94.9317
+      size: 21.058376
       alwaysUp: 0
     - position: {x: -151.65274, y: 0.8966051, z: 267.96777}
       scale: {x: 1.3574858, y: 1.7052163, z: 1.3574858}
       yaw: 0.031945333
       distance: 716.01056
       trigger: 88.442276
+      size: 28.136068
       alwaysUp: 1
     - position: {x: -165.9164, y: 0.8966051, z: 268.64346}
       scale: {x: 0.94398785, y: 1.153053, z: 0.94398785}
       yaw: 0.7618891
       distance: 725.0107
       trigger: 104.39505
+      size: 19.025375
       alwaysUp: 0
     - position: {x: -143.54253, y: 0.8966051, z: 284.59488}
       scale: {x: 1.1395808, y: 1.4813449, z: 1.1395808}
       yaw: 0.5498347
       distance: 743.011
       trigger: 99.25674
+      size: 24.442192
       alwaysUp: 0
     - position: {x: -139.23701, y: 0.8966051, z: 293.59473}
       scale: {x: 1.1112922, y: 1.1787386, z: 1.1112922}
       yaw: 0.0338918
       distance: 752.0111
       trigger: 103.20321
+      size: 19.449186
       alwaysUp: 0
     - position: {x: -166.72684, y: 0.8966051, z: 302.59454}
       scale: {x: 1.1334423, y: 1.3546678, z: 1.1334423}
       yaw: 4.499331
       distance: 761.0112
       trigger: 86.414955
+      size: 22.352018
       alwaysUp: 0
     - position: {x: -139.39174, y: 0.8966051, z: 329.594}
       scale: {x: 1.114869, y: 1.3789339, z: 1.114869}
       yaw: 5.977716
       distance: 788.01166
       trigger: 93.24555
+      size: 22.752409
       alwaysUp: 0
     - position: {x: -168.20665, y: 0.8966051, z: 347.59366}
       scale: {x: 0.9961539, y: 1.1586467, z: 0.9961539}
       yaw: 2.3377361
       distance: 806.0119
       trigger: 80.28676
+      size: 19.117672
       alwaysUp: 0
     - position: {x: -125.95782, y: 0.8966051, z: 365.59335}
       scale: {x: 1.2835045, y: 1.599997, z: 1.2835045}
       yaw: 1.673791
       distance: 824.01215
       trigger: 91.8619
+      size: 26.399952
       alwaysUp: 0
     - position: {x: -129.0479, y: 0.8966051, z: 384.1118}
       scale: {x: 0.9401815, y: 1.1298084, z: 0.9401815}
       yaw: 4.2467923
       distance: 842.01245
       trigger: 75.20159
+      size: 18.64184
       alwaysUp: 0
     - position: {x: -149.53653, y: 0.8966051, z: 422.79047}
       scale: {x: 1.0172273, y: 1.0860336, z: 1.0172273}
       yaw: 5.5260267
       distance: 860.0127
       trigger: 105.3289
+      size: 17.919554
       alwaysUp: 0
     - position: {x: -118.89241, y: 0.8966051, z: 451.06818}
       scale: {x: 1.38393, y: 1.654342, z: 1.38393}
       yaw: 3.8050828
       distance: 878.01294
       trigger: 80.358604
+      size: 27.296644
       alwaysUp: 0
     - position: {x: 54.539177, y: 0.8966051, z: 491.98856}
       scale: {x: 1.2377584, y: 1.3168977, z: 1.2377584}
       yaw: 2.3896315
       distance: 1022.0151
       trigger: 93.77665
+      size: 21.728813
       alwaysUp: 0
     - position: {x: 68.291466, y: 0.8966051, z: 480.51767}
       scale: {x: 0.94870234, y: 0.96833843, z: 0.94870234}
       yaw: 1.6636212
       distance: 1031.0153
       trigger: 88.63675
+      size: 15.977584
       alwaysUp: 0
     - position: {x: 58.204994, y: 0.8966051, z: 381.24475}
       scale: {x: 1.1756473, y: 1.0629541, z: 1.1756473}
       yaw: 5.2315
       distance: 1040.0154
       trigger: 92.4053
+      size: 17.538742
       alwaysUp: 0
     - position: {x: 112.33447, y: 0.8966051, z: 477.92004}
       scale: {x: 0.994894, y: 1.1987793, z: 0.994894}
       yaw: 0.75510263
       distance: 1049.0155
       trigger: 81.68588
+      size: 19.779858
       alwaysUp: 0
     - position: {x: 60.553436, y: 0.8966051, z: 383.72797}
       scale: {x: 0.8194364, y: 0.89231163, z: 0.8194364}
       yaw: 4.3324304
       distance: 1058.0156
       trigger: 109.731544
+      size: 14.723142
       alwaysUp: 0
     - position: {x: 114.452995, y: 0.8966051, z: 424.73923}
       scale: {x: 0.9149862, y: 0.9063559, z: 0.9149862}
       yaw: 5.1014137
       distance: 1067.0157
       trigger: 94.40521
+      size: 14.954873
       alwaysUp: 0
     - position: {x: 156.23593, y: 0.8966051, z: 407.12003}
       scale: {x: 0.8948661, y: 0.8488799, z: 0.8948661}
       yaw: 0.12576967
       distance: 1085.016
       trigger: 82.96154
+      size: 14.006518
       alwaysUp: 0
     - position: {x: 161.47528, y: 0.8966051, z: 365.1874}
       scale: {x: 1.149627, y: 1.1662021, z: 1.149627}
       yaw: 0.3288309
       distance: 1112.0165
       trigger: 104.2018
+      size: 19.242334
       alwaysUp: 0
     - position: {x: 151.27052, y: 0.8966051, z: 346.53928}
       scale: {x: 0.9230602, y: 1.0692707, z: 0.9230602}
       yaw: 5.5101376
       distance: 1130.0167
       trigger: 91.81836
+      size: 17.642967
       alwaysUp: 0
     - position: {x: 151.96683, y: 0.8966051, z: 331.95142}
       scale: {x: 1.1797494, y: 1.341223, z: 1.1797494}
       yaw: 3.412096
       distance: 1139.0168
       trigger: 94.85772
+      size: 22.13018
       alwaysUp: 0
     - position: {x: 53.547573, y: 0.8966051, z: 345.59726}
       scale: {x: 1.1611667, y: 1.3094064, z: 1.1611667}
       yaw: 5.23532
       distance: 1148.017
       trigger: 93.77637
+      size: 21.605206
       alwaysUp: 0
     - position: {x: 63.73944, y: 0.8966051, z: 339.85687}
       scale: {x: 1.0158925, y: 1.3024769, z: 1.0158925}
       yaw: 0.85846704
       distance: 1157.0171
       trigger: 107.0766
+      size: 21.49087
       alwaysUp: 0
     - position: {x: 117.106346, y: 0.8966051, z: 280.36578}
       scale: {x: 0.8180715, y: 0.9030607, z: 0.8180715}
       yaw: 3.714419
       distance: 1175.0173
       trigger: 80.352585
+      size: 14.900501
       alwaysUp: 0
     - position: {x: 110.46224, y: 0.8966051, z: 274.9548}
       scale: {x: 1.3726795, y: 1.737618, z: 1.3726795}
       yaw: 2.1425183
       distance: 1193.0176
       trigger: 96.41499
+      size: 28.670696
       alwaysUp: 0
     - position: {x: 101.27057, y: 0.8966051, z: 275.74893}
       scale: {x: 1.0801679, y: 1.3414727, z: 1.0801679}
       yaw: 3.8612247
       distance: 1202.0177
       trigger: 80.72588
+      size: 22.1343
       alwaysUp: 0
     - position: {x: 128.8231, y: 0.8966051, z: 248.97581}
       scale: {x: 1.031106, y: 1.3386829, z: 1.031106}
       yaw: 4.9382715
       distance: 1238.0183
       trigger: 86.678795
+      size: 22.088268
       alwaysUp: 0
     - position: {x: 113.40347, y: 0.8966051, z: 239.99017}
       scale: {x: 1.3093477, y: 1.2801056, z: 1.3093477}
       yaw: 6.2511163
       distance: 1247.0184
       trigger: 83.30127
+      size: 21.121742
       alwaysUp: 0
   - volume: 0
     flutter: 0
@@ -11223,180 +11418,210 @@ MonoBehaviour:
       yaw: 0.55030984
       distance: 182.00269
       trigger: 88.96873
+      size: 2.8995545
       alwaysUp: 0
     - position: {x: 184.42444, y: 0.8966051, z: 102.763596}
       scale: {x: 39.90831, y: 7.2466125, z: 20}
       yaw: 1.2149131
       distance: 208.00307
       trigger: 108.18338
+      size: 4.369721
       alwaysUp: 0
     - position: {x: 183.21794, y: 0.8966051, z: 154.57263}
       scale: {x: 34.878407, y: 7.874531, z: 20}
       yaw: 1.881041
       distance: 234.00346
       trigger: 80.52641
+      size: 5.8146396
       alwaysUp: 0
     - position: {x: 151.12384, y: 0.8966051, z: 193.17436}
       scale: {x: 29.586458, y: 8.187956, z: 20}
       yaw: 2.5485513
       distance: 260.00385
       trigger: 80.26604
+      size: 7.043363
       alwaysUp: 0
     - position: {x: 2.1947439, y: 0.8966051, z: 134.7722}
       scale: {x: 30.995619, y: 10.111763, z: 20}
       yaw: -6.344529e-17
       distance: 390.00577
       trigger: 87.6577
+      size: 8.123395
       alwaysUp: 0
     - position: {x: -23.80564, y: 0.8966051, z: 129.73586}
       scale: {x: 41.06831, y: 9.778664, z: 20}
       yaw: -8.874207e-17
       distance: 416.00613
       trigger: 81.59669
+      size: 8.123395
       alwaysUp: 0
     - position: {x: -23.80564, y: 0.8966051, z: 207.72733}
       scale: {x: 36.914635, y: 10.622021, z: 20}
       yaw: 3.1415927
       distance: 416.00613
       trigger: 79.23281
+      size: 8.123395
       alwaysUp: 0
     - position: {x: -49.806023, y: 0.8966051, z: 130.58463}
       scale: {x: 39.370766, y: 9.866646, z: 20}
       yaw: 0
       distance: 442.00653
       trigger: 106.63632
+      size: 8.123395
       alwaysUp: 0
     - position: {x: -49.806023, y: 0.8966051, z: 204.66283}
       scale: {x: 30.78564, y: 9.800133, z: 20}
       yaw: 3.1415927
       distance: 442.00653
       trigger: 109.51097
+      size: 8.123395
       alwaysUp: 0
     - position: {x: -75.806274, y: 0.8966051, z: 130.33008}
       scale: {x: 39.025635, y: 10.043489, z: 20}
       yaw: 0
       distance: 468.00693
       trigger: 102.61803
+      size: 8.168187
       alwaysUp: 0
     - position: {x: -101.79409, y: 0.8966051, z: 128.44255}
       scale: {x: 39.79258, y: 8.792685, z: 20}
       yaw: 0
       distance: 494.0073
       trigger: 103.281876
+      size: 7.5269766
       alwaysUp: 0
     - position: {x: -127.68996, y: 0.8966051, z: 133.48306}
       scale: {x: 29.57387, y: 7.9163613, z: 20}
       yaw: 0
       distance: 520.0077
       trigger: 83.185684
+      size: 5.2207475
       alwaysUp: 0
     - position: {x: -153.4285, y: 0.8966051, z: 130.58583}
       scale: {x: 35.21843, y: 6.2938004, z: 20}
       yaw: 0.004786844
       distance: 546.00806
       trigger: 88.76511
+      size: 3.3436394
       alwaysUp: 0
     - position: {x: -203.26779, y: 0.8966051, z: 143.8111}
       scale: {x: 38.082943, y: 5.1000476, z: 20}
       yaw: -0.66433203
       distance: 572.0084
       trigger: 89.5467
+      size: 3.123395
       alwaysUp: 0
     - position: {x: -228.48328, y: 0.8966051, z: 199.32213}
       scale: {x: 36.00299, y: 6.117722, z: 20}
       yaw: -1.594119
       distance: 598.00885
       trigger: 107.5876
+      size: 3.123395
       alwaysUp: 0
     - position: {x: -198.21417, y: 0.8966051, z: 249.94954}
       scale: {x: 29.179367, y: 5.8269143, z: 20}
       yaw: -2.5221708
       distance: 624.0092
       trigger: 96.542946
+      size: 3.123395
       alwaysUp: 0
     - position: {x: -62.7176, y: 0.8966051, z: 269.43454}
       scale: {x: 33.410904, y: 5.502949, z: 20}
       yaw: 1.5665848
       distance: 728.01074
       trigger: 77.56341
+      size: 2.745751
       alwaysUp: 0
     - position: {x: -138.36696, y: 0.8966051, z: 295.5947}
       scale: {x: 31.73391, y: 4.4856925, z: 20}
       yaw: -1.5707964
       distance: 754.0111
       trigger: 80.47417
+      size: 2.5448267
       alwaysUp: 0
     - position: {x: -63.714066, y: 0.8966051, z: 295.5947}
       scale: {x: 31.571867, y: 4.788603, z: 20}
       yaw: 1.5707964
       distance: 754.0111
       trigger: 83.39982
+      size: 2.5448267
       alwaysUp: 0
     - position: {x: 82.62811, y: 0.8966051, z: 457.63226}
       scale: {x: 28.392635, y: 3.965464, z: 20}
       yaw: 2.8321378
       distance: 1040.0154
       trigger: 104.14591
+      size: 2.7270625
       alwaysUp: 0
     - position: {x: 120.60055, y: 0.8966051, z: 431.80408}
       scale: {x: 28.481796, y: 5.678831, z: 20}
       yaw: 2.2552223
       distance: 1066.0157
       trigger: 84.39956
+      size: 4.1857033
       alwaysUp: 0
     - position: {x: 59.8047, y: 0.8966051, z: 382.19418}
       scale: {x: 42.454845, y: 6.301683, z: 20}
       yaw: -0.88637036
       distance: 1066.0157
       trigger: 73.39731
+      size: 4.1857033
       alwaysUp: 0
     - position: {x: 141.95723, y: 0.8966051, z: 389.26804}
       scale: {x: 35.75486, y: 6.111204, z: 20}
       yaw: 1.6651429
       distance: 1092.0161
       trigger: 97.25887
+      size: 5.0682907
       alwaysUp: 0
     - position: {x: 146.51103, y: 0.8966051, z: 360.0238}
       scale: {x: 43.904274, y: 9.222927, z: 20}
       yaw: 1.5804325
       distance: 1118.0165
       trigger: 85.8646
+      size: 6.34646
       alwaysUp: 0
     - position: {x: 61.280792, y: 0.8966051, z: 359.20248}
       scale: {x: 40.564106, y: 8.61313, z: 20}
       yaw: -1.5611601
       distance: 1118.0165
       trigger: 71.549866
+      size: 6.34646
       alwaysUp: 0
     - position: {x: 138.4092, y: 0.8966051, z: 324.58575}
       scale: {x: 32.923824, y: 8.691183, z: 20}
       yaw: 1.327113
       distance: 1144.0168
       trigger: 91.86723
+      size: 7.123395
       alwaysUp: 0
     - position: {x: 63.05222, y: 0.8966051, z: 343.32132}
       scale: {x: 36.378414, y: 10.001121, z: 20}
       yaw: -1.8144797
       distance: 1144.0168
       trigger: 108.23352
+      size: 7.123395
       alwaysUp: 0
     - position: {x: 117.11764, y: 0.8966051, z: 287.69974}
       scale: {x: 29.719978, y: 9.02209, z: 20}
       yaw: 0.871088
       distance: 1170.0173
       trigger: 93.907135
+      size: 6.9721236
       alwaysUp: 0
     - position: {x: 107.98652, y: 0.8966051, z: 275.3363}
       scale: {x: 30.700634, y: 6.1773357, z: 20}
       yaw: 1.1541158
       distance: 1196.0177
       trigger: 91.37307
+      size: 4.0099006
       alwaysUp: 0
     - position: {x: 36.205338, y: 0.8966051, z: 307.10645}
       scale: {x: 40.29464, y: 5.7553134, z: 20}
       yaw: -1.987477
       distance: 1196.0177
       trigger: 80.21992
+      size: 4.0099006
       alwaysUp: 0
   - volume: 1
     flutter: 1
@@ -11407,6 +11632,7 @@ MonoBehaviour:
       yaw: 2.4669125
       distance: 145.00214
       trigger: 85.487114
+      size: 40
       alwaysUp: 1
   - volume: 0
     flutter: 1
@@ -11417,6 +11643,7 @@ MonoBehaviour:
       yaw: 0.26144522
       distance: -13.999617
       trigger: 104.04238
+      size: 12
       alwaysUp: 1
   ramps:
   - distance: 753.9597

@@ -20,7 +20,7 @@
 | `core/config.js`、`characters/characters.js` | 保存参数与完整 roster，中文显示名统一由 Unity 目录提供。 |
 | `input/input.js`、`ui/touch.js` | 正式 `Data/PlayerInput.asset` 与 `KagitKartInput` 保留原版键盘、标准手柄、横向滑条、保持按钮和短按锁存，复用公共输入；HUD、选赛、暂停与重赛三端流程通过定向场景测试，中文设置与三设备操作说明已接入，画面设置复用公共 Modal；系统低动态查询、首次教程及驾驶提示已接入并定向验证。 |
 | `track/trackQuery.js` | 已迁移高度加权查找、空间网格、捷径换段、坡度、道路两侧、水面、跳台、加速带、表面定位及网格位置。 |
-| `kart/kart.js`、`kart/collisions.js` | 已迁移车辆运动、漂移、特技、壁碰、救援、保护、质量互撞和尾流；独立规则事件已接入角色/道具/比赛特效与音频；真实掉落救援及完整听感另行验收。 |
+| `kart/kart.js`、`kart/collisions.js` | 已迁移车辆运动、漂移、特技、壁碰、救援、保护、质量互撞和尾流；独立规则事件已接入角色/道具/比赛特效与音频；正式冰川掉落/纸鹤四阶段及释放已通过原生定向验证；完整人工听感仍未验收。 |
 | `characters/models.js`、`paperkit.js`、`atlas.js` | 直接执行固定原作的建模与绘图算法导出八角色，不重画造型。已转换为正式骨骼 Mesh、图集、材质与 Prefab，比赛与菜单骨链动画已接入。 |
 | `ai/ai.js` | 原作路线规划保存为四份 `Data/AiPlans`；实时性格、技能、起步、漂移、追赶、道具、避障、捷径和救援迁移到 `KagitKartAi`，原作命令对照和完整规则模拟测试已通过。 |
 | `items/visuals.js` | `KagitKartItemVisuals` 迁移箱体、钢笔、口香糖、飞机、墨水、剪刀、纸壳和世界虚线；原作 14 场景 / 56 实例快照对照通过，GPU 视觉另行检查。 |
@@ -31,7 +31,7 @@
 | `cinematics/stage.js`、`popups.js`、`shots.js`、`campath.js` | `KagitKartBookStage` 接入开书、呼吸、翻页、车手弹出/旋转、镜头与中文印刷。`KagitKartRaceCinematics` 使用原作四章八网格、普通/减少动态赛前路径，时间曲线与向心样条对照通过。冲线和领奖镜头已接入。 |
 | `cinematics/podium.js`、`ui/panels.js` 领奖部分 | `KagitKartPodiumStage` 保存原网格与纸台弹簧、角色落台、纸屑、失落车手；`KagitKartPodiumView` 显示中文奖杯标题与前三积分。四组源快照和完整四场流程通过定向测试。 |
 | `fx/fx.js`、`fx/crane.js` | `KagitKartRaceFx` 与 `KagitKartRescueCrane` 接入原作纸艺特效与救援，源码快照 20/20 通过；全 GPU 变体与实际救援待验收。 |
-| `audio/*` | 源码生成音乐与音效，`KagitKartAudio` 订阅真实比赛事件；`EngineSynth` 实时保留固定噪声谱和独立调制，音乐只低通一次。音频算法、采样与资产契约 11/11 通过，平台采样边界见[音频维护](audio.md)。 |
+| `audio/*` | 源码生成音乐与音效，`KagitKartAudio` 订阅真实比赛事件；`EngineSynth` 实时保留固定噪声谱和独立调制，音乐只低通一次。音频算法、采样与资产契约11/11通过；原生倒计时/暂停继续及八道具最终Listener混音已通过，纸景Popup真实出口与源size已补齐，准确范围见[音频维护](audio.md)。 |
 
 ## 导出维护
 

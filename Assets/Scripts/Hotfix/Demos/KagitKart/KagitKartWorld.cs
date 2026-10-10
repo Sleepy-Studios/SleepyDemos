@@ -208,6 +208,7 @@ namespace Hotfix.KagitKart
                 var world = await owned.InstantiateAsync(Root + "Prefabs/Tracks/" + name, transform);
                 token.ThrowIfCancellationRequested();
                 scenery = world.GetComponent<KagitKartSceneryWorld>();
+                scenery.Popup += audio.Popup;
                 postProcess.SetInk(scenery.Asset.batches[0].materials[0].GetVector("uInk"));
                 worldCamera.clearFlags = CameraClearFlags.Skybox;
                 worldCamera.GetComponent<Skybox>().material = scenery.Asset.SkyMaterial;
@@ -291,7 +292,7 @@ namespace Hotfix.KagitKart
             }
             if (Input.Pressed("Mute"))
             {
-                GlobalData.Dispatch(new KagitKartAction(this, KagitKartCommand.ChangeSetting, Settings.Muted ? 0 : 1, "Muted"));
+                GlobalData.Dispatch(new KagitKartAction(this, KagitKartCommand.ChangeSetting, Settings.Muted ? 0 : 1, "Muted", playClick: false));
             }
             if (TryHandleRaceShortcuts()) return;
             if (Session == null || OptionsOpen) return;
@@ -397,7 +398,7 @@ namespace Hotfix.KagitKart
                 return;
             }
             var command = action.Command;
-            if (command != KagitKartCommand.Refresh && command != KagitKartCommand.PreviewCharacter && command != KagitKartCommand.PreviewTrack && command != KagitKartCommand.MarkTutorialSeen)
+            if (action.PlayClick && command != KagitKartCommand.Refresh && command != KagitKartCommand.PreviewCharacter && command != KagitKartCommand.PreviewTrack && command != KagitKartCommand.MarkTutorialSeen)
             {
                 audio.Click();
             }
@@ -889,7 +890,8 @@ namespace Hotfix.KagitKart
 
         /// <summary>从当前页面或输入派发本场命令。</summary>
         /// <param name="command">要执行的领域流程操作。</param>
-        public void Dispatch(KagitKartCommand command) => GlobalData.Dispatch(new KagitKartAction(this, command));
+        /// <param name="playClick">UI 确认默认为 true，源全局硬件动作可显式省略 click。</param>
+        public void Dispatch(KagitKartCommand command, bool playClick = true) => GlobalData.Dispatch(new KagitKartAction(this, command, playClick: playClick));
 
         private void ClearInput()
         {
@@ -927,6 +929,10 @@ namespace Hotfix.KagitKart
             Hints?.Unbind();
             PodiumPlaying = false;
             podium?.Hide();
+            if (scenery != null && audio != null)
+            {
+                scenery.Popup -= audio.Popup;
+            }
             audio?.Unbind();
             cinematics = null;
             if (Session != null)

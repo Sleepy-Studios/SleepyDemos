@@ -222,3 +222,13 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 扩展现有原生大奖赛测试1/1（`855a98e9`）：实际AI与比赛固定步连续完成四章三圈，核本场表格、独立积分榜、真实GPU积分条、升降、下一章与领奖台/标题。原生计时存取/回放/慢场不覆盖测试1/1（`f1ecf9de`），同时核三圈表、最佳标签、新纪录、隐藏按钮和实际HUD清理。已检查 `GrandPrixRaceResults.png`、`GrandPrixStandings.png`、`TimeTrialResults.png`。源表格规则另以固定提交JS执行核对，非C#自生成期望值；场景测试为自动驾驶，不冒充人工完整驾驶。
 
 单场真实三圈、再赛一场和再次完赛后返回封面 Test Runner1/1（`b01a3de2`），同时核八行无GP积分、最佳圈保留、HUD/Ink隐藏、新场和旧页释放。按钮复用公共UIState/UIStateInteraction五态，主纸底使用既有White Sprite保持源墨色，焦点抬纸、红内沿与硬影；Pressed中性压暗、Disabled淡出。实际键盘选中/移焦复位及单场完整路由复验1/1（`2e76608f`）；已检查更新后的 `SingleRaceResults.png`，消除暖黄Tint与暖纸纹双重乘色。新增资源命名/标签1/1（`10658471`），本阶段Editor编译成功、Console错误0；未运行全量测试、Player或Android验证。
+
+## 原生救援、世界道具与音频路由收口
+
+`NativeFallSummonsPaperCraneAndReturnsToRoad` 1/1（`72715ba7`）在正式冰川场景记录真实安全点后，将车辆置于源Query确认的落空边缘；正式重力触发提起、搬运、放下、落地四信号，核真实纸鹤网格、回到安全地面、保护时间及离场引用/音频载体释放。已检查五张 `NativeRescue*.png`。原草原只定义围栏，不能用不存在的悬崖做前置；安全点等待规则实际满足，不把固定墙钟等待当模拟已推进。
+
+`NativeEightItemsRenderAndReachUnityAudioOutput` 1/1（`19bc564c`），覆盖全部八件正式库存、键盘E使用/口香糖保持及松开、源世界网格、追踪目标、墨瓶爆墨、剪刀俯冲/剪断、保护及弹体清理，实际use_*声路由、最终混音与退出释放。摆车为明确表现前置，全部位于源圈线检测的前60米内，排名仍由Race更新，不直接改名次。已检查14张 `NativeItem*.png`；非自然抽奖、人工驾驶或人工集中道具压力测试。AudioListener实际输出峰值0.6655096，采样率48000；原静音载体的AudioSource采样为零，最终Listener采样能得到DSP后输出。该结果证明链路工作，不声称逐件隔离音色或人工听感。
+
+源码回查补齐倒计时0.9秒退赛前曲、每车撞墙0.2秒再共享world桶0.02秒，以及tier/threat/rouletteTick按源配方共用桶。原全局P/R/M不追加UI click，已暂停P继续与UI按钮保留click。`NativeAudioMixerHasRealOutput` 1/1（`9c1f1c0d`），核真实Intro→Countdown→Race、P暂停/菜单Enter继续路由及最终混音，峰值0.6997126；未修改全局Editor静音、项目AudioManager或用户偏好。
+
+纸景原先缺少实际Popup音频出口，现由SceneryWorld的真实目标false→true发源最大尺寸/0.18秒波次和坡台位置，World订阅/StopRound退订，Audio聚合rustle。四World资产仅补存源1401项size（766/227/363/45），逐项核源版本/顺序/位置/尺度，GUID保留；一次性补存脚本及.meta已清理。正常行驶中的纸景声与四章长圈性能另在后续记录，未把源码接线当长期性能通过。本阶段仅Hotfix、Demo数据资源、现有PlayMode测试与文档；Editor编译成功、Console错误0，未执行全量测试、Player/Android或人工听音。

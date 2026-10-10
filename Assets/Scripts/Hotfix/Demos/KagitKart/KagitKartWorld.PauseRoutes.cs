@@ -22,7 +22,7 @@ namespace Hotfix.KagitKart
                 || Session.Race.State == KagitKartRaceState.Running || Session.Race.State == KagitKartRaceState.Finishing);
             if (Mode == KagitKartRaceMode.TimeTrial && racePhase && Input.Pressed("Restart"))
             {
-                Dispatch(KagitKartCommand.Restart);
+                Dispatch(KagitKartCommand.Restart, playClick: false);
                 return true;
             }
             if (!Input.Pressed("Pause"))
@@ -42,7 +42,7 @@ namespace Hotfix.KagitKart
             }
             if (racePhase)
             {
-                Dispatch(KagitKartCommand.Pause);
+                Dispatch(KagitKartCommand.Pause, playClick: false);
                 return true;
             }
             return false;

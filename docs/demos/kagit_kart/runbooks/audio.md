@@ -43,3 +43,9 @@ python Tools/KagitKart/export_audio.py D:/Unity/ReferenceProjects/kagit-kart
 运行时低通/高通的 Q 按 WebAudio dB 单位转换，bandpass 保留线性 Q。动态噪声起点按原生 rate=1 路径取最近采样，保持随机流与原作一致。依据：[Web Audio BiquadFilterNode](https://www.w3.org/TR/webaudio/#dom-biquadfilternode-q)、[Blink AudioBufferSource](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/modules/webaudio/audio_buffer_source_handler.cc)。
 
 Unity 原生压缩器差异依据：[Unity Audio Compressor](https://docs.unity3d.com/6000.0/Documentation/Manual/class-AudioCompressor.html)。动力学移植参考：[Blink DynamicsCompressor](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/platform/audio/dynamics_compressor.cc)。
+
+## 2026-10-11 原生输出与事件桥修正
+
+倒计时按源退出赛前曲（0.9秒）；撞墙保留本车0.2秒与world共享桶0.02秒两级节流，tier/threat/rouletteTick烘焙变体使用同一源配方声桶。全局硬件首次暂停、TT重赛、静音不额外响click，已暂停P继续和UI确认仍保留。纸景SceneryWorld真实目标抬起波次接入Audio.Popup，原源size已补存四World资产，关闭当前场精确退订；待播波次按DSP时间交付，Unbind清队列。
+
+原生 `NativeAudioMixerHasRealOutput` 1/1（9c1f1c0d）：Intro章节曲→倒计时无新背景曲→比赛章节曲、真实P暂停与UI Enter继续、DSP音乐游标及最终Listener PCM，peak=0.6997126。原生八道具测试1/1（19bc564c）核每件新声路由与最终PCM，peak=0.6655096、48000Hz；退出核DSP载体销毁。实际测试发现当前静音载体的AudioSource历史采样为零，而Listener最终混音有效，因此采用[AudioListener.GetOutputData](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/AudioListener.GetOutputData.html)。未改变全局静音/音频设置或持久化偏好。非零总线不等于逐声隔离，也没有人工听过音色、声像和响度；原11项算法/资产证据与这次运行证据分开使用。
