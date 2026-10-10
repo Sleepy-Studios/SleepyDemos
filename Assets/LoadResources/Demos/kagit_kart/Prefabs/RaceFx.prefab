@@ -1,0 +1,174 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2545017249565852826
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1044593858115136239}
+  - component: {fileID: 8737858199522326938}
+  m_Layer: 0
+  m_Name: RescueCrane
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1044593858115136239
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2545017249565852826}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3178217146717053855}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8737858199522326938
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2545017249565852826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6b5025dac07e4b4784e79e528366b92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.KagitKart.KagitKartRescueCrane
+  bodyShape: {fileID: 4300000, guid: 148288d1ac949cb4a884ff2823a5e0fc, type: 2}
+  wingShape: {fileID: 4300000, guid: cd0a7166f1efd5449945103ca5813a0a, type: 2}
+  paperMaterials:
+  - {fileID: 2100000, guid: 24d98c82916fee348ad7040bd5c46844, type: 2}
+  - {fileID: 2100000, guid: 3c3b424f95f70a34da5f955fd3db3439, type: 2}
+  - {fileID: 2100000, guid: b8dcfbf369339b245b846feccd514049, type: 2}
+  - {fileID: 2100000, guid: d8dda0d7ffcc37d48b06ddd439f2f233, type: 2}
+--- !u!1 &4710530675629261629
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3178217146717053855}
+  - component: {fileID: 5265435464577419484}
+  m_Layer: 0
+  m_Name: RaceFx
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3178217146717053855
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4710530675629261629}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1044593858115136239}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5265435464577419484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4710530675629261629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6546dd65570a5a5438d1d7e127420137, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Hotfix::Hotfix.KagitKart.KagitKartRaceFx
+  bitsShape: {fileID: 4300000, guid: 38d69874ff04067408452e77e3f015d1, type: 2}
+  cardsShape: {fileID: 4300000, guid: 2a9c3187812227d41b830ac9c6c507fa, type: 2}
+  linesShape: {fileID: 4300000, guid: 8a79db0559f35e14c914a4d98e52d5d6, type: 2}
+  bitsMaterial: {fileID: 2100000, guid: caac0ca0b08d77941999f0454ae8d471, type: 2}
+  cardsMaterial: {fileID: 2100000, guid: 9fb8515177b5b454b8adae960a201afb, type: 2}
+  linesMaterial: {fileID: 2100000, guid: 5f103635ffc97cb47ae9f5e8a3f79be7, type: 2}
+  cranes: {fileID: 8737858199522326938}
+  palettes:
+  - id: meadow
+    paper: {r: 0.9046612, g: 0.838799, b: 0.67244315, a: 1}
+    offroad: {r: 0.33716363, g: 0.57112485, b: 0.14412847, a: 1}
+    light: {r: 0.9646863, g: 0.92158186, b: 0.8148466, a: 1}
+    road: {r: 0.40197778, g: 0.37626213, b: 0.3277781, a: 1}
+    ink: {r: 0.027320892, g: 0.033104766, b: 0.022173885, a: 1}
+    curbA: {r: 0.7454042, g: 0.08650046, b: 0.046665087, a: 1}
+    curbB: {r: 0.9646863, g: 0.92158186, b: 0.8148466, a: 1}
+    accent: {r: 0.80695224, g: 0.17144111, b: 0.14702727, a: 1}
+    confetti:
+    - {r: 0.9301109, g: 0.63075715, b: 0.061246052, a: 1}
+    - {r: 0.80695224, g: 0.17144111, b: 0.14702727, a: 1}
+    - {r: 0.15896083, g: 0.39157248, b: 0.7156935, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0.462077, g: 0.19806932, b: 0.67244315, a: 1}
+    - {r: 0.7454042, g: 0.08650046, b: 0.046665087, a: 1}
+    - {r: 1, g: 0.6444797, b: 0.049706567, a: 1}
+  - id: bosphorus
+    paper: {r: 0.02842604, g: 0.04373503, b: 0.12477182, a: 1}
+    offroad: {r: 0.05780543, g: 0.09084171, b: 0.21223076, a: 1}
+    light: {r: 0.9046612, g: 0.7912979, b: 0.55201143, a: 1}
+    road: {r: 0.14702727, g: 0.1651322, b: 0.25015828, a: 1}
+    ink: {r: 0.008023193, g: 0.010329823, b: 0.027320892, a: 1}
+    curbA: {r: 0.57758045, g: 0.052860647, b: 0.04373503, a: 1}
+    curbB: {r: 0.9046612, g: 0.7912979, b: 0.55201143, a: 1}
+    accent: {r: 1, g: 0.69387174, b: 0.2541521, a: 1}
+    confetti:
+    - {r: 1, g: 0.6239604, b: 0.14702727, a: 1}
+    - {r: 1, g: 0.69387174, b: 0.2541521, a: 1}
+    - {r: 0.9046612, g: 0.8631572, b: 0.7912979, a: 1}
+    - {r: 0.57758045, g: 0.052860647, b: 0.04373503, a: 1}
+    - {r: 0.21223076, g: 0.63075715, b: 0.7912979, a: 1}
+    - {r: 0.57758045, g: 0.052860647, b: 0.04373503, a: 1}
+    - {r: 1, g: 0.6444797, b: 0.049706567, a: 1}
+  - id: glacier
+    paper: {r: 0.9046612, g: 0.8549926, b: 0.8713671, a: 1}
+    offroad: {r: 0.8148466, g: 0.8549926, b: 0.92158186, a: 1}
+    light: {r: 0.9822506, g: 0.9301109, b: 0.8879231, a: 1}
+    road: {r: 0.2704978, g: 0.30054379, b: 0.39157248, a: 1}
+    ink: {r: 0.02518686, g: 0.023153367, b: 0.049706567, a: 1}
+    curbA: {r: 0.67244315, g: 0.08865558, b: 0.14412847, a: 1}
+    curbB: {r: 0.9822506, g: 0.9301109, b: 0.8879231, a: 1}
+    accent: {r: 0.02842604, g: 0.14702727, b: 0.10224173, a: 1}
+    confetti:
+    - {r: 0.8879231, g: 0.34670407, b: 0.462077, a: 1}
+    - {r: 0.02842604, g: 0.14702727, b: 0.10224173, a: 1}
+    - {r: 0.3277781, g: 0.104616486, b: 0.04231141, a: 1}
+    - {r: 0.34670407, g: 0.67244315, b: 0.8879231, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0.67244315, g: 0.08865558, b: 0.14412847, a: 1}
+    - {r: 1, g: 0.6444797, b: 0.049706567, a: 1}
+  - id: desk
+    paper: {r: 0.48514995, g: 0.2541521, b: 0.11193243, a: 1}
+    offroad: {r: 0.59061885, g: 0.3613068, b: 0.19461784, a: 1}
+    light: {r: 1, g: 0.9559733, b: 0.8713671, a: 1}
+    road: {r: 0.2663556, g: 0.2541521, b: 0.23839757, a: 1}
+    ink: {r: 0.024157632, g: 0.012286488, b: 0.008023193, a: 1}
+    curbA: {r: 0.049706567, g: 0.15896083, b: 0.462077, a: 1}
+    curbB: {r: 1, g: 0.9559733, b: 0.8713671, a: 1}
+    accent: {r: 0.80695224, g: 0.08650046, b: 0.06847817, a: 1}
+    confetti:
+    - {r: 1, g: 0.7758222, b: 0.107023105, a: 1}
+    - {r: 0.80695224, g: 0.08650046, b: 0.06847817, a: 1}
+    - {r: 0.07421357, g: 0.21223076, b: 0.55201143, a: 1}
+    - {r: 0.9301109, g: 0.8879231, b: 0.7912979, a: 1}
+    - {r: 0.20155625, g: 0.5394795, b: 0.19461784, a: 1}
+    - {r: 0.049706567, g: 0.15896083, b: 0.462077, a: 1}
+    - {r: 1, g: 0.6444797, b: 0.049706567, a: 1}

@@ -11,6 +11,7 @@
 | 倒霉蛋俱乐部 | [入口与维护](jinx_casino/README.md) | `JinxCasino` / `jinx_casino` |
 | 渔力全开单人复刻（开发中） | [入口与计划](how_to_fish/README.md) | `HowToFish` / `how_to_fish` |
 | 夹爆它（MVP 验证版） | [入口与验证案](wall_squeeze/README.md) | `WallSqueeze` / `wall_squeeze` |
+| 纸艺卡丁车（源码迁移中） | [入口与迁移](kagit_kart/README.md) | `KagitKart` / `kagit_kart` |
 
 一个 Demo 目录按需要包含：`README.md`（导航与名称）、`module.md`（职责和生命周期）、`architecture/`（专属设计）、`runbooks/`（运行、编辑、调试或迁移）。小型 Demo 不必创建空目录或空文档。
 

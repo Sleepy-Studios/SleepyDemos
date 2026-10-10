@@ -90,6 +90,7 @@
 | 倒霉蛋俱乐部 | [jinx_casino](demos/jinx_casino/README.md) |
 | 渔力全开单人复刻（开发中） | [how_to_fish](demos/how_to_fish/README.md) |
 | 夹爆它（MVP 验证版） | [wall_squeeze](demos/wall_squeeze/README.md) |
+| 纸艺卡丁车（源码迁移中） | [kagit_kart](demos/kagit_kart/README.md) |
 
 每个入口包含模块维护、设计及操作手册导航；公共框架文档继续在上面的三层目录维护。
 

@@ -68,6 +68,7 @@ Editor 直启重载：
 - Hotfix 不直接持有 YooAsset `SceneHandle`，也不直接调用 `SceneManager.LoadSceneAsync` 绕过全局导航。
 - `GameSceneId.BlockPorters` 加载 `Assets/LoadResources/Demos/block_porters/Scenes/Main.unity`，从 Hub 的“小小搬豆工”入口进入；当前不启用 Editor 直启，详见[小小搬豆工模块](../demos/block_porters/module.md)。
 - `GameSceneId.JinxCasino` 加载 `Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity`，从Hub的“倒霉蛋俱乐部”入口进入；当前为一区三机台单机样板，P0房间及旧Main入口已删除，详见[赌场模块](../demos/jinx_casino/module.md)。
+- `GameSceneId.KagitKart` 加载 `Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity`，从 Hub 的“纸艺卡丁车”进入，Editor 直启复用同一 Bootstrap；当前驾驶原型和剩余移植边界见[纸艺卡丁车](../demos/kagit_kart/README.md)。
 - Demo 场景必须且只能提供一个带 `MainCamera` Tag 的 Camera 和一个 AudioListener。
 - `StartupLoading` 与 `CommonLoadingView` 生命周期不同，不共享脚本或 Presenter。
 - Editor 直启不运行 HybridCLR、Hotfix 程序集装配或完整 `HotfixEntry`；`HotfixBootService` 必须幂等。

@@ -1,0 +1,93 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: MeadowPrint14
+  m_Shader: {fileID: 4800000, guid: d666345271b5c2049b96955b5f4c8306, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - uGrainTex:
+        m_Texture: {fileID: 2800000, guid: 091b4d690f344b348b0fd42e6b14c59a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - uKkTex0:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - uKkTex1:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - uOverlay:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - uPlates:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Cull: 2
+    - _DstBlend: 0
+    - _Flat: 0
+    - _SrcBlend: 1
+    - _Unlit: 0
+    - _UseHalftone: 0
+    - _UseMap: 0
+    - _UseOverlay: 0
+    - _UsePlates: 0
+    - _UseScreen: 0
+    - _UseVertexColor: 1
+    - _ZWrite: 1
+    - uDotPx: 6
+    - uGrainAmount: 1
+    - uScroll: 0
+    - uTime: 0
+    m_Colors:
+    - _AmbientColor: {r: 0.23833533, g: 0.2847235, b: 0.33283776, a: 0.38197187}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FogColor: {r: 0.8962694, g: 0.82278585, b: 0.6514057, a: 1}
+    - _FogRange: {r: 170, g: 760, b: 0, a: 0}
+    - _Gradient: {r: 0.38, g: 0.7, b: 1, a: 0}
+    - _InstanceColor: {r: 1, g: 1, b: 1, a: 1}
+    - uInk: {r: 0.026241222, g: 0.023153367, b: 0.031896032, a: 0}
+    - uKkC0: {r: 0, g: 0, b: 0, a: 0}
+    - uKkC1: {r: 0, g: 0, b: 0, a: 0}
+    - uKkC2: {r: 0, g: 0, b: 0, a: 0}
+    - uKkC3: {r: 0, g: 0, b: 0, a: 0}
+    - uKkC4: {r: 0, g: 0, b: 0, a: 0}
+    - uKkC5: {r: 0, g: 0, b: 0, a: 0}
+    - uKkV0: {r: 0, g: 0, b: 0, a: 0}
+    - uKkV1: {r: 0, g: 0, b: 0, a: 0}
+    - uKkV2: {r: 0, g: 0, b: 0, a: 0}
+    - uOverlayColor: {r: 0, g: 0, b: 0, a: 0}
+    - uOverlayRepeat: {r: 0, g: 0, b: 0, a: 0}
+    - uPlateB: {r: 0, g: 0, b: 0, a: 0}
+    - uPlateG: {r: 0, g: 0, b: 0, a: 0}
+    - uPlateOn: {r: 0, g: 0, b: 0, a: 0}
+    - uPlateR: {r: 0, g: 0, b: 0, a: 0}
+    - uScreen: {r: 0, g: 0, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

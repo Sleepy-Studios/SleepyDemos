@@ -9,7 +9,8 @@ namespace Hotfix.SceneManagement
         BlockPorters = 3,
         JinxCasino = 4,
         HowToFish = 5,
-        WallSqueeze = 6
+        WallSqueeze = 6,
+        KagitKart = 7
     }
 
     /// 场景切换结果状态。
@@ -78,6 +79,7 @@ namespace Hotfix.SceneManagement
 
         internal const string HowToFishAddress = "Assets/LoadResources/Demos/how_to_fish/Scenes/Main.unity";
         internal const string WallSqueezeAddress = "Assets/LoadResources/Demos/wall_squeeze/Scenes/Main.unity";
+        internal const string KagitKartAddress = "Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity";
 
         internal static bool TryFindSceneId(string scenePath, out GameSceneId sceneId)
         {
@@ -121,6 +123,9 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.WallSqueeze:
                     definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", WallSqueezeAddress);
+                    return true;
+                case GameSceneId.KagitKart:
+                    definition = new GameSceneDefinition(GameSceneId.KagitKart, "纸艺卡丁车", KagitKartAddress);
                     return true;
                 default:
                     definition = default;

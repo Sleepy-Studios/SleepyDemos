@@ -1,0 +1,886 @@
+{
+  "sampleRate": 44100,
+  "clips": [
+    {
+      "name": "sfx_click",
+      "duration": 0.07798185941043084,
+      "channels": 2,
+      "peak": 0.25529858469963074,
+      "rms": 0.028149778806841365,
+      "loop": false
+    },
+    {
+      "name": "sfx_pageTurn",
+      "duration": 0.5603174603174603,
+      "channels": 2,
+      "peak": 0.18634182214736938,
+      "rms": 0.02754809012831622,
+      "loop": false
+    },
+    {
+      "name": "sfx_count",
+      "duration": 0.6,
+      "channels": 2,
+      "peak": 0.5468500256538391,
+      "rms": 0.0822821859549687,
+      "loop": false
+    },
+    {
+      "name": "sfx_go",
+      "duration": 1.5999773242630386,
+      "channels": 2,
+      "peak": 0.5795543789863586,
+      "rms": 0.05136714871359005,
+      "loop": false
+    },
+    {
+      "name": "sfx_hop",
+      "duration": 0.12,
+      "channels": 2,
+      "peak": 0.1625346690416336,
+      "rms": 0.03378382383667311,
+      "loop": false
+    },
+    {
+      "name": "sfx_tier_0",
+      "duration": 0.5,
+      "channels": 2,
+      "peak": 0.43116772174835205,
+      "rms": 0.058817429922216044,
+      "loop": false
+    },
+    {
+      "name": "sfx_tier_1",
+      "duration": 0.5,
+      "channels": 2,
+      "peak": 0.4283098876476288,
+      "rms": 0.05879662212350175,
+      "loop": false
+    },
+    {
+      "name": "sfx_tier_2",
+      "duration": 0.65,
+      "channels": 2,
+      "peak": 0.4382755756378174,
+      "rms": 0.06293467462024684,
+      "loop": false
+    },
+    {
+      "name": "sfx_driftCancel",
+      "duration": 0.2529705215419501,
+      "channels": 2,
+      "peak": 0.05394282564520836,
+      "rms": 0.007202169023233478,
+      "loop": false
+    },
+    {
+      "name": "sfx_boost_0",
+      "duration": 0.795124716553288,
+      "channels": 2,
+      "peak": 0.22912859916687012,
+      "rms": 0.04311033397912928,
+      "loop": false
+    },
+    {
+      "name": "sfx_boost_1",
+      "duration": 0.9719954648526077,
+      "channels": 2,
+      "peak": 0.3444029986858368,
+      "rms": 0.048667187317029056,
+      "loop": false
+    },
+    {
+      "name": "sfx_boost_2",
+      "duration": 1.2720634920634921,
+      "channels": 2,
+      "peak": 0.44859305024147034,
+      "rms": 0.06874652367357754,
+      "loop": false
+    },
+    {
+      "name": "sfx_boost_3",
+      "duration": 0.9720181405895691,
+      "channels": 2,
+      "peak": 0.35507526993751526,
+      "rms": 0.05232203984228524,
+      "loop": false
+    },
+    {
+      "name": "sfx_boost_4",
+      "duration": 0.9716780045351474,
+      "channels": 2,
+      "peak": 0.1467617303133011,
+      "rms": 0.022944883570068943,
+      "loop": false
+    },
+    {
+      "name": "sfx_trick",
+      "duration": 0.7,
+      "channels": 2,
+      "peak": 0.27805426716804504,
+      "rms": 0.057436832583600286,
+      "loop": false
+    },
+    {
+      "name": "sfx_land",
+      "duration": 0.49,
+      "channels": 2,
+      "peak": 0.5112513303756714,
+      "rms": 0.10652005176565636,
+      "loop": false
+    },
+    {
+      "name": "sfx_wall",
+      "duration": 0.56,
+      "channels": 2,
+      "peak": 0.42362073063850403,
+      "rms": 0.08595385967799155,
+      "loop": false
+    },
+    {
+      "name": "sfx_bump",
+      "duration": 0.28,
+      "channels": 2,
+      "peak": 0.35695594549179077,
+      "rms": 0.06758664277822611,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_gum",
+      "duration": 0.5027891156462585,
+      "channels": 2,
+      "peak": 0.37906569242477417,
+      "rms": 0.086545672154947,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_plane",
+      "duration": 0.7001814058956916,
+      "channels": 2,
+      "peak": 0.4674675464630127,
+      "rms": 0.08579492002910798,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_homing",
+      "duration": 0.91,
+      "channels": 2,
+      "peak": 0.5034865140914917,
+      "rms": 0.09260638286802561,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_scissors",
+      "duration": 0.9,
+      "channels": 2,
+      "peak": 0.5857020616531372,
+      "rms": 0.10161415690674235,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_foil",
+      "duration": 0.6000680272108844,
+      "channels": 2,
+      "peak": 0.42554423213005066,
+      "rms": 0.06630077485392326,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_burnout",
+      "duration": 0.460453514739229,
+      "channels": 2,
+      "peak": 0.4320310950279236,
+      "rms": 0.07188628108591309,
+      "loop": false
+    },
+    {
+      "name": "sfx_hit_default",
+      "duration": 0.7002721088435374,
+      "channels": 2,
+      "peak": 0.46037304401397705,
+      "rms": 0.08563190553550475,
+      "loop": false
+    },
+    {
+      "name": "sfx_respawnLift",
+      "duration": 0.9,
+      "channels": 2,
+      "peak": 0.1609233021736145,
+      "rms": 0.041705633272949995,
+      "loop": false
+    },
+    {
+      "name": "sfx_respawnDrop",
+      "duration": 0.25,
+      "channels": 2,
+      "peak": 0.39465269446372986,
+      "rms": 0.08837370579002392,
+      "loop": false
+    },
+    {
+      "name": "sfx_ink",
+      "duration": 0.5,
+      "channels": 2,
+      "peak": 0.5369045734405518,
+      "rms": 0.10371832364813659,
+      "loop": false
+    },
+    {
+      "name": "sfx_box",
+      "duration": 0.6150113378684807,
+      "channels": 2,
+      "peak": 0.330457478761673,
+      "rms": 0.06458408931580487,
+      "loop": false
+    },
+    {
+      "name": "sfx_itemGet",
+      "duration": 1,
+      "channels": 2,
+      "peak": 0.5336873531341553,
+      "rms": 0.06611809328570885,
+      "loop": false
+    },
+    {
+      "name": "sfx_rouletteTick_0",
+      "duration": 0.049954648526077096,
+      "channels": 2,
+      "peak": 0.28308987617492676,
+      "rms": 0.03132313369311022,
+      "loop": false
+    },
+    {
+      "name": "sfx_rouletteTick_1",
+      "duration": 0.049977324263038546,
+      "channels": 2,
+      "peak": 0.23776119947433472,
+      "rms": 0.030876237584208148,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_rocket",
+      "duration": 0.8004308390022675,
+      "channels": 2,
+      "peak": 0.5046347975730896,
+      "rms": 0.06786355471868741,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_rocket3",
+      "duration": 0.800453514739229,
+      "channels": 2,
+      "peak": 0.45930954813957214,
+      "rms": 0.06705465468146846,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_gum",
+      "duration": 0.21,
+      "channels": 2,
+      "peak": 0.5759985446929932,
+      "rms": 0.14482083245399538,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_plane",
+      "duration": 0.6010657596371882,
+      "channels": 2,
+      "peak": 0.18585503101348877,
+      "rms": 0.02716187927878757,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_homing",
+      "duration": 0.5999773242630385,
+      "channels": 2,
+      "peak": 0.2431463748216629,
+      "rms": 0.03510192838553514,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_ink",
+      "duration": 0.46156462585034014,
+      "channels": 2,
+      "peak": 0.3894423246383667,
+      "rms": 0.03847259192368137,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_foil",
+      "duration": 1.09,
+      "channels": 2,
+      "peak": 0.33538007736206055,
+      "rms": 0.05526654343851439,
+      "loop": false
+    },
+    {
+      "name": "sfx_use_scissors",
+      "duration": 0.7003174603174603,
+      "channels": 2,
+      "peak": 0.44503819942474365,
+      "rms": 0.032040960465707216,
+      "loop": false
+    },
+    {
+      "name": "sfx_planeBounce",
+      "duration": 0.1,
+      "channels": 2,
+      "peak": 0.25852665305137634,
+      "rms": 0.053181133641018834,
+      "loop": false
+    },
+    {
+      "name": "sfx_lock",
+      "duration": 0.1303174603174603,
+      "channels": 2,
+      "peak": 0.20789022743701935,
+      "rms": 0.04668793193786924,
+      "loop": false
+    },
+    {
+      "name": "sfx_threat_0",
+      "duration": 0.06038548752834467,
+      "channels": 2,
+      "peak": 0.35944682359695435,
+      "rms": 0.0796717017957338,
+      "loop": false
+    },
+    {
+      "name": "sfx_threat_1",
+      "duration": 0.18038548752834468,
+      "channels": 2,
+      "peak": 0.41444501280784607,
+      "rms": 0.09494234320030812,
+      "loop": false
+    },
+    {
+      "name": "sfx_poof",
+      "duration": 0.3020408163265306,
+      "channels": 2,
+      "peak": 0.06626325100660324,
+      "rms": 0.012999289833330607,
+      "loop": false
+    },
+    {
+      "name": "sfx_impact",
+      "duration": 0.42,
+      "channels": 2,
+      "peak": 0.3647976815700531,
+      "rms": 0.07555781307410155,
+      "loop": false
+    },
+    {
+      "name": "sfx_rustle",
+      "duration": 0.4995918367346939,
+      "channels": 2,
+      "peak": 0.21325170993804932,
+      "rms": 0.009386892453498486,
+      "loop": false
+    },
+    {
+      "name": "sfx_lap",
+      "duration": 0.93,
+      "channels": 2,
+      "peak": 0.3821466565132141,
+      "rms": 0.06173148326511566,
+      "loop": false
+    },
+    {
+      "name": "sfx_splitGood",
+      "duration": 0.69,
+      "channels": 2,
+      "peak": 0.30053141713142395,
+      "rms": 0.0637286936030159,
+      "loop": false
+    },
+    {
+      "name": "sfx_splitBad",
+      "duration": 0.6006122448979592,
+      "channels": 2,
+      "peak": 0.2810512185096741,
+      "rms": 0.05828913615591975,
+      "loop": false
+    },
+    {
+      "name": "sfx_placeUp",
+      "duration": 0.25,
+      "channels": 2,
+      "peak": 0.11173002421855927,
+      "rms": 0.02926776410726101,
+      "loop": false
+    },
+    {
+      "name": "sfx_placeDown",
+      "duration": 0.25,
+      "channels": 2,
+      "peak": 0.09649252891540527,
+      "rms": 0.027455537893862368,
+      "loop": false
+    },
+    {
+      "name": "sfx_wrongWay",
+      "duration": 0.4815419501133787,
+      "channels": 2,
+      "peak": 0.2751491367816925,
+      "rms": 0.12993812136675315,
+      "loop": false
+    },
+    {
+      "name": "sfx_pause",
+      "duration": 0.35,
+      "channels": 2,
+      "peak": 0.2884112000465393,
+      "rms": 0.05770403769183353,
+      "loop": false
+    },
+    {
+      "name": "sfx_unpause",
+      "duration": 0.35,
+      "channels": 2,
+      "peak": 0.2909586727619171,
+      "rms": 0.05681896560027853,
+      "loop": false
+    },
+    {
+      "name": "sfx_finishLine",
+      "duration": 0.7,
+      "channels": 2,
+      "peak": 0.5904080271720886,
+      "rms": 0.08485726174485277,
+      "loop": false
+    },
+    {
+      "name": "bank_white",
+      "duration": 2,
+      "channels": 1,
+      "peak": 0.9999890923500061,
+      "rms": 0.5789595166622172,
+      "loop": false
+    },
+    {
+      "name": "bank_crackle",
+      "duration": 2.2,
+      "channels": 1,
+      "peak": 0.949999988079071,
+      "rms": 0.060631795802976104,
+      "loop": false
+    },
+    {
+      "name": "music_title_start",
+      "duration": 66.52174603174603,
+      "channels": 2,
+      "peak": 0.5172063708305359,
+      "rms": 0.1068742743878489,
+      "loop": false
+    },
+    {
+      "name": "music_title_loop",
+      "duration": 125.21739229024944,
+      "channels": 2,
+      "peak": 0.5205532908439636,
+      "rms": 0.1097944430031134,
+      "loop": true
+    },
+    {
+      "name": "music_meadow_start",
+      "duration": 69.15253968253968,
+      "channels": 2,
+      "peak": 0.6439874172210693,
+      "rms": 0.1147599628989348,
+      "loop": false
+    },
+    {
+      "name": "music_meadow_loop",
+      "duration": 138.30507936507937,
+      "channels": 2,
+      "peak": 0.6632682085037231,
+      "rms": 0.11316712772648346,
+      "loop": true
+    },
+    {
+      "name": "music_bosphorus_start",
+      "duration": 150,
+      "channels": 2,
+      "peak": 0.6963828802108765,
+      "rms": 0.10916845626109982,
+      "loop": false
+    },
+    {
+      "name": "music_bosphorus_loop",
+      "duration": 300,
+      "channels": 2,
+      "peak": 0.7016248106956482,
+      "rms": 0.10458960947755427,
+      "loop": true
+    },
+    {
+      "name": "music_glacier_start",
+      "duration": 112.5,
+      "channels": 2,
+      "peak": 0.6728833913803101,
+      "rms": 0.11079451599074615,
+      "loop": false
+    },
+    {
+      "name": "music_glacier_loop",
+      "duration": 225,
+      "channels": 2,
+      "peak": 0.673133134841919,
+      "rms": 0.11084346664850582,
+      "loop": true
+    },
+    {
+      "name": "music_desk_start",
+      "duration": 100.64517006802721,
+      "channels": 2,
+      "peak": 0.7590620517730713,
+      "rms": 0.09003264979592276,
+      "loop": false
+    },
+    {
+      "name": "music_desk_loop",
+      "duration": 201.29031746031745,
+      "channels": 2,
+      "peak": 0.7422139644622803,
+      "rms": 0.09035633630440738,
+      "loop": true
+    },
+    {
+      "name": "music_results_start",
+      "duration": 60,
+      "channels": 2,
+      "peak": 0.7275094985961914,
+      "rms": 0.09245083980380135,
+      "loop": false
+    },
+    {
+      "name": "music_results_loop",
+      "duration": 120,
+      "channels": 2,
+      "peak": 0.7491254210472107,
+      "rms": 0.09255769921410327,
+      "loop": true
+    },
+    {
+      "name": "music_podium_start",
+      "duration": 55.714285714285715,
+      "channels": 2,
+      "peak": 0.7594509124755859,
+      "rms": 0.09327556712794931,
+      "loop": false
+    },
+    {
+      "name": "music_podium_loop",
+      "duration": 102.85714285714286,
+      "channels": 2,
+      "peak": 0.680687665939331,
+      "rms": 0.09246540894304818,
+      "loop": true
+    },
+    {
+      "name": "music_intro_meadow_start",
+      "duration": 4.06780045351474,
+      "channels": 2,
+      "peak": 0.3266792893409729,
+      "rms": 0.09719945486334648,
+      "loop": false
+    },
+    {
+      "name": "music_intro_meadow_loop",
+      "duration": 8.13560090702948,
+      "channels": 2,
+      "peak": 0.32394134998321533,
+      "rms": 0.09792138047074227,
+      "loop": true
+    },
+    {
+      "name": "music_final_meadow_start",
+      "duration": 29.055691609977323,
+      "channels": 2,
+      "peak": 0.7783706784248352,
+      "rms": 0.14985978933526875,
+      "loop": false
+    },
+    {
+      "name": "music_final_meadow_loop",
+      "duration": 58.11138321995465,
+      "channels": 2,
+      "peak": 0.7900497317314148,
+      "rms": 0.14931394420654964,
+      "loop": true
+    },
+    {
+      "name": "sting_finalLap_meadow",
+      "duration": 3.6,
+      "channels": 2,
+      "peak": 0.6939710378646851,
+      "rms": 0.07766937363010037,
+      "loop": false
+    },
+    {
+      "name": "music_intro_bosphorus_start",
+      "duration": 10,
+      "channels": 2,
+      "peak": 0.32257869839668274,
+      "rms": 0.07506363337741391,
+      "loop": false
+    },
+    {
+      "name": "music_intro_bosphorus_loop",
+      "duration": 20,
+      "channels": 2,
+      "peak": 0.3383316993713379,
+      "rms": 0.07551574792921742,
+      "loop": true
+    },
+    {
+      "name": "music_final_bosphorus_start",
+      "duration": 71.42857142857143,
+      "channels": 2,
+      "peak": 0.640625,
+      "rms": 0.11230696801791694,
+      "loop": false
+    },
+    {
+      "name": "music_final_bosphorus_loop",
+      "duration": 142.85714285714286,
+      "channels": 2,
+      "peak": 0.6540015339851379,
+      "rms": 0.10949174174678922,
+      "loop": true
+    },
+    {
+      "name": "sting_finalLap_bosphorus",
+      "duration": 3.6,
+      "channels": 2,
+      "peak": 0.6939710974693298,
+      "rms": 0.07766937361256135,
+      "loop": false
+    },
+    {
+      "name": "music_intro_glacier_start",
+      "duration": 7.5,
+      "channels": 2,
+      "peak": 0.3091888725757599,
+      "rms": 0.06459429041323049,
+      "loop": false
+    },
+    {
+      "name": "music_intro_glacier_loop",
+      "duration": 15,
+      "channels": 2,
+      "peak": 0.30787956714630127,
+      "rms": 0.06544508806199957,
+      "loop": true
+    },
+    {
+      "name": "music_final_glacier_start",
+      "duration": 53.57142857142857,
+      "channels": 2,
+      "peak": 0.6845473051071167,
+      "rms": 0.11987735644119413,
+      "loop": false
+    },
+    {
+      "name": "music_final_glacier_loop",
+      "duration": 107.14285714285714,
+      "channels": 2,
+      "peak": 0.6853879690170288,
+      "rms": 0.1199914701741015,
+      "loop": true
+    },
+    {
+      "name": "sting_finalLap_glacier",
+      "duration": 3.6,
+      "channels": 2,
+      "peak": 0.8204988241195679,
+      "rms": 0.07823930316264245,
+      "loop": false
+    },
+    {
+      "name": "music_intro_desk_start",
+      "duration": 7.741927437641723,
+      "channels": 2,
+      "peak": 0.37722447514533997,
+      "rms": 0.061451161171188325,
+      "loop": false
+    },
+    {
+      "name": "music_intro_desk_loop",
+      "duration": 15.483877551020408,
+      "channels": 2,
+      "peak": 0.4569150507450104,
+      "rms": 0.06314075006451718,
+      "loop": true
+    },
+    {
+      "name": "music_final_desk_start",
+      "duration": 55.29954648526077,
+      "channels": 2,
+      "peak": 0.7831613421440125,
+      "rms": 0.10047083697152001,
+      "loop": false
+    },
+    {
+      "name": "music_final_desk_loop",
+      "duration": 110.59907029478458,
+      "channels": 2,
+      "peak": 0.8047796487808228,
+      "rms": 0.10051570842483186,
+      "loop": true
+    },
+    {
+      "name": "sting_finalLap_desk",
+      "duration": 3.6,
+      "channels": 2,
+      "peak": 0.8212423920631409,
+      "rms": 0.07783146240794427,
+      "loop": false
+    },
+    {
+      "name": "sting_finishWin",
+      "duration": 7.806462585034014,
+      "channels": 2,
+      "peak": 0.7101650238037109,
+      "rms": 0.08744099328454805,
+      "loop": false
+    },
+    {
+      "name": "sting_finishGood",
+      "duration": 5.870975056689343,
+      "channels": 2,
+      "peak": 0.6928046345710754,
+      "rms": 0.08156761066060401,
+      "loop": false
+    },
+    {
+      "name": "sting_finishOk",
+      "duration": 6.8,
+      "channels": 2,
+      "peak": 0.5886465907096863,
+      "rms": 0.08129813782738661,
+      "loop": false
+    },
+    {
+      "name": "sting_finalLap",
+      "duration": 3.6,
+      "channels": 2,
+      "peak": 0.9330464601516724,
+      "rms": 0.07900996830088379,
+      "loop": false
+    },
+    {
+      "name": "engine_body",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.07470022886991501,
+      "rms": 0.03873298424414611,
+      "loop": true
+    },
+    {
+      "name": "engine_cpu",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.021401286125183105,
+      "rms": 0.009254371820092462,
+      "loop": true
+    },
+    {
+      "name": "engine_flutter",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.00754455104470253,
+      "rms": 0.0013695461767678002,
+      "loop": true
+    },
+    {
+      "name": "engine_rattle",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.01647999882698059,
+      "rms": 0.0029217924714035797,
+      "loop": true
+    },
+    {
+      "name": "engine_sand",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.013757318258285522,
+      "rms": 0.0027761258357532877,
+      "loop": true
+    },
+    {
+      "name": "engine_out",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.02039415016770363,
+      "rms": 0.00365290159539969,
+      "loop": true
+    },
+    {
+      "name": "engine_ice",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.0024750339798629284,
+      "rms": 0.0004960571929546032,
+      "loop": true
+    },
+    {
+      "name": "engine_drift",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.0246994961053133,
+      "rms": 0.008855723069550835,
+      "loop": true
+    },
+    {
+      "name": "engine_drift1",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.0283310879021883,
+      "rms": 0.008903157809752099,
+      "loop": true
+    },
+    {
+      "name": "engine_drift2",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.028274409472942352,
+      "rms": 0.008936336055509895,
+      "loop": true
+    },
+    {
+      "name": "engine_drift3",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.027486570179462433,
+      "rms": 0.008990913466318641,
+      "loop": true
+    },
+    {
+      "name": "engine_roar",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.03153127804398537,
+      "rms": 0.00788375472202959,
+      "loop": true
+    },
+    {
+      "name": "engine_wind",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.02376609295606613,
+      "rms": 0.006761377503478488,
+      "loop": true
+    },
+    {
+      "name": "engine_shimmer",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.012958956882357597,
+      "rms": 0.0022098631994639413,
+      "loop": true
+    }
+  ],
+  "sourceRevision": "da100b21ae1c5332d2843d21a9bb7b68b97e9c2a"
+}
