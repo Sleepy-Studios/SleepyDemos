@@ -27,6 +27,7 @@ namespace Hotfix
 
         private RectTransform RectTransform_Viewport;
         private RectTransform RectTransform_TutorialGroup;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_TutorialMotion;
         private TextMeshProUGUI TextMeshProUGUI_Steer;
         private InputBindingPrompt InputBindingPrompt_TutorialSteer;
         private TextMeshProUGUI TextMeshProUGUI_Throttle;
@@ -35,11 +36,13 @@ namespace Hotfix
         private InputBindingPrompt InputBindingPrompt_TutorialDrift;
         private TextMeshProUGUI TextMeshProUGUI_Item;
         private InputBindingPrompt InputBindingPrompt_TutorialItem;
-        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_TutorialMotion;
         private RectTransform RectTransform_HintGroup;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_HintMotion;
         private TextMeshProUGUI TextMeshProUGUI_Hint;
         private InputBindingPrompt InputBindingPrompt_Context;
-        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_HintMotion;
+        private RectTransform RectTransform_FpsGroup;
+        private Canvas Canvas_FpsGroup;
+        private TextMeshProUGUI TextMeshProUGUI_Fps;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -53,19 +56,22 @@ namespace Hotfix
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
             RectTransform_TutorialGroup = componentItemIndex.Get<RectTransform>(1);
-            TextMeshProUGUI_Steer = componentItemIndex.Get<TextMeshProUGUI>(2);
-            InputBindingPrompt_TutorialSteer = componentItemIndex.Get<InputBindingPrompt>(3);
-            TextMeshProUGUI_Throttle = componentItemIndex.Get<TextMeshProUGUI>(4);
-            InputBindingPrompt_TutorialThrottle = componentItemIndex.Get<InputBindingPrompt>(5);
-            TextMeshProUGUI_Drift = componentItemIndex.Get<TextMeshProUGUI>(6);
-            InputBindingPrompt_TutorialDrift = componentItemIndex.Get<InputBindingPrompt>(7);
-            TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(8);
-            InputBindingPrompt_TutorialItem = componentItemIndex.Get<InputBindingPrompt>(9);
-            KagitKartMenuPaperMotion_TutorialMotion = componentItemIndex.Get<KagitKartMenuPaperMotion>(10);
+            KagitKartMenuPaperMotion_TutorialMotion = componentItemIndex.Get<KagitKartMenuPaperMotion>(2);
+            TextMeshProUGUI_Steer = componentItemIndex.Get<TextMeshProUGUI>(3);
+            InputBindingPrompt_TutorialSteer = componentItemIndex.Get<InputBindingPrompt>(4);
+            TextMeshProUGUI_Throttle = componentItemIndex.Get<TextMeshProUGUI>(5);
+            InputBindingPrompt_TutorialThrottle = componentItemIndex.Get<InputBindingPrompt>(6);
+            TextMeshProUGUI_Drift = componentItemIndex.Get<TextMeshProUGUI>(7);
+            InputBindingPrompt_TutorialDrift = componentItemIndex.Get<InputBindingPrompt>(8);
+            TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(9);
+            InputBindingPrompt_TutorialItem = componentItemIndex.Get<InputBindingPrompt>(10);
             RectTransform_HintGroup = componentItemIndex.Get<RectTransform>(11);
-            TextMeshProUGUI_Hint = componentItemIndex.Get<TextMeshProUGUI>(12);
-            InputBindingPrompt_Context = componentItemIndex.Get<InputBindingPrompt>(13);
-            KagitKartMenuPaperMotion_HintMotion = componentItemIndex.Get<KagitKartMenuPaperMotion>(14);
+            KagitKartMenuPaperMotion_HintMotion = componentItemIndex.Get<KagitKartMenuPaperMotion>(12);
+            TextMeshProUGUI_Hint = componentItemIndex.Get<TextMeshProUGUI>(13);
+            InputBindingPrompt_Context = componentItemIndex.Get<InputBindingPrompt>(14);
+            RectTransform_FpsGroup = componentItemIndex.Get<RectTransform>(15);
+            Canvas_FpsGroup = componentItemIndex.Get<Canvas>(16);
+            TextMeshProUGUI_Fps = componentItemIndex.Get<TextMeshProUGUI>(17);
         }
     }
 }

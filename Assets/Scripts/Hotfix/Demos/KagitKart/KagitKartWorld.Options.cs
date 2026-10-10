@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -22,7 +22,7 @@ namespace Hotfix.KagitKart
         /// 触控显示策略独立于当前输入设备。
         public bool ShowTouchControls => Settings.ResolveTouch(Core.Runtime.Inputs.InputDeviceState.ActiveKind);
         /// 按真实渲染帧间隔采样，独立于比赛规则固定步。
-        public int FramesPerSecond { get; private set; }
+        public int FramesPerSecond { get; private set; } = -1;
         /// 操作弹窗或公共画质弹窗正在使用菜单输入。
         private bool OptionsOpen => optionsView != null || graphicsSettingsView?.State == ViewState.Visible;
 
@@ -86,6 +86,13 @@ namespace Hotfix.KagitKart
 
         private void SampleFrameRate()
         {
+            if (!Settings.ShowFps)
+            {
+                fpsElapsed = 0;
+                fpsFrames = 0;
+                FramesPerSecond = -1;
+                return;
+            }
             fpsElapsed += Time.unscaledDeltaTime;
             fpsFrames++;
             if (fpsElapsed >= 0.5f)

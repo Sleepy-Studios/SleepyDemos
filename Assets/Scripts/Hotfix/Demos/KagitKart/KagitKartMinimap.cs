@@ -1,38 +1,74 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Hotfix.KagitKart
 {
-    /// HUD 铅笔路线与八车位置，只绘制本场规则数据。
+    /// 原作静态地图底图与每帧赛车标记；源坐标为 100 × 100，Y 轴向下。
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class KagitKartMinimap : MaskableGraphic
     {
-        private KagitKartSession session;
-        private Vector2 min;
-        private Vector2 size;
+        [SerializeField] private Image backgroundImage;
+        [SerializeField] private Sprite[] routeSprites = new Sprite[4];
 
-        /// <summary>切换比赛数据，空值清空地图。</summary>
-        /// <param name="value">当前场景唯一会话，不持有资源句柄。</param>
+        private static readonly Color32 Outline = new(45, 42, 50, 255);
+        private static readonly Color32 PlayerColor = new(217, 72, 59, 255);
+        private static readonly Vector2[] Arrow = { new(4.6f, 0), new(-3, 3.6f), new(-1.6f, 0), new(-3, -3.6f) };
+        private readonly Vector2[] arrowPoints = new Vector2[4];
+        private KagitKartSession session;
+        private Color[] kartColors;
+        private double minX, minZ, scale, offsetX, offsetZ;
+
+        public override Texture mainTexture => Texture2D.whiteTexture;
+
+        /// <summary>切换当前比赛及对应章的静态底图，空值清空。</summary>
+        /// <param name="value">当前比赛会话，不持有资源句柄。</param>
         public void SetData(KagitKartSession value)
         {
             session = value;
-            min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
-            Vector2 max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            if (backgroundImage != null)
+            {
+                int chapter = value == null ? -1 : value.Track.Track.definition.chapter - 1;
+                backgroundImage.sprite = chapter >= 0 && routeSprites != null && chapter < routeSprites.Length ? routeSprites[chapter] : null;
+                backgroundImage.enabled = backgroundImage.sprite != null;
+            }
+            kartColors = null;
             if (value != null)
             {
                 var samples = value.Track.Track.data.samples;
+                minX = minZ = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity, maxZ = double.NegativeInfinity;
                 for (int i = 0; i < samples.px.Length; i++)
                 {
-                    var p = new Vector2(samples.px[i], samples.pz[i]);
-                    min = Vector2.Min(min, p);
-                    max = Vector2.Max(max, p);
+                    minX = Math.Min(minX, samples.px[i]);
+                    minZ = Math.Min(minZ, samples.pz[i]);
+                    maxX = Math.Max(maxX, samples.px[i]);
+                    maxZ = Math.Max(maxZ, samples.pz[i]);
+                }
+                scale = 92 / Math.Max(Math.Max(maxX - minX, maxZ - minZ), 1);
+                offsetX = (100 - (maxX - minX) * scale) / 2;
+                offsetZ = (100 - (maxZ - minZ) * scale) / 2;
+                kartColors = new Color[value.Karts.Count];
+                for (int i = 0; i < kartColors.Length; i++)
+                {
+                    var colors = value.Karts[i].Character.colors;
+                    string html = !string.IsNullOrEmpty(colors.kart) ? colors.kart : !string.IsNullOrEmpty(colors.body) ? colors.body : "#8a8490";
+                    ColorUtility.TryParseHtmlString(html, out kartColors[i]);
                 }
             }
-            size = max - min;
             SetVerticesDirty();
         }
 
+        /// <summary>供 HUD 刷新调用；标记位置另按原作逐帧更新。</summary>
         public void Refresh() => SetVerticesDirty();
+
+        private void LateUpdate()
+        {
+            if (session != null)
+            {
+                SetVerticesDirty();
+            }
+        }
 
         protected override void OnPopulateMesh(VertexHelper vh)
         {
@@ -41,43 +77,101 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            var samples = session.Track.Track.data.samples;
-            Vector2 previous = Point(samples.px[0], samples.pz[0]);
-            for (int i = 4; i <= samples.px.Length; i += 4)
+            for (int i = 0; i < session.Karts.Count; i++)
             {
-                int index = i % samples.px.Length;
-                Vector2 next = Point(samples.px[index], samples.pz[index]);
-                Vector2 normal = new Vector2(-(next - previous).y, (next - previous).x).normalized * 1.1f;
-                Quad(vh, previous - normal, previous + normal, next + normal, next - normal, color);
-                previous = next;
+                var kart = session.Karts[i];
+                if (!kart.IsPlayer)
+                {
+                    Vector2 point = Project(kart.Position.x, kart.Position.z);
+                    Circle(vh, point, 2.7f, Outline);
+                    Circle(vh, point, 1.9f, kartColors[i]);
+                }
             }
-            Vector2 first = Point(samples.px[0], samples.pz[0]);
-            Vector2 closing = new Vector2(-(first - previous).y, (first - previous).x).normalized * 1.1f;
-            Quad(vh, previous - closing, previous + closing, first + closing, first - closing, color);
-            foreach (var kart in session.Karts)
+            // 原作排序将玩家置顶；凹箭头填充由两片三角形组成，描边使用圆连接。
+            var player = session.Player;
+            Vector2 origin = Project(player.Position.x, player.Position.z);
+            for (int i = 0; i < Arrow.Length; i++)
             {
-                Vector2 p = Point(kart.Position.x, kart.Position.z);
-                float r = kart.IsPlayer ? 5.5f : 3;
-                Color ink = kart.IsPlayer ? new Color(0.78f, 0.2f, 0.15f) : new Color(0.2f, 0.25f, 0.3f);
-                Quad(vh, p + new Vector2(-r, -r), p + new Vector2(-r, r),
-                    p + new Vector2(r, r), p + new Vector2(r, -r), ink);
+                arrowPoints[i] = origin + RotateArrow(Arrow[i], player.Heading);
+            }
+            Quad(vh, arrowPoints[0], arrowPoints[1], arrowPoints[2], arrowPoints[3], PlayerColor);
+            for (int i = 0; i < Arrow.Length; i++)
+            {
+                Vector2 a = arrowPoints[i], b = arrowPoints[(i + 1) % Arrow.Length];
+                Vector2 normal = new Vector2(-(b - a).y, (b - a).x).normalized * 0.5f;
+                Quad(vh, a - normal, a + normal, b + normal, b - normal, Outline);
+                Circle(vh, a, 0.5f, Outline);
             }
         }
 
-        private Vector2 Point(float x, float z)
+        internal Vector2 Project(float x, float z) => new(
+            (float)SourceFixed((x - minX) * scale + offsetX, 2),
+            (float)SourceFixed((z - minZ) * scale + offsetZ, 2));
+
+        internal static Vector2 RotateArrow(Vector2 point, float heading)
+        {
+            double degrees = SourceFixed(Math.Atan2(Math.Cos(heading), Math.Sin(heading)) * 180 / Math.PI, 1);
+            double radians = degrees * Math.PI / 180;
+            double cosine = Math.Cos(radians), sine = Math.Sin(radians);
+            return new Vector2((float)(point.x * cosine - point.y * sine), (float)(point.x * sine + point.y * cosine));
+        }
+
+        // JS toFixed 按实际二进制值取最近十进制；普通 Math.Round 会在 2.675 等边界先乘法舍入。
+        internal static double SourceFixed(double value, int digits)
+        {
+            ulong factor = digits == 2 ? 100UL : 10UL;
+            double absolute = Math.Abs(value);
+            if (absolute < 0.5 / factor)
+            {
+                return 0;
+            }
+            ulong bits = (ulong)BitConverter.DoubleToInt64Bits(absolute);
+            int exponent = (int)((bits >> 52) & 0x7ff) - 1023 - 52;
+            if (exponent >= 0)
+            {
+                return value;
+            }
+            ulong numerator = ((bits & ((1UL << 52) - 1)) | (1UL << 52)) * factor;
+            int shift = -exponent;
+            ulong whole = numerator >> shift;
+            ulong remainder = numerator & ((1UL << shift) - 1);
+            if (remainder >= (1UL << (shift - 1)))
+            {
+                whole++;
+            }
+            double result = (double)whole / factor;
+            return value < 0 ? -result : result;
+        }
+
+        private Vector2 ToRect(Vector2 point)
         {
             Rect rect = rectTransform.rect;
-            float scale = Mathf.Min((rect.width - 20) / Mathf.Max(1, size.x), (rect.height - 20) / Mathf.Max(1, size.y));
-            return rect.center + new Vector2(x - min.x - size.x / 2, z - min.y - size.y / 2) * scale;
+            return rect.center + new Vector2((point.x - 50) * rect.width / 100, (50 - point.y) * rect.height / 100);
         }
 
-        private static void Quad(VertexHelper vh, Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color ink)
+        private void Circle(VertexHelper vh, Vector2 center, float radius, Color ink)
+        {
+            const int segments = 24;
+            int start = vh.currentVertCount;
+            vh.AddVert(ToRect(center), ink, new Vector2(0.5f, 0.5f));
+            for (int i = 0; i < segments; i++)
+            {
+                float angle = i * Mathf.PI * 2 / segments;
+                vh.AddVert(ToRect(center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius), ink, new Vector2(0.5f, 0.5f));
+            }
+            for (int i = 0; i < segments; i++)
+            {
+                vh.AddTriangle(start, start + 1 + i, start + 1 + (i + 1) % segments);
+            }
+        }
+
+        private void Quad(VertexHelper vh, Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color ink)
         {
             int start = vh.currentVertCount;
-            vh.AddVert(a, ink, Vector2.zero);
-            vh.AddVert(b, ink, Vector2.zero);
-            vh.AddVert(c, ink, Vector2.zero);
-            vh.AddVert(d, ink, Vector2.zero);
+            vh.AddVert(ToRect(a), ink, new Vector2(0.5f, 0.5f));
+            vh.AddVert(ToRect(b), ink, new Vector2(0.5f, 0.5f));
+            vh.AddVert(ToRect(c), ink, new Vector2(0.5f, 0.5f));
+            vh.AddVert(ToRect(d), ink, new Vector2(0.5f, 0.5f));
             vh.AddTriangle(start, start + 1, start + 2);
             vh.AddTriangle(start, start + 2, start + 3);
         }

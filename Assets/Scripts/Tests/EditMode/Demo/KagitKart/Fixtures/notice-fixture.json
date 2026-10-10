@@ -1,0 +1,155 @@
+{
+  "commit": "da100b21ae1c5332d2843d21a9bb7b68b97e9c2a",
+  "times": [
+    {
+      "seconds": 0,
+      "source": "0:00,00",
+      "chinese": "0:00.00"
+    },
+    {
+      "seconds": 0.009,
+      "source": "0:00,00",
+      "chinese": "0:00.00"
+    },
+    {
+      "seconds": 1.239,
+      "source": "0:01,23",
+      "chinese": "0:01.23"
+    },
+    {
+      "seconds": 59.999,
+      "source": "0:59,99",
+      "chinese": "0:59.99"
+    },
+    {
+      "seconds": 60,
+      "source": "1:00,00",
+      "chinese": "1:00.00"
+    },
+    {
+      "seconds": 3599.999,
+      "source": "59:59,99",
+      "chinese": "59:59.99"
+    },
+    {
+      "seconds": -1,
+      "source": "0:00,00",
+      "chinese": "0:00.00"
+    }
+  ],
+  "threats": [
+    {
+      "name": "fallback-behind",
+      "width": 1920,
+      "height": 1080,
+      "heading": 0,
+      "relative": null,
+      "x": 960,
+      "y": 1010,
+      "localX": 0,
+      "localY": -470
+    },
+    {
+      "name": "front",
+      "width": 1920,
+      "height": 1080,
+      "heading": 0,
+      "relative": {
+        "x": 0,
+        "z": 10
+      },
+      "x": 960,
+      "y": 70,
+      "localX": 0,
+      "localY": 470
+    },
+    {
+      "name": "behind",
+      "width": 1920,
+      "height": 1080,
+      "heading": 0,
+      "relative": {
+        "x": 0,
+        "z": -10
+      },
+      "x": 960,
+      "y": 1010,
+      "localX": 0,
+      "localY": -470
+    },
+    {
+      "name": "right",
+      "width": 1366,
+      "height": 768,
+      "heading": 0,
+      "relative": {
+        "x": -10,
+        "z": 0
+      },
+      "x": 1296,
+      "y": 384,
+      "localX": 613,
+      "localY": 0
+    },
+    {
+      "name": "left",
+      "width": 1366,
+      "height": 768,
+      "heading": 0,
+      "relative": {
+        "x": 10,
+        "z": 0
+      },
+      "x": 70,
+      "y": 384,
+      "localX": -613,
+      "localY": 0
+    },
+    {
+      "name": "turned",
+      "width": 1920,
+      "height": 1080,
+      "heading": 1.13,
+      "relative": {
+        "x": 17,
+        "z": -8
+      },
+      "x": 273.7,
+      "y": 240.8,
+      "localX": -686.3,
+      "localY": 299.2
+    }
+  ],
+  "eta": [
+    {
+      "kind": "homing",
+      "eta": 2,
+      "dt": 0.37,
+      "display": "block",
+      "near": false,
+      "dash": "81.5 100"
+    },
+    {
+      "kind": "rocket",
+      "eta": 0.6,
+      "dt": 0,
+      "display": "block",
+      "near": true,
+      "dash": "30.0 100"
+    },
+    {
+      "kind": null,
+      "dt": 0.95,
+      "display": "block",
+      "near": true,
+      "dash": "0.0 100"
+    },
+    {
+      "kind": null,
+      "dt": 0.001,
+      "display": "none",
+      "near": true,
+      "dash": "0.0 100"
+    }
+  ]
+}

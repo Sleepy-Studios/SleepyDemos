@@ -1674,6 +1674,7 @@ MonoBehaviour:
   - 0.13
   - 0.2
   - 0.27
+  duration: 0.62
 --- !u!1 &2989447244432207116
 GameObject:
   m_ObjectHideFlags: 0
@@ -3549,6 +3550,7 @@ MonoBehaviour:
   components:
   - {fileID: 600830589140010959}
   - {fileID: 6840534444381536459}
+  - {fileID: 3796507413642981449}
   - {fileID: 1036755801170769208}
   - {fileID: 7840110451944906429}
   - {fileID: 6028822730712630744}
@@ -3569,34 +3571,34 @@ MonoBehaviour:
   - {fileID: 319659886276869547}
   - {fileID: 8716683820988232476}
   - {fileID: 2327225236403260057}
-  - {fileID: 3796507413642981449}
   componentTypes:
   - UnityEngine.RectTransform
   - Core.Runtime.Inputs.UIMenuScope
-  - UnityEngine.UI.Button
-  - UnityEngine.UI.Button
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Image
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Image
   - Hotfix.KagitKart.KagitKartMenuPaperMotion
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Image
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Image
   bindingKeys:
   - KagitKartTrackView/Viewport|UnityEngine.RectTransform
   - KagitKartTrackView/Viewport|Core.Runtime.Inputs.UIMenuScope
+  - KagitKartTrackView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   - KagitKartTrackView/Viewport/BackGroup/Back|UnityEngine.UI.Button
   - KagitKartTrackView/Viewport/HubGroup/Hub|UnityEngine.UI.Button
   - KagitKartTrackView/Viewport/Status|TMPro.TextMeshProUGUI
@@ -3617,7 +3619,6 @@ MonoBehaviour:
   - KagitKartTrackView/Viewport/Track3Group/Track3|UnityEngine.UI.Button
   - KagitKartTrackView/Viewport/Track3Group/Track3|Hotfix.KagitKart.KagitKartChoiceCard
   - KagitKartTrackView/Viewport/Sketch3|UnityEngine.UI.Image
-  - KagitKartTrackView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   bindingMethods:
   - None
   - None

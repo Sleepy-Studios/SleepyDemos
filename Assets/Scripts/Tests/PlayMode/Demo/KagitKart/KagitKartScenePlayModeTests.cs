@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.IO;
@@ -20,7 +20,7 @@ using Object = UnityEngine.Object;
 
 namespace Tests.Demo
 {
-    public sealed class KagitKartScenePlayModeTests
+    public sealed partial class KagitKartScenePlayModeTests
     {
         private InputSettings original;
         private InputSettings temporary;
@@ -211,6 +211,10 @@ namespace Tests.Demo
             world.Dispatch(KagitKartCommand.Resume);
             yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "触屏大奖赛起跑");
             var hud = UIManager.Instance.Get<KagitKartHudView>();
+            var slot = hud.gameObject.GetComponentInChildren<KagitKartItemSlot>(true);
+            Assert.That(((RectTransform)slot.transform).sizeDelta.x, Is.EqualTo(136));
+            Assert.That(HudField<Image>(slot, "window").rectTransform.sizeDelta.x, Is.EqualTo(Screen.height <= 520 ? 102 : 94));
+
             Vector2 steer = ScreenPoint(hud.gameObject.GetComponentsInChildren<Core.Runtime.Inputs.TouchInputPad>().Single().transform);
             Vector2 gas = ScreenPoint(Button(hud, "Throttle").transform);
             Vector2 drift = ScreenPoint(Button(hud, "Drift").transform);
@@ -679,9 +683,10 @@ namespace Tests.Demo
         }
 
 
-        private static IEnumerator Capture(string name)
+        private static IEnumerator Capture(string name, float settleSeconds = 2)
         {
-            yield return new WaitForSecondsRealtime(2);
+            if (settleSeconds > 0) yield return new WaitForSecondsRealtime(settleSeconds);
+            else yield return new WaitForEndOfFrame();
             string folder = "D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews";
             Directory.CreateDirectory(folder);
             ScreenCapture.CaptureScreenshot(folder + "/" + name + ".png");
@@ -794,6 +799,167 @@ namespace Tests.Demo
         }
 
 
+        [UnityTest]
+        public IEnumerator PaperExitUsesUnscaledTimeAndRestoresForRollbackWhileReducedMotionSkipsWait()
+        {
+            var root = new GameObject("纸卡退出契约", typeof(RectTransform));
+            var card = new GameObject("Card", typeof(RectTransform), typeof(CanvasGroup));
+            card.transform.SetParent(root.transform, false);
+            var rect = (RectTransform)card.transform;
+            rect.pivot = new Vector2(0.5f, 0);
+            rect.localPosition = new Vector3(10, 20, 0);
+            rect.localRotation = Quaternion.Euler(0, 0, 1.5f);
+            var motion = root.AddComponent<KagitKartMenuPaperMotion>();
+            motion.cards = new[] { rect };
+            motion.delays = new[] { 0f };
+            var transition = new KagitKartMenuPaperTransition();
+            float previousScale = Time.timeScale;
+            try
+            {
+                motion.Play(0, false);
+                transition.Initialize(root.transform);
+                Time.timeScale = 0;
+                float started = Time.unscaledTime;
+                var context = new UITransitionContext(1, UINavigationAction.Close, null, null, true);
+                var exit = transition.ExitAsync(context, System.Threading.CancellationToken.None);
+                Assert.That(exit.Status, Is.EqualTo(UniTaskStatus.Pending));
+                Assert.That(root.activeSelf, Is.True);
+                yield return exit.ToCoroutine();
+                Assert.That(Time.unscaledTime - started, Is.GreaterThanOrEqualTo(0.159f));
+                Assert.That(Quaternion.Angle(rect.localRotation, Quaternion.Euler(-92, 0, 1.5f)), Is.LessThan(0.001f));
+                Assert.That(card.GetComponent<CanvasGroup>().alpha, Is.EqualTo(1), "原退出没有追加淡出");
+                transition.CompleteImmediately(UITransitionDirection.Enter);
+                Assert.That(Quaternion.Angle(rect.localRotation, Quaternion.Euler(0, 0, 1.5f)), Is.LessThan(0.001f), "公共回滚恢复可见终态");
+                Assert.That(rect.localPosition, Is.EqualTo(new Vector3(10, 20, 0)));
+                motion.SetReducedMotion(true);
+                Assert.That(transition.ExitAsync(context, System.Threading.CancellationToken.None).Status,
+                    Is.EqualTo(UniTaskStatus.Succeeded), "低动态不等待 .16s");
+                motion.SetReducedMotion(false);
+                motion.FoldOnExit = false;
+                Assert.That(transition.ExitAsync(context, System.Threading.CancellationToken.None).Status,
+                    Is.EqualTo(UniTaskStatus.Succeeded), "原暂停表单直接移除");
+            }
+            finally
+            {
+                Time.timeScale = previousScale;
+                transition.Dispose();
+                Object.DestroyImmediate(root);
+            }
+        }
+        [UnityTest, Timeout(240000)]
+        public IEnumerator PersistentFpsUsesActualSettingsButtonsAndRemainsReadableInTitleModeRaceAndPause()
+        {
+            string[] keys = { LocalDataKeys.KagitKartPreferences, LocalDataKeys.KagitKartHintsPreferences };
+            bool[] existed = keys.Select(key => PlayerPrefs.HasKey(key)).ToArray();
+            string[] previous = keys.Select(key => PlayerPrefs.GetString(key)).ToArray();
+            LocalDataManager.SaveData(keys[0], new KagitKartSettings { ShowFps = true, SeenTutorial = true });
+            KagitKartWorld world = null;
+            KagitKartHintsView hints = null;
+            TMPro.TextMeshProUGUI fps = null;
+            Transform group = null;
+
+            bool CurrentReadout() => world.FramesPerSecond >= 0 && fps.text == "帧率 " + world.FramesPerSecond;
+
+            void AssertReadable(string page)
+            {
+                Assert.That(UIManager.Instance.Get<KagitKartHintsView>(), Is.SameAs(hints), page + " 复用长驻 Widget");
+                Assert.That(hints.State, Is.EqualTo(ViewState.Visible));
+                Assert.That(group.gameObject.activeInHierarchy, Is.True, page);
+                Assert.That(fps.raycastTarget, Is.False);
+                var canvas = group.GetComponent<Canvas>();
+                var tip = UIRootManager.Instance.GetRoot(UILayer.Tip).GetComponent<Canvas>();
+                Assert.That(canvas.overrideSorting, Is.True, "初始 UI 放置后 OnShow 必须恢复独立排序");
+                Assert.That(canvas.sortingLayerID, Is.EqualTo(tip.sortingLayerID));
+                Assert.That(canvas.sortingOrder, Is.GreaterThan(tip.sortingOrder), page + " 位于 Tip 以上");
+                Assert.That(CurrentReadout(), Is.True, page + " 交付同一 World 采样值");
+                Canvas.ForceUpdateCanvases();
+                fps.ForceMeshUpdate();
+                Assert.That(fps.font, Is.Not.Null);
+                Assert.That(fps.canvasRenderer.cull, Is.False, page + " 字体渲染未被剔除");
+                Assert.That(fps.canvasRenderer.GetAlpha(), Is.GreaterThan(0));
+                Assert.That(fps.GetComponentsInParent<CanvasGroup>().All(value => value.alpha > 0), Is.True);
+                Assert.That(fps.textInfo.meshInfo.Any(value => value.vertexCount > 0), Is.True);
+                for (int i = 0; i < fps.textInfo.characterCount; i++)
+                {
+                    var character = fps.textInfo.characterInfo[i];
+                    if (char.IsWhiteSpace(character.character)) continue;
+                    Assert.That(character.isVisible, Is.True, page + " 每个帧率字形可见");
+                    Assert.That(character.textElement, Is.Not.Null);
+                    Assert.That(character.textElement.unicode, Is.EqualTo((uint)character.character), page + " 中文与数字不能替换为缺字方框");
+                }
+            }
+
+            try
+            {
+                yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+                yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                    && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "帧率标题入口");
+                hints = UIManager.Instance.Get<KagitKartHintsView>();
+                Assert.That(hints, Is.Not.Null);
+                group = hints.transform.Find("Viewport/FpsGroup");
+                Assert.That(group, Is.Not.Null);
+                fps = group.GetComponentInChildren<TMPro.TextMeshProUGUI>(true);
+                yield return Wait(CurrentReadout, "标题首个半秒真实采样");
+                AssertReadable("标题");
+
+                world.Dispatch(KagitKartCommand.Modes);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible, "帧率模式页");
+                yield return Wait(CurrentReadout, "模式帧率交付");
+                AssertReadable("模式");
+                UIManager.Instance.Get<KagitKartModeView>().gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "Settings").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "菜单设置帧率开关");
+                var settings = UIManager.Instance.Get<KagitKartSettingsView>();
+                settings.gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "FpsOff").onClick.Invoke();
+                yield return Wait(() => !world.Settings.ShowFps && !group.gameObject.activeInHierarchy, "真实设置关闭帧率");
+                Assert.That(LocalDataManager.LoadData(keys[0], new KagitKartSettings()).ShowFps, Is.False);
+                settings.gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "FpsOn").onClick.Invoke();
+                yield return Wait(() => world.Settings.ShowFps && CurrentReadout(), "真实设置重新开启帧率");
+                AssertReadable("菜单设置");
+                settings.gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "Back").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null, "返回模式保留帧率");
+
+                yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
+                world.SendMessage("OnApplicationFocus", true);
+                world.Dispatch(KagitKartCommand.SkipIntro);
+                yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running && CurrentReadout(), "比赛真实帧率");
+                AssertReadable("比赛");
+                Assert.That(UIManager.Instance.Get<KagitKartHudView>().gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true)
+                    .Any(value => value.name == "Fps"), Is.False, "HUD 不再重复显示计数");
+                world.Dispatch(KagitKartCommand.Pause);
+                yield return Wait(() => UIManager.Instance.Get<KagitKartPauseView>()?.State == ViewState.Visible, "帧率暂停页");
+                var session = world.Session;
+                double clock = session.RaceTime;
+                yield return Wait(CurrentReadout, "暂停帧率交付");
+                AssertReadable("暂停");
+                UIManager.Instance.Get<KagitKartPauseView>().gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "Settings").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "暂停设置帧率开关");
+                settings = UIManager.Instance.Get<KagitKartSettingsView>();
+                settings.gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "FpsOff").onClick.Invoke();
+                yield return Wait(() => !world.Settings.ShowFps && !group.gameObject.activeInHierarchy && world.FramesPerSecond == -1, "暂停关闭并重置窗口");
+                settings.gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "FpsOn").onClick.Invoke();
+                yield return Wait(() => world.Settings.ShowFps && CurrentReadout(), "暂停中重新产生半秒读数");
+                AssertReadable("暂停设置");
+                Assert.That(session.Pause.IsPaused, Is.True);
+                Assert.That(session.RaceTime, Is.EqualTo(clock), "帧率使用墙钟，比赛仍保持暂停");
+                settings.gameObject.GetComponentsInChildren<Button>().Single(value => value.name == "Back").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null
+                    && UIManager.Instance.Get<KagitKartPauseView>()?.State == ViewState.Visible, "帧率返回暂停");
+                yield return Wait(CurrentReadout, "暂停恢复显示帧率");
+                AssertReadable("返回暂停");
+                world.Dispatch(KagitKartCommand.Hub);
+                yield return Wait(() => Object.FindFirstObjectByType<KagitKartWorld>() == null, "帧率验收离开场景");
+                Assert.That(UIManager.Instance.Get<KagitKartHintsView>(), Is.Null, "离开 Demo 清理专属显示");
+            }
+            finally
+            {
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (existed[i]) PlayerPrefs.SetString(keys[i], previous[i]);
+                    else PlayerPrefs.DeleteKey(keys[i]);
+                }
+                PlayerPrefs.Save();
+            }
+        }
     }
 }
 #endif

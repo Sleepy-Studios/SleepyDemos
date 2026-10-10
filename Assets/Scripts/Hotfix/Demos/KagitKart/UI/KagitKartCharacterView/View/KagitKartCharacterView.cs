@@ -1,4 +1,4 @@
-namespace Hotfix
+﻿namespace Hotfix
 {
     using Core.Runtime;
     using System;
@@ -91,6 +91,7 @@ namespace Hotfix
             {
                 return;
             }
+            KagitKartMenuPaperMotion_Viewport.SetReducedMotion(world.ReducedMotion);
             var c = world.Roster[preview];
             TextMeshProUGUI_DriverName.text = KagitKartCatalog.CharacterName(c.id);
             var values = new[] { c.stats.speed, c.stats.accel, c.stats.handling, c.stats.weight, c.stats.offroad };

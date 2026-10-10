@@ -1,4 +1,4 @@
-namespace Hotfix
+﻿namespace Hotfix
 {
     using Core.Runtime;
     using System;
@@ -97,6 +97,7 @@ namespace Hotfix
             {
                 return;
             }
+            KagitKartMenuPaperMotion_Viewport.SetReducedMotion(world.ReducedMotion);
             foreach (var choice in choices)
             {
                 choice.interactable = !world.Busy;

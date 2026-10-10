@@ -453,6 +453,7 @@ MonoBehaviour:
   - 0.2
   - 0.06
   - 0.06
+  duration: 0.62
 --- !u!1 &2422930924936821676
 GameObject:
   m_ObjectHideFlags: 0
@@ -3031,6 +3032,7 @@ MonoBehaviour:
   components:
   - {fileID: 6613402969568298622}
   - {fileID: 566506798893931403}
+  - {fileID: 6098531337183665413}
   - {fileID: 43612517773640107}
   - {fileID: 3602395215136779837}
   - {fileID: 8290320220180777973}
@@ -3039,10 +3041,10 @@ MonoBehaviour:
   - {fileID: 550948234551821364}
   - {fileID: 1972884009356556202}
   - {fileID: 5845717833948452323}
-  - {fileID: 6098531337183665413}
   componentTypes:
   - UnityEngine.RectTransform
   - Core.Runtime.Inputs.UIMenuScope
+  - Hotfix.KagitKart.KagitKartMenuPaperMotion
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
   - TMPro.TextMeshProUGUI
@@ -3051,10 +3053,10 @@ MonoBehaviour:
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartMenuPaperMotion
   bindingKeys:
   - KagitKartModeView/Viewport|UnityEngine.RectTransform
   - KagitKartModeView/Viewport|Core.Runtime.Inputs.UIMenuScope
+  - KagitKartModeView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   - KagitKartModeView/Viewport/BackGroup/Back|UnityEngine.UI.Button
   - KagitKartModeView/Viewport/HubGroup/Hub|UnityEngine.UI.Button
   - KagitKartModeView/Viewport/Status|TMPro.TextMeshProUGUI
@@ -3063,7 +3065,6 @@ MonoBehaviour:
   - KagitKartModeView/Viewport/TimeTrialGroup/TimeTrial|UnityEngine.UI.Button
   - KagitKartModeView/Viewport/SettingsGroup/Settings|UnityEngine.UI.Button
   - KagitKartModeView/Viewport/ControlsGroup/Controls|UnityEngine.UI.Button
-  - KagitKartModeView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   bindingMethods:
   - None
   - None

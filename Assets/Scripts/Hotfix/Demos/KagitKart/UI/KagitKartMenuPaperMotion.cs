@@ -1,3 +1,5 @@
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -19,12 +21,16 @@ namespace Hotfix.KagitKart
         private float elapsed;
         private float extraDelay;
         private bool reducedMotion;
+        private bool folding;
+
+        internal bool FoldOnExit { get; set; } = true;
 
         /// <summary>从本页保存姿态播放原作纸卡弹起，模式页等待封面落下。</summary>
         /// <param name="delay">封面打开时为 0.8 秒，其余页面为 0。</param>
         /// <param name="reduceMotion">开启时直接显示纸卡终态，仍显示焦点和书签。</param>
         public void Play(float delay, bool reduceMotion = false)
         {
+            folding = false;
             reducedMotion = reduceMotion;
             if (positions == null)
             {
@@ -55,12 +61,80 @@ namespace Hotfix.KagitKart
 
         private void Update()
         {
-            if (positions == null)
+            if (positions == null || folding)
             {
                 return;
             }
             elapsed += Time.unscaledDeltaTime;
             Apply();
+        }
+
+        /// <summary>更新本页低动态偏好；退出折卡读取当前值，页面入口不重播。</summary>
+        /// <param name="value">本 Demo 当前实际低动态策略。</param>
+        public void SetReducedMotion(bool value)
+        {
+            reducedMotion = value;
+        }
+
+        internal async UniTask FoldAsync(CancellationToken cancellationToken)
+        {
+            if (!FoldOnExit || positions == null || reducedMotion)
+            {
+                return;
+            }
+            folding = true;
+            float seconds = 0;
+            ApplyFold(0);
+            while (seconds < 0.16f)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                seconds += Time.unscaledDeltaTime;
+                ApplyFold(Mathf.Clamp01(seconds / 0.16f));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        internal void CompleteFold()
+        {
+            if (positions == null || !FoldOnExit || reducedMotion)
+            {
+                return;
+            }
+            folding = true;
+            ApplyFold(1);
+        }
+
+        internal void RestoreAfterFold()
+        {
+            if (!folding)
+            {
+                return;
+            }
+            folding = false;
+            elapsed = extraDelay + duration;
+            foreach (float delay in delays)
+            {
+                elapsed = Mathf.Max(elapsed, extraDelay + delay + duration);
+            }
+            Apply();
+        }
+
+        private void ApplyFold(float t)
+        {
+            // CSS ease-in = cubic-bezier(.42,0,1,1)，同时从纸卡底边折至 -92 度，不额外淡出。
+            float eased = t <= 0 ? 0 : t >= 1 ? 1 : KagitKartHudMotion.Ease(t, new Vector4(0.42f, 0, 1, 1));
+            float angle = -92 * eased;
+            for (int i = 0; i < cards.Length; i++)
+            {
+                cards[i].localRotation = Quaternion.Euler(angle, 0, tilts[i]);
+                cards[i].localPosition = positions[i];
+                cards[i].localScale = scales[i];
+                groups[i].alpha = 1;
+                if (ribbons[i] != null)
+                {
+                    ribbons[i].localScale = new Vector3(1, 0, 1);
+                }
+            }
         }
 
         private void Apply()
@@ -85,28 +159,7 @@ namespace Hotfix.KagitKart
         }
 
         // 对应原作 cubic-bezier(.25,.8,.3,1)，先解横轴再读取纵轴。
-        private static float Ease(float x)
-        {
-            if (x <= 0 || x >= 1)
-            {
-                return Mathf.Clamp01(x);
-            }
-            float low = 0, high = 1;
-            for (int i = 0; i < 12; i++)
-            {
-                float t = (low + high) / 2;
-                float curve = 3 * (1 - t) * (1 - t) * t * 0.25f + 3 * (1 - t) * t * t * 0.3f + t * t * t;
-                if (curve < x)
-                {
-                    low = t;
-                }
-                else
-                {
-                    high = t;
-                }
-            }
-            float u = (low + high) / 2;
-            return 3 * (1 - u) * (1 - u) * u * 0.8f + 3 * (1 - u) * u * u + u * u * u;
-        }
+        private static float Ease(float x) => x <= 0 || x >= 1 ? Mathf.Clamp01(x)
+            : KagitKartHudMotion.Ease(x, new Vector4(0.25f, 0.8f, 0.3f, 1));
     }
 }

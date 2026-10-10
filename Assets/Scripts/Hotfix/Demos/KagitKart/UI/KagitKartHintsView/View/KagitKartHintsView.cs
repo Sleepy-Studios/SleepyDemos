@@ -1,4 +1,4 @@
-namespace Hotfix
+﻿namespace Hotfix
 {
     using Core.Runtime;
     using Core.Runtime.Inputs;
@@ -11,6 +11,7 @@ namespace Hotfix
     public partial class KagitKartHintsView : View
     {
         private KagitKartWorld world;
+        private int shownFrameRate = -2;
         private TMP_Text[] tutorialValues;
         private InputBindingPrompt[] tutorialGlyphs;
         private bool tutorialTouch;
@@ -40,8 +41,29 @@ namespace Hotfix
             Render();
         }
 
+        protected override void OnShow()
+        {
+            var tip = UIRootManager.Instance.GetRoot(UILayer.Tip).GetComponent<Canvas>();
+            Canvas_FpsGroup.overrideSorting = true;
+            Canvas_FpsGroup.sortingLayerID = tip.sortingLayerID;
+            Canvas_FpsGroup.sortingOrder = tip.sortingOrder + 1;
+        }
+
+        /// <summary>复用世界半秒采样，在菜单、比赛和暂停中更新原作帧率文本。</summary>
+        /// <param name="framesPerSecond">-1为刚开启而尚未完成采样。</param>
+        public void RefreshFrameRate(int framesPerSecond)
+        {
+            bool show = world?.Settings.ShowFps == true;
+            RectTransform_FpsGroup.gameObject.SetActive(show);
+            if (shownFrameRate == framesPerSecond) return;
+            shownFrameRate = framesPerSecond;
+            if (framesPerSecond < 0) TextMeshProUGUI_Fps.text = "";
+            else TextMeshProUGUI_Fps.SetText("帧率 {0}", framesPerSecond);
+        }
+
         private void Render()
         {
+            RefreshFrameRate(world?.FramesPerSecond ?? -1);
             if (world?.Hints == null || world.Input == null)
             {
                 return;

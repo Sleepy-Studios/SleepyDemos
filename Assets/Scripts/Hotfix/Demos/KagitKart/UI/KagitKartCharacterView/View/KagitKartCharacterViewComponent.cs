@@ -22,11 +22,12 @@ namespace Hotfix
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
-            return new Core.Runtime.EmptyUITransition();
+            return new Hotfix.KagitKart.KagitKartMenuPaperTransition();
         }
 
         private RectTransform RectTransform_Viewport;
         private UIMenuScope UIMenuScope_Viewport;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
         private Button Button_Back;
         private Button Button_Hub;
         private TextMeshProUGUI TextMeshProUGUI_Status;
@@ -52,7 +53,6 @@ namespace Hotfix
         private KagitKartChoiceCard KagitKartChoiceCard_Character6;
         private Button Button_Character7;
         private KagitKartChoiceCard KagitKartChoiceCard_Character7;
-        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -66,32 +66,32 @@ namespace Hotfix
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
             UIMenuScope_Viewport = componentItemIndex.Get<UIMenuScope>(1);
-            Button_Back = componentItemIndex.Get<Button>(2);
-            Button_Hub = componentItemIndex.Get<Button>(3);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_DriverName = componentItemIndex.Get<TextMeshProUGUI>(5);
-            RectTransform_SpeedTicks = componentItemIndex.Get<RectTransform>(6);
-            RectTransform_AccelTicks = componentItemIndex.Get<RectTransform>(7);
-            RectTransform_HandlingTicks = componentItemIndex.Get<RectTransform>(8);
-            RectTransform_WeightTicks = componentItemIndex.Get<RectTransform>(9);
-            RectTransform_OffroadTicks = componentItemIndex.Get<RectTransform>(10);
-            Button_Character0 = componentItemIndex.Get<Button>(11);
-            KagitKartChoiceCard_Character0 = componentItemIndex.Get<KagitKartChoiceCard>(12);
-            Button_Character1 = componentItemIndex.Get<Button>(13);
-            KagitKartChoiceCard_Character1 = componentItemIndex.Get<KagitKartChoiceCard>(14);
-            Button_Character2 = componentItemIndex.Get<Button>(15);
-            KagitKartChoiceCard_Character2 = componentItemIndex.Get<KagitKartChoiceCard>(16);
-            Button_Character3 = componentItemIndex.Get<Button>(17);
-            KagitKartChoiceCard_Character3 = componentItemIndex.Get<KagitKartChoiceCard>(18);
-            Button_Character4 = componentItemIndex.Get<Button>(19);
-            KagitKartChoiceCard_Character4 = componentItemIndex.Get<KagitKartChoiceCard>(20);
-            Button_Character5 = componentItemIndex.Get<Button>(21);
-            KagitKartChoiceCard_Character5 = componentItemIndex.Get<KagitKartChoiceCard>(22);
-            Button_Character6 = componentItemIndex.Get<Button>(23);
-            KagitKartChoiceCard_Character6 = componentItemIndex.Get<KagitKartChoiceCard>(24);
-            Button_Character7 = componentItemIndex.Get<Button>(25);
-            KagitKartChoiceCard_Character7 = componentItemIndex.Get<KagitKartChoiceCard>(26);
-            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(27);
+            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(2);
+            Button_Back = componentItemIndex.Get<Button>(3);
+            Button_Hub = componentItemIndex.Get<Button>(4);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_DriverName = componentItemIndex.Get<TextMeshProUGUI>(6);
+            RectTransform_SpeedTicks = componentItemIndex.Get<RectTransform>(7);
+            RectTransform_AccelTicks = componentItemIndex.Get<RectTransform>(8);
+            RectTransform_HandlingTicks = componentItemIndex.Get<RectTransform>(9);
+            RectTransform_WeightTicks = componentItemIndex.Get<RectTransform>(10);
+            RectTransform_OffroadTicks = componentItemIndex.Get<RectTransform>(11);
+            Button_Character0 = componentItemIndex.Get<Button>(12);
+            KagitKartChoiceCard_Character0 = componentItemIndex.Get<KagitKartChoiceCard>(13);
+            Button_Character1 = componentItemIndex.Get<Button>(14);
+            KagitKartChoiceCard_Character1 = componentItemIndex.Get<KagitKartChoiceCard>(15);
+            Button_Character2 = componentItemIndex.Get<Button>(16);
+            KagitKartChoiceCard_Character2 = componentItemIndex.Get<KagitKartChoiceCard>(17);
+            Button_Character3 = componentItemIndex.Get<Button>(18);
+            KagitKartChoiceCard_Character3 = componentItemIndex.Get<KagitKartChoiceCard>(19);
+            Button_Character4 = componentItemIndex.Get<Button>(20);
+            KagitKartChoiceCard_Character4 = componentItemIndex.Get<KagitKartChoiceCard>(21);
+            Button_Character5 = componentItemIndex.Get<Button>(22);
+            KagitKartChoiceCard_Character5 = componentItemIndex.Get<KagitKartChoiceCard>(23);
+            Button_Character6 = componentItemIndex.Get<Button>(24);
+            KagitKartChoiceCard_Character6 = componentItemIndex.Get<KagitKartChoiceCard>(25);
+            Button_Character7 = componentItemIndex.Get<Button>(26);
+            KagitKartChoiceCard_Character7 = componentItemIndex.Get<KagitKartChoiceCard>(27);
         }
     }
 }

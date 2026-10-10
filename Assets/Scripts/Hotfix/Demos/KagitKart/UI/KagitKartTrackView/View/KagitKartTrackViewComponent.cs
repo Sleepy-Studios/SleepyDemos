@@ -22,11 +22,12 @@ namespace Hotfix
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
-            return new Core.Runtime.EmptyUITransition();
+            return new Hotfix.KagitKart.KagitKartMenuPaperTransition();
         }
 
         private RectTransform RectTransform_Viewport;
         private UIMenuScope UIMenuScope_Viewport;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
         private Button Button_Back;
         private Button Button_Hub;
         private TextMeshProUGUI TextMeshProUGUI_Status;
@@ -47,7 +48,6 @@ namespace Hotfix
         private Button Button_Track3;
         private KagitKartChoiceCard KagitKartChoiceCard_Track3;
         private Image Image_Sketch3;
-        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -61,27 +61,27 @@ namespace Hotfix
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
             UIMenuScope_Viewport = componentItemIndex.Get<UIMenuScope>(1);
-            Button_Back = componentItemIndex.Get<Button>(2);
-            Button_Hub = componentItemIndex.Get<Button>(3);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_Chapter = componentItemIndex.Get<TextMeshProUGUI>(5);
-            TextMeshProUGUI_TrackName = componentItemIndex.Get<TextMeshProUGUI>(6);
-            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(7);
-            TextMeshProUGUI_Record = componentItemIndex.Get<TextMeshProUGUI>(8);
-            Image_Sketch = componentItemIndex.Get<Image>(9);
-            Button_Track0 = componentItemIndex.Get<Button>(10);
-            KagitKartChoiceCard_Track0 = componentItemIndex.Get<KagitKartChoiceCard>(11);
-            Image_Sketch0 = componentItemIndex.Get<Image>(12);
-            Button_Track1 = componentItemIndex.Get<Button>(13);
-            KagitKartChoiceCard_Track1 = componentItemIndex.Get<KagitKartChoiceCard>(14);
-            Image_Sketch1 = componentItemIndex.Get<Image>(15);
-            Button_Track2 = componentItemIndex.Get<Button>(16);
-            KagitKartChoiceCard_Track2 = componentItemIndex.Get<KagitKartChoiceCard>(17);
-            Image_Sketch2 = componentItemIndex.Get<Image>(18);
-            Button_Track3 = componentItemIndex.Get<Button>(19);
-            KagitKartChoiceCard_Track3 = componentItemIndex.Get<KagitKartChoiceCard>(20);
-            Image_Sketch3 = componentItemIndex.Get<Image>(21);
-            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(22);
+            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(2);
+            Button_Back = componentItemIndex.Get<Button>(3);
+            Button_Hub = componentItemIndex.Get<Button>(4);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_Chapter = componentItemIndex.Get<TextMeshProUGUI>(6);
+            TextMeshProUGUI_TrackName = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_Record = componentItemIndex.Get<TextMeshProUGUI>(9);
+            Image_Sketch = componentItemIndex.Get<Image>(10);
+            Button_Track0 = componentItemIndex.Get<Button>(11);
+            KagitKartChoiceCard_Track0 = componentItemIndex.Get<KagitKartChoiceCard>(12);
+            Image_Sketch0 = componentItemIndex.Get<Image>(13);
+            Button_Track1 = componentItemIndex.Get<Button>(14);
+            KagitKartChoiceCard_Track1 = componentItemIndex.Get<KagitKartChoiceCard>(15);
+            Image_Sketch1 = componentItemIndex.Get<Image>(16);
+            Button_Track2 = componentItemIndex.Get<Button>(17);
+            KagitKartChoiceCard_Track2 = componentItemIndex.Get<KagitKartChoiceCard>(18);
+            Image_Sketch2 = componentItemIndex.Get<Image>(19);
+            Button_Track3 = componentItemIndex.Get<Button>(20);
+            KagitKartChoiceCard_Track3 = componentItemIndex.Get<KagitKartChoiceCard>(21);
+            Image_Sketch3 = componentItemIndex.Get<Image>(22);
         }
     }
 }

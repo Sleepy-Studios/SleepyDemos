@@ -2536,6 +2536,7 @@ MonoBehaviour:
   - 0.06
   - 0.13
   - 0.2
+  duration: 0.62
 --- !u!1 &3135724180562451087
 GameObject:
   m_ObjectHideFlags: 0
@@ -4092,33 +4093,33 @@ MonoBehaviour:
   components:
   - {fileID: 3517062355782915838}
   - {fileID: 6639177394080256533}
+  - {fileID: 1414075726159773265}
   - {fileID: 3258135348714012065}
   - {fileID: 3248173478814534994}
   - {fileID: 2579524455147730916}
   - {fileID: 3675687489849200326}
   - {fileID: 239770305640286269}
   - {fileID: 10825798824732091}
-  - {fileID: 1414075726159773265}
   componentTypes:
   - UnityEngine.RectTransform
   - Core.Runtime.Inputs.UIMenuScope
+  - Hotfix.KagitKart.KagitKartMenuPaperMotion
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
   - TMPro.TextMeshProUGUI
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartMenuPaperMotion
   bindingKeys:
   - KagitKartClassView/Viewport|UnityEngine.RectTransform
   - KagitKartClassView/Viewport|Core.Runtime.Inputs.UIMenuScope
+  - KagitKartClassView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   - KagitKartClassView/Viewport/BackGroup/Back|UnityEngine.UI.Button
   - KagitKartClassView/Viewport/HubGroup/Hub|UnityEngine.UI.Button
   - KagitKartClassView/Viewport/Status|TMPro.TextMeshProUGUI
   - KagitKartClassView/Viewport/Class80Group/Class80|UnityEngine.UI.Button
   - KagitKartClassView/Viewport/Class120Group/Class120|UnityEngine.UI.Button
   - KagitKartClassView/Viewport/Class200Group/Class200|UnityEngine.UI.Button
-  - KagitKartClassView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   bindingMethods:
   - None
   - None

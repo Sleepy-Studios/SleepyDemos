@@ -22,18 +22,18 @@ namespace Hotfix
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
-            return new Core.Runtime.EmptyUITransition();
+            return new Hotfix.KagitKart.KagitKartMenuPaperTransition();
         }
 
         private RectTransform RectTransform_Viewport;
         private UIMenuScope UIMenuScope_Viewport;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
         private Button Button_Back;
         private Button Button_Hub;
         private TextMeshProUGUI TextMeshProUGUI_Status;
         private Button Button_Class80;
         private Button Button_Class120;
         private Button Button_Class200;
-        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -47,13 +47,13 @@ namespace Hotfix
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
             UIMenuScope_Viewport = componentItemIndex.Get<UIMenuScope>(1);
-            Button_Back = componentItemIndex.Get<Button>(2);
-            Button_Hub = componentItemIndex.Get<Button>(3);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(4);
-            Button_Class80 = componentItemIndex.Get<Button>(5);
-            Button_Class120 = componentItemIndex.Get<Button>(6);
-            Button_Class200 = componentItemIndex.Get<Button>(7);
-            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(8);
+            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(2);
+            Button_Back = componentItemIndex.Get<Button>(3);
+            Button_Hub = componentItemIndex.Get<Button>(4);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Button_Class80 = componentItemIndex.Get<Button>(6);
+            Button_Class120 = componentItemIndex.Get<Button>(7);
+            Button_Class200 = componentItemIndex.Get<Button>(8);
         }
     }
 }

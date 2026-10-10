@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Collections.Generic;
 using Core.Runtime;
@@ -325,6 +325,7 @@ namespace Hotfix.KagitKart
 
         private void LateUpdate()
         {
+            hintsView?.RefreshFrameRate(FramesPerSecond);
             hud?.AdvanceVisual();
             UpdateHints();
             if (Session == null && bookStage != null && bookStage.gameObject.activeInHierarchy)

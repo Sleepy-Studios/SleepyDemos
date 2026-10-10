@@ -8,6 +8,7 @@ namespace Hotfix
     using UnityEngine;
     using UnityEngine.UI;
     using Core.Runtime.Inputs;
+    using Hotfix.KagitKart;
     using TMPro;
 
     [Source("LoadResources/Demos/kagit_kart/Prefabs/UI/KagitKartSettingsView")]
@@ -21,10 +22,11 @@ namespace Hotfix
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
-            return new Core.Runtime.EmptyUITransition();
+            return new Hotfix.KagitKart.KagitKartMenuPaperTransition();
         }
 
         private RectTransform RectTransform_Viewport;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
         private UIMenuScope UIMenuScope_Sheet;
         private Button Button_Back;
         private Slider Slider_Music;
@@ -59,28 +61,29 @@ namespace Hotfix
             }
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
-            UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(1);
-            Button_Back = componentItemIndex.Get<Button>(2);
-            Slider_Music = componentItemIndex.Get<Slider>(3);
-            TextMeshProUGUI_MusicValue = componentItemIndex.Get<TextMeshProUGUI>(4);
-            Slider_Sfx = componentItemIndex.Get<Slider>(5);
-            TextMeshProUGUI_SfxValue = componentItemIndex.Get<TextMeshProUGUI>(6);
-            Button_SoundOn = componentItemIndex.Get<Button>(7);
-            Button_SoundOff = componentItemIndex.Get<Button>(8);
-            Button_Graphics = componentItemIndex.Get<Button>(9);
-            Button_MotionAuto = componentItemIndex.Get<Button>(10);
-            Button_MotionOn = componentItemIndex.Get<Button>(11);
-            Button_MotionOff = componentItemIndex.Get<Button>(12);
-            Button_ShakeOn = componentItemIndex.Get<Button>(13);
-            Button_ShakeOff = componentItemIndex.Get<Button>(14);
-            Button_TouchAuto = componentItemIndex.Get<Button>(15);
-            Button_TouchOn = componentItemIndex.Get<Button>(16);
-            Button_TouchOff = componentItemIndex.Get<Button>(17);
-            Button_AutoOn = componentItemIndex.Get<Button>(18);
-            Button_AutoOff = componentItemIndex.Get<Button>(19);
-            Button_FpsOn = componentItemIndex.Get<Button>(20);
-            Button_FpsOff = componentItemIndex.Get<Button>(21);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(22);
+            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(1);
+            UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(2);
+            Button_Back = componentItemIndex.Get<Button>(3);
+            Slider_Music = componentItemIndex.Get<Slider>(4);
+            TextMeshProUGUI_MusicValue = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Slider_Sfx = componentItemIndex.Get<Slider>(6);
+            TextMeshProUGUI_SfxValue = componentItemIndex.Get<TextMeshProUGUI>(7);
+            Button_SoundOn = componentItemIndex.Get<Button>(8);
+            Button_SoundOff = componentItemIndex.Get<Button>(9);
+            Button_Graphics = componentItemIndex.Get<Button>(10);
+            Button_MotionAuto = componentItemIndex.Get<Button>(11);
+            Button_MotionOn = componentItemIndex.Get<Button>(12);
+            Button_MotionOff = componentItemIndex.Get<Button>(13);
+            Button_ShakeOn = componentItemIndex.Get<Button>(14);
+            Button_ShakeOff = componentItemIndex.Get<Button>(15);
+            Button_TouchAuto = componentItemIndex.Get<Button>(16);
+            Button_TouchOn = componentItemIndex.Get<Button>(17);
+            Button_TouchOff = componentItemIndex.Get<Button>(18);
+            Button_AutoOn = componentItemIndex.Get<Button>(19);
+            Button_AutoOff = componentItemIndex.Get<Button>(20);
+            Button_FpsOn = componentItemIndex.Get<Button>(21);
+            Button_FpsOff = componentItemIndex.Get<Button>(22);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(23);
         }
     }
 }

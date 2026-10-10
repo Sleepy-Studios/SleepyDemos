@@ -1850,6 +1850,7 @@ MonoBehaviour:
   components:
   - {fileID: 4249855947240958920}
   - {fileID: 7001350657245715032}
+  - {fileID: 4947859029592829774}
   - {fileID: 1315354067167391140}
   - {fileID: 1684118415581612584}
   - {fileID: 8323494464407283053}
@@ -1875,39 +1876,39 @@ MonoBehaviour:
   - {fileID: 3421083852306728324}
   - {fileID: 3035239630513766792}
   - {fileID: 803977318751677967}
-  - {fileID: 4947859029592829774}
   componentTypes:
   - UnityEngine.RectTransform
   - Core.Runtime.Inputs.UIMenuScope
-  - UnityEngine.UI.Button
-  - UnityEngine.UI.Button
-  - TMPro.TextMeshProUGUI
-  - TMPro.TextMeshProUGUI
-  - UnityEngine.RectTransform
-  - UnityEngine.RectTransform
-  - UnityEngine.RectTransform
-  - UnityEngine.RectTransform
-  - UnityEngine.RectTransform
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
-  - UnityEngine.UI.Button
-  - Hotfix.KagitKart.KagitKartChoiceCard
   - Hotfix.KagitKart.KagitKartMenuPaperMotion
+  - UnityEngine.UI.Button
+  - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
+  - UnityEngine.RectTransform
+  - UnityEngine.RectTransform
+  - UnityEngine.RectTransform
+  - UnityEngine.RectTransform
+  - UnityEngine.RectTransform
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
+  - UnityEngine.UI.Button
+  - Hotfix.KagitKart.KagitKartChoiceCard
   bindingKeys:
   - KagitKartCharacterView/Viewport|UnityEngine.RectTransform
   - KagitKartCharacterView/Viewport|Core.Runtime.Inputs.UIMenuScope
+  - KagitKartCharacterView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   - KagitKartCharacterView/Viewport/BackGroup/Back|UnityEngine.UI.Button
   - KagitKartCharacterView/Viewport/HubGroup/Hub|UnityEngine.UI.Button
   - KagitKartCharacterView/Viewport/Status|TMPro.TextMeshProUGUI
@@ -1933,7 +1934,6 @@ MonoBehaviour:
   - KagitKartCharacterView/Viewport/Character6Group/Character6|Hotfix.KagitKart.KagitKartChoiceCard
   - KagitKartCharacterView/Viewport/Character7Group/Character7|UnityEngine.UI.Button
   - KagitKartCharacterView/Viewport/Character7Group/Character7|Hotfix.KagitKart.KagitKartChoiceCard
-  - KagitKartCharacterView/Viewport|Hotfix.KagitKart.KagitKartMenuPaperMotion
   bindingMethods:
   - None
   - None
@@ -6170,6 +6170,7 @@ MonoBehaviour:
   - 0.27
   - 0.312
   - 0.354
+  duration: 0.62
 --- !u!1 &5511772764796185612
 GameObject:
   m_ObjectHideFlags: 0

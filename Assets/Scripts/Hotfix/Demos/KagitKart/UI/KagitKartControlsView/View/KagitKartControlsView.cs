@@ -1,4 +1,4 @@
-namespace Hotfix
+﻿namespace Hotfix
 {
     using System;
     using System.Collections.Generic;
@@ -51,6 +51,9 @@ namespace Hotfix
             var safe = Screen.safeArea;
             RectTransform_Viewport.anchorMin = new Vector2(safe.xMin / Mathf.Max(1, Screen.width), safe.yMin / Mathf.Max(1, Screen.height));
             RectTransform_Viewport.anchorMax = new Vector2(safe.xMax / Mathf.Max(1, Screen.width), safe.yMax / Mathf.Max(1, Screen.height));
+            // 菜单走menus.show折卡，暂停子页走panels.cleanup直接移除。
+            KagitKartMenuPaperMotion_Viewport.FoldOnExit = owner.Session == null;
+            KagitKartMenuPaperMotion_Viewport.Play(0, owner.ReducedMotion);
             Render();
         }
 
@@ -72,6 +75,7 @@ namespace Hotfix
             {
                 return;
             }
+            KagitKartMenuPaperMotion_Viewport.SetReducedMotion(world.ReducedMotion);
             for (int i = 0; i < tabs.Length; i++)
             {
                 tabs[i].interactable = !world.Busy;
