@@ -66,6 +66,7 @@ namespace Core.Runtime.Inputs
                     target.gameObject.AddComponent<UIMenuCancelRelay>();
                 }
                 originalNavigation.TryAdd(target, target.navigation);
+                if (originalNavigation[target].mode == Navigation.Mode.Explicit) continue;
                 var navigation = target.navigation; navigation.mode = Navigation.Mode.Explicit;
                 navigation.selectOnLeft = Nearest(target, targets, Vector2.left);
                 navigation.selectOnRight = Nearest(target, targets, Vector2.right);

@@ -155,6 +155,41 @@ namespace Tests.Module
             finally { InputSystem.RemoveDevice(first); InputSystem.RemoveDevice(second); InputSystem.RemoveDevice(keyboard); }
         }
 
+        [UnityTest]
+        public IEnumerator ExplicitMenuLinksSurviveAvailabilityChanges()
+        {
+            var original = EventSystem.current;
+            var root = new GameObject("ExplicitNav", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            EventSystem.current = root.GetComponent<EventSystem>();
+            var panel = new GameObject("Panel", typeof(RectTransform));
+            panel.transform.SetParent(root.transform);
+            var first = new GameObject("First", typeof(RectTransform), typeof(Button));
+            first.transform.SetParent(panel.transform);
+            var next = new GameObject("Next", typeof(RectTransform), typeof(Button));
+            next.transform.SetParent(panel.transform);
+            next.transform.position = new Vector3(100, 0, 0);
+            var nearer = new GameObject("Nearer", typeof(RectTransform), typeof(Button));
+            nearer.transform.SetParent(panel.transform);
+            nearer.transform.position = new Vector3(10, 0, 0);
+            first.GetComponent<Button>().navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = next.GetComponent<Button>() };
+            try
+            {
+                panel.AddComponent<UIMenuScope>();
+                yield return null;
+                nearer.SetActive(false);
+                yield return null;
+                nearer.SetActive(true);
+                yield return null;
+                EventSystem.current.SetSelectedGameObject(first);
+                ExecuteEvents.Execute(first, new AxisEventData(EventSystem.current) { moveDir = MoveDirection.Right }, ExecuteEvents.moveHandler);
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(next));
+                panel.SetActive(false);
+                Assert.That(first.GetComponent<Button>().navigation.selectOnRight, Is.SameAs(next.GetComponent<Button>()));
+            }
+            finally { Object.Destroy(root); if (original != null) EventSystem.current = original; }
+            yield return null;
+        }
+
 #if UNITY_EDITOR
         [UnityTest]
         public IEnumerator SavedDlssActionsSupportGamepadAndRequireNeutralAfterMenu()

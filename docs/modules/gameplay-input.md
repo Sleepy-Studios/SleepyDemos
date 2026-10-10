@@ -17,6 +17,8 @@
 
 `UIMenuScope` 为作用域内没有取消处理的普通可导航控件添加 `UIMenuCancelRelay`。Input System UI Module 将 Cancel 直接发送给当前选中对象，不向父级冒泡；Relay 只转交最近的菜单作用域。嵌套菜单不触发外层返回，下拉框等已有 `ICancelHandler` 的控件继续处理自己的取消操作；确认与方向导航仍由现有 UI Module 执行。
 
+保存为 `Navigation.Mode.Explicit` 的控件保留作者连接，作用域不重新按空间位置覆盖它们；启用、控件显隐或交互状态变化后仍遵守这些连接。其余可导航控件继续自动选择同作用域内的可用邻居。纸卡等会改变显示位置的菜单应保存明确连接，避免入场动画改变手柄导航顺序。
+
 ## 边界
 
 `InputActionSession.ReadAxis` 与 `ReadVector` 都可在原始手柄值上只应用一次死区，避免布局处理器叠加。标量 Value 动作重新启用时也须释放旧轴；模拟扳机的中性门闩保留低于按钮按下阈值的保持值。`InputBindingDisplay` 将摇杆子轴归到父摇杆的图标路径，实际绑定仍为原始轴。
