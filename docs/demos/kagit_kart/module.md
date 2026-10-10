@@ -28,6 +28,15 @@
 | `KagitKartData` / `Action` / `Handler` | 核对页面来源，提交暂停、重赛、下一章和返回；UI 读取唯一 Session。 |
 | `KagitKartCameraRig` | 原作镜头半衰期跟随、加速视野、回头和撞击震动，随本场解除规则订阅。 |
 | `KagitKartMinimap` | HUD 铅笔路线与本场车辆位置，不复制规则。 |
+| `KagitKartPostProcess` | 克隆本场纸印材质，临时安装官方全屏 Pass；世界 Base 相机单独描边与错版，切换管线或退出时恢复 Renderer。 |
+
+## 纸印后处理
+
+`World` 通过已有 Loader 加载正式 `Art/Materials/Post.mat`，菜单和领奖台使用原作书本墨色，比赛读取章节材质的线性墨色。`Post.shader` 保留 `post.js` 的倒数深度 Laplacian、阈值与远距离淡出、整像素颜色错版、两层纸纤维和暗角。颜色保持线性，由 URP 最终输出转为 sRGB；UI Overlay 不参与纸印。
+
+宿主复用 URP 的 `FullScreenPassRendererFeature` 和 `CopyDepthPass`，在透明绘制后补充最终深度，避免 SSAO 提前复制而漏掉透明幽灵的深度。运行时只安装到当前管线 Renderer，退出或切换管线时移除自有 Feature、恢复深度复制模式，不保存共享管线资产。相机过滤与整像素线宽、生命周期测试通过 2/2（`88220e62`）；GPU 的倒数深度平面、台阶墨边与屏幕错版方向复验 1/1（`9a87b8b2`），纵向方向按真实 GPU 结果修正，未改测试预期。
+
+四章正常驾驶、赛道切换和退出测试通过 1/1（`f153aef9`），并保存画面与性能记录。当前验证为 Windows Editor 的 RenderGraph；兼容模式明确关闭效果并提示，Vulkan、Player 和 Android 未验证。最佳幽灵的实际透明轮廓及公共画质切换仍需结合后续页面验收。
 
 ## 数据与边界
 

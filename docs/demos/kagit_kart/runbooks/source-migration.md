@@ -24,7 +24,7 @@
 | `characters/models.js`、`paperkit.js`、`atlas.js` | 直接执行固定原作的建模与绘图算法导出八角色，不重画造型。已转换为正式骨骼 Mesh、图集、材质与 Prefab，比赛与菜单骨链动画已接入。 |
 | `ai/ai.js` | 原作路线规划保存为四份 `Data/AiPlans`；实时性格、技能、起步、漂移、追赶、道具、避障、捷径和救援迁移到 `KagitKartAi`，原作命令对照和完整规则模拟测试已通过。 |
 | `items/visuals.js` | `KagitKartItemVisuals` 迁移箱体、钢笔、口香糖、飞机、墨水、剪刀、纸壳和世界虚线；原作 14 场景 / 56 实例快照对照通过，GPU 视觉另行检查。 |
-| `render/materials.js`、`surfaces.js`、`renderer.js` 的天空片段 | 已转译原生纸纹印刷、道路、加速贴纸、水波、纸洞深度与天空 Shader；后处理轮廓与错版待接入。 |
+| `render/materials.js`、`surfaces.js`、`renderer.js` 的天空片段、`post.js` | 已转译原生纸纹印刷、道路、加速贴纸、水波、纸洞深度与天空 Shader；原作倒数深度描边、整像素错版、双层纸纤维与暗角已接入本场世界相机。 |
 | `scenery/*`、`track/trackBuilder.js` | 四章原作网格、纸景、材质与折起数据保存为原生 Prefab；章节 updater、风车、云、渡轮、烟、缆车、蒸汽及中文路牌已接入，四章源码矩阵对照通过。 |
 | `characters/animate.js` | `KagitKartCharacterVisual` 接入八角色比赛和菜单动画；固定 JS 导出 50 组逐骨姿态，8/8 通过。 |
 | `ui/menus.js`、`icons.js`、`nav.js` | 中文封面、模式、克重、八车手和四章节已接入；焦点按原作更新选择与 3D 预览，确认才推进，大奖赛跳过章节选择。设置与操作说明待完成。 |

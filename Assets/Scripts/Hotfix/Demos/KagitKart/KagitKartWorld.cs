@@ -39,6 +39,8 @@ namespace Hotfix.KagitKart
         private KagitKartBookStage bookStage;
         private KagitKartPodiumStage podium;
         private KagitKartAudio audio;
+        private KagitKartPostProcess postProcess;
+        private Color bookInk;
         private KagitKartRaceCinematics cinematics;
         private TextAsset introPaths;
         private bool ready;
@@ -90,6 +92,11 @@ namespace Hotfix.KagitKart
                 token.ThrowIfCancellationRequested();
                 audio = gameObject.AddComponent<KagitKartAudio>();
                 audio.Initialize(bank, worldCamera);
+                var postTemplate = await loader.LoadAssetAsync<Material>(Root + "Art/Materials/Post");
+                token.ThrowIfCancellationRequested();
+                bookInk = postTemplate.GetVector("uInk");
+                postProcess = gameObject.AddComponent<KagitKartPostProcess>();
+                postProcess.Initialize(worldCamera, postTemplate);
                 Input = new KagitKartInput(inputTemplate);
                 gameplayMenuScope = new MenuInputScope(EventSystem.current);
                 gameplayMenuScope.SetContext(GameplayInputContext.Interaction);
@@ -196,6 +203,7 @@ namespace Hotfix.KagitKart
                 var world = await owned.InstantiateAsync(Root + "Prefabs/Tracks/" + name, transform);
                 token.ThrowIfCancellationRequested();
                 scenery = world.GetComponent<KagitKartSceneryWorld>();
+                postProcess.SetInk(scenery.Asset.batches[0].materials[0].GetVector("uInk"));
                 worldCamera.clearFlags = CameraClearFlags.Skybox;
                 worldCamera.GetComponent<Skybox>().material = scenery.Asset.SkyMaterial;
                 sun.color = scenery.Asset.SunColor;
@@ -483,6 +491,7 @@ namespace Hotfix.KagitKart
                 await CloseViewsAsync();
                 StopRound();
                 audio.PlayMenu();
+                postProcess.SetInk(bookInk);
                 bookStage.SetPage(page, CharacterId, TrackId);
                 if (page == KagitKartCommand.Modes)
                 {
@@ -550,6 +559,7 @@ namespace Hotfix.KagitKart
                     podium.Initialize(worldCamera);
                     podium.Completed += OnPodiumCompleted;
                 }
+                postProcess.SetInk(bookInk);
                 var standings = GrandPrix.SortedStandings();
                 bookStage.SetPodium(false);
                 podium.Show(new[] { standings[0].CharacterId, standings[1].CharacterId, standings[2].CharacterId }, CharacterId);
@@ -902,6 +912,7 @@ namespace Hotfix.KagitKart
             {
                 bookStage.PageTurnStarted -= audio.PageTurn;
             }
+            if (postProcess != null) postProcess.enabled = false;
             loader?.Dispose();
             loader = null;
             if (GlobalData.Get<KagitKartData>()?.World == this)
