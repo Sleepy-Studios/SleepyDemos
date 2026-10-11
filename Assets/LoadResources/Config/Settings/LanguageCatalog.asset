@@ -550,3 +550,557 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u76F8\u673A\u9ED8\u8BA4"
     english: Camera default
+  - key: Input.Navigate
+    fontId: 0
+    chinese: "\u83DC\u5355\u5BFC\u822A"
+    english: Menu navigation
+  - key: Input.Settings
+    fontId: 0
+    chinese: "\u8BBE\u7F6E"
+    english: Settings
+  - key: Input.LookHold
+    fontId: 0
+    chinese: "\u6309\u4F4F\u8C03\u6574\u89C6\u89D2"
+    english: Hold to look
+  - key: Input.Brake
+    fontId: 0
+    chinese: "\u5239\u8F66"
+    english: Brake
+  - key: Input.LookBack
+    fontId: 0
+    chinese: "\u56DE\u5934"
+    english: Look back
+  - key: Input.Mute
+    fontId: 0
+    chinese: "\u9759\u97F3"
+    english: Mute
+  - key: Input.Restart
+    fontId: 0
+    chinese: "\u91CD\u65B0\u5F00\u59CB"
+    english: Restart
+  - key: Input.SkipIntro
+    fontId: 0
+    chinese: "\u8DF3\u8FC7\u5F00\u573A"
+    english: Skip intro
+  - key: Input.SteerLeft
+    fontId: 0
+    chinese: "\u5411\u5DE6\u8F6C\u5411"
+    english: Steer left
+  - key: Input.SteerRight
+    fontId: 0
+    chinese: "\u5411\u53F3\u8F6C\u5411"
+    english: Steer right
+  - key: Input.PreviousWall
+    fontId: 0
+    chinese: "\u4E0A\u4E00\u9762\u5899"
+    english: Previous wall
+  - key: Input.NextWall
+    fontId: 0
+    chinese: "\u4E0B\u4E00\u9762\u5899"
+    english: Next wall
+  - key: Input.Drone.VerticalYaw
+    fontId: 0
+    chinese: "\u5347\u964D\uFF0F\u504F\u822A"
+    english: Vertical / yaw
+  - key: Input.Drone.ArmOrReset
+    fontId: 0
+    chinese: "\u89E3\u9501\uFF0F\u9501\u5B9A \xB7 \u957F\u6309\u91CD\u7F6E"
+    english: "Arm / disarm \xB7 hold to reset"
+  - key: Input.Drone.Takeoff
+    fontId: 0
+    chinese: "\u81EA\u52A8\u8D77\u98DE"
+    english: Auto takeoff
+  - key: Input.Drone.Landing
+    fontId: 0
+    chinese: "\u81EA\u52A8\u964D\u843D"
+    english: Auto landing
+  - key: Input.Drone.ProfileCine
+    fontId: 0
+    chinese: "\u5E73\u7A33\u98DE\u884C"
+    english: Cinematic profile
+  - key: Input.Drone.ProfileNormal
+    fontId: 0
+    chinese: "\u666E\u901A\u98DE\u884C"
+    english: Normal profile
+  - key: Input.Drone.ProfileSport
+    fontId: 0
+    chinese: "\u8FD0\u52A8\u98DE\u884C"
+    english: Sport profile
+  - key: Input.Drone.Equipment
+    fontId: 0
+    chinese: "\u88C5\u5907\u64CD\u4F5C"
+    english: Equipment action
+  - key: Input.Drone.Aim
+    fontId: 0
+    chinese: "\u673A\u8179\u7784\u51C6"
+    english: Belly aim
+  - key: Input.Drone.Line
+    fontId: 0
+    chinese: "\u6536\u7EBF\uFF0F\u653E\u7EBF"
+    english: Reel in / pay out
+  - key: Input.Drone.ViewModifier
+    fontId: 0
+    chinese: "\u955C\u5934\u6A21\u5F0F"
+    english: Camera modifier
+  - key: Input.Drone.SwitchCamera
+    fontId: 0
+    chinese: "\u5207\u6362\u955C\u5934"
+    english: Switch camera
+  - key: Input.Drone.Zoom
+    fontId: 0
+    chinese: "\u7F29\u653E\u89C6\u91CE"
+    english: Zoom
+  - key: Input.Drone.LandingGear
+    fontId: 0
+    chinese: "\u8D77\u843D\u67B6\u6536\u653E"
+    english: Toggle landing gear
+  - key: Input.Drone.Panel
+    fontId: 0
+    chinese: "\u64CD\u4F5C\u9762\u677F"
+    english: Operation panel
+  - key: Input.Drone.DebugDraw
+    fontId: 0
+    chinese: "\u8C03\u8BD5\u7ED8\u5236"
+    english: Debug drawing
+  - key: Input.Drone.DebugPanel
+    fontId: 0
+    chinese: "\u8C03\u8BD5\u9762\u677F"
+    english: Debug panel
+  - key: Input.Drone.CopyTelemetry
+    fontId: 0
+    chinese: "\u590D\u5236\u9065\u6D4B"
+    english: Copy telemetry
+  - key: Settings.FrameLimitVSync
+    fontId: 0
+    chinese: "\u5782\u76F4\u540C\u6B65\u5F00\u542F\u65F6\uFF0C\u5E27\u7387\u7531\u663E\u793A\u5668\u540C\u6B65\u63A7\u5236\u3002"
+    english: VSync controls the frame rate while enabled.
+  - key: Settings.Unavailable
+    fontId: 0
+    chinese: "\u4E0D\u53EF\u7528"
+    english: Unavailable
+  - key: Settings.DlssUnavailable
+    fontId: 0
+    chinese: "\u5F53\u524D\u8BBE\u5907\u4E0D\u652F\u6301 DLSS / DLAA\uFF0C\u7EE7\u7EED\u4F7F\u7528\u624B\u52A8\u6297\u952F\u9F7F\u3002"
+    english: DLSS / DLAA is unavailable on this device. Manual anti-aliasing remains
+      active.
+  - key: Graphics.DlssQuality
+    fontId: 0
+    chinese: "\u8D28\u91CF"
+    english: Quality
+  - key: Graphics.DlssBalanced
+    fontId: 0
+    chinese: "\u5E73\u8861"
+    english: Balanced
+  - key: Graphics.DlssPerformance
+    fontId: 0
+    chinese: "\u6027\u80FD"
+    english: Performance
+  - key: Graphics.DlssUltraPerformance
+    fontId: 0
+    chinese: "\u8D85\u7EA7\u6027\u80FD"
+    english: Ultra performance
+  - key: Settings.MouseLookMultiplier
+    fontId: 0
+    chinese: "\u9F20\u6807\u89C6\u89D2\u500D\u7387"
+    english: Mouse look multiplier
+  - key: Settings.TouchLookMultiplier
+    fontId: 0
+    chinese: "\u89E6\u63A7\u89C6\u89D2\u500D\u7387"
+    english: Touch look multiplier
+  - key: Settings.GamepadLookMultiplier
+    fontId: 0
+    chinese: "\u624B\u67C4\u89C6\u89D2\u500D\u7387"
+    english: Gamepad look multiplier
+  - key: Settings.GamepadLookDegreesPerSecond
+    fontId: 0
+    chinese: "\u624B\u67C4\u89C6\u89D2\u901F\u5EA6\uFF08\u5EA6/\u79D2\uFF09"
+    english: Gamepad look speed (degrees/s)
+  - key: Settings.GamepadDeadzone
+    fontId: 0
+    chinese: "\u6447\u6746\u6B7B\u533A"
+    english: Stick deadzone
+  - key: Settings.GamepadMaximum
+    fontId: 0
+    chinese: "\u6447\u6746\u6700\u5927\u8F93\u5165\u9608\u503C"
+    english: Stick maximum input threshold
+  - key: Settings.GamepadInvertY
+    fontId: 0
+    chinese: "\u624B\u67C4\u53CD\u8F6C\u7EB5\u5411\u89C6\u89D2"
+    english: Invert gamepad vertical look
+  - key: Settings.RumbleEnabled
+    fontId: 0
+    chinese: "\u624B\u67C4\u9707\u52A8"
+    english: Gamepad vibration
+  - key: Settings.InputHost
+    fontId: 0
+    chinese: "\u52A8\u4F5C\u6240\u5C5E\u73A9\u6CD5"
+    english: Action host
+  - key: Settings.InputAction
+    fontId: 0
+    chinese: "\u52A8\u4F5C"
+    english: Action
+  - key: Settings.InputBinding
+    fontId: 0
+    chinese: "\u5F53\u524D\u6309\u952E"
+    english: Current binding
+  - key: Settings.KeyboardMouse
+    fontId: 0
+    chinese: "\u952E\u9F20"
+    english: Keyboard / mouse
+  - key: Settings.Gamepad
+    fontId: 0
+    chinese: "\u624B\u67C4"
+    english: Gamepad
+  - key: Settings.ResetAction
+    fontId: 0
+    chinese: "\u6062\u590D\u6B64\u52A8\u4F5C\u9ED8\u8BA4\u6309\u952E"
+    english: Reset action bindings
+  - key: Settings.FixedBinding
+    fontId: 0
+    chinese: "\u83DC\u5355\u5BFC\u822A\u3001\u786E\u8BA4\u4E0E\u8FD4\u56DE\u4FDD\u7559\u56FA\u5B9A\u6309\u952E\u3002"
+    english: Menu navigation, confirm and back retain their safe bindings.
+  - key: Settings.RebindListening
+    fontId: 0
+    chinese: "\u8BF7\u6309\u65B0\u7684\u6309\u952E\uFF1B\u6309\u8FD4\u56DE\u952E\u6216\u70B9\u51FB\u53D6\u6D88\u7ED3\u675F\u3002"
+    english: Press a new control. Use Back or Cancel to stop.
+  - key: Settings.RebindDone
+    fontId: 0
+    chinese: "\u5019\u9009\u6309\u952E\u5DF2\u66F4\u65B0\uFF1B\u70B9\u51FB\u5E94\u7528\u540E\u751F\u6548\u3002"
+    english: Binding candidate updated. Select Apply to use it.
+  - key: Settings.Brand
+    fontId: 0
+    chinese: SLEEPYDEMOS
+    english: SLEEPYDEMOS
+  - key: Settings.Eyebrow
+    fontId: 0
+    chinese: SETTINGS
+    english: SETTINGS
+  - key: Settings.Pending
+    fontId: 0
+    chinese: "\u8BBE\u7F6E\u5C1A\u672A\u5E94\u7528"
+    english: Changes not applied
+  - key: Settings.Applying
+    fontId: 0
+    chinese: "\u6B63\u5728\u5E94\u7528\u8BBE\u7F6E\u2026"
+    english: "Applying settings\u2026"
+  - key: Settings.Applied
+    fontId: 0
+    chinese: "\u8BBE\u7F6E\u5DF2\u5E94\u7528"
+    english: Settings applied
+  - key: Settings.Cancelled
+    fontId: 0
+    chinese: "\u5DF2\u4FDD\u7559\u539F\u8BBE\u7F6E"
+    english: Previous settings kept
+  - key: Settings.ApplyFailed
+    fontId: 0
+    chinese: "\u8BBE\u7F6E\u5E94\u7528\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5"
+    english: Settings could not be applied. Try again.
+  - key: Settings.Keep
+    fontId: 0
+    chinese: "\u4FDD\u7559"
+    english: Keep
+  - key: Settings.Revert
+    fontId: 0
+    chinese: "\u6062\u590D\u539F\u8BBE\u7F6E"
+    english: Restore previous
+  - key: Settings.GraphicsState
+    fontId: 0
+    chinese: "\u9009\u62E9  {0}\n\u751F\u6548  {1}\n\u8F93\u51FA  {2} \xD7 {3}"
+    english: "Selected  {0}\nActive  {1}\nOutput  {2} \xD7 {3}"
+  - key: Settings.AudioState
+    fontId: 0
+    chinese: "\u5B9E\u9645\u603B\u97F3\u91CF\uFF1A{0:P0}"
+    english: 'Active master volume: {0:P0}'
+  - key: Settings.MotionState
+    fontId: 0
+    chinese: "\u51CF\u5C11\u52A8\u6001\uFF1A{0}"
+    english: 'Reduced motion: {0}'
+  - key: Settings.LanguageState
+    fontId: 0
+    chinese: "\u5F53\u524D\u8BED\u8A00\uFF1A{0}"
+    english: 'Current language: {0}'
+  - key: Settings.InputState
+    fontId: 0
+    chinese: "\u4FEE\u6539\u540E\u9700\u5E94\u7528\uFF0C\u5F53\u524D\u7ED1\u5B9A\u5728\u786E\u8BA4\u5B8C\u6210\u540E\u751F\u6548"
+    english: Apply changes to activate the confirmed bindings.
+  - key: Settings.HelpGraphics
+    fontId: 0
+    chinese: "\u5F00\u542F DLSS / DLAA \u540E\u7531\u5B83\u63A5\u7BA1\u6297\u952F\u9F7F\uFF0C\u5173\u95ED\u540E\u6062\u590D\u624B\u52A8\u9009\u62E9\u3002"
+    english: DLSS / DLAA takes over antialiasing when active. Turning it off restores
+      your manual choice.
+  - key: Settings.HelpAudio
+    fontId: 0
+    chinese: "\u5E94\u7528\u97F3\u91CF\u540E\u4FDD\u7559\u64AD\u653E\u8FDB\u5EA6\uFF0C\u9759\u97F3\u4E0D\u4F1A\u505C\u6B62\u58F0\u97F3\u3002"
+    english: Volume changes preserve playback progress. Muting does not stop audio.
+  - key: Settings.HelpInput
+    fontId: 0
+    chinese: "\u9009\u62E9\u52A8\u4F5C\u548C\u6309\u952E\u540E\u5F00\u59CB\u6539\u952E\uFF0C\u53D6\u6D88\u4E0D\u4F1A\u4FEE\u6539\u5DF2\u751F\u6548\u7ED1\u5B9A\u3002"
+    english: Choose an action and binding to rebind. Cancel keeps the active bindings
+      unchanged.
+  - key: Settings.HelpAccessibility
+    fontId: 0
+    chinese: "\u51CF\u5C11\u52A8\u6001\u4F1A\u9650\u5236\u90E8\u5206\u753B\u9762\u6548\u679C\uFF0C\u955C\u5934\u6296\u52A8\u4E0E\u8F93\u5165\u63D0\u793A\u53EF\u4EE5\u5206\u522B\u5173\u95ED\u3002"
+    english: Reduced motion limits some visual effects. Camera shake and input prompts
+      can be disabled separately.
+  - key: Presentation.Brand
+    fontId: 0
+    chinese: S L E E P Y D E M O S
+    english: S L E E P Y D E M O S
+  - key: Presentation.Eyebrow
+    fontId: 0
+    chinese: P R E S E N T A T I O N   L A B
+    english: P R E S E N T A T I O N   L A B
+  - key: Presentation.Post
+    fontId: 0
+    chinese: "\u753B\u9762\u5904\u7406"
+    english: POST PROCESSING
+  - key: Presentation.Time
+    fontId: 0
+    chinese: "\u65F6\u95F4\u63A7\u5236"
+    english: TIME CONTROL
+  - key: Presentation.Cinematic
+    fontId: 0
+    chinese: "\u7535\u5F71\u6F14\u51FA"
+    english: CINEMATIC
+  - key: Presentation.Enabled
+    fontId: 0
+    chinese: "\u542F\u7528\u6548\u679C"
+    english: Enable effect
+  - key: Presentation.Limited
+    fontId: 0
+    chinese: "\u5F53\u524D\u753B\u8D28\u6216\u8F85\u52A9\u8BBE\u7F6E\u5DF2\u9650\u5236\u6B64\u6548\u679C"
+    english: Limited by graphics or accessibility settings
+  - key: Presentation.Policy
+    fontId: 0
+    chinese: "\u9075\u5FAA\u5F53\u524D\u753B\u8D28\u4E0E\u8F85\u52A9\u8BBE\u7F6E"
+    english: Respects current graphics and accessibility settings
+  - key: Presentation.TimeMode
+    fontId: 0
+    chinese: "\u65F6\u95F4\u6A21\u5F0F"
+    english: Time mode
+  - key: Presentation.Slow
+    fontId: 0
+    chinese: "\u6162\u52A8\u4F5C"
+    english: Slow motion
+  - key: Presentation.Fast
+    fontId: 0
+    chinese: "\u5FEB\u52A8\u4F5C"
+    english: Fast motion
+  - key: Presentation.Ramp
+    fontId: 0
+    chinese: "\u901F\u5EA6\u6E10\u53D8"
+    english: Speed ramp
+  - key: Presentation.Freeze
+    fontId: 0
+    chinese: "\u77ED\u5B9A\u683C"
+    english: Short freeze
+  - key: Presentation.Speed
+    fontId: 0
+    chinese: "\u76EE\u6807\u901F\u5EA6"
+    english: Target speed
+  - key: Presentation.Duration
+    fontId: 0
+    chinese: "\u6E10\u53D8\u6216\u5B9A\u683C\u65F6\u957F"
+    english: Ramp / freeze duration
+  - key: Presentation.SpeedValue
+    fontId: 0
+    chinese: "{0:0.00} \u500D"
+    english: '{0:0.00}x'
+  - key: Presentation.Seconds
+    fontId: 0
+    chinese: "{0:0.0} \u79D2"
+    english: '{0:0.0} s'
+  - key: Presentation.Amount
+    fontId: 0
+    chinese: '{0:0.00}'
+    english: '{0:0.00}'
+  - key: Presentation.TimeNote
+    fontId: 0
+    chinese: "\u65F6\u95F4\u63A7\u5236\u4F5C\u7528\u4E8E\u4E16\u754C\uFF0C\u83DC\u5355\u4E0E\u6F14\u51FA\u4ECD\u53EF\u64CD\u4F5C\u3002\u505C\u6B62\u65F6\u6062\u590D\u8FDB\u5165\u524D\u7684\u500D\u7387\u3002"
+    english: Time controls affect the world. Menus and cinematics remain usable.
+      Stop restores the previous speed.
+  - key: Presentation.TransitionStyle
+    fontId: 0
+    chinese: "\u8F6C\u573A\u6837\u5F0F"
+    english: Transition style
+  - key: Presentation.Direction
+    fontId: 0
+    chinese: "\u65B9\u5411"
+    english: Direction
+  - key: Presentation.CloseDuration
+    fontId: 0
+    chinese: "\u95ED\u5E55\u65F6\u957F"
+    english: Close duration
+  - key: Presentation.OpenDuration
+    fontId: 0
+    chinese: "\u5F00\u5E55\u65F6\u957F"
+    english: Open duration
+  - key: Presentation.Fade
+    fontId: 0
+    chinese: "\u6DE1\u5165\u6DE1\u51FA"
+    english: Fade
+  - key: Presentation.Wipe
+    fontId: 0
+    chinese: "\u56DB\u5411\u64E6\u5E55"
+    english: Directional wipe
+  - key: Presentation.DoorsHorizontal
+    fontId: 0
+    chinese: "\u6C34\u5E73\u53CC\u95E8\u5E55"
+    english: Horizontal doors
+  - key: Presentation.DoorsVertical
+    fontId: 0
+    chinese: "\u5782\u76F4\u53CC\u95E8\u5E55"
+    english: Vertical doors
+  - key: Presentation.Iris
+    fontId: 0
+    chinese: "\u5706\u5F62\u6536\u653E"
+    english: Iris
+  - key: Presentation.Blinds
+    fontId: 0
+    chinese: "\u767E\u53F6\u5E55"
+    english: Blinds
+  - key: Presentation.Pixel
+    fontId: 0
+    chinese: "\u50CF\u7D20\u5E55"
+    english: Pixel dissolve
+  - key: Presentation.LeftToRight
+    fontId: 0
+    chinese: "\u4ECE\u5DE6\u5230\u53F3"
+    english: Left to right
+  - key: Presentation.RightToLeft
+    fontId: 0
+    chinese: "\u4ECE\u53F3\u5230\u5DE6"
+    english: Right to left
+  - key: Presentation.BottomToTop
+    fontId: 0
+    chinese: "\u4ECE\u4E0B\u5230\u4E0A"
+    english: Bottom to top
+  - key: Presentation.TopToBottom
+    fontId: 0
+    chinese: "\u4ECE\u4E0A\u5230\u4E0B"
+    english: Top to bottom
+  - key: Presentation.Letterbox
+    fontId: 0
+    chinese: "\u7535\u5F71\u9ED1\u8FB9"
+    english: Letterbox
+  - key: Presentation.Aspect
+    fontId: 0
+    chinese: "\u5185\u5BB9\u6BD4\u4F8B"
+    english: Content aspect
+  - key: Presentation.HideHud
+    fontId: 0
+    chinese: "HUD \u6DE1\u51FA"
+    english: Fade HUD
+  - key: Presentation.ShowChapter
+    fontId: 0
+    chinese: "\u7AE0\u8282\u6807\u9898"
+    english: Chapter title
+  - key: Presentation.ShowLocation
+    fontId: 0
+    chinese: "\u5730\u70B9\u5B57\u5E55"
+    english: Location title
+  - key: Presentation.WorldHud
+    fontId: 0
+    chinese: "\u516C\u5171\u4F53\u9A8C\u4E16\u754C"
+    english: PRESENTATION WORLD
+  - key: Presentation.Reset
+    fontId: 0
+    chinese: "\u6062\u590D\u521D\u59CB"
+    english: Reset preview
+  - key: Presentation.Play
+    fontId: 0
+    chinese: "\u64AD\u653E\u6F14\u51FA"
+    english: Play
+  - key: Presentation.Stop
+    fontId: 0
+    chinese: "\u505C\u6B62\u5E76\u6062\u590D"
+    english: Stop and restore
+  - key: Presentation.Failed
+    fontId: 0
+    chinese: "\u4F53\u9A8C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5"
+    english: Preview failed. Try again.
+  - key: Presentation.Experience
+    fontId: 0
+    chinese: "\u5F53\u524D\u4F53\u9A8C\uFF1A{0} \xB7 \u4E16\u754C\u901F\u5EA6 {1:0.00}
+      \u500D"
+    english: "Preview: {0} \xB7 World speed {1:0.00}x"
+  - key: Presentation.Clock
+    fontId: 0
+    chinese: '{0:00}:{1:00}'
+    english: '{0:00}:{1:00}'
+  - key: Input.SelectDemo
+    fontId: 0
+    chinese: "\u9009\u62E9\u73A9\u6CD5"
+    english: Select a demo
+  - key: Settings.InputDevice
+    fontId: 0
+    chinese: "\u6309\u952E\u8BBE\u5907"
+    english: Binding device
+  - key: Settings.FixedBindingShort
+    fontId: 0
+    chinese: "\u56FA\u5B9A"
+    english: Fixed
+  - key: Settings.Binding.up
+    fontId: 0
+    chinese: "\u4E0A"
+    english: Up
+  - key: Settings.Binding.down
+    fontId: 0
+    chinese: "\u4E0B"
+    english: Down
+  - key: Settings.Binding.left
+    fontId: 0
+    chinese: "\u5DE6"
+    english: Left
+  - key: Settings.Binding.right
+    fontId: 0
+    chinese: "\u53F3"
+    english: Right
+  - key: Settings.Binding.positive
+    fontId: 0
+    chinese: "\u6B63\u5411"
+    english: Positive
+  - key: Settings.Binding.negative
+    fontId: 0
+    chinese: "\u8D1F\u5411"
+    english: Negative
+  - key: Settings.Binding.modifier
+    fontId: 0
+    chinese: "\u4FEE\u9970\u952E"
+    english: Modifier
+  - key: Settings.Binding.modifier1
+    fontId: 0
+    chinese: "\u4FEE\u9970\u952E 1"
+    english: Modifier 1
+  - key: Settings.Binding.modifier2
+    fontId: 0
+    chinese: "\u4FEE\u9970\u952E 2"
+    english: Modifier 2
+  - key: Settings.Binding.button
+    fontId: 0
+    chinese: "\u6309\u952E"
+    english: Button
+  - key: Settings.RebindCancelled
+    fontId: 0
+    chinese: "\u5DF2\u53D6\u6D88\u6539\u952E\uFF0C\u5019\u9009\u6309\u952E\u4FDD\u6301\u539F\u503C\u3002"
+    english: Rebinding cancelled. The binding candidate is unchanged.
+  - key: Settings.RebindConflict
+    fontId: 0
+    chinese: "\u6309\u952E\u4E0E\u201C{0}\u201D\u51B2\u7A81\uFF0C\u8BF7\u4F7F\u7528\u5176\u4ED6\u6309\u952E\u3002"
+    english: This control conflicts with {0}. Choose another control.
+  - key: Settings.OtherAction
+    fontId: 0
+    chinese: "\u540C\u4E00\u4E0A\u4E0B\u6587\u7684\u5176\u4ED6\u52A8\u4F5C"
+    english: another action in the same context
+  - key: Hub.Effects
+    fontId: 0
+    chinese: "\u6548\u679C\u4F53\u9A8C"
+    english: Effects lab
+  - key: Hub.SettingsFailure
+    fontId: 0
+    chinese: "\u8BBE\u7F6E\u9875\u9762\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002"
+    english: Could not open settings. Try again.
+  - key: Hub.EffectsFailure
+    fontId: 0
+    chinese: "\u6548\u679C\u4F53\u9A8C\u52A0\u8F7D\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5\u3002"
+    english: Could not open the effects lab. Try again.

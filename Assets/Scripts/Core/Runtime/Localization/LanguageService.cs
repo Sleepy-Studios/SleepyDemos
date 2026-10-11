@@ -17,6 +17,19 @@ namespace Core.Runtime.Localization
         public static bool IsInitialized => texts != null;
         /// 支持语言的名称和格式文化，供 Hub 选择；不让 View 读取制作 SO。
         public static IReadOnlyList<LanguageCatalog.LanguageDefinition> Languages => languages;
+        /// 当前制作配置的数字格式文化，供动态数字和绑定描述使用。
+        public static CultureInfo CurrentCulture
+        {
+            get
+            {
+                EnsureInitialized();
+                foreach (var item in languages)
+                {
+                    if (item.Id == CurrentLanguage) return CultureInfo.GetCultureInfo(item.Culture);
+                }
+                throw new InvalidOperationException("当前语言缺少格式文化。");
+            }
+        }
 
         /// <summary>使用已加载的正式配置初始化；校验失败时保留旧服务状态。</summary>
         /// <param name="catalog">正式中英文文案表。</param>
@@ -100,14 +113,7 @@ namespace Core.Runtime.Localization
         public static string Format(string key, params object[] args)
         {
             string text = Get(key);
-            foreach (var item in languages)
-            {
-                if (item.Id == CurrentLanguage)
-                {
-                    return string.Format(CultureInfo.GetCultureInfo(item.Culture), text, args ?? Array.Empty<object>());
-                }
-            }
-            throw new InvalidOperationException("当前语言缺少格式文化。");
+            return string.Format(CurrentCulture, text, args ?? Array.Empty<object>());
         }
 
         /// <summary>一次性应用文案、字体及对应材质，不改变字号、颜色或对齐。</summary>
@@ -123,13 +129,26 @@ namespace Core.Runtime.Localization
             }
             string value = args != null && args.Length > 0 ? Format(key, args) : Get(key);
             int id = fontIdOverride ?? (texts.TryGetValue(key, out var entry) ? entry.FontId : 0);
-            if (!fonts.TryGetValue(id, out var variants) || !variants.TryGetValue(CurrentLanguage, out var mapping))
+            SetFont(target, id);
+            target.text = value;
+        }
+
+        /// <summary>为数字、动态选项或业务原文一次性应用公共字体，不改变文本或排版。</summary>
+        /// <param name="target">页面已有或已绑定的条目文本。</param>
+        /// <param name="fontId">制作配置中的字体组编号，零为有效默认组。</param>
+        public static void SetFont(TMP_Text target, int fontId = 0)
+        {
+            EnsureInitialized();
+            if (target == null)
             {
-                throw new ArgumentException("字体编号没有当前语言映射。", nameof(fontIdOverride));
+                throw new ArgumentNullException(nameof(target));
+            }
+            if (!fonts.TryGetValue(fontId, out var variants) || !variants.TryGetValue(CurrentLanguage, out var mapping))
+            {
+                throw new ArgumentException("字体编号没有当前语言映射。", nameof(fontId));
             }
             target.font = mapping.Font;
             target.fontSharedMaterial = mapping.Material;
-            target.text = value;
         }
 
         internal static bool IsSupported(string language) => language == "zh-CN" || language == "en";

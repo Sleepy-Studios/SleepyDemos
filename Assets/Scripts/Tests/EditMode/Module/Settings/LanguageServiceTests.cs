@@ -78,6 +78,13 @@ namespace Tests.Module
                 Assert.That(target.fontSize, Is.EqualTo(36));
                 Assert.That(target.color, Is.EqualTo(Color.cyan));
                 Assert.That(target.alignment, Is.EqualTo(TextAlignmentOptions.BottomRight));
+                target.text = "90°/s";
+                LanguageService.SetFont(target, 1);
+                Assert.That(target.text, Is.EqualTo("90°/s"), "动态数字单独换字体不应改文本");
+                Assert.That(target.font, Is.SameAs(second));
+                Assert.That(target.fontSharedMaterial, Is.SameAs(second.material));
+                Assert.That(target.fontSize, Is.EqualTo(36));
+                Assert.That(LanguageService.CurrentCulture.Name, Is.EqualTo("zh-CN"));
                 Assert.Throws<ArgumentException>(() => LanguageService.SelectLanguage("ja"));
                 Assert.That(LanguageService.CurrentLanguage, Is.EqualTo("zh-CN"));
             }
