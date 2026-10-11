@@ -2,8 +2,11 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using Core.Runtime;
+using Core.Runtime.Localization;
+using Core.Runtime.Settings;
 using Core.Runtime.Rendering.Streamline;
 using Hotfix;
 using Hotfix.Dlss;
@@ -28,6 +31,10 @@ namespace Tests.Demo
         public IEnumerator Controls_RebindingKeepsOneSubscriptionAndDisableReleasesHold()
         {
             isUiTest = true;
+            var languageFields = new[] { "texts", "fonts", "languages", "<CurrentLanguage>k__BackingField" }
+                .Select(name => typeof(LanguageService).GetField(name,
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)).ToArray();
+            var previousLanguageValues = languageFields.Select(field => field.GetValue(null)).ToArray();
             var host = new GameObject("DlssControlsOwner"); host.SetActive(false);
             var owner = host.AddComponent<DlssDemoController>();
             var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/LoadResources/Demos/dlss/Data/Dlss.inputactions");
@@ -36,19 +43,36 @@ namespace Tests.Demo
             var controls = Object.Instantiate(UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/dlss/Prefabs/UI/DlssControls.prefab"));
             var presenter = new DlssControlsView { Loader = new DroneFlightHudBindingPlayModeTests.OwnedObjectLoader() };
             var state = GlobalData.Add(new DlssData(owner));
-            presenter.InitWithGameObject(controls);
-            var index = controls.GetComponent<ComponentItemIndex>();
-            Assert.That(index.Components, Has.None.Null);
-            for (int i = 0; i < index.Components.Length; i++)
-            {
-                Assert.That(index.ComponentTypes[i], Is.EqualTo(index.Components[i].GetType().FullName));
-                Assert.That(index.BindingKeys[i], Is.Not.Empty);
-            }
             var buttons = controls.GetComponentsInChildren<Core.Runtime.Inputs.InputCommandButton>(true);
             try
             {
+                var config = UnityEditor.AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
+                LanguageService.Initialize(config.Language, config.Fonts, "en");
+                presenter.InitWithGameObject(controls);
+                var index = controls.GetComponent<ComponentItemIndex>();
+                Assert.That(index.Components, Has.None.Null);
+                for (int i = 0; i < index.Components.Length; i++)
+                {
+                    Assert.That(index.ComponentTypes[i], Is.EqualTo(index.Components[i].GetType().FullName));
+                    Assert.That(index.BindingKeys[i], Is.Not.Empty);
+                }
                 presenter.SetData(session.Asset); presenter.SetData(session.Asset);
                 yield return presenter.ShowAsync(false).ToCoroutine();
+                foreach (var prompt in controls.GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true))
+                {
+                    string key = prompt.Action.name switch
+                    {
+                        "Sprint" => "Input.Sprint",
+                        "Reset" => "Input.ResetView",
+                        "Settings" => "Input.Settings",
+                        "Exit" => "Input.ReturnHub",
+                        _ => throw new InvalidOperationException("测试收到未知正式观察动作。")
+                    };
+                    var caption = prompt.transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                    Assert.That(caption.text, Is.EqualTo(LanguageService.Get(key)), prompt.name);
+                    Assert.That(caption.text, Does.Not.StartWith("Input."));
+                    Assert.That(prompt.Action, Is.SameAs(session.Asset.FindAction(prompt.Action.id)), "底部与触控提示都读取同一生效副本。");
+                }
                 foreach (var button in buttons)
                     foreach (var name in new[] { "Clicked", "HoldChanged" })
                     {
@@ -71,7 +95,14 @@ namespace Tests.Demo
                     Assert.That(callbacks, Is.Null, "销毁配对解除订阅");
                 }
             }
-            finally { state.Handler.Dispose(); GlobalData.Remove<DlssData>(); if (controls != null) Object.Destroy(controls); Object.Destroy(host); }
+            finally
+            {
+                state.Handler.Dispose();
+                GlobalData.Remove<DlssData>();
+                if (controls != null) Object.Destroy(controls);
+                Object.Destroy(host);
+                for (int i = 0; i < languageFields.Length; i++) languageFields[i].SetValue(null, previousLanguageValues[i]);
+            }
             yield return null;
         }
 

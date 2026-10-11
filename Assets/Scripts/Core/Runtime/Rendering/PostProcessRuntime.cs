@@ -138,18 +138,18 @@ namespace Core.Runtime.Rendering
             reducedMotion = false;
         }
 
-        internal static void ApplyToStack(Camera renderingCamera)
+        internal static bool ApplyToStack(Camera renderingCamera)
         {
             if (renderingCamera != camera || camera == null)
             {
-                return;
+                return false;
             }
 
             RestoreStack();
             var stack = VolumeManager.instance.stack;
             if (stack == null || !stack.isValid)
             {
-                return;
+                return false;
             }
 
             try
@@ -198,6 +198,8 @@ namespace Core.Runtime.Rendering
                 RestoreStack();
                 throw;
             }
+
+            return true;
         }
 
         private static void ApplyScope(VolumeStack stack, Scope scope)

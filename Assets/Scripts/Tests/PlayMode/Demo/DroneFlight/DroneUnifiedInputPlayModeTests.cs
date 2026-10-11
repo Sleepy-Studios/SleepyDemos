@@ -302,6 +302,31 @@ namespace Tests.Demo
                 view.SetData(new DroneFlightViewData(null, data.SessionId, input));
                 yield return view.ShowAsync(false).ToCoroutine();
                 var group = instance.GetComponent<InputPromptGroup>();
+                foreach (var item in new (string Key, string English)[]
+                {
+                    ("Touch/ArmOrReset", "Arm / hold to reset"),
+                    ("Touch/Aim", "Aim"),
+                    ("Touch/ReelIn", "Reel in"),
+                    ("Touch/ReelOut", "Pay out"),
+                    ("Touch/Activate", "Enter remote control"),
+                    ("Touch/Equipment", "Equipment action"),
+                    ("Touch/ViewModifier", "Camera modifier"),
+                    ("Touch/Panel", "Operation panel"),
+                    ("Operations/Takeoff", "Auto takeoff"),
+                    ("Operations/Landing", "Auto landing"),
+                    ("Operations/ProfileCine", "Cinematic mode"),
+                    ("Operations/ProfileNormal", "Normal mode"),
+                    ("Operations/ProfileSport", "Sport mode"),
+                    ("Operations/ZoomIn", "Widen view"),
+                    ("Operations/ZoomOut", "Narrow view"),
+                    ("Operations/DebugDraw", "Thrust vectors"),
+                    ("Operations/Panel", "Close panel"),
+                    ("Hud/Panel", "Operation panel")
+                })
+                {
+                    var caption = group.Get(item.Key).transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                    Assert.That(caption.text, Is.EqualTo(item.English), item.Key + " 应保留该行操作语义，不能被会话绑定清除文案键。");
+                }
                 var camera = group.Get("Telemetry/Camera");
                 var aim = group.Get("Telemetry/Aim");
                 var equipment = group.Get("Telemetry/Equipment");

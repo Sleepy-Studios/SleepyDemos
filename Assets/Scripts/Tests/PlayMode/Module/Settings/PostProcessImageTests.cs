@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Core.Runtime;
 using Core.Runtime.Rendering;
 using Core.Runtime.Rendering.Streamline;
@@ -13,6 +15,7 @@ using Hotfix.SceneManagement;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -156,6 +159,139 @@ namespace Tests.Module
             for (int i = 0; i < authoredComponents.Length; i++)
             {
                 Assert.That(JsonUtility.ToJson(preset.Profile.components[i]), Is.EqualTo(authoredComponents[i]), "运行时不能修改正式预设组件。");
+            }
+
+            PostProcessPreset depthPreset = null;
+            yield return loader.LoadAssetAsync<PostProcessPreset>("LoadResources/Config/Presentation/Lab/DepthOfField")
+                .ToCoroutine(value => depthPreset = value);
+            Assert.That(depthPreset, Is.Not.Null);
+            var uiData = UIRootManager.Instance.UICamera.GetUniversalAdditionalCameraData();
+            var authoredWorldDepth = cameraData.requiresDepthOption;
+            var authoredUiDepth = uiData.requiresDepthOption;
+            var pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+            bool authoredPipelineDepth = pipeline.supportsCameraDepthTexture;
+            string authoredDepthProfile = JsonUtility.ToJson(depthPreset.Profile.components[0]);
+            var rendererFeatures = (List<ScriptableRendererFeature>)typeof(ScriptableRenderer)
+                .GetField("m_RendererFeatures", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(cameraData.scriptableRenderer);
+            Assert.That(rendererFeatures, Is.Not.Null, "测试必须观察当前运行时 Renderer，不能修改制作资产。");
+            var depthObserver = ScriptableObject.CreateInstance<DepthInputObserver>();
+            depthObserver.Camera = worldCamera;
+            depthObserver.Create();
+            try
+            {
+                rendererFeatures.Add(depthObserver);
+                cameraData.requiresDepthOption = uiData.requiresDepthOption = CameraOverrideOption.Off;
+                graphics.AllowedEffects |= PostProcessEffects.DepthOfField;
+                PostProcessRuntime.ApplySettings(graphics, accessibility);
+                yield return Settle();
+                Frame withoutDepthEffect = Capture("08AuthoredDepthOff");
+                Assert.That(depthObserver.PostProcessingRequiresDepth, Is.False,
+                    "临时景深启用前，本帧后处理不应提出深度需求；其它 URP 用途可保有深度纹理。");
+                var scope = PostProcessRuntime.Push(depthPreset);
+                effect = scope;
+                scope.Update(profile =>
+                {
+                    profile.TryGet<DepthOfField>(out var depth);
+                    depth.mode.Override(DepthOfFieldMode.Bokeh);
+                    depth.focusDistance.Override(1);
+                    depth.focalLength.Override(160);
+                    depth.aperture.Override(1);
+                });
+                yield return Settle();
+                Frame dynamicDepth = Capture("09DynamicDepthOfField");
+                Assert.That(depthObserver.PostProcessingRequiresDepth, Is.True,
+                    "作者深度选项为 Off 时，临时景深仍须向本帧 URP 声明深度需求。");
+                Assert.That(depthObserver.DepthWidth, Is.GreaterThan(32),
+                    "景深的真实图内输入不能是 URP 默认深度纹理。");
+                Assert.That(Difference(withoutDepthEffect, dynamicDepth, region), Is.GreaterThan(Mathf.Max(0.0005f, noise * 4)),
+                    "作者关闭深度时临时 Bokeh 景深仍须改变真实世界画面。");
+                AssertUiUnchanged(withoutDepthEffect, dynamicDepth);
+                Assert.That(cameraData.requiresDepthOption, Is.EqualTo(CameraOverrideOption.Off));
+                Assert.That(uiData.requiresDepthOption, Is.EqualTo(CameraOverrideOption.Off));
+                Assert.That(pipeline.supportsCameraDepthTexture, Is.EqualTo(authoredPipelineDepth));
+                scope.Dispose();
+                effect = null;
+                yield return Settle();
+                Frame depthRestored = Capture("10DepthOfFieldReleased");
+                Assert.That(depthObserver.PostProcessingRequiresDepth, Is.False,
+                    "释放临时景深后，不得遗留本帧后处理的深度需求。");
+                Assert.That(Difference(withoutDepthEffect, depthRestored, region), Is.LessThan(Mathf.Max(0.003f, noise * 3)));
+                AssertUiUnchanged(withoutDepthEffect, depthRestored);
+                Assert.That(cameraData.requiresDepthOption, Is.EqualTo(CameraOverrideOption.Off));
+                Assert.That(JsonUtility.ToJson(depthPreset.Profile.components[0]), Is.EqualTo(authoredDepthProfile));
+            }
+            finally
+            {
+                rendererFeatures.Remove(depthObserver);
+                depthObserver.Dispose();
+                Object.Destroy(depthObserver);
+                effect?.Dispose();
+                effect = null;
+                cameraData.requiresDepthOption = authoredWorldDepth;
+                uiData.requiresDepthOption = authoredUiDepth;
+            }
+        }
+
+        // RenderGraph 退出时会清空全局纹理绑定；仅在图内观察与原生 DoF 相同的输入。
+        // 本 Pass 不申请深度，不绘制或修改世界输出，也不将图内资源保留到帧外。
+        private sealed class DepthInputObserver : ScriptableRendererFeature
+        {
+            public Camera Camera;
+            public int DepthWidth;
+            public bool PostProcessingRequiresDepth;
+            private DepthInputPass pass;
+
+            public override void Create()
+            {
+                pass = new DepthInputPass(this);
+            }
+
+            public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+            {
+                if (renderingData.cameraData.camera == Camera)
+                {
+                    renderer.EnqueuePass(pass);
+                }
+            }
+
+            private sealed class DepthInputPass : ScriptableRenderPass
+            {
+                private readonly DepthInputObserver owner;
+
+                private sealed class PassData
+                {
+                    public TextureHandle Depth;
+                    public DepthInputObserver Owner;
+                }
+
+                public DepthInputPass(DepthInputObserver owner)
+                {
+                    this.owner = owner;
+                    renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
+                    ConfigureInput(ScriptableRenderPassInput.None);
+                }
+
+                public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
+                {
+                    owner.PostProcessingRequiresDepth = frameData.Get<UniversalCameraData>().postProcessingRequiresDepthTexture;
+                    owner.DepthWidth = 0;
+                    var depth = frameData.Get<UniversalResourceData>().cameraDepthTexture;
+                    if (!depth.IsValid())
+                    {
+                        return;
+                    }
+                    using var builder = renderGraph.AddRasterRenderPass<PassData>("Observe DoF depth input", out var data);
+                    data.Depth = depth;
+                    data.Owner = owner;
+                    builder.UseTexture(depth, AccessFlags.Read);
+                    builder.AllowPassCulling(false);
+                    builder.SetRenderFunc(static (PassData data, RasterGraphContext context) =>
+                    {
+                        Texture input = data.Depth;
+                        data.Owner.DepthWidth = input != null ? input.width : 0;
+                    });
+                }
             }
         }
 

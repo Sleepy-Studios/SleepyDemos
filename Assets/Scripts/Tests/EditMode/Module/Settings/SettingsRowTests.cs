@@ -1,4 +1,6 @@
 using Core.Runtime;
+using Core.Runtime.Rendering.Streamline;
+using Hotfix;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -9,6 +11,25 @@ namespace Tests.Module
 {
     public sealed class SettingsRowTests
     {
+        [Test]
+        public void GraphicsPageKeepsNativeFallbackEditableAndPreviewsNewDlssCandidates()
+        {
+            int quality = (int)StreamlineDlssMode.Quality;
+            int dlaa = (int)StreamlineDlssMode.Dlaa;
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(quality, quality, true, false, false, false), Is.False,
+                "同一请求已经失败回原生时不能只因结构可尝试就锁住手动 AA。");
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(quality, quality, true, false, false, true), Is.True,
+                "用户显式重试同一档位仍属于新候选，等待应用时预告接管。");
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(dlaa, quality, true, false, false, false), Is.True);
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(quality, quality, true, true, false, false), Is.True,
+                "等待首帧不能让手动 AA 覆盖会话输入。");
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(quality, quality, true, false, true, false), Is.True);
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(0, quality, true, false, true, true), Is.False,
+                "关闭候选允许同一次提交选择后续原生 AA。");
+            Assert.That(GraphicsSettingsPage.ManagesNativeAntialiasing(quality, 0, false, false, false, true), Is.False,
+                "当前结构不可尝试时保留请求，但不能锁住原生编辑。");
+        }
+
         [Test]
         public void SliderRefreshDoesNotEditCandidatesAndReplacesCallback()
         {

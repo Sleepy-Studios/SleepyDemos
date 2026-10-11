@@ -11,6 +11,17 @@ namespace Tests.Module
     public sealed class SharedFontAssetTests
     {
         [Test]
+        public void EnglishSymbolsReusePublicChineseFallbackWithoutCycle()
+        {
+            var chinese = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LoadResources/Fonts/TMP_FontAssets/CN/HarmonyOS_CN.asset");
+            var english = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LoadResources/Fonts/TMP_FontAssets/EN/BebasNeue_EN.asset");
+            Assert.That(chinese.HasCharacter('←'), Is.True, "左箭头由现有公共中文字库直接提供。");
+            Assert.That(english.fallbackFontAssetTable, Does.Contain(chinese));
+            Assert.That(english.HasCharacter('←', searchFallbacks: true), Is.True);
+            Assert.That(chinese.fallbackFontAssetTable.Contains(english), Is.False, "不能形成中英相互回退的循环。");
+        }
+
+        [Test]
         public void UpdatingExistingFontImmediatelyRefreshesCharacterLookup()
         {
             const string path = "Assets/SharedFontCacheRegressionTemporary.asset";

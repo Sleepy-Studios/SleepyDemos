@@ -167,7 +167,6 @@ namespace Hotfix
             foreach (var prompt in prompts)
             {
                 prompt.BindAsset(input?.Session?.Asset);
-                prompt.SetCaptionKey(DronePlayerInput.CommonCaptionKey(prompt.Action?.name));
                 prompt.SetBindingsVisible(showInputPrompts);
             }
             RefreshControls();
@@ -247,18 +246,42 @@ namespace Hotfix
             {
                 throw new System.InvalidOperationException("正式无人机 HUD 提示组尚未制作。");
             }
+            InputBindingPrompt Prompt(string key, string captionKey)
+            {
+                var prompt = group.Get(key);
+                prompt.SetCaptionKey(captionKey);
+                return prompt;
+            }
             prompts = new[]
             {
-                group.Get("Touch/ArmOrReset"), group.Get("Touch/Equipment"), group.Get("Touch/Aim"),
-                group.Get("Touch/ViewModifier"), group.Get("Touch/ReelIn"), group.Get("Touch/ReelOut"),
-                group.Get("Touch/Activate"), group.Get("Touch/Back"), group.Get("Touch/Panel"),
-                group.Get("Operations/Takeoff"), group.Get("Operations/Landing"), group.Get("Operations/ProfileCine"),
-                group.Get("Operations/ProfileNormal"), group.Get("Operations/ProfileSport"), group.Get("Operations/LandingGear"),
-                group.Get("Operations/SwitchCamera"), group.Get("Operations/ZoomIn"), group.Get("Operations/ZoomOut"),
-                group.Get("Operations/Help"), group.Get("Operations/DebugDraw"), group.Get("Operations/DebugPanel"),
-                group.Get("Operations/CopyTelemetry"), group.Get("Operations/Exit"), group.Get("Operations/Panel"),
-                group.Get("Menu/Submit"), group.Get("Menu/Cancel"),
-                group.Get("Hud/Panel"), group.Get("Hud/Help")
+                Prompt("Touch/ArmOrReset", "Input.Drone.TouchArmOrReset"),
+                Prompt("Touch/Equipment", "Input.Drone.Equipment"),
+                Prompt("Touch/Aim", "Input.Drone.TouchAim"),
+                Prompt("Touch/ViewModifier", "Input.Drone.ViewModifier"),
+                Prompt("Touch/ReelIn", "Input.Drone.ReelIn"),
+                Prompt("Touch/ReelOut", "Input.Drone.PayOut"),
+                Prompt("Touch/Activate", "Input.Drone.EnterRemote"),
+                Prompt("Touch/Back", "Input.Back"),
+                Prompt("Touch/Panel", "Input.Drone.Panel"),
+                Prompt("Operations/Takeoff", "Input.Drone.Takeoff"),
+                Prompt("Operations/Landing", "Input.Drone.Landing"),
+                Prompt("Operations/ProfileCine", "Input.Drone.ProfileCineMode"),
+                Prompt("Operations/ProfileNormal", "Input.Drone.ProfileNormalMode"),
+                Prompt("Operations/ProfileSport", "Input.Drone.ProfileSportMode"),
+                Prompt("Operations/LandingGear", "Input.Drone.LandingGear"),
+                Prompt("Operations/SwitchCamera", "Input.Drone.SwitchCamera"),
+                Prompt("Operations/ZoomIn", "Input.Drone.ExpandView"),
+                Prompt("Operations/ZoomOut", "Input.Drone.NarrowView"),
+                Prompt("Operations/Help", "Input.Help"),
+                Prompt("Operations/DebugDraw", "Input.Drone.ThrustVectors"),
+                Prompt("Operations/DebugPanel", "Input.Drone.DebugPanel"),
+                Prompt("Operations/CopyTelemetry", "Input.Drone.CopyTelemetry"),
+                Prompt("Operations/Exit", "Input.ReturnHub"),
+                Prompt("Operations/Panel", "Input.Drone.ClosePanel"),
+                Prompt("Menu/Submit", "Input.Confirm"),
+                Prompt("Menu/Cancel", "Input.Back"),
+                Prompt("Hud/Panel", "Input.Drone.Panel"),
+                Prompt("Hud/Help", "Input.Help")
             };
             foreach (string key in new[] { "Camera", "Gear", "Aim", "Equipment", "Line", "Reset" })
             {

@@ -1,3 +1,4 @@
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 namespace Core.Runtime.Rendering
@@ -13,7 +14,17 @@ namespace Core.Runtime.Rendering
         /// <param name="renderingData">URP 本帧相机数据。</param>
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            PostProcessRuntime.ApplyToStack(renderingData.cameraData.camera);
+            if (!PostProcessRuntime.ApplyToStack(renderingData.cameraData.camera))
+            {
+                return;
+            }
+            // URP 在 AddRenderPasses 前已根据作者 Volume 判断深度需求；补上本帧临时景深。
+            // 此 ref 对应真实 UniversalCameraData，不修改相机偏好或制作管线。
+            if (renderingData.cameraData.postProcessEnabled
+                && VolumeManager.instance.stack.GetComponent<DepthOfField>()?.IsActive() == true)
+            {
+                renderingData.cameraData.postProcessingRequiresDepthTexture = true;
+            }
         }
     }
 }

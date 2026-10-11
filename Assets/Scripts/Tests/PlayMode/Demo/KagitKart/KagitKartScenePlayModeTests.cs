@@ -4,6 +4,7 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using Core.Runtime;
+using Core.Runtime.Localization;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.KagitKart;
@@ -812,68 +813,114 @@ namespace Tests.Demo
         [UnityTest, Timeout(240000)]
         public IEnumerator SettingsAndGraphicsRestorePauseAndItsActualButtons()
         {
-            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
-            KagitKartWorld world = null;
-            yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
-                && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "设置验收入口");
-            world.Dispatch(KagitKartCommand.Modes);
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible, "模式页");
-            var mode = UIManager.Instance.Get<KagitKartModeView>();
-            mode.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Settings").onClick.Invoke();
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "菜单设置");
-            yield return Capture("Settings");
-            yield return KeyPress(Key.Escape);
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null, "返回模式");
-            Assert.That(UIManager.Instance.Get<KagitKartModeView>(), Is.SameAs(mode));
-            Assert.That(mode.State, Is.EqualTo(ViewState.Visible));
-            world.Dispatch(KagitKartCommand.Controls);
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>()?.State == ViewState.Visible, "菜单操作页");
-            var driftCaption = UIManager.Instance.Get<KagitKartControlsView>().gameObject
-                .GetComponent<Core.Runtime.Inputs.InputPromptGroup>().Get("Drift").transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
-            Assert.That(driftCaption.text, Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Kart.DriftSteer")));
-            Assert.That(driftCaption.text, Does.Not.StartWith("Input."), "正式操作说明词条必须已经制作，不能显示缺失键。");
-            var footer = UIManager.Instance.Get<KagitKartControlsView>().gameObject
-                .GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true).Single(value => value.name == "Current");
-            Assert.That(footer.Action, Is.SameAs(EventSystem.current.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>().cancel.action),
-                "返回提示读取固定菜单 Cancel，不读取漂移或预览设备的玩法动作。");
-            Assert.That(footer.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
-                Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Back")));
-            yield return Capture("Controls");
-            touchscreen = InputSystem.AddDevice<Touchscreen>();
-            yield return Tap(UIManager.Instance.Get<KagitKartControlsView>(), "Back");
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>() == null, "返回模式");
-            yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
-            world.SendMessage("OnApplicationFocus", true);
-            world.Dispatch(KagitKartCommand.Pause);
-            yield return Wait(() => UIManager.Instance.Get<KagitKartPauseView>()?.State == ViewState.Visible, "暂停");
-            var pause = UIManager.Instance.Get<KagitKartPauseView>();
-            var session = world.Session;
-            double clock = session.RaceTime;
-            pause.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Settings").onClick.Invoke();
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "暂停设置");
-            var settings = UIManager.Instance.Get<KagitKartSettingsView>();
-            Assert.That(pause.State, Is.EqualTo(ViewState.LoadedHidden));
-            settings.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Graphics").onClick.Invoke();
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartGlobalSettingsView>()?.State == ViewState.Visible, "公共画面设置");
-            Assert.That(settings.State, Is.EqualTo(ViewState.Visible), "公共 Modal 保留底层专属设置生命周期，输入由上层菜单接管。");
-            yield return UIManager.Instance.CloseAsync<KagitKartGlobalSettingsView>().ToCoroutine();
-            Assert.That(UIManager.Instance.Get<KagitKartSettingsView>(), Is.SameAs(settings));
-            Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
-            yield return KeyPress(Key.Escape);
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null, "恢复暂停");
-            Assert.That(UIManager.Instance.Get<KagitKartPauseView>(), Is.SameAs(pause));
-            Assert.That(pause.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(world.Session, Is.SameAs(session));
-            Assert.That(session.Pause.IsPaused, Is.True);
-            Assert.That(session.RaceTime, Is.EqualTo(clock));
-            pause.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Controls").onClick.Invoke();
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>()?.State == ViewState.Visible, "暂停操作说明");
-            gamepad = InputSystem.AddDevice<Gamepad>();
-            yield return PadPress(GamepadButton.East);
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>() == null, "手柄返回暂停");
-            Assert.That(session.Pause.IsPaused, Is.True);
-            pause.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Resume").onClick.Invoke();
-            yield return Wait(() => !session.Pause.IsPaused && UIManager.Instance.Get<KagitKartPauseView>() == null, "真实按钮继续");
+            string previousLanguage = LanguageService.CurrentLanguage;
+            try
+            {
+                LanguageService.SelectLanguage("en");
+                yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ToCoroutine();
+                KagitKartWorld world = null;
+                yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
+                    && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "设置验收入口");
+                world.Dispatch(KagitKartCommand.Modes);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible, "模式页");
+                var mode = UIManager.Instance.Get<KagitKartModeView>();
+                mode.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Settings").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "菜单设置");
+                yield return Capture("Settings");
+                yield return KeyPress(Key.Escape);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null, "返回模式");
+                Assert.That(UIManager.Instance.Get<KagitKartModeView>(), Is.SameAs(mode));
+                Assert.That(mode.State, Is.EqualTo(ViewState.Visible));
+                world.Dispatch(KagitKartCommand.Controls);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>()?.State == ViewState.Visible, "菜单操作页");
+                var driftCaption = UIManager.Instance.Get<KagitKartControlsView>().gameObject
+                    .GetComponent<Core.Runtime.Inputs.InputPromptGroup>().Get("Drift").transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                Assert.That(driftCaption.text, Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Kart.DriftSteer")));
+                Assert.That(driftCaption.text, Does.Not.StartWith("Input."), "正式操作说明词条必须已经制作，不能显示缺失键。");
+                var controlsGroup = UIManager.Instance.Get<KagitKartControlsView>().gameObject.GetComponent<Core.Runtime.Inputs.InputPromptGroup>();
+                foreach (string command in new[] { "Steer", "Throttle", "Brake", "LookBack", "Pause", "Mute" })
+                {
+                    var caption = controlsGroup.Get(command).transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                    Assert.That(caption.text, Is.EqualTo(LanguageService.Get("Input." + command)), "普通操作行不能清空词条退回作者中文。");
+                }
+                var footer = UIManager.Instance.Get<KagitKartControlsView>().gameObject
+                    .GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true).Single(value => value.name == "Current");
+                Assert.That(footer.Action, Is.SameAs(EventSystem.current.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>().cancel.action),
+                    "返回提示读取固定菜单 Cancel，不读取漂移或预览设备的玩法动作。");
+                Assert.That(footer.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
+                    Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Back")));
+                yield return Capture("Controls");
+                touchscreen = InputSystem.AddDevice<Touchscreen>();
+                yield return Tap(UIManager.Instance.Get<KagitKartControlsView>(), "Back");
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>() == null, "返回模式");
+                yield return world.StartRaceAsync(KagitKartRaceMode.SingleRace, "meadow", "tilki", 120).ToCoroutine();
+                world.SendMessage("OnApplicationFocus", true);
+                var hud = UIManager.Instance.Get<KagitKartHudView>();
+                foreach (var item in new (string Field, string English)[]
+                {
+                    ("Button_Throttle", "Throttle"), ("Button_Brake", "Brake"), ("Button_Drift", "Drift"),
+                    ("Button_Item", "Item"), ("Button_LookBack", "Look back"), ("Button_Pause", "Pause"),
+                    ("Button_SkipIntro", "Skip cinematic")
+                })
+                {
+                    Assert.That(HudField<Button>(hud, item.Field).GetComponentInChildren<TMPro.TMP_Text>(true).text,
+                        Is.EqualTo(item.English));
+                }
+                var steerLabel = HudField<Core.Runtime.Inputs.TouchInputPad>(hud, "TouchInputPad_Steering")
+                    .GetComponentInChildren<TMPro.TMP_Text>(true);
+                Assert.That(steerLabel.text, Is.EqualTo("←   Steer   →"));
+                var itemSlot = hud.gameObject.GetComponentInChildren<KagitKartItemSlot>(true);
+                Assert.That(HudField<TMPro.TMP_Text>(itemSlot, "itemName").text, Is.Not.EqualTo("Item"),
+                    "触控道具按钮文案不能覆写库存纸卡的道具名称。");
+                var auto = HudField<Button>(hud, "Button_Auto");
+                bool originalAuto = world.Input.AutoAccelerate;
+                Assert.That(auto.GetComponentInChildren<TMPro.TMP_Text>(true).text,
+                    Is.EqualTo(originalAuto ? "Auto throttle: On" : "Auto throttle: Off"));
+                try
+                {
+                    auto.onClick.Invoke();
+                    Assert.That(auto.GetComponentInChildren<TMPro.TMP_Text>(true).text,
+                        Is.EqualTo(originalAuto ? "Auto throttle: Off" : "Auto throttle: On"));
+                }
+                finally
+                {
+                    if (world.Input.AutoAccelerate != originalAuto) auto.onClick.Invoke();
+                }
+                world.Dispatch(KagitKartCommand.Pause);
+                yield return Wait(() => UIManager.Instance.Get<KagitKartPauseView>()?.State == ViewState.Visible, "暂停");
+                var pause = UIManager.Instance.Get<KagitKartPauseView>();
+                var session = world.Session;
+                double clock = session.RaceTime;
+                pause.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Settings").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "暂停设置");
+                var settings = UIManager.Instance.Get<KagitKartSettingsView>();
+                Assert.That(pause.State, Is.EqualTo(ViewState.LoadedHidden));
+                settings.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Graphics").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartGlobalSettingsView>()?.State == ViewState.Visible, "公共画面设置");
+                Assert.That(settings.State, Is.EqualTo(ViewState.Visible), "公共 Modal 保留底层专属设置生命周期，输入由上层菜单接管。");
+                yield return UIManager.Instance.CloseAsync<KagitKartGlobalSettingsView>().ToCoroutine();
+                Assert.That(UIManager.Instance.Get<KagitKartSettingsView>(), Is.SameAs(settings));
+                Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
+                yield return KeyPress(Key.Escape);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null, "恢复暂停");
+                Assert.That(UIManager.Instance.Get<KagitKartPauseView>(), Is.SameAs(pause));
+                Assert.That(pause.State, Is.EqualTo(ViewState.Visible));
+                Assert.That(world.Session, Is.SameAs(session));
+                Assert.That(session.Pause.IsPaused, Is.True);
+                Assert.That(session.RaceTime, Is.EqualTo(clock));
+                pause.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Controls").onClick.Invoke();
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>()?.State == ViewState.Visible, "暂停操作说明");
+                gamepad = InputSystem.AddDevice<Gamepad>();
+                yield return PadPress(GamepadButton.East);
+                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>() == null, "手柄返回暂停");
+                Assert.That(session.Pause.IsPaused, Is.True);
+                pause.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Resume").onClick.Invoke();
+                yield return Wait(() => !session.Pause.IsPaused && UIManager.Instance.Get<KagitKartPauseView>() == null, "真实按钮继续");
+            }
+            finally
+            {
+                LanguageService.SelectLanguage(previousLanguage);
+            }
         }
 
 

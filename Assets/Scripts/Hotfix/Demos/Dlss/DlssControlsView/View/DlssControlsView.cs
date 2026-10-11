@@ -25,11 +25,18 @@ namespace Hotfix
             movePad = TouchInputPad_Move;
             lookPad = TouchInputPad_Look;
             buttons = new Core.Runtime.Inputs.InputCommandButton[] { InputCommandButton_Sprint, InputCommandButton_Reset, InputCommandButton_Settings, InputCommandButton_Exit };
-            prompts = new Core.Runtime.Inputs.InputBindingPrompt[] { InputBindingPrompt_Prompt_按住加速, InputBindingPrompt_Prompt_重置视角, InputBindingPrompt_Prompt_画质设置, InputBindingPrompt_Prompt_返回_Hub };
-            InputBindingPrompt_Prompt_按住加速.SetCaptionKey("Input.Sprint");
-            InputBindingPrompt_Prompt_重置视角.SetCaptionKey("Input.ResetView");
-            InputBindingPrompt_Prompt_画质设置.SetCaptionKey("Input.Settings");
-            InputBindingPrompt_Prompt_返回_Hub.SetCaptionKey("Input.ReturnHub");
+            prompts = gameObject.GetComponentsInChildren<InputBindingPrompt>(true);
+            foreach (var prompt in prompts)
+            {
+                prompt.SetCaptionKey(prompt.Action?.name switch
+                {
+                    "Sprint" => "Input.Sprint",
+                    "Reset" => "Input.ResetView",
+                    "Settings" => "Input.Settings",
+                    "Exit" => "Input.ReturnHub",
+                    _ => throw new System.InvalidOperationException("正式 DLSS 提示缺少已配置的观察动作。")
+                });
+            }
             GameSettingsService.Changed += OnPublicSettingsChanged;
             OnPublicSettingsChanged(GameSettingsService.Current);
             foreach (var button in buttons) { this.RegisterInputCommandButton(button, OnCommand); this.RegisterInputCommandHold(button, OnHold); }

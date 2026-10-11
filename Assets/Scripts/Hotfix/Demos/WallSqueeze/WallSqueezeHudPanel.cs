@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Core.Runtime.Inputs;
+using Core.Runtime.Localization;
 using Core.Runtime.Settings;
 
 namespace Hotfix.WallSqueeze
@@ -82,7 +83,14 @@ namespace Hotfix.WallSqueeze
             bool crush = world.LastCrushCount > 1;
             bool touch = InputDeviceState.PromptKind == InputDeviceKind.Touch;
             hint.gameObject.SetActive(crush || showInputPrompts && touch);
-            hint.text = crush ? $"一夹 {world.LastCrushCount} 只！" : "单指拖墙 · 保护蓝色住户";
+            if (crush)
+            {
+                hint.text = $"一夹 {world.LastCrushCount} 只！";
+            }
+            else
+            {
+                LanguageService.SetText(hint, "Input.Wall.TouchHint");
+            }
             prompts.SetVisible(showInputPrompts && !touch && !crush);
             BindPrompt("Previous", "Interaction/PreviousGroup");
             BindPrompt("Next", "Interaction/NextGroup");

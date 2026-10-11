@@ -11,9 +11,17 @@ namespace Hotfix
     /// 画质分页维护请求候选，能力与生效状态来自公共显示服务。
     public sealed class GraphicsSettingsPage : SettingsPage
     {
+        private GraphicsPreferences boundGraphics;
+        private bool dlssEdited;
+
         public override void Refresh()
         {
             var graphics = Candidate.Graphics;
+            if (!ReferenceEquals(boundGraphics, graphics))
+            {
+                boundGraphics = graphics;
+                dlssEdited = false;
+            }
             Row("WindowMode").gameObject.SetActive(DisplaySettingsRuntime.SupportsDesktopDisplay);
             Row("Resolution").gameObject.SetActive(DisplaySettingsRuntime.SupportsDesktopDisplay);
             if (DisplaySettingsRuntime.SupportsDesktopDisplay)
@@ -55,7 +63,8 @@ namespace Hotfix
             var dlss = new[] { 0, (int)StreamlineDlssMode.Quality, (int)StreamlineDlssMode.Balanced, (int)StreamlineDlssMode.Performance,
                 (int)StreamlineDlssMode.UltraPerformance, (int)StreamlineDlssMode.Dlaa };
             bool supportsDlss = StreamlineRuntime.CanEnable(out _);
-            Select("Dlss", "Settings.Dlss", dlss, graphics.DlssMode, value => graphics.DlssMode = value,
+            Select("Dlss", "Settings.Dlss", dlss, graphics.DlssMode, value =>
+                { graphics.DlssMode = value; dlssEdited = true; },
                 value => value == 0 ? LanguageService.Get("Common.Off") : value == (int)StreamlineDlssMode.Dlaa ? "DLAA"
                     : "DLSS " + LanguageService.Get("Graphics.Dlss" + (StreamlineDlssMode)value), value => value == 0 || supportsDlss);
             Row("Dlss").SetAvailable(true, supportsDlss ? null : LanguageService.Get("Settings.DlssUnavailable"));
@@ -84,7 +93,9 @@ namespace Hotfix
             {
                 if (DisplaySettingsRuntime.CanUseAntialiasing(GraphicsAaMode.Msaa, value, out _)) graphics.MsaaSamples = value;
             }, value => value + "×", value => DisplaySettingsRuntime.CanUseAntialiasing(GraphicsAaMode.Msaa, value, out _));
-            bool managedCandidate = graphics.DlssMode != 0 && supportsDlss;
+            bool managedCandidate = ManagesNativeAntialiasing(graphics.DlssMode,
+                StreamlineRuntime.RequestedMode.HasValue ? (int)StreamlineRuntime.RequestedMode.Value : 0,
+                supportsDlss, StreamlineRuntime.IsBusy, DisplaySettingsRuntime.IsAntialiasingManagedByUpscaler, dlssEdited);
             Row("Antialiasing").SetAvailable(!managedCandidate, managedCandidate ? LanguageService.Get("Graphics.UpscalerAa") : null);
             Row("MsaaSamples").gameObject.SetActive(graphics.Antialiasing == GraphicsAaMode.Msaa);
             Row("MsaaSamples").SetAvailable(!managedCandidate, managedCandidate ? LanguageService.Get("Graphics.UpscalerAa") : null);
@@ -108,6 +119,13 @@ namespace Hotfix
 
         public static string AaLabel(GraphicsAaMode value) => value == GraphicsAaMode.CameraDefault ? LanguageService.Get("Graphics.CameraDefault")
             : value == GraphicsAaMode.Off ? LanguageService.Get("Common.Off") : value.ToString().ToUpperInvariant();
+
+        // 同一请求已经回退时允许编辑原生 AA；明确的新候选/重试仍预告接管，未保存不改运行时。
+        internal static bool ManagesNativeAntialiasing(int candidateMode, int runtimeRequest, bool canEnable,
+            bool busy, bool effective, bool edited)
+        {
+            return candidateMode != 0 && canEnable && (edited || candidateMode != runtimeRequest || busy || effective);
+        }
 
         private void ChangeAndRefresh(Action update)
         {

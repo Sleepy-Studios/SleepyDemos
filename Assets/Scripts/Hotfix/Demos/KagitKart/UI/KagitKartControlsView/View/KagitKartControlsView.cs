@@ -99,7 +99,7 @@
                     "Drift" => "Input.Kart.DriftSteer",
                     "Item" => "Input.Kart.ItemBackward",
                     "Restart" => "Input.Kart.TimeTrialRestart",
-                    _ => null
+                    _ => "Input." + command
                 });
                 prompt.SetBindingsVisible(world.ShowInputPrompts);
             }

@@ -14,6 +14,77 @@ namespace Tests.Module
     public sealed class PostProcessRuntimeTests
     {
         [Test]
+        public void DynamicDepthOfFieldRequestsFrameDepthWithoutChangingCameraPreferences()
+        {
+            var manager = VolumeManager.instance;
+            bool initializedHere = !manager.isInitialized;
+            if (initializedHere) manager.Initialize();
+            var previousStack = manager.stack;
+            var stack = manager.CreateStack();
+            manager.stack = stack;
+            var owner = new GameObject("Dynamic DoF world", typeof(Camera));
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            var preset = ScriptableObject.CreateInstance<PostProcessPreset>();
+            var feature = ScriptableObject.CreateInstance<PostProcessSettingsFeature>();
+            try
+            {
+                var camera = owner.GetComponent<Camera>();
+                camera.enabled = false;
+                var authored = camera.GetUniversalAdditionalCameraData();
+                authored.requiresDepthOption = CameraOverrideOption.Off;
+                authored.renderPostProcessing = false;
+                var depth = profile.Add<DepthOfField>();
+                depth.mode.Override(DepthOfFieldMode.Bokeh);
+                preset.Configure(profile);
+                PostProcessRuntime.ApplySettings(new GraphicsPreferences(), new AccessibilityPreferences());
+                PostProcessRuntime.BindCamera(camera);
+                using var scope = PostProcessRuntime.Push(preset);
+                using var frame = new ContextContainer();
+                var data = frame.Create<UniversalCameraData>();
+                data.camera = camera;
+                data.postProcessEnabled = authored.renderPostProcessing;
+                data.requiresDepthTexture = false;
+                data.postProcessingRequiresDepthTexture = false;
+                var rendering = (RenderingData)Activator.CreateInstance(typeof(RenderingData),
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    null, new object[] { frame }, null);
+                feature.AddRenderPasses(null, ref rendering);
+                Assert.That(data.postProcessingRequiresDepthTexture, Is.True,
+                    "临时景深必须更新真正的 URP 帧数据，不能依赖作者提前开启深度。");
+                Assert.That(data.requiresDepthTexture, Is.False);
+                Assert.That(authored.requiresDepthOption, Is.EqualTo(CameraOverrideOption.Off));
+
+                data.camera = null;
+                data.postProcessingRequiresDepthTexture = false;
+                feature.AddRenderPasses(null, ref rendering);
+                Assert.That(data.postProcessingRequiresDepthTexture, Is.False, "其它相机不接收世界作用域的深度要求。");
+                data.camera = camera;
+                PostProcessRuntime.ApplySettings(new GraphicsPreferences { AllowedEffects = PostProcessEffects.None }, new AccessibilityPreferences());
+                feature.AddRenderPasses(null, ref rendering);
+                Assert.That(data.postProcessingRequiresDepthTexture, Is.False, "玩家禁止景深后不再请求额外深度。");
+                scope.Dispose();
+                data.postProcessEnabled = authored.renderPostProcessing;
+                feature.AddRenderPasses(null, ref rendering);
+                Assert.That(data.postProcessingRequiresDepthTexture, Is.False);
+                Assert.That(authored.renderPostProcessing, Is.False);
+                Assert.That(authored.requiresDepthOption, Is.EqualTo(CameraOverrideOption.Off));
+                Assert.That(depth.mode.value, Is.EqualTo(DepthOfFieldMode.Bokeh), "原制作预设不被过滤或释放修改。");
+            }
+            finally
+            {
+                PostProcessRuntime.Shutdown();
+                manager.stack = previousStack;
+                manager.DestroyStack(stack);
+                foreach (var component in profile.components) Object.DestroyImmediate(component);
+                Object.DestroyImmediate(profile);
+                Object.DestroyImmediate(preset);
+                Object.DestroyImmediate(feature);
+                Object.DestroyImmediate(owner);
+                if (initializedHere) manager.Deinitialize();
+            }
+        }
+
+        [Test]
         public async Task PureNativeFxaaDoesNotActivateAuthoredPostEffects()
         {
             var existingDrivers = Object.FindObjectsByType<StreamlineRuntimeDriver>(FindObjectsInactive.Include, FindObjectsSortMode.None);

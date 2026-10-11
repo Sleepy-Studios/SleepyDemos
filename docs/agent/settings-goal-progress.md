@@ -67,6 +67,15 @@
 
 第一阶段提交范围：公共能力、制作资产、宿主调用、直接相关测试和文档；不代表 G9/G10/G11 已全部完成。临时 GlobalSettingsAssetsBuilder 与 GlobalInputGlyphsBuilder 已完成生产，但删除操作被自动审批以“blocked by policy”拦截（未提供具体原因），两者及目录/meta 均排除提交，清理暂未完成。
 
+本轮基础组件复用与定向收尾（2026-10-12）：
+
+- 公共基础组件手册补齐正式调用示例及维护职责，既有 AGENTS.md / CLAUDE.md 已链接该入口。明确 UITab / ViewTab 独立分页、固定异构表单使用 ScrollRect、可变同类改键条目使用循环列表，Demo 外观通过自己的 Prefab Variant 保留。文档本地提交 `63001704`，没有推送。
+- 子代理输入审查补齐 DLSS 底部与触控提示、Drone 操作提示、Kart 操作及触控按钮、Wall 普通触控说明的一次性词条赋值；公共 SO 新增十八项词条。四个直接 PlayMode 用例分别 1/1 通过（2d33fb4f、c67718db、78dcdea4、d99fe76d），不将专属业务文案视为全部翻译。没有修改 Demo 制作布局或纸艺资源。
+- 公共中文原字体补入左箭头，保留 GUID 与 54 / 8 / 4096 生成参数；英文源字体不提供该字形，复用公共中文作为 TMP 原生 fallback，中文不反向引用英文。英文原 atlas 和字形坐标保持原状，原生序列化对字形表排序产生较大文本 diff。维护预设对齐原资产，外部字符集编辑后须先导入再生成。刷新发现缓存后，公共字体检查实际 4/4 通过（9b1220bc）。
+- 子代理显示/效果审查修复动态景深在 AddRenderPasses 阶段提出本帧深度需求，以及同一 DLSS 请求失败回原生后仍可编辑 FXAA / MSAA。两个精确 EditMode 用例各 1/1 通过（bf33ee06、bc8667ac）。未改作者相机深度偏好和共享管线资产。
+- 动态景深图像用例最初两次失败（db1f6122、3f860d2a）分别源于图外观察已清除的全局绑定、误将 URP 预先声明的纹理大小视作深度需求。按真实 RenderGraph 时序修正测试前提，保留本帧需求、实际输入、像素变化、UI 清晰及制作配置恢复断言。最终真实 Direct3D12 回归 1/1 通过（9cec1ff8），最新 09DynamicDepthOfField / 10DepthOfFieldReleased 图片已实际查看；测试内观察器在结束时移除并销毁。
+- 最新源码经 Unity Editor 编译通过（71c6a18f，无编译错误）。没有运行全量测试，没有将定向图像验收视为七类效果各自全部验图；Demo / 体验页完整画幅、Windows Player 和真实硬件仍待。旧首包 / DLL 产物不作为当前源码交付，原 ProjectSettings 与质量配置格式升级继续排除提交。
+
 本地提交：`9325eaaf feat(core): 添加公共设置与表现能力并接入现有宿主`。没有推送，原 ProjectSettings.asset 保留未提交。随后继续公共 Loading/Hub 错误文案及 Wall 公共字体迁移；正式多键帽提示 Prefab、Wall底部与Drone帮助/选择提示的布局归G10。
 
 追加要求（2026-10-11）：DLSS关闭时可手动选FXAA/MSAA，DLSS/DLAA实际生效时接管，关闭后恢复手动选择。MSAA 2/4/8及真实生效状态已实现；正式控件属G10，当前通过公共API验证。

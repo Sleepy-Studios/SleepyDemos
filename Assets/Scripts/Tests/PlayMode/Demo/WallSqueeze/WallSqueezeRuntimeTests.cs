@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.Localization;
 using Core.Runtime.TimeControls;
 using Cysharp.Threading.Tasks;
 using Hotfix;
@@ -341,6 +342,27 @@ namespace Tests.Demo
             }
             yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.WallSqueeze).ToCoroutine();
             yield return Wait(() => (world = Object.FindAnyObjectByType<WallSqueezeWorld>()) != null && UIManager.Instance.Get<WallSqueezeHudView>()?.State == ViewState.Visible, "显示真实 HUD");
+            var hudPanel = UIManager.Instance.Get<WallSqueezeHudView>().gameObject.GetComponent<WallSqueezeHudPanel>();
+            var touchHint = (TMPro.TMP_Text)typeof(WallSqueezeHudPanel).GetField("hint",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(hudPanel);
+            string previousLanguage = LanguageService.CurrentLanguage;
+            try
+            {
+                InputDeviceState.NotifyTouch();
+                LanguageService.SelectLanguage("en");
+                hudPanel.Render();
+                Assert.That(touchHint.gameObject.activeSelf, Is.True);
+                Assert.That(touchHint.text, Is.EqualTo("Drag a wall with one finger · Protect the blue residents"));
+                LanguageService.SelectLanguage("zh-CN");
+                hudPanel.Render();
+                Assert.That(touchHint.text, Is.EqualTo("单指拖墙 · 保护蓝色住户"));
+            }
+            finally
+            {
+                LanguageService.SelectLanguage(previousLanguage);
+                InputDeviceState.Notify(keyboard);
+                hudPanel.Render();
+            }
             Assert.That(world.GetComponent<WallSqueezePresentation>(), Is.Not.Null);
             Assert.That(world.Simulation.Remaining, Is.EqualTo(4));
             var wallShape = world.transform.Find("Walls").GetChild(0).Find("Shape").GetComponent<SpriteRenderer>();

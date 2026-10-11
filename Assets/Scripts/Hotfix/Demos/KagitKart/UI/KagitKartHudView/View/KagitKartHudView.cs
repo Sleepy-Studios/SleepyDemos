@@ -3,6 +3,7 @@
     using System;
     using Core.Runtime;
     using Core.Runtime.Inputs;
+    using Core.Runtime.Localization;
     using Hotfix.KagitKart;
     using UnityEngine;
     using UnityEngine.UI;
@@ -27,6 +28,15 @@
             {
                 button.HoldChanged += Hold;
             }
+            // 仅设置触控按钮自身的说明；库存纸卡的道具名称由 ItemSlot 更新。
+            LanguageService.SetText(Button_Throttle.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Throttle");
+            LanguageService.SetText(Button_Brake.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Brake");
+            LanguageService.SetText(Button_Drift.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Drift");
+            LanguageService.SetText(Button_Item.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Kart.ItemButton");
+            LanguageService.SetText(Button_LookBack.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.LookBack");
+            LanguageService.SetText(Button_Pause.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Pause");
+            LanguageService.SetText(Button_SkipIntro.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Kart.SkipCinematic");
+            LanguageService.SetText(TouchInputPad_Steering.GetComponentInChildren<TMPro.TMP_Text>(true), "Input.Kart.TouchSteerControl");
             Button_Pause.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.Pause));
             Button_SkipIntro.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.SkipIntro));
             Button_Auto.onClick.AddListener(() =>
@@ -143,7 +153,8 @@
             KagitKartItemSlot_ItemCardGroup.SetLayout(showTouch);
             InputCommandButton_ItemCard.enabled = showTouch;
             InputCommandButton_ItemCard.GetComponent<Image>().raycastTarget = showTouch;
-            Button_Auto.GetComponentInChildren<TMPro.TMP_Text>().text = "自动油门：" + (world.Input.AutoAccelerate ? "开" : "关");
+            LanguageService.SetText(Button_Auto.GetComponentInChildren<TMPro.TMP_Text>(true),
+                world.Input.AutoAccelerate ? "Input.Kart.AutoThrottleOn" : "Input.Kart.AutoThrottleOff");
             KagitKartMinimap_Minimap.Refresh();
             var map = RectTransform_MapCardGroup;
             map.anchorMin = map.anchorMax = touch ? Vector2.one : Vector2.zero;

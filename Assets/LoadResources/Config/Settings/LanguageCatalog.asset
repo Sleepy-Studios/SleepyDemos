@@ -1370,3 +1370,75 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u4F7F\u7528\u9053\u5177\uFF1B\u6309\u4F4F\u5239\u8F66\u518D\u4F7F\u7528\u53EF\u5411\u540E\u53D1\u5C04"
     english: Use item; hold brake to fire backward
+  - key: Input.Drone.TouchArmOrReset
+    fontId: 0
+    chinese: "\u89E3\u9501 / \u957F\u6309\u91CD\u7F6E"
+    english: Arm / hold to reset
+  - key: Input.Drone.TouchAim
+    fontId: 0
+    chinese: "\u7784\u51C6"
+    english: Aim
+  - key: Input.Drone.ReelIn
+    fontId: 0
+    chinese: "\u6536\u7EBF"
+    english: Reel in
+  - key: Input.Drone.PayOut
+    fontId: 0
+    chinese: "\u653E\u7EBF"
+    english: Pay out
+  - key: Input.Drone.EnterRemote
+    fontId: 0
+    chinese: "\u8FDB\u5165\u9065\u63A7"
+    english: Enter remote control
+  - key: Input.Drone.ProfileCineMode
+    fontId: 0
+    chinese: "\u5E73\u7A33\u6A21\u5F0F"
+    english: Cinematic mode
+  - key: Input.Drone.ProfileNormalMode
+    fontId: 0
+    chinese: "\u666E\u901A\u6A21\u5F0F"
+    english: Normal mode
+  - key: Input.Drone.ProfileSportMode
+    fontId: 0
+    chinese: "\u8FD0\u52A8\u6A21\u5F0F"
+    english: Sport mode
+  - key: Input.Drone.ExpandView
+    fontId: 0
+    chinese: "\u653E\u5927\u89C6\u91CE"
+    english: Widen view
+  - key: Input.Drone.NarrowView
+    fontId: 0
+    chinese: "\u7F29\u5C0F\u89C6\u91CE"
+    english: Narrow view
+  - key: Input.Drone.ThrustVectors
+    fontId: 0
+    chinese: "\u52A8\u529B\u77E2\u91CF"
+    english: Thrust vectors
+  - key: Input.Drone.ClosePanel
+    fontId: 0
+    chinese: "\u5173\u95ED\u9762\u677F"
+    english: Close panel
+  - key: Input.Wall.TouchHint
+    fontId: 0
+    chinese: "\u5355\u6307\u62D6\u5899 \xB7 \u4FDD\u62A4\u84DD\u8272\u4F4F\u6237"
+    english: "Drag a wall with one finger \xB7 Protect the blue residents"
+  - key: Input.Kart.ItemButton
+    fontId: 0
+    chinese: "\u9053\u5177"
+    english: Item
+  - key: Input.Kart.SkipCinematic
+    fontId: 0
+    chinese: "\u8DF3\u8FC7\u6F14\u51FA"
+    english: Skip cinematic
+  - key: Input.Kart.TouchSteerControl
+    fontId: 0
+    chinese: "\u2190   \u8F6C\u5411   \u2192"
+    english: "\u2190   Steer   \u2192"
+  - key: Input.Kart.AutoThrottleOn
+    fontId: 0
+    chinese: "\u81EA\u52A8\u6CB9\u95E8\uFF1A\u5F00"
+    english: 'Auto throttle: On'
+  - key: Input.Kart.AutoThrottleOff
+    fontId: 0
+    chinese: "\u81EA\u52A8\u6CB9\u95E8\uFF1A\u5173"
+    english: 'Auto throttle: Off'
