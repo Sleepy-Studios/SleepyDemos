@@ -61,7 +61,7 @@ InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、
 
 正式公共基底为 `Assets/LoadResources/UI/Common/Input/InputPrompt.prefab` 与 `InputPromptButton.prefab`。前者提供独立 Caption 与多个 GlyphSlot，键帽包含图标、无对应图标时的真实键名以及组合分隔符；槽不足时保留完整绑定文本。后者复用相同提示结构，增加 Button、五态交互和 InputCommandButton。点击或保持仍交付 Demo 原命令，暂停、隐藏和失焦配对释放保持操作。
 
-Drone、DLSS、Wall、KagitKart 各保存自己的真正 Prefab Variants；前三者位于各自 `Prefabs/UI/Parts/`，KagitKart 位于 `Prefabs/UI/Widgets/`。Variant 维护各 Demo 的颜色、字体样式、Sprite 与间距。纸艺赛车继续使用原纸卡和父页布局，公共提示只替换局部提示部件。`InputPromptGroup` 保存稳定行 Key、提示组件和可选区域的明确制作引用；View 通过正式 UIBind 生成字段持有组，运行时按 Key 取行，不扫描层级或临时生成提示。Drone HUD 的触控、操作面板和菜单提示也由该组保存。
+Drone、DLSS、Wall、KagitKart 各保存自己的真正 Prefab Variants；前三者位于各自 `Prefabs/UI/Parts/`，KagitKart 位于 `Prefabs/UI/Widgets/`。Variant 维护各 Demo 的颜色、字体样式、Sprite 与间距。纸艺赛车继续使用原纸卡和父页布局，公共提示只替换局部提示部件。`InputPromptGroup` 保存稳定行 Key、提示组件和可选区域的明确制作引用；已制作组的 View 通过正式 UIBind 生成字段持有组，运行时按 Key 取行。Drone HUD 的触控、操作面板和菜单提示也由该组保存。DLSS 控件页在初始化时一次性采集已制作的提示组件，按实际动作设置词条；不在帧循环扫描或临时生成提示。
 
 `InputGlyphCatalog` 及其 GUID 保持稳定，资源位于 `UI/Common/Sprites/Input/Kenney/`，目录包含随包保存的 CC0 许可。键盘实际使用 Kenney 的字母、数字、功能键、修饰键、方向键和常用特殊键图形，鼠标使用对应鼠标按钮图形；只有缺少对应图标的键才显示空键帽与实际键名。单字母键按当前键盘布局的显示名选择图形。已识别手柄布局映射 Xbox、PlayStation、Switch，未知手柄使用通用位置图标；新增手柄沿用 InputDeviceState 的布局识别和 Catalog 的设备风格映射。菜单确认／返回的用途绑定由真实布局解析，Switch 的 A/B 对应真实物理位置，图标映射与控件路径必须一致。
 

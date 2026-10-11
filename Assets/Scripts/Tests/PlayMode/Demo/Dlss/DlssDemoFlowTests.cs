@@ -31,6 +31,19 @@ namespace Tests.Demo
         public IEnumerator Controls_RebindingKeepsOneSubscriptionAndDisableReleasesHold()
         {
             isUiTest = true;
+            if (!GameSettingsService.IsInitialized)
+            {
+                yield return SceneManager.LoadSceneAsync("Assets/Scenes/AppEntrance.unity", LoadSceneMode.Single);
+                yield return WaitUntil(() => GameSettingsService.IsInitialized, "正式公共偏好服务初始化");
+            }
+            yield return VerifyControlsPreferencesAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyControlsPreferencesAsync()
+        {
+            var previousSettings = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
             var languageFields = new[] { "texts", "fonts", "languages", "<CurrentLanguage>k__BackingField" }
                 .Select(name => typeof(LanguageService).GetField(name,
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)).ToArray();
@@ -57,7 +70,7 @@ namespace Tests.Demo
                     Assert.That(index.BindingKeys[i], Is.Not.Empty);
                 }
                 presenter.SetData(session.Asset); presenter.SetData(session.Asset);
-                yield return presenter.ShowAsync(false).ToCoroutine();
+                await presenter.ShowAsync(false);
                 foreach (var prompt in controls.GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true))
                 {
                     string key = prompt.Action.name switch
@@ -79,16 +92,36 @@ namespace Tests.Demo
                         var callbacks = typeof(Core.Runtime.Inputs.InputCommandButton).GetField(name, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(button) as Delegate;
                         Assert.That(callbacks?.GetInvocationList().Length, Is.EqualTo(1), button.name + "/" + name);
                     }
-                Core.Runtime.Inputs.InputDeviceState.NotifyTouch(); yield return null;
+                var hidden = GameSettingsService.Current;
+                hidden.Accessibility.ShowInputPrompts = false;
+                var applied = await GameSettingsService.ApplyAsync(hidden, _ => UniTask.FromResult(true));
+                Assert.That(applied.Succeeded, Is.True, applied.Message);
+                Core.Runtime.Inputs.InputDeviceState.NotifyTouch();
+                await UniTask.Yield();
+                foreach (var prompt in controls.GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true))
+                {
+                    if (prompt.GetComponentInParent<Core.Runtime.Inputs.InputCommandButton>(true) == null)
+                    {
+                        Assert.That(prompt.gameObject.activeSelf, Is.False, "关闭偏好同时收起纯提示的键帽和说明。");
+                    }
+                    else
+                    {
+                        Assert.That(prompt.gameObject.activeInHierarchy, Is.True, "必需触控命令不能随纯提示一起隐藏。");
+                        Assert.That(prompt.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text, Is.Not.Empty);
+                    }
+                }
                 var sprint = System.Array.Find(buttons, button => button.Command == "Sprint");
                 Assert.That(sprint, Is.Not.Null);
                 sprint.OnPointerDown(new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current) { pointerId = 15 });
                 Assert.That(presenter.Sprint, Is.True);
-                yield return presenter.HideAsync(false).ToCoroutine(); yield return null;
+                await presenter.HideAsync(false);
+                await UniTask.Yield();
                 Assert.That(presenter.Sprint, Is.False);
-                yield return presenter.ShowAsync(false).ToCoroutine(); yield return null;
+                await presenter.ShowAsync(false);
+                await UniTask.Yield();
                 Assert.That(presenter.Sprint, Is.False);
-                yield return presenter.DestroyAsync().ToCoroutine(); yield return null;
+                await presenter.DestroyAsync();
+                await UniTask.Yield();
                 foreach (var button in buttons)
                 {
                     var callbacks = typeof(Core.Runtime.Inputs.InputCommandButton).GetField("Clicked", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(button) as Delegate;
@@ -97,13 +130,32 @@ namespace Tests.Demo
             }
             finally
             {
-                state.Handler.Dispose();
-                GlobalData.Remove<DlssData>();
-                if (controls != null) Object.Destroy(controls);
-                Object.Destroy(host);
-                for (int i = 0; i < languageFields.Length; i++) languageFields[i].SetValue(null, previousLanguageValues[i]);
+                try
+                {
+                    if (presenter.IsLoaded) await presenter.DestroyAsync();
+                    state.Handler.Dispose();
+                    GlobalData.Remove<DlssData>();
+                    if (controls != null) Object.Destroy(controls);
+                    Object.Destroy(host);
+                }
+                finally
+                {
+                    session.Dispose();
+                    try
+                    {
+                        var restored = await GameSettingsService.ApplyAsync(previousSettings, _ => UniTask.FromResult(true));
+                        Assert.That(restored.Succeeded, Is.True, restored.Message);
+                    }
+                    finally
+                    {
+                        if (hadPreference) PlayerPrefs.SetString(GameSettingsService.PreferenceKey, preference);
+                        else PlayerPrefs.DeleteKey(GameSettingsService.PreferenceKey);
+                        PlayerPrefs.Save();
+                        for (int i = 0; i < languageFields.Length; i++) languageFields[i].SetValue(null, previousLanguageValues[i]);
+                    }
+                }
             }
-            yield return null;
+            await UniTask.Yield();
         }
 
         [UnityTest, Timeout(180000)]

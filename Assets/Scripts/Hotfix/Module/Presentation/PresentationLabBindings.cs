@@ -88,6 +88,9 @@ namespace Hotfix
         {
             var content = (RectTransform)panels[index].transform.parent;
             content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, index == 0 ? effects.Length * 132 : index == 2 ? 710 : 430);
+            var scroll = content.GetComponentInParent<ScrollRect>(true);
+            scroll.StopMovement();
+            scroll.verticalNormalizedPosition = 1;
         }
     }
 

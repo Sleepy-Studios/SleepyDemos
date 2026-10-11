@@ -416,6 +416,19 @@ namespace Tests.Demo
         [UnityTest]
         public IEnumerator SavedHudTouchPadsAreIndependentAndPanelDropsOldPointers()
         {
+            yield return VerifySavedHudPreferencesAndTouchAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifySavedHudPreferencesAndTouchAsync()
+        {
+            if (!ResourceServices.Default.IsInitialized)
+            {
+                await ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default);
+            }
+            await GameSettingsService.InitializeAsync();
+            var previousSettings = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
             var canvas = new GameObject("DroneTouchCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvas.GetComponent<CanvasScaler>();
@@ -431,9 +444,21 @@ namespace Tests.Demo
             view.SetData(new DroneFlightViewData(null, data.SessionId, input));
             try
             {
-                yield return view.ShowAsync(false).ToCoroutine();
+                await view.ShowAsync(false);
+                helpKeyboard = InputSystem.AddDevice<Keyboard>();
+                InputDeviceState.Notify(helpKeyboard);
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
+                Assert.That(hud.GetComponent<InputPromptGroup>().Get("Touch/Back").gameObject.activeInHierarchy, Is.False,
+                    "键鼠状态先收起触控父区，再提交辅助偏好。");
+                var hidden = GameSettingsService.Current;
+                hidden.Accessibility.ShowInputPrompts = false;
+                var applied = await GameSettingsService.ApplyAsync(hidden, _ => UniTask.FromResult(true));
+                Assert.That(applied.Succeeded, Is.True, applied.Message);
                 InputDeviceState.NotifyTouch();
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
+                var backCaption = hud.GetComponent<InputPromptGroup>().Get("Touch/Back").transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                Assert.That(backCaption.gameObject.activeInHierarchy, Is.True, "禁用父区仍须识别触控命令，关闭纯提示后切触屏不能丢掉按钮文案。");
+                Assert.That(backCaption.text, Is.EqualTo(LanguageService.Get("Input.Back")));
                 var backButton = System.Array.Find(hud.GetComponentsInChildren<InputCommandButton>(true), button => button.Command == "Back");
                 Assert.That(backButton != null && backButton.gameObject.activeInHierarchy, Is.True, "飞行期间必须保留触屏返回遥控等待的入口。");
                 var index = hud.GetComponent<ComponentItemIndex>();
@@ -457,18 +482,18 @@ namespace Tests.Demo
                 b.position += new Vector2(40, 0);
                 left.OnDrag(a);
                 right.OnDrag(b);
-                yield return null;
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 Assert.That(controller.CurrentControlInput.Lift, Is.GreaterThan(0));
                 Assert.That(controller.CurrentControlInput.Right, Is.GreaterThan(0));
                 left.OnPointerUp(a);
                 Assert.That(right.Move.x, Is.GreaterThan(0));
                 input.enabled = false;
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 input.enabled = true;
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 right.OnDrag(b);
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 Assert.That(controller.CurrentControlInput.Right, Is.Zero, "退出并重新进入遥控不能沿用旧手指。");
                 input.SetPanelOpen(true);
                 var operationPanel = System.Array.Find(index.Components, item => item is RectTransform && item.name == "OperationPanel").gameObject;
@@ -481,34 +506,53 @@ namespace Tests.Demo
                 Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(helpButton.gameObject), "关闭指南应恢复来源菜单的同一焦点。");
                 input.SetPanelOpen(false);
                 right.OnDrag(b);
-                yield return null;
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 Assert.That(controller.CurrentControlInput.Right, Is.Zero, "面板切换后旧指针不可继续飞行。");
                 Assert.That(InputDeviceState.ActiveKind, Is.EqualTo(InputDeviceKind.Touch), "打开面板的静止鼠标不能抢走触控。");
                 Assert.That(left.gameObject.activeInHierarchy, Is.True);
-                yield return new WaitForEndOfFrame();
+                await UniTask.WaitForEndOfFrame();
                 string folder = System.IO.Path.GetFullPath("ValidationArtifacts~/refactor");
                 System.IO.Directory.CreateDirectory(folder);
                 var shot = ScreenCapture.CaptureScreenshotAsTexture();
                 System.IO.File.WriteAllBytes(System.IO.Path.Combine(folder, "DroneTouch.png"), shot.EncodeToPNG());
                 Object.Destroy(shot);
                 input.SetTouchArmHeld(true);
-                yield return null;
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 Assert.That(input.ResetProgress, Is.GreaterThan(0));
-                yield return view.HideAsync(false).ToCoroutine();
-                yield return null;
+                await view.HideAsync(false);
+                await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
                 Assert.That(input.ResetProgress, Is.Zero);
                 Assert.That(controller.IsArmed, Is.False, "HUD 隐藏释放保持输入，不能解释成短按解锁。");
             }
             finally
             {
-                view.DestroyAsync().Forget();
-                Object.Destroy(canvas);
-                if (events != null)
-                    Object.Destroy(events);
+                try
+                {
+                    await view.DestroyAsync();
+                    Object.Destroy(canvas);
+                    if (events != null)
+                    {
+                        Object.Destroy(events);
+                    }
+                }
+                finally
+                {
+                    try
+                    {
+                        var restored = await GameSettingsService.ApplyAsync(previousSettings, _ => UniTask.FromResult(true));
+                        Assert.That(restored.Succeeded, Is.True, restored.Message);
+                    }
+                    finally
+                    {
+                        if (hadPreference) PlayerPrefs.SetString(GameSettingsService.PreferenceKey, preference);
+                        else PlayerPrefs.DeleteKey(GameSettingsService.PreferenceKey);
+                        PlayerPrefs.Save();
+                    }
+                }
             }
 
-            yield return null;
+            await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
         }
 
         [UnityTest]

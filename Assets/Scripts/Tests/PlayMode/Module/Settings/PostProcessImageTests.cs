@@ -231,6 +231,96 @@ namespace Tests.Module
                 cameraData.requiresDepthOption = authoredWorldDepth;
                 uiData.requiresDepthOption = authoredUiDepth;
             }
+
+            string[] labNames =
+            {
+                "ColorAdjustments", "Bloom", "ChromaticAberration", "Vignette", "LensDistortion", "FilmGrain"
+            };
+            PostProcessEffects[] labEffects =
+            {
+                PostProcessEffects.ColorGrading, PostProcessEffects.Bloom, PostProcessEffects.ChromaticAberration,
+                PostProcessEffects.Vignette, PostProcessEffects.LensDistortion, PostProcessEffects.FilmGrain
+            };
+            // 下部地面避开 Overlay HUD；中心小窗和外围棋盘共同区分暗角/畸变的空间表现。
+            var edgeRegion = new RectInt(baseline.Width * 8 / 100, baseline.Height * 8 / 100,
+                baseline.Width / 5, baseline.Height * 16 / 100);
+            var centerRegion = new RectInt(baseline.Width * 49 / 100, baseline.Height * 49 / 100,
+                baseline.Width * 2 / 100, baseline.Height * 2 / 100);
+            for (int index = 0; index < labNames.Length; index++)
+            {
+                PostProcessPreset labPreset = null;
+                yield return loader.LoadAssetAsync<PostProcessPreset>("LoadResources/Config/Presentation/Lab/" + labNames[index])
+                    .ToCoroutine(value => labPreset = value);
+                Assert.That(labPreset, Is.Not.Null, "必须通过正式资源入口加载 Lab 预设。");
+                labPreset.Validate();
+                var authoredLabComponents = new string[labPreset.Profile.components.Count];
+                for (int component = 0; component < authoredLabComponents.Length; component++)
+                {
+                    authoredLabComponents[component] = JsonUtility.ToJson(labPreset.Profile.components[component]);
+                }
+
+                graphics.AllowedEffects = labEffects[index];
+                PostProcessRuntime.ApplySettings(graphics, accessibility);
+                yield return Settle();
+                Frame labBaseline = Capture("Lab" + labNames[index] + "-Baseline");
+                effect = PostProcessRuntime.Push(labPreset);
+                yield return Settle();
+                Frame labApplied = Capture("Lab" + labNames[index] + "-Applied");
+                float worldChange = Difference(labBaseline, labApplied, region);
+                Assert.That(worldChange, Is.GreaterThan(Mathf.Max(0.0005f, noise * 4)),
+                    labNames[index] + " 保存预设没有改变真实世界像素。");
+                AssertUiUnchanged(labBaseline, labApplied);
+
+                if (labEffects[index] == PostProcessEffects.Vignette)
+                {
+                    float edgeDimming = 1 - WorldMean(labApplied, edgeRegion) / Mathf.Max(0.01f, WorldMean(labBaseline, edgeRegion));
+                    float centerDimming = 1 - WorldMean(labApplied, centerRegion) / Mathf.Max(0.01f, WorldMean(labBaseline, centerRegion));
+                    Assert.That(edgeDimming, Is.GreaterThan(0.05f), "暗角必须实际压暗世界边缘。");
+                    Assert.That(edgeDimming, Is.GreaterThan(centerDimming + 0.05f), "暗角应比画面中心更明显地压暗边缘。");
+                }
+                else if (labEffects[index] == PostProcessEffects.LensDistortion)
+                {
+                    Assert.That(Difference(labBaseline, labApplied, centerRegion), Is.LessThan(worldChange),
+                        "镜头畸变应改变外围棋盘/细线结构，并保留靠近中心的局部画面。");
+                }
+                else if (labEffects[index] == PostProcessEffects.FilmGrain)
+                {
+                    Assert.That(NeighborDifference(labApplied, edgeRegion),
+                        Is.GreaterThan(NeighborDifference(labBaseline, edgeRegion) + 0.001f),
+                        "胶片颗粒应在平坦地面增加真实的邻像素纹理变化。");
+                    yield return Settle();
+                    Frame grainSecond = Capture("LabFilmGrain-SecondFrame");
+                    yield return Settle();
+                    Frame grainThird = Capture("LabFilmGrain-ThirdFrame");
+                    Assert.That(Difference(labApplied, grainSecond, region), Is.GreaterThan(Mathf.Max(0.001f, noise * 4)),
+                        "胶片颗粒必须随帧变化，且显著超过静止基线的噪声。");
+                    Assert.That(Difference(grainSecond, grainThird, region), Is.GreaterThan(Mathf.Max(0.001f, noise * 4)));
+                    AssertUiUnchanged(labBaseline, grainSecond);
+                    AssertUiUnchanged(labBaseline, grainThird);
+                }
+                if (labEffects[index] != PostProcessEffects.FilmGrain)
+                {
+                    yield return Settle();
+                    Frame labStable = Capture("Lab" + labNames[index] + "-Stable");
+                    Assert.That(Difference(labApplied, labStable, region), Is.LessThan(Mathf.Max(0.003f, noise * 3)),
+                        labNames[index] + " 静止画面应稳定，不得误以动态噪声作为效果变化。");
+                    AssertUiUnchanged(labBaseline, labStable);
+                }
+
+                effect.Dispose();
+                effect = null;
+                yield return Settle();
+                Frame labReleased = Capture("Lab" + labNames[index] + "-Released");
+                Assert.That(PostProcessRuntime.ActiveScopeCount, Is.Zero);
+                Assert.That(Difference(labBaseline, labReleased, region), Is.LessThan(Mathf.Max(0.003f, noise * 3)),
+                    labNames[index] + " 释放后应恢复世界画面，不得残留效果或动态噪声。");
+                AssertUiUnchanged(labBaseline, labReleased);
+                for (int component = 0; component < authoredLabComponents.Length; component++)
+                {
+                    Assert.That(JsonUtility.ToJson(labPreset.Profile.components[component]), Is.EqualTo(authoredLabComponents[component]),
+                        "运行时不能修改正式 Lab 预设组件。");
+                }
+            }
         }
 
         // RenderGraph 退出时会清空全局纹理绑定；仅在图内观察与原生 DoF 相同的输入。
@@ -394,6 +484,25 @@ namespace Tests.Module
                     count++;
                 }
             }
+            return total / count;
+        }
+
+        private static float NeighborDifference(Frame frame, RectInt region)
+        {
+            float total = 0;
+            int count = 0;
+            for (int y = region.yMin; y < region.yMax - 1; y += 3)
+            {
+                for (int x = region.xMin; x < region.xMax - 1; x += 3)
+                {
+                    float current = frame.Pixels[y * frame.Width + x].grayscale;
+                    float right = frame.Pixels[y * frame.Width + x + 1].grayscale;
+                    float above = frame.Pixels[(y + 1) * frame.Width + x].grayscale;
+                    total += (Mathf.Abs(current - right) + Mathf.Abs(current - above)) * 0.5f;
+                    count++;
+                }
+            }
+            Assert.That(count, Is.GreaterThan(0));
             return total / count;
         }
 

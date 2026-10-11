@@ -48,6 +48,10 @@ namespace Hotfix
             foreach (var prompt in prompts)
             {
                 prompt.SetBindingsVisible(value.Accessibility.ShowInputPrompts);
+                if (prompt.GetComponentInParent<InputCommandButton>(true) == null)
+                {
+                    prompt.gameObject.SetActive(value.Accessibility.ShowInputPrompts);
+                }
             }
         }
         /// <summary>组件初始化后、显示前绑定当前观察动作副本。</summary>

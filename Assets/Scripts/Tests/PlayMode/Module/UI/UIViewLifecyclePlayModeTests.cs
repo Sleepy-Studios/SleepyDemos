@@ -44,6 +44,18 @@ namespace Tests.Module
             int destroyed = view.Updates;
             yield return null;
             Assert.That(view.Updates, Is.EqualTo(destroyed));
+
+            var external = new UpdatingView();
+            var instance = CreateObject("ExternallyDestroyedUpdatingView");
+            external.InitWithGameObject(instance);
+            yield return external.ShowAsync(false).ToCoroutine();
+            yield return null;
+            int lastUpdate = external.Updates;
+            Object.DestroyImmediate(instance);
+            yield return null;
+            Assert.That(external.Updates, Is.EqualTo(lastUpdate),
+                "场景或 Editor 直接销毁实例时，挂起的更新不能再调用失效的制作组件。");
+            yield return external.DestroyAsync().ToCoroutine();
         }
 
         private sealed class BoundData : IData

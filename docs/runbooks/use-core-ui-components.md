@@ -67,6 +67,8 @@
 
 固定分类已为图标预留文字区域时，停用模板 Desc 上按文本宽度驱动的 ContentSizeFitter；长译文使用 TMP 原生自动字号和制作侧上下限。否则文字矩形会被重新撑宽，即使开启自动字号也仍可能覆盖图标。不要在业务代码中逐语言计算文字位置。
 
+下拉选项浮层须有独立不透明背景，覆盖选项之间的间距；背景高度随实际选项数量更新。公共 `DropdownRow` 在 `TabView` 使用原生 Image 和纵向 Preferred Size 的 ContentSizeFitter，不按制作模板的初始项数固定背景高度。页面继续通过 UIDropdown 指定同页 popupRoot，不自行创建第二套浮层。
+
 ## 正式调用示例与维护入口
 
 新增页面前先看组件，再看下列实际调用；不要复制整个业务页面作为基础组件。
@@ -117,6 +119,10 @@ dropdown.SetSelectedIndex(savedIndex);
 ```
 
 下拉控件位于 ScrollRect 或异构表单内时，调用 `dropdown.SetPopupRoot(popupRoot)`，把选项临时挂到同一 View 内、裁剪区域外的容器。设置页使用自己的 controls，体验页使用 Menu；容器保留该页 CanvasGroup 和菜单作用域。展开不会改变表单行顺序，收起、禁用或销毁会恢复原父级及布局，后来打开的 Modal 仍在其上方。可容纳的列表按实际容器尺寸夹回边界；超长选项仍由制作侧配置合适尺寸与滚动，不使用全局高排序 Canvas 盖住其它页面。
+
+只禁用 UIDropdown 组件时立即归还选项；祖先启停或销毁时先收起，再延后归还，避免在 Unity 激活遍历中改变层级。原宿主已销毁则一并销毁借出的选项。公共 DropdownRow 的选项锚定控件下边缘、顶部 Pivot，空间足够时向下展开；背景随选项高度变化，列表宽度跟随字段。
+
+页面持续更新复用 `View.BindUpdate`；隐藏时暂停、销毁时停止，等待下一轮更新后再次检查实例存活。场景或 Editor 直接销毁实例也不能继续调用页面制作组件，不在每个业务页面重复维护轮询。
 
 ```csharp
 switchButton.SetAction(OnSwitchChanged);

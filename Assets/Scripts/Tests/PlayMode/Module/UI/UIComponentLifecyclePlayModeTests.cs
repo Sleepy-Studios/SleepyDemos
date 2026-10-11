@@ -289,6 +289,22 @@ namespace Tests.Module
                 group.interactable = true;
                 dropdown.enabled = true;
                 root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                controls.gameObject.SetActive(false);
+                Assert.That(dropdown.IsExpanded, Is.False);
+                Assert.That(tab.gameObject.activeSelf, Is.False);
+                yield return null;
+                AssertRestored();
+                controls.gameObject.SetActive(true);
+                yield return null;
+                AssertRestored();
+
+                // 同帧停用、重新启用也须等原生激活遍历结束再归还，不能破坏制作矩形。
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                controls.gameObject.SetActive(false);
+                controls.gameObject.SetActive(true);
+                yield return null;
+                AssertRestored();
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
                 var modal = Rect("LaterModal", canvasObject.transform, new Vector2(1200, 1000));
                 modal.gameObject.AddComponent<Image>();
                 modal.SetAsLastSibling();
@@ -304,6 +320,20 @@ namespace Tests.Module
                 Object.Destroy(root);
                 yield return null;
                 Assert.That(tab == null, Is.True, "归还后的选项必须随原控件销毁，不遗留在宿主弹出区域。");
+
+                var destroyedOwner = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Dropdown/Dropdown.prefab"), content);
+                var destroyedDropdown = destroyedOwner.GetComponent<UIDropdown>();
+                var destroyedTab = destroyedOwner.GetComponentInChildren<UITab>(true);
+                destroyedDropdown.SetData(new[] { "A", "B" }, _ => { }, isAsync: false);
+                destroyedDropdown.SetPopupRoot(controls);
+                destroyedOwner.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                Assert.That(destroyedTab.transform.parent, Is.SameAs(controls));
+                Object.Destroy(destroyedOwner);
+                yield return null;
+                yield return null;
+                Assert.That(destroyedTab == null, Is.True, "整个宿主销毁时，借出的选项也必须销毁，不能归还进待销毁树或留在弹出区域。");
+                LogAssert.NoUnexpectedReceived();
 
                 void AssertRestored()
                 {

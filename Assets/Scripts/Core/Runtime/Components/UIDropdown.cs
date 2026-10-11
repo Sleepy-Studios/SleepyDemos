@@ -24,6 +24,7 @@ namespace Core.Runtime
         private Action<bool> dataShowStateChanged;
         private bool isExpanded;
         private bool popupDetached;
+        private bool popupRestoreQueued;
         private Transform originalParent;
         private int originalSibling;
         private Vector3 originalPosition;
@@ -61,17 +62,20 @@ namespace Core.Runtime
 
         private void OnEnable()
         {
-            Collapse(false);
+            // 父级仍可能位于原生激活遍历中，此时不能改变子节点的父级或顺序。
+            Collapse(false, deferRestore: true);
         }
 
         private void OnDisable()
         {
-            Collapse(false);
+            // 仅禁用本组件时宿主仍活动，可以立即归还；整树停用须等原生遍历结束。
+            Collapse(false, deferRestore: enabled || !gameObject.activeInHierarchy);
         }
 
         private void OnDestroy()
         {
-            Collapse(false);
+            // 下一轮再判断原父级是否存活，不能将借出选项重新放入待销毁的宿主树。
+            Collapse(false, deferRestore: true);
             if (button != null)
             {
                 button.onClick.RemoveListener(Toggle);
@@ -181,6 +185,7 @@ namespace Core.Runtime
 
         private void Expand()
         {
+            popupRestoreQueued = false;
             var changed = !isExpanded;
             if (tabView != null)
             {
@@ -199,7 +204,7 @@ namespace Core.Runtime
             }
         }
 
-        private void Collapse(bool refreshArrow)
+        private void Collapse(bool refreshArrow, bool deferRestore = false)
         {
             var changed = isExpanded;
             isExpanded = false;
@@ -207,7 +212,14 @@ namespace Core.Runtime
             {
                 tabView.gameObject.SetActive(false);
             }
-            RestorePopup();
+            if (deferRestore)
+            {
+                QueuePopupRestore();
+            }
+            else
+            {
+                RestorePopup();
+            }
 
             if (refreshArrow)
             {
@@ -260,15 +272,37 @@ namespace Core.Runtime
             popup.SetAsLastSibling();
         }
 
+        private void QueuePopupRestore()
+        {
+            if (!popupDetached || popupRestoreQueued)
+            {
+                return;
+            }
+            popupRestoreQueued = true;
+            UniTask.Post(() =>
+            {
+                if (!popupRestoreQueued)
+                {
+                    return;
+                }
+                popupRestoreQueued = false;
+                if (!isExpanded)
+                {
+                    RestorePopup();
+                }
+            });
+        }
+
         private void RestorePopup()
         {
+            popupRestoreQueued = false;
             if (!popupDetached)
             {
                 return;
             }
-            popupDetached = false;
             if (tabView == null)
             {
+                popupDetached = false;
                 originalParent = null;
                 return;
             }
@@ -277,6 +311,7 @@ namespace Core.Runtime
             {
                 // 原控件已经卸载时，不让借出的选项留在仍存活的宿主页。
                 Destroy(popup.gameObject);
+                popupDetached = false;
                 return;
             }
             popup.SetParent(originalParent, false);
@@ -295,6 +330,7 @@ namespace Core.Runtime
             {
                 popup.localPosition = originalPosition;
             }
+            popupDetached = false;
             originalParent = null;
         }
 

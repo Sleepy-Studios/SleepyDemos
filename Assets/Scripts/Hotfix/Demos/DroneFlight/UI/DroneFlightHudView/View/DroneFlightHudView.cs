@@ -148,7 +148,7 @@ namespace Hotfix
             foreach (var prompt in prompts)
             {
                 prompt.SetBindingsVisible(showInputPrompts);
-                if (prompt.GetComponentInParent<InputCommandButton>() == null)
+                if (prompt.GetComponentInParent<InputCommandButton>(true) == null)
                 {
                     prompt.gameObject.SetActive(showInputPrompts);
                 }

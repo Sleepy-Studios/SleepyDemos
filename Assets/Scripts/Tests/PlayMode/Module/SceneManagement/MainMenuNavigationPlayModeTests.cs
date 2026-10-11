@@ -1264,6 +1264,35 @@ namespace Tests.Module
                 await Click(ButtonPosition(bindings.Stop));
                 await Wait(() => PostProcessRuntime.ActiveScopeCount == initialEffects && bindings.Play.interactable, "停止画面体验作用域", 5);
 
+                var parameterScroll = bindings.Effects[0].GetComponentInParent<ScrollRect>();
+                parameterScroll.verticalNormalizedPosition = 0.4f;
+                parameterScroll.velocity = new Vector2(0, 50);
+                await Click(ButtonPosition(bindings.Tabs.UiTab.Items[2].GetComponent<Button>()));
+                await UniTask.Yield();
+                Assert.That(parameterScroll.verticalNormalizedPosition, Is.EqualTo(1).Within(0.001f),
+                    "切换体验分类后应显示首项，不沿用画面效果表单的滚动偏移。");
+                Assert.That(parameterScroll.velocity, Is.EqualTo(Vector2.zero), "旧分类的滚动惯性不能带入新分类。");
+
+                var styleDropdown = Field<UISettingRow>(bindings.CinematicPanel, "styleRow").Control.GetComponent<UIDropdown>();
+                await Click(ButtonPosition(styleDropdown.GetComponent<Button>()));
+                var styleOptions = Field<UITab>(styleDropdown, "tabView");
+                var popupRect = (RectTransform)styleOptions.transform;
+                var popupBackground = styleOptions.GetComponent<Image>();
+                Assert.That(popupBackground, Is.Not.Null, "公共下拉浮层不能让后面的字段从选项间距透出。");
+                Assert.That(popupBackground.color.a, Is.EqualTo(1));
+                var ownerRect = (RectTransform)styleDropdown.transform;
+                float popupTop = ownerRect.InverseTransformPoint(popupRect.TransformPoint(new Vector3(0, popupRect.rect.yMax))).y;
+                Assert.That(popupTop, Is.LessThanOrEqualTo(ownerRect.rect.yMin),
+                    "有足够空间时，增长后的浮层应从控件下方展开，不能顶到上方分类按钮。");
+                foreach (var item in styleOptions.Items)
+                {
+                    var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(popupRect, item.transform);
+                    Assert.That(bounds.min.y, Is.GreaterThanOrEqualTo(popupRect.rect.yMin - 0.01f));
+                    Assert.That(bounds.max.y, Is.LessThanOrEqualTo(popupRect.rect.yMax + 0.01f),
+                        "下拉背景须随真实选项数量增长，不能只覆盖制作模板的前几项。");
+                }
+                await Click(ButtonPosition(styleOptions.Items[styleDropdown.CurrentIndex].GetComponent<Button>()));
+
                 await Click(ButtonPosition(bindings.Tabs.UiTab.Items[1].GetComponent<Button>()));
                 await Click(ButtonPosition(bindings.Play));
                 Assert.That(GameTimeService.Scale, Is.EqualTo(0.25f).Within(0.001f));

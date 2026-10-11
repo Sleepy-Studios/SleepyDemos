@@ -103,7 +103,7 @@ namespace Core.Runtime
             while (gameObject != null && State != ViewState.Destroying && State != ViewState.Destroyed && State != ViewState.Faulted)
             {
                 await UniTask.Yield(timing);
-                if (IsEnable) update();
+                if (gameObject != null && IsEnable) update();
             }
         }
 
