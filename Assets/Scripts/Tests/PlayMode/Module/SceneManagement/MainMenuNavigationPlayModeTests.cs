@@ -37,6 +37,114 @@ namespace Tests.Module
         private InputSettings testInputSettings;
 
         [UnityTest, Timeout(180000)]
+        public IEnumerator CommonLoadingAndFeedbackFollowHubLanguageAndPreserveDiagnostics()
+        {
+            yield return PrepareHub();
+            yield return VerifyLoadingAndFeedbackAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyLoadingAndFeedbackAsync()
+        {
+            var previous = GameSettingsService.Current;
+            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
+                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            try
+            {
+                foreach (string language in new[] { "zh-CN", "en" })
+                {
+                    var next = GameSettingsService.Current;
+                    next.Language = language;
+                    var applied = await HubLanguageFlow.ApplyAsync(next, reopen);
+                    Assert.That(applied.Succeeded, Is.True, applied.Message);
+                    await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
+                    var navigator = GameSceneNavigator.Instance;
+                    try
+                    {
+                        SetNavigator(null);
+                        GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                        Assert.That(GlobalData.Get<MainMenuData>().FeedbackKey, Is.EqualTo("Hub.EntryNotReady"));
+                        AssertMappedText(Field<TMPro.TextMeshProUGUI>(UIManager.Instance.Get<MainMenuView>(), "TextMeshProUGUI_Status"), "Hub.EntryNotReady");
+                    }
+                    finally
+                    {
+                        SetNavigator(navigator);
+                    }
+
+                    GlobalData.Dispatch(new MainMenuSelectAction(1));
+                    GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                    await UniTask.WaitUntil(() => runtime.HasPendingEntry).Timeout(TimeSpan.FromSeconds(15));
+                    var loading = UIManager.Instance.Get<CommonLoadingView>();
+                    Assert.That(loading, Is.Not.Null);
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Title"), "Loading.Title");
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Step"), "Loading.LoadScene");
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.LoadingScene", LanguageService.Get("Hub.dlss.Title"));
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_ProgressText"), "Loading.Progress", 10);
+                    loading.SetProgress(0.7f, "重新运行场景", "正在重新加载 DLSS", stepKey: "Loading.ReloadScene",
+                        descriptionKey: "Loading.ReloadingScene", args: new object[] { LanguageService.Get("Hub.dlss.Title") });
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.ReloadingScene", LanguageService.Get("Hub.dlss.Title"));
+                    loading.SetProgress(0.2f, "加载完成", "", stepKey: "Loading.Complete");
+                    Assert.That(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description").text, Is.Empty);
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_ProgressText"), "Loading.Progress", 70);
+
+                    ExpectEntryFailure(GameSceneId.Dlss);
+                    runtime.FailEntry();
+                    await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
+                    var menu = UIManager.Instance.Get<MainMenuView>();
+                    var feedback = Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Status");
+                    Assert.That(GlobalData.Get<MainMenuData>().FeedbackKey, Is.EqualTo("Hub.EntryFailed"));
+                    Assert.That(GlobalData.Get<MainMenuData>().Feedback, Is.Null);
+                    AssertMappedText(feedback, "Hub.EntryFailed");
+                    GlobalData.Dispatch(new MainMenuFeedbackAction("Loader diagnostic: asset missing"));
+                    Assert.That(GlobalData.Get<MainMenuData>().FeedbackKey, Is.Null);
+                    Assert.That(feedback.text, Is.EqualTo("Loader diagnostic: asset missing"));
+                    GlobalData.Dispatch(new MainMenuFeedbackAction(null));
+                    Assert.That(GlobalData.Get<MainMenuData>().Feedback, Is.Null);
+                    AssertMappedText(feedback, "Hub.Ready");
+                }
+            }
+            finally
+            {
+                if (runtime.HasPendingEntry)
+                {
+                    ExpectEntryFailure(GameSceneId.Dlss);
+                    runtime.FailEntry();
+                    await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
+                }
+
+                await HubLanguageFlow.ApplyAsync(previous, reopen);
+            }
+        }
+
+        private static void AssertMappedText(TMPro.TMP_Text target, string key, params object[] args)
+        {
+            Assert.That(target.text, Is.EqualTo(args.Length == 0 ? LanguageService.Get(key) : LanguageService.Format(key, args)));
+            var config = UnityEditor.AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
+            Assert.That(config, Is.Not.Null);
+            int fontId = -1;
+            foreach (var entry in config.Language.Entries)
+            {
+                if (entry.Key == key)
+                {
+                    fontId = entry.FontId;
+                    break;
+                }
+            }
+
+            Assert.That(fontId, Is.GreaterThanOrEqualTo(0), "正式词表必须包含测试文案键");
+            foreach (var mapping in config.Fonts.Entries)
+            {
+                if (mapping.FontId == fontId && mapping.Language == LanguageService.CurrentLanguage)
+                {
+                    Assert.That(target.font, Is.SameAs(mapping.Font));
+                    Assert.That(target.fontSharedMaterial, Is.SameAs(mapping.Material));
+                    return;
+                }
+            }
+
+            Assert.Fail("词条缺少当前语言字体映射：" + key);
+        }
+
+        [UnityTest, Timeout(180000)]
         public IEnumerator HubLanguageRebuildPreservesSelectionAndRecoversAfterReopenFailure()
         {
             yield return PrepareHub();
@@ -104,7 +212,7 @@ namespace Tests.Module
             var restoredMenu = UIManager.Instance.Get<MainMenuView>();
             Assert.That(restoredMenu, Is.Not.SameAs(firstMenu));
             var feedback = Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Status");
-            Assert.That(feedback.text, Does.Contain("进入失败"));
+            Assert.That(feedback.text, Is.EqualTo(LanguageService.Get("Hub.EntryFailed")));
             var feedbackSize = feedback.GetPreferredValues();
             Assert.That(feedbackSize.x, Is.LessThanOrEqualTo(feedback.rectTransform.rect.width), "失败提示应在已有控件内完整显示。");
             Assert.That(feedbackSize.y, Is.LessThanOrEqualTo(feedback.rectTransform.rect.height), "失败提示不能溢出遮住入口。");
@@ -113,7 +221,7 @@ namespace Tests.Module
 
             // 新实例需要经过帧末 Canvas 注册/布局；随后仍验证真实射线并通过 InputSystem 点击。
             yield return null; yield return null;
-            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo("DLSS 实验室"), "失败恢复应保留待重试玩法。");
+            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo(LanguageService.Get("Hub.dlss.Title")), "失败恢复应保留待重试玩法。");
             yield return Click(ButtonPosition(Field<Button>(restoredMenu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 2, "新 Hub 可以实际点击重试", 15);
             LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 Dlss：测试场景加载失败"));
@@ -439,7 +547,7 @@ namespace Tests.Module
 
         private static IEnumerator WaitForInitialSelection(MainMenuView menu) => Wait(() =>
             EventSystem.current.sendNavigationEvents && EventSystem.current.currentSelectedGameObject ==
-                (Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Status").text.Contains("进入失败")
+                (!string.IsNullOrEmpty(GlobalData.Get<MainMenuData>().FeedbackKey) || !string.IsNullOrEmpty(GlobalData.Get<MainMenuData>().Feedback)
                     ? Field<Button>(menu, "Button_Start").gameObject : CardForScene(menu, GameSceneId.DroneFlight).gameObject),
             "公共输入恢复 Hub 默认焦点", 5);
 

@@ -1,6 +1,8 @@
 namespace Hotfix
 {
     using Core.Runtime;
+    using Core.Runtime.Localization;
+    using TMPro;
     using UnityEngine;
 
     [Module("Common")]
@@ -19,12 +21,13 @@ namespace Hotfix
         /// <summary>
         /// 设置加载标题。
         /// </summary>
-        /// <param name="title">为空时显示空字符串。</param>
-        public void SetTitle(string title)
+        /// <param name="title">语言尚未就绪或未指定键时使用的原文；为空时清空。</param>
+        /// <param name="titleKey">明确的文案键；语言就绪后一次性应用词条 FontId 与材质。</param>
+        public void SetTitle(string title, string titleKey = null)
         {
             if (TextMeshProUGUI_Title != null)
             {
-                TextMeshProUGUI_Title.text = title ?? string.Empty;
+                SetLoadingText(TextMeshProUGUI_Title, title, titleKey);
             }
         }
 
@@ -35,7 +38,11 @@ namespace Hotfix
         /// <param name="step">当前加载步骤。</param>
         /// <param name="description">步骤补充说明；为空时清空。</param>
         /// <param name="size">可用的真实大小信息；为空时隐藏大小文本。</param>
-        public void SetProgress(float progress, string step, string description = null, string size = null)
+        /// <param name="stepKey">明确的步骤文案键；为空或语言未就绪时显示 step 原文。</param>
+        /// <param name="descriptionKey">完整描述句式键；为空或语言未就绪时显示 description 原文。</param>
+        /// <param name="args">描述句式参数；步骤文案不使用这些参数。</param>
+        public void SetProgress(float progress, string step, string description = null, string size = null,
+            string stepKey = null, string descriptionKey = null, params object[] args)
         {
             currentProgress = Mathf.Max(currentProgress, Mathf.Clamp01(progress));
             if (Image_ProgressFill != null)
@@ -45,17 +52,18 @@ namespace Hotfix
 
             if (TextMeshProUGUI_ProgressText != null)
             {
-                TextMeshProUGUI_ProgressText.text = $"{Mathf.RoundToInt(currentProgress * 100f)}%";
+                int percent = Mathf.RoundToInt(currentProgress * 100f);
+                SetLoadingText(TextMeshProUGUI_ProgressText, $"{percent}%", "Loading.Progress", percent);
             }
 
             if (TextMeshProUGUI_Step != null)
             {
-                TextMeshProUGUI_Step.text = step ?? string.Empty;
+                SetLoadingText(TextMeshProUGUI_Step, step, stepKey);
             }
 
             if (TextMeshProUGUI_Description != null)
             {
-                TextMeshProUGUI_Description.text = description ?? string.Empty;
+                SetLoadingText(TextMeshProUGUI_Description, description, descriptionKey, args);
             }
 
             if (TextMeshProUGUI_SizeText != null)
@@ -77,13 +85,25 @@ namespace Hotfix
 
             if (TextMeshProUGUI_ProgressText != null)
             {
-                TextMeshProUGUI_ProgressText.text = "0%";
+                SetLoadingText(TextMeshProUGUI_ProgressText, "0%", "Loading.Progress", 0);
             }
 
             if (TextMeshProUGUI_SizeText != null)
             {
                 TextMeshProUGUI_SizeText.text = string.Empty;
                 TextMeshProUGUI_SizeText.gameObject.SetActive(false);
+            }
+        }
+
+        private static void SetLoadingText(TMP_Text target, string fallback, string key, params object[] args)
+        {
+            if (LanguageService.IsInitialized && !string.IsNullOrWhiteSpace(key))
+            {
+                LanguageService.SetText(target, key, null, args);
+            }
+            else
+            {
+                target.text = fallback ?? string.Empty;
             }
         }
     }

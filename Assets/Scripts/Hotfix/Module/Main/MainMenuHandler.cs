@@ -33,6 +33,7 @@ namespace Hotfix
                     break;
                 case MainMenuFeedbackAction feedback:
                     State.Feedback = feedback.Message;
+                    State.FeedbackKey = null;
                     RefreshAvailability(GameSceneNavigator.Instance?.IsTransitioning == true);
                     break;
             }
@@ -57,7 +58,8 @@ namespace Hotfix
                 return;
             if (navigator == null)
             {
-                State.Feedback = "入口未就绪，请稍后重试";
+                State.Feedback = null;
+                State.FeedbackKey = "Hub.EntryNotReady";
                 ApplyState();
                 return;
             }
@@ -65,6 +67,7 @@ namespace Hotfix
             int version = ++State.Version;
             State.IsEntering = true;
             State.Feedback = null;
+            State.FeedbackKey = null;
             RefreshAvailability(true);
             ApplyState();
             try
@@ -75,7 +78,8 @@ namespace Hotfix
                     return;
                 if (result.Status == GameSceneSwitchStatus.Failed)
                 {
-                    State.Feedback = "进入失败，请重试";
+                    State.Feedback = null;
+                    State.FeedbackKey = "Hub.EntryFailed";
                     Debug.LogError($"[MainMenu] 无法进入 {target}：{result.Error}");
                 }
                 else if (result.Status == GameSceneSwitchStatus.Succeeded)
@@ -90,7 +94,8 @@ namespace Hotfix
             {
                 if (!ReferenceEquals(GlobalData.Get<MainMenuData>(), State) || State.Version != version)
                     return;
-                State.Feedback = "进入失败，请重试";
+                State.Feedback = null;
+                State.FeedbackKey = "Hub.EntryFailed";
                 Debug.LogError($"[MainMenu] 无法进入 {target}：{error}");
             }
             finally

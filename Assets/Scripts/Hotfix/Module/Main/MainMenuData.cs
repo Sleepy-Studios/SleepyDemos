@@ -27,6 +27,9 @@ namespace Hotfix
         /// 当前用户可见反馈；null 表示无反馈。
         public string Feedback { get; internal set; }
 
+        /// 常规入口反馈的稳定文案键；与任意诊断文本 Feedback 互斥。
+        public string FeedbackKey { get; internal set; }
+
         internal int Version;
 
         public MainMenuData()
@@ -47,6 +50,7 @@ namespace Hotfix
             SelectedIndex = 0;
             IsEntering = CanEnter = false;
             Feedback = null;
+            FeedbackKey = null;
             for (int i = 0; i < Entries.Count; i++)
             {
                 Entries[i].IsSelected = i == 0;

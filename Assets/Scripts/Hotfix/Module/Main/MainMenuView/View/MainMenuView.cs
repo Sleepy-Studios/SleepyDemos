@@ -19,7 +19,7 @@ namespace Hotfix
         private MainMenuData data;
         private List<MainMenuDemoEntry> entries;
         private bool lastCanEnter;
-        private string entryFeedback => data.Feedback;
+        private string entryFeedback => data.FeedbackKey ?? data.Feedback;
         private MenuInputScope menuInput;
         private LoopScrollMenuNavigation navigation;
         private int selectedIndex => data.SelectedIndex;
@@ -147,6 +147,10 @@ namespace Hotfix
             if (string.IsNullOrEmpty(entryFeedback))
             {
                 LanguageService.SetText(TextMeshProUGUI_Status, lastCanEnter ? "Hub.Ready" : "Hub.Preparing");
+            }
+            else if (!string.IsNullOrEmpty(data.FeedbackKey))
+            {
+                LanguageService.SetText(TextMeshProUGUI_Status, data.FeedbackKey);
             }
             else
             {

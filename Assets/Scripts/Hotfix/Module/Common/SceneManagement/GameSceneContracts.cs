@@ -53,15 +53,17 @@ namespace Hotfix.SceneManagement
 
     internal readonly struct GameSceneDefinition
     {
-        internal GameSceneDefinition(GameSceneId id, string displayName, string address)
+        internal GameSceneDefinition(GameSceneId id, string displayName, string displayNameKey, string address)
         {
             Id = id;
             DisplayName = displayName;
+            DisplayNameKey = displayNameKey;
             Address = address;
         }
 
         internal GameSceneId Id { get; }
         internal string DisplayName { get; }
+        internal string DisplayNameKey { get; }
         internal string Address { get; }
         internal bool IsHub => Id == GameSceneId.Hub;
     }
@@ -95,22 +97,23 @@ namespace Hotfix.SceneManagement
             switch (sceneId)
             {
                 case GameSceneId.Hub:
-                    definition = new GameSceneDefinition(GameSceneId.Hub, "主界面", null);
+                    definition = new GameSceneDefinition(GameSceneId.Hub, "主界面", "Scene.Hub", null);
                     return true;
                 case GameSceneId.DroneFlight:
                     definition = new GameSceneDefinition(
                         GameSceneId.DroneFlight,
                         "无人机飞行",
+                        "Hub.drone_flight.Title",
                         DroneFlightAddress);
                     return true;
                 case GameSceneId.Dlss:
-                    definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", DlssAddress);
+                    definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", "Hub.dlss.Title", DlssAddress);
                     return true;
                 case GameSceneId.WallSqueeze:
-                    definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", WallSqueezeAddress);
+                    definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", "Hub.wall_squeeze.Title", WallSqueezeAddress);
                     return true;
                 case GameSceneId.KagitKart:
-                    definition = new GameSceneDefinition(GameSceneId.KagitKart, "纸艺卡丁车", KagitKartAddress);
+                    definition = new GameSceneDefinition(GameSceneId.KagitKart, "纸艺卡丁车", "Hub.kagit_kart.Title", KagitKartAddress);
                     return true;
                 default:
                     definition = default;

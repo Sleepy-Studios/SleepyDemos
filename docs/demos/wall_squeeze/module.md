@@ -32,7 +32,7 @@ Hub 卡片通过 `MainMenuData` 登记，`GameSceneCatalog` 将 `GameSceneId.Wal
 
 HUD 保存黑框头尾分格：标题、剩余、保护、关卡与限时；底部怪物轮廓/夹法图例、当前设备提示、重来。规则倒计时按整秒更新 Data，群夹数量短时回显，不增加计分与成长系统。相机留出头尾 HUD 空间；所有图形节点在公共 UI Camera 可见层。
 
-世界 Prefab、Scene、HUD / Modal Prefab、Data/PlayerInput.asset 和关卡资产是正式真源；一次性装配工具在完成保存与验证后删除。当前保存的 HUD 仍引用原静态 TMP 字体 `Data/InterfaceFont.asset`，公共字体迁移尚待资源装配；后续按[公共字体规范](../../architecture/localization-fonts.md)维护，不再新增 Demo 补字字体。
+世界 Prefab、Scene、HUD / Modal Prefab、Data/PlayerInput.asset 和关卡资产是正式真源；一次性装配工具在完成保存与验证后删除。HUD 与菜单共17个TMP已迁移公共 `HarmonyOS_CN` 字体及配套材质，字号、字重、布局和Prefab GUID保持；“援、撤、缝”合并公共字符集后更新原公共资产。旧 `Data/InterfaceFont.asset` 已无生产引用，待清理；后续按[公共字体规范](../../architecture/localization-fonts.md)维护，不再新增 Demo 补字字体。
 
 ## 公共设置、输入与时间
 

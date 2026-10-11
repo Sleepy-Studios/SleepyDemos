@@ -458,3 +458,71 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u73A9\u6CD5\u5B9E\u9A8C\u5BA4"
     english: DEMO LAB
+  - key: Loading.Title
+    fontId: 0
+    chinese: "\u6B63\u5728\u52A0\u8F7D"
+    english: Loading
+  - key: Loading.Prepare
+    fontId: 0
+    chinese: "\u51C6\u5907\u5207\u6362"
+    english: Preparing transition
+  - key: Loading.Enter
+    fontId: 0
+    chinese: "\u5373\u5C06\u8FDB\u5165{0}"
+    english: Entering {0}
+  - key: Loading.LoadScene
+    fontId: 0
+    chinese: "\u52A0\u8F7D\u573A\u666F"
+    english: Loading scene
+  - key: Loading.LoadingScene
+    fontId: 0
+    chinese: "\u6B63\u5728\u52A0\u8F7D{0}"
+    english: Loading {0}
+  - key: Loading.UnloadScene
+    fontId: 0
+    chinese: "\u5378\u8F7D\u573A\u666F"
+    english: Unloading scene
+  - key: Loading.ReturnHub
+    fontId: 0
+    chinese: "\u6B63\u5728\u8FD4\u56DE\u4E3B\u754C\u9762"
+    english: Returning to the main menu
+  - key: Loading.SwitchScene
+    fontId: 0
+    chinese: "\u5207\u6362\u573A\u666F"
+    english: Switching scene
+  - key: Loading.Initialize
+    fontId: 0
+    chinese: "\u6B63\u5728\u5B8C\u6210\u573A\u666F\u521D\u59CB\u5316"
+    english: Finishing scene initialization
+  - key: Loading.ReloadScene
+    fontId: 0
+    chinese: "\u91CD\u65B0\u8FD0\u884C\u573A\u666F"
+    english: Restarting scene
+  - key: Loading.UnloadingScene
+    fontId: 0
+    chinese: "\u6B63\u5728\u5378\u8F7D{0}"
+    english: Unloading {0}
+  - key: Loading.ReloadingScene
+    fontId: 0
+    chinese: "\u6B63\u5728\u91CD\u65B0\u52A0\u8F7D{0}"
+    english: Reloading {0}
+  - key: Loading.Complete
+    fontId: 0
+    chinese: "\u52A0\u8F7D\u5B8C\u6210"
+    english: Loading complete
+  - key: Loading.Progress
+    fontId: 0
+    chinese: '{0}%'
+    english: '{0}%'
+  - key: Scene.Hub
+    fontId: 0
+    chinese: "\u4E3B\u754C\u9762"
+    english: Main menu
+  - key: Hub.EntryNotReady
+    fontId: 0
+    chinese: "\u5165\u53E3\u672A\u5C31\u7EEA\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5"
+    english: The entry is not ready. Please try again shortly.
+  - key: Hub.EntryFailed
+    fontId: 0
+    chinese: "\u8FDB\u5165\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5"
+    english: Unable to enter. Please try again.

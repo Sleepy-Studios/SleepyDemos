@@ -1,15 +1,75 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
+using Core.Runtime;
+using Core.Runtime.Localization;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
+using TMPro;
+using UnityEngine;
 
 namespace Tests.Module
 {
     public sealed class GameSceneNavigatorTests
     {
+        [Test]
+        public void LoadingBeforeLanguageInitializationPreservesRawTextAndMonotonicProgress()
+        {
+            var textState = typeof(LanguageService).GetField("texts", BindingFlags.NonPublic | BindingFlags.Static);
+            var previousTexts = textState.GetValue(null);
+            var owner = new GameObject("Raw loading before language", typeof(RectTransform));
+            var view = new CommonLoadingView();
+            var title = CreateLoadingText("Title", "TextMeshProUGUI_Title", owner.transform, view);
+            var step = CreateLoadingText("Step", "TextMeshProUGUI_Step", owner.transform, view);
+            var description = CreateLoadingText("Description", "TextMeshProUGUI_Description", owner.transform, view);
+            var percent = CreateLoadingText("Percent", "TextMeshProUGUI_ProgressText", owner.transform, view);
+            try
+            {
+                textState.SetValue(null, null);
+                view.SetTitle("正在加载", "Loading.Title");
+                view.SetProgress(0.6f, "加载场景", "原始描述", stepKey: "Loading.LoadScene", descriptionKey: "Loading.LoadingScene", args: new object[] { "demo" });
+                view.SetProgress(0.2f, "切换场景", "", stepKey: "Loading.SwitchScene");
+                Assert.That(title.text, Is.EqualTo("正在加载"));
+                Assert.That(step.text, Is.EqualTo("切换场景"));
+                Assert.That(description.text, Is.Empty);
+                Assert.That(percent.text, Is.EqualTo("60%"));
+                view.ResetProgress();
+                Assert.That(percent.text, Is.EqualTo("0%"));
+            }
+            finally
+            {
+                textState.SetValue(null, previousTexts);
+                UnityEngine.Object.DestroyImmediate(owner);
+            }
+        }
+
+        [Test]
+        public void MainMenuDiagnosticFeedbackClearsKeyAndResetClearsBothChannels()
+        {
+            var data = new MainMenuData { FeedbackKey = "Hub.EntryFailed" };
+            var handler = new MainMenuHandler();
+            handler.Init(data);
+            handler.ReduceAny(new MainMenuFeedbackAction("Loader diagnostic: asset missing"));
+            Assert.That(data.Feedback, Is.EqualTo("Loader diagnostic: asset missing"));
+            Assert.That(data.FeedbackKey, Is.Null);
+            data.FeedbackKey = "Hub.EntryNotReady";
+            data.ClearData();
+            Assert.That(data.Feedback, Is.Null);
+            Assert.That(data.FeedbackKey, Is.Null);
+        }
+
+        private static TextMeshProUGUI CreateLoadingText(string name, string field, Transform parent, CommonLoadingView view)
+        {
+            var owner = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+            owner.transform.SetParent(parent, false);
+            var text = owner.GetComponent<TextMeshProUGUI>();
+            typeof(CommonLoadingView).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(view, text);
+            return text;
+        }
+
         [Test]
         public void Catalog_DirectEntryResolvesAllRegisteredDemoPaths()
         {
@@ -41,6 +101,8 @@ namespace Tests.Module
             Assert.That(hub.Address, Is.Null);
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.DroneFlight, out var demo), Is.True);
             Assert.That(demo.Address, Is.EqualTo(GameSceneCatalog.DroneFlightAddress));
+            Assert.That(demo.DisplayNameKey, Is.EqualTo("Hub.drone_flight.Title"));
+            Assert.That(hub.DisplayNameKey, Is.EqualTo("Scene.Hub"));
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.Dlss, out var dlss), Is.True);
             Assert.That(dlss.Address, Is.EqualTo(GameSceneCatalog.DlssAddress));
             Assert.That(dlss.IsHub, Is.False);
@@ -91,6 +153,12 @@ namespace Tests.Module
             var result = await navigator.SwitchAsync(GameSceneId.DroneFlight);
 
             Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            Assert.That(presenter.StepKeys, Does.Contain("Loading.LoadScene"));
+            Assert.That(presenter.DescriptionKeys, Does.Contain("Loading.LoadingScene"));
+            Assert.That(presenter.DescriptionKeys, Does.Contain("Loading.Initialize"));
+            Assert.That(GameSceneCatalog.TryGet(GameSceneId.DroneFlight, out var definition), Is.True);
+            string name = LanguageService.IsInitialized ? LanguageService.Get(definition.DisplayNameKey) : definition.DisplayName;
+            Assert.That(presenter.DescriptionArguments[0], Is.EqualTo(new object[] { name }));
             for (var index = 1; index < presenter.ProgressValues.Count; index++)
             {
                 Assert.That(
@@ -116,10 +184,14 @@ namespace Tests.Module
             Assert.That(completed.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
         }
 
-        [Test]
-        public async Task ReloadCurrentAsync_Demo_UnloadsAndLoadsSameSceneAgain()
+        [TestCase(true)]
+        [TestCase(false)]
+        public async Task ReloadCurrentAsync_Demo_UnloadsAndLoadsSameSceneAgain(bool reportsLoadProgress)
         {
-            var runtime = new FakeSceneRuntime();
+            var runtime = new FakeSceneRuntime
+            {
+                ProgressValues = reportsLoadProgress ? new[] { 0f, 1f } : Array.Empty<float>()
+            };
             var presenter = new FakeLoadingPresenter();
             var navigator = new GameSceneNavigator(runtime, presenter);
             await navigator.SwitchAsync(GameSceneId.DroneFlight);
@@ -131,6 +203,13 @@ namespace Tests.Module
             Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.DroneFlight));
             Assert.That(runtime.ReturnCount, Is.EqualTo(1));
             Assert.That(runtime.LoadCount, Is.EqualTo(loadCountBeforeReload + 1));
+            Assert.That(presenter.StepKeys, Does.Contain("Loading.ReloadScene"));
+            Assert.That(presenter.DescriptionKeys, Does.Contain("Loading.UnloadingScene"));
+            Assert.That(presenter.DescriptionKeys, Does.Contain("Loading.ReloadingScene"));
+
+            await navigator.SwitchAsync(GameSceneId.Hub);
+            Assert.That(presenter.StepKeys, Does.Contain("Loading.UnloadScene"));
+            Assert.That(presenter.DescriptionKeys, Does.Contain("Loading.ReturnHub"));
         }
 
         [Test]
@@ -180,6 +259,9 @@ namespace Tests.Module
             internal int BeginCount { get; private set; }
             internal GameSceneId? RestoredScene { get; private set; }
             internal List<float> ProgressValues { get; } = new List<float>();
+            internal List<string> StepKeys { get; } = new();
+            internal List<string> DescriptionKeys { get; } = new();
+            internal List<object[]> DescriptionArguments { get; } = new();
 
             public UniTask<string> BeginAsync(GameSceneDefinition target)
             {
@@ -187,9 +269,12 @@ namespace Tests.Module
                 return UniTask.FromResult<string>(null);
             }
 
-            public void SetProgress(float progress, string step, string description)
+            public void SetProgress(float progress, string step, string description, string stepKey, string descriptionKey, params object[] args)
             {
                 ProgressValues.Add(progress);
+                StepKeys.Add(stepKey);
+                DescriptionKeys.Add(descriptionKey);
+                DescriptionArguments.Add((object[])args.Clone());
             }
 
             public UniTask<string> CompleteAsync(GameSceneId target)

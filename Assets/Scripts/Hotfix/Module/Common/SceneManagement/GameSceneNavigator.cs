@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Core.Runtime;
+using Core.Runtime.Localization;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
@@ -119,14 +120,15 @@ namespace Hotfix.SceneManagement
                     return GameSceneSwitchResult.Failed(target, uiError);
                 }
 
-                loadingPresenter.SetProgress(0.1f, "加载场景", $"正在加载{definition.DisplayName}");
+                string name = LanguageService.IsInitialized ? LanguageService.Get(definition.DisplayNameKey) : definition.DisplayName;
+                loadingPresenter.SetProgress(0.1f, "加载场景", $"正在加载{definition.DisplayName}", "Loading.LoadScene", "Loading.LoadingScene", name);
                 var displayedProgress = 0.1f;
-                void ReportRuntimeProgress(float progress, string step, string description)
+                void ReportRuntimeProgress(float progress, string step, string description, string stepKey, string descriptionKey, params object[] args)
                 {
                     displayedProgress = Mathf.Max(
                         displayedProgress,
                         Mathf.Lerp(0.1f, 0.9f, Mathf.Clamp01(progress)));
-                    loadingPresenter.SetProgress(displayedProgress, step, description);
+                    loadingPresenter.SetProgress(displayedProgress, step, description, stepKey, descriptionKey, args);
                 }
 
                 var runtimeResult = definition.IsHub
@@ -134,12 +136,12 @@ namespace Hotfix.SceneManagement
                         ReportRuntimeProgress(
                             progress,
                             "卸载场景",
-                            "正在返回主界面"))
+                            "正在返回主界面", "Loading.UnloadScene", "Loading.ReturnHub"))
                     : await runtime.LoadAsync(definition.Address, progress =>
                         ReportRuntimeProgress(
                             progress,
                             "加载场景",
-                            $"正在加载{definition.DisplayName}"));
+                            $"正在加载{definition.DisplayName}", "Loading.LoadScene", "Loading.LoadingScene", name));
                 if (!runtimeResult.Succeeded)
                 {
                     await loadingPresenter.RestoreAsync(source);
@@ -147,7 +149,7 @@ namespace Hotfix.SceneManagement
                 }
 
                 CurrentScene = target;
-                loadingPresenter.SetProgress(0.95f, "切换场景", "正在完成场景初始化");
+                loadingPresenter.SetProgress(0.95f, "切换场景", "正在完成场景初始化", "Loading.SwitchScene", "Loading.Initialize");
                 uiError = await loadingPresenter.CompleteAsync(target);
                 if (!string.IsNullOrEmpty(uiError))
                 {
@@ -200,19 +202,21 @@ namespace Hotfix.SceneManagement
                 }
 
                 var displayedProgress = 0.1f;
-                void ReportProgress(float progress, float from, float to, string step, string description)
+                string name = LanguageService.IsInitialized ? LanguageService.Get(definition.DisplayNameKey) : definition.DisplayName;
+                void ReportProgress(float progress, float from, float to, string step, string description, string stepKey, string descriptionKey, params object[] args)
                 {
                     displayedProgress = Mathf.Max(
                         displayedProgress,
                         Mathf.Lerp(from, to, Mathf.Clamp01(progress)));
-                    loadingPresenter.SetProgress(displayedProgress, step, description);
+                    loadingPresenter.SetProgress(displayedProgress, step, description, stepKey, descriptionKey, args);
                 }
 
-                loadingPresenter.SetProgress(0.1f, "重新运行场景", $"正在卸载{definition.DisplayName}");
+                loadingPresenter.SetProgress(0.1f, "重新运行场景", $"正在卸载{definition.DisplayName}", "Loading.ReloadScene", "Loading.UnloadingScene", name);
                 if (runtime is IEditorDirectGameSceneRuntime editorDirectRuntime)
                 {
+                    ReportProgress(0, 0.1f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name);
                     var directResult = await editorDirectRuntime.ReloadAsync(definition.Address, progress =>
-                        ReportProgress(progress, 0.1f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}"));
+                        ReportProgress(progress, 0.1f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name));
                     if (!directResult.Succeeded)
                     {
                         await loadingPresenter.RestoreAsync(target);
@@ -222,7 +226,7 @@ namespace Hotfix.SceneManagement
                 else
                 {
                     var unloadResult = await runtime.ReturnToHubAsync(progress =>
-                        ReportProgress(progress, 0.1f, 0.45f, "重新运行场景", $"正在卸载{definition.DisplayName}"));
+                        ReportProgress(progress, 0.1f, 0.45f, "重新运行场景", $"正在卸载{definition.DisplayName}", "Loading.ReloadScene", "Loading.UnloadingScene", name));
                     if (!unloadResult.Succeeded)
                     {
                         await loadingPresenter.RestoreAsync(target);
@@ -230,8 +234,9 @@ namespace Hotfix.SceneManagement
                     }
 
                     CurrentScene = GameSceneId.Hub;
+                    ReportProgress(0, 0.45f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name);
                     var loadResult = await runtime.LoadAsync(definition.Address, progress =>
-                        ReportProgress(progress, 0.45f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}"));
+                        ReportProgress(progress, 0.45f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name));
                     if (!loadResult.Succeeded)
                     {
                         await loadingPresenter.RestoreAsync(GameSceneId.Hub);
@@ -240,7 +245,7 @@ namespace Hotfix.SceneManagement
                 }
 
                 CurrentScene = target;
-                loadingPresenter.SetProgress(0.95f, "重新运行场景", "正在完成场景初始化");
+                loadingPresenter.SetProgress(0.95f, "重新运行场景", "正在完成场景初始化", "Loading.ReloadScene", "Loading.Initialize");
                 uiError = await loadingPresenter.CompleteAsync(target);
                 return string.IsNullOrEmpty(uiError)
                     ? GameSceneSwitchResult.Succeeded(target)
