@@ -61,13 +61,13 @@ namespace Core.Runtime.Rendering
 
             RestoreStack();
             RenderPipelineManager.endCameraRendering -= OnCameraRendered;
+            ClearScopes();
+            SetBasePreset(null);
             if (camera != null)
             {
                 camera.GetUniversalAdditionalCameraData().renderPostProcessing = authoredPostProcessing;
             }
 
-            ClearScopes();
-            SetBasePreset(null);
             camera = worldCamera;
             if (camera != null)
             {
@@ -164,7 +164,9 @@ namespace Core.Runtime.Rendering
                     ApplyScope(stack, scope);
                 }
 
-                var allowed = graphics.AllowedEffects;
+                bool nativeAaOnly = !authoredPostProcessing && basePreset == null && Scopes.Count == 0
+                    && Mathf.Approximately(graphics.Brightness, 1) && DisplaySettingsRuntime.RequiresPostProcessingAntialiasing;
+                var allowed = nativeAaOnly ? PostProcessEffects.None : graphics.AllowedEffects;
                 if ((allowed & PostProcessEffects.ColorGrading) == 0)
                 {
                     foreach (var type in GradingTypes)
@@ -179,7 +181,7 @@ namespace Core.Runtime.Rendering
                 Filter<ChromaticAberration>(stack, allowed, PostProcessEffects.ChromaticAberration, reducedMotion);
                 Filter<LensDistortion>(stack, allowed, PostProcessEffects.LensDistortion, reducedMotion);
                 Filter<FilmGrain>(stack, allowed, PostProcessEffects.FilmGrain, reducedMotion);
-                if (reducedMotion)
+                if (reducedMotion || nativeAaOnly)
                 {
                     ResetComponent(stack, typeof(MotionBlur));
                 }
@@ -288,12 +290,13 @@ namespace Core.Runtime.Rendering
             }
         }
 
-        private static void RefreshCamera()
+        internal static void RefreshCamera()
         {
             if (camera != null)
             {
                 camera.GetUniversalAdditionalCameraData().renderPostProcessing = authoredPostProcessing
                     || basePreset != null || Scopes.Count > 0 || !Mathf.Approximately(graphics.Brightness, 1)
+                    || DisplaySettingsRuntime.RequiresPostProcessingAntialiasing
                     || StreamlineRuntime.ActiveSession != null && StreamlineRuntime.BoundCamera == camera;
             }
         }

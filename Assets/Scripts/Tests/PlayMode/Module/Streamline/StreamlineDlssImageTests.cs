@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using Cysharp.Threading.Tasks;
 using Core.Runtime.Rendering.Streamline;
+using Core.Runtime.Settings;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -28,6 +29,20 @@ namespace Tests.Module
             public string state;
             public string stage;
             public uint viewport;
+        }
+
+        [Serializable]
+        private sealed class CapabilityReport
+        {
+            public string state;
+            public bool deviceAvailable;
+            public FeatureSupport[] features;
+        }
+
+        [Serializable]
+        private sealed class FeatureSupport
+        {
+            public int supportResult;
         }
 
         [Serializable]
@@ -118,24 +133,64 @@ namespace Tests.Module
         [UnityTest, Timeout(120000)]
         public IEnumerator SharedCameraOutputHasDepthAndPresentsWorldAndUi()
         {
+            yield return SharedCameraOutputAndManualAntialiasingAsync().ToCoroutine();
+        }
+
+        private async UniTask SharedCameraOutputAndManualAntialiasingAsync()
+        {
             if (!SupportsValidationBackend)
             {
                 Assert.Ignore("Windows Editor DX12/Vulkan required.");
             }
 
-            var savedMode = StreamlineRuntime.IsInitialized ? StreamlineRuntime.RequestedMode : StreamlineRuntime.DecodePreference(Core.Runtime.Settings.GameSettingsService.Current.Graphics.DlssMode);
-            StreamlineRuntime.Initialize();
-            StreamlineRuntime.ApplyModeAsync(null).Forget();
-            while (StreamlineRuntime.IsBusy)
+            GpuCompletion probe;
+            using (var commands = new CommandBuffer { name = "Shared output DLSS capability" })
             {
-                yield return null;
+                if (!StreamlineDiagnostics.TryEnqueueProbe(commands, out string reason))
+                {
+                    Assert.Ignore("DLSS SDK is unavailable: " + reason);
+                }
+
+                probe = RecordCompletion(commands);
+                Graphics.ExecuteCommandBuffer(commands);
             }
 
-            yield return null;
+            double probeDeadline = Time.realtimeSinceStartupAsDouble + 30;
+            while (!probe.IsCompleted && Time.realtimeSinceStartupAsDouble < probeDeadline)
+            {
+                await UniTask.Yield();
+            }
+
+            Assert.That(probe.IsCompleted, Is.True);
+            Assert.That(StreamlineDiagnostics.TryGetReport(out string capabilityJson, out string capabilityError), Is.True, capabilityError);
+            var capability = JsonUtility.FromJson<CapabilityReport>(capabilityJson);
+            // Bridge.Probe 的第一项明确为 kFeatureDLSS；实际 SDK 能力决定跳过，不能用厂商名称猜测。
+            if (!capability.deviceAvailable || capability.features == null || capability.features.Length == 0 || capability.features[0].supportResult != 0)
+            {
+                Assert.Ignore("The active graphics device has no usable DLSS SDK support: " + capabilityJson);
+            }
+
+            var savedMode = StreamlineRuntime.IsInitialized ? StreamlineRuntime.RequestedMode : StreamlineRuntime.DecodePreference(Core.Runtime.Settings.GameSettingsService.Current.Graphics.DlssMode);
+            var savedDisplay = DisplaySettingsRuntime.Capture();
+            var config = AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
+            Assert.That(config, Is.Not.Null);
+            StreamlineRuntime.Initialize();
+            await StreamlineRuntime.ApplyModeAsync(null);
+            while (StreamlineRuntime.IsBusy)
+            {
+                await UniTask.Yield();
+            }
+
+            await UniTask.Yield();
             var previousCamera = StreamlineRuntime.BoundCamera;
             var previousStack = previousCamera != null ? previousCamera.GetUniversalAdditionalCameraData().cameraStack : null;
             var previousUi = previousStack?.Count == 1 ? previousStack[0] : null;
             var existingCameras = Camera.allCameras;
+            var enabledCameras = new Dictionary<Camera, bool>();
+            foreach (var existing in existingCameras)
+            {
+                enabledCameras.Add(existing, existing.enabled);
+            }
             var previousPipeline = GraphicsSettings.defaultRenderPipeline;
             var previousQualityPipeline = QualitySettings.renderPipeline;
             var worldObject = new GameObject("Streamline shared world", typeof(Camera));
@@ -188,14 +243,14 @@ namespace Tests.Module
                 foreach (var mode in new StreamlineDlssMode?[] { null, StreamlineDlssMode.Quality, null })
                 {
                     bool applied = false;
-                    yield return session.ApplyAsync(mode, size).ToCoroutine(result => applied = result);
+                    applied = await session.ApplyAsync(mode, size);
                     Assert.IsTrue(applied, session.Error);
                     Assert.That(world.targetTexture, Is.Not.Null);
                     Assert.That(world.targetTexture.depthStencilFormat, Is.Not.EqualTo(GraphicsFormat.None));
                     double deadline = Time.realtimeSinceStartupAsDouble + 30;
                     while ((!session.HasRenderedFrame || (mode.HasValue && !session.HasEvaluatedFrame)) && Time.realtimeSinceStartupAsDouble < deadline)
                     {
-                        yield return null;
+                        await UniTask.Yield();
                     }
 
                     Assert.IsTrue(session.HasRenderedFrame, session.Error);
@@ -204,7 +259,7 @@ namespace Tests.Module
                         Assert.IsTrue(session.HasEvaluatedFrame, session.Error);
                     }
 
-                    yield return new WaitForEndOfFrame();
+                    await UniTask.WaitForEndOfFrame();
                     AssertWorldAndUiPresented(mode?.ToString() ?? "关闭");
                 }
 
@@ -214,15 +269,68 @@ namespace Tests.Module
                 Assert.That(world.GetUniversalAdditionalCameraData().cameraStack, Does.Contain(ui));
                 Assert.That(GraphicsSettings.defaultRenderPipeline, Is.SameAs(previousPipeline));
                 Assert.That(QualitySettings.renderPipeline, Is.SameAs(previousQualityPipeline));
-                yield return null;
-                yield return new WaitForEndOfFrame();
+                await UniTask.Yield();
+                await UniTask.WaitForEndOfFrame();
                 AssertWorldAndUiPresented("释放后恢复原相机栈");
+                session = null;
+
+                // 复用同一 world/UI/像素证据，额外覆盖公共设置入口的实际接管与原生恢复。
+                var originalAa = world.GetUniversalAdditionalCameraData().antialiasing;
+                bool originalAllowMsaa = world.allowMSAA;
+                DisplaySettingsRuntime.BindCamera(world, ui);
+                if (!DisplaySettingsRuntime.CanUseAntialiasing(GraphicsAaMode.Msaa, 2, out string msaaReason))
+                {
+                    Assert.Ignore("The active renderer/device cannot verify native MSAA: " + msaaReason);
+                }
+
+                foreach (var nativeMode in new[] { GraphicsAaMode.Fxaa, GraphicsAaMode.Msaa })
+                {
+                    var preferences = savedDisplay.Copy();
+                    preferences.Antialiasing = nativeMode;
+                    preferences.MsaaSamples = 2;
+                    foreach (var mode in new StreamlineDlssMode?[] { null, StreamlineDlssMode.Quality, StreamlineDlssMode.Dlaa, null })
+                    {
+                        preferences.DlssMode = mode.HasValue ? (int)mode.Value : 0;
+                        await DisplaySettingsRuntime.ApplyAsync(preferences, config.QualityPresets);
+                        Assert.That(DisplaySettingsRuntime.Capture().Antialiasing, Is.EqualTo(nativeMode));
+                        Assert.That(DisplaySettingsRuntime.Capture().MsaaSamples, Is.EqualTo(2));
+                        if (mode.HasValue)
+                        {
+                            Assert.That(StreamlineRuntime.EffectiveMode, Is.EqualTo(mode), StreamlineRuntime.Status);
+                            Assert.That(DisplaySettingsRuntime.IsAntialiasingManagedByUpscaler, Is.True);
+                            Assert.That(DisplaySettingsRuntime.EffectiveMsaaSamples, Is.EqualTo(1));
+                            Assert.That(world.allowMSAA, Is.False);
+                            Assert.That(world.targetTexture, Is.Not.Null);
+                            Assert.That(world.targetTexture.depthStencilFormat, Is.Not.EqualTo(GraphicsFormat.None));
+                        }
+                        else
+                        {
+                            Assert.That(StreamlineRuntime.EffectiveMode, Is.Null);
+                            Assert.That(DisplaySettingsRuntime.IsAntialiasingManagedByUpscaler, Is.False);
+                            Assert.That(DisplaySettingsRuntime.EffectiveAntialiasing, Is.EqualTo(nativeMode));
+                            Assert.That(DisplaySettingsRuntime.EffectiveMsaaSamples, Is.EqualTo(nativeMode == GraphicsAaMode.Msaa ? 2 : 1));
+                            Assert.That(world.allowMSAA, Is.EqualTo(nativeMode == GraphicsAaMode.Msaa));
+                            Assert.That(world.GetUniversalAdditionalCameraData().antialiasing, Is.EqualTo(nativeMode == GraphicsAaMode.Msaa
+                                ? AntialiasingMode.None : AntialiasingMode.FastApproximateAntialiasing));
+                            Assert.That(world.targetTexture, Is.Null);
+                            Assert.That(world.GetUniversalAdditionalCameraData().cameraStack, Does.Contain(ui));
+                        }
+
+                        await UniTask.Yield();
+                        await UniTask.WaitForEndOfFrame();
+                        AssertWorldAndUiPresented(nativeMode + "/" + (mode?.ToString() ?? "Off"));
+                    }
+                }
+
+                DisplaySettingsRuntime.BindCamera(null, null);
+                Assert.That(world.GetUniversalAdditionalCameraData().antialiasing, Is.EqualTo(originalAa));
+                Assert.That(world.allowMSAA, Is.EqualTo(originalAllowMsaa));
                 Assert.That(warnings, Is.Empty);
             }
             finally
             {
                 session?.Dispose();
-                StreamlineRuntime.DetachCamera();
+                DisplaySettingsRuntime.BindCamera(null, null);
                 Application.logMessageReceived -= onLog;
                 Object.Destroy(canvasObject);
                 Object.Destroy(markerObject);
@@ -232,21 +340,22 @@ namespace Tests.Module
                 {
                     if (existing != null)
                     {
-                        existing.enabled = true;
+                        existing.enabled = enabledCameras[existing];
                     }
                 }
 
                 if (previousCamera != null && previousUi != null)
                 {
-                    StreamlineRuntime.BindCamera(previousCamera, previousUi);
+                    DisplaySettingsRuntime.BindCamera(previousCamera, previousUi);
                 }
 
-                StreamlineRuntime.ApplyModeAsync(savedMode).Forget();
+                await DisplaySettingsRuntime.ApplyAsync(savedDisplay, config.QualityPresets);
+                await StreamlineRuntime.ApplyModeAsync(savedMode);
             }
 
             while (StreamlineRuntime.IsBusy)
             {
-                yield return null;
+                await UniTask.Yield();
             }
         }
 

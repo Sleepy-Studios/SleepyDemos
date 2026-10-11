@@ -22,6 +22,7 @@ MonoBehaviour:
       FrameLimit: -1
       Quality: 0
       Antialiasing: 0
+      MsaaSamples: 4
       DlssMode: 0
       Brightness: 1
       AllowedEffects: 127

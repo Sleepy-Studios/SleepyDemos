@@ -1,10 +1,16 @@
 # 公共设置与演出接入
 
+场景加载文案从 GameSceneNavigator 交付明确键和格式参数，不根据已有显示文字猜翻译键。CommonLoadingView 在进度更新时使用一次性文本 API，未准备语言时保留原文；启动壳 Loading 不依赖业务词表。Hub 常规失败设置 FeedbackKey，任意诊断设置 Feedback，两条通路不能同时保留。
+
 ## 设置候选
 
 在资源服务就绪后等待 `GameSettingsService.InitializeAsync()`。每次打开页面使用 `Current` 创建候选，控件编辑候选字段。应用经 SettingsApplyAction 或直接等待 ApplyAsync；检查 SettingsApplyResult，不以控件请求值替代生效状态。显示变更的确认任务要能独立于设置页存活，并尊重取消令牌。
 
 恢复分类默认值从 GetDefaults 取该分类，覆盖当前候选对应部分，随后仍须用户应用。关页丢掉候选；不能向制作 SO 写玩家数据。Demo 设置弹窗隐藏语言分类，画质快捷入口直接选择画质页。
+
+手动抗锯齿编辑 `candidate.Graphics.Antialiasing`；选 MSAA 时同时设置 `MsaaSamples`（2、4、8，默认4）。用 `DisplaySettingsRuntime.CanUseAntialiasing(mode, samples, out reason)` 查询当前档位支持情况。FXAA 等后处理抗锯齿关闭原生 MSAA；MSAA 关闭后处理抗锯齿。相机默认保留制作配置。
+
+DLSS/DLAA 实际生效后禁用手动抗锯齿控件，并展示 `IsAntialiasingManagedByUpscaler`；等待首帧和请求失败分别显示 SDK 状态，不能只凭 `DlssMode` 请求值显示已接管。玩家选择保留在候选里，关闭或失败后恢复；实际原生模式/采样分别读取 `EffectiveAntialiasing` / `EffectiveMsaaSamples`。Deferred、XR、硬件或外部目标纹理不支持所选 MSAA 时显示降级原因，禁止修改共享管线或重建调用方目标纹理。
 
 ## 文案与字体
 

@@ -7,6 +7,31 @@ namespace Tests.Module
     public sealed class GameSettingsSnapshotTests
     {
         [Test]
+        public void ManualMsaaPreservesExistingModeValuesAndRejectsUnsupportedSamples()
+        {
+            Assert.That((int)GraphicsAaMode.CameraDefault, Is.Zero);
+            Assert.That((int)GraphicsAaMode.Off, Is.EqualTo(1));
+            Assert.That((int)GraphicsAaMode.Fxaa, Is.EqualTo(2));
+            Assert.That((int)GraphicsAaMode.Smaa, Is.EqualTo(3));
+            Assert.That((int)GraphicsAaMode.Taa, Is.EqualTo(4));
+            Assert.That((int)GraphicsAaMode.Msaa, Is.EqualTo(5));
+            var saved = new GraphicsPreferences { Antialiasing = GraphicsAaMode.Msaa };
+            Assert.That(saved.MsaaSamples, Is.EqualTo(4));
+            foreach (int samples in new[] { 2, 4, 8 })
+            {
+                saved.MsaaSamples = samples;
+                Assert.DoesNotThrow(saved.Validate);
+                Assert.That(saved.Copy().MsaaSamples, Is.EqualTo(samples));
+            }
+
+            foreach (int samples in new[] { 0, 1, 3, 16 })
+            {
+                saved.MsaaSamples = samples;
+                Assert.Throws<ArgumentException>(saved.Validate);
+            }
+        }
+
+        [Test]
         public void ProductionOptionsRestrictCandidatesAndCopiesDoNotShareFrameChoices()
         {
             var options = new SettingsOptions { Brightness = new UnityEngine.Vector2(0.8f, 1.2f) };

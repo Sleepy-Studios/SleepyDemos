@@ -18,11 +18,17 @@
 
 显示服务克隆管线、RendererData 和制作 Feature，释放 DLSS 后再换管线，最终重绑相机。共享资产不写回。公共 Overlay 相机栈不能使用原生 TAA；能力查询返回禁用原因，强制请求时反馈 SMAA 实际状态。请求 DLSS 档位与 SDK 实际档位分别读取，不因设备不支持丢掉请求。
 
+手动原生抗锯齿包含 FXAA 和 MSAA（2/4/8样本，默认4），与显式关闭、SMAA、TAA分别选择；相机默认保留平台制作行为。DLSS/DLAA实际接管时保留玩家的手动候选，停止原生抗锯齿，关闭或降级后恢复手动配置。管线中保留的原生回退采样数不等于DLSS输出正在使用MSAA。接口分别反馈 EffectiveAntialiasing、EffectiveMsaaSamples 和 IsAntialiasingManagedByUpscaler；MSAA还需Renderer和硬件支持，不把有Overlay误判为不支持。
+
+FXAA/SMAA/TAA 必须启用实际后处理路径；仅为抗锯齿开启时，不额外激活作者原先关闭的画面效果。切镜、解绑和退出服务恢复原相机抗锯齿、MSAA允许状态与后处理状态；先清理会刷新相机的临时效果，再恢复作者状态。
+
 ## 语言与字体
 
 首版语言 `zh-CN` / `en`，默认中文。文案表字段固定 `Key / FontId / Chinese / English`；模块使用键前缀分组。FontId 映射支持一个语言多种字体及配套材质，多个编号可复用同一字体。默认编号为零，覆盖参数的 null 和零含义不同。
 
 `LanguageService.Get/Format/SetText` 在页面创建、数据刷新和条目绑定时一次性执行。SetText 只设文案、字体和材质。字重、字号、颜色及对齐由 TMP/Prefab 维护，不给每个文本添加监听组件。
+
+公共场景 Loading 由导航源交付稳定文案键与名称参数，View 更新进度时一次性赋值文字与 FontId；语言尚未准备时保留原文行为，启动壳的 StartupLoadingView 继续独立。Hub 常规反馈使用 FeedbackKey，任意诊断文本使用 Feedback；两者互斥，页面重建清理派生状态。
 
 语言入口仅 Hub 开放。`HubLanguageFlow` 在场景导航空闲时校验资源，关闭并销毁全部 Hub 页面（含缓存），移除语言派生的 MainMenuData，应用保存语言，再显示新的 Hub 和语言设置页。协调任务不属于旧设置页。失败尝试恢复旧偏好并重建，反馈实际恢复结果；不会虚报成功。Demo 内固定当前语言，返回 Hub 后才能再次切换。
 

@@ -9,7 +9,7 @@ namespace Core.Runtime.Settings
     public enum GraphicsQualityLevel { Current, Low, Medium, High }
 
     /// 原生抗锯齿；CameraDefault 保留相机作者配置，DLSS 启用时由渲染服务协调。
-    public enum GraphicsAaMode { CameraDefault, Off, Fxaa, Smaa, Taa }
+    public enum GraphicsAaMode { CameraDefault, Off, Fxaa, Smaa, Taa, Msaa }
 
     /// 自动读取系统偏好，或由玩家明确选择减少动态。
     public enum ReducedMotionMode { Auto, On, Off }
@@ -89,6 +89,8 @@ namespace Core.Runtime.Settings
         public int FrameLimit = -1;
         public GraphicsQualityLevel Quality = GraphicsQualityLevel.Current;
         public GraphicsAaMode Antialiasing = GraphicsAaMode.CameraDefault;
+        /// 手动 MSAA 档位，默认四；DLSS 接管时继续保存此偏好。
+        public int MsaaSamples = 4;
         public int DlssMode;
         public float Brightness = 1;
         public PostProcessEffects AllowedEffects = PostProcessEffects.All;
@@ -104,6 +106,7 @@ namespace Core.Runtime.Settings
                 || VSync < -1 || VSync > 1 || FrameLimit < -1 || FrameLimit > 360
                 || !Enum.IsDefined(typeof(GraphicsQualityLevel), Quality)
                 || !Enum.IsDefined(typeof(GraphicsAaMode), Antialiasing)
+                || MsaaSamples != 2 && MsaaSamples != 4 && MsaaSamples != 8
                 || !FiniteRange(Brightness, 0.5f, 2)
                 || (AllowedEffects & ~PostProcessEffects.All) != 0)
             {

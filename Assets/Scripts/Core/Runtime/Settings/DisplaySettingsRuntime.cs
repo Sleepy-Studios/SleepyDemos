@@ -6,6 +6,7 @@ using Core.Runtime.Rendering;
 using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using Object = UnityEngine.Object;
@@ -22,6 +23,8 @@ namespace Core.Runtime.Settings
         private static Camera camera;
         private static Camera uiCamera;
         private static AntialiasingMode authoredAntialiasing;
+        private static bool authoredAllowMsaa;
+        private static RenderTexture authoredTargetTexture;
         private static RenderPipelineAsset authoredGraphicsPipeline;
         private static RenderPipelineAsset authoredQualityPipeline;
         private static UniversalRenderPipelineAsset authoredPipeline;
@@ -32,9 +35,32 @@ namespace Core.Runtime.Settings
         private static int authoredFrameLimit;
         private static bool initialized;
         private static bool applying;
+        private static bool postProcessingForNativeAntialiasing;
+        private static GraphicsAaMode effectiveAntialiasing;
+        private static int effectiveMsaaSamples = 1;
+
+        private static bool SessionOwnsCamera => camera != null && StreamlineRuntime.BoundCamera == camera
+            && StreamlineRuntime.ActiveSession != null && !StreamlineRuntime.RequiresRestart;
 
         /// 当前实际原生抗锯齿；DLSS 请求与实际模式继续读取 StreamlineRuntime。
-        public static GraphicsAaMode EffectiveAntialiasing { get; private set; }
+        public static GraphicsAaMode EffectiveAntialiasing
+        {
+            get => SessionOwnsCamera ? GraphicsAaMode.Off : effectiveAntialiasing;
+            private set => effectiveAntialiasing = value;
+        }
+
+        /// 实际世界原生 MSAA 样本数；等待相机或 DLSS 会话接管时为一。
+        public static int EffectiveMsaaSamples
+        {
+            get => SessionOwnsCamera ? 1 : effectiveMsaaSamples;
+            private set => effectiveMsaaSamples = value;
+        }
+
+        /// DLSS/DLAA 已完成真实首帧并接管抗锯齿；请求失败或等待首帧时为 false。
+        public static bool IsAntialiasingManagedByUpscaler => camera != null && StreamlineRuntime.BoundCamera == camera
+            && StreamlineRuntime.EffectiveMode.HasValue;
+
+        internal static bool RequiresPostProcessingAntialiasing => postProcessingForNativeAntialiasing;
 
         /// 当前原生抗锯齿的降级原因；空表示按要求应用。
         public static string Status { get; private set; }
@@ -122,12 +148,7 @@ namespace Core.Runtime.Settings
                     candidate.Asset.renderScale = preset.RenderScale;
                     candidate.Asset.shadowDistance = preset.ShadowDistance;
                     candidate.Asset.msaaSampleCount = preset.MsaaSamples;
-                }
-
-                // DLSS 会话以独立 RT 和 camera.allowMSAA 禁用采样；基础管线保留原生回退所需 MSAA。
-                if (preferences.Antialiasing == GraphicsAaMode.Taa)
-                {
-                    candidate.Asset.msaaSampleCount = 1;
+                    candidate.DefaultMsaaSamples = preset.MsaaSamples;
                 }
 
                 SetPipeline(candidate.Asset);
@@ -138,7 +159,7 @@ namespace Core.Runtime.Settings
                 Application.targetFrameRate = SupportsDesktopDisplay && QualitySettings.vSyncCount > 0 ? -1
                     : preferences.FrameLimit < 0 ? authoredFrameLimit : preferences.FrameLimit == 0 ? -1 : preferences.FrameLimit;
 
-                ApplyAntialiasing(preferences.Antialiasing);
+                ApplyAntialiasing(preferences, candidate);
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, cancellationToken);
                 await StreamlineRuntime.ApplyModeAsync(mode, cancellationToken);
                 if (StreamlineRuntime.RequiresRestart)
@@ -146,6 +167,7 @@ namespace Core.Runtime.Settings
                     throw new InvalidOperationException(StreamlineRuntime.Status);
                 }
 
+                ApplyAntialiasing(preferences, candidate);
                 current = preferences.Copy();
                 runtimePipeline = candidate;
                 candidate = null;
@@ -175,13 +197,14 @@ namespace Core.Runtime.Settings
                     QualitySettings.vSyncCount = previous.VSync;
                     Application.targetFrameRate = previous.FrameLimit;
                     ApplyWindow(previous);
-                    ApplyAntialiasing(current.Antialiasing);
+                    ApplyAntialiasing(current, previousPipeline);
                     if (camera != null && uiCamera != null)
                     {
                         StreamlineRuntime.BindCamera(camera, uiCamera);
                     }
 
                     await StreamlineRuntime.ApplyModeAsync(StreamlineRuntime.DecodePreference(current.DlssMode));
+                    ApplyAntialiasing(current, previousPipeline);
                 }
                 catch (Exception restoreFailure)
                 {
@@ -207,7 +230,11 @@ namespace Core.Runtime.Settings
                 throw new ArgumentNullException(nameof(overlayCamera));
             }
 
-            bool changedCamera = camera != worldCamera;
+            if (worldCamera != null)
+            {
+                EnsureStreamlineSubscription();
+            }
+            bool changedCamera = !ReferenceEquals(camera, worldCamera);
             StreamlineRuntime.DetachCamera();
             if (changedCamera)
             {
@@ -215,6 +242,7 @@ namespace Core.Runtime.Settings
                 if (camera != null)
                 {
                     camera.GetUniversalAdditionalCameraData().antialiasing = authoredAntialiasing;
+                    camera.allowMSAA = authoredAllowMsaa;
                 }
             }
 
@@ -225,10 +253,16 @@ namespace Core.Runtime.Settings
                 if (changedCamera)
                 {
                     authoredAntialiasing = camera.GetUniversalAdditionalCameraData().antialiasing;
+                    authoredAllowMsaa = camera.allowMSAA;
+                    authoredTargetTexture = camera.targetTexture;
                 }
-                ApplyAntialiasing(current.Antialiasing);
+                ApplyAntialiasing(current, runtimePipeline);
                 PostProcessRuntime.BindCamera(worldCamera);
                 StreamlineRuntime.BindCamera(worldCamera, overlayCamera);
+            }
+            else
+            {
+                ApplyAntialiasing(current, runtimePipeline);
             }
 
             PublishChanged();
@@ -260,16 +294,43 @@ namespace Core.Runtime.Settings
         /// <returns>当前相机可使用时为 true；没有相机时保留请求等待绑定。</returns>
         public static bool CanUseAntialiasing(GraphicsAaMode mode, out string reason)
         {
+            return CanUseAntialiasing(mode, current.MsaaSamples, out reason);
+        }
+
+        /// <summary>查询手动原生抗锯齿和明确 MSAA 档位；DLSS 请求不会改变此能力查询。</summary>
+        /// <param name="mode">玩家希望在 DLSS 关闭后使用的原生模式。</param>
+        /// <param name="msaaSamples">MSAA 的 2、4 或 8 样本；其它模式忽略此档位。</param>
+        /// <param name="reason">无法按请求完整生效的原因；没有世界相机时允许保存，等待绑定后检查。</param>
+        /// <returns>指定档位完整支持时为 true；保存偏好后仍按实际能力降级。</returns>
+        public static bool CanUseAntialiasing(GraphicsAaMode mode, int msaaSamples, out string reason)
+        {
             reason = null;
-            if (mode == GraphicsAaMode.Taa && camera != null)
+            if (!Enum.IsDefined(typeof(GraphicsAaMode), mode) || mode == GraphicsAaMode.Msaa && !ValidMsaaSamples(msaaSamples))
             {
-                if (camera.GetUniversalAdditionalCameraData().cameraStack.Count > 0)
+                reason = "原生抗锯齿档位无效。";
+                return false;
+            }
+
+            if (camera == null)
+            {
+                return true;
+            }
+
+            if (mode == GraphicsAaMode.Msaa)
+            {
+                return ResolveMsaaSamples(msaaSamples, out reason) == msaaSamples;
+            }
+
+            if (mode == GraphicsAaMode.Taa)
+            {
+                var data = camera.GetUniversalAdditionalCameraData();
+                if (data.renderType != CameraRenderType.Base || uiCamera != null || data.cameraStack?.Count > 0)
                 {
                     reason = "当前公共 UI 相机栈不支持原生 TAA，使用 SMAA。";
                 }
-                else if (camera.orthographic || camera.stereoEnabled)
+                else if (camera.allowDynamicResolution || data.scriptableRenderer is not UniversalRenderer)
                 {
-                    reason = "当前正交或 XR 相机不支持原生 TAA，使用 SMAA。";
+                    reason = "当前动态分辨率或 Renderer 不能满足原生 TAA 的输入要求，使用 SMAA。";
                 }
             }
 
@@ -279,6 +340,7 @@ namespace Core.Runtime.Settings
         /// 退出公共服务时恢复作者管线和相机配置，释放所有运行时副本。
         public static void Shutdown()
         {
+            StreamlineRuntime.Changed -= OnStreamlineChanged;
             StreamlineRuntime.ApplyModeAsync(null).Forget();
             BindCamera(null, null);
             if (initialized)
@@ -298,10 +360,14 @@ namespace Core.Runtime.Settings
             current = new GraphicsPreferences();
             Status = null;
             EffectiveAntialiasing = GraphicsAaMode.CameraDefault;
+            EffectiveMsaaSamples = 1;
+            postProcessingForNativeAntialiasing = false;
+            authoredTargetTexture = null;
         }
 
         private static void Initialize()
         {
+            EnsureStreamlineSubscription();
             if (initialized)
             {
                 return;
@@ -371,13 +437,142 @@ namespace Core.Runtime.Settings
             Screen.SetResolution(width, height, mode);
         }
 
-        private static void ApplyAntialiasing(GraphicsAaMode requested)
+        private static void EnsureStreamlineSubscription()
         {
-            var effective = CanUseAntialiasing(requested, out string reason) ? requested : GraphicsAaMode.Smaa;
+            StreamlineRuntime.Changed -= OnStreamlineChanged;
+            StreamlineRuntime.Changed += OnStreamlineChanged;
+        }
+
+        private static void OnStreamlineChanged()
+        {
+            if (!applying)
+            {
+                ApplyAntialiasing(current, runtimePipeline);
+                PublishChanged();
+            }
+        }
+
+        private static bool ValidMsaaSamples(int samples) => samples == 2 || samples == 4 || samples == 8;
+
+        private static int ResolveMsaaSamples(int samples, out string reason)
+        {
+            reason = null;
+            if (camera == null || samples <= 1)
+            {
+                return samples;
+            }
+
+            var data = camera.GetUniversalAdditionalCameraData();
+            var renderer = data.scriptableRenderer;
+            if (data.renderType != CameraRenderType.Base || renderer == null || !renderer.supportedRenderingFeatures.msaa)
+            {
+                reason = "当前 Renderer 不支持 MSAA；Deferred/Deferred+ 需使用 FXAA。";
+                return 1;
+            }
+
+            if (camera.stereoEnabled || !SystemInfo.supportsStoreAndResolveAction)
+            {
+                reason = "当前 XR 或图形设备不能按此设置启用 MSAA，使用 FXAA。";
+                return 1;
+            }
+
+            var target = StreamlineRuntime.ActiveSession != null && StreamlineRuntime.BoundCamera == camera
+                ? authoredTargetTexture : camera.targetTexture;
+            if (target != null && target.antiAliasing != samples)
+            {
+                reason = "当前相机目标纹理采样数与所选 MSAA 不一致，使用 FXAA。";
+                return 1;
+            }
+
+            var pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
+            if (pipeline == null)
+            {
+                reason = "MSAA 需要当前 URP 管线，使用 FXAA。";
+                return 1;
+            }
+
+            var descriptor = target != null ? target.descriptor : new RenderTextureDescriptor(
+                Mathf.Max(1, (int)(camera.pixelWidth * pipeline.renderScale)),
+                Mathf.Max(1, (int)(camera.pixelHeight * pipeline.renderScale)))
+            {
+                graphicsFormat = GetNativeColorFormat(pipeline),
+                depthStencilFormat = SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil)
+            };
+            descriptor.msaaSamples = samples;
+            descriptor.enableRandomWrite = false;
+            descriptor.bindMS = false;
+            int supported = Mathf.Max(1, SystemInfo.GetRenderTextureSupportedMSAASampleCount(descriptor));
+            if (supported != samples)
+            {
+                reason = supported > 1 ? $"当前图形设备仅支持 MSAA {supported}x，已降级。" : "当前图形设备不支持此 MSAA，使用 FXAA。";
+            }
+
+            return supported;
+        }
+
+        private static GraphicsFormat GetNativeColorFormat(UniversalRenderPipelineAsset pipeline)
+        {
+            // 与本地 URP CreateRenderTextureDescriptor 的 HDR/alpha 格式选择一致。
+            if (camera.allowHDR && pipeline.supportsHDR)
+            {
+                if (!Graphics.preserveFramebufferAlpha && pipeline.hdrColorBufferPrecision != HDRColorBufferPrecision._64Bits
+                    && SystemInfo.IsFormatSupported(GraphicsFormat.B10G11R11_UFloatPack32, GraphicsFormatUsage.Blend))
+                {
+                    return GraphicsFormat.B10G11R11_UFloatPack32;
+                }
+
+                return SystemInfo.IsFormatSupported(GraphicsFormat.R16G16B16A16_SFloat, GraphicsFormatUsage.Blend)
+                    ? GraphicsFormat.R16G16B16A16_SFloat : SystemInfo.GetGraphicsFormat(DefaultFormat.HDR);
+            }
+
+            return SystemInfo.GetGraphicsFormat(DefaultFormat.LDR);
+        }
+
+        private static void ApplyAntialiasing(GraphicsPreferences preferences, PipelineCopy pipeline)
+        {
+            if (SessionOwnsCamera)
+            {
+                // 等待首帧也由会话保留 jitter/TAA 输入，不能写回手动 AA 打断其内部状态。
+                EffectiveAntialiasing = GraphicsAaMode.Off;
+                EffectiveMsaaSamples = 1;
+                postProcessingForNativeAntialiasing = false;
+                Status = IsAntialiasingManagedByUpscaler ? "DLSS/DLAA 已接管抗锯齿。" : "DLSS/DLAA 等待首帧，手动抗锯齿偏好已保留。";
+                PostProcessRuntime.RefreshCamera();
+                return;
+            }
+
+            var requested = preferences.Antialiasing;
+            string reason = null;
+            int samples = 1;
+            var effective = requested;
+            if (requested == GraphicsAaMode.Msaa)
+            {
+                samples = ResolveMsaaSamples(preferences.MsaaSamples, out reason);
+                effective = samples > 1 ? GraphicsAaMode.Msaa : GraphicsAaMode.Fxaa;
+            }
+            else if (!CanUseAntialiasing(requested, preferences.MsaaSamples, out reason))
+            {
+                effective = GraphicsAaMode.Smaa;
+            }
+
+            if (requested == GraphicsAaMode.CameraDefault)
+            {
+                samples = pipeline?.DefaultMsaaSamples ?? authoredPipeline?.msaaSampleCount ?? 1;
+            }
+
+            if (pipeline != null)
+            {
+                pipeline.Asset.msaaSampleCount = samples;
+            }
+
             Status = reason;
             EffectiveAntialiasing = effective;
+            EffectiveMsaaSamples = camera == null ? 1 : samples;
+            postProcessingForNativeAntialiasing = requested != GraphicsAaMode.CameraDefault
+                && (effective == GraphicsAaMode.Fxaa || effective == GraphicsAaMode.Smaa || effective == GraphicsAaMode.Taa);
             if (camera == null)
             {
+                Status = "等待世界相机绑定后应用手动抗锯齿。";
                 return;
             }
 
@@ -386,7 +581,11 @@ namespace Core.Runtime.Settings
             {
                 case GraphicsAaMode.CameraDefault:
                     data.antialiasing = authoredAntialiasing;
+                    camera.allowMSAA = authoredAllowMsaa;
+                    int actualSamples = samples > 1 && camera.targetTexture != null ? camera.targetTexture.antiAliasing : samples;
+                    EffectiveMsaaSamples = camera.allowMSAA ? ResolveMsaaSamples(actualSamples, out _) : 1;
                     break;
+                case GraphicsAaMode.Msaa:
                 case GraphicsAaMode.Off:
                     data.antialiasing = AntialiasingMode.None;
                     break;
@@ -400,6 +599,13 @@ namespace Core.Runtime.Settings
                     data.antialiasing = AntialiasingMode.TemporalAntiAliasing;
                     break;
             }
+
+            if (effective != GraphicsAaMode.CameraDefault)
+            {
+                camera.allowMSAA = effective == GraphicsAaMode.Msaa;
+            }
+
+            PostProcessRuntime.RefreshCamera();
         }
 
         private sealed class PipelineCopy : IDisposable
@@ -407,6 +613,7 @@ namespace Core.Runtime.Settings
             private readonly List<Object> owned = new();
 
             internal UniversalRenderPipelineAsset Asset { get; private set; }
+            internal int DefaultMsaaSamples { get; set; }
 
             internal PipelineCopy(UniversalRenderPipelineAsset source)
             {
@@ -418,6 +625,7 @@ namespace Core.Runtime.Settings
                 try
                 {
                     Asset = Object.Instantiate(source);
+                    DefaultMsaaSamples = source.msaaSampleCount;
                     Asset.hideFlags = HideFlags.HideAndDontSave;
                     var renderers = new ScriptableRendererData[source.rendererDataList.Length];
                     for (int index = 0; index < renderers.Length; index++)

@@ -84,5 +84,19 @@ namespace Tests.Module
                 UnityEngine.Object.DestroyImmediate(preset);
             }
         }
+
+        [Test]
+        public void NativeAntialiasingPreferenceCanBeSelectedBeforeWorldCameraBinding()
+        {
+            DisplaySettingsRuntime.BindCamera(null, null);
+            Assert.That(DisplaySettingsRuntime.CanUseAntialiasing(GraphicsAaMode.Fxaa, out _), Is.True);
+            foreach (int samples in new[] { 2, 4, 8 })
+            {
+                Assert.That(DisplaySettingsRuntime.CanUseAntialiasing(GraphicsAaMode.Msaa, samples, out string reason), Is.True);
+                Assert.That(reason, Is.Null);
+            }
+
+            Assert.That(DisplaySettingsRuntime.CanUseAntialiasing(GraphicsAaMode.Msaa, 3, out _), Is.False);
+        }
     }
 }

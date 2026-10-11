@@ -1,5 +1,7 @@
 using System;
+using System.Threading.Tasks;
 using Core.Runtime.Rendering;
+using Core.Runtime.Rendering.Streamline;
 using Core.Runtime.Settings;
 using NUnit.Framework;
 using UnityEngine;
@@ -11,6 +13,75 @@ namespace Tests.Module
 {
     public sealed class PostProcessRuntimeTests
     {
+        [Test]
+        public async Task PureNativeFxaaDoesNotActivateAuthoredPostEffects()
+        {
+            var existingDrivers = Object.FindObjectsByType<StreamlineRuntimeDriver>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            DisplaySettingsRuntime.Shutdown();
+            var manager = VolumeManager.instance;
+            bool initializedHere = !manager.isInitialized;
+            if (initializedHere)
+            {
+                manager.Initialize();
+            }
+
+            var previousStack = manager.stack;
+            var stack = manager.CreateStack();
+            var owner = new GameObject("Pure native AA world", typeof(Camera));
+            var uiOwner = new GameObject("Pure native AA UI", typeof(Camera));
+            try
+            {
+                var camera = owner.GetComponent<Camera>();
+                camera.enabled = false;
+                camera.GetUniversalAdditionalCameraData().renderPostProcessing = false;
+                var uiCamera = uiOwner.GetComponent<Camera>();
+                uiCamera.enabled = false;
+                uiCamera.GetUniversalAdditionalCameraData().renderType = CameraRenderType.Overlay;
+                DisplaySettingsRuntime.BindCamera(camera, uiCamera);
+                await DisplaySettingsRuntime.ApplyAsync(new GraphicsPreferences { Antialiasing = GraphicsAaMode.Fxaa },
+                    Array.Empty<GraphicsQualityPreset>());
+                manager.stack = stack;
+                var bloom = stack.GetComponent<Bloom>();
+                var grading = stack.GetComponent<ColorAdjustments>();
+                var motion = stack.GetComponent<MotionBlur>();
+                bloom.intensity.value = 0.6f;
+                grading.postExposure.value = 2;
+                motion.intensity.value = 0.4f;
+                PostProcessRuntime.ApplySettings(new GraphicsPreferences(),
+                    new AccessibilityPreferences { ReducedMotion = ReducedMotionMode.Off });
+                Assert.That(camera.GetUniversalAdditionalCameraData().renderPostProcessing, Is.True, "FXAA需要后处理路径");
+                PostProcessRuntime.ApplyToStack(camera);
+                Assert.That(bloom.intensity.value, Is.Zero, "纯AA不能启用作者原来没有渲染的效果");
+                Assert.That(grading.postExposure.value, Is.Zero);
+                Assert.That(motion.intensity.value, Is.Zero);
+                PostProcessRuntime.BindCamera(null);
+                Assert.That(bloom.intensity.value, Is.EqualTo(0.6f).Within(0.00001f));
+                Assert.That(grading.postExposure.value, Is.EqualTo(2));
+                Assert.That(motion.intensity.value, Is.EqualTo(0.4f).Within(0.00001f));
+            }
+            finally
+            {
+                DisplaySettingsRuntime.Shutdown();
+                PostProcessRuntime.Shutdown();
+                manager.stack = previousStack;
+                manager.DestroyStack(stack);
+                Object.DestroyImmediate(owner);
+                Object.DestroyImmediate(uiOwner);
+                foreach (var driver in Object.FindObjectsByType<StreamlineRuntimeDriver>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (Array.IndexOf(existingDrivers, driver) < 0)
+                    {
+                        Object.DestroyImmediate(driver.gameObject);
+                    }
+                }
+
+                if (initializedHere)
+                {
+                    manager.Deinitialize();
+                }
+            }
+        }
+
         [Test]
         public void BasePresetAndAtomicParameterUpdatesKeepPriorityAndPlayerLimits()
         {
