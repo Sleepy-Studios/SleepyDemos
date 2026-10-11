@@ -50,7 +50,8 @@
 - `Module/Main`
 - `Module/Common`
 - `Module/User`、`Module/GraphicsSettings`
-- `Demos/`：无人机、DLSS、夹爆它、纸艺卡丁车与 LoopScroll 示例
+- `Module/LoopScroll/Examples`：Loop Scroll 模块的宿主输入与 UIBind 接入示例，仍归属 Hotfix
+- `Demos/`：无人机、DLSS、夹爆它与纸艺卡丁车
 
 不要放：
 - 通用资源加载框架

@@ -69,10 +69,16 @@ list.CancelAnimation();
 
 回调内可再次定位/刷新/重填，异常记录日志。无需锁住按钮等动画结束；示例 UIBind 页面提供普通中心定位、±60 偏移、取消按钮和中英完成/取消状态，拖动打断也更新状态。
 
-## 示例与验证
-
-打开 Assets/Samples/SleepyLoopScroll/Showcase/Main.unity 或 Tools/Sleepy Loop Scroll/Open Showcase，进入四个包子场景及宿主 UIBind 页面。首次中文，主菜单切换语言并持久化，子场景可返回。
-
-宿主 UIBind 示例场景已保存，一次性 Build UIBind Example 已删除。重导包示例时保留宿主场景和 LoopScrollInputHost 接线。Editor 不修改 Build Settings，独立 Player 显式包含全部场景。验证只运行包测试、LoopScrollUIBindGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests 和直接受影响类。
+## 维护与排障
 
 常见问题：Content 布局冲突、缺失 Type 0、重复 Key、异步不检查 IsCurrent。见包 Troubleshooting 和 UnifiedValidation。
+
+## 运行模块示例
+
+1. 打开 `Assets/Samples/SleepyLoopScroll/Showcase/Main.unity`，或使用 `Tools/Sleepy Loop Scroll/Open Showcase`。本项目已经维护一份导入内容，不重复导入。
+2. 主页可进入基础、多类型、聊天、轮播分页与宿主 UIBind 页面；子页面通过返回按钮回主页。首次中文，主页可切换中文／English 并保存选择。
+3. UIBind 页面展示中心定位、±60 Canvas UI 像素偏移、完成／取消结果；手动取消和拖动均可中断定位，操作按钮保持可用。
+4. 宿主场景保存在 `Assets/Samples/SleepyLoopScroll/Host/Scenes/LoopScrollUIBindExample.unity`；重导包示例时保留该场景、Catalog 的 uibind 项和 LoopScrollInputHost 接线。不重跑已删除的一次性生成工具。
+5. Editor 导航不修改 Build Settings；独立 Player 演示需要显式包含 Showcase 五个场景及宿主 UIBind 场景，构建仍按既有工具和包发布流程执行。
+
+定向验证使用 `Tests.Module.LoopScrollUIBindGenerationTests`（EditMode）、`Tests.Module.LoopScrollItemViewBridgeTests` 与 `Tests.Module.LoopScrollShowcaseTests`（PlayMode），并检查 TestAssemblyBoundaryTests。包测试在独立包维护，不因宿主目录调整默认执行包全量回归。

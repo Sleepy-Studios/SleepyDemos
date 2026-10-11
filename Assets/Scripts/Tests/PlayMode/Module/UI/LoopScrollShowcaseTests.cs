@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 
-namespace Tests.Demo
+namespace Tests.Module
 {
     public sealed class LoopScrollShowcaseTests
     {

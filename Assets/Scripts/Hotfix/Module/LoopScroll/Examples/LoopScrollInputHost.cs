@@ -9,7 +9,7 @@ using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace Hotfix.Demos.LoopScroll
+namespace Hotfix.LoopScroll.Examples
 {
     /// 本项目的动态 Showcase 输入桥接；不修改独立包或复制其列表实现。
     [DefaultExecutionOrder(-100)]

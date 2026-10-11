@@ -6,7 +6,7 @@ using SleepyStudios.LoopScroll.Samples;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Hotfix.Demos.LoopScroll
+namespace Hotfix.LoopScroll.Examples
 {
     /// <summary>宿主独有的接入示例，通过 Showcase 主菜单进入和返回。</summary>
     public sealed class LoopScrollUIBindExample : LoopSamplePage

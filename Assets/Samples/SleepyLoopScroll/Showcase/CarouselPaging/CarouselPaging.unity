@@ -534,7 +534,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cddc463bfd36ea47978ef494c4fb7c6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.Demos.LoopScroll.LoopScrollInputHost
+  m_EditorClassIdentifier: Hotfix::Hotfix.LoopScroll.Examples.LoopScrollInputHost
   page: {fileID: 1987664203}
   isMainMenu: 0
 --- !u!1 &2054108177

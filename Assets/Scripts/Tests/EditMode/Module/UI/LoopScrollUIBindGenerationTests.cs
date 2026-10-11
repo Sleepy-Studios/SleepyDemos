@@ -39,7 +39,7 @@ namespace Tests.Module
         {
             var component = new UIBindComponentInfo { fieldName = "messages", componentType = typeof(LoopScrollView), index = 0 };
             component.methods.AddRange(UIBindCodeGenerator.GetRegisterMethods(typeof(LoopScrollView), "Messages"));
-            var settings = new UIBindSettings { viewName = "LoopExampleView", namespaceName = "Hotfix.Demos.LoopScroll" };
+            var settings = new UIBindSettings { viewName = "LoopExampleView", namespaceName = "Hotfix.LoopScroll.Examples" };
             var generated = UIBindCodeGenerator.CreateComponentScriptText(settings, new[] { component });
             Assert.That(generated, Does.Contain("using SleepyStudios.LoopScroll;"));
             Assert.That(generated, Does.Not.Contain("RegisterLoopCell"));

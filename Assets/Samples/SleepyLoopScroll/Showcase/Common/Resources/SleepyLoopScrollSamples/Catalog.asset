@@ -36,4 +36,4 @@ MonoBehaviour:
   - id: uibind
     titleKey: uibind
     descriptionKey: uibindDesc
-    scenePath: Assets/LoadResources/Demos/loop_scroll/Scenes/LoopScrollUIBindExample.unity
+    scenePath: Assets/Samples/SleepyLoopScroll/Host/Scenes/LoopScrollUIBindExample.unity

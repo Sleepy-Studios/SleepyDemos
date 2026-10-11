@@ -45,7 +45,7 @@
   - [热更新模块](./modules/hotfix.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
-  - [Loop Scroll 宿主桥接](./modules/loop-scroll.md)
+  - [Loop Scroll 模块与宿主桥接](./modules/loop-scroll.md)
   - [运行期场景导航](./modules/scene-runtime.md)
   - [通用网络会话边界](./modules/network-session.md)
   - [Core 事件系统](./modules/eventing/README.md)
@@ -85,9 +85,8 @@
 |---|---|
 | 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
 | DLSS 实验室 | [dlss](demos/dlss/README.md) |
-| Loop Scroll 示例 | [loop_scroll](demos/loop_scroll/README.md) |
 | 夹爆它（MVP 验证版） | [wall_squeeze](demos/wall_squeeze/README.md) |
-| 纸艺卡丁车（源码迁移中） | [kagit_kart](demos/kagit_kart/README.md) |
+| 纸艺卡丁车 | [kagit_kart](demos/kagit_kart/README.md) |
 
 每个入口包含模块维护、设计及操作手册导航；公共框架文档继续在上面的三层目录维护。
 

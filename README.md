@@ -54,6 +54,7 @@
 - `Assets/Scripts/Hotfix`
   - 业务层与界面层
   - `Module/` 放主菜单、公共业务模块、View 和交互逻辑
+  - `Module/LoopScroll/Examples/` 放循环列表模块的宿主示例，不属于玩法 Demo
   - `Demos/<DemoName>/` 放独立 Demo 的玩法、场景交互和界面
 
 - `Assets/Scripts/Hotfix/Editor`

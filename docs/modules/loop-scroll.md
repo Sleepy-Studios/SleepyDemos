@@ -2,7 +2,7 @@
 
 ## 职责与边界
 
-SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、对象池和场景扩展。SleepyDemos 的 Core.Runtime 仅适配普通 C# ItemView 与 View 订阅生命周期；Core.Editor 提供 UIBind 接入和本地示例构建。包不引用 Core、Hotfix、UIBind、UniTask 或资源框架。
+SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、对象池和场景扩展。SleepyDemos 的 Core.Runtime 仅适配普通 C# ItemView 与 View 订阅生命周期；Core.Editor 提供 UIBind 接入。包不引用 Core、Hotfix、UIBind、UniTask 或资源框架。
 
 ## 入口与主链路
 
@@ -10,7 +10,7 @@ SleepyLoopScroll 是宿主之外的独立 UPM 包，负责虚拟化、布局、�
 - `Core/Runtime/Components/LoopScrollRegisterExtend.cs`：提供 ItemViews() 和三种 `[ComponentAttribute]` 注册方法。
 - `Core/Runtime/Components/LoopScrollMenuNavigation.cs` / `LoopScrollMenuButton.cs`：公共虚拟列表菜单焦点、Grid 方向导航与按 Key 定位，不承载业务图片、文字或页面输入作用域。
 - `LoopScrollInputHost`：已保存示例场景的输入桥接，动态页面建立后接入公共状态和菜单作用域，不修改包源码。
-- `Hotfix/Demos/LoopScroll/LoopScrollUIBindExample.cs`：本地 View/ItemView 接入示例。
+- `Hotfix/Module/LoopScroll/Examples/LoopScrollUIBindExample.cs`：本地 View/ItemView 接入示例。
 
 先 RegisterLoopScrollRect<TView> 配置工厂与绑定，再注册 Click/ItemHide，最后 SetTotalCount 提交真实集合。ListDataSource 进入包的统一 Commit/Reconcile，桥接更新 ItemView.Index 和 context，触发唯一一组 CellBound/CellUnbound/CellClicked 事件。解绑前旧 context 已失效并取消 Token，点击读取当前身份。
 
@@ -28,7 +28,7 @@ UIBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击为
 
 嵌套 ItemView 同样支持三个注册入口，返回 IDisposable，宿主在嵌套 ItemView 回收时释放，列表组件销毁也会清除事件。一个物理 Cell 必须对应固定 ItemView 类型，不同类型使用不同 Prefab 类型池。普通 Item 自己声明具体 SetData，桥接先初始化控件再回调数据；复用不重复初始化。Item 不缓存初始化前的数据，不使用父类自动 RefreshUI 模板。具体初始化契约见 [Core UI 运行时](ui-runtime.md#view-生命周期)。
 
-新增业务行为放 Hotfix。包公共 API 与算法在独立仓库维护；不得把宿主类型加入包。Core.Runtime/Core.Editor 单向引用包程序集，Core.Editor 不引用 Hotfix，示例构建按类型名称定位 Hotfix 示例入口。Hotfix 的本地 LoopScroll Demo 引用已导入的示例共享程序集，复用导航、字体和翻译；Core 和包运行时不依赖示例程序集。
+新增业务行为放 Hotfix。包公共 API 与算法在独立仓库维护；不得把宿主类型加入包。Core.Runtime/Core.Editor 单向引用包程序集，Core.Editor 不引用 Hotfix。Hotfix 的 Loop Scroll 宿主示例引用已导入的示例共享程序集，复用导航、字体和翻译；Core 和包运行时不依赖示例程序集。
 
 ## 定位结果
 
@@ -44,4 +44,14 @@ UIBind 只发现 RectData/Click/ItemHide 三种普通回调。绑定与点击为
 
 包测试独立留在包 Tests；宿主测试进入现有 Tests.EditMode/Tests.PlayMode。直接目标为 LoopScrollUIBindGenerationTests、LoopScrollItemViewBridgeTests、LoopScrollShowcaseTests，另检查 TestAssemblyBoundaryTests。不运行无关全量测试。
 
-详见 [接入步骤](../runbooks/use-loop-scroll.md)、[示例](../demos/loop_scroll/README.md) 与包 Documentation~/Validation.md。
+详见 [接入与运行示例](../runbooks/use-loop-scroll.md) 与包 Documentation~/Validation.md。
+
+## 模块与示例归属
+
+Loop Scroll 属于公共 UI 模块，不登记为玩法 Demo。宿主示例代码位于 `Assets/Scripts/Hotfix/Module/LoopScroll/Examples/`，命名空间为 `Hotfix.LoopScroll.Examples`；它引用导入后的 Samples.Common，保持在 Hotfix 程序集内，不上提至 Core。
+
+已导入的包 Showcase 位于 `Assets/Samples/SleepyLoopScroll/Showcase/`；宿主 UIBind 场景位于 `Assets/Samples/SleepyLoopScroll/Host/Scenes/LoopScrollUIBindExample.unity`。Catalog 追加宿主页面，仍由 Showcase 主页进入，不加入正式 Hub、YooAsset 启动链路或 Build Settings。包源码、Core 桥接和注册 API 不随目录整理改变。
+
+宿主场景通过 LoopScrollInputHost 接入公共菜单作用域与按钮五态；非交互装饰不拦截射线，Slider 不缩放几何。页面销毁解除返回订阅并释放仅由本页面创建的 EventSystem。Showcase 测试归 `Assets/Scripts/Tests/PlayMode/Module/UI/` 与 `Tests.Module`，继续使用已有 Tests.PlayMode。
+
+2026-10-11 目录整理验证：UIBind 3/3、ItemView 桥接 7/7、Showcase 8/8、程序集边界 5/5 通过；六个示例场景完成类型标识与缺失脚本检查，两个脚本、宿主场景和测试文件的 GUID 保持不变。迁移使用 Unity AssetDatabase 与序列化 API，临时迁移工具在验证后清理。未执行项目全量测试、独立包回归或 Player 构建。
