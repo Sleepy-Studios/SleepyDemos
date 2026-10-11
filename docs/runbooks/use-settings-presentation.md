@@ -4,9 +4,13 @@
 
 ## 设置候选
 
-在资源服务就绪后等待 `GameSettingsService.InitializeAsync()`。每次打开页面使用 `Current` 创建候选，控件编辑候选字段。应用经 SettingsApplyAction 或直接等待 ApplyAsync；检查 SettingsApplyResult，不以控件请求值替代生效状态。显示变更的确认任务要能独立于设置页存活，并尊重取消令牌。
+在资源服务就绪后等待 `GameSettingsService.InitializeAsync()`。业务入口通过 `SettingsFlow.OpenAsync(host, category, token)` 打开对应正式宿主；当前场景已注册时也可以使用省略 host 的重载。默认进入画质页，传 Audio／Input 等分类可以定位对应独立分页。Hub 使用 `UI/Settings/HubSettingsView`，四个 Demo 使用各自 `Demos/<DemoId>/Prefabs/UI/Settings/` 下的 GlobalSettingsView Variant；完整路径见[模块文档](../modules/settings-presentation.md)。
 
-恢复分类默认值从 GetDefaults 取该分类，覆盖当前候选对应部分，随后仍须用户应用。关页丢掉候选；不能向制作 SO 写玩家数据。Demo 设置弹窗隐藏语言分类，画质快捷入口直接选择画质页。
+每次打开页面从 Current 创建完整独立候选。分类用已有 UITab／ViewTab 的 views 分支，分别接 GraphicsSettingsPanelView、AudioSettingsPanelView、InputSettingsPanelView、LanguageSettingsPanelView、AccessibilitySettingsPanelView；五页资源位于 `UI/Settings/Panels/`。宿主保存正式 pageRoots 与 ViewTab 引用，AddSubView 持有子页生命周期，显示时绑定候选、隐藏时释放编辑器。新增设置项优先在对应独立页复用 UISettingRow 与基础控件，修改固定引用后走正式 UIBind 生成。
+
+应用由 SettingsFlow 经 SettingsApplyAction 协调，Core 使用者也可直接等待 GameSettingsService.ApplyAsync。检查 SettingsApplyResult，不以控件请求值替代生效状态。显示模式或分辨率改变时，正式 DisplayConfirmView 在未缩放的 15 秒内等待保留或恢复；任务由 Flow 持有，尊重取消令牌。超时、拒绝、取消或失败恢复实际显示与旧偏好。正在提交或监听改键时禁用重复应用，关页按原生命周期取消编辑。
+
+恢复分类默认值从 GetDefaults 取该分类，覆盖当前候选对应部分，随后仍须用户应用。关页丢掉候选；不能向制作 SO 写玩家数据。Demo 设置弹窗隐藏语言分类，画质快捷入口直接选择画质页。宿主 Variant 只调整制作外观，专属飞控／赛车参数继续放原 Demo 页面；保留纸卡、触控和业务菜单的原布局。
 
 手动抗锯齿编辑 `candidate.Graphics.Antialiasing`；选 MSAA 时同时设置 `MsaaSamples`（2、4、8，默认4）。用 `DisplaySettingsRuntime.CanUseAntialiasing(mode, samples, out reason)` 查询当前档位支持情况。FXAA 等后处理抗锯齿关闭原生 MSAA；MSAA 关闭后处理抗锯齿。相机默认保留制作配置。
 
@@ -18,13 +22,15 @@ DLSS/DLAA 实际生效后禁用手动抗锯齿控件，并展示 `IsAntialiasing
 
 制作检查菜单为 `Tools/SleepyDemos/Settings/Validate Global Settings Config`，只读检查正式配置、词表参数、字体/材质和字形覆盖；缺字报告给出公共字符集路径。
 
-Hub 提交语言调用 HubLanguageFlow，并提供重新打开语言页的可等待回调，不能捕获即将被销毁的控件。准备失败不销毁现页；关闭后失败会恢复旧语言与 Hub。无需语言事件，无需全局 TMP 搜索。
+语言仅从 Hub 设置页提交。使用 SettingsFlow 保持外部协调：HubLanguageFlow 在场景导航空闲时校验资源，关闭并销毁旧 Hub 页面与缓存，移除语言派生数据，保存选择后重建 Hub 并重新打开语言页。重开回调只持有页面类型与分类，不能捕获旧控件。准备失败保留现页；关闭后失败尝试恢复旧偏好和 Hub，并回显实际失败／恢复结果。Demo 内不切语言。无需语言事件或全局 TMP 搜索；字体制作遵循[公共字体规范](../architecture/localization-fonts.md)。
 
 ## 输入与音量
 
 GameplayInputRouter / InputActionSession 直接读取自身 Settings；不要给 Demo 再复制死区、反转和震动底座。提示绑定会话 Asset，不能绑定未生效的源动作。InputBindingPrompt.SetCaptionKey 在页面绑定时赋说明，SetBindingsVisible 控制辅助偏好；触控按钮仍保留可读 caption。
 
-改键使用 InputRebindSession 构造候选，Begin 监听单个普通/复合子绑定，取消调用 Cancel，重置调用 ResetAction。ExportOverrides 保存到候选 BindingOverrides[SourceId]，只有统一设置提交成功后才生效。新手柄添加布局识别及 InputGlyphCatalog 映射，不仅替换面键图案。
+输入页使用 LoopScrollView 与 SettingsBindingItemView 显示同类绑定行；正式模板为 `UI/Settings/SettingsBindingItemView.prefab`，InputSettingsBindingRow 保存提示、上下文和按钮引用。根据正式 InputSettingsCatalog.Entry.Actions 的动作 GUID／文案键枚举单绑定和复合子项，行 Key 包含 SourceId、action.id 与 binding.id。每行调用 BindBinding 显示准确索引，不把同动作中的其他键位别名画成当前绑定。公共 UI／Menu 的安全动作通过 CanRebind 保持不可编辑。
+
+改键使用 InputRebindSession 构造候选，Begin 监听单个普通/复合子绑定，取消调用 Cancel，重置调用 ResetAction。回收行时 Clear 原候选与按钮回调，隐藏输入页或关闭宿主时释放会话。ExportOverrides 保存到候选 BindingOverrides[SourceId]，只有统一设置提交成功后才生效；运行会话保留原上下文，并等待提交时已按住的新绑定松开。提示 Prefab、Kenney 图标和新手柄映射的具体接入见[公共输入接入](use-gameplay-input.md)。
 
 普通 AudioSource 接 AudioBusSource 分类；动态本地音量调用 SetLocalVolume。DSP 自己在音乐/音效/UI 分类处使用 AudioSettingsRuntime.GetGain，保留自己的静音与音量限制，保留播放进度。
 
@@ -38,14 +44,18 @@ SetBasePreset 指定当前相机基底，null清除；切镜时清理。Push 返
 
 ## 电影演出
 
-制作正式表现 Prefab 时提供三个独立通道：全屏遮幕 Image/CanvasGroup、顶部/底部黑边、Title/SubTitle TMP/CanvasGroup。遮幕使用白 Sprite 和 UI/CinematicCurtain 材质；黑边位于实际容器内。初始化后在 OnShow Register；OnHide/OnDestroy Unregister，View 与 Loader 按 UIManager 生命周期释放。
+从稳定 Hub 体验公共能力时调用 `PresentationLabFlow.OpenAsync(token)`；该入口加载正式世界租约和 PresentationLabView，再打开 CinematicOverlayView 并交付预览容器。关闭使用 Flow 持有的具体实例，先停止／恢复本次效果，再归还表现 View 与世界资源并返回 Hub。体验页的后处理、时间和电影操作使用同一套正式公共 API。
+
+其他调用方按需使用 UIManager 显示 `CinematicOverlayView`，可用 SetData(viewport) 指定画面容器，null 为全屏。正式资源为 `UI/Presentation/CinematicOverlayView.prefab`；View 通过 CinematicOverlayBindings 初始化，在 OnShow Register、OnHide/OnDestroy Unregister，并由 UIManager／Loader 负责释放。若调整制作资源，保留三个独立通道：遮幕 Image/CanvasGroup、顶部/底部黑边、Title/SubTitle TMP/CanvasGroup。遮幕使用白 Sprite 和 UI/CinematicCurtain 材质，黑边位于目标容器内，固定引用通过正式 UIBind 维护。
 
 PlayTransitionAsync 的中点接收取消令牌。正常流程等待中点完成再开幕；取消会解除视觉等待、清幕并释放队列，即使中点没有响应令牌。已启动的导航或加载不会被强制终止，中点业务必须自行完成事务或处理取消、回滚；调用方不能把视觉任务已取消当成业务已经停止。中点不能等待同一黑幕通道的另一场转场。
 
 PushLetterbox 返回 CinematicPresenter.LetterboxHandle，仍可作为 IDisposable 持有。调用时明确传入需要隐藏的 HUD。正常结束等待 handle.ExitAsync()，默认沿用预设黑边时长，也可指定退出时长；它停止自身进入动画，再缩回到下层有效黑边并淡入允许恢复的 HUD。重复调用可同时等待同一退出任务，沿用首次参数与取消令牌；下层 owner 仍隐藏同一 HUD 时不会提前显现。finally、异常或场景卸载时 Dispose 立即恢复，无需等待动画。Exit 的主线程取消也立即清理，其它线程取消在主线程循环清理，取消异常仍传给等待者。
 
-Title 使用稳定语言键。黑边进入和退出均使用未缩放时间，减少动态时动画时长为零，时间冻结仍可执行这些 API。切换或销毁表现根会取消排队和正在执行的视觉任务并立即恢复 HUD，已启动中点业务仍按自己的事务收口。
+标题调用 CinematicRuntime.ShowTitleAsync，使用稳定语言键；遮幕使用 PlayTransitionAsync，黑边与 HUD 淡出使用 PushLetterbox 的句柄。黑边进入和退出均使用未缩放时间，减少动态时动画时长为零，时间冻结仍可执行这些 API。切换或销毁表现根会取消排队和正在执行的视觉任务并立即恢复 HUD，已启动中点业务仍按自己的事务收口。
 
 ## 排障
 
 初始化失败先查 ConfigAddress、YooAsset Config 采集和 SO 引用；字体失败查 FontId 双语言映射及材质 atlas。设置保存失败查 Feedback 和 LocalDataManager 的大小/校验反馈，不能直接覆写新默认值掩盖损坏。画质降级查 DisplaySettingsRuntime.Status 与 StreamlineRuntime.Status。演出缺根先完成正式 View 注册，禁止用临时 Canvas 兜底。
+
+本轮正式 UI 与资源接线尚需运行／视觉复测。按直接受影响范围验证五宿主打开和返回、分页候选保留与释放、绑定列表回收、显示确认恢复、Hub 语言重建以及演出停止／退出；测试与真实设备结果记录到[实施记录](../agent/settings-goal-progress.md)。持续接入使用上述公共入口与正式资源，不依赖一次性制作菜单。

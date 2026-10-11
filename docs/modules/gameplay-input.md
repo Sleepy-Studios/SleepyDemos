@@ -25,7 +25,7 @@
 
 需要清理设备切换前的保持输入时，调用 `InputActionSession.RequireRelease(旧设备)`，只锁住旧设备仍按住的动作，不以重新开启整张 Map 的方式吞掉新设备首次按键。
 
-Core不处理下注、机台、牌局、角色运动约束或游戏时钟，也不创建界面、相机和第二套EventSystem。宿主保留自己的inputactions、动作到玩法命令的映射、提示文案、触控布局和设置存储。参数对象可由任意设置系统提供，模块不另建PlayerPrefs键或存档格式。
+Core不处理下注、机台、牌局、角色运动约束或游戏时钟，也不创建相机和第二套EventSystem。宿主保留自己的inputactions、动作到玩法命令的映射、专属提示文案、触控布局和玩法设置。公共输入参数与绑定覆盖使用GameSettingsService，输入模块不另建PlayerPrefs键或存档格式。
 
 DroneFlight 和 DLSS 使用各自动作资产及公共 InputActionSession；Showcase 使用菜单作用域，不复制设备底座。
 
@@ -57,8 +57,26 @@ InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、
 
 松键门闩只覆盖按键与手柄持续轴，鼠标绝对位置不需要回屏幕原点。触控命令按钮的 InputBindingPrompt 可配置 captionOnly，仅显示动作名；独立帮助/操作面板继续按 PromptDevice 提示实际绑定。
 
-InputBindingPrompt 使用实际动作和设备内路径，绑定/设备变化时更新。图标目录 InputGlyphCatalog 保留原GUID，统一采用所需Kenney资源和许可；未知手柄面键使用通用位置图标，缺键使用空键帽和实际键名。已识别布局映射 Xbox/PlayStation/Switch。Submit/Confirm/Interact 使用 <Gamepad>/{Submit}，Cancel/Back 使用 <Gamepad>/{Cancel}，由布局解析到 Switch A/B，不能仅换显示图标。
+`InputBindingPrompt` 使用实际动作与设备内路径，在设备和绑定变化时刷新。默认复合提示为每个子方向选择当前设备的首个可用别名；设置绑定行使用 `BindBinding` 精确显示所选索引，W 与方向键即使属于同一动作也有各自图标。`Bind` 和 `BindPart` 清除精确索引选择；`BindPart` 保留指定复合子项。说明页可用 `SetDisplayDevice` 预览另一设备，实际输入设备与触控区域保持原状态。
 
-InputActionSession 的参数和绑定来自 GameSettingsService 成功提交快照，更新时保留 Router 已启用上下文。InputRebindSession 持有独立候选，不修改源资产；按SourceId/BindingId保存并校验，固定UI安全动作不可改。Caption用LanguageService一次性配置，无语言监听。详见[公共设置与表现](settings-presentation.md)。
+正式公共基底为 `Assets/LoadResources/UI/Common/Input/InputPrompt.prefab` 与 `InputPromptButton.prefab`。前者提供独立 Caption 与多个 GlyphSlot，键帽包含图标、无对应图标时的真实键名以及组合分隔符；槽不足时保留完整绑定文本。后者复用相同提示结构，增加 Button、五态交互和 InputCommandButton。点击或保持仍交付 Demo 原命令，暂停、隐藏和失焦配对释放保持操作。
+
+Drone、DLSS、Wall、KagitKart 各保存自己的真正 Prefab Variants；前三者位于各自 `Prefabs/UI/Parts/`，KagitKart 位于 `Prefabs/UI/Widgets/`。Variant 维护各 Demo 的颜色、字体样式、Sprite 与间距。纸艺赛车继续使用原纸卡和父页布局，公共提示只替换局部提示部件。`InputPromptGroup` 保存稳定行 Key、提示组件和可选区域的明确制作引用；View 通过正式 UIBind 生成字段持有组，运行时按 Key 取行，不扫描层级或临时生成提示。Drone HUD 的触控、操作面板和菜单提示也由该组保存。
+
+`InputGlyphCatalog` 及其 GUID 保持稳定，资源位于 `UI/Common/Sprites/Input/Kenney/`，目录包含随包保存的 CC0 许可。键盘实际使用 Kenney 的字母、数字、功能键、修饰键、方向键和常用特殊键图形，鼠标使用对应鼠标按钮图形；只有缺少对应图标的键才显示空键帽与实际键名。单字母键按当前键盘布局的显示名选择图形。已识别手柄布局映射 Xbox、PlayStation、Switch，未知手柄使用通用位置图标；新增手柄沿用 InputDeviceState 的布局识别和 Catalog 的设备风格映射。菜单确认／返回的用途绑定由真实布局解析，Switch 的 A/B 对应真实物理位置，图标映射与控件路径必须一致。
+
+菜单提示的 `menuAction` 支持 `Navigate`、`Submit`、`Cancel`，分别绑定现有 InputSystemUIInputModule 的 move、submit、cancel。Navigate 不提交确认；绑定 Demo 会话资产也不会覆盖这些公共菜单动作。固定 UI 导航、确认和返回由原 UI Module 处理。
+
+Caption 使用 LanguageService 一次性设置文案，没有语言监听；字体与材质制作遵循[多语言与公共字体规范](../architecture/localization-fonts.md)。
+
+## 输入设置与重绑定
+
+`InputSettingsCatalog.Entry` 保存宿主 DisplayKey、正式源动作资产与 SourceId；`Entry.Actions` 通过 ActionId GUID 与 DisplayKey 明确选择该宿主实际消费的动作。同 Caption 的不同动作 GUID 均保留，例如 Kart 的 Drive 与 Global 快捷键。Hub 只列实际使用的 UI 动作，源资产里的 Player 动作不作为 Hub 改键入口；无绑定占位和内部指针动作不列入候选。
+
+设置页按宿主、动作与实际单绑定展示，保存身份为 SourceId 与 binding.id，绑定索引用于当前候选动作的显示和编辑。复合根只作分组，子绑定分别编辑；同方向的多个键位别名保持独立。行上的文案来自 Actions 映射，物理键来自实际候选，避免显示名称、译文或列表顺序成为保存身份。
+
+`InputRebindSession` 独占禁用的候选副本，监听、重置和冲突校验不改源资产或正在运行的会话。行交互先查询 `CanRebind`，UI／Menu Map 以及 Submit、Cancel、Point、Click 等安全动作保持固定；可展示其绑定但不可修改。监听以公共 Cancel 用途取消，取消、退出或销毁时释放操作和副本。`ExportOverrides` 在监听结束后校验导出，再交由公共设置提交；保存边界按正式目录验证 SourceId、绑定 GUID、冲突和固定入口。
+
+InputActionSession 的参数和覆盖来自 GameSettingsService 成功提交快照。覆盖确实改变时 Router 清理旧边沿，并在当前上下文重建松键门闩；提交时已按住的新绑定必须松开再按才执行。音量等设置变化不会重置输入。详见[公共设置与表现](settings-presentation.md)。
 
 UIBind 可以生成 InputCommandButton 的点击与保持回调；RegisterExtend 将回调交给 View 持有并在销毁时退订。InputBindingPrompt.BindAsset 按源动作 GUID 绑定实际会话副本；TouchInputPad 在禁用、失焦与应用暂停时释放指针。
