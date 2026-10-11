@@ -18,6 +18,8 @@ Unity 菜单：
 
 不要把业务字体放进 `Temp`、`Assets/TextMesh Pro` 或 `Assets/Plugins`。
 
+普通 Demo 只复用公共 `HarmonyOS_CN`、`BebasNeue_EN`，缺字更新公共字符集与原字体，不新建专属或 Supplement 字体。新增其他语言或特殊字体须先确认范围，详见[多语言与公共字体规范](../architecture/localization-fonts.md)。下方新增流程仅用于已确认的公共语言／字体扩展。
+
 命名细节见 [资源命名规范](../architecture/asset-naming.md)。
 
 ## 新增字体
@@ -46,8 +48,11 @@ Unity 菜单：
 
 ## 更新现有字体
 
+- 先把缺字合并到对应公共字符集；选择默认预设并核对原输出路径、字号、padding 与图集尺寸，不因某个 Demo 补字而复制字体或新增后缀。
+- 当前中文资产参数为采样字号 `54`、padding `8`、atlas `4096`；英文为 `90`、`9`、`2048`。一键默认生成入口使用固定参数，补字保留现有表现时通过 Font Builder 窗口按原资产参数更新。
 - 当输出路径已有同名 TMP 字体时，生成前会弹出覆盖确认。
 - 更新会复用现有 `.asset`、材质与 atlas 路径，避免删除重建造成 GUID 变化和引用丢失。
+- 覆盖已有字体后，工具同步刷新该实例的字形查询缓存，新字无需重启 Editor 即可识别。
 - fallback 字段为空且启用“保留现有 fallback”时，会沿用现有字体的 fallback 列表；关闭后才会清空。
 - 字号必须大于 `0`，padding 不能小于 `0`，atlas 尺寸必须是 `256` 到 `4096` 的 2 次幂。
 

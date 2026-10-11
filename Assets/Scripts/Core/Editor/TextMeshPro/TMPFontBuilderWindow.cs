@@ -905,6 +905,8 @@ namespace Core.Editor.TextMeshPro
                     : null;
                 EditorUtility.CopySerialized(fontAsset, existing);
                 existing.name = fontAsset.name;
+                // 同一字体实例的非序列化查询表必须同步刷新，才能立即识别新字形。
+                existing.ReadFontAssetDefinition();
                 if (!exportExternalAtlas && generatedAtlas != null)
                 {
                     generatedAtlas.name = $"{fontAsset.name} Atlas";

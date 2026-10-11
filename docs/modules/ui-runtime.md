@@ -206,7 +206,7 @@ CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标�
 - `Tests.Module.UIViewPrefabConventionTests` 检查公共 View Prefab 根节点 Canvas 三件套。
 - `Tests.Module.CoreUIComponentMigrationTests` 检查全局扩展、顶点翻转、金字塔布局、TMP 自动滚动裁剪装配和圆角 Shader/材质链路。
 - 默认字体选型与 TMP Settings 资源绑定在字体调整时按字体流程人工检查，不由公共 UI 测试固定为某个字体资产；圆角与 TMP 网格效果的行为回归继续保留。
-- 通用Loading沿用`HarmonyOS_CN`，新增字形由共享`HarmonyOS_CNSupplement`回退字体补充。补充字体使用同一中文源、512动态图集和多图集扩容，保留原字体图集及材质GUID，不让公共UI依赖某个Demo专属字库。正式Prefab直接保存字体、材质和回退引用，不保留一次性装配脚本作为运行或维护入口。
+- 公共 UI 与普通 Demo 复用 `HarmonyOS_CN`、`BebasNeue_EN` 两套默认字体，缺字合并公共字符集并更新原静态字库；不新增补字回退或 Demo 专属字体。正式 Prefab 保存字体和材质引用，更新保留原字体、图集及材质 GUID。具体要求见[多语言与公共字体规范](../architecture/localization-fonts.md)。
 - `Tests.Module.UIStackTests` 在 Edit Mode 中检查 Page、Modal、Widget、Back、快照恢复和只读状态边界。
 - `Tests.Module.UIBindTransitionGenerationTests` 在 Edit Mode 中检查 UIBind 生成 Transition 工厂、显式 ViewMode 和 World Transition Key。
 - `Tests.Module.UIRootManagerPlayModeTests` 在真实 Play Mode 中检查 Root Canvas、六个固定层、Mask、重复初始化和清栈后的 Mask 状态。
