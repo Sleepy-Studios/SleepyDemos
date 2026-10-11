@@ -15,7 +15,7 @@ namespace Hotfix.DroneFlight
             _ => "已解锁 · 飞行中"
         };
 
-        internal static string Camera(DroneHudSnapshot value, string switchKey, string aimKey)
+        internal static string Camera(DroneHudSnapshot value)
         {
             string mode = value.CameraMode switch
             {
@@ -26,9 +26,8 @@ namespace Hotfix.DroneFlight
                 DroneCameraMode.Belly => "机腹",
                 _ => "渔叉瞄准"
             };
-            string hint = value.CameraMode == DroneCameraMode.HarpoonAim ? aimKey + " 退出瞄准" : switchKey + " 切换";
             string angles = value.CameraMode == DroneCameraMode.Gimbal ? $"Y {value.GimbalYaw:F0}° / P {value.GimbalPitch:F0}°  ·  " : "";
-            return $"<b>{mode}</b>    <size=65%>{hint}</size>\n<size=60%>{angles}FOV {value.FieldOfView:F0}°</size>";
+            return $"<b>{mode}</b>\n<size=60%>{angles}FOV {value.FieldOfView:F0}°</size>";
         }
 
         internal static string Gear(DroneLandingGearState value) => value switch

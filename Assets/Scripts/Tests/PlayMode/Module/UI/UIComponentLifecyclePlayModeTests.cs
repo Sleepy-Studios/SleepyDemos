@@ -202,6 +202,156 @@ namespace Tests.Module
             finally { Object.Destroy(root); }
         }
 
+        [UnityTest]
+        public IEnumerator DropdownPopupEscapesScrollClippingWithoutCoveringLaterModalAndReturnsToOwner()
+        {
+            var canvasObject = new GameObject("DropdownCanvas", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+            canvasObject.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var ownEvents = EventSystem.current == null ? new GameObject("DropdownEvents", typeof(EventSystem)) : null;
+            var eventSystem = EventSystem.current;
+            var previousSelection = eventSystem.currentSelectedGameObject;
+            var controls = Rect("Controls", canvasObject.transform, new Vector2(640, 480));
+            var group = controls.gameObject.AddComponent<CanvasGroup>();
+            var viewport = Rect("ScrollViewport", controls, new Vector2(320, 44));
+            viewport.gameObject.AddComponent<RectMask2D>();
+            viewport.gameObject.AddComponent<Image>().color = Color.clear;
+            var content = Rect("Content", viewport, new Vector2(320, 200));
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = content;
+            var root = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Dropdown/Dropdown.prefab"), content);
+            var dropdown = root.GetComponent<UIDropdown>();
+            var tab = root.GetComponentInChildren<UITab>(true);
+            var popup = (RectTransform)tab.transform;
+            int selected = -1;
+            try
+            {
+                dropdown.SetData(new[] { "A", "B", "C", "D" }, index => selected = index, isAsync: false);
+                dropdown.SetPopupRoot(controls);
+                var originalParent = popup.parent;
+                int sibling = popup.GetSiblingIndex();
+                // 验证拉伸锚点也保持世界矩形，归还时制作数据完整恢复。
+                popup.anchorMin = new Vector2(0, 0.5f);
+                popup.anchorMax = new Vector2(1, 0.5f);
+                var anchorMin = popup.anchorMin;
+                var anchorMax = popup.anchorMax;
+                var pivot = popup.pivot;
+                var size = popup.sizeDelta;
+                var position = popup.anchoredPosition3D;
+                var rotation = popup.localRotation;
+                var scale = popup.localScale;
+                var corners = new Vector3[4];
+                popup.GetWorldCorners(corners);
+                var choice = tab.Items[3].GetComponent<Button>();
+                var laterRow = Rect("FollowingControl", controls, new Vector2(300, 50));
+                laterRow.gameObject.AddComponent<Image>();
+                laterRow.gameObject.AddComponent<Button>();
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                Canvas.ForceUpdateCanvases();
+                yield return null;
+                Vector3 choiceCenter = ((RectTransform)choice.transform).TransformPoint(((RectTransform)choice.transform).rect.center);
+                laterRow.position = choiceCenter;
+                Assert.That(viewport.rect.Contains(viewport.InverseTransformPoint(choiceCenter)), Is.False,
+                    "本回归选项必须确实位于普通滚动裁剪区域外。");
+                Assert.That(popup.parent, Is.SameAs(controls));
+                var expandedCorners = new Vector3[4];
+                popup.GetWorldCorners(expandedCorners);
+                for (int index = 0; index < corners.Length; index++)
+                {
+                    Assert.That(Vector3.Distance(corners[index], expandedCorners[index]), Is.LessThan(0.1f));
+                }
+                var point = RectTransformUtility.WorldToScreenPoint(null,
+                    ((RectTransform)choice.transform).TransformPoint(((RectTransform)choice.transform).rect.center));
+                Assert.That(TopHit(point).GetComponentInParent<Button>(), Is.SameAs(choice),
+                    "真实选项应越过 viewport 裁剪及后续行，成为最高射线命中。");
+                choice.OnPointerClick(Pointer(point));
+                Assert.That(selected, Is.EqualTo(3));
+                AssertRestored();
+
+                var controlRect = (RectTransform)root.transform;
+                Vector3 controlPosition = controlRect.anchoredPosition3D;
+                controlRect.anchoredPosition = new Vector2(0, controls.rect.yMin + 8);
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                var edgeBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(controls, popup);
+                Assert.That(edgeBounds.min.y, Is.GreaterThanOrEqualTo(controls.rect.yMin - 0.1f),
+                    "能容纳的列表在根底部展开时应夹回本页实际矩形。");
+                Assert.That(edgeBounds.max.y, Is.LessThanOrEqualTo(controls.rect.yMax + 0.1f));
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                AssertRestored();
+                controlRect.anchoredPosition3D = controlPosition;
+
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                group.interactable = false;
+                Assert.That(choice.IsInteractable(), Is.False, "弹出列表仍受本页 busy CanvasGroup 约束。");
+                dropdown.enabled = false;
+                AssertRestored();
+                group.interactable = true;
+                dropdown.enabled = true;
+                root.GetComponent<Button>().OnPointerClick(Pointer(Vector2.zero));
+                var modal = Rect("LaterModal", canvasObject.transform, new Vector2(1200, 1000));
+                modal.gameObject.AddComponent<Image>();
+                modal.SetAsLastSibling();
+                Canvas.ForceUpdateCanvases();
+                // 新增 Graphic 在帧末完成注册后再验证真实射线排序。
+                yield return null;
+                Assert.That(TopHit(point), Is.SameAs(modal.gameObject),
+                    "选项沿用原 Canvas 排序，不能盖过后来打开的 Modal。");
+                Object.Destroy(dropdown);
+                yield return null;
+                Assert.That(popup.parent, Is.SameAs(originalParent));
+                Assert.That(tab.gameObject.activeSelf, Is.False);
+                Object.Destroy(root);
+                yield return null;
+                Assert.That(tab == null, Is.True, "归还后的选项必须随原控件销毁，不遗留在宿主弹出区域。");
+
+                void AssertRestored()
+                {
+                    Assert.That(dropdown.IsExpanded, Is.False);
+                    Assert.That(tab.gameObject.activeSelf, Is.False);
+                    Assert.That(popup.parent, Is.SameAs(originalParent));
+                    Assert.That(popup.GetSiblingIndex(), Is.EqualTo(sibling));
+                    Assert.That(popup.anchorMin, Is.EqualTo(anchorMin));
+                    Assert.That(popup.anchorMax, Is.EqualTo(anchorMax));
+                    Assert.That(popup.pivot, Is.EqualTo(pivot));
+                    Assert.That(popup.sizeDelta, Is.EqualTo(size));
+                    Assert.That(popup.anchoredPosition3D, Is.EqualTo(position));
+                    Assert.That(popup.localRotation, Is.EqualTo(rotation));
+                    Assert.That(popup.localScale, Is.EqualTo(scale));
+                }
+            }
+            finally
+            {
+                if (eventSystem != null)
+                {
+                    eventSystem.SetSelectedGameObject(previousSelection);
+                }
+                Object.Destroy(canvasObject);
+                if (ownEvents != null) Object.Destroy(ownEvents);
+            }
+            yield return null;
+
+            RectTransform Rect(string name, Transform parent, Vector2 dimensions)
+            {
+                var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+                rect.SetParent(parent, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one * 0.5f;
+                rect.sizeDelta = dimensions;
+                return rect;
+            }
+            PointerEventData Pointer(Vector2 point) => new(eventSystem)
+            {
+                position = point, button = PointerEventData.InputButton.Left
+            };
+            GameObject TopHit(Vector2 point)
+            {
+                var results = new List<RaycastResult>();
+                eventSystem.RaycastAll(Pointer(point), results);
+                Assert.That(results, Is.Not.Empty);
+                return results[0].gameObject;
+            }
+        }
+
         private sealed class DeferredView : View
         {
             public override string Address => "Tests/DeferredView";

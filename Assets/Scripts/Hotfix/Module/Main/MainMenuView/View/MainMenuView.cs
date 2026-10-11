@@ -3,6 +3,7 @@ namespace Hotfix
     using Core.Runtime;
     using Core.Runtime.Inputs;
     using Core.Runtime.Localization;
+    using Core.Runtime.Settings;
     using Cysharp.Threading.Tasks;
     using Hotfix.SceneManagement;
     using SleepyStudios.LoopScroll;
@@ -23,12 +24,17 @@ namespace Hotfix
         private MenuInputScope menuInput;
         private LoopScrollMenuNavigation navigation;
         private int selectedIndex => data.SelectedIndex;
+        private GameObject PreferredSelection => LoopScrollView_DemoList.GetVisibleCell(selectedIndex)
+            ?.GetComponentInChildren<LoopScrollMenuButton>(true)?.gameObject ?? navigation.FirstSelection;
 
         protected override void OnGameObjectInitialize()
         {
             data = GlobalData.Get<MainMenuData>() ?? GlobalData.Add<MainMenuData>();
             entries = data.Entries;
             LanguageService.SetText(Button_Settings.transform.Find("Label").GetComponent<TMPro.TMP_Text>(), "Settings.Title");
+            LanguageService.SetText(Button_Effects.GetComponentInChildren<TMPro.TMP_Text>(true), "Hub.Effects");
+            GameSettingsService.Changed += RefreshInputHints;
+            AddBinding(() => GameSettingsService.Changed -= RefreshInputHints);
             LanguageService.SetText(transform.Find("GalleryContent/Eyebrow").GetComponent<TMPro.TMP_Text>(), "Hub.Eyebrow");
             BindData<MainMenuData>(RenderMainData);
             BindData<UserData>(OnUserData);
@@ -46,10 +52,10 @@ namespace Hotfix
             base.OnShow();
             RefreshEntryControls();
             ReleaseMenuInput();
+            if (selectedIndex > 0) LoopScrollView_DemoList.ScrollToCell(selectedIndex, ScrollAlignment.Center);
             menuInput = new MenuInputScope(EventSystem.current, selectionRoot: transform);
-            menuInput.SetContext(GameplayInputContext.Menu, navigation.FirstSelection);
-            InputDeviceState.Changed += RefreshInputHints;
-            RefreshInputHints();
+            menuInput.SetContext(GameplayInputContext.Menu, PreferredSelection);
+            RefreshInputHints(GameSettingsService.Current);
             UpdateMenuInputAsync(menuInput).Forget();
             EventDispatcher.TriggerEvent(EventConst.MainOpenView);
         }
@@ -58,14 +64,12 @@ namespace Hotfix
         {
             base.OnHide();
             ReleaseMenuInput();
-            ReleasePresentation();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
             ReleaseMenuInput();
-            ReleasePresentation();
             EventDispatcher.RemoveEventListener(EventConst.MainOpenView, OnMainOpenView);
         }
 
@@ -76,10 +80,10 @@ namespace Hotfix
             while (IsEnable && ReferenceEquals(menuInput, scope))
             {
                 // OnShow 可能早于返回 Hub 的事务收尾，导航完成后自动恢复入口。
-                if (lastCanEnter != (!data.IsEntering && GameSceneNavigator.Instance?.IsTransitioning != true && !HubLanguageFlow.IsChanging)) RefreshAvailability();
+                if (lastCanEnter != (!data.IsEntering && GameSceneNavigator.Instance?.IsTransitioning != true && !SettingsFlow.IsSubmitting)) RefreshAvailability();
                 if (InputDeviceState.ActiveKind == InputDeviceKind.Touch) scope.Update();
                 else scope.Update(!string.IsNullOrEmpty(entryFeedback) && Button_Start.interactable
-                    ? Button_Start.gameObject : navigation.FirstSelection);
+                    ? Button_Start.gameObject : PreferredSelection);
                 // 焦点由公共列表导航维护，本页只同步当前玩法的展示数据。
                 var selected = EventSystem.current?.currentSelectedGameObject;
                 if (selected != null && selected.transform.IsChildOf(LoopScrollView_DemoList.transform))
@@ -166,7 +170,23 @@ namespace Hotfix
             if (entry.CanEnter && entry.SceneId.HasValue && CanEnterDemo) GlobalData.Dispatch(new MainMenuEnterAction(entry.SceneId.Value));
         }
 
-        private void OnSettingsClick() => UIManager.Instance.ShowAsync<DlssSettingsView>().Forget();
+        private void OnSettingsClick() => OpenSettingsAsync().Forget();
+
+        private async UniTask OpenSettingsAsync()
+        {
+            var result = await SettingsFlow.OpenAsync(GameSceneId.Hub);
+            if (result.Status == UIOperationStatus.Failed && IsEnable)
+                RefreshEntryControls(LanguageService.Get("Hub.SettingsFailure"));
+        }
+
+        private void OnEffectsClick() => OpenEffectsAsync().Forget();
+
+        private async UniTask OpenEffectsAsync()
+        {
+            var result = await PresentationLabFlow.OpenAsync();
+            if (result.Status == UIOperationStatus.Failed && IsEnable)
+                RefreshEntryControls(LanguageService.Get("Hub.EffectsFailure"));
+        }
 
         private void RefreshPrimaryAction()
         {
@@ -174,6 +194,7 @@ namespace Hotfix
             var entry = entries[selectedIndex];
             Button_Start.interactable = entry.CanEnter && CanEnterDemo;
             Button_Settings.interactable = CanEnterDemo;
+            Button_Effects.interactable = CanEnterDemo;
             LanguageService.SetText(TextMeshProUGUI_StartLabel, !entry.SceneId.HasValue ? "Hub.Unavailable" :
                 !CanEnterDemo ? "Common.Loading" : string.IsNullOrEmpty(entryFeedback) ? "Hub.Start" : "Common.Retry");
         }
@@ -190,21 +211,9 @@ namespace Hotfix
             }
         }
 
-        private void ReleasePresentation()
+        private void RefreshInputHints(GameSettingsSnapshot settings)
         {
-            InputDeviceState.Changed -= RefreshInputHints;
-        }
-
-        private void RefreshInputHints()
-        {
-            if (InputDeviceState.ActiveKind == InputDeviceKind.Touch)
-                LanguageService.SetText(TextMeshProUGUI_Hints, "Hub.TouchHints");
-            else if (InputDeviceState.PromptKind == InputDeviceKind.Gamepad)
-            {
-                string confirm = InputDeviceState.PromptStyle == GamepadStyle.PlayStation ? "×" : "A";
-                LanguageService.SetText(TextMeshProUGUI_Hints, "Hub.GamepadHints", null, confirm);
-            }
-            else LanguageService.SetText(TextMeshProUGUI_Hints, "Hub.KeyboardHints");
+            InputPromptGroup_MainMenuView.SetVisible(settings.Accessibility.ShowInputPrompts);
         }
     }
 }

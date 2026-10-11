@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using Cysharp.Threading.Tasks;
 namespace Hotfix
 {
     using Core.Runtime;
@@ -19,9 +20,12 @@ namespace Hotfix
             base.OnGameObjectInitialize();
             InitializeControlsReferences();
             InitializeControls();
+            Core.Runtime.Localization.LanguageService.SetText(TextMeshProUGUI_GraphicsSettingsLabel, "Settings.Graphics");
             resetProgressBar = UIProgressBar_ResetProgressFill;
             GameSettingsService.Changed += OnSettingsChanged;
             AddBinding(() => GameSettingsService.Changed -= OnSettingsChanged);
+            InputDeviceState.Changed += RefreshTelemetryHints;
+            AddBinding(() => InputDeviceState.Changed -= RefreshTelemetryHints);
             OnSettingsChanged(GameSettingsService.Current);
             BindData<DroneFlightData>(OnData);
             BindUpdate(UpdateControls);
@@ -47,8 +51,6 @@ namespace Hotfix
 
         protected override void OnDestroy() { ReleaseInput(); input = null; base.OnDestroy(); }
 
-        private string Key(string action) => showInputPrompts ? params1?.Input?.Label(action, "") ?? "" : "";
-
         private void OnSnapshotChanged(DroneFlightUiSnapshot snapshot)
         {
             CanvasGroup_TelemetryRoot.alpha = snapshot.TelemetryVisible ? 1 : 0;
@@ -56,24 +58,72 @@ namespace Hotfix
             CanvasGroup_TelemetryRoot.blocksRaycasts = false;
             var hud = snapshot.Hud;
             TextMeshProUGUI_StatusText.text = $"<b>{DroneHudFormatter.FormatProfile(hud.Profile)}</b>\n<size=70%>{DroneHudPresentation.Status(hud)}</size>";
-            TextMeshProUGUI_CameraText.text = DroneHudPresentation.Camera(hud, Key("SwitchCamera"), Key("Aim"));
+            TextMeshProUGUI_CameraText.text = DroneHudPresentation.Camera(hud);
             TextMeshProUGUI_HeightText.text = $"{hud.Height:F1} <size=65%>m</size>";
             TextMeshProUGUI_DistanceText.text = $"{hud.Distance:F1} <size=65%>m</size>";
             TextMeshProUGUI_HorizontalText.text = $"{hud.HorizontalSpeed:F1} <size=65%>m/s</size>";
             TextMeshProUGUI_VerticalText.text = $"{hud.VerticalSpeed:+0.0;-0.0;0.0} <size=65%>m/s</size>";
-            TextMeshProUGUI_GearText.text = $"起落架  <color=#F4A23A>{DroneHudPresentation.Gear(hud.LandingGearState)}</color>  <size=75%>{Key("LandingGear")}</size>";
+            TextMeshProUGUI_GearText.text = $"起落架  <color=#F4A23A>{DroneHudPresentation.Gear(hud.LandingGearState)}</color>";
             bool equipped = snapshot.Equipment.Kind != DroneEquipmentKind.None;
             RectTransform_EquipmentPanel.gameObject.SetActive(equipped);
             TextMeshProUGUI_EquipmentText.text = snapshot.EquipmentText;
-            TextMeshProUGUI_EquipmentActions.text = DroneHudFormatter.FormatEquipmentControls(snapshot.Equipment.Kind, Key);
+            string equipmentControlsKey = DroneHudFormatter.EquipmentTouchControlsKey(snapshot.Equipment.Kind);
+            if (equipmentControlsKey != null)
+            {
+                Core.Runtime.Localization.LanguageService.SetText(TextMeshProUGUI_EquipmentActions, equipmentControlsKey);
+            }
+            else
+            {
+                TextMeshProUGUI_EquipmentActions.text = string.Empty;
+            }
             TextMeshProUGUI_WarningText.text = snapshot.WarningText;
             TextMeshProUGUI_WarningText.color = hud.OperationState == DroneFlightOperationState.Fault
                 ? new UnityEngine.Color32(240, 77, 65, 255) : new UnityEngine.Color32(244, 162, 58, 255);
             RectTransform_WarningPanel.gameObject.SetActive(!string.IsNullOrEmpty(snapshot.WarningText));
             RectTransform_ResetPanel.gameObject.SetActive(snapshot.ResetProgress > 0);
             resetProgressBar.SetValue(snapshot.ResetProgress);
-            TextMeshProUGUI_ResetProgressText.text = $"{Key("ArmOrReset")}  重新运行场景  {snapshot.ResetProgress * snapshot.ResetHoldSeconds:F1} / {snapshot.ResetHoldSeconds:F1} s  · 松开取消";
+            TextMeshProUGUI_ResetProgressText.text = $"重新运行场景  {snapshot.ResetProgress * snapshot.ResetHoldSeconds:F1} / {snapshot.ResetHoldSeconds:F1} s  · 松开取消";
+            RefreshTelemetryHints(snapshot);
             SetEquipment(snapshot.Equipment.Kind);
+        }
+
+        private void RefreshTelemetryHints()
+        {
+            if (state?.HasSnapshot == true)
+            {
+                RefreshTelemetryHints(state.Snapshot);
+            }
+        }
+
+        private void RefreshTelemetryHints(DroneFlightUiSnapshot snapshot)
+        {
+            bool touch = InputDeviceState.PromptKind == InputDeviceKind.Touch;
+            bool pad = InputDeviceState.PromptKind == InputDeviceKind.Gamepad;
+            bool physical = showInputPrompts && !touch;
+            bool aiming = snapshot.Hud.CameraMode == DroneCameraMode.HarpoonAim;
+            var kind = snapshot.Equipment.Kind;
+            TextMeshProUGUI_EquipmentActions.gameObject.SetActive(touch && showInputPrompts);
+            BindTelemetryPrompt("Camera", aiming ? "Aim" : "SwitchCamera", aiming ? "Input.Drone.ExitAim" : "Input.Drone.SwitchCamera", physical);
+            BindTelemetryPrompt("Gear", "LandingGear", pad ? "Input.Drone.Panel" : "Input.Drone.GearToggle", physical);
+            BindTelemetryPrompt("Aim", "Aim", "Input.Drone.Aim", physical && kind == DroneEquipmentKind.Harpoon);
+            BindTelemetryPrompt("Equipment", "Equipment", kind == DroneEquipmentKind.Grapple ? "Input.Drone.GrappleToggle" : "Input.Drone.HarpoonAction",
+                physical && kind != DroneEquipmentKind.None);
+            BindTelemetryPrompt("Line", "Line", kind == DroneEquipmentKind.Grapple ? "Input.Drone.GrappleLine" : "Input.Drone.Line",
+                physical && kind != DroneEquipmentKind.None);
+            BindTelemetryPrompt("Reset", "ArmOrReset", "Input.Drone.HoldReset", physical && snapshot.ResetProgress > 0);
+        }
+
+        private void BindTelemetryPrompt(string key, string action, string captionKey, bool visible)
+        {
+            var prompt = InputPromptGroup_DroneFlightHudView.Get("Telemetry/" + key);
+            var value = input?.Session?.Asset.FindAction("Flight/" + action);
+            if (prompt.Action != value)
+            {
+                prompt.Bind(value);
+            }
+            prompt.SetCaptionKey(captionKey);
+            prompt.SetBindingsVisible(showInputPrompts);
+            prompt.gameObject.SetActive(visible);
         }
 
         protected override void OnHide() { ReleaseInput(); base.OnHide(); }
@@ -121,6 +171,7 @@ namespace Hotfix
                 prompt.SetBindingsVisible(showInputPrompts);
             }
             RefreshControls();
+            RefreshTelemetryHints();
         }
 
         /// 释放本次绑定；不能将被取消的长按当作解锁短按。
@@ -174,6 +225,7 @@ namespace Hotfix
 
         private void ClosePanel() => GlobalData.Dispatch(new DroneFlightControlAction("ClosePanel"));
         private void OnCommand(string name) => GlobalData.Dispatch(new DroneFlightControlAction(name));
+        private void OnGraphicsSettingsClick() => SettingsFlow.OpenAsync(Hotfix.SceneManagement.GameSceneId.DroneFlight).Forget();
         private void OnHold(string name, bool held) => GlobalData.Dispatch(new DroneFlightHoldAction(name, held));
         private void InitializeControls()
         {
@@ -190,7 +242,28 @@ namespace Hotfix
             leftThumb = RectTransform_Thumb;
             rightThumb = RectTransform_Thumb1;
             buttons = new Core.Runtime.Inputs.InputCommandButton[] { InputCommandButton_ArmOrReset, InputCommandButton_Equipment, InputCommandButton_Aim, InputCommandButton_ViewModifier, InputCommandButton_ReelIn, InputCommandButton_ReelOut, InputCommandButton_Activate, InputCommandButton_Back, InputCommandButton_Panel, InputCommandButton_Takeoff, InputCommandButton_Landing, InputCommandButton_ProfileCine, InputCommandButton_ProfileNormal, InputCommandButton_ProfileSport, InputCommandButton_LandingGear, InputCommandButton_SwitchCamera, InputCommandButton_ZoomIn, InputCommandButton_ZoomOut, InputCommandButton_Help, InputCommandButton_DebugDraw, InputCommandButton_DebugPanel, InputCommandButton_CopyTelemetry, InputCommandButton_Exit, InputCommandButton_Panel1, InputCommandButton_OpenOperations, InputCommandButton_OpenHelp };
-            prompts = new Core.Runtime.Inputs.InputBindingPrompt[] { InputBindingPrompt_Prompt_解锁___长按复位, InputBindingPrompt_Prompt_装备操作, InputBindingPrompt_Prompt_瞄准, InputBindingPrompt_Prompt_镜头模式, InputBindingPrompt_Prompt_收线, InputBindingPrompt_Prompt_放线, InputBindingPrompt_Prompt_进入遥控, InputBindingPrompt_Prompt_返回, InputBindingPrompt_Prompt_操作面板, InputBindingPrompt_Prompt_自动起飞, InputBindingPrompt_Prompt_自动降落, InputBindingPrompt_Prompt_平稳模式, InputBindingPrompt_Prompt_普通模式, InputBindingPrompt_Prompt_运动模式, InputBindingPrompt_Prompt_起落架收放, InputBindingPrompt_Prompt_切换镜头, InputBindingPrompt_Prompt_放大视野, InputBindingPrompt_Prompt_缩小视野, InputBindingPrompt_Prompt_操作说明, InputBindingPrompt_Prompt_动力矢量, InputBindingPrompt_Prompt_调试面板, InputBindingPrompt_Prompt_复制遥测, InputBindingPrompt_Prompt_返回_Hub, InputBindingPrompt_Prompt_关闭面板, InputBindingPrompt_Prompt_确认, InputBindingPrompt_Prompt_返回1, InputBindingPrompt_Prompt_操作面板1, InputBindingPrompt_Prompt_操作说明1 };
+            var group = InputPromptGroup_DroneFlightHudView;
+            if (group == null)
+            {
+                throw new System.InvalidOperationException("正式无人机 HUD 提示组尚未制作。");
+            }
+            prompts = new[]
+            {
+                group.Get("Touch/ArmOrReset"), group.Get("Touch/Equipment"), group.Get("Touch/Aim"),
+                group.Get("Touch/ViewModifier"), group.Get("Touch/ReelIn"), group.Get("Touch/ReelOut"),
+                group.Get("Touch/Activate"), group.Get("Touch/Back"), group.Get("Touch/Panel"),
+                group.Get("Operations/Takeoff"), group.Get("Operations/Landing"), group.Get("Operations/ProfileCine"),
+                group.Get("Operations/ProfileNormal"), group.Get("Operations/ProfileSport"), group.Get("Operations/LandingGear"),
+                group.Get("Operations/SwitchCamera"), group.Get("Operations/ZoomIn"), group.Get("Operations/ZoomOut"),
+                group.Get("Operations/Help"), group.Get("Operations/DebugDraw"), group.Get("Operations/DebugPanel"),
+                group.Get("Operations/CopyTelemetry"), group.Get("Operations/Exit"), group.Get("Operations/Panel"),
+                group.Get("Menu/Submit"), group.Get("Menu/Cancel"),
+                group.Get("Hud/Panel"), group.Get("Hud/Help")
+            };
+            foreach (string key in new[] { "Camera", "Gear", "Aim", "Equipment", "Line", "Reset" })
+            {
+                group.Get("Telemetry/" + key);
+            }
         }
     }
 }

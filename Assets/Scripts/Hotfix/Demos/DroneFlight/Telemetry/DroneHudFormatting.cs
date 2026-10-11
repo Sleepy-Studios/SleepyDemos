@@ -113,6 +113,15 @@ namespace Hotfix.DroneFlight
                 _ => "无附加装备操作"
             };
 
+        /// 触屏沿用专属操作区的说明，不拼接物理键名。
+        internal static string EquipmentTouchControlsKey(DroneEquipmentKind kind)
+            => kind switch
+            {
+                DroneEquipmentKind.Grapple => "Input.Drone.GrappleControls",
+                DroneEquipmentKind.Harpoon => "Input.Drone.HarpoonControls",
+                _ => null
+            };
+
         internal static string FormatProfile(DroneResponseProfile profile)
         {
             return profile switch

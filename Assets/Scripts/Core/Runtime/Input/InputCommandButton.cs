@@ -15,6 +15,17 @@ namespace Core.Runtime.Inputs
         private int releaseFrame = -1;
         /// 保存于资源中的业务动作名称。
         public string Command => command;
+        public bool IsHoldCommand => hold;
+
+        /// <summary>制作可点击提示时配置同一业务命令；不生成第二条硬件输入路径。</summary>
+        /// <param name="value">宿主已有命令名。</param>
+        /// <param name="isHold">指针保持动作，隐藏与失焦配对释放。</param>
+        public void Configure(string value, bool isHold = false)
+        {
+            ReleaseHold();
+            command = value;
+            hold = isHold;
+        }
         /// 原生 Button 点击或确认，保持操作的指针 Click 不再重复触发。
         public event Action<string> Clicked;
         /// 拥有指针的保持状态，禁用时配对释放。

@@ -98,6 +98,8 @@ dropdown.SetData(
 dropdown.SetSelectedIndex(savedIndex);
 ```
 
+下拉控件位于 ScrollRect 或异构表单内时，调用 `dropdown.SetPopupRoot(popupRoot)`，把选项临时挂到同一 View 内、裁剪区域外的容器。设置页使用自己的 controls，体验页使用 Menu；容器保留该页 CanvasGroup 和菜单作用域。展开不会改变表单行顺序，收起、禁用或销毁会恢复原父级及布局，后来打开的 Modal 仍在其上方。可容纳的列表按实际容器尺寸夹回边界；超长选项仍由制作侧配置合适尺寸与滚动，不使用全局高排序 Canvas 盖住其它页面。
+
 ```csharp
 switchButton.SetAction(OnSwitchChanged);
 switchButton.SetStatus(savedValue, notify: false);
@@ -157,6 +159,8 @@ titleText.text = title;
 圆角、渐变、翻转、矩形裁剪和自动滚动还应在真实 Canvas 中做一次 Play Mode 目视检查；当前仓库没有可用的 `UIFrameworkValidation` 页面或菜单，按业务 Prefab 接入后验证即可。
 
 完整步骤见 [运行 Unity 自动化测试](./run-unity-tests.md)。
+
+UIDropdown 浮层接入的直接回归是 `UIComponentLifecyclePlayModeTests.Dropdown_DefaultAsyncCompletesWhileCollapsed` 与 `DropdownPopupEscapesScrollClippingWithoutCoveringLaterModalAndReturnsToOwner`，分别覆盖原异步收起初始化，以及真实射线、原布局归还、busy、禁用/销毁和后续 Modal 覆盖。先运行这两个精确方法，不因局部下拉修改扩到无关组件或项目全量测试。
 
 ## 交互状态与业务选中
 

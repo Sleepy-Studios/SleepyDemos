@@ -15,11 +15,148 @@ MonoBehaviour:
   entries:
   - displayKey: Input.Hub
     asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    actions:
+    - actionId: c95b2375-e6d9-4b88-9c4c-c5e76515df4b
+      displayKey: Input.Navigate
+    - actionId: 7607c7b6-cd76-4816-beef-bd0341cfe950
+      displayKey: Input.Confirm
+    - actionId: 15cef263-9014-4fd5-94d9-4e4a6234a6ef
+      displayKey: Input.Back
   - displayKey: Input.Dlss
     asset: {fileID: -944628639613478452, guid: 8707e4f2a594c55468c0f6d1e239cbdb, type: 3}
+    actions:
+    - actionId: ae46a934-10ab-412c-b1c0-85f7d993e600
+      displayKey: Input.Move
+    - actionId: 27527609-9910-49a0-8406-4b5217a90139
+      displayKey: Input.Look
+    - actionId: 2d1ae060-9466-40d4-8e0f-1a456412a529
+      displayKey: Input.Look
+    - actionId: c3b82635-0b6f-423d-88ea-3844f58c44da
+      displayKey: Input.LookHold
+    - actionId: ceb54f1e-74db-4b2d-9161-1d94da467300
+      displayKey: Input.Sprint
+    - actionId: 33cdcfe4-a0a9-41bb-bb0e-85994d7fa002
+      displayKey: Input.ResetView
+    - actionId: 2896408d-4b9f-4986-9567-605d472b6718
+      displayKey: Input.ReturnHub
+    - actionId: fe209e91-7c5b-4dbd-901c-074d6cf05971
+      displayKey: Input.Settings
   - displayKey: Input.DroneFlight
     asset: {fileID: -944628639613478452, guid: 301b27e55897ec7478306fcd6476c7aa, type: 3}
+    actions:
+    - actionId: 2c172fb9-ba56-442e-b652-70a2e7839d78
+      displayKey: Input.Move
+    - actionId: 40eb2a5e-5822-45b2-961b-1658e4f3edf5
+      displayKey: Input.Drone.VerticalYaw
+    - actionId: d12d15ce-7b33-4e4e-ad8c-ae42ac18100b
+      displayKey: Input.Drone.ArmOrReset
+    - actionId: 207e4591-919e-4acd-8b31-d1cb775c8f52
+      displayKey: Input.Drone.Takeoff
+    - actionId: dcfa03fd-f51c-40c0-adbd-f0afac0a0553
+      displayKey: Input.Drone.Landing
+    - actionId: d2fc1dfb-ddeb-4252-a08f-0fa864bc7b46
+      displayKey: Input.Drone.ProfileCine
+    - actionId: 72d63a21-f51c-4c0e-9fee-da8aff4c440f
+      displayKey: Input.Drone.ProfileNormal
+    - actionId: 944bdc22-37ea-4876-9f7f-5c76ac69bd55
+      displayKey: Input.Drone.ProfileSport
+    - actionId: d7de7674-d0fc-4180-9b4b-fe599f8e2134
+      displayKey: Input.Drone.Equipment
+    - actionId: 3596b644-7961-48da-93b4-c906f3d06c28
+      displayKey: Input.Drone.Aim
+    - actionId: ef7dfe83-63d8-40ca-85b3-0431adb01b7a
+      displayKey: Input.Drone.Line
+    - actionId: 869079b5-c67d-4c24-a334-82dfeddddc5a
+      displayKey: Input.Look
+    - actionId: 3d40f115-41d0-4f59-a050-1a37f0911636
+      displayKey: Input.Look
+    - actionId: 80bf4b4f-818e-4c33-8e10-0dcc2eb0908d
+      displayKey: Input.Drone.ViewModifier
+    - actionId: 533d5f87-53f6-43e2-88de-9839dcb54193
+      displayKey: Input.Drone.SwitchCamera
+    - actionId: eb3db89f-b323-4a1c-a9fd-cf60b773fcab
+      displayKey: Input.Drone.Zoom
+    - actionId: 0885563f-c520-429d-a044-03b2c26204f6
+      displayKey: Input.Drone.LandingGear
+    - actionId: 90ea5c1e-9fa1-4a7e-b9f9-41993668d466
+      displayKey: Input.Back
+    - actionId: 13f58e94-c591-4f50-826d-408191871e33
+      displayKey: Input.ReturnHub
+    - actionId: 39c751e2-2911-49af-8323-e43f5cdb1770
+      displayKey: Input.Drone.Panel
+    - actionId: 7a0c6274-f157-4bea-a138-82ccfca0e65f
+      displayKey: Input.Help
+    - actionId: 92cec0e7-7414-4143-a7d4-9a63b319b5e2
+      displayKey: Input.Drone.DebugDraw
+    - actionId: 33c67314-51c9-48d1-89bc-c2399b4340ea
+      displayKey: Input.Drone.DebugPanel
+    - actionId: 17b731d5-28ba-415e-8449-86cb03536c0f
+      displayKey: Input.Drone.CopyTelemetry
+    - actionId: c41c298d-4e75-4139-9c2f-7a62525100bf
+      displayKey: Input.Confirm
+    - actionId: eecfc5ec-f9ef-4554-ab1d-7e71e4cb55d7
+      displayKey: Input.ReturnHub
+    - actionId: e41bfb1f-a062-4dc8-8e54-a6c9f0a8ebae
+      displayKey: Input.Drone.Panel
+    - actionId: b952118a-6718-4d35-b106-8f2af6de89ff
+      displayKey: Input.Drone.Panel
+    - actionId: 6f1cdbe3-68b9-4e8f-acfd-2c0f3ba3468c
+      displayKey: Input.ReturnHub
   - displayKey: Input.WallSqueeze
     asset: {fileID: 11400000, guid: 5729c599f9863fc4cba3aa6b3eb18f81, type: 2}
+    actions:
+    - actionId: a587bf31-f0eb-4a77-bfb6-3e472a1f5f25
+      displayKey: Input.Move
+    - actionId: ea95eb0f-948f-42ea-8257-978c6a0932ae
+      displayKey: Input.Move
+    - actionId: 1e955b22-06e4-4e02-b2d3-e7bef6a03cf0
+      displayKey: Input.PreviousWall
+    - actionId: 1aac2de3-38b1-4d96-9f77-7a58839a7012
+      displayKey: Input.NextWall
+    - actionId: a77ebea3-6e83-4d2e-b241-75ba558f3c18
+      displayKey: Input.Pause
   - displayKey: Input.KagitKart
     asset: {fileID: 11400000, guid: 3d4f54d8587017f4db61549edf75cfcd, type: 2}
+    actions:
+    - actionId: 6a77c9a4-25d1-48d4-ab63-84b0d470fad3
+      displayKey: Input.Steer
+    - actionId: d6b1b906-fbf0-4387-816c-ba33e1cc9ce5
+      displayKey: Input.Steer
+    - actionId: 19fd279b-b082-4725-9175-d896adef8ee7
+      displayKey: Input.Throttle
+    - actionId: 23769f20-18fc-4808-9e2e-dc3b7e81b1ce
+      displayKey: Input.Throttle
+    - actionId: bc8ee17b-3414-48e8-8398-05b01ff3ca02
+      displayKey: Input.Brake
+    - actionId: 7de11bd0-0a3e-4fdc-b4b2-d859e9a2826b
+      displayKey: Input.Brake
+    - actionId: 2134ea71-1746-43fa-8179-75fa8e4d9372
+      displayKey: Input.Drift
+    - actionId: 1c13afaf-ccf4-41b0-8c25-74bf21d27a43
+      displayKey: Input.Drift
+    - actionId: 578039b0-c7ca-464e-a3c7-d5b393a797ad
+      displayKey: Input.Item
+    - actionId: f78394df-b0bf-419a-9a3f-03aff8c71c77
+      displayKey: Input.Item
+    - actionId: 5e95e2f4-498a-4906-b91b-4a688c397088
+      displayKey: Input.LookBack
+    - actionId: 0fee1100-93aa-4008-9638-ab51b2c6bb02
+      displayKey: Input.LookBack
+    - actionId: 1971bf8b-91a3-4483-9aa2-e225c22953ca
+      displayKey: Input.SteerLeft
+    - actionId: a159a493-851d-4e49-87d1-8b9ac1cc7944
+      displayKey: Input.SteerRight
+    - actionId: 04bc6c24-71de-4521-a75c-bbc904f4050c
+      displayKey: Input.Pause
+    - actionId: fb029b0f-afa3-4844-90e5-3bd5f4bf42e4
+      displayKey: Input.Mute
+    - actionId: ddcbf240-9ea3-4c9d-b1f6-d6e5917face0
+      displayKey: Input.Restart
+    - actionId: b4aad1b1-f5e8-4ac5-823d-eeee087241cb
+      displayKey: Input.Pause
+    - actionId: ef7d7486-efbb-4751-ab98-119cc5f44fbf
+      displayKey: Input.Mute
+    - actionId: 4dc3236a-6cd8-4647-a63d-093d9d0006a7
+      displayKey: Input.Restart
+    - actionId: 19352d16-11e2-462b-ae3a-85ed26003050
+      displayKey: Input.SkipIntro

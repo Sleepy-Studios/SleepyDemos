@@ -12,6 +12,7 @@ namespace Hotfix
         protected override void OnGameObjectInitialize()
         {
             panel = WallSqueezeHudPanel_WallSqueezeHudView;
+            panel.ConfigurePrompts(InputPromptGroup_WallSqueezeHudView);
             BindData<WallSqueezeData>(_ => panel.Render());
         }
 

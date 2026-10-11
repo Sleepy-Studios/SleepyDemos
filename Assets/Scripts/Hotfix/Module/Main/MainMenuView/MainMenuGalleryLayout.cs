@@ -16,6 +16,7 @@ namespace Hotfix
         [SerializeField] private RectTransform description;
         [SerializeField] private RectTransform startButton;
         [SerializeField] private RectTransform settingsButton;
+        [SerializeField] private RectTransform effectsButton;
         [SerializeField] private RectTransform footer;
         [SerializeField] private RectTransform hints;
 
@@ -66,6 +67,7 @@ namespace Hotfix
             description.gameObject.SetActive(!useTouchLayout);
             Place(startButton, 68, useTouchLayout ? 432 : 520, 280, useTouchLayout ? 104 : 88);
             Place(settingsButton, 360, useTouchLayout ? 432 : 520, 128, useTouchLayout ? 104 : 88);
+            if (effectsButton != null) Place(effectsButton, width - 260, 28, 196, 62);
 
             float cardScale = useTouchLayout ? 1.4f : 1f;
             float galleryHeight = useTouchLayout ? 330 : 306;

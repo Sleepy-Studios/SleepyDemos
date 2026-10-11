@@ -2,7 +2,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Core.Runtime.Inputs;
-using Core.Runtime.Localization;
 using Core.Runtime.Settings;
 
 namespace Hotfix.WallSqueeze
@@ -19,6 +18,18 @@ namespace Hotfix.WallSqueeze
         [SerializeField] private Button retry;
         private WallSqueezeWorld world;
         private bool showInputPrompts;
+        private InputPromptGroup prompts;
+
+        /// <summary>View 交付正式索引里的提示组，保留 HUD 原纸面布局。</summary>
+        /// <param name="group">已经制作并纳入 UIBind 的四行提示。</param>
+        public void ConfigurePrompts(InputPromptGroup group)
+        {
+            prompts = group != null ? group : throw new System.ArgumentNullException(nameof(group));
+            prompts.Get("Previous").SetCaptionKey("Input.PreviousWall");
+            prompts.Get("Next").SetCaptionKey("Input.NextWall");
+            prompts.Get("Move").SetCaptionKey("Input.Move");
+            prompts.Get("Pause").SetCaptionKey("Input.Pause");
+        }
 
         private void Awake()
         {
@@ -68,25 +79,25 @@ namespace Hotfix.WallSqueeze
             bool playing = !world.Paused && world.Simulation.Result == WallSqueezeResult.Playing;
             pause.interactable = playing;
             retry.interactable = playing;
-            hint.gameObject.SetActive(showInputPrompts || world.LastCrushCount > 1);
-            hint.text = world.LastCrushCount > 1 ? $"一夹 {world.LastCrushCount} 只！" : world.Device switch
-            {
-                InputDeviceKind.Touch => "单指拖墙 · 保护蓝色住户",
-                _ => BuildBindingHint()
-            };
+            bool crush = world.LastCrushCount > 1;
+            bool touch = InputDeviceState.PromptKind == InputDeviceKind.Touch;
+            hint.gameObject.SetActive(crush || showInputPrompts && touch);
+            hint.text = crush ? $"一夹 {world.LastCrushCount} 只！" : "单指拖墙 · 保护蓝色住户";
+            prompts.SetVisible(showInputPrompts && !touch && !crush);
+            BindPrompt("Previous", "Interaction/PreviousGroup");
+            BindPrompt("Next", "Interaction/NextGroup");
+            BindPrompt("Move", InputDeviceState.PromptKind == InputDeviceKind.Gamepad ? "Interaction/PadNavigate" : "Interaction/Navigate");
+            BindPrompt("Pause", "Interaction/Pause");
         }
 
-        private string BuildBindingHint()
+        private void BindPrompt(string key, string path)
         {
-            var router = world.Input.Router;
-            string previous = InputBindingDisplay.Get(router.FindAction("Interaction/PreviousGroup"), out _);
-            string next = InputBindingDisplay.Get(router.FindAction("Interaction/NextGroup"), out _);
-            string move = InputBindingDisplay.Get(router.FindAction(world.Device == InputDeviceKind.Gamepad
-                ? "Interaction/PadNavigate" : "Interaction/Navigate"), out _);
-            string pauseText = LanguageService.IsInitialized ? LanguageService.Get("Input.Pause") : "暂停";
-            return previous + " / " + next + " 选墙 · " + move + " 移动 · "
-                + InputBindingDisplay.Label(router.FindAction(world.Device == InputDeviceKind.Gamepad
-                    ? "Interaction/Pause" : "Interaction/Back"), pauseText);
+            var prompt = prompts.Get(key);
+            var action = world.Input.Router.FindAction(path);
+            if (prompt.Action != action)
+            {
+                prompt.Bind(action);
+            }
         }
 
         private void Pause() => world?.Dispatch(WallSqueezeCommand.Pause);

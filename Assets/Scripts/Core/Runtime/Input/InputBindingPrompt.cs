@@ -28,20 +28,44 @@ namespace Core.Runtime.Inputs
         [SerializeField] private TMP_Text label;
         [SerializeField] private string caption;
         [SerializeField] private string captionKey;
+        [SerializeField] private string compositePart;
         [SerializeField] private GlyphSlot[] glyphSlots = Array.Empty<GlyphSlot>();
         [SerializeField] private string uiAction;
         [SerializeField, Tooltip("触控操作按钮只显示动作名，设备按键由独立提示区提供。")]
         private bool captionOnly;
         private InputAction runtimeAction;
         private bool bindingsVisible = true;
+        private InputDeviceKind? displayDevice;
+        private int? displayBindingIndex;
+        private object[] captionArguments = Array.Empty<object>();
         /// 已绑定会话动作优先于 Inspector 的源资产引用。
         public InputAction Action => runtimeAction ?? action?.action;
 
         /// <summary>按显示生命周期配置公共文案键，不订阅语言变更。</summary>
         /// <param name="key">正式文案键；为空保留原作者文案。</param>
-        public void SetCaptionKey(string key)
+        /// <param name="args">完整句式的动态参数；复制数组，不订阅语言变化。</param>
+        public void SetCaptionKey(string key, params object[] args)
         {
             captionKey = key;
+            captionArguments = args == null || args.Length == 0 ? Array.Empty<object>() : (object[])args.Clone();
+            Refresh();
+        }
+
+        /// <summary>保留作者的专属动作说明，键位仍由公共组件解析。</summary>
+        /// <param name="value">完整动作说明，不包含手写物理键名。</param>
+        public void SetCaption(string value)
+        {
+            caption = value;
+            captionKey = null;
+            captionArguments = Array.Empty<object>();
+            Refresh();
+        }
+
+        /// <summary>操作说明页显式选择预览设备，不改变真实设备、触控布局或输入。</summary>
+        /// <param name="kind">为空跟随最近实际操作设备。</param>
+        public void SetDisplayDevice(InputDeviceKind? kind)
+        {
+            displayDevice = kind;
             Refresh();
         }
 
@@ -60,17 +84,30 @@ namespace Core.Runtime.Inputs
         /// <param name="slots">制作的键帽组，包含 Image、键名和分隔符。</param>
         /// <param name="key">公共文案键。</param>
         /// <param name="onlyCaption">触控命令按钮只显示动作名。</param>
-        /// <param name="menuAction">Submit 或 Cancel 时绑定当前 UI Module 的固定动作。</param>
+        /// <param name="menuAction">Navigate、Submit 或 Cancel 时绑定当前 UI Module 的固定动作。</param>
+        /// <param name="part">可选复合子绑定名。</param>
+        /// <param name="authorCaption">可选的 Demo 专属完整动作说明。</param>
         public void Configure(InputActionReference sourceAction, InputGlyphCatalog glyphCatalog, TMP_Text captionLabel,
-            GlyphSlot[] slots, string key, bool onlyCaption = false, string menuAction = null)
+            GlyphSlot[] slots, string key, bool onlyCaption = false, string menuAction = null,
+            string part = null, string authorCaption = null)
         {
             action = sourceAction;
             catalog = glyphCatalog;
             label = captionLabel;
             glyphSlots = slots == null ? Array.Empty<GlyphSlot>() : (GlyphSlot[])slots.Clone();
+            if (glyphSlots.Length > 0)
+            {
+                icon = null;
+            }
             captionKey = key;
+            captionArguments = Array.Empty<object>();
             captionOnly = onlyCaption;
             uiAction = menuAction;
+            compositePart = part;
+            if (authorCaption != null)
+            {
+                caption = authorCaption;
+            }
             Refresh();
         }
 
@@ -78,24 +115,65 @@ namespace Core.Runtime.Inputs
         /// <param name="value">实际动作。</param>
         public void Bind(InputAction value)
         {
+            displayBindingIndex = null;
             runtimeAction = value;
             Refresh();
         }
 
+        /// <summary>显示设置行所选择的精确绑定，不把同动作的其他别名当成当前绑定。</summary>
+        /// <param name="value">当前会话动作。</param>
+        /// <param name="bindingIndex">单绑定或复合子绑定在该动作内的索引。</param>
+        public void BindBinding(InputAction value, int bindingIndex)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+            if (bindingIndex < 0 || bindingIndex >= value.bindings.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bindingIndex));
+            }
+            if (value.bindings[bindingIndex].isComposite)
+            {
+                throw new ArgumentException("精确提示只能选择单绑定或复合子绑定。", nameof(bindingIndex));
+            }
+            compositePart = null;
+            displayBindingIndex = bindingIndex;
+            runtimeAction = value;
+            Refresh();
+        }
+
+        /// <summary>绑定复合动作的一项，用于独立操作行；不克隆动作或重新建立输入。</summary>
+        /// <param name="value">当前会话动作。</param>
+        /// <param name="part">复合子绑定名；为空恢复完整组合。</param>
+        public void BindPart(InputAction value, string part)
+        {
+            compositePart = part;
+            Bind(value);
+        }
+
         /// <summary>按源动作GUID绑定实际会话副本，避免页面重复解析提示动作。</summary>
         /// <param name="asset">本次输入会话的动作资产；为空时恢复源引用。</param>
-        public void BindAsset(InputActionAsset asset) => Bind(asset != null && action != null ? asset.FindAction(action.action.id) : null);
+        public void BindAsset(InputActionAsset asset) => Bind(uiAction is "Navigate" or "Submit" or "Cancel"
+            ? ResolveMenuAction() : asset != null && action != null ? asset.FindAction(action.action.id) : null);
+
+        private InputAction ResolveMenuAction()
+        {
+            var module = EventSystem.current != null ? EventSystem.current.GetComponent<InputSystemUIInputModule>() : null;
+            return uiAction switch
+            {
+                "Navigate" => module?.move?.action,
+                "Submit" => module?.submit?.action,
+                "Cancel" => module?.cancel?.action,
+                _ => null
+            };
+        }
         private void OnEnable()
         {
             InputDeviceState.Initialize();
-            var module = EventSystem.current != null ? EventSystem.current.GetComponent<InputSystemUIInputModule>() : null;
-            if (uiAction == "Submit")
+            if (uiAction is "Navigate" or "Submit" or "Cancel")
             {
-                runtimeAction = module?.submit?.action;
-            }
-            if (uiAction == "Cancel")
-            {
-                runtimeAction = module?.cancel?.action;
+                runtimeAction = ResolveMenuAction();
             }
             InputDeviceState.Changed += Refresh;
             InputSystem.onActionChange += OnActionChange;
@@ -121,11 +199,13 @@ namespace Core.Runtime.Inputs
             {
                 if (label != null)
                 {
-                    LanguageService.SetText(label, captionKey);
+                    LanguageService.SetText(label, captionKey, args: captionArguments);
                 }
-                currentCaption = LanguageService.Get(captionKey);
+                currentCaption = captionArguments.Length > 0 ? LanguageService.Format(captionKey, captionArguments) : LanguageService.Get(captionKey);
             }
-            var parts = InputBindingDisplay.GetParts(Action, out var separator);
+            var kind = displayDevice ?? InputDeviceState.PromptKind;
+            var style = InputDeviceState.GetStyle(InputBindingDisplay.ResolveDevice(kind));
+            var parts = InputBindingDisplay.GetParts(Action, out var separator, displayDevice, compositePart, displayBindingIndex);
             if (glyphSlots.Length > 0)
             {
                 for (int i = 0; i < glyphSlots.Length; i++)
@@ -141,7 +221,7 @@ namespace Core.Runtime.Inputs
                         continue;
                     }
                     var part = parts[i];
-                    var glyph = catalog != null ? catalog.Get(InputDeviceState.PromptKind, InputDeviceState.PromptStyle, part.ControlPath) : null;
+                    var glyph = FindGlyph(kind, style, part.ControlPath, part.Text);
                     if (slot.icon != null)
                     {
                         slot.icon.sprite = glyph != null ? glyph : catalog != null ? catalog.KeyboardBlank : null;
@@ -155,20 +235,21 @@ namespace Core.Runtime.Inputs
                     if (slot.separator != null)
                     {
                         slot.separator.text = i == 0 ? string.Empty : separator;
+                        slot.separator.gameObject.SetActive(i > 0);
                     }
                 }
                 if (label != null)
                 {
                     // 槽数量不足时完整显示实际绑定，不截掉组合键。
                     label.text = bindingsVisible && !captionOnly && parts.Count > glyphSlots.Length
-                        ? InputBindingDisplay.Get(Action, out _) + " " + currentCaption : currentCaption;
+                        ? InputBindingDisplay.Get(Action, out _, displayDevice, compositePart, displayBindingIndex) + " " + currentCaption : currentCaption;
                 }
                 return;
             }
 
             string path = null;
-            string key = captionOnly || !bindingsVisible ? string.Empty : InputBindingDisplay.Get(Action, out path);
-            var sprite = bindingsVisible && !captionOnly && catalog != null ? catalog.Get(InputDeviceState.PromptKind, InputDeviceState.PromptStyle, path) : null;
+            string key = captionOnly || !bindingsVisible ? string.Empty : InputBindingDisplay.Get(Action, out path, displayDevice, compositePart, displayBindingIndex);
+            var sprite = bindingsVisible && !captionOnly ? FindGlyph(kind, style, path, key) : null;
             if (icon != null)
             {
                 icon.sprite = sprite;
@@ -178,6 +259,17 @@ namespace Core.Runtime.Inputs
             {
                 label.text = sprite != null || string.IsNullOrEmpty(key) ? currentCaption : key + " " + currentCaption;
             }
+        }
+
+        private Sprite FindGlyph(InputDeviceKind kind, GamepadStyle style, string path, string text)
+        {
+            // 字母键按当前键盘布局的实际键名选图，不能把 QWERTZ 的显示键名画成物理位置字母。
+            if (kind == InputDeviceKind.KeyboardMouse && path?.Length == 1 && char.IsLetterOrDigit(path[0])
+                && text?.Length == 1)
+            {
+                path = text.ToLowerInvariant();
+            }
+            return catalog != null ? catalog.Get(kind, style, path) : null;
         }
     }
 }

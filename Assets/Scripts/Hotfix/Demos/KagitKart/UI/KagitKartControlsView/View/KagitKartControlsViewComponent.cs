@@ -25,6 +25,7 @@ namespace Hotfix
             return new Hotfix.KagitKart.KagitKartMenuPaperTransition();
         }
 
+        private InputPromptGroup InputPromptGroup_KagitKartControlsView;
         private RectTransform RectTransform_Viewport;
         private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_Viewport;
         private UIMenuScope UIMenuScope_Sheet;
@@ -53,23 +54,24 @@ namespace Hotfix
                 return;
             }
 
-            RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
-            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(1);
-            UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(2);
-            Button_Back = componentItemIndex.Get<Button>(3);
-            Button_Keyboard = componentItemIndex.Get<Button>(4);
-            Button_Gamepad = componentItemIndex.Get<Button>(5);
-            Button_Touch = componentItemIndex.Get<Button>(6);
-            TextMeshProUGUI_Steer = componentItemIndex.Get<TextMeshProUGUI>(7);
-            TextMeshProUGUI_Throttle = componentItemIndex.Get<TextMeshProUGUI>(8);
-            TextMeshProUGUI_Brake = componentItemIndex.Get<TextMeshProUGUI>(9);
-            TextMeshProUGUI_Drift = componentItemIndex.Get<TextMeshProUGUI>(10);
-            TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(11);
-            TextMeshProUGUI_LookBack = componentItemIndex.Get<TextMeshProUGUI>(12);
-            TextMeshProUGUI_Pause = componentItemIndex.Get<TextMeshProUGUI>(13);
-            TextMeshProUGUI_Mute = componentItemIndex.Get<TextMeshProUGUI>(14);
-            TextMeshProUGUI_Restart = componentItemIndex.Get<TextMeshProUGUI>(15);
-            InputBindingPrompt_Current = componentItemIndex.Get<InputBindingPrompt>(16);
+            InputPromptGroup_KagitKartControlsView = componentItemIndex.Get<InputPromptGroup>(0);
+            RectTransform_Viewport = componentItemIndex.Get<RectTransform>(1);
+            KagitKartMenuPaperMotion_Viewport = componentItemIndex.Get<KagitKartMenuPaperMotion>(2);
+            UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(3);
+            Button_Back = componentItemIndex.Get<Button>(4);
+            Button_Keyboard = componentItemIndex.Get<Button>(5);
+            Button_Gamepad = componentItemIndex.Get<Button>(6);
+            Button_Touch = componentItemIndex.Get<Button>(7);
+            TextMeshProUGUI_Steer = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_Throttle = componentItemIndex.Get<TextMeshProUGUI>(9);
+            TextMeshProUGUI_Brake = componentItemIndex.Get<TextMeshProUGUI>(10);
+            TextMeshProUGUI_Drift = componentItemIndex.Get<TextMeshProUGUI>(11);
+            TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(12);
+            TextMeshProUGUI_LookBack = componentItemIndex.Get<TextMeshProUGUI>(13);
+            TextMeshProUGUI_Pause = componentItemIndex.Get<TextMeshProUGUI>(14);
+            TextMeshProUGUI_Mute = componentItemIndex.Get<TextMeshProUGUI>(15);
+            TextMeshProUGUI_Restart = componentItemIndex.Get<TextMeshProUGUI>(16);
+            InputBindingPrompt_Current = componentItemIndex.Get<InputBindingPrompt>(17);
         }
     }
 }

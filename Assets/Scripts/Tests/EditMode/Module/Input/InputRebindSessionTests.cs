@@ -21,10 +21,22 @@ namespace Tests.Module
             try
             {
                 string sourceId = InputActionSession.GetSourceId(asset);
+                var host = new InputSettingsCatalog.Entry("Input.Host", asset);
+                var actionLabels = new[] { new InputSettingsCatalog.ActionLabel(jump, "Input.Jump") };
+                host.ConfigureActions(actionLabels);
+                actionLabels[0] = new InputSettingsCatalog.ActionLabel(interact, "Input.Interact");
+                Assert.That(host.Actions[0].ActionId, Is.EqualTo(jump.id.ToString()));
+                Assert.Throws<ArgumentException>(() => host.ConfigureActions(new[] { host.Actions[0], host.Actions[0] }));
+                Assert.That(asset.FindAction(host.Actions[0].ActionId), Is.SameAs(jump));
                 using var first = new InputRebindSession(asset);
+                Assert.That(first.CanRebind("Gameplay/Jump", 0, out _), Is.True);
+                Assert.That(first.CanRebind("Menu/Submit", 0, out string reason), Is.False);
+                Assert.That(reason, Is.Not.Empty);
+                Assert.That(first.CanRebind("Gameplay/Jump", 20, out _), Is.False);
                 first.SetBinding("Gameplay/Jump", 0, "<Keyboard>/j");
                 Assert.That(jump.bindings[0].effectivePath, Is.EqualTo("<Keyboard>/space"));
                 Assert.Throws<ArgumentException>(() => first.SetBinding("Gameplay/Jump", 0, "<Keyboard>/e"));
+                Assert.That(first.ConflictingActionId, Is.EqualTo(interact.id.ToString()));
                 Assert.That(first.Asset.FindAction("Gameplay/Jump").bindings[0].effectivePath, Is.EqualTo("<Keyboard>/j"));
                 Assert.Throws<ArgumentException>(() => first.SetBinding("Menu/Submit", 0, "<Keyboard>/q"));
                 using var restored = new InputRebindSession(asset, first.ExportOverrides());

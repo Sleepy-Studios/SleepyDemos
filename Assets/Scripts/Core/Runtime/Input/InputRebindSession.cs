@@ -28,6 +28,29 @@ namespace Core.Runtime.Inputs
         public InputActionAsset Asset { get; }
         public string SourceId { get; }
         public bool IsListening => operation != null;
+        /// 最近校验冲突动作的稳定身份；界面通过制作词条表达，不解析诊断字符串。
+        public string ConflictingActionId { get; private set; }
+
+        /// <summary>查询单个实际绑定能否编辑；复合根和菜单安全入口保留固定状态。</summary>
+        /// <param name="actionPath">源资产中的 Map/Action 路径。</param>
+        /// <param name="bindingIndex">实际绑定或复合子绑定序号。</param>
+        /// <param name="reason">不可编辑的原因；可编辑时为空。</param>
+        /// <returns>可编辑时为 true；销毁后的会话仍抛出生命周期异常。</returns>
+        public bool CanRebind(string actionPath, int bindingIndex, out string reason)
+        {
+            ThrowIfDisposed();
+            try
+            {
+                GetEditable(actionPath, bindingIndex);
+                reason = null;
+                return true;
+            }
+            catch (ArgumentException exception)
+            {
+                reason = exception.Message;
+                return false;
+            }
+        }
 
         /// <summary>克隆源资产并加载可选的候选覆盖；无效记录拒绝创建。</summary>
         /// <param name="source">正式源资产或会话副本，不修改原对象。</param>
@@ -67,6 +90,7 @@ namespace Core.Runtime.Inputs
                 throw new InvalidOperationException("已有重绑定监听，请先取消。");
             }
             var action = GetEditable(actionPath, bindingIndex);
+            ConflictingActionId = null;
             var previous = action.bindings[bindingIndex];
             completion = completed;
             operation = action.PerformInteractiveRebinding(bindingIndex)
@@ -244,8 +268,9 @@ namespace Core.Runtime.Inputs
                 || action.name is "Submit" or "Cancel" or "Point" or "Click";
         }
 
-        private static void ValidateConflict(InputAction action, int index)
+        private void ValidateConflict(InputAction action, int index)
         {
+            ConflictingActionId = null;
             var selected = action.bindings[index];
             string selectedChord = GetChord(action, index);
             if (string.IsNullOrEmpty(selected.effectivePath))
@@ -271,6 +296,7 @@ namespace Core.Runtime.Inputs
                         : string.Equals(binding.effectivePath, selected.effectivePath, StringComparison.OrdinalIgnoreCase);
                     if (GroupsOverlap(binding.groups, selected.groups) && sameInput)
                     {
+                        ConflictingActionId = other.id.ToString();
                         throw new ArgumentException("按键已用于同一上下文的动作：" + other.name);
                     }
                 }

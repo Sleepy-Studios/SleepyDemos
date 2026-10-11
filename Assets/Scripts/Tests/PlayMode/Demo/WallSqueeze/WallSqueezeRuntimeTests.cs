@@ -366,6 +366,18 @@ namespace Tests.Demo
             Vector2 before = world.Simulation.Bodies[0].Center;
             yield return new WaitForSecondsRealtime(.15f);
             Assert.That(world.Simulation.Bodies[0].Center, Is.EqualTo(before));
+            var menu = UIManager.Instance.Get<WallSqueezeMenuView>();
+            var graphics = Array.Find(menu.gameObject.GetComponentsInChildren<Button>(true), button => button.name == "Graphics");
+            Assert.That(graphics, Is.Not.Null);
+            graphics.onClick.Invoke();
+            yield return Wait(() => UIManager.Instance.Get<WallSqueezeGlobalSettingsView>()?.State == ViewState.Visible, "暂停菜单公共画质入口");
+            Assert.That(menu.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(world.Paused, Is.True);
+            Assert.That(world.Simulation.Bodies[0].Center, Is.EqualTo(before));
+            yield return UIManager.Instance.CloseAsync<WallSqueezeGlobalSettingsView>(animated: false).ToCoroutine();
+            Assert.That(UIManager.Instance.Get<WallSqueezeMenuView>(), Is.SameAs(menu));
+            Assert.That(menu.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(world.Paused, Is.True, "关闭公共设置不能解除 Demo 本地暂停。");
             world.Dispatch(WallSqueezeCommand.Retry);
             yield return Wait(() => !world.Paused && world.Input.Router.Context == GameplayInputContext.Interaction, "暂停后重试");
             world.Simulation.Advance(2.2f, 0, 15.65f);

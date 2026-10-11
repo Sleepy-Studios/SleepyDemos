@@ -66,10 +66,10 @@ CinematicRuntime 要求 UIManager 托管的正式 View 显式初始化并 Regist
 
 中点可等待场景加载、切镜、字幕和黑边，**不能等待同一个黑幕通道的另一场转场**，否则队列会等待自身。字幕在显示时解析语言/FontId。未注册表现根时明确报错。
 
-Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 PresentationWorld 世界租约、PresentationLabView 与 CinematicOverlayView；体验页分别调用公共后处理、时间和电影 API，停止或退出释放本次作用域、表现根与世界资源，返回 Hub。该体验页不会把暂时的速度、黑边或后处理预览写成玩家设置。正式 UI 位于 `UI/Presentation/`，世界资源位于 `Art/Presentation/PresentationWorld.prefab`。
+Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 PresentationWorld 世界租约、PresentationLabView 与 CinematicOverlayView；体验页分别调用公共后处理、时间和电影 API。退出通过 UIManager.ReplaceAsync 返回 Hub，成功后销毁体验页并归还世界资源；失败或取消且体验页仍可见时恢复表现根。停止和退出只释放本次作用域，不解除其它调用方的冻结。该体验页不会把暂时的速度、黑边或后处理预览写成玩家设置。正式 UI 位于 `UI/Presentation/`，世界资源位于 `Art/Presentation/PresentationWorld.prefab`。
 
 ## 验证边界
 
-已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。五宿主、独立分页、绑定列表、确认弹窗和正式体验资源已经保存；Hub 正式分页、语言重建及相关输入已通过定向复测，其余 Demo、体验与视觉仍在验收，资源存在不代表验收通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
+已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。五宿主、独立分页、绑定列表、确认弹窗和正式体验资源已经保存；Hub 分页/语言重建、Demo 相关入口与输入、显示确认和效果体验通过定向复测。完整英文与宽窄屏、各 Demo 场景视觉、Player 和硬件仍待验收，资源存在不代表全部验收通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
 
 接入步骤见[公共设置与演出接入](../runbooks/use-settings-presentation.md)。

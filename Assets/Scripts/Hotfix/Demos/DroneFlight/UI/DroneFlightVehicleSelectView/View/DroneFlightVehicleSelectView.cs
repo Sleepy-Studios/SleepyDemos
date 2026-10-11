@@ -63,6 +63,7 @@ namespace Hotfix
         protected override void OnShow()
         {
             base.OnShow();
+            InputDeviceState.Changed += RefreshHints;
             RefreshHints();
             EventSystem.current?.SetSelectedGameObject(string.IsNullOrEmpty(data.Feedback)
                 ? cards[(int)data.SelectedKind].gameObject : Button_StartButton.gameObject);
@@ -154,13 +155,18 @@ namespace Hotfix
             bool touch = InputDeviceState.ActiveKind == InputDeviceKind.Touch;
             RectTransform_Hints.gameObject.SetActive(showInputPrompts && !touch);
             TextMeshProUGUI_TouchHint.gameObject.SetActive(showInputPrompts && touch);
+            Core.Runtime.Localization.LanguageService.SetText(TextMeshProUGUI_TouchHint, "Input.Drone.SelectTouch");
             var module = EventSystem.current?.GetComponent<InputSystemUIInputModule>();
-            string move = module?.move?.action != null ? InputBindingDisplay.Get(module.move.action, out _) : "← →";
-            TextMeshProUGUI_MoveHint.text = move + "  选择";
+            var prompt = InputPromptGroup_DroneFlightVehicleSelectView.Get("SelectMove");
+            prompt.Bind(module?.move?.action);
+            prompt.SetCaptionKey("Input.Select");
+            InputPromptGroup_DroneFlightVehicleSelectView.SetVisible(showInputPrompts && !touch);
+            TextMeshProUGUI_MoveHint.gameObject.SetActive(false);
         }
 
         private void ReleasePresentation()
         {
+            InputDeviceState.Changed -= RefreshHints;
         }
     }
 }

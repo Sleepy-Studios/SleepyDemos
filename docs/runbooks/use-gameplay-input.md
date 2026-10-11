@@ -35,7 +35,7 @@
 
    表中资源扩展名均为 `.prefab`。赛车只接局部提示，父页、纸卡与触控布局继续由 Demo 维护。基础部件选型见[基础 UI 组件](use-core-ui-components.md)，字体制作见[公共字体规范](../architecture/localization-fonts.md)。
 
-2. 配置正式 InputGlyphCatalog、Caption 与 GlyphSlot 引用。提示从当前设备的实际绑定解析多个图标和组合分隔符，文案通过 `SetCaptionKey` 使用正式词条，专属业务说明通过 `SetCaption` 提供。动作说明与键帽分开制作，不在正文里拼固定键名或富文本键帽。触控命令按钮可以配置 captionOnly，只显示必需的操作文案。
+2. 配置正式 InputGlyphCatalog、Caption 与 GlyphSlot 引用。提示从当前设备的实际绑定解析多个图标和组合分隔符，文案通过 `SetCaptionKey(key, args...)` 使用正式词条和整句参数，例如 `SetCaptionKey("Input.Drone.ResetHoldDuration", seconds)`；参数数组会复制，字体和材质跟随词条 FontId，不订阅语言事件。只有不属于公共词表的专属业务说明使用 `SetCaption`，此入口清除旧文案 Key 与参数。动作说明与键帽分开制作，不在正文里拼固定键名或富文本键帽。触控命令按钮可以配置 captionOnly，只显示必需的操作文案。
 3. 页面包含多行提示时，使用 InputPromptGroup 明确保存每行 Key、prompt 和可选 rowRoot。通过正式 UIBind 菜单生成组字段，View 直接使用生成字段与 `group.Get(Key)`；组缺失是制作错误。原作者文本与物理提示区域互斥显示，触屏说明和专属反馈保留。
 4. 显示前对提示调用 `Bind(实际会话动作)` 或 `BindAsset(session.Asset)`。帮助页的设备预览调用 `SetDisplayDevice(KeyboardMouse/Gamepad)`，恢复跟随实际设备时传 null；预览不会切换输入、摇杆或光标状态。物理键提示显隐使用 `SetBindingsVisible`，可点击按钮仍保留动作说明。
 5. 菜单提示设置 menuAction：Navigate 对应现有 UI Module 的 move，Submit 对应 submit，Cancel 对应 cancel。公共菜单导航与确认返回保持原绑定，业务按钮继续沿原命令回调执行，不在提示里重复读取硬件或模拟提交。

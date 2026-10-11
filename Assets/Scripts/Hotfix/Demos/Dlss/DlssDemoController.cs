@@ -124,7 +124,7 @@ namespace Hotfix.Dlss
             input?.SetMap("Menu");
             if (controls != null)
                 await UIManager.Instance.CloseAsync(controls, false);
-            var result = await UIManager.Instance.ShowAsync<DlssSettingsView>(cancellationToken: lifetime.Token);
+            var result = await SettingsFlow.OpenAsync(GameSceneId.Dlss, token: lifetime.Token);
             settingsView = result.View;
             if (IsCurrent && result.Status == UIOperationStatus.Failed)
             {

@@ -86,6 +86,9 @@ namespace Tests.Demo
             yield return Prepare();
             var view = UIManager.Instance.Get<DroneFlightVehicleSelectView>();
             int started = 0, backed = 0;
+            var movePrompt = view.gameObject.GetComponent<Core.Runtime.Inputs.InputPromptGroup>().Get("SelectMove");
+            Assert.That(movePrompt.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
+                Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Select")));
             DroneVehicleKind submitted = default;
             var data = GlobalData.Get<DroneFlightData>();
             data.Handler.ConfigureSelection(kind => { started++; submitted = kind; }, () => backed++);

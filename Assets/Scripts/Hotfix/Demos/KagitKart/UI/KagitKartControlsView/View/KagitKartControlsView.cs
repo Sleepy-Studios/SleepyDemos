@@ -1,9 +1,8 @@
 ﻿namespace Hotfix
 {
-    using System;
-    using System.Collections.Generic;
     using Core.Runtime;
     using Core.Runtime.Inputs;
+    using Core.Runtime.Localization;
     using Hotfix.KagitKart;
     using TMPro;
     using UnityEngine;
@@ -19,11 +18,11 @@
         private Button[] tabs;
         private TMP_Text[] values;
         private static readonly string[] Commands = { "Steer", "Throttle", "Brake", "Drift", "Item", "LookBack", "Pause", "Mute", "Restart" };
-        private static readonly string[] TouchText =
+        private static readonly string[] TouchKeys =
         {
-            "左拇指左右拖动转向滑条", "按住“油门”，或开启自动油门", "按住“刹车”",
-            "按住“漂移”并转向", "轻触“道具”；按住刹车再使用可向后发射", "按住“回头”",
-            "轻触画面上的“暂停”按钮", "设置 → 声音", "暂停 → 重新开始"
+            "Input.Kart.TouchSteer", "Input.Kart.TouchThrottle", "Input.Kart.TouchBrake",
+            "Input.Kart.TouchDrift", "Input.Kart.TouchItem", "Input.Kart.TouchLookBack",
+            "Input.Kart.TouchPause", "Input.Kart.TouchMute", "Input.Kart.TouchRestart"
         };
 
         protected override void OnGameObjectInitialize()
@@ -38,7 +37,7 @@
                 tabs[i].onClick.AddListener(() => Pick(index));
             }
             Button_Back.onClick.AddListener(Back);
-            InputBindingPrompt_Current.SetCaptionKey("Input.Drift");
+            InputBindingPrompt_Current.SetCaptionKey("Input.Back");
             UIMenuScope_Sheet.Canceled += Back;
             BindData<KagitKartData>(_ => Render());
         }
@@ -85,52 +84,44 @@
             for (int i = 0; i < Commands.Length; i++)
             {
                 string command = Commands[i];
+                values[i].gameObject.SetActive(device == 2);
                 if (device == 2)
                 {
-                    values[i].text = TouchText[i];
+                    LanguageService.SetText(values[i], TouchKeys[i]);
                     continue;
                 }
                 string path = i < 6 ? "Drive/" + (device == 1 ? "Pad" : "Key") + command : "Global/" + command;
-                string text = Bindings(world.Input.Asset.FindAction(path, true), device == 1);
-                if (device == 1 && command == "Steer")
+                var prompt = InputPromptGroup_KagitKartControlsView.Get(command);
+                prompt.SetDisplayDevice(device == 1 ? InputDeviceKind.Gamepad : InputDeviceKind.KeyboardMouse);
+                prompt.Bind(world.Input.Asset.FindAction(path, true));
+                prompt.SetCaptionKey(command switch
                 {
-                    text += " / " + Bindings(world.Input.Asset.FindAction("Drive/PadLeft", true), true)
-                        + " / " + Bindings(world.Input.Asset.FindAction("Drive/PadRight", true), true);
-                }
-                values[i].text = command == "Drift" ? text + " · 按住并转向"
-                    : command == "Item" ? text + " · 刹车＋道具可向后发射"
-                    : command == "Restart" ? text + " · 计时赛快捷重赛" : text;
+                    "Drift" => "Input.Kart.DriftSteer",
+                    "Item" => "Input.Kart.ItemBackward",
+                    "Restart" => "Input.Kart.TimeTrialRestart",
+                    _ => null
+                });
+                prompt.SetBindingsVisible(world.ShowInputPrompts);
             }
-            InputBindingPrompt_Current.Bind(world.Input.PromptAction("Drift"));
+            InputPromptGroup_KagitKartControlsView.SetVisible(device != 2);
+            foreach (string direction in new[] { "Left", "Right" })
+            {
+                var prompt = InputPromptGroup_KagitKartControlsView.Get("Steer" + direction);
+                prompt.gameObject.SetActive(device == 1);
+                prompt.SetDisplayDevice(InputDeviceKind.Gamepad);
+                prompt.Bind(world.Input.Asset.FindAction("Drive/Pad" + direction, true));
+                prompt.SetCaptionKey("Input.Steer" + direction);
+                prompt.SetBindingsVisible(world.ShowInputPrompts);
+            }
+            InputBindingPrompt_Current.BindAsset(world.Input.Asset);
             InputBindingPrompt_Current.gameObject.SetActive(world.ShowInputPrompts && InputDeviceState.PromptKind != InputDeviceKind.Touch);
             Button_Back.interactable = !world.Busy;
         }
 
         internal static string Bindings(InputAction action, bool gamepad)
         {
-            var labels = new List<string>();
-            for (int i = 0; i < action.bindings.Count; i++)
-            {
-                var binding = action.bindings[i];
-                if (binding.isComposite || string.IsNullOrEmpty(binding.effectivePath)
-                    || (gamepad ? !binding.effectivePath.StartsWith("<Gamepad>", StringComparison.Ordinal)
-                        : !(binding.effectivePath.StartsWith("<Keyboard>", StringComparison.Ordinal) || binding.effectivePath.StartsWith("<Mouse>", StringComparison.Ordinal))))
-                {
-                    continue;
-                }
-                string label = action.GetBindingDisplayString(i, InputBinding.DisplayStringOptions.DontIncludeInteractions)
-                    .Replace("Left Arrow", "←").Replace("Right Arrow", "→").Replace("Up Arrow", "↑").Replace("Down Arrow", "↓")
-                    .Replace("Space", "空格").Replace("Left Shift", "左 Shift").Replace("Right Shift", "右 Shift")
-                    .Replace("Escape", "Esc").Replace("Left Stick", "左摇杆").Replace("Right Stick", "右摇杆")
-                    .Replace("D-Pad", "方向键").Replace("Left Trigger", "左扳机").Replace("Right Trigger", "右扳机")
-                    .Replace("Left Shoulder", "左肩键").Replace("Right Shoulder", "右肩键").Replace("Start", "开始键");
-                label = label switch { "Left" => "←", "Right" => "→", "Up" => "↑", "Down" => "↓", _ => label };
-                if (!labels.Contains(label))
-                {
-                    labels.Add(label);
-                }
-            }
-            return labels.Count == 0 ? "无此设备绑定" : string.Join(" / ", labels);
+            string text = InputBindingDisplay.Get(action, out _, gamepad ? InputDeviceKind.Gamepad : InputDeviceKind.KeyboardMouse);
+            return string.IsNullOrEmpty(text) ? "无此设备绑定" : text;
         }
 
         private void OnActionChange(object target, InputActionChange change)

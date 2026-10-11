@@ -13,6 +13,8 @@ namespace Core.Runtime
         [SerializeField] private TMP_Text defaultText;
         [SerializeField] private Transform arrow;
         [SerializeField] private UITab tabView;
+        [SerializeField, Tooltip("同一 View 内、位于滚动裁剪外的选项挂载容器；不改变 Canvas 排序。")]
+        private Transform popupRoot;
         [SerializeField] private bool rotateArrow = true;
         [SerializeField] private float expandedArrowZ = 180f;
 
@@ -21,6 +23,17 @@ namespace Core.Runtime
         private Action<int> onSelected;
         private Action<bool> dataShowStateChanged;
         private bool isExpanded;
+        private bool popupDetached;
+        private Transform originalParent;
+        private int originalSibling;
+        private Vector3 originalPosition;
+        private Quaternion originalRotation;
+        private Vector3 originalScale;
+        private Vector2 originalAnchorMin;
+        private Vector2 originalAnchorMax;
+        private Vector2 originalPivot;
+        private Vector2 originalSize;
+        private Vector3 originalAnchoredPosition;
 
         /// 任意 UIDropdown 展开选项列表时触发，参数为当前 Dropdown 的 Transform。
         public static event Action<Transform> TabViewShown;
@@ -58,6 +71,7 @@ namespace Core.Runtime
 
         private void OnDestroy()
         {
+            Collapse(false);
             if (button != null)
             {
                 button.onClick.RemoveListener(Toggle);
@@ -69,6 +83,22 @@ namespace Core.Runtime
             }
 
             onSelected = null;
+        }
+
+        /// <summary>指定同一 View 的弹出容器；更换容器先收起列表，原列表仍由 Dropdown 负责归还。</summary>
+        /// <param name="value">滚动裁剪外且受本页 CanvasGroup 约束的容器；null 恢复原父级展开。</param>
+        public void SetPopupRoot(Transform value)
+        {
+            if (tabView != null && value != null && value.IsChildOf(tabView.transform))
+            {
+                throw new ArgumentException("下拉选项不能挂载到自身或其子节点。", nameof(value));
+            }
+            if (popupRoot == value)
+            {
+                return;
+            }
+            Collapse(true);
+            popupRoot = value;
         }
 
         /// <summary>
@@ -152,11 +182,13 @@ namespace Core.Runtime
         private void Expand()
         {
             var changed = !isExpanded;
-            isExpanded = true;
             if (tabView != null)
             {
+                AttachPopup();
                 tabView.gameObject.SetActive(true);
+                ClampPopup();
             }
+            isExpanded = true;
 
             RefreshArrow();
             TabViewShown?.Invoke(transform);
@@ -175,6 +207,7 @@ namespace Core.Runtime
             {
                 tabView.gameObject.SetActive(false);
             }
+            RestorePopup();
 
             if (refreshArrow)
             {
@@ -186,6 +219,104 @@ namespace Core.Runtime
                 ShowStateChanged?.Invoke(false);
                 dataShowStateChanged?.Invoke(false);
             }
+        }
+
+        private void AttachPopup()
+        {
+            if (popupDetached || popupRoot == null || tabView == null)
+            {
+                return;
+            }
+            var popup = tabView.transform;
+            if (popupRoot.IsChildOf(popup))
+            {
+                throw new InvalidOperationException("下拉选项的制作挂载容器不能属于选项自身。");
+            }
+            originalParent = popup.parent;
+            originalSibling = popup.GetSiblingIndex();
+            originalPosition = popup.localPosition;
+            originalRotation = popup.localRotation;
+            originalScale = popup.localScale;
+            Vector3 position = popup.position;
+            var rect = popup as RectTransform;
+            Vector2 size = rect != null ? rect.rect.size : Vector2.zero;
+            if (rect != null)
+            {
+                originalAnchorMin = rect.anchorMin;
+                originalAnchorMax = rect.anchorMax;
+                originalPivot = rect.pivot;
+                originalSize = rect.sizeDelta;
+                originalAnchoredPosition = rect.anchoredPosition3D;
+            }
+            popupDetached = true;
+            popup.SetParent(popupRoot, true);
+            // Stretch 型选项也保留展开前的世界尺寸，不能按新父容器拉伸。
+            if (rect != null)
+            {
+                rect.anchorMin = rect.anchorMax = Vector2.one * 0.5f;
+                rect.sizeDelta = size;
+                rect.position = position;
+            }
+            popup.SetAsLastSibling();
+        }
+
+        private void RestorePopup()
+        {
+            if (!popupDetached)
+            {
+                return;
+            }
+            popupDetached = false;
+            if (tabView == null)
+            {
+                originalParent = null;
+                return;
+            }
+            var popup = tabView.transform;
+            if (originalParent == null)
+            {
+                // 原控件已经卸载时，不让借出的选项留在仍存活的宿主页。
+                Destroy(popup.gameObject);
+                return;
+            }
+            popup.SetParent(originalParent, false);
+            popup.SetSiblingIndex(originalSibling);
+            popup.localRotation = originalRotation;
+            popup.localScale = originalScale;
+            if (popup is RectTransform rect)
+            {
+                rect.anchorMin = originalAnchorMin;
+                rect.anchorMax = originalAnchorMax;
+                rect.pivot = originalPivot;
+                rect.sizeDelta = originalSize;
+                rect.anchoredPosition3D = originalAnchoredPosition;
+            }
+            else
+            {
+                popup.localPosition = originalPosition;
+            }
+            originalParent = null;
+        }
+
+        private void ClampPopup()
+        {
+            if (!popupDetached || popupRoot is not RectTransform root || tabView.transform is not RectTransform popup)
+            {
+                return;
+            }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(popup);
+            var bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(root, popup);
+            var area = root.rect;
+            // 超过制作容器的长列表由制作侧决定尺寸与滚动方式，不强行缩小或创建另一套列表。
+            if (bounds.size.x > area.width || bounds.size.y > area.height)
+            {
+                return;
+            }
+            float x = bounds.min.x < area.xMin ? area.xMin - bounds.min.x
+                : bounds.max.x > area.xMax ? area.xMax - bounds.max.x : 0;
+            float y = bounds.min.y < area.yMin ? area.yMin - bounds.min.y
+                : bounds.max.y > area.yMax ? area.yMax - bounds.max.y : 0;
+            popup.position += root.TransformVector(new Vector3(x, y, 0));
         }
 
         private void OnTabSelected(int index)

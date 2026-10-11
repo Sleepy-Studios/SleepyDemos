@@ -28,7 +28,7 @@ namespace Hotfix
             prompts = new Core.Runtime.Inputs.InputBindingPrompt[] { InputBindingPrompt_Prompt_按住加速, InputBindingPrompt_Prompt_重置视角, InputBindingPrompt_Prompt_画质设置, InputBindingPrompt_Prompt_返回_Hub };
             InputBindingPrompt_Prompt_按住加速.SetCaptionKey("Input.Sprint");
             InputBindingPrompt_Prompt_重置视角.SetCaptionKey("Input.ResetView");
-            InputBindingPrompt_Prompt_画质设置.SetCaptionKey("Input.GraphicsSettings");
+            InputBindingPrompt_Prompt_画质设置.SetCaptionKey("Input.Settings");
             InputBindingPrompt_Prompt_返回_Hub.SetCaptionKey("Input.ReturnHub");
             GameSettingsService.Changed += OnPublicSettingsChanged;
             OnPublicSettingsChanged(GameSettingsService.Current);

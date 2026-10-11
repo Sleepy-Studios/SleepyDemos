@@ -7,6 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
+    using Core.Runtime.Inputs;
     using Hotfix.WallSqueeze;
 
     [Source("LoadResources/Demos/wall_squeeze/Prefabs/UI/WallSqueezeHudView")]
@@ -24,6 +25,7 @@ namespace Hotfix
         }
 
         private WallSqueezeHudPanel WallSqueezeHudPanel_WallSqueezeHudView;
+        private InputPromptGroup InputPromptGroup_WallSqueezeHudView;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -36,6 +38,7 @@ namespace Hotfix
             }
 
             WallSqueezeHudPanel_WallSqueezeHudView = componentItemIndex.Get<WallSqueezeHudPanel>(0);
+            InputPromptGroup_WallSqueezeHudView = componentItemIndex.Get<InputPromptGroup>(1);
         }
     }
 }

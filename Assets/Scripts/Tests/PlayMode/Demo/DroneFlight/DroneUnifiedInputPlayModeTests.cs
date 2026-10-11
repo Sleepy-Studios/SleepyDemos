@@ -1,6 +1,8 @@
 #if UNITY_EDITOR
 using System.Collections;
 using Core.Runtime.Inputs;
+using Core.Runtime.Localization;
+using Core.Runtime.Settings;
 using Core.Runtime.TimeControls;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
@@ -39,9 +41,26 @@ namespace Tests.Demo
         private DroneFlightHelpView helpTestView;
 
         private Keyboard helpKeyboard;
+        private GameSettingsConfig languageConfig;
+        private System.Reflection.FieldInfo[] languageFields;
+        private object[] languageValues;
         [UnitySetUp]
         public IEnumerator Setup()
         {
+            languageConfig = AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
+            Assert.That(languageConfig, Is.Not.Null);
+            var languageState = new[] { "texts", "fonts", "languages", "<CurrentLanguage>k__BackingField" };
+            languageFields = new System.Reflection.FieldInfo[languageState.Length];
+            languageValues = new object[languageState.Length];
+            for (int i = 0; i < languageState.Length; i++)
+            {
+                languageFields[i] = typeof(LanguageService).GetField(languageState[i],
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                Assert.That(languageFields[i], Is.Not.Null);
+                languageValues[i] = languageFields[i].GetValue(null);
+            }
+            // 玩法夹具没有走正式启动；使用正式配置初始化，不在生产 HUD 中添加兜底。
+            LanguageService.Initialize(languageConfig.Language, languageConfig.Fonts, LanguageService.CurrentLanguage ?? "zh-CN");
             originalSettings = InputSystem.settings;
             testSettings = Object.Instantiate(originalSettings);
             testSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
@@ -82,6 +101,11 @@ namespace Tests.Demo
             helpKeyboard = null;
             InputSystem.settings = originalSettings;
             Object.Destroy(testSettings);
+            for (int i = 0; i < languageFields.Length; i++)
+            {
+                languageFields[i].SetValue(null, languageValues[i]);
+            }
+            languageConfig = null;
             yield return null;
         }
 
@@ -160,6 +184,11 @@ namespace Tests.Demo
             var index = instance.GetComponent<ComponentItemIndex>();
             var device = System.Array.Find(index.Components, x => x.name == "Device") as TMPro.TextMeshProUGUI;
             Assert.That(device.text, Does.Contain("键鼠"), "连接手柄不能抢占提示，必须有实际操作。");
+            var group = instance.GetComponent<InputPromptGroup>();
+            Assert.That(group.Get("SwitchCamera").transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
+                Is.EqualTo(LanguageService.Get("Input.Drone.SwitchCamera")));
+            Assert.That(group.Get("ResetHold").transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
+                Is.EqualTo(LanguageService.Format("Input.Drone.ResetHoldDuration", input.ResetHoldSeconds)));
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.LeftShoulder));
             yield return null;
             InputSystem.QueueStateEvent(gamepad, new GamepadState());
@@ -175,12 +204,12 @@ namespace Tests.Demo
             yield return null;
             Assert.That(device.text, Is.EqualTo("触屏"));
             var flight = System.Array.Find(index.Components, x => x.name == "Flight") as TMPro.TextMeshProUGUI;
-            Assert.That(flight.text, Does.Contain("左摇杆"));
+            Assert.That(flight.text, Is.EqualTo(LanguageService.Get("Input.Drone.TouchFlight")));
             helpKeyboard = InputSystem.AddDevice<Keyboard>();
             InputDeviceState.Notify(helpKeyboard);
             yield return null;
             Assert.That(device.text, Is.EqualTo("键鼠"));
-            Assert.That(flight.text, Does.Not.Contain("左摇杆"));
+            Assert.That(flight.text, Is.EqualTo(LanguageService.Get("Input.Drone.FlightAxes")));
             yield return view.HideAsync(false).ToCoroutine();
             input.SetHelpOpen(false);
             Object.Destroy(instance);
@@ -254,6 +283,109 @@ namespace Tests.Demo
                 input.PresentationRequested -= observed.Add;
                 InputSystem.RemoveDevice(keyboard);
             }
+        }
+
+        [UnityTest]
+        public IEnumerator HudTelemetryPromptsUseSessionBindingsAndFollowEquipmentAndActualDevice()
+        {
+            helpKeyboard = InputSystem.AddDevice<Keyboard>();
+            input.Session.Asset.devices = new InputDevice[] { helpKeyboard, gamepad };
+            InputDeviceState.Notify(helpKeyboard);
+            var instance = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView.prefab"));
+            var view = new DroneFlightHudView { Loader = new DroneFlightHudBindingPlayModeTests.OwnedObjectLoader() };
+            try
+            {
+                // 模拟从英文 Hub 进入 Demo；结束时恢复服务原配置，绝不向在场页面广播语言切换。
+                LanguageService.SelectLanguage("en");
+                view.InitWithGameObject(instance);
+                view.SetData(new DroneFlightViewData(null, data.SessionId, input));
+                yield return view.ShowAsync(false).ToCoroutine();
+                var group = instance.GetComponent<InputPromptGroup>();
+                var camera = group.Get("Telemetry/Camera");
+                var aim = group.Get("Telemetry/Aim");
+                var equipment = group.Get("Telemetry/Equipment");
+                var line = group.Get("Telemetry/Line");
+                var reset = group.Get("Telemetry/Reset");
+                var gear = group.Get("Telemetry/Gear");
+                var hud = new DroneHudSnapshot(DroneFlightOperationState.Flying, DroneResponseProfile.Normal,
+                    true, 0, 12.5f, 3, -1, 7, false, DroneCameraMode.ThirdPerson, 0, 0, 60);
+                var harpoon = new DroneEquipmentSnapshot(DroneEquipmentKind.Harpoon, DroneEquipmentState.Ready,
+                    "待发射", 1, 0, 0, 0, 0, 0, true, Vector3.forward, Vector3.zero);
+                GlobalData.Dispatch(new DroneFlightTelemetryAction(data.SessionId,
+                    new DroneFlightUiSnapshot(hud, harpoon, "渔叉待发射", "", default, .4f, 5, true)));
+                Assert.That(camera.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/SwitchCamera")));
+                Assert.That(gear.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/LandingGear")));
+                Assert.That(aim.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/Aim")));
+                Assert.That(equipment.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/Equipment")));
+                Assert.That(line.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/Line")));
+                Assert.That(reset.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/ArmOrReset")));
+                Assert.That(aim.gameObject.activeInHierarchy && line.gameObject.activeInHierarchy && reset.gameObject.activeInHierarchy, Is.True);
+                Assert.That(camera.GetComponent<Button>(), Is.Null, "遥测区域只显示提示，不提交玩法命令。");
+                var resetCaption = reset.transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                object[] durationArguments = { 5f };
+                reset.SetCaptionKey("Input.Drone.ResetHoldDuration", durationArguments);
+                durationArguments[0] = 9f;
+                reset.Refresh();
+                Assert.That(resetCaption.text, Is.EqualTo("Hold 5 seconds to restart the scene"), "完整句式保存参数副本，不随调用者数组改变。");
+                reset.SetCaption("Author caption");
+                Assert.That(resetCaption.text, Is.EqualTo("Author caption"));
+                reset.SetCaptionKey("Input.Drone.HoldReset");
+                Assert.That(resetCaption.text, Is.EqualTo("Hold to reset"), "切换静态词条后清理旧格式化参数。");
+                var cameraCaption = camera.transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+                Assert.That(cameraCaption.text, Is.EqualTo("Switch camera"));
+                foreach (var mapping in languageConfig.Fonts.Entries)
+                {
+                    if (mapping.FontId == 0 && mapping.Language == "en")
+                    {
+                        Assert.That(cameraCaption.font, Is.SameAs(mapping.Font));
+                        Assert.That(cameraCaption.fontSharedMaterial, Is.SameAs(mapping.Material));
+                        Assert.That(resetCaption.font, Is.SameAs(mapping.Font));
+                        Assert.That(resetCaption.fontSharedMaterial, Is.SameAs(mapping.Material));
+                    }
+                }
+                Assert.That(equipment.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo("Fire / detach & recover"));
+                var icon = camera.transform.Find("Glyphs/Glyph0/Icon0").GetComponent<Image>();
+                Assert.That(icon.sprite, Is.Not.Null);
+                Assert.That(icon.sprite.name, Is.EqualTo("KeyC"), "切换镜头使用实际 Kenney 键盘图标。");
+                int keyboardBinding = -1;
+                for (int i = 0; i < camera.Action.bindings.Count; i++)
+                    if (camera.Action.bindings[i].effectivePath == "<Keyboard>/c") keyboardBinding = i;
+                Assert.That(keyboardBinding, Is.GreaterThanOrEqualTo(0));
+                camera.Action.ApplyBindingOverride(keyboardBinding, "<Keyboard>/y");
+                Assert.That(icon.sprite.name, Is.EqualTo("KeyY"), "改键后遥测提示读取同一会话副本。");
+                var index = instance.GetComponent<ComponentItemIndex>();
+                var actions = System.Array.Find(index.Components, item => item.name == "EquipmentActions") as TMPro.TMP_Text;
+                Assert.That(actions.gameObject.activeSelf, Is.False, "物理提示出现时不重复显示旧操作正文。");
+                var resetText = System.Array.Find(index.Components, item => item.name == "ResetProgressText") as TMPro.TMP_Text;
+                Assert.That(resetText.text, Does.Contain("2.0 / 5.0 s"));
+                InputDeviceState.NotifyTouch();
+                Assert.That(camera.gameObject.activeSelf, Is.False);
+                Assert.That(equipment.gameObject.activeSelf, Is.False);
+                Assert.That(actions.gameObject.activeSelf, Is.True);
+                Assert.That(actions.text, Is.EqualTo("Belly aim · Fire / detach & recover · Reel in / pay out"));
+                InputDeviceState.Notify(gamepad);
+                Assert.That(camera.gameObject.activeSelf, Is.True);
+                Assert.That(actions.gameObject.activeSelf, Is.False);
+                Assert.That(cameraCaption.text, Is.EqualTo("Switch camera"));
+                Assert.That(gear.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo("Operation panel"));
+                var aimedHud = new DroneHudSnapshot(DroneFlightOperationState.Flying, DroneResponseProfile.Normal,
+                    true, 0, 12.5f, 3, -1, 7, false, DroneCameraMode.HarpoonAim, 0, 0, 60);
+                GlobalData.Dispatch(new DroneFlightTelemetryAction(data.SessionId,
+                    new DroneFlightUiSnapshot(aimedHud, harpoon, "渔叉待发射", "", default, 0, 5, true)));
+                Assert.That(camera.Action, Is.SameAs(input.Session.Asset.FindAction("Flight/Aim")));
+                Assert.That(cameraCaption.text, Is.EqualTo("Exit aim"));
+                Assert.That(reset.gameObject.activeSelf, Is.False);
+                GlobalData.Dispatch(new DroneFlightTelemetryAction(data.SessionId,
+                    new DroneFlightUiSnapshot(hud, default, "", "", default, 0, 5, true)));
+                Assert.That(aim.gameObject.activeSelf || equipment.gameObject.activeSelf || line.gameObject.activeSelf, Is.False,
+                    "纯无人机不显示附加装备动作。");
+            }
+            finally
+            {
+                view.DestroyAsync().Forget();
+            }
+            yield return null;
         }
 
         [UnityTest]

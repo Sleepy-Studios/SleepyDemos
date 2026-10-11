@@ -15,10 +15,12 @@ namespace Core.Runtime.Inputs
         {
             [SerializeField] private string displayKey;
             [SerializeField] private InputActionAsset asset;
+            [SerializeField] private ActionLabel[] actions = Array.Empty<ActionLabel>();
 
             public string DisplayKey => displayKey;
             public InputActionAsset Asset => asset;
             public string SourceId => InputActionSession.GetSourceId(asset);
+            public IReadOnlyList<ActionLabel> Actions => Array.AsReadOnly(actions);
 
             /// <summary>配置一个控制分页的正式入口。</summary>
             /// <param name="displayKey">宿主名称的公共文案键。</param>
@@ -27,6 +29,44 @@ namespace Core.Runtime.Inputs
             {
                 this.displayKey = displayKey;
                 this.asset = asset;
+            }
+
+            /// <summary>制作侧选择实际使用的动作；未消费的动作不出现在改键页。</summary>
+            /// <param name="values">按动作 GUID 标识的文案映射。</param>
+            public void ConfigureActions(ActionLabel[] values)
+            {
+                ValidateActions(values);
+                actions = (ActionLabel[])values.Clone();
+            }
+
+            internal void ValidateActions() => ValidateActions(actions);
+
+            private void ValidateActions(ActionLabel[] values)
+            {
+                if (values == null) throw new ArgumentNullException(nameof(values));
+                var ids = new HashSet<string>();
+                foreach (var value in values)
+                {
+                    if (value == null || string.IsNullOrWhiteSpace(value.DisplayKey)
+                        || !Guid.TryParse(value.ActionId, out _) || !ids.Add(value.ActionId) || asset.FindAction(value.ActionId) == null)
+                        throw new ArgumentException("输入设置动作身份或文案无效。");
+                }
+            }
+        }
+
+        /// 制作选择的实际动作与稳定词条；不以译文或物理键作为保存身份。
+        [Serializable]
+        public sealed class ActionLabel
+        {
+            [SerializeField] private string actionId;
+            [SerializeField] private string displayKey;
+            public string ActionId => actionId;
+            public string DisplayKey => displayKey;
+
+            public ActionLabel(InputAction action, string displayKey)
+            {
+                actionId = (action ?? throw new ArgumentNullException(nameof(action))).id.ToString();
+                this.displayKey = displayKey;
             }
         }
 
@@ -87,6 +127,7 @@ namespace Core.Runtime.Inputs
                 {
                     throw new ArgumentException("输入设置目录包含无效或重复入口。");
                 }
+                entry.ValidateActions();
             }
         }
     }

@@ -7,6 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
+    using Core.Runtime.Inputs;
     using SleepyStudios.LoopScroll;
     using TMPro;
 
@@ -19,18 +20,23 @@ namespace Hotfix
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
+        protected override IUITransition CreateUITransition()
+        {
+            return new Core.Runtime.EmptyUITransition();
+        }
 
+        private InputPromptGroup InputPromptGroup_MainMenuView;
         private Image Image_Background;
-        private TextMeshProUGUI TextMeshProUGUI_Title;
-        private LoopScrollView LoopScrollView_DemoList;
-        private TextMeshProUGUI TextMeshProUGUI_Status;
         private UIImageLoader UIImageLoader_Hero;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
         private TextMeshProUGUI TextMeshProUGUI_Subtitle;
         private TextMeshProUGUI TextMeshProUGUI_Description;
         private Button Button_Start;
-        private Button Button_Settings;
         private TextMeshProUGUI TextMeshProUGUI_StartLabel;
-        private TextMeshProUGUI TextMeshProUGUI_Hints;
+        private Button Button_Settings;
+        private LoopScrollView LoopScrollView_DemoList;
+        private TextMeshProUGUI TextMeshProUGUI_Status;
+        private Button Button_Effects;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -42,19 +48,21 @@ namespace Hotfix
                 return;
             }
 
-            Image_Background = componentItemIndex.Get<Image>(0);
-            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(1);
-            LoopScrollView_DemoList = componentItemIndex.Get<LoopScrollView>(2);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(3);
-            UIImageLoader_Hero = componentItemIndex.Get<UIImageLoader>(4);
-            TextMeshProUGUI_Subtitle = componentItemIndex.Get<TextMeshProUGUI>(5);
-            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(6);
-            Button_Start = componentItemIndex.Get<Button>(7);
+            InputPromptGroup_MainMenuView = componentItemIndex.Get<InputPromptGroup>(0);
+            Image_Background = componentItemIndex.Get<Image>(1);
+            UIImageLoader_Hero = componentItemIndex.Get<UIImageLoader>(2);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_Subtitle = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Button_Start = componentItemIndex.Get<Button>(6);
+            TextMeshProUGUI_StartLabel = componentItemIndex.Get<TextMeshProUGUI>(7);
             Button_Settings = componentItemIndex.Get<Button>(8);
-            TextMeshProUGUI_StartLabel = componentItemIndex.Get<TextMeshProUGUI>(9);
-            TextMeshProUGUI_Hints = componentItemIndex.Get<TextMeshProUGUI>(10);
+            LoopScrollView_DemoList = componentItemIndex.Get<LoopScrollView>(9);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(10);
+            Button_Effects = componentItemIndex.Get<Button>(11);
             this.RegisterButton(Button_Start, OnStartClick);
             this.RegisterButton(Button_Settings, OnSettingsClick);
+            this.RegisterButton(Button_Effects, OnEffectsClick);
         }
     }
 }

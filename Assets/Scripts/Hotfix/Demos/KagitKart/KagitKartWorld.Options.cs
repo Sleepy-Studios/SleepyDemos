@@ -162,7 +162,7 @@ namespace Hotfix.KagitKart
             Dispatch(KagitKartCommand.Refresh);
             try
             {
-                var shown = await UIManager.Instance.ShowAsync<DlssSettingsView>(new UIShowOptions(animated: false), this.GetCancellationTokenOnDestroy());
+                var shown = await SettingsFlow.OpenAsync(Hotfix.SceneManagement.GameSceneId.KagitKart, token: this.GetCancellationTokenOnDestroy());
                 if (shown.Status == UIOperationStatus.Failed)
                 {
                     throw shown.Exception;

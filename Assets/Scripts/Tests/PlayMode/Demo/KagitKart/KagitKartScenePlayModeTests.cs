@@ -430,6 +430,12 @@ namespace Tests.Demo
                 Assert.That(view.ViewMode, Is.EqualTo(UIViewMode.Widget));
                 Assert.That(view.gameObject.GetComponentsInChildren<Button>(true), Is.Empty);
                 Assert.That(view.gameObject.GetComponent<CanvasGroup>().blocksRaycasts, Is.False);
+                var driftPrompt = view.gameObject.GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true)
+                    .Single(value => value.name == "TutorialDrift");
+                Assert.That(driftPrompt.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
+                    Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Kart.DriftSteer")));
+                Assert.That(driftPrompt.Action, Is.SameAs(world.Input.Asset.FindAction("Drive/KeyDrift", true)),
+                    "多语言操作说明仍读取原比赛输入副本。");
                 Assert.That(view.gameObject.GetComponentsInChildren<TMPro.TextMeshProUGUI>()
                     .Any(text => text.text == "怎么驾驶？" && text.gameObject.activeInHierarchy), Is.True,
                     "教程状态为真时，实际纸卡与文字必须显示。");
@@ -822,6 +828,16 @@ namespace Tests.Demo
             Assert.That(mode.State, Is.EqualTo(ViewState.Visible));
             world.Dispatch(KagitKartCommand.Controls);
             yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>()?.State == ViewState.Visible, "菜单操作页");
+            var driftCaption = UIManager.Instance.Get<KagitKartControlsView>().gameObject
+                .GetComponent<Core.Runtime.Inputs.InputPromptGroup>().Get("Drift").transform.Find("Caption").GetComponent<TMPro.TMP_Text>();
+            Assert.That(driftCaption.text, Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Kart.DriftSteer")));
+            Assert.That(driftCaption.text, Does.Not.StartWith("Input."), "正式操作说明词条必须已经制作，不能显示缺失键。");
+            var footer = UIManager.Instance.Get<KagitKartControlsView>().gameObject
+                .GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true).Single(value => value.name == "Current");
+            Assert.That(footer.Action, Is.SameAs(EventSystem.current.GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>().cancel.action),
+                "返回提示读取固定菜单 Cancel，不读取漂移或预览设备的玩法动作。");
+            Assert.That(footer.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
+                Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Back")));
             yield return Capture("Controls");
             touchscreen = InputSystem.AddDevice<Touchscreen>();
             yield return Tap(UIManager.Instance.Get<KagitKartControlsView>(), "Back");
@@ -838,9 +854,9 @@ namespace Tests.Demo
             var settings = UIManager.Instance.Get<KagitKartSettingsView>();
             Assert.That(pause.State, Is.EqualTo(ViewState.LoadedHidden));
             settings.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Graphics").onClick.Invoke();
-            yield return Wait(() => !world.Busy && UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "公共画面设置");
-            Assert.That(settings.State, Is.EqualTo(ViewState.LoadedHidden));
-            yield return UIManager.Instance.CloseAsync<DlssSettingsView>().ToCoroutine();
+            yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartGlobalSettingsView>()?.State == ViewState.Visible, "公共画面设置");
+            Assert.That(settings.State, Is.EqualTo(ViewState.Visible), "公共 Modal 保留底层专属设置生命周期，输入由上层菜单接管。");
+            yield return UIManager.Instance.CloseAsync<KagitKartGlobalSettingsView>().ToCoroutine();
             Assert.That(UIManager.Instance.Get<KagitKartSettingsView>(), Is.SameAs(settings));
             Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
             yield return KeyPress(Key.Escape);

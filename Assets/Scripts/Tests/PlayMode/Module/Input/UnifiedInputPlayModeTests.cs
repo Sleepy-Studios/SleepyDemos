@@ -79,6 +79,24 @@ namespace Tests.Module
             childMenu.Canceled += () => childCanceled++;
             try
             {
+                var module = root.GetComponent<InputSystemUIInputModule>();
+                if (module.move?.action == null)
+                {
+                    module.AssignDefaultActions();
+                }
+                var promptObject = new GameObject("MenuPrompt", typeof(RectTransform), typeof(InputBindingPrompt));
+                promptObject.transform.SetParent(child.transform, false);
+                var prompt = promptObject.GetComponent<InputBindingPrompt>();
+                prompt.Configure(null, null, null, null, null, menuAction: "Navigate");
+                prompt.BindAsset(null);
+                Assert.That(prompt.Action, Is.SameAs(module.move.action), "Navigate 必须使用公共 UI 的 move，而非 submit。");
+                Assert.That(prompt.Action, Is.Not.SameAs(module.submit.action));
+                prompt.Configure(null, null, null, null, null, menuAction: "Submit");
+                prompt.BindAsset(null);
+                Assert.That(prompt.Action, Is.SameAs(module.submit.action));
+                prompt.Configure(null, null, null, null, null, menuAction: "Cancel");
+                prompt.BindAsset(null);
+                Assert.That(prompt.Action, Is.SameAs(module.cancel.action));
                 yield return null;
                 ExecuteEvents.Execute(childButton, new BaseEventData(EventSystem.current), ExecuteEvents.cancelHandler);
                 Assert.That(childCanceled, Is.EqualTo(1));
@@ -109,8 +127,8 @@ namespace Tests.Module
         {
             var keyboard = InputSystem.AddDevice<Keyboard>();
             var pad = (Gamepad)InputSystem.AddDevice("SwitchProControllerHID");
-            var action = new InputAction("Confirm", InputActionType.Button, "<Gamepad>/{Submit}");
-            var cancel = new InputAction("Back", InputActionType.Button, "<Gamepad>/{Cancel}");
+            var action = new InputAction("Confirm", InputActionType.Button, "*/{Submit}");
+            var cancel = new InputAction("Back", InputActionType.Button, "*/{Cancel}");
             try
             {
                 InputDeviceState.Initialize(); InputDeviceState.Notify(keyboard);
@@ -127,14 +145,35 @@ namespace Tests.Module
                 Assert.That(cancel.controls.Contains(pad.buttonEast), Is.False);
                 Assert.That(InputBindingDisplay.Get(action, out var path), Is.EqualTo("A"));
                 Assert.That(path, Is.EqualTo("buttonEast"));
+                var parts = InputBindingDisplay.GetParts(action, out _, InputDeviceKind.KeyboardMouse, bindingIndex: 0);
+                Assert.That(parts.Count, Is.EqualTo(1));
+                Assert.That(parts[0].ControlPath, Is.EqualTo("enter"), "同一通配用途绑定的键鼠预览应显示实际确认键。");
+                InputBindingDisplay.Get(cancel, out path, InputDeviceKind.KeyboardMouse, bindingIndex: 0);
+                Assert.That(path, Is.EqualTo("escape"));
+                InputBindingDisplay.Get(cancel, out path, InputDeviceKind.Gamepad, bindingIndex: 0);
+                Assert.That(path, Is.EqualTo("buttonSouth"), "Switch 返回仍由原生 Cancel 用途解析。");
+                Assert.That(InputDeviceState.PromptDevice, Is.SameAs(pad), "设备预览不能改变实际提示来源。");
                 InputSystem.DisableDevice(pad);
                 Assert.That(InputDeviceState.PromptDevice, Is.Not.SameAs(pad));
                 Assert.That(InputDeviceState.ActiveDevice, Is.Not.SameAs(pad));
+                InputSystem.RemoveDevice(pad);
+                pad = null;
+                parts = InputBindingDisplay.GetParts(action, out _, InputDeviceKind.Gamepad, bindingIndex: 0);
+                Assert.That(parts.Count, Is.EqualTo(1), "未连接手柄时仍可按原生布局预览固定用途绑定。");
+                Assert.That(parts[0].ControlPath, Is.Not.Empty);
+                if (Gamepad.current == null)
+                {
+                    Assert.That(parts[0].ControlPath, Is.EqualTo("buttonSouth"), "没有实际手柄时使用原生通用 Gamepad 布局。");
+                }
             }
             finally
             {
                 action.Dispose(); cancel.Dispose();
-                InputSystem.RemoveDevice(pad); InputSystem.RemoveDevice(keyboard);
+                if (pad != null)
+                {
+                    InputSystem.RemoveDevice(pad);
+                }
+                InputSystem.RemoveDevice(keyboard);
             }
             yield return null;
         }
@@ -173,6 +212,101 @@ namespace Tests.Module
             }
             finally { Object.Destroy(root); if (original != null) EventSystem.current = original; }
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator OrdinaryScrollRectRevealsMenuSelectionAndPreservesPointerScrolling()
+        {
+            var previous = EventSystem.current;
+            var root = new GameObject("Scroll focus", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            EventSystem.current = root.GetComponent<EventSystem>();
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.AddDevice<Mouse>();
+            var panel = new GameObject("Panel", typeof(RectTransform));
+            panel.transform.SetParent(root.transform, false);
+            var container = new GameObject("Scroll", typeof(RectTransform), typeof(ScrollRect));
+            container.transform.SetParent(panel.transform, false);
+            var viewport = (RectTransform)container.transform;
+            viewport.sizeDelta = new Vector2(200, 100);
+            container.AddComponent<RectMask2D>();
+            var content = new GameObject("Content", typeof(RectTransform));
+            content.transform.SetParent(viewport, false);
+            var contentRect = (RectTransform)content.transform;
+            contentRect.anchorMin = contentRect.anchorMax = new Vector2(0, 1);
+            contentRect.pivot = new Vector2(0, 1);
+            contentRect.sizeDelta = new Vector2(500, 500);
+            var first = MakeButton("First", new Vector2(10, -10));
+            var last = MakeButton("Last", new Vector2(440, -450));
+            first.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnDown = last };
+            last.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = first };
+            var scroll = container.GetComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = contentRect;
+            scroll.horizontal = scroll.vertical = true;
+            scroll.inertia = false;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            try
+            {
+                InputDeviceState.Notify(keyboard);
+                panel.AddComponent<UIMenuScope>();
+                yield return null;
+                yield return null;
+                EventSystem.current.SetSelectedGameObject(first.gameObject);
+                ExecuteEvents.Execute(first.gameObject, new AxisEventData(EventSystem.current) { moveDir = MoveDirection.Down }, ExecuteEvents.moveHandler);
+                yield return null;
+                yield return null;
+                Assert.That(EventSystem.current.currentSelectedGameObject, Is.SameAs(last.gameObject));
+                AssertInside(last);
+                Assert.That(scroll.horizontalNormalizedPosition, Is.GreaterThan(0));
+                Assert.That(scroll.verticalNormalizedPosition, Is.LessThan(1));
+                ExecuteEvents.Execute(last.gameObject, new AxisEventData(EventSystem.current) { moveDir = MoveDirection.Up }, ExecuteEvents.moveHandler);
+                yield return null;
+                yield return null;
+                AssertInside(first);
+                InputDeviceState.Notify(mouse);
+                scroll.normalizedPosition = Vector2.one * 0.5f;
+                var pointerPosition = scroll.normalizedPosition;
+                yield return null;
+                yield return null;
+                Assert.That(scroll.normalizedPosition, Is.EqualTo(pointerPosition), "指针滚动不能被仍保留的键盘焦点拉回。");
+                InputDeviceState.Notify(keyboard);
+                yield return null;
+                yield return null;
+                AssertInside(first);
+            }
+            finally
+            {
+                Object.Destroy(root);
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.RemoveDevice(mouse);
+                if (previous != null)
+                {
+                    EventSystem.current = previous;
+                }
+            }
+            yield return null;
+
+            Button MakeButton(string name, Vector2 position)
+            {
+                var button = new GameObject(name, typeof(RectTransform), typeof(Button));
+                button.transform.SetParent(content.transform, false);
+                var rect = (RectTransform)button.transform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1);
+                rect.sizeDelta = new Vector2(40, 30);
+                rect.anchoredPosition = position;
+                return button.GetComponent<Button>();
+            }
+            void AssertInside(Button button)
+            {
+                var corners = new Vector3[4];
+                ((RectTransform)button.transform).GetWorldCorners(corners);
+                foreach (var corner in corners)
+                {
+                    var point = viewport.InverseTransformPoint(corner);
+                    Assert.That(point.x, Is.InRange(viewport.rect.xMin - 0.5f, viewport.rect.xMax + 0.5f));
+                    Assert.That(point.y, Is.InRange(viewport.rect.yMin - 0.5f, viewport.rect.yMax + 0.5f));
+                }
+            }
         }
 
         [UnityTest]
@@ -232,6 +366,58 @@ namespace Tests.Module
         }
 
 #if UNITY_EDITOR
+        [UnityTest]
+        public IEnumerator SavedKartBindingRowsShowSelectedAliasAndClearSelectionWhenReused()
+        {
+            var source = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/LoadResources/Demos/kagit_kart/Data/PlayerInput.asset");
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/UI/Common/Input/InputPrompt.prefab");
+            var catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<InputGlyphCatalog>("Assets/LoadResources/UI/Common/Input/InputGlyphCatalog.asset");
+            Assert.That(source, Is.Not.Null);
+            Assert.That(prefab, Is.Not.Null);
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var candidate = Object.Instantiate(source);
+            var root = Object.Instantiate(prefab);
+            string original = source.SaveBindingOverridesAsJson();
+            try
+            {
+                InputDeviceState.Notify(keyboard);
+                var throttle = candidate.FindAction("Drive/KeyThrottle", true);
+                var steer = candidate.FindAction("Drive/KeySteer", true);
+                throttle.Enable();
+                steer.Enable();
+                int arrow = Enumerable.Range(0, throttle.bindings.Count).Single(index => throttle.bindings[index].path == "<Keyboard>/upArrow");
+                var parts = InputBindingDisplay.GetParts(throttle, out _, InputDeviceKind.KeyboardMouse, bindingIndex: arrow);
+                Assert.That(parts.Count, Is.EqualTo(1));
+                Assert.That(parts[0].ControlPath, Is.EqualTo("upArrow"), "同动作的第二个别名不能显示成第一个 W。");
+                InputBindingDisplay.Get(throttle, out var path, InputDeviceKind.KeyboardMouse, bindingIndex: arrow);
+                Assert.That(path, Is.EqualTo("upArrow"));
+                var prompt = root.GetComponent<InputBindingPrompt>();
+                var image = root.transform.Find("Glyphs/Glyph0/Icon0").GetComponent<Image>();
+                prompt.SetDisplayDevice(InputDeviceKind.KeyboardMouse);
+                prompt.BindBinding(throttle, arrow);
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "upArrow")));
+                throttle.ApplyBindingOverride(arrow, "<Keyboard>/t");
+                prompt.Refresh();
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "t")));
+                prompt.Bind(throttle);
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "w")), "复用为完整动作时清除精确绑定选择。");
+                int right = Enumerable.Range(0, steer.bindings.Count).Single(index => steer.bindings[index].path == "<Keyboard>/rightArrow");
+                prompt.BindBinding(steer, right);
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "rightArrow")));
+                prompt.BindPart(steer, "Positive");
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "d")), "复合分组预览也应清除精确绑定选择。");
+                Assert.That(source.SaveBindingOverridesAsJson(), Is.EqualTo(original));
+            }
+            finally
+            {
+                candidate.Disable();
+                Object.Destroy(root);
+                Object.Destroy(candidate);
+                InputSystem.RemoveDevice(keyboard);
+            }
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator SavedKenneyKeyboardPromptsUseActualSpritesAfterRebinding()
         {

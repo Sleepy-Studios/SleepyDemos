@@ -24,17 +24,18 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
+        private UIMenuScope UIMenuScope_DroneFlightHelpView;
+        private InputPromptGroup InputPromptGroup_DroneFlightHelpView;
         private TextMeshProUGUI TextMeshProUGUI_Device;
+        private Button Button_Close;
+        private ScrollRect ScrollRect_Guide;
         private TextMeshProUGUI TextMeshProUGUI_Flight;
         private TextMeshProUGUI TextMeshProUGUI_Camera;
         private TextMeshProUGUI TextMeshProUGUI_Takeoff;
         private TextMeshProUGUI TextMeshProUGUI_Equipment;
         private TextMeshProUGUI TextMeshProUGUI_Reset;
-        private TextMeshProUGUI TextMeshProUGUI_ReturnLabel;
-        private Button Button_Close;
         private Button Button_Return;
-        private UIMenuScope UIMenuScope_DroneFlightHelpView;
-        private ScrollRect ScrollRect_Guide;
+        private TextMeshProUGUI TextMeshProUGUI_ReturnLabel;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -46,17 +47,18 @@ namespace Hotfix
                 return;
             }
 
-            TextMeshProUGUI_Device = componentItemIndex.Get<TextMeshProUGUI>(0);
-            TextMeshProUGUI_Flight = componentItemIndex.Get<TextMeshProUGUI>(1);
-            TextMeshProUGUI_Camera = componentItemIndex.Get<TextMeshProUGUI>(2);
-            TextMeshProUGUI_Takeoff = componentItemIndex.Get<TextMeshProUGUI>(3);
-            TextMeshProUGUI_Equipment = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_Reset = componentItemIndex.Get<TextMeshProUGUI>(5);
-            TextMeshProUGUI_ReturnLabel = componentItemIndex.Get<TextMeshProUGUI>(6);
-            Button_Close = componentItemIndex.Get<Button>(7);
-            Button_Return = componentItemIndex.Get<Button>(8);
-            UIMenuScope_DroneFlightHelpView = componentItemIndex.Get<UIMenuScope>(9);
-            ScrollRect_Guide = componentItemIndex.Get<ScrollRect>(10);
+            UIMenuScope_DroneFlightHelpView = componentItemIndex.Get<UIMenuScope>(0);
+            InputPromptGroup_DroneFlightHelpView = componentItemIndex.Get<InputPromptGroup>(1);
+            TextMeshProUGUI_Device = componentItemIndex.Get<TextMeshProUGUI>(2);
+            Button_Close = componentItemIndex.Get<Button>(3);
+            ScrollRect_Guide = componentItemIndex.Get<ScrollRect>(4);
+            TextMeshProUGUI_Flight = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_Camera = componentItemIndex.Get<TextMeshProUGUI>(6);
+            TextMeshProUGUI_Takeoff = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_Equipment = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_Reset = componentItemIndex.Get<TextMeshProUGUI>(9);
+            Button_Return = componentItemIndex.Get<Button>(10);
+            TextMeshProUGUI_ReturnLabel = componentItemIndex.Get<TextMeshProUGUI>(11);
         }
     }
 }

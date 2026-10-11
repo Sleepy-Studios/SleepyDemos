@@ -2,12 +2,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 using Core.Runtime.Localization;
+using Core.Runtime.Presentation;
+using Core.Runtime.Rendering;
 using Core.Runtime.Settings;
+using Core.Runtime.TimeControls;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.SceneManagement;
@@ -614,7 +618,7 @@ namespace Tests.Module
         {
             yield return PrepareHub();
             var menu = UIManager.Instance.Get<MainMenuView>();
-            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "启动不创建常驻画面设置。");
+            Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null, "启动不创建常驻画面设置。");
             int count = UIManager.Instance.StackCount;
             var mode = Core.Runtime.Rendering.Streamline.StreamlineRuntime.RequestedMode;
             for (int close = 0; close < 3; close++)
@@ -623,8 +627,8 @@ namespace Tests.Module
                 Assert.That(ButtonPosition(entry).x, Is.LessThan(Screen.width * .33f), "画面设置归入左侧操作区。");
                 Assert.That(ButtonPosition(entry).y, Is.LessThan(Screen.height * .65f), "不在右上角悬浮。");
                 yield return Click(ButtonPosition(entry));
-                yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>()?.State == ViewState.Visible, "按需打开Pop", 5);
-                var settings = UIManager.Instance.Get<DlssSettingsView>();
+                yield return Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "按需打开Pop", 5);
+                var settings = UIManager.Instance.Get<HubSettingsView>();
                 Assert.That(settings.Level, Is.EqualTo(UILayer.Pop));
                 Assert.That(settings.ViewMode, Is.EqualTo(UIViewMode.Modal));
                 Assert.That(settings.Mask, Is.EqualTo(MaskType.CloseRaycast));
@@ -635,7 +639,7 @@ namespace Tests.Module
                 {
                     System.IO.Directory.CreateDirectory("Library/GraphicsSettings");
                     ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Popup.png"); yield return null; yield return null;
-                    yield return Click(ButtonPosition(Field<Button>(settings, "Button_CloseButton")));
+                    yield return Click(ButtonPosition(settings.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Close")));
                 }
                 else if (close == 1)
                 {
@@ -643,7 +647,7 @@ namespace Tests.Module
                     InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
                 }
                 else yield return Click(new Vector2(Screen.width * .05f, Screen.height * .05f));
-                yield return Wait(() => UIManager.Instance.Get<DlssSettingsView>() == null, "关闭销毁普通弹窗", 5);
+                yield return Wait(() => UIManager.Instance.Get<HubSettingsView>() == null, "关闭销毁普通弹窗", 5);
                 Assert.That(settings.State, Is.EqualTo(ViewState.Destroyed));
                 Assert.That(UIManager.Instance.StackCount, Is.EqualTo(count));
                 Assert.That(Core.Runtime.Rendering.Streamline.StreamlineRuntime.RequestedMode, Is.EqualTo(mode), "关闭弹窗保留画质偏好。");
@@ -651,8 +655,429 @@ namespace Tests.Module
             }
             ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Hall.png"); yield return null; yield return null;
             yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine();
-            Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "离开大厅不出现全局悬浮按钮。");
+            Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null, "离开大厅不出现全局悬浮按钮。");
             yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator HubSettingsIndependentPagesKeepCandidatesLocalAndApplyOnlyOnce()
+        {
+            yield return PrepareHub();
+            yield return VerifySettingsPagesAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifySettingsPagesAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            int commits = 0;
+            Action<GameSettingsSnapshot> observe = _ => commits++;
+            GameSettingsService.Changed += observe;
+            try
+            {
+                var menu = UIManager.Instance.Get<MainMenuView>();
+                var entry = Field<Button>(menu, "Button_Settings");
+                await Click(ButtonPosition(entry));
+                await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开正式设置宿主", 10);
+                var settings = UIManager.Instance.Get<HubSettingsView>();
+                var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                var pages = Field<List<View>>(screen, "views").ToArray();
+                var expected = new Dictionary<SettingsCategory, Type>
+                {
+                    { SettingsCategory.Graphics, typeof(GraphicsSettingsPanelView) },
+                    { SettingsCategory.Audio, typeof(AudioSettingsPanelView) },
+                    { SettingsCategory.Input, typeof(InputSettingsPanelView) },
+                    { SettingsCategory.Language, typeof(LanguageSettingsPanelView) },
+                    { SettingsCategory.Accessibility, typeof(AccessibilitySettingsPanelView) }
+                };
+                foreach (var item in expected)
+                {
+                    await SelectSettingsPageAsync(screen, item.Key);
+                    var selected = Field<ViewTab>(screen, "viewTab").CurrentClickView;
+                    Assert.That(selected, Is.InstanceOf(item.Value), "分类必须显示独立 View，而不是本地对象显隐替代页生命周期。");
+                    foreach (var page in pages)
+                    {
+                        Assert.That(page.State, Is.EqualTo(ReferenceEquals(page, selected) ? ViewState.Visible : ViewState.LoadedHidden));
+                        if (!ReferenceEquals(page, selected))
+                        {
+                            Assert.That(page.gameObject, Is.Not.SameAs(selected.gameObject));
+                            Assert.That(page.gameObject.activeSelf, Is.False);
+                        }
+                    }
+                }
+
+                await SelectSettingsPageAsync(screen, SettingsCategory.Accessibility);
+                var accessibility = (SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView;
+                System.IO.Directory.CreateDirectory("Library/GraphicsSettings");
+                ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Accessibility.png");
+                await UniTask.Yield();
+                var shake = (Button)accessibility.Editor.Rows.Single(row => row.Key == "CameraShake").Control;
+                int shakeClicks = 0;
+                shake.onClick.AddListener(() => shakeClicks++);
+                await Click(ButtonPosition(shake));
+                Assert.That(shakeClicks, Is.EqualTo(1), "开关应收到一次真实指针点击。");
+                Assert.That(shake.GetComponent<UIBtnSwitch>().IsOn, Is.EqualTo(!previous.Accessibility.CameraShake), "真实点击必须更新基础开关状态。");
+                Assert.That(screen.Capture().Accessibility.CameraShake, Is.EqualTo(!previous.Accessibility.CameraShake));
+                await SelectSettingsPageAsync(screen, SettingsCategory.Audio);
+                float edited = await EditMasterVolumeAsync(screen, previous.Audio.Master);
+                Assert.That(screen.Capture().Audio.Master, Is.EqualTo(edited).Within(0.0001f));
+                Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(previous.Audio.Master));
+                Assert.That(GameSettingsService.Current.Accessibility.CameraShake, Is.EqualTo(previous.Accessibility.CameraShake));
+                Assert.That(AudioSettingsRuntime.GetGain(AudioBus.Music), Is.EqualTo(previous.Audio.Muted ? 0 : previous.Audio.Master * previous.Audio.Music).Within(0.0001f));
+                await Click(ButtonPosition(Field<Button>(screen, "reset")));
+                Assert.That(JsonUtility.ToJson(screen.Capture().Audio), Is.EqualTo(JsonUtility.ToJson(GameSettingsService.GetDefaults().Audio)));
+                Assert.That(screen.Capture().Accessibility.CameraShake, Is.EqualTo(!previous.Accessibility.CameraShake), "恢复本类默认不能清掉其它分页候选。");
+                Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(previous.Audio.Master), "恢复默认仍只修改候选。");
+                await Click(ButtonPosition(Field<Button>(screen, "cancel")));
+                await Wait(() => settings.State == ViewState.Destroyed, "取消设置并等待子页回收", 10);
+                Assert.That(pages.All(page => page.State == ViewState.Destroyed), Is.True, "父宿主关闭返回前必须完成所有子 View 销毁。");
+                Assert.That(GameSettingsService.Current.Accessibility.CameraShake, Is.EqualTo(previous.Accessibility.CameraShake));
+                Assert.That(PlayerPrefs.HasKey(GameSettingsService.PreferenceKey), Is.EqualTo(hadPreference));
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preference));
+                Assert.That(commits, Is.Zero);
+
+                await Click(ButtonPosition(entry));
+                await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "重新打开独立候选", 10);
+                settings = UIManager.Instance.Get<HubSettingsView>();
+                screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                pages = Field<List<View>>(screen, "views").ToArray();
+                await SelectSettingsPageAsync(screen, SettingsCategory.Audio);
+                edited = await EditMasterVolumeAsync(screen, previous.Audio.Master);
+                int version = Field<int>(GlobalData.Get<SettingsData>(), "Version");
+                var apply = Field<Button>(screen, "apply");
+                var position = ButtonPosition(apply);
+                await Click(position);
+                await Click(position);
+                await Wait(() => !SettingsFlow.IsSubmitting && !apply.interactable, "完成唯一设置提交", 15);
+                Assert.That(Field<int>(GlobalData.Get<SettingsData>(), "Version"), Is.EqualTo(version + 1), "重复点击不能再次启动提交。");
+                Assert.That(commits, Is.EqualTo(1));
+                Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(edited).Within(0.0001f));
+                var saved = LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey);
+                Assert.That(saved, Is.Not.Null);
+                Assert.That(saved.Audio.Master, Is.EqualTo(edited).Within(0.0001f), "通过正式页面完成本机保存。");
+                AssertMappedText(Field<TMPro.TMP_Text>(screen, "feedback"), "Settings.Applied");
+                await Click(ButtonPosition(Field<Button>(screen, "close")));
+                await Wait(() => settings.State == ViewState.Destroyed, "应用后关闭宿主", 10);
+                Assert.That(pages.All(page => page.State == ViewState.Destroyed), Is.True);
+                Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(edited).Within(0.0001f));
+            }
+            finally
+            {
+                GameSettingsService.Changed -= observe;
+                try
+                {
+                    await UIManager.Instance.CloseAsync<HubSettingsView>(animated: false);
+                    await UIManager.Instance.CloseAsync<DisplayConfirmView>(animated: false);
+                    await Wait(() => !SettingsFlow.IsSubmitting, "收口设置事务", 15);
+                    var restored = await GameSettingsService.ApplyAsync(previous, _ => UniTask.FromResult(true));
+                    Assert.That(restored.Succeeded, Is.True, restored.Message);
+                }
+                finally
+                {
+                    RestoreSettingsPreference(hadPreference, preference);
+                }
+            }
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator HubSettingsLanguagePageRebuildsRealViewsFontsAndMenuFocus()
+        {
+            yield return PrepareHub();
+            yield return VerifySettingsLanguagePageAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifySettingsLanguagePageAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            int originalSelection = GlobalData.Get<MainMenuData>().SelectedIndex;
+            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            try
+            {
+                var oldMenu = UIManager.Instance.Get<MainMenuView>();
+                await Click(ButtonPosition(CardForScene(oldMenu, GameSceneId.Dlss)));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                await Click(ButtonPosition(Field<Button>(oldMenu, "Button_Settings")));
+                await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开真实语言分页宿主", 10);
+                foreach (string language in new[] { previous.Language == "en" ? "zh-CN" : "en", previous.Language })
+                {
+                    var settings = UIManager.Instance.Get<HubSettingsView>();
+                    var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                    var pages = Field<List<View>>(screen, "views").ToArray();
+                    await SelectSettingsPageAsync(screen, SettingsCategory.Language);
+                    var page = (LanguageSettingsPage)((SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView).Editor;
+                    var choices = Field<UITab>(page, "choices");
+                    int nextIndex = LanguageService.Languages.Select((item, index) => (item, index)).Single(value => value.item.Id == language).index;
+                    string liveLanguage = GameSettingsService.Current.Language;
+                    await Click(ButtonPosition(choices.Items[nextIndex].GetComponent<Button>()));
+                    Assert.That(screen.Capture().Language, Is.EqualTo(language));
+                    Assert.That(GameSettingsService.Current.Language, Is.EqualTo(liveLanguage));
+                    Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(liveLanguage));
+                    await Click(ButtonPosition(Field<Button>(screen, "apply")));
+                    await Wait(() => !HubLanguageFlow.IsChanging && UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible
+                        && UIManager.Instance.Get<HubSettingsView>() != settings, "语言应用并重建真实设置页", 15);
+                    Assert.That(settings.State, Is.EqualTo(ViewState.Destroyed));
+                    Assert.That(pages.All(item => item.State == ViewState.Destroyed), Is.True, "语言重建不得遗留旧语言子 View。");
+                    Assert.That(oldMenu.State, Is.EqualTo(ViewState.Destroyed));
+                    Assert.That(GameSettingsService.Current.Language, Is.EqualTo(language));
+                    Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(language));
+                    Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                    oldMenu = UIManager.Instance.Get<MainMenuView>();
+                    var rebuilt = UIManager.Instance.Get<HubSettingsView>();
+                    screen = Field<SettingsScreen>(rebuilt, "SettingsScreen_Screen");
+                    Assert.That(screen.Category, Is.EqualTo(SettingsCategory.Language));
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "title"), "Settings.Title");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "categoryTitle"), "Settings.Language");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "help"), "Settings.LanguageHelp");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "applyLabel"), "Common.Apply");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "feedback"), "Settings.Applied");
+                    page = (LanguageSettingsPage)((SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView).Editor;
+                    choices = Field<UITab>(page, "choices");
+                    var cnFont = GameSettingsService.Config.Fonts.Entries.Single(item => item.FontId == 0 && item.Language == "zh-CN");
+                    foreach (var choice in choices.Items)
+                    {
+                        var text = choice.GetComponentInChildren<TMPro.TMP_Text>(true);
+                        Assert.That(text.font, Is.SameAs(cnFont.Font), "本语言名称混排复用含中文的公共制作字体。");
+                        Assert.That(text.fontSharedMaterial, Is.SameAs(cnFont.Material));
+                    }
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.LeftShoulder));
+                    await UniTask.Yield();
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                    await Wait(() => EventSystem.current.currentSelectedGameObject != null
+                        && EventSystem.current.currentSelectedGameObject.transform.IsChildOf(rebuilt.transform), "重建后恢复新设置页菜单焦点", 5);
+                    Assert.That(EventSystem.current.currentSelectedGameObject.GetComponent<Selectable>().IsInteractable(), Is.True);
+                }
+                var current = UIManager.Instance.Get<HubSettingsView>();
+                var currentScreen = Field<SettingsScreen>(current, "SettingsScreen_Screen");
+                await Click(ButtonPosition(Field<Button>(currentScreen, "cancel")));
+                await Wait(() => current.State == ViewState.Destroyed, "关闭还原语言后的设置页", 10);
+                InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.LeftShoulder));
+                await UniTask.Yield();
+                InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                await Wait(() => EventSystem.current.currentSelectedGameObject != null
+                    && EventSystem.current.currentSelectedGameObject.transform.IsChildOf(oldMenu.transform), "返回新 Hub 的有效菜单焦点", 5);
+                Assert.That(GameSettingsService.Current.Language, Is.EqualTo(previous.Language));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+            }
+            finally
+            {
+                InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                try
+                {
+                    await UIManager.Instance.CloseAsync<HubSettingsView>(animated: false);
+                    await UIManager.Instance.CloseAsync<DisplayConfirmView>(animated: false);
+                    await Wait(() => !SettingsFlow.IsSubmitting, "收口语言设置事务", 15);
+                    var restored = await HubLanguageFlow.ApplyAsync(previous, reopen);
+                    Assert.That(restored.Succeeded, Is.True, restored.Message);
+                    GlobalData.Dispatch(new MainMenuSelectAction(originalSelection));
+                }
+                finally
+                {
+                    RestoreSettingsPreference(hadPreference, preference);
+                }
+            }
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator DisplayConfirmationUsesRealButtonsAndTimesOutWhileFrozen()
+        {
+            yield return PrepareHub();
+            yield return VerifyDisplayConfirmationAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyDisplayConfirmationAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            try
+            {
+                using var clock = GameTimeService.Push(GameTimeService.Scale);
+                using var freeze = clock.Freeze();
+                await SettingsFlow.OpenAsync(GameSceneId.Hub);
+                await UniTask.Yield();
+                await UniTask.Yield();
+                var settings = UIManager.Instance.Get<HubSettingsView>();
+                var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                var modes = new[] { -1, (int)FullScreenMode.Windowed, (int)FullScreenMode.FullScreenWindow, (int)FullScreenMode.ExclusiveFullScreen };
+                for (int decision = 0; decision < 3; decision++)
+                {
+                    var before = GameSettingsService.Current;
+                    string beforePreference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+                    var page = (SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView;
+                    var row = page.Editor.Rows.Single(value => value.Key == "WindowMode");
+                    var choices = Field<UITab>(row, "options");
+                    int choice = Array.FindIndex(modes, value => value >= 0 && value != (int)Screen.fullScreenMode
+                        && value != before.Graphics.WindowMode);
+                    Assert.That(choice, Is.GreaterThan(0));
+                    await Click(ButtonPosition((Button)row.Control));
+                    await Click(ButtonPosition(choices.Items[choice].GetComponent<Button>()));
+                    Assert.That(screen.Capture().Graphics.WindowMode, Is.EqualTo(modes[choice]));
+                    await Click(ButtonPosition(Field<Button>(screen, "apply")));
+                    DisplayConfirmView confirm = null;
+                    await Wait(() => (confirm = UIManager.Instance.Get<DisplayConfirmView>())?.IsEnable == true,
+                        "正式十五秒显示确认", 10);
+                    var confirmation = Field<DisplayConfirmScreen>(confirm, "DisplayConfirmScreen_Screen");
+                    var request = Field<DisplayConfirmationRequest>(confirmation, "request");
+                    Assert.That(request.Deadline - Time.realtimeSinceStartupAsDouble, Is.InRange(10, 15));
+                    Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
+                    Assert.That(GameTimeService.Scale, Is.Zero);
+                    if (decision == 0)
+                    {
+                        System.IO.Directory.CreateDirectory("Library/GraphicsSettings");
+                        ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/DisplayConfirm.png");
+                        await UniTask.Yield();
+                        await Click(ButtonPosition(Field<Button>(confirmation, "keep")));
+                    }
+                    else if (decision == 1)
+                    {
+                        await Click(ButtonPosition(Field<Button>(confirmation, "revert")));
+                    }
+                    await Wait(() => confirm.State == ViewState.Destroyed && !SettingsFlow.IsSubmitting,
+                        decision == 2 ? "冻结期间十五秒超时恢复" : "确认结果回到设置页", 20);
+                    if (decision == 0)
+                    {
+                        Assert.That(GameSettingsService.Current.Graphics.WindowMode, Is.EqualTo(modes[choice]));
+                        Assert.That(LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey).Graphics.WindowMode,
+                            Is.EqualTo(modes[choice]));
+                    }
+                    else
+                    {
+                        Assert.That(JsonUtility.ToJson(GameSettingsService.Current), Is.EqualTo(JsonUtility.ToJson(before)));
+                        Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(beforePreference));
+                    }
+                    Assert.That(GameTimeService.Scale, Is.Zero);
+                }
+            }
+            finally
+            {
+                await UIManager.Instance.CloseAsync<DisplayConfirmView>(animated: false);
+                await UIManager.Instance.CloseAsync<HubSettingsView>(animated: false);
+                await Wait(() => !SettingsFlow.IsSubmitting, "结束显示确认事务", 20);
+                try { Assert.That((await GameSettingsService.ApplyAsync(previous, _ => UniTask.FromResult(true))).Succeeded, Is.True); }
+                finally { RestoreSettingsPreference(hadPreference, preference); }
+            }
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator PresentationEntryUsesRealControlsAndRestoresWorldAfterFrozenCancellation()
+        {
+            yield return PrepareHub();
+            yield return VerifyPresentationEntryAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyPresentationEntryAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            var hubCamera = UIRootManager.Instance.BaseCamera;
+            var listener = hubCamera.GetComponent<AudioListener>();
+            bool cameraEnabled = hubCamera.enabled;
+            bool listenerEnabled = listener != null && listener.enabled;
+            float originalScale = GameTimeService.Scale;
+            PresentationLabView lab = null;
+            try
+            {
+                var options = previous.Copy();
+                options.Accessibility.ReducedMotion = ReducedMotionMode.Off;
+                options.Graphics.AllowedEffects = PostProcessEffects.All;
+                Assert.That((await GameSettingsService.ApplyAsync(options)).Succeeded, Is.True);
+                var menu = UIManager.Instance.Get<MainMenuView>();
+                await Wait(() => Field<Button>(menu, "Button_Effects").interactable, "设置事务结束后恢复体验入口", 5);
+                await Click(ButtonPosition(Field<Button>(menu, "Button_Effects")));
+                await Wait(() => (lab = UIManager.Instance.Get<PresentationLabView>())?.IsEnable == true
+                    && Field<PresentationLabBindings>(lab, "PresentationLabBindings_Lab").Play.interactable, "正式效果体验入口", 15);
+                var bindings = Field<PresentationLabBindings>(lab, "PresentationLabBindings_Lab");
+                var world = Object.FindFirstObjectByType<PresentationWorld>();
+                var overlay = UIManager.Instance.Get<CinematicOverlayView>();
+                var channels = Field<CinematicOverlayBindings>(overlay, "CinematicOverlayBindings_Overlay");
+                Assert.That(CinematicRuntime.IsRegistered, Is.True);
+                Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(world.WorldCamera));
+                Assert.That(hubCamera.enabled, Is.False);
+                if (listener != null) Assert.That(listener.enabled, Is.False);
+                System.IO.Directory.CreateDirectory("Library/GraphicsSettings");
+
+                await Click(ButtonPosition(bindings.Tabs.UiTab.Items[0].GetComponent<Button>()));
+                int initialEffects = PostProcessRuntime.ActiveScopeCount;
+                await Click(ButtonPosition((Button)Field<UISettingRow>(bindings.Effects[0], "toggleRow").Control));
+                Assert.That(PostProcessRuntime.ActiveScopeCount, Is.EqualTo(initialEffects + 1));
+                ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Lab-Post.png");
+                await UniTask.Yield();
+                await Click(ButtonPosition(bindings.Stop));
+                await Wait(() => PostProcessRuntime.ActiveScopeCount == initialEffects && bindings.Play.interactable, "停止画面体验作用域", 5);
+
+                await Click(ButtonPosition(bindings.Tabs.UiTab.Items[1].GetComponent<Button>()));
+                await Click(ButtonPosition(bindings.Play));
+                Assert.That(GameTimeService.Scale, Is.EqualTo(0.25f).Within(0.001f));
+                ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Lab-Time.png");
+                await UniTask.Yield();
+                await Click(ButtonPosition(bindings.Stop));
+                await Wait(() => Mathf.Approximately(GameTimeService.Scale, originalScale) && bindings.Play.interactable, "停止时间体验作用域", 5);
+
+                using (var clock = GameTimeService.Push(originalScale))
+                using (clock.Freeze())
+                {
+                    float worldTime = Field<float>(world, "elapsed");
+                    string uiClock = bindings.Clock.text;
+                    await UniTask.Delay(TimeSpan.FromSeconds(1.1), ignoreTimeScale: true);
+                    Assert.That(bindings.Clock.text, Is.Not.EqualTo(uiClock));
+                    Assert.That(Field<float>(world, "elapsed"), Is.EqualTo(worldTime));
+                    await Click(ButtonPosition(bindings.Tabs.UiTab.Items[2].GetComponent<Button>()));
+                    await Click(ButtonPosition(bindings.Play));
+                    var curtain = Field<Image>(channels, "curtain");
+                    await Wait(() => channels.Presenter.LetterboxScopeCount > 0 && curtain.material.GetFloat("_Progress") > 0.1f,
+                        "冻结中播放正式黑幕与黑边", 5);
+                    ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Lab-Cinematic.png");
+                    await UniTask.Yield();
+                    await Click(ButtonPosition(bindings.Stop));
+                    await Wait(() => channels.Presenter.LetterboxScopeCount == 0 && bindings.Play.interactable, "取消并恢复电影通道", 5);
+                    Assert.That(bindings.PreviewHud.alpha, Is.EqualTo(1).Within(0.001f));
+                    Assert.That(Field<CanvasGroup>(channels, "curtainGroup").alpha, Is.Zero);
+                    Assert.That(Field<CanvasGroup>(channels, "titleGroup").alpha, Is.Zero);
+                    await Click(ButtonPosition(bindings.Close));
+                    await Wait(() => lab.State == ViewState.Destroyed && UIManager.Instance.Get<MainMenuView>()?.IsEnable == true,
+                        "关闭冻结体验并恢复Hub", 10);
+                    Assert.That(GameTimeService.Scale, Is.Zero, "退出只能释放体验页自己的时间租约。");
+                }
+                Assert.That(CinematicRuntime.IsRegistered, Is.False);
+                Assert.That(UIManager.Instance.Get<CinematicOverlayView>(), Is.Null);
+                Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(hubCamera));
+                Assert.That(hubCamera.enabled, Is.EqualTo(cameraEnabled));
+                if (listener != null) Assert.That(listener.enabled, Is.EqualTo(listenerEnabled));
+                Assert.That(GameTimeService.Scale, Is.EqualTo(originalScale));
+                await UniTask.Yield();
+                Assert.That(world == null, Is.True, "归还实例而不是隐藏体验世界留在场景里。");
+            }
+            finally
+            {
+                if (lab != null && lab.IsLoaded) await PresentationLabFlow.CloseAsync(lab);
+                try { Assert.That((await GameSettingsService.ApplyAsync(previous)).Succeeded, Is.True); }
+                finally { RestoreSettingsPreference(hadPreference, preference); }
+            }
+        }
+
+        private async UniTask SelectSettingsPageAsync(SettingsScreen screen, SettingsCategory category)
+        {
+            var tab = Field<ViewTab>(screen, "viewTab");
+            await Click(ButtonPosition(tab.UiTab.Items[(int)category].GetComponent<Button>()));
+            await Wait(() => screen.Category == category && tab.CurrentClickView?.State == ViewState.Visible, "显示独立设置分类 " + category, 5);
+        }
+
+        private async UniTask<float> EditMasterVolumeAsync(SettingsScreen screen, float original)
+        {
+            var page = (SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView;
+            var slider = (Slider)page.Editor.Rows.Single(row => row.Key == "Master").Control;
+            Canvas.ForceUpdateCanvases();
+            var track = (RectTransform)slider.handleRect.parent;
+            float normalized = original < 0.5f ? 0.8f : 0.2f;
+            var local = new Vector2(Mathf.Lerp(track.rect.xMin, track.rect.xMax, normalized), track.rect.center.y);
+            var position = RectTransformUtility.WorldToScreenPoint(slider.GetComponentInParent<Canvas>().worldCamera, track.TransformPoint(local));
+            await Click(position);
+            Assert.That(Mathf.Abs(slider.value - original), Is.GreaterThan(0.1f), "真实滑条指针输入必须改变候选。");
+            return slider.value;
         }
 
         private IEnumerator Tap(Vector2 position)
@@ -739,7 +1164,9 @@ namespace Tests.Module
 
         private static Vector2 ButtonPosition(Button button)
         {
-            Assert.That(button.isActiveAndEnabled && button.interactable, Is.True);
+            Assert.That(button.isActiveAndEnabled && button.interactable, Is.True,
+                $"{button.name}: activeSelf={button.gameObject.activeSelf}, activeHierarchy={button.gameObject.activeInHierarchy}, enabled={button.enabled}, interactable={button.interactable}");
+            Assert.That(button.IsInteractable(), Is.True, "父 CanvasGroup 不能禁用当前可操作按钮。");
             Canvas.ForceUpdateCanvases();
             var rect = (RectTransform)button.transform;
             var position = RectTransformUtility.WorldToScreenPoint(button.GetComponentInParent<Canvas>().worldCamera, rect.TransformPoint(rect.rect.center));
