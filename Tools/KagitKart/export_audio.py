@@ -1,8 +1,9 @@
-"""Render the pinned original WebAudio recipes; no Python or browser audio dependency."""
+"""Render the pinned WebAudio recipes; store music as compact Ogg Vorbis sources."""
 import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -11,14 +12,29 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 REVISION = "da100b21ae1c5332d2843d21a9bb7b68b97e9c2a"
 
 
+def write_music(target, payload, ffmpeg):
+    # 先完成编码，再覆盖资产；音乐保持原采样率、声道和精确循环长度。
+    with tempfile.TemporaryDirectory(prefix="kagit-music-") as directory:
+        source = Path(directory) / "source.wav"
+        encoded = Path(directory) / "music.ogg"
+        source.write_bytes(payload)
+        subprocess.run([str(ffmpeg), "-hide_banner", "-loglevel", "error", "-i", str(source),
+                        "-c:a", "libvorbis", "-q:a", "7", str(encoded)], check=True,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        target.write_bytes(encoded.read_bytes())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
     parser.add_argument("--checks-only", action="store_true", help="Refresh native WebAudio regression fixtures without re-rendering songs")
     parser.add_argument("--reference-dir", type=Path, help="Optional fixture folder; defaults to Tests/EditMode/Demo/KagitKart/Fixtures")
     parser.add_argument("--output-dir", type=Path, help="Optional staging folder; defaults to the Demo resource folder")
+    parser.add_argument("--ffmpeg", type=Path, default=shutil.which("ffmpeg"), help="FFmpeg with libvorbis; required for music export")
     parser.add_argument("--edge", type=Path, default=Path(os.environ.get("PROGRAMFILES(X86)", "C:/Program Files (x86)")) / "Microsoft/Edge/Application/msedge.exe")
     args = parser.parse_args()
+    if not args.checks_only and (args.ffmpeg is None or not args.ffmpeg.is_file()):
+        parser.error("Music export requires FFmpeg: put it on PATH or supply --ffmpeg.")
     revision = subprocess.check_output(["git", "-C", str(args.source), "rev-parse", "HEAD"], text=True).strip()
     if revision != REVISION:
         raise SystemExit(f"Expected source revision {REVISION}, found {revision}")
@@ -84,9 +100,18 @@ def main():
                 segments = Path(name).stem.split("_")
                 semantic = "_".join(part.zfill(2) if part.isdigit() else part[0].upper() + part[1:] for part in segments)
                 group = {"music": "Music", "sting": "Stingers"}.get(segments[0], "")
-                target = destination / "Audio/SFX" / group / (semantic + ".wav")
+                target = destination / "Audio/SFX" / group / (semantic + (".ogg" if group == "Music" else ".wav"))
                 target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(payload)
+                try:
+                    if group == "Music":
+                        write_music(target, payload, args.ffmpeg)
+                    else:
+                        target.write_bytes(payload)
+                except Exception as error:
+                    failure.append(f"{name}: {error}")
+                    done.set()
+                    self.send_error(500)
+                    return
                 print(name, flush=True)
             else:
                 self.send_error(400)

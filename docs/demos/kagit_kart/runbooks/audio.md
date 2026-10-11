@@ -1,10 +1,10 @@
 # 纸艺卡丁车原作音频维护
 
-音源固定为 `kagit-kart` 提交 `da100b21ae1c5332d2843d21a9bb7b68b97e9c2a` 的 `src/audio/`，没有第三方音效或占位音乐。`export_audio.py` 使用本机 Edge 的 `OfflineAudioContext` 直接执行原作 DSP、乐器、配方与主题，输出 44.1 kHz WAV。引擎由 `KagitKartEngineSynth` 实时合成原作节点。随机声音采用固定种子，使重新导出可复现。
+音源固定为 `kagit-kart` 提交 `da100b21ae1c5332d2843d21a9bb7b68b97e9c2a` 的 `src/audio/`，没有第三方音效或占位音乐。`export_audio.py` 使用本机 Edge 的 `OfflineAudioContext` 直接执行原作 DSP、乐器、配方与主题，渲染 44.1 kHz 立体声 PCM；Music 经 FFmpeg/libvorbis quality 7 保存为 OGG，短曲与音效继续保存 WAV。引擎由 `KagitKartEngineSynth` 实时合成原作节点。随机声音采用固定种子，使重新导出可复现。
 
 ## 重新导出
 
-在项目根目录执行：
+重新导出音乐需要带 libvorbis 的 FFmpeg（仅制作工具，游戏运行不依赖它）。将 FFmpeg 放入 PATH 后，在项目根目录执行；也可传入 `--ffmpeg D:/Tools/ffmpeg.exe`：
 
 ```powershell
 python Tools/KagitKart/export_audio.py D:/Unity/ReferenceProjects/kagit-kart
@@ -12,9 +12,15 @@ python Tools/KagitKart/export_audio.py D:/Unity/ReferenceProjects/kagit-kart
 
 工具校验原作提交，使用独立的隐藏浏览器配置和临时本地服务器，结束时关闭。输出保留既有 `.meta`，不打开 Unity。不要在参考源码存在未提交音频修改时导出。需要外部暂存时加 `--output-dir`；音乐离线仅保留原作混响，默认低通由运行时处理一次，短曲沿用同一音乐滤波。
 
-曲目包括标题、领奖台、结算、四章比赛、四章开场、四章最后一圈及终点/最后一圈短曲。章节节拍沿用原作赛道配置：草原 118、博斯普鲁斯 96、冰川 128、书桌 124；最后一圈升两个半音、速度乘 1.12，并使用原作高潮段落。每首的 Start 包含第一次完整乐段，Loop 保存后续两个循环，保留交替声部和已建立的混响尾音；运行时用 `PlayScheduled` 准确接续。
+曲目包括标题、领奖台、结算、四章比赛、四章开场、四章最后一圈及终点/最后一圈短曲。章节节拍沿用原作赛道配置：草原 118、博斯普鲁斯 96、冰川 128、书桌 124；最后一圈升两个半音、速度乘 1.12，并使用原作高潮段落。每首的 Start 包含第一次完整乐段，Loop 保存后续两个循环，保留交替声部和已建立的混响尾音；运行时按 DSP 时钟和实际采样数准确接续。
 
-资产位于 `Assets/LoadResources/Demos/kagit_kart/Audio/SFX/`，Music、Stingers 为其子目录，遵守项目目前登记的 Demo 音频目录。`Bank_White`、`Bank_Pink`、`Bank_Crackle` 保存原作共享噪声，使用 PCM。`Data/AudioManifest.json` 记录来源版本、采样率、时长、峰值、RMS 和循环属性；`Data/AudioBank.asset` 保存全部 AudioClip 引用，运行时由宿主 Loader 保持加载句柄。音乐使用 Vorbis，其余使用 PCM；全部为 DecompressOnLoad 且不预加载，DSP 仅在分配声部时读取采样，旧声部引用耗尽后释放解码数据。
+资产位于 `Assets/LoadResources/Demos/kagit_kart/Audio/SFX/`，Music、Stingers 为其子目录，遵守项目目前登记的 Demo 音频目录。`Bank_White`、`Bank_Pink`、`Bank_Crackle` 保存原作共享噪声，使用 PCM。`Data/AudioManifest.json` 记录来源版本、采样率、时长、渲染 PCM 的峰值/RMS 和循环属性；`Data/AudioBank.asset` 保存全部 AudioClip 引用，运行时由宿主 Loader 保持加载句柄。音乐导入仍使用 Vorbis quality 0.9，其余使用 PCM；全部为 DecompressOnLoad 且不预加载，DSP 仅在分配声部时读取采样，旧声部引用耗尽后释放解码数据。不要改成 Streaming 或 CompressedInMemory：当前 DSP 需要 `AudioClip.GetData`。
+
+Music 的 30 个源文件由 427.84 MiB WAV 缩为 60.46 MiB OGG，减少 85.9%；保留原 GUID、44.1 kHz、双声道和循环采样长度，播放代码与 Bank 引用不变。这是源文件体积优化，不能当作包体或运行内存同幅缩小的证据。源编码与 Unity 导入压缩均有损；调音后从原作源码重新导出，不对现有 OGG 反复转码。本地 Git 历史中的这批 WAV 同时清除，原始 PCM 可依据固定版本 WebAudio 源码重新渲染。
+
+试听直接在 Project 选中 Music 内的 AudioClip，使用 Inspector 底部预览播放；实际低通、混音和比赛切换在 Demo 中试听。调整乐曲配方仍改原作音频制作源码并重新导出，已有固定版本校验需要按已审核的新音源同步；调整游戏音量沿用现有设置页，不新增试听插件。
+
+2026-10-11 转码验证：30 首 OGG 的容器终点采样数与原 WAV 精确一致，GUID 和导入设置字节不变。Unity 编译成功；`OriginalAudioManifestResolvesCompletePlayableBank` 1/1，覆盖全部引用、时长、声道及音乐解码/长度（Unity 单采样舍入容差）；`NativeAudioMixerHasRealOutput` 1/1，覆盖比赛实际 Listener 出声和暂停/恢复。不代表人工音质对比、全量测试、Player 构建或 Android 真机验收。
 
 后续维护使用 Unity Inspector 更新 Bank 引用与导入参数。新增音频必须带 `demo`、`audio`、`sfx` Label；原作标题与比赛曲目按上述 SFX/Music 目录保存。
 
