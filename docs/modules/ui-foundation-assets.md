@@ -26,6 +26,16 @@
 
 同名嵌套控件也需检查实际覆盖。不要只修改源模板而留下覆盖旧状态的实例；不要删除嵌套源节点后创建第二个同名反馈层。
 
+公共设置与输入另有以下正式基础 Prefab，路径相对于 `Assets/LoadResources/`：
+
+| 预制体 | 维护边界 |
+|---|---|
+| `UI/Common/Settings/DropdownRow`、`SliderRow`、`SwitchRow`、`ActionRow` | `UISettingRow` 引用原 Dropdown、Slider、Switch、Button；不承担分类切换或保存。滚动表单保持点击区域稳定 |
+| `UI/Common/Input/InputPrompt` | 图标/键帽组与独立文案；从实际会话绑定读取按键，设备变化仅刷新绑定表现 |
+| `UI/Common/Input/InputPromptButton` | 上述提示的可点击 Variant；复用 InputCommandButton 的离散/保持输入与释放语义 |
+
+四个 Demo 从公共提示创建自己的 Prompt / PromptButton Variant，设置宿主也使用各自 Variant。资源覆盖负责外观，公共组件继续负责行为；卡丁车保留纸艺资源。分类子页、固定表单与循环绑定列表的选择及调用案例统一维护在[基础组件手册](../runbooks/use-core-ui-components.md#从需求找到资源和示例)。
+
 ## 行为和生命周期
 
 交互 UIState 只修改自己拥有的背景、文字、反馈层和缩放。Tab/开关业务状态继续由各自组件管理。默认态和禁用态关闭反馈层；Hover 提亮并显示细边，Focused 使用较粗焦点边，Pressed 变深并按原缩放轻微收缩。离开、隐藏和解除禁用后恢复原值。触屏仍抑制悬停/聚焦反馈，但必须表现禁用。

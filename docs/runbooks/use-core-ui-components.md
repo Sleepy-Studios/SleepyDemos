@@ -52,6 +52,7 @@
 | 分类对应独立业务页面 | `ViewTab`；`UI/Common/_TemplateInstantiatePrefab/Tab/ViewTabVertical.prefab` | `Init(views: ...)`，各分类自己的 View、Prefab 和生命周期；不要改为一个脚本手动切全部区域 |
 | 大量同类数据条目 | `LoopScrollView`、`LoopScrollItemViewBridge`、`LoopScrollRegisterExtend` | [循环列表接入](use-loop-scroll.md)；现有 `MainMenuView` / `MainMenuDemoItemView` 展示数据绑定与条目复用 |
 | 下拉候选、开关、普通按钮 | `UIDropdown`、`UIBtnSwitch`；`_TemplateInstantiatePrefab/Dropdown/Dropdown`、`Btns/BtnSwitch`、`Btns/CommonButton` | 先验证现有 Prefab；制作数据与交互逻辑不复制到业务页 |
+| 固定设置表单行 | `UISettingRow`；`UI/Common/Settings/{Dropdown,Slider,Switch,Action}Row.prefab` | 复用对应基础控件，业务分页绑定独立候选；示例 `Hotfix/Module/Settings/UI` |
 | 设备按键提示与触控操作 | `InputBindingPrompt`、`InputCommandButton`；`UI/Common/Input/` | [公共输入](use-gameplay-input.md)；有效会话绑定、图标配置与触控释放共用底座 |
 | 保存反馈或控件说明 | `CommonTips`、`SimpleTips`；`SingleUIManager` | 本文“两类 Tips”；不要再造 Toast / Tooltip 宿主 |
 | 进度、倒计时、超宽文本 | `UIProgressBar`、`UICountdown`、`TMPAutoScrollEnableBehaviour` | 本文相关小节；使用已维护的时间和布局入口 |
