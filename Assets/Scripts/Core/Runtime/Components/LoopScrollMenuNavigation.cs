@@ -11,6 +11,7 @@ namespace Core.Runtime
     public sealed class LoopScrollMenuNavigation : MonoBehaviour
     {
         private readonly Dictionary<LoopCell, LoopScrollMenuButton> buttons = new Dictionary<LoopCell, LoopScrollMenuButton>();
+        private readonly Dictionary<LoopCell, LoopScrollMenuButton[]> cellButtons = new();
         private LoopScrollView list;
         private string selectedKey;
         private string pendingKey;
@@ -61,25 +62,65 @@ namespace Core.Runtime
                 list.CellUnbound -= OnUnbound;
                 list.DataChanged -= OnDataChanged;
             }
-            foreach (var button in buttons.Values) ClearButton(button);
+            foreach (var group in cellButtons.Values)
+            {
+                foreach (var button in group)
+                {
+                    ClearButton(button);
+                }
+            }
+            cellButtons.Clear();
             buttons.Clear(); list = null; pendingKey = null; restoreRecycledSelection = false;
         }
 
         private void OnBound(LoopCell cell, CellBindContext context)
         {
-            var button = cell.GetComponentInChildren<LoopScrollMenuButton>(true);
-            if (button == null) return;
-            ClearButton(button);
-            button.Owner = this; button.Context = context;
-            buttons[cell] = button;
+            if (!cellButtons.TryGetValue(cell, out var group))
+            {
+                var owned = new List<LoopScrollMenuButton>();
+                foreach (var button in cell.GetComponentsInChildren<LoopScrollMenuButton>(true))
+                {
+                    if (button.GetComponentInParent<LoopCell>(true) == cell)
+                    {
+                        owned.Add(button);
+                    }
+                }
+                group = owned.ToArray();
+                cellButtons.Add(cell, group);
+            }
+            if (group.Length == 0)
+            {
+                return;
+            }
+            foreach (var button in group)
+            {
+                if (button == null)
+                {
+                    continue;
+                }
+                ClearButton(button);
+                button.Owner = this;
+                button.Context = context;
+            }
+            // 跨行与 Grid 移动仍只使用首按钮；同 Cell 的次按钮使用原生横向链接。
+            buttons[cell] = group[0];
         }
 
         private void OnUnbound(LoopCell cell, CellBindContext context)
         {
-            if (!buttons.TryGetValue(cell, out var button)) return;
-            if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == button.gameObject)
-                restoreRecycledSelection = true;
-            ClearButton(button); buttons.Remove(cell);
+            if (!cellButtons.TryGetValue(cell, out var group))
+            {
+                return;
+            }
+            foreach (var button in group)
+            {
+                if (button != null && EventSystem.current != null && EventSystem.current.currentSelectedGameObject == button.gameObject)
+                {
+                    restoreRecycledSelection = true;
+                }
+                ClearButton(button);
+            }
+            buttons.Remove(cell);
         }
 
         private static void ClearButton(LoopScrollMenuButton button)
@@ -87,7 +128,7 @@ namespace Core.Runtime
             if (button == null) return;
             var events = EventSystem.current;
             if (events != null && events.currentSelectedGameObject == button.gameObject) events.SetSelectedGameObject(null);
-            button.Context = default; button.Owner = null;
+            button.ClearBinding();
         }
 
         private void OnDataChanged()

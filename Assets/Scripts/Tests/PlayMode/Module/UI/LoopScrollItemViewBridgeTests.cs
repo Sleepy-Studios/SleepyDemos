@@ -171,6 +171,87 @@ namespace Tests.Module
         }
 
         [UnityTest]
+        public IEnumerator SecondaryMenuButtonSharesBindingAndRejectsPressAfterRecycleOrNavigationDisable()
+        {
+            var root = CreateList(out var list, menu: true);
+            var template = root.GetComponentInChildren<LoopCell>(true);
+            var primaryTemplate = template.GetComponentInChildren<LoopScrollMenuButton>(true);
+            var secondaryTemplate = new GameObject("Reset", typeof(RectTransform), typeof(Image), typeof(LoopScrollMenuButton));
+            secondaryTemplate.transform.SetParent(template.transform, false);
+            var secondaryButton = secondaryTemplate.GetComponent<LoopScrollMenuButton>();
+            primaryTemplate.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = secondaryButton };
+            secondaryButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = primaryTemplate };
+            var eventRoot = EventSystem.current == null ? new GameObject("SecondaryMenuEvents", typeof(EventSystem)) : null;
+            var events = EventSystem.current;
+            var previousSelection = events.currentSelectedGameObject;
+            var menu = root.AddComponent<LoopScrollMenuNavigation>();
+            var clicks = new List<string>();
+            try
+            {
+                list.ItemViews().Configure<TestItem>();
+                list.SetTotalCount(new List<string> { "original" }, getItemKey: item => (string)item);
+                yield return null;
+                var cell = list.GetVisibleCell(0);
+                var primary = cell.GetComponentsInChildren<LoopScrollMenuButton>(true)[0];
+                var secondary = cell.GetComponentsInChildren<LoopScrollMenuButton>(true)[1];
+                int primaryClicks = 0;
+                primary.onClick.AddListener(() => primaryClicks++);
+                secondary.onClick.AddListener(() => clicks.Add(cell.Context.Key));
+                Assert.That(menu.FirstSelection, Is.SameAs(primary.gameObject), "次按钮不替代主导航入口。");
+                events.SetSelectedGameObject(primary.gameObject);
+                ExecuteEvents.Execute(primary.gameObject, new AxisEventData(events) { moveDir = MoveDirection.Right }, ExecuteEvents.moveHandler);
+                Assert.That(events.currentSelectedGameObject, Is.SameAs(secondary.gameObject), "单列中的横向选择仍使用作者导航链接。");
+                var pointer = new PointerEventData(events) { pointerId = 1, button = PointerEventData.InputButton.Left };
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+                ExecuteEvents.Execute(secondary.gameObject, new BaseEventData(events), ExecuteEvents.submitHandler);
+                CollectionAssert.AreEqual(new[] { "original", "original" }, clicks, "次按钮同时支持正常指针点击与选中提交。");
+                Assert.That(primaryClicks, Is.Zero);
+
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+                var previousContext = cell.Context;
+                list.SetTotalCount(new List<string> { "replacement" }, getItemKey: item => (string)item);
+                yield return null;
+                Assert.That(previousContext.IsCurrent, Is.False);
+                Assert.That(cell.Context.IsCurrent, Is.True, "必须真实复用旧物理 Cell，不能仅由禁用按钮规避旧按下问题。");
+                Assert.That(cell.Context.Key, Is.EqualTo("replacement"));
+                Assert.That(events.currentSelectedGameObject, Is.Null, "回收次按钮也必须清除旧焦点。");
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+                ExecuteEvents.Execute(secondary.gameObject, new BaseEventData(events), ExecuteEvents.submitHandler);
+                Assert.That(clicks.Count, Is.EqualTo(2), "旧按下与未重新选择的提交不能命中新项。");
+                events.SetSelectedGameObject(secondary.gameObject);
+                ExecuteEvents.Execute(secondary.gameObject, new BaseEventData(events), ExecuteEvents.submitHandler);
+                CollectionAssert.AreEqual(new[] { "original", "original", "replacement" }, clicks);
+
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerDownHandler);
+                menu.enabled = false;
+                Assert.That(events.currentSelectedGameObject, Is.Null);
+                ExecuteEvents.Execute(secondary.gameObject, new BaseEventData(events), ExecuteEvents.submitHandler);
+                Assert.That(clicks.Count, Is.EqualTo(3));
+                menu.enabled = true;
+                events.SetSelectedGameObject(secondary.gameObject);
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerUpHandler);
+                ExecuteEvents.Execute(secondary.gameObject, pointer, ExecuteEvents.pointerClickHandler);
+                Assert.That(clicks.Count, Is.EqualTo(3), "仅重启导航且 Cell 版本未变，也不能复活关闭前的按下。");
+                ExecuteEvents.Execute(secondary.gameObject, new BaseEventData(events), ExecuteEvents.submitHandler);
+                Assert.That(clicks[clicks.Count - 1], Is.EqualTo("replacement"));
+                Assert.That(clicks.Count, Is.EqualTo(4));
+                Assert.That(menu.FirstSelection, Is.SameAs(primary.gameObject));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+                events.SetSelectedGameObject(previousSelection);
+                if (eventRoot != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(eventRoot);
+                }
+            }
+        }
+
+        [UnityTest]
         public IEnumerator GridMenuMovesByLaneAndRecycledButtonCannotSubmitNewIdentity()
         {
             var root = CreateList(out var list, LoopLayout.VerticalGrid, true);

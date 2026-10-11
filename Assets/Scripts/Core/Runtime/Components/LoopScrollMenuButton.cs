@@ -13,6 +13,14 @@ namespace Core.Runtime
         private int pressedPointerId;
         private bool pointerPressed;
 
+        internal void ClearBinding()
+        {
+            Owner = null;
+            Context = default;
+            pressedContext = default;
+            pointerPressed = false;
+        }
+
         /// <summary>保存按下时的数据身份，防止抬手前回收换绑后误点另一项。</summary>
         /// <param name="eventData">真实鼠标或触摸按下事件。</param>
         public override void OnPointerDown(PointerEventData eventData)
