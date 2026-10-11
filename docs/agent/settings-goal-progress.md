@@ -14,7 +14,7 @@
 | G7 | 功能及既有宿主回归通过 | 公共玩法时钟、倍率/冻结租约、曲线制作配置；Drone/Wall/Kart直接相关回归通过 |
 | G8 | 公共API及GPU验收通过 | 七类黑幕/四方向擦幕形状、队列与取消、黑边/HUD、冻结中英Title通过；正式表现View属G10 |
 | G9 | Editor功能阶段通过 | DLSS、Drone、Wall、Kart和Hub接线；Showcase保持独立公共菜单宿主。正式分页、演出入口及视觉装配在G10后再验收 |
-| G10 | 分页出图中 | 首先显示与画质页；按用户要求逐页确认后才装配该页正式UI |
+| G10 | 七张效果图待确认 | 五类设置页、公共输入提示及效果体验图已保存；按用户要求确认后才装配对应正式UI |
 | G11 | 尚未完成 | 最终编译/测试/视觉/Player/硬件与工具清理 |
 
 ## 已取得证据
@@ -56,3 +56,9 @@ G9收尾核对：Showcase保持独立包示例及既有公共菜单宿主，不�
 追加收尾编译通过（336fba8d）。Hub关闭页面后真正进入SaveData大小边界失败，旧偏好/语言/选中及可见页面恢复1/1通过（94da7a12）；语言重建/待进入Demo相互拒绝且不破坏原事务1/1通过（8686bed5）。冻结下正式中英字幕按词条FontId与材质赋值、正常结束/取消/非法调用清理1/1通过（ecbb5034）；七幕及Wipe四方向实际UGUI/RenderTexture覆盖端点与形状1/1通过（4f0cc511），PNG位于Library/Settings/evidence/cinematic/Direct3D12，已查看Iris和Pixel实际图像。Console无Error，没有全量测试、Player或真实硬件验收。
 
 抗锯齿阶段本地提交：`43add84d feat(core): 支持手动FXAA与MSAA及DLSS抗锯齿接管`，没有推送。原ProjectSettings改动及Unity自动序列化的QualitySettings格式升级均不混入本任务提交。
+
+收尾验收本地提交：`6a8fbfbb test(settings): 补齐Hub语言事务和电影演出验收`，没有推送。
+
+G10首张[显示与画质效果图](art/settings/graphics-settings-v1.png)已用内置imagegen生成，沿用已确认整体方向，展示DLSS关闭时手动MSAA4、选择/实际状态和接管说明；[生成提示词](art/settings/graphics-settings-v1.prompt.txt)一并保存。该图等待用户确认，不是Unity已装配截图；正式页面未改。正式输入提示仍使用已导入Kenney资源，效果图中的键帽仅表示布局和风格。后续声音、控制、语言、辅助、公共提示和体验页分别出图确认。
+
+G10其余六张已生成并保存，完整[美术确认索引](art/settings/README.md)记录各图及提示词。已按实际Kenney资源修正控制页X键以及公共提示图的PlayStation菜单键/Backspace；仍需正式Prefab有效绑定与交互验收。已提出具体确认范围问题，尚未收到用户确认，不装配对应UI。此次只增加美术预览和阶段文档，无生产代码或Unity资源改动，无需重新运行Unity测试。
