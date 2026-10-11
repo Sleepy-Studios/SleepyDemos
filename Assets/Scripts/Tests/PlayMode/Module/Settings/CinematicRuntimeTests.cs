@@ -1,13 +1,18 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Threading;
+using Core.Runtime.Localization;
 using Core.Runtime.Presentation;
 using Core.Runtime.Settings;
 using Cysharp.Threading.Tasks;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
@@ -16,6 +21,297 @@ namespace Tests.Module
 {
     public sealed class CinematicRuntimeTests
     {
+#if UNITY_EDITOR
+        [UnityTest]
+        public IEnumerator FrozenTitleUsesLocalizedFontIdsAndClearsAfterCompletionCancellationAndFailure()
+        {
+            yield return RunTitleCaseAsync().ToCoroutine();
+        }
+
+        private static async UniTask RunTitleCaseAsync()
+        {
+            var config = UnityEditor.AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
+            Assert.That(config, Is.Not.Null);
+            // 仅保存测试触及的语言服务状态，避免独立运行此用例后改变启动初始化条件。
+            var state = new[] { "texts", "fonts", "languages", "<CurrentLanguage>k__BackingField" };
+            var fields = new FieldInfo[state.Length];
+            var values = new object[state.Length];
+            for (int index = 0; index < state.Length; index++)
+            {
+                fields[index] = typeof(LanguageService).GetField(state[index], BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.That(fields[index], Is.Not.Null);
+                values[index] = fields[index].GetValue(null);
+            }
+
+            using var fixture = new PresentationFixture();
+            float previousScale = Time.timeScale;
+            try
+            {
+                Time.timeScale = 0;
+                foreach (string language in new[] { "zh-CN", "en" })
+                {
+                    LanguageService.Initialize(config.Language, config.Fonts, language);
+                    var completed = CinematicRuntime.ShowTitleAsync("Presentation.Chapter", "Presentation.Location", 0, 0.04f, 0.01f);
+                    AssertTitleMapping(fixture.Title, config, "Presentation.Chapter");
+                    AssertTitleMapping(fixture.Subtitle, config, "Presentation.Location");
+                    Assert.That(fixture.TitleGroup.alpha, Is.EqualTo(1));
+                    await completed.Timeout(TimeSpan.FromSeconds(3));
+                    AssertTitleCleared(fixture);
+                }
+
+                using var cancellation = new CancellationTokenSource();
+                var canceled = CinematicRuntime.ShowTitleAsync("Presentation.Chapter", "Presentation.Location", 0, 10, 0, cancellation.Token);
+                Assert.That(fixture.TitleGroup.alpha, Is.EqualTo(1));
+                cancellation.Cancel();
+                bool wasCanceled = false;
+                try
+                {
+                    await canceled;
+                }
+                catch (OperationCanceledException)
+                {
+                    wasCanceled = true;
+                }
+                Assert.That(wasCanceled, Is.True);
+                AssertTitleCleared(fixture);
+
+                // 空键是真实非法调用；缺失词条会返回键本身，不能用它伪造失败路径。
+                fixture.Title.text = "Existing title";
+                fixture.Subtitle.text = "Existing subtitle";
+                fixture.TitleGroup.alpha = 1;
+                bool failed = false;
+                try
+                {
+                    await CinematicRuntime.ShowTitleAsync(string.Empty, "Presentation.Location", 0, 0, 0);
+                }
+                catch (ArgumentException)
+                {
+                    failed = true;
+                }
+                Assert.That(failed, Is.True);
+                AssertTitleCleared(fixture);
+            }
+            finally
+            {
+                Time.timeScale = previousScale;
+                for (int index = 0; index < fields.Length; index++)
+                {
+                    fields[index].SetValue(null, values[index]);
+                }
+            }
+        }
+
+        private static void AssertTitleMapping(TMP_Text target, GameSettingsConfig config, string key)
+        {
+            Assert.That(target.text, Is.EqualTo(LanguageService.Get(key)));
+            int fontId = -1;
+            foreach (var entry in config.Language.Entries)
+            {
+                if (entry.Key == key)
+                {
+                    fontId = entry.FontId;
+                    break;
+                }
+            }
+            Assert.That(fontId, Is.GreaterThanOrEqualTo(0), "测试使用正式词条的 FontId");
+            foreach (var mapping in config.Fonts.Entries)
+            {
+                if (mapping.FontId == fontId && mapping.Language == LanguageService.CurrentLanguage)
+                {
+                    Assert.That(target.font, Is.SameAs(mapping.Font));
+                    Assert.That(target.fontSharedMaterial, Is.SameAs(mapping.Material));
+                    return;
+                }
+            }
+            Assert.Fail("正式字幕缺少对应字体映射：" + key);
+        }
+
+        private static void AssertTitleCleared(PresentationFixture fixture)
+        {
+            Assert.That(fixture.Title.text, Is.Empty);
+            Assert.That(fixture.Subtitle.text, Is.Empty);
+            Assert.That(fixture.TitleGroup.alpha, Is.Zero);
+            Assert.That(fixture.TitleGroup.interactable, Is.False);
+            Assert.That(fixture.TitleGroup.blocksRaycasts, Is.False);
+        }
+#endif
+
+        [UnityTest]
+        public IEnumerator CurtainShaderRendersAllPatternsAndCoverageBoundaries()
+        {
+            yield return RunCurtainImageCaseAsync().ToCoroutine();
+        }
+
+        private static async UniTask RunCurtainImageCaseAsync()
+        {
+            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+            {
+                Assert.Ignore("遮幕像素验收需要真实图形设备。");
+            }
+
+            using var fixture = new PresentationFixture();
+            var cameraObject = new GameObject("Cinematic image test camera", typeof(Camera));
+            var output = new RenderTexture(256, 128, 24, RenderTextureFormat.ARGB32);
+            var readback = new Texture2D(256, 128, TextureFormat.RGBA32, false, true);
+            var preset = ScriptableObject.CreateInstance<CinematicPreset>();
+            var previousTarget = RenderTexture.active;
+            string evidence = Path.Combine(Application.dataPath, "../Library/Settings/evidence/cinematic", SystemInfo.graphicsDeviceType.ToString());
+            try
+            {
+                output.Create();
+                var camera = cameraObject.GetComponent<Camera>();
+                camera.orthographic = true;
+                camera.orthographicSize = 64;
+                camera.nearClipPlane = 0.01f;
+                camera.farClipPlane = 10;
+                camera.cullingMask = 1 << 31;
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.white;
+                camera.targetTexture = output;
+                var cameraData = camera.GetUniversalAdditionalCameraData();
+                cameraData.renderPostProcessing = false;
+                cameraData.antialiasing = AntialiasingMode.None;
+                cameraData.volumeLayerMask = 0;
+                var canvas = fixture.Root.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = camera;
+                canvas.planeDistance = 1;
+                foreach (var item in fixture.Root.GetComponentsInChildren<Transform>(true))
+                {
+                    item.gameObject.layer = 31;
+                }
+                fixture.TopBar.transform.parent.gameObject.SetActive(false);
+                fixture.TitleGroup.gameObject.SetActive(false);
+                var rect = fixture.Curtain.rectTransform;
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                Canvas.ForceUpdateCanvases();
+                Directory.CreateDirectory(evidence);
+
+                foreach (CinematicTransitionStyle style in Enum.GetValues(typeof(CinematicTransitionStyle)))
+                {
+                    var directions = style == CinematicTransitionStyle.Wipe
+                        ? (CinematicWipeDirection[])Enum.GetValues(typeof(CinematicWipeDirection))
+                        : new[] { CinematicWipeDirection.LeftToRight };
+                    foreach (var direction in directions)
+                    {
+                        preset.ConfigureTransition(style, direction, 0, 0, 0, Color.black, 4, 16);
+                        var midpoint = new UniTaskCompletionSource();
+                        var transition = CinematicRuntime.PlayTransitionAsync(preset, _ => midpoint.Task);
+                        try
+                        {
+                            foreach (float progress in new[] { 0f, 1f, style == CinematicTransitionStyle.Iris ? 0.65f : 0.5f })
+                            {
+                                // 在真实公共转场中点固定时间采样材质，避免测试依赖帧速率和缓动时间。
+                                fixture.Curtain.material.SetFloat("_Progress", progress);
+                                await UniTask.WaitForEndOfFrame();
+                                RenderTexture.active = output;
+                                readback.ReadPixels(new Rect(0, 0, output.width, output.height), 0, 0);
+                                readback.Apply();
+                                RenderTexture.active = previousTarget;
+                                if (progress == 0 || progress == 1)
+                                {
+                                    foreach (var pixel in readback.GetPixels())
+                                    {
+                                        Assert.That(pixel.r, Is.EqualTo(1 - progress).Within(0.1f), style + "覆盖端点");
+                                    }
+                                }
+                                else
+                                {
+                                    AssertCurtainShape(readback, style, direction);
+                                    File.WriteAllBytes(Path.Combine(evidence, style + "-" + direction + ".png"), readback.EncodeToPNG());
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            midpoint.TrySetResult();
+                            await transition;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                RenderTexture.active = previousTarget;
+                cameraObject.GetComponent<Camera>().targetTexture = null;
+                Object.Destroy(cameraObject);
+                output.Release();
+                Object.Destroy(output);
+                Object.Destroy(readback);
+                Object.Destroy(preset);
+            }
+        }
+
+        private static void AssertCurtainShape(Texture2D image, CinematicTransitionStyle style, CinematicWipeDirection direction)
+        {
+            float Sample(float x, float y) => image.GetPixel(Mathf.FloorToInt(x * image.width), Mathf.FloorToInt(y * image.height)).r;
+            void Covered(float x, float y) => Assert.That(Sample(x, y), Is.LessThan(0.1f), style + "应为黑幕");
+            void Open(float x, float y) => Assert.That(Sample(x, y), Is.GreaterThan(0.9f), style + "应露出背景");
+            switch (style)
+            {
+                case CinematicTransitionStyle.Fade:
+                    Assert.That(Sample(0.2f, 0.2f), Is.InRange(0.35f, 0.8f));
+                    Assert.That(Sample(0.8f, 0.8f), Is.EqualTo(Sample(0.2f, 0.2f)).Within(0.02f));
+                    break;
+                case CinematicTransitionStyle.Wipe:
+                    if (direction == CinematicWipeDirection.LeftToRight)
+                    {
+                        Covered(0.2f, 0.5f);
+                        Open(0.8f, 0.5f);
+                    }
+                    else if (direction == CinematicWipeDirection.RightToLeft)
+                    {
+                        Open(0.2f, 0.5f);
+                        Covered(0.8f, 0.5f);
+                    }
+                    else if (direction == CinematicWipeDirection.BottomToTop)
+                    {
+                        Covered(0.5f, 0.2f);
+                        Open(0.5f, 0.8f);
+                    }
+                    else
+                    {
+                        Open(0.5f, 0.2f);
+                        Covered(0.5f, 0.8f);
+                    }
+                    break;
+                case CinematicTransitionStyle.DoorsHorizontal:
+                    Covered(0.1f, 0.5f); Covered(0.9f, 0.5f); Open(0.5f, 0.1f);
+                    break;
+                case CinematicTransitionStyle.DoorsVertical:
+                    Covered(0.5f, 0.1f); Covered(0.5f, 0.9f); Open(0.1f, 0.5f);
+                    break;
+                case CinematicTransitionStyle.Iris:
+                    // 长方形画面上相同像素半径应有相同覆盖，不应变成按 UV 拉伸的椭圆。
+                    Open(0.5f, 0.5f); Covered(0.05f, 0.05f);
+                    Open(0.65625f, 0.5f); Open(0.5f, 0.8125f);
+                    Covered(0.7265625f, 0.5f); Covered(0.5f, 0.953125f);
+                    break;
+                case CinematicTransitionStyle.Blinds:
+                    Covered(0.05f, 0.5f); Open(0.18f, 0.5f);
+                    Covered(0.3f, 0.5f); Open(0.43f, 0.5f);
+                    break;
+                case CinematicTransitionStyle.Pixel:
+                    int covered = 0;
+                    for (int row = 0; row < 8; row++)
+                    {
+                        for (int column = 0; column < 16; column++)
+                        {
+                            float sample = Sample((column + 0.5f) / 16, (row + 0.5f) / 8);
+                            Assert.That(sample < 0.1f || sample > 0.9f, Is.True, "像素转场单元不能变成整体半透明淡入");
+                            if (sample < 0.1f)
+                            {
+                                covered++;
+                            }
+                        }
+                    }
+                    Assert.That(covered, Is.InRange(16, 112), "只要求同时有开闭单元，不绑定 GPU 的随机散列顺序");
+                    break;
+            }
+        }
+
         [UnityTest]
         public IEnumerator TransitionQueueCancellationAndFailureRestoreCurtain()
         {
@@ -269,9 +565,14 @@ namespace Tests.Module
         {
             private readonly GameObject root;
             private readonly Material material;
+            internal GameObject Root => root;
             internal readonly CinematicPresenter Presenter;
             internal readonly CanvasGroup CurtainGroup;
+            internal readonly Image Curtain;
             internal readonly Image TopBar;
+            internal readonly CanvasGroup TitleGroup;
+            internal readonly TMP_Text Title;
+            internal readonly TMP_Text Subtitle;
 
             internal PresentationFixture()
             {
@@ -281,18 +582,18 @@ namespace Tests.Module
                 Presenter = root.AddComponent<CinematicPresenter>();
                 var curtainRoot = Child("Curtain");
                 CurtainGroup = curtainRoot.gameObject.AddComponent<CanvasGroup>();
-                var curtain = curtainRoot.gameObject.AddComponent<Image>();
+                Curtain = curtainRoot.gameObject.AddComponent<Image>();
                 var barContainer = Child("Bars");
                 TopBar = Child("Top bar", barContainer).gameObject.AddComponent<Image>();
                 var bottom = Child("Bottom bar", barContainer).gameObject.AddComponent<Image>();
                 var titleRoot = Child("Title card");
-                var titleGroup = titleRoot.gameObject.AddComponent<CanvasGroup>();
-                var title = Child("Title", titleRoot).gameObject.AddComponent<TextMeshProUGUI>();
-                var subtitle = Child("Subtitle", titleRoot).gameObject.AddComponent<TextMeshProUGUI>();
+                TitleGroup = titleRoot.gameObject.AddComponent<CanvasGroup>();
+                Title = Child("Title", titleRoot).gameObject.AddComponent<TextMeshProUGUI>();
+                Subtitle = Child("Subtitle", titleRoot).gameObject.AddComponent<TextMeshProUGUI>();
                 var shader = Shader.Find("UI/CinematicCurtain");
                 Assert.That(shader, Is.Not.Null, "需要导入正式遮幕 Shader");
                 material = new Material(shader);
-                Presenter.Initialize(CurtainGroup, curtain, barContainer, TopBar, bottom, titleGroup, title, subtitle, material);
+                Presenter.Initialize(CurtainGroup, Curtain, barContainer, TopBar, bottom, TitleGroup, Title, Subtitle, material);
                 CinematicRuntime.Register(Presenter);
             }
 

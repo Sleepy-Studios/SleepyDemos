@@ -190,6 +190,216 @@ namespace Tests.Module
         }
 
         [UnityTest, Timeout(180000)]
+        public IEnumerator HubLanguageSaveFailureRestoresPreferencesSelectionAndVisibleHub()
+        {
+            yield return PrepareHub();
+            yield return VerifyLanguageSaveFailureAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyLanguageSaveFailureAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            int originalSelection = GlobalData.Get<MainMenuData>().SelectedIndex;
+            var oldMenu = UIManager.Instance.Get<MainMenuView>();
+            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
+                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            var next = previous.Copy();
+            next.Language = previous.Language == "en" ? "zh-CN" : "en";
+            int records = 0;
+            foreach (var host in GameSettingsService.InputHosts)
+            {
+                // 单条合法且低于 64KiB；三条合并后在真正 SaveData 的 128KiB 边界失败。
+                next.BindingOverrides[host.SourceId] = "{\"bindings\":[]}" + new string(' ', 50000);
+                if (++records == 3)
+                {
+                    break;
+                }
+            }
+            Assert.That(records, Is.EqualTo(3));
+            // 公共音频通知证明候选已通过应用阶段；大小异常不是提前校验失败。
+            next.Audio.Master = AudioSettingsRuntime.GetGain(AudioBus.Music) > 0.5f ? 0.25f : 0.75f;
+            next.Audio.Music = 1;
+            next.Audio.Muted = false;
+            Assert.DoesNotThrow(next.Validate);
+            Assert.DoesNotThrow(() => GameSettingsService.Options.ValidateCandidate(next));
+            Assert.DoesNotThrow(() => GameSettingsService.Config.Inputs.ValidateOverrides(next.BindingOverrides));
+            Assert.DoesNotThrow(() => LanguageService.ValidateLanguage(next.Language));
+            bool runtimeAppliedAfterClose = false;
+            int reopenCount = 0;
+            Action observeAudio = () => runtimeAppliedAfterClose |= oldMenu.State == ViewState.Destroyed
+                && Mathf.Approximately(AudioSettingsRuntime.GetGain(AudioBus.Music), next.Audio.Master);
+            AudioSettingsRuntime.Changed += observeAudio;
+            try
+            {
+                GlobalData.Dispatch(new MainMenuSelectAction(1));
+                var result = await HubLanguageFlow.ApplyAsync(next, () =>
+                {
+                    reopenCount++;
+                    return reopen();
+                });
+                Assert.That(result.Succeeded, Is.False);
+                Assert.That(result.Canceled, Is.False);
+                Assert.That(result.Message, Does.Contain("本机记录超过允许大小"), "必须在持久化大小边界失败，不能以候选校验失败代替保存失败。");
+                Assert.That(runtimeAppliedAfterClose, Is.True);
+                Assert.That(reopenCount, Is.EqualTo(1));
+                Assert.That(oldMenu.State, Is.EqualTo(ViewState.Destroyed));
+                Assert.That(PlayerPrefs.HasKey(GameSettingsService.PreferenceKey), Is.EqualTo(hadPreference));
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preference));
+                Assert.That(GameSettingsService.Current.Language, Is.EqualTo(previous.Language));
+                Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(previous.Language));
+                Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(previous.Audio.Master));
+                Assert.That(AudioSettingsRuntime.GetGain(AudioBus.Music), Is.EqualTo(previous.Audio.Muted ? 0 : previous.Audio.Master * previous.Audio.Music).Within(0.0001f));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                Assert.That(UIManager.Instance.Get<MainMenuView>().State, Is.EqualTo(ViewState.Visible));
+                Assert.That(UIManager.Instance.Get<MainMenuView>(), Is.Not.SameAs(oldMenu));
+                Assert.That(HubLanguageFlow.IsChanging, Is.False);
+                Assert.That(runtime.LoadCount, Is.Zero);
+            }
+            finally
+            {
+                AudioSettingsRuntime.Changed -= observeAudio;
+                try
+                {
+                    await HubLanguageFlow.ApplyAsync(previous, reopen);
+                    GlobalData.Dispatch(new MainMenuSelectAction(originalSelection));
+                }
+                finally
+                {
+                    RestoreSettingsPreference(hadPreference, preference);
+                }
+            }
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator HubLanguageAndDemoEntryRejectEachOtherWhileTheirTransactionsArePending()
+        {
+            yield return PrepareHub();
+            yield return VerifyLanguageEntryExclusionAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyLanguageEntryExclusionAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            int originalSelection = GlobalData.Get<MainMenuData>().SelectedIndex;
+            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
+                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            var gate = new UniTaskCompletionSource<UIOperationResult>();
+            UniTask<SettingsApplyResult> languageTask = default;
+            UniTask<GameSceneSwitchResult> entryTask = default;
+            bool languageStarted = false;
+            bool languageAwaited = false;
+            bool entryStarted = false;
+            bool entryAwaited = false;
+            bool reopening = false;
+            try
+            {
+                GlobalData.Dispatch(new MainMenuSelectAction(1));
+                var next = previous.Copy();
+                next.Language = previous.Language == "en" ? "zh-CN" : "en";
+                languageTask = HubLanguageFlow.ApplyAsync(next, () =>
+                {
+                    reopening = true;
+                    return gate.Task;
+                }).Preserve();
+                languageStarted = true;
+                await UniTask.WaitUntil(() => reopening).Timeout(TimeSpan.FromSeconds(15));
+                Assert.That(HubLanguageFlow.IsChanging, Is.True);
+                string pendingPreference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+                GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                Assert.That(runtime.LoadCount, Is.Zero, "语言页面重建等待中必须拒绝新的 Demo 进入命令。");
+                Assert.That(GlobalData.Get<MainMenuData>().IsEntering, Is.False);
+                var rejected = await HubLanguageFlow.ApplyAsync(previous, reopen);
+                Assert.That(rejected.Succeeded, Is.False, "语言事务等待期间不能再启动另一场重建。");
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(pendingPreference));
+                Assert.That(HubLanguageFlow.IsChanging, Is.True);
+                gate.TrySetResult(UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+                var languageResult = await languageTask;
+                languageAwaited = true;
+                Assert.That(languageResult.Succeeded, Is.True, languageResult.Message);
+                Assert.That(HubLanguageFlow.IsChanging, Is.False);
+
+                // 直接持有导航任务，清理也会 await；不留下 MainMenu 的 fire-and-forget 请求。
+                entryTask = GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Dlss).Preserve();
+                entryStarted = true;
+                await UniTask.WaitUntil(() => runtime.HasPendingEntry).Timeout(TimeSpan.FromSeconds(15));
+                var loading = UIManager.Instance.Get<CommonLoadingView>();
+                Assert.That(loading?.State, Is.EqualTo(ViewState.Visible));
+                Assert.That(GameSceneNavigator.Instance.IsTransitioning, Is.True);
+                string enteringPreference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+                rejected = await HubLanguageFlow.ApplyAsync(previous, reopen);
+                Assert.That(rejected.Succeeded, Is.False, "待进入 Demo 期间不允许关闭 Loading 或切换语言。");
+                Assert.That(GameSettingsService.Current.Language, Is.EqualTo(next.Language));
+                Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(next.Language));
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(enteringPreference));
+                Assert.That(UIManager.Instance.Get<CommonLoadingView>(), Is.SameAs(loading));
+                Assert.That(loading.State, Is.EqualTo(ViewState.Visible));
+                Assert.That(HubLanguageFlow.IsChanging, Is.False);
+                GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                Assert.That(runtime.LoadCount, Is.EqualTo(1), "导航等待期间不能再启动第二次加载。");
+                runtime.FailEntry();
+                var entryResult = await entryTask;
+                entryAwaited = true;
+                Assert.That(entryResult.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+                await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+            }
+            finally
+            {
+                gate.TrySetResult(UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+                try
+                {
+                    try
+                    {
+                        if (languageStarted && !languageAwaited)
+                        {
+                            await languageTask;
+                        }
+                    }
+                    finally
+                    {
+                        if (entryStarted && !entryAwaited)
+                        {
+                            if (runtime.HasPendingEntry)
+                            {
+                                runtime.FailEntry();
+                            }
+                            await entryTask;
+                        }
+                    }
+                }
+                finally
+                {
+                    try
+                    {
+                        await HubLanguageFlow.ApplyAsync(previous, reopen);
+                        GlobalData.Dispatch(new MainMenuSelectAction(originalSelection));
+                    }
+                    finally
+                    {
+                        RestoreSettingsPreference(hadPreference, preference);
+                    }
+                }
+            }
+        }
+
+        private static void RestoreSettingsPreference(bool existed, string value)
+        {
+            if (existed)
+            {
+                PlayerPrefs.SetString(GameSettingsService.PreferenceKey, value);
+            }
+            else
+            {
+                PlayerPrefs.DeleteKey(GameSettingsService.PreferenceKey);
+            }
+            PlayerPrefs.Save();
+        }
+
+        [UnityTest, Timeout(180000)]
         public IEnumerator FailedEntryRestoresNewMenuAndAllowsRetry()
         {
             yield return PrepareHub();
