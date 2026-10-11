@@ -53,7 +53,7 @@ namespace Core.Runtime.Rendering.Streamline
         private static void InitializeSharedSettings()
         {
             RequestedMode = ReadSavedMode();
-            var go = new GameObject("Streamline Runtime") { hideFlags = HideFlags.DontSave };
+            var go = new GameObject("Streamline Runtime");
             UnityEngine.Object.DontDestroyOnLoad(go);
             driver = go.AddComponent<StreamlineRuntimeDriver>();
         }

@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 
 namespace Core.Runtime.Rendering.Streamline
@@ -108,19 +107,43 @@ namespace Core.Runtime.Rendering.Streamline
 
         private sealed class PresentationPass : ScriptableRenderPass
         {
+            private sealed class PassData
+            {
+                public TextureHandle Source;
+            }
+
             public PresentationPass()
             {
                 renderPassEvent = RenderPassEvent.BeforeRenderingTransparents;
                 requiresIntermediateTexture = true;
             }
 
+            /// <summary>只导入相机输出的颜色，并交给公共 UI 呈现相机。</summary>
+            /// <param name="renderGraph">呈现相机的 RenderGraph。</param>
+            /// <param name="frameData">呈现相机的当前颜色目标。</param>
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
             {
                 var source = StreamlineCameraSession.PresentationHandle;
-                if (source == null) return;
+                if (source == null)
+                {
+                    return;
+                }
+
                 var resources = frameData.Get<UniversalResourceData>();
-                renderGraph.AddBlitPass(renderGraph.ImportTexture(source), resources.activeColorTexture,
-                    Vector2.one, Vector2.zero, passName: "Streamline presentation");
+                using (var builder = renderGraph.AddRasterRenderPass<PassData>("Streamline presentation", out var data))
+                {
+                    data.Source = renderGraph.ImportTexture(source, StreamlineCameraSession.PresentationTargetInfo);
+                    builder.UseTexture(data.Source, AccessFlags.Read);
+                    builder.SetRenderAttachment(resources.activeColorTexture, 0, AccessFlags.Write);
+                    // RenderTargetIdentifier 的 Blitter 重载通过全局 _BlitTexture 绑定源颜色。
+                    builder.AllowGlobalStateModification(true);
+                    builder.SetRenderFunc(static (PassData pass, RasterGraphContext context) =>
+                    {
+                        var material = Blitter.GetBlitMaterial(TextureDimension.Tex2D);
+                        Blitter.BlitTexture(context.cmd, (RenderTargetIdentifier)pass.Source,
+                            new Vector4(1, 1, 0, 0), material, material.FindPass("Bilinear"));
+                    });
+                }
             }
         }
 

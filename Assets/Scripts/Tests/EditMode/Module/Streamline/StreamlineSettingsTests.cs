@@ -1,12 +1,36 @@
+using System;
+using System.Collections;
 using Core.Runtime.Rendering.Streamline;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 using Core.Runtime;
+using UnityEngine.TestTools;
 
 namespace Tests.Module
 {
     public sealed class StreamlineSettingsTests
     {
+        [UnityTest]
+        public IEnumerator RuntimeDriverIsReleasedWhenPlayModeEnds()
+        {
+            yield return new EnterPlayMode();
+            StreamlineRuntime.Initialize();
+            // 不手动销毁驱动，验证 Editor 退出 Play 的真实清理。
+            yield return new ExitPlayMode();
+            AssertNoRuntimeObjects();
+        }
+
+        private static void AssertNoRuntimeObjects()
+        {
+            Assert.IsFalse(Application.isPlaying);
+            var leftovers = Array.FindAll(Resources.FindObjectsOfTypeAll<GameObject>(), go =>
+                !EditorUtility.IsPersistent(go) &&
+                (go.name == "Streamline Presentation" || go.name == "Streamline Runtime"));
+            Assert.That(leftovers, Is.Empty, string.Join("\n", Array.ConvertAll(leftovers, go =>
+                $"{go.name}: id={go.GetInstanceID()}, flags={go.hideFlags}, scene={go.scene.name}")));
+        }
+
         [TestCase(0)]
         [TestCase(-1)]
         [TestCase(999)]

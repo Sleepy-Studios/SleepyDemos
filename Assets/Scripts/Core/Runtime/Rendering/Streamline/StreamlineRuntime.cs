@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 using UnityEngine.Rendering.Universal;
 using Object = UnityEngine.Object;
 
@@ -127,7 +128,7 @@ namespace Core.Runtime.Rendering.Streamline
             if (sharedPresentation)
             {
                 cameraData.cameraStack.Remove(uiCamera);
-                var go = new GameObject("Streamline Presentation") { hideFlags = HideFlags.DontSave };
+                var go = new GameObject("Streamline Presentation");
                 // 绑定发生在激活目标场景之前，呈现对象不能归即将卸载的旧场景所有。
                 Object.DontDestroyOnLoad(go);
                 presentationCamera = go.AddComponent<Camera>();
@@ -234,7 +235,11 @@ namespace Core.Runtime.Rendering.Streamline
             HasEvaluatedFrame = false;
             HasRenderedFrame = false;
             firstFrameDeadline = Time.realtimeSinceStartupAsDouble + 15;
-            worldTarget = CreateTexture(sharedPresentation ? OutputSize : InputSize, GraphicsFormat.R16G16B16A16_SFloat, sharedPresentation ? 0 : 24);
+            worldTarget = CreateTexture(sharedPresentation ? OutputSize : InputSize, GraphicsFormat.R16G16B16A16_SFloat, 24);
+            if (worldTarget.depthStencilFormat == GraphicsFormat.None)
+            {
+                throw new InvalidOperationException("URP 相机输出纹理没有有效的深度格式。");
+            }
             camera.targetTexture = worldTarget;
             // 公共主相机保留自动/自定义 aspect 语义，目标纹理本身已经是完整显示尺寸。
             if (!sharedPresentation) camera.aspect = OutputSize.x / (float)OutputSize.y;
@@ -280,13 +285,27 @@ namespace Core.Runtime.Rendering.Streamline
                 OutputTexture = output;
             }
             else OutputTexture = worldTarget;
-            if (sharedPresentation) PresentationHandle = RTHandles.Alloc(worldTarget);
+            if (sharedPresentation)
+            {
+                // RenderGraph 分别描述颜色和深度；呈现只读取相机输出的颜色。
+                PresentationHandle = RTHandles.Alloc(new RenderTargetIdentifier(worldTarget));
+                PresentationTargetInfo = new RenderTargetInfo
+                {
+                    width = worldTarget.width,
+                    height = worldTarget.height,
+                    volumeDepth = worldTarget.volumeDepth,
+                    msaaSamples = worldTarget.antiAliasing,
+                    format = worldTarget.graphicsFormat,
+                    bindMS = worldTarget.bindTextureMS
+                };
+            }
             camera.enabled = true;
             if (presentationCamera != null) presentationCamera.enabled = true;
         }
 
         internal static Camera PresentationCamera { get; private set; }
         internal static RTHandle PresentationHandle { get; private set; }
+        internal static RenderTargetInfo PresentationTargetInfo { get; private set; }
 
         private void OnBeginCamera(ScriptableRenderContext context, Camera renderedCamera)
         {
@@ -360,7 +379,12 @@ namespace Core.Runtime.Rendering.Streamline
 
         private void ReleaseTextures()
         {
-            if (sharedPresentation) { PresentationHandle?.Release(); PresentationHandle = null; }
+            if (sharedPresentation)
+            {
+                PresentationHandle?.Release();
+                PresentationHandle = null;
+                PresentationTargetInfo = default;
+            }
             OutputTexture = null;
             Changed?.Invoke();
             if (camera != null) camera.targetTexture = null;

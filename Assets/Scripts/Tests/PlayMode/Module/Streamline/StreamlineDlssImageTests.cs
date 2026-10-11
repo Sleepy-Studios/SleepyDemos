@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Cysharp.Threading.Tasks;
 using Core.Runtime.Rendering.Streamline;
 using NUnit.Framework;
 using UnityEditor;
@@ -12,6 +13,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Profiling;
 using UnityEngine.TestTools;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
 namespace Tests.Module
@@ -112,6 +114,159 @@ namespace Tests.Module
         private VolumeProfile validationVolumeProfile;
         private RenderPipelineAsset originalGraphicsPipeline;
         private RenderPipelineAsset originalQualityPipeline;
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator SharedCameraOutputHasDepthAndPresentsWorldAndUi()
+        {
+            if (!SupportsValidationBackend)
+            {
+                Assert.Ignore("Windows Editor DX12/Vulkan required.");
+            }
+
+            var savedMode = StreamlineRuntime.IsInitialized ? StreamlineRuntime.RequestedMode : StreamlineRuntime.ReadSavedMode();
+            StreamlineRuntime.Initialize();
+            StreamlineRuntime.SetMode(null);
+            while (StreamlineRuntime.IsBusy)
+            {
+                yield return null;
+            }
+
+            yield return null;
+            var previousCamera = StreamlineRuntime.BoundCamera;
+            var previousStack = previousCamera != null ? previousCamera.GetUniversalAdditionalCameraData().cameraStack : null;
+            var previousUi = previousStack?.Count == 1 ? previousStack[0] : null;
+            var existingCameras = Camera.allCameras;
+            var previousPipeline = GraphicsSettings.defaultRenderPipeline;
+            var previousQualityPipeline = QualitySettings.renderPipeline;
+            var worldObject = new GameObject("Streamline shared world", typeof(Camera));
+            var uiObject = new GameObject("Streamline shared UI", typeof(Camera));
+            var canvasObject = new GameObject("Streamline shared canvas", typeof(Canvas));
+            var markerObject = new GameObject("Streamline UI marker", typeof(RectTransform), typeof(Image));
+            StreamlineCameraSession session = null;
+            var warnings = new List<string>();
+            Application.LogCallback onLog = (message, stack, type) =>
+            {
+                if (type == LogType.Warning && message.Contains("output Render Texture must have a depth buffer"))
+                {
+                    warnings.Add(message);
+                }
+            };
+            Application.logMessageReceived += onLog;
+            try
+            {
+                foreach (var existing in existingCameras)
+                {
+                    existing.enabled = false;
+                }
+
+                var world = worldObject.GetComponent<Camera>();
+                world.cullingMask = 0;
+                world.clearFlags = CameraClearFlags.SolidColor;
+                world.backgroundColor = Color.red;
+                world.GetUniversalAdditionalCameraData().renderPostProcessing = false;
+                var ui = uiObject.GetComponent<Camera>();
+                ui.cullingMask = 1 << 5;
+                ui.nearClipPlane = 0.01f;
+                ui.GetUniversalAdditionalCameraData().renderType = CameraRenderType.Overlay;
+                world.GetUniversalAdditionalCameraData().cameraStack.Add(ui);
+                canvasObject.layer = markerObject.layer = 5;
+                var canvas = canvasObject.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                canvas.worldCamera = ui;
+                canvas.planeDistance = 1;
+                markerObject.transform.SetParent(canvasObject.transform, false);
+                var marker = markerObject.GetComponent<Image>();
+                marker.color = Color.green;
+                marker.rectTransform.anchorMin = new Vector2(0.4f, 0.4f);
+                marker.rectTransform.anchorMax = new Vector2(0.6f, 0.6f);
+                marker.rectTransform.offsetMin = marker.rectTransform.offsetMax = Vector2.zero;
+
+                // 使用公共绑定和屏幕尺寸，避免运行驱动把测试会话当作旧相机或 Resize 会话回收。
+                StreamlineRuntime.BindCamera(world, ui);
+                session = new StreamlineCameraSession(world, GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset, ui);
+                var size = new Vector2Int(Mathf.Max(64, Screen.width), Mathf.Max(64, Screen.height));
+                foreach (var mode in new StreamlineDlssMode?[] { null, StreamlineDlssMode.Quality, null })
+                {
+                    bool applied = false;
+                    yield return session.ApplyAsync(mode, size).ToCoroutine(result => applied = result);
+                    Assert.IsTrue(applied, session.Error);
+                    Assert.That(world.targetTexture, Is.Not.Null);
+                    Assert.That(world.targetTexture.depthStencilFormat, Is.Not.EqualTo(GraphicsFormat.None));
+                    double deadline = Time.realtimeSinceStartupAsDouble + 30;
+                    while ((!session.HasRenderedFrame || (mode.HasValue && !session.HasEvaluatedFrame)) && Time.realtimeSinceStartupAsDouble < deadline)
+                    {
+                        yield return null;
+                    }
+
+                    Assert.IsTrue(session.HasRenderedFrame, session.Error);
+                    if (mode.HasValue)
+                    {
+                        Assert.IsTrue(session.HasEvaluatedFrame, session.Error);
+                    }
+
+                    yield return new WaitForEndOfFrame();
+                    AssertWorldAndUiPresented(mode?.ToString() ?? "关闭");
+                }
+
+                session.Dispose();
+                Assert.That(world.targetTexture, Is.Null);
+                Assert.That(world.enabled, Is.True);
+                Assert.That(world.GetUniversalAdditionalCameraData().cameraStack, Does.Contain(ui));
+                Assert.That(GraphicsSettings.defaultRenderPipeline, Is.SameAs(previousPipeline));
+                Assert.That(QualitySettings.renderPipeline, Is.SameAs(previousQualityPipeline));
+                yield return null;
+                yield return new WaitForEndOfFrame();
+                AssertWorldAndUiPresented("释放后恢复原相机栈");
+                Assert.That(warnings, Is.Empty);
+            }
+            finally
+            {
+                session?.Dispose();
+                StreamlineRuntime.DetachCamera();
+                Application.logMessageReceived -= onLog;
+                Object.Destroy(canvasObject);
+                Object.Destroy(markerObject);
+                Object.Destroy(worldObject);
+                Object.Destroy(uiObject);
+                foreach (var existing in existingCameras)
+                {
+                    if (existing != null)
+                    {
+                        existing.enabled = true;
+                    }
+                }
+
+                if (previousCamera != null && previousUi != null)
+                {
+                    StreamlineRuntime.BindCamera(previousCamera, previousUi);
+                }
+
+                StreamlineRuntime.SetMode(savedMode);
+            }
+
+            while (StreamlineRuntime.IsBusy)
+            {
+                yield return null;
+            }
+        }
+
+        private static void AssertWorldAndUiPresented(string stage)
+        {
+            var screenshot = ScreenCapture.CaptureScreenshotAsTexture();
+            try
+            {
+                var worldPixel = screenshot.GetPixel(screenshot.width / 4, screenshot.height / 2);
+                var uiPixel = screenshot.GetPixel(screenshot.width / 2, screenshot.height / 2);
+                Assert.That(worldPixel.r, Is.GreaterThan(0.1f), "最终呈现丢失世界背景：" + stage);
+                Assert.That(worldPixel.r, Is.GreaterThan(worldPixel.g + worldPixel.b), "最终世界颜色错误：" + stage);
+                Assert.That(uiPixel.g, Is.GreaterThan(0.1f), "最终呈现丢失 UI：" + stage);
+                Assert.That(uiPixel.g, Is.GreaterThan(uiPixel.r + uiPixel.b), "最终 UI 颜色错误：" + stage);
+            }
+            finally
+            {
+                Object.Destroy(screenshot);
+            }
+        }
 
         [UnityTest]
         [Category("StreamlineIntegration")]
@@ -810,7 +965,10 @@ namespace Tests.Module
                 capture.StopCapture();
                 if (capture.Camera != null) capture.Camera.enabled = false;
             }
-            StreamlineCaptureFeature.Session = null;
+            if (captureSessions.Contains(StreamlineCaptureFeature.Session))
+            {
+                StreamlineCaptureFeature.Session = null;
+            }
             try
             {
                 if (completionIssued)
@@ -854,7 +1012,10 @@ namespace Tests.Module
                 foreach (var recorder in gpuRecorders) recorder.enabled = false;
                 gpuRecorders.Clear();
                 // 即使 SDK 清理失败，也恢复项目管线并移除验证相机；原生资源保留至重启。
-                StreamlineCaptureFeature.Session = null;
+                if (captureSessions.Contains(StreamlineCaptureFeature.Session))
+                {
+                    StreamlineCaptureFeature.Session = null;
+                }
                 if (validationPipeline != null)
                 {
                     QualitySettings.renderPipeline = originalQualityPipeline;

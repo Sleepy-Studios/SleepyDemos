@@ -49,6 +49,10 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 启用期间克隆当前 URP 配置，保留 Renderer 和 Volume 设置，不写回项目资产；只在世界相机渲染时使用 SDK 比例。目标纹理维持全输出尺寸，以保留玩法相机的屏幕坐标语义。DLSS 在后处理之前输出，公共呈现相机随后以比例 1 合成 UI。原来未启用后处理的相机临时使用空 Volume 层，以获取时域抖动且不引入额外场景效果。关闭恢复目标、抗锯齿、后处理、深度、动态分辨率及原管线。
 
+相机输出纹理必须带有效深度格式，当前请求 24 位深度；这与供 DLSS 使用的独立 R32 深度输入用途不同。公共呈现使用 `RenderTargetIdentifier` 包装与实际 `RenderTargetInfo`，只把输出颜色导入 RenderGraph，再由 Raster Pass 合成 UI；不能直接导入同时含颜色和深度的整张纹理，也不能对该句柄使用依赖完整纹理描述的便利 Blit Pass。模式和尺寸重建时同步更新描述，GPU 排空后释放句柄。
+
+运行驱动和呈现相机使用普通运行时 GameObject 与 `DontDestroyOnLoad`，不可叠加 `HideFlags.DontSave`。该组合会在退出 Play 后遗留对象（Unity 官方 [UUM-87097](https://issuetracker.unity.com/issues/8938/gameobjects-with-hideflagsdontsaveineditor-paired-with-the-dontdestroyonload-method-are-not-relieved-up-when-the-play-mode-is-exited)）；域重载丢失会话引用后，旧呈现相机仍会在正常 UI 之后清黑屏。临时管线和纹理继续显式管理，不使用运行对象的生命周期代替 GPU 排空。
+
 公共面板位于 `Hotfix/Module/GraphicsSettings`。`GraphicsSettingsSetModeAction` 经 Handler 调用 Streamline，服务 Changed 将真实状态发布到 GraphicsSettingsData，View 自动订阅。面板使用既有 UIManager 的普通 Pop/Modal，按需加载，关闭后销毁；打开和关闭不改变已保存画质。资源位于 `LoadResources/UI/GraphicsSettings`，直接维护保存的 Prefab 并用 UIBind 更新绑定；实验室只包含场景与观察交互，Renderer 配置工具属于 Core.Editor。
 
 通过 `UIManager.Instance.ShowAsync<DlssSettingsView>()` 打开，关闭按钮与 UIMenuScope 的 Cancel 调用 `CloseAsync<DlssSettingsView>()`。Pop 使用公共遮罩与淡入缩放过渡，点击遮罩可关闭；UIManager 和公共菜单作用域恢复原入口焦点。启动和 Demo 直启均不预加载设置 UI，不再提供全局右上角 OpenButton；GraphicsSettingsUI 和各页面入口抑制作用域已删除。
@@ -72,6 +76,10 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 - 原生桥接已重新构建并部署，SDK 帧计数跨会话复用问题已修复；最终 Console 错误查询为 0。窗口交互手感和更复杂场景画质由用户继续体验。
 
 ## 维护与验证
+
+2026-10-11，相机输出深度、颜色导入和运行对象生命周期修正的 DX12 定向验证：`RuntimeDriverIsReleasedWhenPlayModeEnds`、`SharedCameraOutputHasDepthAndPresentsWorldAndUi`、`SameViewportHandlesModeAndOutputResize`、`FormalStartupModesAndHubReturn` 均通过，覆盖退出 Play 的对象清理、最终世界/UI 像素、释放后的正常相机栈、模式/尺寸重建及正式启动。实际 Game View 完成关闭 → 质量 → 平衡 → 性能 → 最大性能 → DLAA → 关闭，各档实际生效与输入尺寸已核对；最大性能档连续观察超过 60 秒，Unity Console 无警告或错误。清理旧实例遗留对象后，在同一 Editor 中完成最大性能档退出并重进 Play、再关闭 DLSS，以及关闭状态下再次重进 Play，最终画面与 UI 正常。未执行全量测试、Vulkan 或 Player 验证。
+
+同轮跨 Play 黑屏已定位到 `DontSave` 呈现相机遗留：Frame Debugger 第 52 个事件已输出完整大厅/UI，后续相机绘制覆盖为黑色；退出 Play 后仍可通过 `Resources.FindObjectsOfTypeAll` 找到启用的旧呈现相机及两个旧驱动。在同一 Editor 内停用旧相机即恢复画面。原生日志另有缺少 `presentCommon()` 的集成错误，属于上文尚未接通的 Present 维护边界，不能把 Unity Console 零错误解释为原生集成已完整。
 
 G2 的双后端图像测试各 13 项通过，相机历史 EditMode 测试 7 项通过，未运行项目全量测试。覆盖五档设置、真实 URP 输入输出、相机运动、切镜、尺寸变化、HDR 亮度与透明度变化。GPU 采样只覆盖原生 DLSS 命令，不能代表整帧收益或长期稳定性。
 
