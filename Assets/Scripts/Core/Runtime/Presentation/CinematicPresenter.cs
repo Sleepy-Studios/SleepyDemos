@@ -95,7 +95,7 @@ namespace Core.Runtime.Presentation
         }
 
         internal async UniTask PlayTransitionAsync(CinematicPreset preset, Func<CancellationToken, UniTask> midpoint,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, CancellationToken registrationToken)
         {
             EnsureInitialized();
             float close = ResolveDuration(preset.CloseDuration);
@@ -126,8 +126,12 @@ namespace Core.Runtime.Presentation
             }
             finally
             {
-                transitioning = false;
-                HideCurtain();
+                // 注销已同步 ResetEffects；旧任务延后结束不能清理重新注册后的新演出。
+                if (!registrationToken.IsCancellationRequested)
+                {
+                    transitioning = false;
+                    HideCurtain();
+                }
             }
         }
 
@@ -176,7 +180,7 @@ namespace Core.Runtime.Presentation
         }
 
         internal async UniTask ShowTitleAsync(string titleKey, string subtitleKey, float fadeIn, float hold,
-            float fadeOut, CancellationToken cancellationToken)
+            float fadeOut, CancellationToken cancellationToken, CancellationToken registrationToken)
         {
             EnsureInitialized();
             try
@@ -200,13 +204,17 @@ namespace Core.Runtime.Presentation
             }
             finally
             {
-                HideTitle();
+                if (!registrationToken.IsCancellationRequested)
+                {
+                    HideTitle();
+                }
             }
         }
 
         /// 清除三个表现通道，并恢复所有被本组件暂时隐藏的 HUD。
         public void ResetEffects()
         {
+            transitioning = false;
             for (int index = scopes.Count - 1; index >= 0; index--)
             {
                 scopes[index].Dispose();

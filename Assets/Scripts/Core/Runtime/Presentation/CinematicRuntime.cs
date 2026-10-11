@@ -66,7 +66,7 @@ namespace Core.Runtime.Presentation
             {
                 await UniTask.SwitchToMainThread(linked.Token);
                 linked.Token.ThrowIfCancellationRequested();
-                await registration.Presenter.PlayTransitionAsync(preset, midpoint, linked.Token);
+                await registration.Presenter.PlayTransitionAsync(preset, midpoint, linked.Token, registration.Lifetime.Token);
             }
             finally
             {
@@ -106,7 +106,8 @@ namespace Core.Runtime.Presentation
             {
                 await UniTask.SwitchToMainThread(linked.Token);
                 linked.Token.ThrowIfCancellationRequested();
-                await registration.Presenter.ShowTitleAsync(titleKey, subtitleKey, fadeIn, hold, fadeOut, linked.Token);
+                await registration.Presenter.ShowTitleAsync(titleKey, subtitleKey, fadeIn, hold, fadeOut,
+                    linked.Token, registration.Lifetime.Token);
             }
             finally
             {

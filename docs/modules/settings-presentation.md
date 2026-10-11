@@ -66,6 +66,8 @@ CinematicRuntime 要求 UIManager 托管的正式 View 显式初始化并 Regist
 
 中点可等待场景加载、切镜、字幕和黑边，**不能等待同一个黑幕通道的另一场转场**，否则队列会等待自身。字幕在显示时解析语言/FontId。未注册表现根时明确报错。
 
+同一个表现根注销后可以重新注册并立即开始新演出。注销先同步清理旧表现；旧异步任务随后观察取消时，不得再清除新注册的遮幕或字幕。各注册仍拥有独立队列，普通用户取消继续清理本次演出。
+
 Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 PresentationWorld 世界租约、PresentationLabView 与 CinematicOverlayView；体验页分别调用公共后处理、时间和电影 API。退出通过 UIManager.ReplaceAsync 返回 Hub，成功后销毁体验页并归还世界资源；失败或取消且体验页仍可见时恢复表现根。停止和退出只释放本次作用域，不解除其它调用方的冻结。该体验页不会把暂时的速度、黑边或后处理预览写成玩家设置。正式 UI 位于 `UI/Presentation/`，世界资源位于 `Art/Presentation/PresentationWorld.prefab`。
 
 ## 验证边界

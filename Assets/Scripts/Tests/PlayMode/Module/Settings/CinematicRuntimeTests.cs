@@ -90,6 +90,27 @@ namespace Tests.Module
                 }
                 Assert.That(failed, Is.True);
                 AssertTitleCleared(fixture);
+
+                // 同一正式根可在取消旧注册后立即复用，旧字幕清理不能擦掉新字幕。
+                var displacedTitle = CinematicRuntime.ShowTitleAsync("Presentation.Chapter", null, 0, 10, 0);
+                CinematicRuntime.Unregister(fixture.Presenter);
+                AssertTitleCleared(fixture);
+                CinematicRuntime.Register(fixture.Presenter);
+                using var replacementCancellation = new CancellationTokenSource();
+                var replacementTitle = CinematicRuntime.ShowTitleAsync("Presentation.Location", null, 0, 10, 0, replacementCancellation.Token);
+                try
+                {
+                    Assert.That(await displacedTitle.SuppressCancellationThrow(), Is.True, "旧注册的字幕必须取消。");
+                    AssertTitleMapping(fixture.Title, config, "Presentation.Location");
+                    Assert.That(fixture.TitleGroup.alpha, Is.EqualTo(1), "旧任务的 finally 不能隐藏新注册的字幕。");
+                    Assert.That(replacementTitle.Status, Is.EqualTo(UniTaskStatus.Pending));
+                }
+                finally
+                {
+                    replacementCancellation.Cancel();
+                    Assert.That(await replacementTitle.SuppressCancellationThrow(), Is.True);
+                }
+                AssertTitleCleared(fixture);
             }
             finally
             {
@@ -409,6 +430,29 @@ namespace Tests.Module
                 {
                     nonCooperativeMidpoint.TrySetResult();
                 }
+
+                // 旧动画在下一 Update 才观察注册取消，新注册拥有自己的队列。
+                var displacedTransition = CinematicRuntime.PlayTransitionAsync(preset);
+                CinematicRuntime.Unregister(fixture.Presenter);
+                Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
+                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
+                CinematicRuntime.Register(fixture.Presenter);
+                var replacementMidpoint = new UniTaskCompletionSource();
+                var replacementTransition = CinematicRuntime.PlayTransitionAsync(preset, _ => replacementMidpoint.Task);
+                try
+                {
+                    Assert.That(await displacedTransition.SuppressCancellationThrow(), Is.True, "旧注册的转场必须取消。");
+                    Assert.That(replacementTransition.Status, Is.EqualTo(UniTaskStatus.Pending));
+                    Assert.That(fixture.CurtainGroup.alpha, Is.EqualTo(1), "旧任务的 finally 不能清理新注册的遮幕。");
+                    Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.True);
+                }
+                finally
+                {
+                    replacementMidpoint.TrySetResult();
+                    await replacementTransition;
+                }
+                Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
+                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
             }
             finally
             {
