@@ -1,3 +1,4 @@
+using Core.Runtime.TimeControls;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -52,7 +53,7 @@ namespace Hotfix.DroneFlight
             }
 
             line.enabled = true;
-            DrawInterpolatedFrame(startPoint.position, endPoint.position, Time.unscaledDeltaTime);
+            DrawInterpolatedFrame(startPoint.position, endPoint.position, GameTimeService.DeltaTime);
         }
 
         internal void ConfigureEndpoints(Transform start, Transform end)

@@ -22,7 +22,15 @@
 
 键鼠：按住墙拖动，或 Q/E 选墙、WASD/方向键沿轴移动。触屏：单指拖墙。手柄：肩键选墙，左摇杆沿轴移动。模拟设备接线已验证，真实触屏和手柄仍待人工验收。
 
+这些键位是保存的制作默认值；玩家改键后以会话副本和 HUD 的实际绑定为准。玩法中的 Esc/返回键请求暂停，菜单里的确认/返回由公共 UI 独占。设备提示跟随最近实际操作，切换设备、暂停与重试均取消当前拖墙，重新按下前须释放旧指针。
+
 使用项目 Hub 进入“夹爆它”；暂停或结果菜单返回 Hub。Editor 直接打开 `Assets/LoadResources/Demos/wall_squeeze/Scenes/Main.unity` 后 Play，公共 Bootstrap 按保存路径识别此 Demo。
+
+## 公共设置定向验收
+
+从 Hub 调整死区、震动、输入提示、减少动态及实际绑定，再进入 Demo 检查参数生效；不要改写 `PlayerInput.asset` 或复制公共设备逻辑。暂停/返回、规则冻结和拖墙取消分别验证，菜单始终使用未缩放时间。
+
+相关精确用例为 `WallSqueezeRuntimeTests.GlobalFreezeSuppressesWallSelectionAndMovementWhilePauseStillWorks` 与 `KeyboardEscapePausesGameplayOnceAndMenuCancelDoesNotSubmitPause`。图标资源及公共提示组件见[玩法输入](../../../modules/gameplay-input.md)；世界时间、Effects 总线与辅助偏好见[设置与表现](../../../modules/settings-presentation.md)。本段列出验收入口，不替代本轮实际测试记录，也不表示已经完成真实设备或全量测试。
 
 ## 完成报告
 

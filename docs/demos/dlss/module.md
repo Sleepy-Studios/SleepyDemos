@@ -37,7 +37,7 @@
 
 观察控件仍使用原地址 `DlssControls.prefab`，现在由 `DlssControlsView` 和 UIManager 管理。UIBind 生成组件引用和输入回调，View 声明一次 Data 绑定；隐藏前由 Core 退订，输入组件禁用时释放保持操作。打开设置关闭观察 View，关闭设置重新显示缓存 View，离场销毁该 View。
 
-公共 `GraphicsSettingsData/Handler` 随 FluxService 注册。模式按钮派发 Action，Handler 调用现有 Streamline 服务；Data 发布服务实际请求档位、生效档位、尺寸和反馈。显示状态不推测 GPU 执行结果。
+公共 `GraphicsSettingsData/Handler` 随 FluxService 注册。模式按钮派发 Action，Handler 提交公共设置候选，由设置服务协调显示、保存及 Streamline 应用；Data 发布服务实际请求档位、生效档位、尺寸和反馈。显示状态不推测 GPU 执行结果。
 
 本轮定向验证：观察控件生命周期、设置阻断恢复、Editor 直启和偏好测试通过。GPU 综合用例在原有“画面不能为空”断言失败，截图为全黑；运行时相机已启用，Game View 未呈现，画面验收仍待解决。没有运行全项目测试。
 
@@ -46,6 +46,6 @@
 
 ## Flux 入口整理
 
-控制页的离场恢复及设置关闭结果携带所属 Demo Data；公共设置 View 在显示时记录当前会话，隐藏/销毁只通知该会话。模式请求采用 PascalCase Action 参数，生效状态仍由公共 Streamline 服务事件发布。
+控制页的离场恢复由所属 Demo 负责。公共设置 View 不再引用 Demo Data；控制器监听 UIManager 关闭结果并恢复观察与松键门闩。模式请求采用 PascalCase Action 参数，生效状态仍由公共 Streamline 服务事件发布。
 
 2026-10-06 Flux 风格整理后的精确验证及失败范围见 [本轮实施记录](../../agent/flux-style-cleanup-2026-10-06.md)。

@@ -153,3 +153,7 @@ F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精�
 手柄确认键短按解锁，长按按输入配置复位；Xbox/PlayStation 下方确认，Switch A 确认。左摇杆升降/偏航，右摇杆平移；按住左扳机调整镜头并停止右摇杆平移；左肩切镜头，右肩打开操作面板。装备使用西/北键和方向键上下。手机保留四轴双摇杆，按钮与面板提交同一命令，不提供街机自动高度控制。
 
 动作绑定维护 Data/DroneFlight.inputactions；触区和面板维护已保存 HUD Prefab，不运行旧机体/UI Builder。保留正式配置 Inspector、模型契约和构建入口。模拟设备测试不能代替真实三类手柄与 Android 验收。
+
+公共设置接入验收时，从 Hub 修改手柄死区、视角倍率、Y 轴反转及绑定，进入 Demo 后确认实际输入与提示一致；已有键盘图标应显示 Kenney 键图形。切换到键鼠、手柄、触屏各操作一次，检查提示及触控区域跟随最近实际设备，接入设备和漂移不抢占提示。关闭输入提示后，触控命令按钮仍保留可点击的动作说明。
+
+时间回归使用现有 `DroneUnifiedInputPlayModeTests.GlobalFreezeRejectsFlightCommandsButKeepsPanelAndExitAvailable`，世界定格期间检查飞行/装备动作被拒绝，面板与退出仍可操作；解除定格后无旧保持输入穿透。减少动态只限制镜头过渡，不改飞控。公共入口和资源配置见[设置与表现](../../../modules/settings-presentation.md)与[玩法输入](../../../modules/gameplay-input.md)；本段是验收步骤，不代表已完成真实硬件或全量回归。

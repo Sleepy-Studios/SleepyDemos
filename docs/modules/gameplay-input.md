@@ -53,10 +53,12 @@ TouchInputPad保存资源已统一指向Core.Runtime.Inputs当前类型；不维
 
 InputActionSession 克隆源资产，启停自己的 Map，SetMap 等待旧按钮/轴中立，Dispose 释放副本；ReadVector 对原始摇杆只应用一次公共死区。业务命令保留在 Demo，无人机四轴由自己的动作配置表达。
 
-InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、光标及交互视觉；PromptDevice/PromptKind 独立选择已连接手柄，多个手柄优先最近实际使用者，离线后选剩余手柄或平台入口。连接、漂移和提示更换不提交动作。
+InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、光标及交互视觉；PromptDevice/PromptKind 默认跟随最近实际使用设备，多个手柄选择实际使用者。连接与漂移不抢占提示；断连按剩余设备和平台入口恢复。提示更换不提交动作。
 
 松键门闩只覆盖按键与手柄持续轴，鼠标绝对位置不需要回屏幕原点。触控命令按钮的 InputBindingPrompt 可配置 captionOnly，仅显示动作名；独立帮助/操作面板继续按 PromptDevice 提示实际绑定。
 
-InputBindingPrompt 使用实际动作和设备内路径，绑定/设备变化时更新。图标目录 InputGlyphCatalog 通过资源引用加载，仅保留使用中的 Xelu CC0 图标。已识别布局映射 Xbox/PlayStation/Switch；未知手柄的四个面键使用通用位置图标，其余控制显示实际绑定文字。Submit/Confirm/Interact 使用 <Gamepad>/{Submit}，Cancel/Back 使用 <Gamepad>/{Cancel}，由布局解析到 Switch A/B，不能仅换显示图标。
+InputBindingPrompt 使用实际动作和设备内路径，绑定/设备变化时更新。图标目录 InputGlyphCatalog 保留原GUID，统一采用所需Kenney资源和许可；未知手柄面键使用通用位置图标，缺键使用空键帽和实际键名。已识别布局映射 Xbox/PlayStation/Switch。Submit/Confirm/Interact 使用 <Gamepad>/{Submit}，Cancel/Back 使用 <Gamepad>/{Cancel}，由布局解析到 Switch A/B，不能仅换显示图标。
+
+InputActionSession 的参数和绑定来自 GameSettingsService 成功提交快照，更新时保留 Router 已启用上下文。InputRebindSession 持有独立候选，不修改源资产；按SourceId/BindingId保存并校验，固定UI安全动作不可改。Caption用LanguageService一次性配置，无语言监听。详见[公共设置与表现](settings-presentation.md)。
 
 UIBind 可以生成 InputCommandButton 的点击与保持回调；RegisterExtend 将回调交给 View 持有并在销毁时退订。InputBindingPrompt.BindAsset 按源动作 GUID 绑定实际会话副本；TouchInputPad 在禁用、失焦与应用暂停时释放指针。

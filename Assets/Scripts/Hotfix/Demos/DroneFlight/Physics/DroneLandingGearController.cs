@@ -1,4 +1,5 @@
 using System;
+using Core.Runtime.TimeControls;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -87,7 +88,7 @@ namespace Hotfix.DroneFlight
             }
 
             var config = flightController.Config;
-            stateMachine.Step(deploymentRequested, config.LandingGearTransitionSeconds, Time.unscaledDeltaTime);
+            stateMachine.Step(deploymentRequested, config.LandingGearTransitionSeconds, GameTimeService.DeltaTime);
             ApplyPose();
         }
 

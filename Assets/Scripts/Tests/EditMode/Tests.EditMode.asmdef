@@ -11,6 +11,9 @@
         "Luban.Runtime",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
         "UniTask"
     ],
     "includePlatforms": [

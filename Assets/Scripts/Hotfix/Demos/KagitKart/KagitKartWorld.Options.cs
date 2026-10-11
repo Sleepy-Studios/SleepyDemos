@@ -2,6 +2,7 @@
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using Core.Runtime.Settings;
 
 namespace Hotfix.KagitKart
 {
@@ -12,15 +13,18 @@ namespace Hotfix.KagitKart
         private bool systemReducedMotion;
         private float fpsElapsed;
         private int fpsFrames;
+        private AccessibilityPreferences publicAccessibility = new();
 
         /// 当前本机赛车偏好；只有保存成功才替换。
         public KagitKartSettings Settings { get; private set; } = new();
         /// 设置读取/保存反馈，不覆盖比赛结果反馈。
         public string SettingsFeedback { get; private set; }
         /// 当前低动态策略；自动使用启动或选项变更时读取的系统偏好。
-        public bool ReducedMotion => Settings.ResolveReducedMotion(systemReducedMotion);
+        public bool ReducedMotion => publicAccessibility.IsReducedMotion || Settings.ResolveReducedMotion(systemReducedMotion);
         /// 触控显示策略独立于当前输入设备。
         public bool ShowTouchControls => Settings.ResolveTouch(Core.Runtime.Inputs.InputDeviceState.ActiveKind);
+        /// 公共辅助偏好只控制说明性提示，操作按钮继续可用。
+        public bool ShowInputPrompts => publicAccessibility.ShowInputPrompts;
         /// 按真实渲染帧间隔采样，独立于比赛规则固定步。
         public int FramesPerSecond { get; private set; } = -1;
         /// 操作弹窗或公共画质弹窗正在使用菜单输入。
@@ -36,9 +40,18 @@ namespace Hotfix.KagitKart
 
         private void LoadSettings()
         {
+            publicAccessibility = GameSettingsService.Current.Accessibility;
+            GameSettingsService.Changed += OnPublicSettingsChanged;
             Settings = LocalDataManager.LoadData(LocalDataKeys.KagitKartPreferences, new KagitKartSettings(), out string warning, ValidateSettings);
             systemReducedMotion = Settings.ReducedMotion == "auto" && SystemMotionPreference.ReadReducedMotion();
             SettingsFeedback = warning == null ? null : "本机设置损坏，已使用默认设置。";
+        }
+
+        private void OnPublicSettingsChanged(GameSettingsSnapshot value)
+        {
+            publicAccessibility = value.Accessibility.Copy();
+            ApplySettings();
+            Dispatch(KagitKartCommand.Refresh);
         }
 
         private void SaveSetting(KagitKartAction action)
@@ -71,7 +84,7 @@ namespace Hotfix.KagitKart
             }
             if (cameraRig != null)
             {
-                cameraRig.ShakeEnabled = Settings.CameraShake && !ReducedMotion;
+                cameraRig.ShakeEnabled = publicAccessibility.CameraShake && Settings.CameraShake && !ReducedMotion;
             }
             if (bookStage != null)
             {

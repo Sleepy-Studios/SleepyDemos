@@ -77,12 +77,12 @@ namespace Hotfix.KagitKart
             try
             {
                 records = new KagitKartRecordStore();
-                LoadSettings();
                 var token = this.GetCancellationTokenOnDestroy();
                 if (!await DemoIslandEditorBootstrap.EnsureReadyAsync(token))
                 {
                     return;
                 }
+                LoadSettings();
                 await GameSceneNavigator.Instance.WaitUntilStableAsync(GameSceneId.KagitKart, token);
                 loader = ResourceServices.CreateLoader();
                 var catalog = await loader.LoadAssetAsync<TextAsset>(Root + "Data/SourceCatalog");
@@ -308,7 +308,12 @@ namespace Hotfix.KagitKart
                 return;
             }
             Input.CaptureFrame();
-            Session.AdvanceInputFrame(Time.unscaledDeltaTime, readControls);
+            if (Core.Runtime.TimeControls.GameTimeService.Scale == 0)
+            {
+                Input.ResetInput();
+                return;
+            }
+            Session.AdvanceInputFrame(Core.Runtime.TimeControls.GameTimeService.DeltaTime, readControls);
             refreshTime += Time.unscaledDeltaTime;
             if (refreshTime >= 0.1f)
             {
@@ -326,8 +331,8 @@ namespace Hotfix.KagitKart
             UpdateHints();
             if (Session == null && bookStage != null && bookStage.gameObject.activeInHierarchy)
             {
-                bookStage.Advance(Time.unscaledDeltaTime);
-                if (PodiumPlaying) podium.Advance(Time.unscaledDeltaTime);
+                bookStage.Advance(Core.Runtime.TimeControls.GameTimeService.DeltaTime);
+                if (PodiumPlaying) podium.Advance(Core.Runtime.TimeControls.GameTimeService.DeltaTime);
                 return;
             }
             if (Busy || Session == null || actors == null || scenery == null)
@@ -335,7 +340,7 @@ namespace Hotfix.KagitKart
                 return;
             }
             float alpha = (float)Session.Interpolation;
-            float dt = Session.Pause.IsPaused ? 0 : Mathf.Min(Time.unscaledDeltaTime, 0.1f);
+            float dt = Session.Pause.IsPaused ? 0 : Mathf.Min(Core.Runtime.TimeControls.GameTimeService.DeltaTime, 0.1f);
             for (int i = 0; i < actors.Length; i++)
             {
                 var kart = Session.Karts[i];
@@ -961,6 +966,7 @@ namespace Hotfix.KagitKart
 
         private void OnDestroy()
         {
+            Core.Runtime.Settings.GameSettingsService.Changed -= OnPublicSettingsChanged;
             ready = false;
             DisposeHints();
             gameplayMenuScope?.Dispose();

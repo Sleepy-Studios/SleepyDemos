@@ -2,7 +2,7 @@
 
 业务字体统一放在 `Assets/LoadResources/Fonts`，不要放到项目根目录的 `Temp/`，也不要继续堆到 `Assets/TextMesh Pro/` 或 `Assets/Plugins/`。
 
-普通 Demo 统一复用中文 `HarmonyOS_CN`、英文 `BebasNeue_EN` 两套默认字体，不新增专属或补字字体。缺字合并公共字符集并更新原资产；新增语言或特殊字体先确认范围，详见[多语言与公共字体规范](../../../docs/architecture/localization-fonts.md)。
+普通 Demo 默认复用 `HarmonyOS_CN`、`BebasNeue_EN`；公共 FontId 映射允许同语言多字体与跨组复用，不新增 Demo 专属或补字字体。缺字更新原公共资产；语言仅在 Hub 切换，详见[多语言与公共字体规范](../../../docs/architecture/localization-fonts.md)。
 
 命名规范见 [资源命名规范](../../../docs/architecture/asset-naming.md)：文件名为纯语义 PascalCase，无前缀，类型由目录与扩展名决定。
 

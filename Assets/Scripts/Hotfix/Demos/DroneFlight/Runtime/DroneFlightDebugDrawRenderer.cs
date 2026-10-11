@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Core.Runtime.TimeControls;
 using TMPro;
 using UnityEngine;
 
@@ -72,7 +73,7 @@ namespace Hotfix.DroneFlight
 
             EnsureVisuals();
             SetVisualsActive(true);
-            var deltaTime = Mathf.Max(0f, Time.unscaledDeltaTime);
+            var deltaTime = Mathf.Max(0f, GameTimeService.DeltaTime);
             for (var index = 0; index < RotorCount; index++)
             {
                 if (flightController.TryGetRotorDebugVector(index, out var origin, out var thrust))

@@ -71,6 +71,42 @@ namespace Tests.Module
         }
 
         [UnityTest]
+        public IEnumerator HeldPointerRetainsFingerAndDoesNotFallBackToOtherFingerOrMouse()
+        {
+            var first = new Vector2(100, 120);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState
+            {
+                touchId = 17, position = first, phase = UnityEngine.InputSystem.TouchPhase.Began
+            });
+            yield return null;
+            Assert.That(router.ReadHeldPointer(-1, out var point, out int id, out bool pressed), Is.True);
+            Assert.That(id, Is.EqualTo(17));
+            Assert.That(point, Is.EqualTo(first));
+            Assert.That(pressed, Is.True);
+            InputSystem.QueueStateEvent(touchscreen, new TouchState
+            {
+                touchId = 23, position = new Vector2(300, 340), phase = UnityEngine.InputSystem.TouchPhase.Began
+            });
+            InputSystem.QueueStateEvent(mouse, new MouseState { position = new Vector2(500, 540), buttons = 1 });
+            yield return null;
+            Assert.That(router.ReadHeldPointer(17, out point, out id, out _), Is.True);
+            Assert.That(id, Is.EqualTo(17));
+            Assert.That(point, Is.EqualTo(first));
+            InputSystem.QueueStateEvent(touchscreen, new TouchState
+            {
+                touchId = 17, position = first, phase = UnityEngine.InputSystem.TouchPhase.Ended
+            });
+            yield return null;
+            Assert.That(router.ReadHeldPointer(17, out _, out _, out _), Is.False);
+            Assert.That(router.ReadHeldPointer(-1, out _, out id, out _), Is.True);
+            Assert.That(id, Is.EqualTo(23));
+            InputSystem.DisableDevice(touchscreen);
+            Assert.That(router.ReadHeldPointer(23, out _, out _, out _), Is.False);
+            Assert.That(router.ReadHeldPointer(-1, out _, out id, out _), Is.True);
+            Assert.That(id, Is.LessThan(0));
+        }
+
+        [UnityTest]
         public IEnumerator CursorRelockDiscardsOnlyOneLookDeltaAndKeepsDiscreteInteraction()
         {
             router.DiscardNextLookDelta();

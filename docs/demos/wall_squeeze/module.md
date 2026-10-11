@@ -32,7 +32,17 @@ Hub 卡片通过 `MainMenuData` 登记，`GameSceneCatalog` 将 `GameSceneId.Wal
 
 HUD 保存黑框头尾分格：标题、剩余、保护、关卡与限时；底部怪物轮廓/夹法图例、当前设备提示、重来。规则倒计时按整秒更新 Data，群夹数量短时回显，不增加计分与成长系统。相机留出头尾 HUD 空间；所有图形节点在公共 UI Camera 可见层。
 
-世界 Prefab、Scene、HUD / Modal Prefab、Data/PlayerInput.asset 和关卡资产是正式真源；一次性装配工具在完成保存与验证后删除。Demo 使用独立静态 TMP 字体 `Data/InterfaceFont.asset`，不向用户公共动态字体写入新字形。
+世界 Prefab、Scene、HUD / Modal Prefab、Data/PlayerInput.asset 和关卡资产是正式真源；一次性装配工具在完成保存与验证后删除。当前保存的 HUD 仍引用原静态 TMP 字体 `Data/InterfaceFont.asset`，公共字体迁移尚待资源装配；后续按[公共字体规范](../../architecture/localization-fonts.md)维护，不再新增 Demo 补字字体。
+
+## 公共设置、输入与时间
+
+`WallSqueezeInput.Router` 从 `GameSettingsService` 消费公共死区、震动与已验证绑定覆盖；源 `PlayerInput.asset` 保持制作数据，实际输入与提示读取 Router 的会话副本。有效覆盖改变时清除旧离散动作，并要求保持中的新键松开再按；仅音量或输入参数变化不重置当前玩法输入。返回键在 Interaction 请求暂停，进入 Menu 后确认/返回交给公共 UI，不重复提交玩法暂停。
+
+HUD 跟随最近实际操作设备；连接手柄和漂移不抢占键鼠提示。底部文字说明通过 `InputBindingDisplay` 解析实际选墙、沿轴导航及暂停绑定，保留本 Demo 的中文业务说明；`ShowInputPrompts` 收起操作提示，多只夹爆反馈仍可显示。公共 `InputBindingPrompt` 和 `InputGlyphCatalog` 提供 Kenney 实际键盘及各品牌手柄图标，只有缺少图形的键才使用空键帽；当前 WallSqueeze 底部仍是组合文字区域，不把它当成已经完成图标装配的提示组。
+
+`WallSqueezeWorld` 用 `GameTimeService.DeltaTime` 推进规则、倒计时、夹爆反馈和碎片；沿轴输入目标只乘一次公共倍率。世界冻结时不选墙、不拖墙、不推进规则或碎片，仍先采样未缩放输入并更新菜单，允许暂停和返回 Hub。`LocalPauseState` 继续处理失焦/断连和明确继续，不直接修改全局时间。
+
+减少动态偏好在初始化和设置提交时缓存，夹爆时不再生成碎片；本 Demo 没有附加镜头震动。正式 World 音源通过 `AudioBusSource` 接 `Effects`，保留音源本地音量，`PlayOneShot` 经过公共主音量、音效增益及静音。完整 API 和生命周期见[设置与表现](../../modules/settings-presentation.md)及[玩法输入](../../modules/gameplay-input.md)，公共配置与演出接入见[接入步骤](../../runbooks/use-settings-presentation.md)。
 
 ## 验证入口
 

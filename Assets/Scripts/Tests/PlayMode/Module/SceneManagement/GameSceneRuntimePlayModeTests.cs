@@ -32,7 +32,7 @@ namespace Tests.Module
         [UnityTearDown]
         public IEnumerator TearDown()
         {
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             while (StreamlineRuntime.IsBusy) yield return null;
             if (originalScene.IsValid() && originalScene.isLoaded)
             {
@@ -106,7 +106,7 @@ namespace Tests.Module
             var loader = new FakeSceneLoader();
             var runtime = new GameSceneRuntime(loader);
             yield return runtime.LoadAsync("TestContent", null).ToCoroutine();
-            StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
+            StreamlineRuntime.ApplyModeAsync(StreamlineDlssMode.Quality).Forget();
             yield return WaitForDlss();
             loader.FailNextUnload = true;
             GameSceneRuntimeResult result = default;
@@ -115,7 +115,7 @@ namespace Tests.Module
             Assert.AreSame(loader.ContentCamera, StreamlineRuntime.BoundCamera);
             Assert.AreEqual(StreamlineDlssMode.Quality, StreamlineRuntime.RequestedMode);
             yield return WaitForDlss();
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             while (StreamlineRuntime.IsBusy) yield return null;
             yield return runtime.ReturnToHubAsync(null).ToCoroutine();
         }

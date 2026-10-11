@@ -20,4 +20,4 @@
 - 运行时代码：`Assets/Scripts/Hotfix/Demos/WallSqueeze/`。
 - 专属资源：`Assets/LoadResources/Demos/wall_squeeze/`。
 - 从 Hub 的“夹爆它”入口进入，暂停或结果菜单返回 Hub。Editor 可直接打开保存的 `Scenes/Main.unity` 后 Play。
-- 现有 [新增 Demo](../../runbooks/add-demo.md)、[公共输入](../../modules/gameplay-input.md)、[测试架构](../../architecture/testing.md) 继续作为公共真源。
+- 现有 [新增 Demo](../../runbooks/add-demo.md)、[公共输入](../../modules/gameplay-input.md)、[公共设置与表现](../../modules/settings-presentation.md)、[测试架构](../../architecture/testing.md) 继续作为公共真源。

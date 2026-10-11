@@ -123,9 +123,9 @@ namespace Tests.Module
                 Assert.Ignore("Windows Editor DX12/Vulkan required.");
             }
 
-            var savedMode = StreamlineRuntime.IsInitialized ? StreamlineRuntime.RequestedMode : StreamlineRuntime.ReadSavedMode();
+            var savedMode = StreamlineRuntime.IsInitialized ? StreamlineRuntime.RequestedMode : StreamlineRuntime.DecodePreference(Core.Runtime.Settings.GameSettingsService.Current.Graphics.DlssMode);
             StreamlineRuntime.Initialize();
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             while (StreamlineRuntime.IsBusy)
             {
                 yield return null;
@@ -241,7 +241,7 @@ namespace Tests.Module
                     StreamlineRuntime.BindCamera(previousCamera, previousUi);
                 }
 
-                StreamlineRuntime.SetMode(savedMode);
+                StreamlineRuntime.ApplyModeAsync(savedMode).Forget();
             }
 
             while (StreamlineRuntime.IsBusy)

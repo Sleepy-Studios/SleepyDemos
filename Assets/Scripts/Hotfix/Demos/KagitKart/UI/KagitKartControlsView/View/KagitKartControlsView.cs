@@ -38,6 +38,7 @@
                 tabs[i].onClick.AddListener(() => Pick(index));
             }
             Button_Back.onClick.AddListener(Back);
+            InputBindingPrompt_Current.SetCaptionKey("Input.Drift");
             UIMenuScope_Sheet.Canceled += Back;
             BindData<KagitKartData>(_ => Render());
         }
@@ -101,7 +102,7 @@
                     : command == "Restart" ? text + " · 计时赛快捷重赛" : text;
             }
             InputBindingPrompt_Current.Bind(world.Input.PromptAction("Drift"));
-            InputBindingPrompt_Current.gameObject.SetActive(InputDeviceState.PromptKind != InputDeviceKind.Touch);
+            InputBindingPrompt_Current.gameObject.SetActive(world.ShowInputPrompts && InputDeviceState.PromptKind != InputDeviceKind.Touch);
             Button_Back.interactable = !world.Busy;
         }
 

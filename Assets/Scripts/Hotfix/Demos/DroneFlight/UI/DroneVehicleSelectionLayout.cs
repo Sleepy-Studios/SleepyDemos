@@ -22,7 +22,7 @@ namespace Hotfix.DroneFlight
             if (content == null) return;
             var size = ((RectTransform)transform).rect.size;
             var safe = Screen.safeArea;
-            bool touch = Application.isMobilePlatform || Application.isPlaying && InputDeviceState.ActiveKind == InputDeviceKind.Touch;
+            bool touch = Application.isPlaying ? InputDeviceState.ActiveKind == InputDeviceKind.Touch : Application.isMobilePlatform;
             if (size == lastSize && safe == lastSafeArea && touch == lastTouch) return;
             lastSize = size;
             lastSafeArea = safe;

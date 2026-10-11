@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1699bc695a4d784baa6887153dbd8da, type: 3}
+  m_Name: InputSettingsCatalog
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.InputSettingsCatalog
+  entries:
+  - displayKey: Input.Hub
+    asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  - displayKey: Input.Dlss
+    asset: {fileID: -944628639613478452, guid: 8707e4f2a594c55468c0f6d1e239cbdb, type: 3}
+  - displayKey: Input.DroneFlight
+    asset: {fileID: -944628639613478452, guid: 301b27e55897ec7478306fcd6476c7aa, type: 3}
+  - displayKey: Input.WallSqueeze
+    asset: {fileID: 11400000, guid: 5729c599f9863fc4cba3aa6b3eb18f81, type: 2}
+  - displayKey: Input.KagitKart
+    asset: {fileID: 11400000, guid: 3d4f54d8587017f4db61549edf75cfcd, type: 2}

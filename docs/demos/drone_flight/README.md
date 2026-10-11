@@ -3,6 +3,7 @@
 内部名称 `DroneFlight`，资源 ID `drone_flight`。长期文档统一从这里进入。
 
 - [模块职责与生命周期](module.md)
+- [公共设置与表现](../../modules/settings-presentation.md)、[公共玩法输入](../../modules/gameplay-input.md)
 - [实现原理与架构](architecture/design.md)
 - [正式模型契约](model-contract.md)
 - [设计演进与决策记录](history.md)

@@ -30,6 +30,10 @@
             tutorialValues = new TMP_Text[] { TextMeshProUGUI_Steer, TextMeshProUGUI_Throttle, TextMeshProUGUI_Drift, TextMeshProUGUI_Item };
             tutorialGlyphs = new[] { InputBindingPrompt_TutorialSteer, InputBindingPrompt_TutorialThrottle,
                 InputBindingPrompt_TutorialDrift, InputBindingPrompt_TutorialItem };
+            for (int i = 0; i < tutorialGlyphs.Length; i++)
+            {
+                tutorialGlyphs[i].SetCaptionKey("Input." + Commands[i]);
+            }
             BindData<KagitKartData>(_ => Render());
         }
 
@@ -71,7 +75,7 @@
             var safe = Screen.safeArea;
             RectTransform_Viewport.anchorMin = new Vector2(safe.xMin / Mathf.Max(1, Screen.width), safe.yMin / Mathf.Max(1, Screen.height));
             RectTransform_Viewport.anchorMax = new Vector2(safe.xMax / Mathf.Max(1, Screen.width), safe.yMax / Mathf.Max(1, Screen.height));
-            bool teach = world.Hints.TutorialVisible;
+            bool teach = world.ShowInputPrompts && world.Hints.TutorialVisible;
             if (teach && !RectTransform_TutorialGroup.gameObject.activeSelf)
             {
                 tutorialTouch = InputDeviceState.ActiveKind == InputDeviceKind.Touch;
@@ -119,7 +123,7 @@
                 }
             }
             var current = world.Hints.Current;
-            RectTransform_HintGroup.gameObject.SetActive(current.HasValue);
+            RectTransform_HintGroup.gameObject.SetActive(world.ShowInputPrompts && current.HasValue);
             if (current.HasValue && (current != shownHint || shownReducedMotion != world.ReducedMotion))
             {
                 KagitKartMenuPaperMotion_HintMotion.Play(0, world.ReducedMotion);
@@ -145,9 +149,10 @@
                 _ => "把手机横过来，体验更好"
             };
             bool touch = InputDeviceState.ActiveKind == InputDeviceKind.Touch;
-            InputBindingPrompt_Context.gameObject.SetActive(!portrait && !touch);
+            InputBindingPrompt_Context.gameObject.SetActive(world.ShowInputPrompts && !portrait && !touch);
             if (!portrait && !touch)
             {
+                InputBindingPrompt_Context.SetCaptionKey(current == KagitKartHintKind.Item ? "Input.Item" : "Input.Drift");
                 InputBindingPrompt_Context.Bind(world.Input.PromptAction(current == KagitKartHintKind.Item ? "Item" : "Drift"));
             }
         }

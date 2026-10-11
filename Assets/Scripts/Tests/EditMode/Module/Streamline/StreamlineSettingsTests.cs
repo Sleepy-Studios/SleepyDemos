@@ -5,6 +5,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using Core.Runtime;
+using Core.Runtime.Settings;
 using UnityEngine.TestTools;
 
 namespace Tests.Module
@@ -42,19 +43,21 @@ namespace Tests.Module
         [Test]
         public void PreferencesRoundTripWithoutCreatingGraphicsResources()
         {
-            const string key = "SleepyDemos.Graphics.DlssMode";
+            const string key = GameSettingsService.PreferenceKey;
             bool existed = PlayerPrefs.HasKey(key);
             string previous = PlayerPrefs.GetString(key);
             try
             {
                 PlayerPrefs.DeleteKey(key);
-                Assert.IsNull(StreamlineRuntime.ReadSavedMode());
+                Assert.IsNull(ReadPreference());
                 foreach (var mode in new[] { StreamlineDlssMode.Quality, StreamlineDlssMode.Balanced,
                     StreamlineDlssMode.Performance, StreamlineDlssMode.UltraPerformance, StreamlineDlssMode.Dlaa })
                 {
-                    LocalDataManager.SaveData(key, (int)mode);
+                    var value = new GameSettingsSnapshot();
+                    value.Graphics.DlssMode = (int)mode;
+                    LocalDataManager.SaveData(key, value, candidate => candidate.Validate());
                     PlayerPrefs.Save();
-                    Assert.AreEqual(mode, StreamlineRuntime.ReadSavedMode());
+                    Assert.AreEqual(mode, ReadPreference());
                 }
             }
             finally
@@ -62,6 +65,13 @@ namespace Tests.Module
                 if (existed) PlayerPrefs.SetString(key, previous); else PlayerPrefs.DeleteKey(key);
                 PlayerPrefs.Save();
             }
+        }
+
+        private static StreamlineDlssMode? ReadPreference()
+        {
+            var value = LocalDataManager.LoadData(GameSettingsService.PreferenceKey, new GameSettingsSnapshot(),
+                candidate => candidate.Validate());
+            return StreamlineRuntime.DecodePreference(value.Graphics.DlssMode);
         }
     }
 }

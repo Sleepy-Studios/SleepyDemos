@@ -60,7 +60,7 @@ namespace Tests.Module
             yield return null;
             if (restoreDlssMode)
             {
-                Core.Runtime.Rendering.Streamline.StreamlineRuntime.SetMode(savedDlssMode);
+                Core.Runtime.Rendering.Streamline.StreamlineRuntime.ApplyModeAsync(savedDlssMode).Forget();
                 restoreDlssMode = false;
             }
         }
@@ -191,7 +191,7 @@ namespace Tests.Module
         {
             savedDlssMode = Core.Runtime.Rendering.Streamline.StreamlineRuntime.RequestedMode;
             restoreDlssMode = true;
-            Core.Runtime.Rendering.Streamline.StreamlineRuntime.SetMode(null);
+            Core.Runtime.Rendering.Streamline.StreamlineRuntime.ApplyModeAsync(null).Forget();
             var manager = UIRootManager.Instance;
             var previousCamera = manager.BaseCamera;
             var nextObject = new GameObject("Next Base Camera");

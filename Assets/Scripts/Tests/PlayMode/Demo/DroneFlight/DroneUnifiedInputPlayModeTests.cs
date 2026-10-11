@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections;
 using Core.Runtime.Inputs;
+using Core.Runtime.TimeControls;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using Hotfix;
@@ -85,6 +86,34 @@ namespace Tests.Demo
         }
 
         [UnityTest]
+        public IEnumerator GlobalFreezeRejectsFlightCommandsButKeepsPanelAndExitAvailable()
+        {
+            int exits = 0;
+            System.Action onExit = () => exits++;
+            input.ExitRequested += onExit;
+            using var freeze = GameTimeService.Push(0);
+            try
+            {
+                input.Execute("ArmOrReset");
+                input.Execute("Takeoff");
+                InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.up });
+                yield return null;
+                Assert.That(input.AcceptsFlightInput, Is.False);
+                Assert.That(controller.IsArmed, Is.False);
+                Assert.That(controller.CurrentControlInput.Lift, Is.Zero);
+                input.Execute("Exit");
+                Assert.That(exits, Is.EqualTo(1));
+                input.Execute("Panel");
+                Assert.That(input.IsPanelOpen, Is.True);
+            }
+            finally
+            {
+                input.ExitRequested -= onExit;
+                input.SetPanelOpen(false);
+            }
+        }
+
+        [UnityTest]
         public IEnumerator HelpPreservesSourceMenuAndRequiresReleaseBeforeFlight()
         {
             InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.up });
@@ -130,6 +159,11 @@ namespace Tests.Demo
                 yield return null;
             var index = instance.GetComponent<ComponentItemIndex>();
             var device = System.Array.Find(index.Components, x => x.name == "Device") as TMPro.TextMeshProUGUI;
+            Assert.That(device.text, Does.Contain("键鼠"), "连接手柄不能抢占提示，必须有实际操作。");
+            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.LeftShoulder));
+            yield return null;
+            InputSystem.QueueStateEvent(gamepad, new GamepadState());
+            yield return null;
             Assert.That(device.text, Does.Contain("手柄"));
             Assert.That(EventSystem.current.currentSelectedGameObject, Is.Not.Null);
             Assert.That(EventSystem.current.currentSelectedGameObject.transform.IsChildOf(instance.transform), Is.True);

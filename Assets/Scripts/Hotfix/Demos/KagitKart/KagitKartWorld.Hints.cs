@@ -73,7 +73,7 @@ namespace Hotfix.KagitKart
             }
             bool raceView = Session != null && !IntroPlaying && Session.Race.State != KagitKartRaceState.Done;
             bool paused = Session?.Pause.IsPaused == true;
-            Hints.Advance(paused ? 0 : Time.unscaledDeltaTime, raceView, ready,
+            Hints.Advance(paused ? 0 : Core.Runtime.TimeControls.GameTimeService.DeltaTime, raceView, ready,
                 Session?.Race.State == KagitKartRaceState.Running, paused,
                 ShowTouchControls && Screen.height > Screen.width * 1.1f,
                 Session?.Player.TrackInfo ?? default, Session?.Player.Speed ?? 0);

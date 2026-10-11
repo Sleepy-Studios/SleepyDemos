@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e907ace7d5376e4f807c54626887326, type: 3}
+  m_Name: GameSettingsConfig
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Settings.GameSettingsConfig
+  defaults:
+    Version: 1
+    Graphics:
+      Width: 0
+      Height: 0
+      WindowMode: -1
+      VSync: -1
+      FrameLimit: -1
+      Quality: 0
+      Antialiasing: 0
+      DlssMode: 0
+      Brightness: 1
+      AllowedEffects: 127
+    Audio:
+      Master: 1
+      Music: 1
+      Effects: 1
+      Ui: 1
+      Muted: 0
+    Input:
+      SchemaVersion: 1
+      GamepadDeadzone: 0.2
+      GamepadMaximum: 1
+      GamepadLookDegreesPerSecond: 90
+      GamepadLookMultiplier: 1
+      GamepadInvertY: 0
+      RumbleEnabled: 1
+      RumbleStrength: 1
+      MouseLookMultiplier: 1
+      TouchLookMultiplier: 1
+    Accessibility:
+      ReducedMotion: 0
+      CameraShake: 1
+      ShowInputPrompts: 1
+    Language: zh-CN
+  options:
+    Brightness: {x: 0.5, y: 2}
+    LookMultiplier: {x: 0.25, y: 3}
+    GamepadAngularSpeed: {x: 30, y: 240}
+    GamepadDeadzone: {x: 0, y: 0.45}
+    GamepadMaximum: {x: 0.65, y: 1}
+    RumbleStrength: {x: 0, y: 1}
+    FrameLimits: 000000001e0000003c0000005a0000007800000090000000a5000000f000000068010000
+  qualityPresets:
+  - {fileID: 11400000, guid: 2d448c5f30d3880498c1198f5db5a7f7, type: 2}
+  - {fileID: 11400000, guid: eb3c304d2b8181b42b940d0a000f0b87, type: 2}
+  - {fileID: 11400000, guid: 9e7fe401a44ab1043878e81c4829d627, type: 2}
+  language: {fileID: 11400000, guid: 9b05c1fcea3dfb942916c089b9c2950e, type: 2}
+  fonts: {fileID: 11400000, guid: 24785acbfae51184da87d389438becfc, type: 2}
+  inputs: {fileID: 11400000, guid: 97ae0f4d36f93fc44ad80dd87e953d6c, type: 2}

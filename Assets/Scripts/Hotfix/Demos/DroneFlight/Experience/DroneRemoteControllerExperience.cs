@@ -1,4 +1,5 @@
 using Core.Runtime;
+using Core.Runtime.TimeControls;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -39,6 +40,10 @@ namespace Hotfix.DroneFlight
         /// 立即进入第三人称控制；不会自动解锁或起飞。
         public void Activate()
         {
+            if (GameTimeService.Scale <= 0)
+            {
+                return;
+            }
             session.Activate();
             droneCameraRig?.SetMode(DroneCameraMode.ThirdPerson);
             var droneCamera = droneCameraRig != null ? droneCameraRig.OutputCamera : null;

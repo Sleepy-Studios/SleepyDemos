@@ -42,7 +42,7 @@ namespace Hotfix
 
         private void RefreshAvailability(bool transitioning)
         {
-            State.CanEnter = !State.IsEntering && !transitioning;
+            State.CanEnter = !State.IsEntering && !transitioning && !HubLanguageFlow.IsChanging;
             foreach (var entry in State.Entries)
             {
                 entry.CanEnter = State.CanEnter && entry.SceneId.HasValue;
@@ -53,7 +53,7 @@ namespace Hotfix
         private async UniTask EnterAsync(GameSceneId target)
         {
             var navigator = GameSceneNavigator.Instance;
-            if (State.IsEntering || navigator?.IsTransitioning == true)
+            if (State.IsEntering || navigator?.IsTransitioning == true || HubLanguageFlow.IsChanging)
                 return;
             if (navigator == null)
             {

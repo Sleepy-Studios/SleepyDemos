@@ -117,7 +117,7 @@ namespace Core.Runtime
                 throw new InvalidOperationException("UI Camera 尚未初始化，无法重新绑定基础相机。");
             }
 
-            Rendering.Streamline.StreamlineRuntime.DetachCamera();
+            Settings.DisplaySettingsRuntime.BindCamera(null, null);
 
             if (BaseCamera != null && BaseCamera != baseCamera)
             {
@@ -136,7 +136,7 @@ namespace Core.Runtime
 
             BaseCamera = baseCamera;
             UICamera.depth = baseCamera.depth + 1;
-            Rendering.Streamline.StreamlineRuntime.BindCamera(baseCamera, UICamera);
+            Settings.DisplaySettingsRuntime.BindCamera(baseCamera, UICamera);
         }
 
         private void ConfigureRootCanvas(GameObject rootGo)

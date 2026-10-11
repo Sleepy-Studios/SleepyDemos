@@ -48,7 +48,7 @@ namespace Hotfix.Dlss
 
         private bool exiting => data?.IsExiting == true;
 
-        private readonly GameplayInputSettings inputSettings = new();
+        private View settingsView;
 
         private void Start() => InitializeAsync().Forget();
 
@@ -59,6 +59,7 @@ namespace Hotfix.Dlss
             movingOrigin = movingObject != null ? movingObject.position : Vector3.zero;
             ResetCamera();
             input = new InputActionSession(actions);
+            UIManager.Instance.OnClose += OnSettingsClosed;
             input.SetMap("Observe");
             data = GlobalData.Add(new DlssData(this));
             var opened = await UIManager.Instance.ShowAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIShowOptions(false), lifetime.Token);
@@ -93,7 +94,7 @@ namespace Hotfix.Dlss
                 input.SetMap(map);
             }
 
-            if (SettingsOpen)
+            if (SettingsOpen || Core.Runtime.TimeControls.GameTimeService.Scale == 0)
                 return;
             if (input.Pressed("Reset"))
                 GlobalData.Dispatch(new DlssControlAction("Reset"));
@@ -101,13 +102,14 @@ namespace Hotfix.Dlss
             Vector2 mouse = input.Held("LookHold") && !overUi ? input.Read<Vector2>("MouseLook") : Vector2.zero;
             Vector2 pad = input.ReadVector("Look");
             Vector2 touch = controls != null ? controls.Look : Vector2.zero;
-            Vector2 degrees = GameplayInputMath.LookDegrees(mouse, touch, pad, Time.unscaledDeltaTime, .12f, inputSettings);
+            Vector2 degrees = GameplayInputMath.LookDegrees(mouse, touch, pad, Time.unscaledDeltaTime, .12f, input.Settings);
             yaw += degrees.x;
             pitch = Mathf.Clamp(pitch - degrees.y, -75, 75);
             worldCamera.transform.rotation = Quaternion.Euler(pitch, yaw, 0);
             Vector2 move = input.ReadVector("Move") + (controls != null ? controls.Move : Vector2.zero);
             float speed = input.Held("Sprint") || controls?.Sprint == true ? 8 : 3;
-            worldCamera.transform.position += (worldCamera.transform.forward * move.y + worldCamera.transform.right * move.x) * (speed * Time.unscaledDeltaTime);
+            worldCamera.transform.position += (worldCamera.transform.forward * move.y + worldCamera.transform.right * move.x)
+                * (speed * Core.Runtime.TimeControls.GameTimeService.DeltaTime);
         }
 
         /// 打开公共设置并马上退出观察动作；关闭后等松键再恢复。
@@ -123,9 +125,19 @@ namespace Hotfix.Dlss
             if (controls != null)
                 await UIManager.Instance.CloseAsync(controls, false);
             var result = await UIManager.Instance.ShowAsync<DlssSettingsView>(cancellationToken: lifetime.Token);
+            settingsView = result.View;
             if (IsCurrent && result.Status == UIOperationStatus.Failed)
             {
                 Debug.LogException(result.Exception, this);
+                GlobalData.Dispatch(new DlssSettingsClosedAction(data));
+            }
+        }
+
+        private void OnSettingsClosed(View closed)
+        {
+            if (IsCurrent && ReferenceEquals(closed, settingsView))
+            {
+                settingsView = null;
                 GlobalData.Dispatch(new DlssSettingsClosedAction(data));
             }
         }
@@ -147,6 +159,7 @@ namespace Hotfix.Dlss
         private void OnDestroy()
         {
             lifetime.Cancel();
+            UIManager.Instance.OnClose -= OnSettingsClosed;
             input?.Dispose();
             data?.Handler.Dispose();
             if (controls != null)

@@ -1801,6 +1801,7 @@ GameObject:
   - component: {fileID: 4098119490664091173}
   - component: {fileID: 6329635427696941862}
   - component: {fileID: 8829620576974353968}
+  - component: {fileID: 2275887899793679446}
   m_Layer: 0
   m_Name: World
   m_TagString: Untagged
@@ -1973,6 +1974,19 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &2275887899793679446
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6199247815520011372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8dea5c32be07204b88df8d99f9c83b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Settings.AudioBusSource
+  bus: 1
 --- !u!1 &6531980451568180762
 GameObject:
   m_ObjectHideFlags: 0

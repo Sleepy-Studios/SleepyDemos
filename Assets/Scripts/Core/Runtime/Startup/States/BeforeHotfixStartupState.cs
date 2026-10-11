@@ -10,6 +10,7 @@ namespace Core.Runtime
 
         protected override void CreateSystems(List<StartupSystemBase> systems)
         {
+            systems.Add(new GameSettingsInitializeSystem(this));
             systems.Add(new UIInitializeSystem(this));
             systems.Add(new HybridMetadataSystem(this));
             systems.Add(new HotfixAssemblySystem(this));

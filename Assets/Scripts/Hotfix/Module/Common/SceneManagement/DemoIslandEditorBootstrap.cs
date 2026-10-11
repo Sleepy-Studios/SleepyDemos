@@ -95,6 +95,7 @@ namespace Hotfix.SceneManagement
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                await Core.Runtime.Settings.GameSettingsService.InitializeAsync();
                 await UIManager.Instance.InitializeAsync();
                 UITypeReflection.Init(typeof(View).Assembly, typeof(DemoIslandEditorBootstrap).Assembly);
                 var startupContext = new StartupContext(config, null, this);

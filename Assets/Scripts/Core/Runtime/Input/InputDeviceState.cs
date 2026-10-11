@@ -8,7 +8,7 @@ namespace Core.Runtime.Inputs
 {
     public enum GamepadStyle { Generic, Xbox, PlayStation, Switch }
 
-    /// 实际操作与提示设备分开；插入手柄只更新提示，不伪造操作。
+    /// 设备提示跟随实际操作；连接手柄不抢占提示或伪造输入。
     public static class InputDeviceState
     {
         private static bool initialized;
@@ -21,12 +21,12 @@ namespace Core.Runtime.Inputs
         public static InputDeviceKind ActiveKind { get; private set; }
         /// 最近实际活动的设备；平台触控模拟时可以为空。
         public static InputDevice ActiveDevice { get; private set; }
-        /// 提示优先使用当前可用手柄，独立于实际操作设备。
-        public static InputDevice PromptDevice => promptGamepad != null ? promptGamepad : ActiveDevice;
+        /// 提示跟随最近真实操作；连接手柄本身不改变键鼠提示。
+        public static InputDevice PromptDevice => ActiveKind == InputDeviceKind.Gamepad ? promptGamepad : ActiveDevice;
         /// 提示设备的类别。
-        public static InputDeviceKind PromptKind => promptGamepad != null ? InputDeviceKind.Gamepad : ActiveKind;
+        public static InputDeviceKind PromptKind => ActiveKind;
         /// 根据实际布局识别的图标风格。
-        public static GamepadStyle PromptStyle => GetStyle(promptGamepad);
+        public static GamepadStyle PromptStyle => GetStyle(PromptDevice);
         /// 实际设备、提示设备或布局改变；订阅方只在此时重建表现。
         public static event Action Changed;
         /// 实际输入活动，供具有设备白名单的会话更新自己的来源。

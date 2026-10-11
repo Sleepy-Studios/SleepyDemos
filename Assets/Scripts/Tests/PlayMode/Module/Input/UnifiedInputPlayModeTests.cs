@@ -3,6 +3,7 @@ using System.Linq;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -16,6 +17,44 @@ namespace Tests.Module
 {
     public sealed class UnifiedInputPlayModeTests
     {
+        [UnityTest]
+        public IEnumerator CompoundKeycapsAndPlayStationPromptsResolveActualBindings()
+        {
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var pad = InputSystem.AddDevice("DualSenseGamepadHID");
+            var action = new InputAction("Reset", InputActionType.Button);
+            action.AddCompositeBinding("ButtonWithOneModifier")
+                .With("Modifier", "<Keyboard>/leftCtrl")
+                .With("Button", "<Keyboard>/r");
+            action.AddBinding("<Gamepad>/buttonNorth");
+            try
+            {
+                action.Enable();
+                InputDeviceState.Notify(keyboard);
+                var parts = InputBindingDisplay.GetParts(action, out var separator);
+                Assert.That(parts.Count, Is.EqualTo(2));
+                Assert.That(separator, Is.EqualTo(" + "));
+                Assert.That(parts[0].ControlPath, Is.EqualTo("leftCtrl"));
+                Assert.That(parts[1].ControlPath, Is.EqualTo("r"));
+                InputDeviceState.Notify(pad);
+                parts = InputBindingDisplay.GetParts(action, out _);
+                Assert.That(parts.Count, Is.EqualTo(1));
+                Assert.That(parts[0].ControlPath, Is.EqualTo("buttonNorth"));
+                Assert.That(InputDeviceState.PromptStyle, Is.EqualTo(GamepadStyle.PlayStation));
+                InputDeviceState.Notify(keyboard);
+                action.ApplyBindingOverride(2, "<Keyboard>/t");
+                parts = InputBindingDisplay.GetParts(action, out _);
+                Assert.That(parts[1].ControlPath, Is.EqualTo("t"));
+            }
+            finally
+            {
+                action.Dispose();
+                InputSystem.RemoveDevice(pad);
+                InputSystem.RemoveDevice(keyboard);
+            }
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator MenuCancelFromSelectedButtonTargetsNearestScope()
         {
@@ -66,7 +105,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator ConnectedPadDoesNotChangeActualDeviceAndUsageBindingResolvesSwitchA()
+        public IEnumerator PromptsFollowActualDeviceAndUsageBindingResolvesSwitchA()
         {
             var keyboard = InputSystem.AddDevice<Keyboard>();
             var pad = (Gamepad)InputSystem.AddDevice("SwitchProControllerHID");
@@ -77,8 +116,9 @@ namespace Tests.Module
                 InputDeviceState.Initialize(); InputDeviceState.Notify(keyboard);
                 Assert.That(InputDeviceState.ActiveKind, Is.EqualTo(InputDeviceKind.KeyboardMouse));
                 InputDeviceState.Notify(pad); InputDeviceState.Notify(keyboard);
-                Assert.That(InputDeviceState.PromptDevice, Is.SameAs(pad));
+                Assert.That(InputDeviceState.PromptDevice, Is.SameAs(keyboard));
                 Assert.That(InputDeviceState.ActiveDevice, Is.SameAs(keyboard));
+                InputDeviceState.Notify(pad);
                 Assert.That(InputDeviceState.PromptStyle, Is.EqualTo(GamepadStyle.Switch));
                 action.Enable(); cancel.Enable();
                 Assert.That(action.controls.Contains(pad.buttonEast), Is.True);
@@ -87,7 +127,6 @@ namespace Tests.Module
                 Assert.That(cancel.controls.Contains(pad.buttonEast), Is.False);
                 Assert.That(InputBindingDisplay.Get(action, out var path), Is.EqualTo("A"));
                 Assert.That(path, Is.EqualTo("buttonEast"));
-                InputDeviceState.Notify(pad);
                 InputSystem.DisableDevice(pad);
                 Assert.That(InputDeviceState.PromptDevice, Is.Not.SameAs(pad));
                 Assert.That(InputDeviceState.ActiveDevice, Is.Not.SameAs(pad));
@@ -145,9 +184,11 @@ namespace Tests.Module
             {
                 InputDeviceState.Notify(first); InputDeviceState.Notify(keyboard);
                 InputSystem.QueueStateEvent(second, new GamepadState { leftStick = new Vector2(.05f, .05f) }); yield return null;
-                Assert.That(InputDeviceState.PromptDevice, Is.SameAs(first));
-                InputDeviceState.Notify(second); InputDeviceState.Notify(keyboard);
+                Assert.That(InputDeviceState.PromptDevice, Is.SameAs(keyboard));
+                InputDeviceState.Notify(second);
                 Assert.That(InputDeviceState.PromptDevice, Is.SameAs(second));
+                InputDeviceState.Notify(keyboard);
+                Assert.That(InputDeviceState.PromptDevice, Is.SameAs(keyboard));
                 InputSystem.DisableDevice(second);
                 Assert.That(InputDeviceState.PromptDevice, Is.Not.SameAs(second));
                 Assert.That(InputDeviceState.ActiveKind, Is.EqualTo(InputDeviceKind.KeyboardMouse));
@@ -191,6 +232,55 @@ namespace Tests.Module
         }
 
 #if UNITY_EDITOR
+        [UnityTest]
+        public IEnumerator SavedKenneyKeyboardPromptsUseActualSpritesAfterRebinding()
+        {
+            var catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<InputGlyphCatalog>("Assets/LoadResources/UI/Common/Input/InputGlyphCatalog.asset");
+            Assert.That(catalog, Is.Not.Null);
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var root = new GameObject("KeyboardPrompt", typeof(RectTransform));
+            var glyphRoot = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+            glyphRoot.transform.SetParent(root.transform, false);
+            var textRoot = new GameObject("KeyText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            textRoot.transform.SetParent(glyphRoot.transform, false);
+            var captionRoot = new GameObject("Caption", typeof(RectTransform), typeof(TextMeshProUGUI));
+            captionRoot.transform.SetParent(root.transform, false);
+            var action = new InputAction("Prompt", InputActionType.Button, "<Keyboard>/r");
+            try
+            {
+                InputDeviceState.Notify(keyboard);
+                var image = glyphRoot.GetComponent<Image>();
+                var keyText = textRoot.GetComponent<TMP_Text>();
+                var prompt = root.AddComponent<InputBindingPrompt>();
+                prompt.Configure(null, catalog, captionRoot.GetComponent<TMP_Text>(), new[]
+                {
+                    new InputBindingPrompt.GlyphSlot { root = glyphRoot, icon = image, keyText = keyText }
+                }, null);
+                prompt.Bind(action);
+                foreach (string key in new[] { "r", "escape", "backspace", "leftCtrl", "upArrow", "f12", "9" })
+                {
+                    action.ApplyBindingOverride(0, "<Keyboard>/" + key);
+                    prompt.Refresh();
+                    var sprite = catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, key);
+                    Assert.That(sprite, Is.Not.Null, "正式键盘图标缺失：" + key);
+                    Assert.That(sprite, Is.Not.SameAs(catalog.KeyboardBlank));
+                    Assert.That(image.sprite, Is.SameAs(sprite), "提示应使用真实 Kenney 键图形：" + key);
+                    Assert.That(image.gameObject.activeSelf, Is.True);
+                    Assert.That(keyText.gameObject.activeSelf, Is.False, "已有图形不叠加第二套文字。");
+                }
+                action.ApplyBindingOverride(0, "<Keyboard>/t");
+                prompt.Refresh();
+                Assert.That(image.sprite.name, Is.EqualTo("KeyT"), "候选绑定生效后图标也应更新。");
+            }
+            finally
+            {
+                Object.Destroy(root);
+                action.Dispose();
+                InputSystem.RemoveDevice(keyboard);
+            }
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator SavedDlssActionsSupportGamepadAndRequireNeutralAfterMenu()
         {

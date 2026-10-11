@@ -43,7 +43,7 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 ## 全局设置与相机接入
 
-`StreamlineRuntime` 对外提供 `SetMode`、`RequestedMode`、`EffectiveMode`、`Status`、尺寸及 `Changed`；`CanEnable` 查询当前后端和相机兼容条件，实际 GPU 支持仍以 SDK 运行结果为准。默认关闭，偏好保存在 PlayerPrefs 的 `SleepyDemos.Graphics.DlssMode`。未知保存值按关闭处理；设备或相机不支持不会覆盖偏好。
+`StreamlineRuntime` 对外提供可等待 `ApplyModeAsync`、`RequestedMode`、`EffectiveMode`、`Status`、尺寸及 `Changed`；`CanEnable` 查询当前后端和相机兼容条件，实际 GPU 支持仍以 SDK 运行结果为准。偏好由公共 GameSettingsService 保存在 `SleepyDemos.Settings`，仅成功迁移后删除旧DLSS键。Streamline只负责实际应用，不自行保存；设备或相机不支持不会覆盖用户请求。
 
 `UIRootManager.BindToBaseCamera` 先解除旧会话，再绑定目标相机及公共 UI 相机；场景导航回滚经过同一个入口。运行时服务由正式启动和 UI 初始化共用，不由 Demo 创建。当前支持屏幕透视主相机与单个公共 UI Overlay，额外相机栈、正交、XR 或局部视口回退。
 
@@ -53,7 +53,7 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 运行驱动和呈现相机使用普通运行时 GameObject 与 `DontDestroyOnLoad`，不可叠加 `HideFlags.DontSave`。该组合会在退出 Play 后遗留对象（Unity 官方 [UUM-87097](https://issuetracker.unity.com/issues/8938/gameobjects-with-hideflagsdontsaveineditor-paired-with-the-dontdestroyonload-method-are-not-relieved-up-when-the-play-mode-is-exited)）；域重载丢失会话引用后，旧呈现相机仍会在正常 UI 之后清黑屏。临时管线和纹理继续显式管理，不使用运行对象的生命周期代替 GPU 排空。
 
-公共面板位于 `Hotfix/Module/GraphicsSettings`。`GraphicsSettingsSetModeAction` 经 Handler 调用 Streamline，服务 Changed 将真实状态发布到 GraphicsSettingsData，View 自动订阅。面板使用既有 UIManager 的普通 Pop/Modal，按需加载，关闭后销毁；打开和关闭不改变已保存画质。资源位于 `LoadResources/UI/GraphicsSettings`，直接维护保存的 Prefab 并用 UIBind 更新绑定；实验室只包含场景与观察交互，Renderer 配置工具属于 Core.Editor。
+现有面板位于 `Hotfix/Module/GraphicsSettings`，正式完整设置UI在功能验收后的美术阶段替换。`GraphicsSettingsSetModeAction` 经 Handler 提交公共设置候选，Streamline Changed 将真实状态发布到 GraphicsSettingsData。面板使用 UIManager 的 Pop/Modal，按需加载，关闭后销毁；DLSS Demo自己监听关页恢复观察输入，公共页面不引用Demo状态。资源位于 `LoadResources/UI/GraphicsSettings`；实验室负责观察交互，Renderer配置属于Core.Editor。
 
 通过 `UIManager.Instance.ShowAsync<DlssSettingsView>()` 打开，关闭按钮与 UIMenuScope 的 Cancel 调用 `CloseAsync<DlssSettingsView>()`。Pop 使用公共遮罩与淡入缩放过渡，点击遮罩可关闭；UIManager 和公共菜单作用域恢复原入口焦点。启动和 Demo 直启均不预加载设置 UI，不再提供全局右上角 OpenButton；GraphicsSettingsUI 和各页面入口抑制作用域已删除。
 

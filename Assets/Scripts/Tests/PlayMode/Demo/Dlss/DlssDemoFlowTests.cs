@@ -113,7 +113,7 @@ namespace Tests.Demo
             while (!load.isDone) yield return null;
             yield return WaitUntil(() => GameSceneNavigator.Instance?.IsEditorDirect == true, "Editor direct rendering service");
             Assert.That(UIManager.Instance.Get<DlssSettingsView>(), Is.Null, "直启不自动加载画面设置。");
-            StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
+            StreamlineRuntime.ApplyModeAsync(StreamlineDlssMode.Quality).Forget();
             yield return WaitUntil(() => StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "Editor direct Quality");
             Assert.AreSame(UIRootManager.Instance.BaseCamera, StreamlineRuntime.BoundCamera);
         }
@@ -137,7 +137,7 @@ namespace Tests.Demo
             var hubScreenshot = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(Path.Combine(folder, "Hub.png"), hubScreenshot.EncodeToPNG());
             Object.Destroy(hubScreenshot);
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Off");
             Assert.IsNull(StreamlineRuntime.RequestedMode);
             var travel = GameSceneNavigator.Instance.SwitchAsync(GameSceneId.DroneFlight).AsTask();
@@ -146,7 +146,7 @@ namespace Tests.Demo
             yield return WaitUntil(() => UIManager.Instance.Get<DroneFlightVehicleSelectView>()?.State == ViewState.Visible, "Vehicle selection");
             Click(UIManager.Instance.Get<DroneFlightVehicleSelectView>(), "StartButton");
             yield return WaitUntil(() => UIManager.Instance.Get<DroneFlightHudView>()?.State == ViewState.Visible, "Flight HUD");
-            StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
+            StreamlineRuntime.ApplyModeAsync(StreamlineDlssMode.Quality).Forget();
             yield return WaitUntil(() => StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "DroneFlight Quality: " + StreamlineRuntime.Status);
             Assert.AreEqual(UIRootManager.Instance.BaseCamera, StreamlineRuntime.BoundCamera);
             var keyboard = InputSystem.AddDevice<Keyboard>();
@@ -164,17 +164,17 @@ namespace Tests.Demo
                 if (candidate.enabled && candidateData.renderType == CameraRenderType.Base && candidateData.cameraStack.Contains(UIRootManager.Instance.UICamera)) uiHosts++;
             }
             Assert.AreEqual(1, uiHosts, "UI lost its presentation camera after unloading the previous Demo.");
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Disable in returned Hub");
             Assert.IsTrue(UIRootManager.Instance.BaseCamera.enabled, "Hub camera stayed disabled after DLSS shutdown.");
-            StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
+            StreamlineRuntime.ApplyModeAsync(StreamlineDlssMode.Quality).Forget();
             yield return WaitUntil(() => StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "Re-enable in Hub");
             travel = GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Dlss).AsTask();
             yield return WaitUntil(() => travel.IsCompleted && StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "Lab inherited Quality");
             StreamlineDlssMode?[] modes = { null, StreamlineDlssMode.Balanced, StreamlineDlssMode.Performance, StreamlineDlssMode.UltraPerformance, StreamlineDlssMode.Dlaa, StreamlineDlssMode.Quality };
             foreach (var mode in modes)
             {
-                StreamlineRuntime.SetMode(mode);
+                StreamlineRuntime.ApplyModeAsync(mode).Forget();
                 yield return WaitUntil(() => !StreamlineRuntime.IsBusy && StreamlineRuntime.EffectiveMode == mode, "Mode " + mode);
                 yield return new WaitForEndOfFrame();
                 var screenshot = ScreenCapture.CaptureScreenshotAsTexture();
@@ -225,16 +225,16 @@ namespace Tests.Demo
             yield return null;
             int rendered = StreamlineCaptureFeature.Session.CapturedFrames;
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy && StreamlineRuntime.EffectiveMode.HasValue && StreamlineCaptureFeature.Session.CapturedFrames > rendered + 3, "Resume");
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Before unsupported camera");
             main.orthographic = true;
-            StreamlineRuntime.SetMode(StreamlineDlssMode.Quality);
+            StreamlineRuntime.ApplyModeAsync(StreamlineDlssMode.Quality).Forget();
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Unsupported camera fallback");
             Assert.IsNull(StreamlineRuntime.EffectiveMode);
             Assert.AreEqual(StreamlineDlssMode.Quality, StreamlineRuntime.RequestedMode);
             Assert.IsFalse(StreamlineRuntime.CanEnable(out _));
             main.orthographic = false;
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Disable");
             Assert.IsNull(StreamlineCaptureFeature.Session);
             Assert.IsFalse(StreamlineRuntime.RequiresRestart);
@@ -246,7 +246,7 @@ namespace Tests.Demo
         public IEnumerator CloseDemoIfNeeded()
         {
             if (isUiTest) { isUiTest = false; yield break; }
-            StreamlineRuntime.SetMode(null);
+            StreamlineRuntime.ApplyModeAsync(null).Forget();
             yield return WaitUntil(() => !StreamlineRuntime.IsBusy, "Cleanup");
             if (GameSceneNavigator.Instance != null && GameSceneNavigator.Instance.CurrentScene != GameSceneId.Hub)
                 {

@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.TimeControls;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.SceneManagement;
@@ -162,6 +163,45 @@ namespace Tests.Demo
             InputSystem.RemoveDevice(gamepad);
             Assert.That(input.Router.PauseState.IsPaused, Is.True);
             Assert.That(input.HeldWall, Is.EqualTo(-1));
+        }
+
+        [UnityTest]
+        public IEnumerator KeyboardEscapePausesGameplayOnceAndMenuCancelDoesNotSubmitPause()
+        {
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
+            yield return null;
+            Assert.That(input.Read(simulation, .1f, 4, out _, out _), Is.True, "保存的 Esc/Back 在玩法上下文请求暂停。");
+            Assert.That(input.Read(simulation, .1f, 4, out _, out _), Is.False, "同一次按键只提交一次暂停。");
+            Assert.That(input.Router.ConsumeActions(), Is.EqualTo(GameplayInputActions.None));
+            input.Router.SetContext(GameplayInputContext.Menu);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return null;
+            Read();
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter, Key.Escape));
+            yield return null;
+            Assert.That(input.Read(simulation, .1f, 4, out int wall, out _), Is.False, "菜单确认/返回归公共 UI，不能再触发玩法暂停。");
+            Assert.That(wall, Is.EqualTo(-1));
+            Assert.That(input.Router.ConsumeActions(), Is.EqualTo(GameplayInputActions.None));
+        }
+
+        [UnityTest]
+        public IEnumerator GlobalFreezeSuppressesWallSelectionAndMovementWhilePauseStillWorks()
+        {
+            Read();
+            int selected = input.Selected;
+            using var freeze = GameTimeService.Push(0);
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.E));
+            yield return null;
+            input.Read(simulation, .1f, 4, out int wall, out _);
+            Assert.That(input.Selected, Is.EqualTo(selected));
+            Assert.That(wall, Is.EqualTo(-1));
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+            yield return null;
+            Read();
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
+            yield return null;
+            Assert.That(input.Read(simulation, .1f, 4, out wall, out _), Is.True);
+            Assert.That(wall, Is.EqualTo(-1));
         }
 
         [UnityTest]

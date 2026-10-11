@@ -10,30 +10,15 @@ namespace Hotfix
     [UIBind("DlssSettingsView")]
     public partial class DlssSettingsView : View
     {
-        private Hotfix.Dlss.DlssData dlssSession;
-
-        protected override void OnShow()
-        {
-            dlssSession = GlobalData.Get<Hotfix.Dlss.DlssData>();
-            base.OnShow();
-        }
-
         protected override void OnGameObjectInitialize()
         {
             BindData<GraphicsSettingsData>(RefreshState);
             UIMenuScope_SettingsPanel.Canceled += OnCloseButtonClick;
         }
 
-        protected override void OnHide()
-        {
-            GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction(dlssSession));
-            base.OnHide();
-        }
-
         protected override void OnDestroy()
         {
             UIMenuScope_SettingsPanel.Canceled -= OnCloseButtonClick;
-            GlobalData.Dispatch(new Hotfix.Dlss.DlssSettingsClosedAction(dlssSession));
             base.OnDestroy();
         }
 

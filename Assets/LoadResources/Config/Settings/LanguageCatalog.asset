@@ -1,0 +1,460 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c11758955192d9d4aa12ef53e17d4363, type: 3}
+  m_Name: LanguageCatalog
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Localization.LanguageCatalog
+  languages:
+  - id: zh-CN
+    displayName: "\u7B80\u4F53\u4E2D\u6587"
+    culture: zh-CN
+  - id: en
+    displayName: English
+    culture: en-US
+  entries:
+  - key: Common.Confirm
+    fontId: 0
+    chinese: "\u786E\u8BA4"
+    english: Confirm
+  - key: Common.Cancel
+    fontId: 0
+    chinese: "\u53D6\u6D88"
+    english: Cancel
+  - key: Common.Back
+    fontId: 0
+    chinese: "\u8FD4\u56DE"
+    english: Back
+  - key: Common.Apply
+    fontId: 0
+    chinese: "\u5E94\u7528"
+    english: Apply
+  - key: Common.Loading
+    fontId: 0
+    chinese: "\u52A0\u8F7D\u4E2D\u2026"
+    english: "Loading\u2026"
+  - key: Common.Retry
+    fontId: 0
+    chinese: "\u91CD\u8BD5"
+    english: Retry
+  - key: Common.Default
+    fontId: 0
+    chinese: "\u9ED8\u8BA4"
+    english: Default
+  - key: Common.On
+    fontId: 0
+    chinese: "\u5F00\u542F"
+    english: On
+  - key: Common.Off
+    fontId: 0
+    chinese: "\u5173\u95ED"
+    english: Off
+  - key: Common.Auto
+    fontId: 0
+    chinese: "\u81EA\u52A8"
+    english: Automatic
+  - key: Common.ResetDefaults
+    fontId: 0
+    chinese: "\u6062\u590D\u672C\u9875\u9ED8\u8BA4"
+    english: Reset this category
+  - key: Hub.Unavailable
+    fontId: 0
+    chinese: "\u672A\u5F00\u653E"
+    english: Coming soon
+  - key: Hub.Selected
+    fontId: 0
+    chinese: "\u5F53\u524D\u9009\u62E9"
+    english: Selected
+  - key: Hub.Ready
+    fontId: 0
+    chinese: "\u9009\u62E9\u4E00\u4E2A\u73A9\u6CD5\uFF0C\u5F00\u59CB\u4F53\u9A8C"
+    english: Choose a demo and start
+  - key: Hub.Preparing
+    fontId: 0
+    chinese: "\u6B63\u5728\u51C6\u5907\u4F53\u9A8C\u2026"
+    english: "Preparing the demo\u2026"
+  - key: Hub.Start
+    fontId: 0
+    chinese: "\u5F00\u59CB\u4F53\u9A8C"
+    english: Start demo
+  - key: Hub.TouchHints
+    fontId: 0
+    chinese: "\u6ED1\u52A8\u9009\u62E9\u73A9\u6CD5 \xB7 \u70B9\u51FB\u5F00\u59CB\u4F53\u9A8C"
+    english: "Swipe to choose \xB7 Tap to start"
+  - key: Hub.KeyboardHints
+    fontId: 0
+    chinese: "\u65B9\u5411\u952E\u9009\u62E9 \xB7 Enter \u786E\u8BA4"
+    english: "Arrow keys select \xB7 Enter confirms"
+  - key: Hub.GamepadHints
+    fontId: 0
+    chinese: "\u65B9\u5411\u952E / \u6447\u6746 \u9009\u62E9    {0} \u786E\u8BA4"
+    english: D-pad / Stick Select    {0} Confirm
+  - key: Hub.drone_flight.Title
+    fontId: 2
+    chinese: "\u65E0\u4EBA\u673A\u98DE\u884C"
+    english: Drone Flight
+  - key: Hub.drone_flight.Subtitle
+    fontId: 0
+    chinese: "\u8D77\u98DE\u3001\u7A7F\u8D8A\u4E0E\u7CBE\u51C6\u64CD\u63A7"
+    english: Take off, explore and master flight
+  - key: Hub.drone_flight.Description
+    fontId: 0
+    chinese: "\u5728\u8BAD\u7EC3\u573A\u63A2\u7D22\u98DE\u884C\u624B\u611F\u3002\n\u9009\u62E9\u673A\u578B\uFF0C\u5F00\u59CB\u4F60\u7684\u98DE\u884C\u4F53\u9A8C\u3002"
+    english: 'Explore flight in the training ground.
+
+      Choose a drone and start
+      flying.'
+  - key: Hub.dlss.Title
+    fontId: 2
+    chinese: "DLSS \u5B9E\u9A8C\u5BA4"
+    english: DLSS Laboratory
+  - key: Hub.dlss.Subtitle
+    fontId: 0
+    chinese: "\u63A2\u7D22\u753B\u8D28\u4E0E\u6027\u80FD\u7684\u5E73\u8861"
+    english: Explore image quality and performance
+  - key: Hub.dlss.Description
+    fontId: 0
+    chinese: "\u5207\u6362\u753B\u8D28\u6A21\u5F0F\uFF0C\u6BD4\u8F83\u753B\u9762\u4E0E\u6027\u80FD\u3002\n\u4F53\u9A8C\u5B9E\u65F6\u6E32\u67D3\u6280\u672F\u5E26\u6765\u7684\u5DEE\u5F02\u3002"
+    english: 'Switch quality modes and compare the image.
+
+      Explore real-time
+      rendering technology.'
+  - key: Hub.ui_validation.Title
+    fontId: 2
+    chinese: "UI \u4EA4\u4E92\u5C55\u53F0"
+    english: UI Showcase
+  - key: Hub.ui_validation.Subtitle
+    fontId: 0
+    chinese: "\u65B0\u7684\u4F53\u9A8C\uFF0C\u5373\u5C06\u5F00\u653E"
+    english: A new experience is coming
+  - key: Hub.ui_validation.Description
+    fontId: 0
+    chinese: "\u754C\u9762\u4E0E\u5BFC\u822A\u7684\u4EA4\u4E92\u4F53\u9A8C\u3002\n\u5C55\u53F0\u6B63\u5728\u51C6\u5907\u4E2D\uFF0C\u656C\u8BF7\u671F\u5F85\u3002"
+    english: 'Explore interfaces and navigation.
+
+      The showcase is being prepared.'
+  - key: Hub.wall_squeeze.Title
+    fontId: 2
+    chinese: "\u5939\u7206\u5B83"
+    english: Wall Squeeze
+  - key: Hub.wall_squeeze.Subtitle
+    fontId: 0
+    chinese: "\u63A8\u5899\u5939\u51FB\uFF0C\u4FDD\u62A4\u4F4F\u6237"
+    english: Crush monsters and protect residents
+  - key: Hub.wall_squeeze.Description
+    fontId: 0
+    chinese: "\u62D6\u52A8\u6ED1\u5899\uFF0C\u628A\u7EA2\u602A\u8D76\u62E2\u5939\u7206\u3002\n\u79FB\u5F00\u84DD\u8272\u4F4F\u6237\uFF0C\u7559\u51FA\u5B89\u5168\u7A7A\u95F4\u3002"
+    english: 'Drag the walls to crush red monsters.
+
+      Move blue residents to
+      safety.'
+  - key: Hub.kagit_kart.Title
+    fontId: 2
+    chinese: "\u7EB8\u827A\u5361\u4E01\u8F66"
+    english: Paper Kart
+  - key: Hub.kagit_kart.Subtitle
+    fontId: 0
+    chinese: "\u7FFB\u5F00\u7EB8\u9875\uFF0C\u5F00\u59CB\u6BD4\u8D5B"
+    english: Turn the page and start racing
+  - key: Hub.kagit_kart.Description
+    fontId: 0
+    chinese: "\u9A7E\u9A76\u526A\u7EB8\u8D5B\u8F66\uFF0C\u7A7F\u8FC7\u7ACB\u4F53\u4E66\u8D5B\u9053\u3002\n\u4E2D\u6587\u5355\u4EBA\u79FB\u690D\u5F00\u53D1\u4E2D\u3002"
+    english: 'Race paper karts through pop-up tracks.
+
+      A Chinese single-player
+      adaptation.'
+  - key: Settings.Title
+    fontId: 2
+    chinese: "\u8BBE\u7F6E"
+    english: Settings
+  - key: Settings.Graphics
+    fontId: 0
+    chinese: "\u663E\u793A\u4E0E\u753B\u8D28"
+    english: Display & Graphics
+  - key: Settings.Audio
+    fontId: 0
+    chinese: "\u58F0\u97F3"
+    english: Audio
+  - key: Settings.Input
+    fontId: 0
+    chinese: "\u63A7\u5236"
+    english: Controls
+  - key: Settings.Language
+    fontId: 0
+    chinese: "\u8BED\u8A00"
+    english: Language
+  - key: Settings.Accessibility
+    fontId: 0
+    chinese: "\u8F85\u52A9\u529F\u80FD"
+    english: Accessibility
+  - key: Settings.DisplayMode
+    fontId: 0
+    chinese: "\u663E\u793A\u6A21\u5F0F"
+    english: Display mode
+  - key: Settings.Resolution
+    fontId: 0
+    chinese: "\u5206\u8FA8\u7387"
+    english: Resolution
+  - key: Settings.Quality
+    fontId: 0
+    chinese: "\u753B\u8D28\u9884\u8BBE"
+    english: Quality preset
+  - key: Settings.VSync
+    fontId: 0
+    chinese: "\u5782\u76F4\u540C\u6B65"
+    english: Vertical sync
+  - key: Settings.FrameLimit
+    fontId: 0
+    chinese: "\u5E27\u7387\u4E0A\u9650"
+    english: Frame limit
+  - key: Settings.Antialiasing
+    fontId: 0
+    chinese: "\u6297\u952F\u9F7F"
+    english: Anti-aliasing
+  - key: Settings.Dlss
+    fontId: 0
+    chinese: "DLSS \u6A21\u5F0F"
+    english: DLSS mode
+  - key: Settings.Brightness
+    fontId: 0
+    chinese: "\u4EAE\u5EA6"
+    english: Brightness
+  - key: Settings.Master
+    fontId: 0
+    chinese: "\u4E3B\u97F3\u91CF"
+    english: Master volume
+  - key: Settings.Music
+    fontId: 0
+    chinese: "\u97F3\u4E50"
+    english: Music
+  - key: Settings.Effects
+    fontId: 0
+    chinese: "\u97F3\u6548"
+    english: Sound effects
+  - key: Settings.Ui
+    fontId: 0
+    chinese: "\u754C\u9762\u97F3\u91CF"
+    english: Interface volume
+  - key: Settings.Muted
+    fontId: 0
+    chinese: "\u9759\u97F3"
+    english: Mute
+  - key: Settings.Mouse
+    fontId: 0
+    chinese: "\u9F20\u6807\u7075\u654F\u5EA6"
+    english: Mouse sensitivity
+  - key: Settings.Touch
+    fontId: 0
+    chinese: "\u89E6\u5C4F\u7075\u654F\u5EA6"
+    english: Touch sensitivity
+  - key: Settings.GamepadLook
+    fontId: 0
+    chinese: "\u624B\u67C4\u89C6\u89D2\u500D\u7387"
+    english: Gamepad look sensitivity
+  - key: Settings.InvertY
+    fontId: 0
+    chinese: "\u53CD\u8F6C Y \u8F74"
+    english: Invert Y axis
+  - key: Settings.Deadzone
+    fontId: 0
+    chinese: "\u624B\u67C4\u6B7B\u533A"
+    english: Gamepad deadzone
+  - key: Settings.Rumble
+    fontId: 0
+    chinese: "\u624B\u67C4\u9707\u52A8"
+    english: Controller vibration
+  - key: Settings.RumbleStrength
+    fontId: 0
+    chinese: "\u9707\u52A8\u5F3A\u5EA6"
+    english: Vibration strength
+  - key: Settings.Rebind
+    fontId: 0
+    chinese: "\u91CD\u65B0\u7ED1\u5B9A"
+    english: Rebind
+  - key: Settings.RebindWait
+    fontId: 0
+    chinese: "\u8BF7\u6309\u4E0B\u65B0\u7684\u6309\u952E\uFF0CEsc \u53D6\u6D88"
+    english: Press a new control, Esc cancels
+  - key: Settings.LanguageHelp
+    fontId: 0
+    chinese: "\u4EC5\u5728 Hub \u5207\u6362\u8BED\u8A00\uFF1B\u5E94\u7528\u540E\u91CD\u5EFA\u5927\u5385\u4E0E\u8BBE\u7F6E\u9875\u3002"
+    english: Language changes in the Hub. Applying rebuilds the Hub and settings.
+  - key: Settings.ReducedMotion
+    fontId: 0
+    chinese: "\u51CF\u5C11\u52A8\u6001"
+    english: Reduced motion
+  - key: Settings.CameraShake
+    fontId: 0
+    chinese: "\u76F8\u673A\u6296\u52A8"
+    english: Camera shake
+  - key: Settings.InputPrompts
+    fontId: 0
+    chinese: "\u8F93\u5165\u63D0\u793A"
+    english: Input prompts
+  - key: Settings.KeepDisplay
+    fontId: 2
+    chinese: "\u4FDD\u7559\u6B64\u663E\u793A\u8BBE\u7F6E\uFF1F"
+    english: Keep these display settings?
+  - key: Settings.KeepSeconds
+    fontId: 0
+    chinese: "{0} \u79D2\u540E\u6062\u590D\u539F\u8BBE\u7F6E"
+    english: Restoring previous settings in {0} seconds
+  - key: Graphics.Current
+    fontId: 0
+    chinese: "\u5F53\u524D\u914D\u7F6E"
+    english: Current configuration
+  - key: Graphics.Low
+    fontId: 0
+    chinese: "\u4F4E"
+    english: Low
+  - key: Graphics.Medium
+    fontId: 0
+    chinese: "\u4E2D"
+    english: Medium
+  - key: Graphics.High
+    fontId: 0
+    chinese: "\u9AD8"
+    english: High
+  - key: Graphics.Windowed
+    fontId: 0
+    chinese: "\u7A97\u53E3"
+    english: Windowed
+  - key: Graphics.Borderless
+    fontId: 0
+    chinese: "\u65E0\u8FB9\u6846\u7A97\u53E3"
+    english: Borderless
+  - key: Graphics.Fullscreen
+    fontId: 0
+    chinese: "\u5168\u5C4F"
+    english: Fullscreen
+  - key: Graphics.Unlimited
+    fontId: 0
+    chinese: "\u4E0D\u9650"
+    english: Unlimited
+  - key: Input.Hub
+    fontId: 0
+    chinese: Hub
+    english: Hub
+  - key: Input.Dlss
+    fontId: 0
+    chinese: "DLSS \u5B9E\u9A8C\u5BA4"
+    english: DLSS Laboratory
+  - key: Input.DroneFlight
+    fontId: 0
+    chinese: "\u65E0\u4EBA\u673A\u98DE\u884C"
+    english: Drone Flight
+  - key: Input.WallSqueeze
+    fontId: 0
+    chinese: "\u5939\u7206\u5B83"
+    english: Wall Squeeze
+  - key: Input.KagitKart
+    fontId: 0
+    chinese: "\u7EB8\u827A\u5361\u4E01\u8F66"
+    english: Paper Kart
+  - key: Input.ResetView
+    fontId: 0
+    chinese: "\u91CD\u7F6E\u89C6\u89D2"
+    english: Reset view
+  - key: Input.GraphicsSettings
+    fontId: 0
+    chinese: "\u753B\u8D28\u8BBE\u7F6E"
+    english: Graphics settings
+  - key: Input.ReturnHub
+    fontId: 0
+    chinese: "\u8FD4\u56DE Hub"
+    english: Return to Hub
+  - key: Input.Move
+    fontId: 0
+    chinese: "\u79FB\u52A8"
+    english: Move
+  - key: Input.Look
+    fontId: 0
+    chinese: "\u89C6\u89D2"
+    english: Look
+  - key: Input.Sprint
+    fontId: 0
+    chinese: "\u52A0\u901F"
+    english: Sprint
+  - key: Input.Pause
+    fontId: 0
+    chinese: "\u6682\u505C"
+    english: Pause
+  - key: Input.Help
+    fontId: 0
+    chinese: "\u64CD\u4F5C\u8BF4\u660E"
+    english: Controls
+  - key: Input.Confirm
+    fontId: 0
+    chinese: "\u786E\u8BA4"
+    english: Confirm
+  - key: Input.Back
+    fontId: 0
+    chinese: "\u8FD4\u56DE"
+    english: Back
+  - key: Presentation.Title
+    fontId: 2
+    chinese: "\u516C\u5171\u6548\u679C\u4F53\u9A8C"
+    english: Presentation Lab
+  - key: Presentation.Chapter
+    fontId: 2
+    chinese: "\u7B2C\u4E00\u7AE0"
+    english: Chapter One
+  - key: Presentation.Location
+    fontId: 0
+    chinese: "\u8BAD\u7EC3\u573A"
+    english: Training Ground
+  - key: Presentation.ColorGrading
+    fontId: 0
+    chinese: "\u8C03\u8272"
+    english: Color grading
+  - key: Presentation.Bloom
+    fontId: 0
+    chinese: "\u6CDB\u5149"
+    english: Bloom
+  - key: Presentation.Vignette
+    fontId: 0
+    chinese: "\u6697\u89D2"
+    english: Vignette
+  - key: Presentation.DepthOfField
+    fontId: 0
+    chinese: "\u666F\u6DF1\u6A21\u62DF"
+    english: Depth of field
+  - key: Presentation.ChromaticAberration
+    fontId: 0
+    chinese: "\u8272\u5DEE"
+    english: Chromatic aberration
+  - key: Presentation.LensDistortion
+    fontId: 0
+    chinese: "\u955C\u5934\u7578\u53D8"
+    english: Lens distortion
+  - key: Presentation.FilmGrain
+    fontId: 0
+    chinese: "\u80F6\u7247\u9897\u7C92"
+    english: Film grain
+  - key: Input.Steer
+    fontId: 0
+    chinese: "\u8F6C\u5411"
+    english: Steer
+  - key: Input.Throttle
+    fontId: 0
+    chinese: "\u6CB9\u95E8"
+    english: Throttle
+  - key: Input.Drift
+    fontId: 0
+    chinese: "\u6F02\u79FB"
+    english: Drift
+  - key: Input.Item
+    fontId: 0
+    chinese: "\u9053\u5177"
+    english: Use item
+  - key: Hub.Eyebrow
+    fontId: 0
+    chinese: "\u73A9\u6CD5\u5B9E\u9A8C\u5BA4"
+    english: DEMO LAB

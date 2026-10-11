@@ -1,11 +1,13 @@
 using System;
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.Settings;
 using Cysharp.Threading.Tasks;
 using Hotfix.DroneFlight;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace Hotfix
@@ -25,6 +27,7 @@ namespace Hotfix
         private RectTransform[] badges;
         private DroneFlightData data;
         private UIState[] cardStates;
+        private bool showInputPrompts = true;
         private bool isBusy => data.Mode is DroneFlightSessionMode.Loading or DroneFlightSessionMode.Leaving;
 
         protected override void OnGameObjectInitialize()
@@ -35,6 +38,15 @@ namespace Hotfix
             previews = new[] { Image_PlainPreview, Image_GrapplePreview, Image_HarpoonPreview };
             badges = new[] { RectTransform_PlainSelected, RectTransform_GrappleSelected, RectTransform_HarpoonSelected };
             UIMenuScope_DroneFlightVehicleSelectView.Canceled += OnBackButtonClick;
+            GameSettingsService.Changed += OnSettingsChanged;
+            AddBinding(() => GameSettingsService.Changed -= OnSettingsChanged);
+            OnSettingsChanged(GameSettingsService.Current);
+        }
+
+        private void OnSettingsChanged(GameSettingsSnapshot value)
+        {
+            showInputPrompts = value.Accessibility.ShowInputPrompts;
+            RefreshHints();
         }
 
         /// <summary>在正式显示前交付当前选择与场景操作。</summary>
@@ -139,10 +151,12 @@ namespace Hotfix
 
         private void RefreshHints()
         {
-            bool touch = Application.isMobilePlatform || InputDeviceState.ActiveKind == InputDeviceKind.Touch;
-            RectTransform_Hints.gameObject.SetActive(!touch);
-            TextMeshProUGUI_TouchHint.gameObject.SetActive(touch);
-            TextMeshProUGUI_MoveHint.text = InputDeviceState.PromptKind == InputDeviceKind.Gamepad ? "方向键 / 摇杆  选择" : "← →  选择";
+            bool touch = InputDeviceState.ActiveKind == InputDeviceKind.Touch;
+            RectTransform_Hints.gameObject.SetActive(showInputPrompts && !touch);
+            TextMeshProUGUI_TouchHint.gameObject.SetActive(showInputPrompts && touch);
+            var module = EventSystem.current?.GetComponent<InputSystemUIInputModule>();
+            string move = module?.move?.action != null ? InputBindingDisplay.Get(module.move.action, out _) : "← →";
+            TextMeshProUGUI_MoveHint.text = move + "  选择";
         }
 
         private void ReleasePresentation()

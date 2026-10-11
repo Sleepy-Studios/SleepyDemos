@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Core.Runtime.Inputs;
+using Core.Runtime.Localization;
+using Core.Runtime.Settings;
+using Core.Runtime.TimeControls;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,6 +16,7 @@ namespace Hotfix.DroneFlight
         [SerializeField] private DroneInputConfig config;
         [SerializeField] private InputActionAsset actions;
         private InputActionSession session;
+        private GameplayInputSettings inputSettings;
         private DroneFlightController controller;
         private DroneCameraRig cameraRig;
         private DroneEquipmentHost equipment;
@@ -41,7 +45,7 @@ namespace Hotfix.DroneFlight
         /// 调试页导航期间不向飞控提交手动输入。
         public bool IsDebugOpen { get; private set; }
         /// HUD 只在当前无人机受控且面板关闭时提交双摇杆。
-        public bool AcceptsFlightInput => isActiveAndEnabled && !IsPanelOpen && !IsHelpOpen && !IsDebugOpen;
+        public bool AcceptsFlightInput => GameTimeService.Scale > 0 && isActiveAndEnabled && !IsPanelOpen && !IsHelpOpen && !IsDebugOpen;
         internal Vector2 CameraLook { get; private set; }
         internal float LineInput { get; private set; }
         internal Vector2 AimPosition { get; private set; } = new(.5f, .5f);
@@ -55,52 +59,157 @@ namespace Hotfix.DroneFlight
             equipment = GetComponent<DroneEquipmentHost>();
             landingGear = GetComponent<DroneLandingGearController>();
             resetHoldTracker = new DroneResetHoldTracker(ResetHoldSeconds);
-            if (actions != null) session = new InputActionSession(actions);
+            if (actions != null)
+            {
+                session = new InputActionSession(actions);
+            }
+            inputSettings = session?.Settings ?? GameSettingsService.Current.Input;
+            GameSettingsService.Changed += OnSettingsChanged;
         }
         private void OnEnable() => session?.SetMap("Flight");
         private void OnDisable()
         {
-            ResetBufferedInput(); SetHelpOpen(false); SetDebugOpen(false); SetPanelOpen(false);
+            ResetBufferedInput();
+            SetHelpOpen(false);
+            SetDebugOpen(false);
+            SetPanelOpen(false);
             session?.SetMap("Waiting");
         }
-        private void OnDestroy() => session?.Dispose();
-        private void OnApplicationFocus(bool focus) { if (!focus) ResetBufferedInput(); }
-        private void OnApplicationPause(bool paused) { if (paused) ResetBufferedInput(); }
+        private void OnDestroy()
+        {
+            GameSettingsService.Changed -= OnSettingsChanged;
+            session?.Dispose();
+        }
+
+        private void OnSettingsChanged(GameSettingsSnapshot value)
+        {
+            inputSettings = value.Input.Copy();
+        }
+        private void OnApplicationFocus(bool focus)
+        {
+            if (!focus)
+            {
+                ResetBufferedInput();
+            }
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused)
+            {
+                ResetBufferedInput();
+            }
+        }
 
         private void Update()
         {
-            if (session == null || controller == null) return;
+            if (session == null || controller == null)
+            {
+                return;
+            }
             if (IsHelpOpen)
             {
-                if (session.Asset.FindAction("Flight/Help").WasPressedThisFrame()) PresentationRequested?.Invoke("Help");
+                if (session.Asset.FindAction("Flight/Help").WasPressedThisFrame())
+                {
+                    PresentationRequested?.Invoke("Help");
+                }
                 controller.SetControlInput(default);
                 return;
             }
             if (IsDebugOpen)
             {
                 foreach (string command in DebugCommands)
-                    if (session.Asset.FindAction("Flight/" + command).WasPressedThisFrame()) PresentationRequested?.Invoke(command);
+                {
+                    if (session.Asset.FindAction("Flight/" + command).WasPressedThisFrame())
+                    {
+                        PresentationRequested?.Invoke(command);
+                    }
+                }
                 controller.SetControlInput(default);
                 return;
             }
-            frameCommands.Clear(); foreach (var command in pendingCommands) frameCommands.Add(command); pendingCommands.Clear();
-            if (Pressed("Panel")) SetPanelOpen(!IsPanelOpen);
-            if (IsPanelOpen) { controller.SetControlInput(default); return; }
+            if (GameTimeService.Scale <= 0)
+            {
+                bool backRequested = pendingCommands.Contains("Back");
+                ResetBufferedInput();
+                if (backRequested)
+                {
+                    frameCommands.Add("Back");
+                }
+                foreach (string command in FrozenPresentationCommands)
+                {
+                    if (session.Pressed(command))
+                    {
+                        if (command == "Panel")
+                        {
+                            SetPanelOpen(!IsPanelOpen);
+                        }
+                        else
+                        {
+                            ExecuteImmediate(command);
+                        }
+                    }
+                }
+                return;
+            }
+            frameCommands.Clear();
+            foreach (var command in pendingCommands)
+            {
+                frameCommands.Add(command);
+            }
+            pendingCommands.Clear();
+            if (Pressed("Panel"))
+            {
+                SetPanelOpen(!IsPanelOpen);
+            }
+            if (IsPanelOpen)
+            {
+                controller.SetControlInput(default);
+                return;
+            }
             bool armHeld = touchArmHeld || session.Held("ArmOrReset");
-            if (armHeld && !wasArmHeld) resetHoldTracker.Begin();
-            if (armHeld && resetHoldTracker.Step(Time.unscaledDeltaTime)) { ResetBufferedInput(); ReloadRequested?.Invoke(); }
+            if (armHeld && !wasArmHeld)
+            {
+                resetHoldTracker.Begin();
+            }
+            if (armHeld && resetHoldTracker.Step(Time.unscaledDeltaTime))
+            {
+                ResetBufferedInput();
+                ReloadRequested?.Invoke();
+            }
             if (!armHeld && wasArmHeld && resetHoldTracker.Release() == DroneResetReleaseResult.ShortPress)
+            {
                 controller.SetArmed(!controller.IsArmed);
+            }
             wasArmHeld = armHeld;
 
             Vector2 planar = session.ReadVector("Move");
             Vector2 vertical = session.ReadVector("VerticalYaw");
             bool padOrTouch = InputDeviceState.ActiveKind != InputDeviceKind.KeyboardMouse;
             var target = new Vector4(vertical.y, vertical.x, planar.y, planar.x);
-            if (InputDeviceState.ActiveKind == InputDeviceKind.Touch) target = new Vector4(touchLeft.y, touchLeft.x, touchRight.y, touchRight.x);
+            if (InputDeviceState.ActiveKind == InputDeviceKind.Touch)
+            {
+                target = new Vector4(touchLeft.y, touchLeft.x, touchRight.y, touchRight.x);
+            }
             bool lookMode = session.Held("ViewModifier") || touchLookMode;
             CameraLook = session.ReadVector("CameraLook");
-            if (lookMode) { CameraLook += InputDeviceState.ActiveKind == InputDeviceKind.Touch ? touchRight : session.ReadVector("PadLook"); target.z = target.w = 0; }
+            if (lookMode)
+            {
+                CameraLook += InputDeviceState.ActiveKind == InputDeviceKind.Touch ? touchRight : session.ReadVector("PadLook");
+                target.z = target.w = 0;
+            }
+            if (InputDeviceState.ActiveKind == InputDeviceKind.Gamepad)
+            {
+                if (inputSettings.GamepadInvertY)
+                {
+                    CameraLook = new Vector2(CameraLook.x, -CameraLook.y);
+                }
+                CameraLook *= inputSettings.GamepadLookMultiplier * inputSettings.GamepadLookDegreesPerSecond / 90;
+            }
+            else if (InputDeviceState.ActiveKind == InputDeviceKind.Touch)
+            {
+                CameraLook *= inputSettings.TouchLookMultiplier;
+            }
             if (!padOrTouch)
             {
                 float rise = controller.InputRiseRate > 0 ? controller.InputRiseRate : config != null ? config.KeyboardFallbackRiseRate : 3;
@@ -108,68 +217,187 @@ namespace Hotfix.DroneFlight
                     Step(smoothedKeyboardInput.z, target.z, rise), Step(smoothedKeyboardInput.w, target.w, rise));
                 target = smoothedKeyboardInput;
             }
-            else { smoothedKeyboardInput = Vector4.zero; }
+            else
+            {
+                smoothedKeyboardInput = Vector4.zero;
+            }
             controller.SetControlInput(DroneControlInput.Create(target.x, target.y, target.z, target.w));
             LineInput = session.Read<float>("Line") + touchLine;
             ZoomInput = session.Read<float>("Zoom");
             var point = session.Read<Vector2>("Point");
             if (HasMouseAim && Screen.width > 0 && Screen.height > 0)
+            {
                 AimPosition = new Vector2(Mathf.Clamp01(point.x / Screen.width), Mathf.Clamp01(point.y / Screen.height));
-            else if (lookMode) AimPosition = new Vector2(Mathf.Clamp01(AimPosition.x + CameraLook.x * Time.unscaledDeltaTime * .5f),
-                Mathf.Clamp01(AimPosition.y + CameraLook.y * Time.unscaledDeltaTime * .5f));
+            }
+            else if (lookMode)
+            {
+                AimPosition = new Vector2(Mathf.Clamp01(AimPosition.x + CameraLook.x * Time.unscaledDeltaTime * .5f),
+                    Mathf.Clamp01(AimPosition.y + CameraLook.y * Time.unscaledDeltaTime * .5f));
+            }
             foreach (string command in ImmediateCommands)
-                if (Pressed(command)) ExecuteImmediate(command);
+            {
+                if (Pressed(command))
+                {
+                    ExecuteImmediate(command);
+                }
+            }
         }
         private bool touchLookMode;
         private float touchLine;
 
-        internal bool Pressed(string name) => !IsHelpOpen && !IsDebugOpen && (frameCommands.Contains(name) || session?.Pressed(name) == true);
-        internal string Label(string name, string caption) => InputBindingDisplay.Label(session?.Asset.FindAction("Flight/" + name), caption);
+        internal bool Pressed(string name) => (GameTimeService.Scale > 0 || IsPresentationCommand(name)) && !IsHelpOpen && !IsDebugOpen
+            && (frameCommands.Contains(name) || session?.Pressed(name) == true);
+        internal string Label(string name, string caption)
+        {
+            string key = CommonCaptionKey(name);
+            string text = !string.IsNullOrEmpty(caption) && key != null && LanguageService.IsInitialized ? LanguageService.Get(key) : caption;
+            return InputBindingDisplay.Label(session?.Asset.FindAction("Flight/" + name), text);
+        }
+
+        internal static string CommonCaptionKey(string name)
+        {
+            return name switch
+            {
+                "Exit" => "Input.ReturnHub",
+                "Back" or "Cancel" => "Input.Back",
+                "Help" => "Input.Help",
+                "Confirm" or "Submit" => "Input.Confirm",
+                _ => null
+            };
+        }
 
         /// <summary>触控按钮与操作面板提交同一玩法命令，下一帧消费。</summary>
         /// <param name="command">保存的动作名称。</param>
         public void Execute(string command)
         {
-            if (session?.Asset.FindAction(command) == null) throw new ArgumentException("未知无人机动作：" + command);
-            if (IsHelpOpen) { if (command == "Help") PresentationRequested?.Invoke(command); return; }
-            if (IsDebugOpen) { if (command is "DebugPanel" or "DebugDraw" or "CopyTelemetry") PresentationRequested?.Invoke(command); return; }
-            if (command == "Panel") { SetPanelOpen(!IsPanelOpen); return; }
-            if (IsPanelOpen || !isActiveAndEnabled) ExecuteImmediate(command); else pendingCommands.Add(command);
+            if (session?.Asset.FindAction(command) == null)
+            {
+                throw new ArgumentException("未知无人机动作：" + command);
+            }
+            if (GameTimeService.Scale <= 0 && !IsPresentationCommand(command))
+            {
+                return;
+            }
+            if (IsHelpOpen)
+            {
+                if (command == "Help")
+                {
+                    PresentationRequested?.Invoke(command);
+                }
+                return;
+            }
+            if (IsDebugOpen)
+            {
+                if (command is "DebugPanel" or "DebugDraw" or "CopyTelemetry")
+                {
+                    PresentationRequested?.Invoke(command);
+                }
+                return;
+            }
+            if (command == "Panel")
+            {
+                SetPanelOpen(!IsPanelOpen);
+                return;
+            }
+            if (GameTimeService.Scale <= 0 && command == "Back" && isActiveAndEnabled)
+            {
+                pendingCommands.Add(command);
+            }
+            else if (GameTimeService.Scale <= 0 || IsPanelOpen || !isActiveAndEnabled)
+            {
+                ExecuteImmediate(command);
+            }
+            else
+            {
+                pendingCommands.Add(command);
+            }
         }
         private void ExecuteImmediate(string command)
         {
+            if (GameTimeService.Scale <= 0 && !IsPresentationCommand(command))
+            {
+                return;
+            }
             switch (command)
             {
-                case "Activate": ActivateRequested?.Invoke(); break;
-                case "Back": if (!isActiveAndEnabled) ExitRequested?.Invoke(); break;
-                case "ArmOrReset": controller.SetArmed(!controller.IsArmed); break;
-                case "Exit": ExitRequested?.Invoke(); break;
-                case "Takeoff": controller.BeginAutomaticTakeoff(); break;
-                case "Landing": controller.BeginAutomaticLanding(); break;
-                case "ProfileCine": controller.SetResponseProfile(DroneResponseProfile.Cine); break;
-                case "ProfileNormal": controller.SetResponseProfile(DroneResponseProfile.Normal); break;
-                case "ProfileSport": controller.SetResponseProfile(DroneResponseProfile.Sport); break;
-                case "LandingGear": landingGear?.Toggle(); break;
-                case "ZoomIn": cameraRig?.AdjustFieldOfView(-5); break;
-                case "ZoomOut": cameraRig?.AdjustFieldOfView(5); break;
-                case "SwitchCamera": SwitchCamera(); break;
-                case "Equipment": equipment?.PrimaryAction(); break;
-                case "Aim": equipment?.ToggleAimMode(); break;
-                case "Help": case "DebugDraw": case "DebugPanel": case "CopyTelemetry": PresentationRequested?.Invoke(command); break;
+                case "Activate":
+                    ActivateRequested?.Invoke();
+                    break;
+                case "Back":
+                    if (!isActiveAndEnabled)
+                    {
+                        ExitRequested?.Invoke();
+                    }
+                    break;
+                case "ArmOrReset":
+                    controller.SetArmed(!controller.IsArmed);
+                    break;
+                case "Exit":
+                    ExitRequested?.Invoke();
+                    break;
+                case "Takeoff":
+                    controller.BeginAutomaticTakeoff();
+                    break;
+                case "Landing":
+                    controller.BeginAutomaticLanding();
+                    break;
+                case "ProfileCine":
+                    controller.SetResponseProfile(DroneResponseProfile.Cine);
+                    break;
+                case "ProfileNormal":
+                    controller.SetResponseProfile(DroneResponseProfile.Normal);
+                    break;
+                case "ProfileSport":
+                    controller.SetResponseProfile(DroneResponseProfile.Sport);
+                    break;
+                case "LandingGear":
+                    landingGear?.Toggle();
+                    break;
+                case "ZoomIn":
+                    cameraRig?.AdjustFieldOfView(-5);
+                    break;
+                case "ZoomOut":
+                    cameraRig?.AdjustFieldOfView(5);
+                    break;
+                case "SwitchCamera":
+                    SwitchCamera();
+                    break;
+                case "Equipment":
+                    equipment?.PrimaryAction();
+                    break;
+                case "Aim":
+                    equipment?.ToggleAimMode();
+                    break;
+                case "Help":
+                case "DebugDraw":
+                case "DebugPanel":
+                case "CopyTelemetry":
+                    PresentationRequested?.Invoke(command);
+                    break;
             }
+        }
+
+        private static bool IsPresentationCommand(string command)
+        {
+            return command is "Panel" or "Help" or "Exit" or "Back" or "DebugPanel" or "DebugDraw" or "CopyTelemetry";
         }
         internal void SwitchCamera()
         {
             if (cameraRig != null && cameraRig.Mode != DroneCameraMode.HarpoonAim)
+            {
                 cameraRig.SetMode((DroneCameraMode)(((int)cameraRig.Mode + 1) % (int)DroneCameraMode.HarpoonAim));
+            }
         }
         /// <summary>打开操作面板时清空手动输入，保持飞控稳定逻辑。</summary>
         /// <param name="open">面板是否打开。</param>
         public void SetPanelOpen(bool open)
         {
-            if (IsHelpOpen || IsDebugOpen) return;
-            if (IsPanelOpen == open) return;
-            IsPanelOpen = open; ResetBufferedInput();
+            if (IsHelpOpen || IsDebugOpen || IsPanelOpen == open)
+            {
+                return;
+            }
+            IsPanelOpen = open;
+            ResetBufferedInput();
             session?.SetMap(open ? "Menu" : isActiveAndEnabled ? "Flight" : "Waiting");
             PanelChanged?.Invoke(open);
         }
@@ -177,7 +405,10 @@ namespace Hotfix.DroneFlight
         /// <param name="open">是否显示操作指南。</param>
         internal void SetHelpOpen(bool open)
         {
-            if (IsHelpOpen == open) return;
+            if (IsHelpOpen == open)
+            {
+                return;
+            }
             IsHelpOpen = open;
             ResetBufferedInput();
             RefreshOverlayMap();
@@ -186,24 +417,41 @@ namespace Hotfix.DroneFlight
         /// 调试导航与飞行使用相同输入会话，关闭后等待旧按键释放。
         internal void SetDebugOpen(bool open)
         {
-            if (IsDebugOpen == open) return;
+            if (IsDebugOpen == open)
+            {
+                return;
+            }
             IsDebugOpen = open;
-            ResetBufferedInput(); RefreshOverlayMap();
+            ResetBufferedInput();
+            RefreshOverlayMap();
             DebugChanged?.Invoke(open);
         }
         private void RefreshOverlayMap()
         {
             session?.SetMap(IsHelpOpen || IsDebugOpen || IsPanelOpen ? "Menu" : isActiveAndEnabled ? "Flight" : "Waiting");
             // 仅复用当前浮层自己的真实快捷键，其它业务动作继续关闭。
-            if (IsHelpOpen) session?.Asset.FindAction("Flight/Help")?.Enable();
+            if (IsHelpOpen)
+            {
+                session?.Asset.FindAction("Flight/Help")?.Enable();
+            }
             if (IsDebugOpen)
-                foreach (string command in DebugCommands) session?.Asset.FindAction("Flight/" + command)?.Enable();
+            {
+                foreach (string command in DebugCommands)
+                {
+                    session?.Asset.FindAction("Flight/" + command)?.Enable();
+                }
+            }
         }
         private static readonly string[] DebugCommands = { "DebugPanel", "DebugDraw", "CopyTelemetry" };
+        private static readonly string[] FrozenPresentationCommands = { "Panel", "Help", "DebugPanel", "DebugDraw", "CopyTelemetry" };
         /// <summary>记录双摇杆，不模拟 Gamepad 设备。</summary>
         /// <param name="left">升降/偏航。</param>
         /// <param name="right">前后/左右，镜头模式下控制镜头。</param>
-        public void SetTouchFrame(Vector2 left, Vector2 right) { touchLeft = left; touchRight = right; }
+        public void SetTouchFrame(Vector2 left, Vector2 right)
+        {
+            touchLeft = left;
+            touchRight = right;
+        }
         /// <summary>触屏确认键的真实保持状态。</summary>
         /// <param name="held">是否按住。</param>
         public void SetTouchArmHeld(bool held) => touchArmHeld = held;
@@ -215,9 +463,13 @@ namespace Hotfix.DroneFlight
         public void SetTouchLine(float value) => touchLine = Mathf.Clamp(value, -1, 1);
         internal void ResetBufferedInput()
         {
-            smoothedKeyboardInput = Vector4.zero; touchLeft = touchRight = CameraLook = Vector2.zero;
-            LineInput = ZoomInput = touchLine = 0; touchArmHeld = wasArmHeld = false;
-            resetHoldTracker?.Release(); frameCommands.Clear(); pendingCommands.Clear();
+            smoothedKeyboardInput = Vector4.zero;
+            touchLeft = touchRight = CameraLook = Vector2.zero;
+            LineInput = ZoomInput = touchLine = 0;
+            touchArmHeld = wasArmHeld = false;
+            resetHoldTracker?.Release();
+            frameCommands.Clear();
+            pendingCommands.Clear();
             controller?.SetControlInput(default);
         }
         private float Step(float current, float target, float rise)

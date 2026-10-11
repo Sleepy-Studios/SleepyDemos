@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Core.Runtime.Inputs;
+using Core.Runtime.TimeControls;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 namespace Hotfix.WallSqueeze
 {
@@ -47,12 +47,16 @@ namespace Hotfix.WallSqueeze
         {
             var frame = Router.ReadFrame(seconds);
             var actions = Router.ConsumeActions();
+            // 玩法的返回键打开暂停；菜单里的 Cancel 继续只由公共 UI 处理，不重复提交暂停。
+            bool pauseRequested = Router.Context != GameplayInputContext.Menu
+                && ((actions & GameplayInputActions.Pause) != 0
+                    || Router.Context == GameplayInputContext.Interaction && (actions & GameplayInputActions.Back) != 0);
             wall = -1;
             target = 0;
-            if (Router.PauseState.IsPaused || Router.Context == GameplayInputContext.Menu)
+            if (Router.PauseState.IsPaused || Router.Context == GameplayInputContext.Menu || GameTimeService.Scale <= 0)
             {
                 CancelHold();
-                return (actions & GameplayInputActions.Pause) != 0;
+                return pauseRequested;
             }
             if ((uint)Selected >= simulation.Walls.Length || simulation.Walls[Selected].IsFixed)
             {
@@ -62,7 +66,7 @@ namespace Hotfix.WallSqueeze
             if (Selected < 0)
             {
                 CancelHold();
-                return (actions & GameplayInputActions.Pause) != 0;
+                return pauseRequested;
             }
             if ((actions & GameplayInputActions.PreviousGroup) != 0)
             {
@@ -74,7 +78,7 @@ namespace Hotfix.WallSqueeze
                 Selected = FindMovable(simulation, Selected, 1);
                 CancelHold();
             }
-            bool down = ReadPointer(out Vector2 point, out int id, out bool pressed);
+            bool down = Router.ReadHeldPointer(pointerId, out Vector2 point, out int id, out bool pressed);
             if (!down)
             {
                 heldWall = -1;
@@ -112,9 +116,9 @@ namespace Hotfix.WallSqueeze
             else if (Mathf.Abs(frame.InteractionNavigation[selected.Axis]) > 0.001f)
             {
                 wall = Selected;
-                target = selected.Center[selected.Axis] + frame.InteractionNavigation[selected.Axis] * wallSpeed * seconds;
+                target = selected.Center[selected.Axis] + frame.InteractionNavigation[selected.Axis] * wallSpeed * seconds * GameTimeService.Scale;
             }
-            return (actions & GameplayInputActions.Pause) != 0;
+            return pauseRequested;
         }
 
         /// 取消拖动，直到当前指针释放才接受下一次按下。
@@ -171,40 +175,6 @@ namespace Hotfix.WallSqueeze
                 }
             }
             return -1;
-        }
-
-        private bool ReadPointer(out Vector2 point, out int id, out bool pressed)
-        {
-            point = Vector2.zero;
-            id = -1;
-            pressed = false;
-            var screen = Touchscreen.current;
-            if (screen != null)
-            {
-                foreach (var touch in screen.touches)
-                {
-                    if (!touch.press.isPressed || pointerId >= 0 && touch.touchId.ReadValue() != pointerId)
-                    {
-                        continue;
-                    }
-                    id = touch.touchId.ReadValue();
-                    point = touch.position.ReadValue();
-                    pressed = touch.press.wasPressedThisFrame;
-                    return true;
-                }
-            }
-            if (pointerId >= 0)
-            {
-                return false;
-            }
-            var mouse = Mouse.current;
-            if (mouse == null)
-            {
-                return false;
-            }
-            point = mouse.position.ReadValue();
-            pressed = mouse.leftButton.wasPressedThisFrame;
-            return mouse.leftButton.isPressed;
         }
 
         private bool HitsUi(Vector2 point)

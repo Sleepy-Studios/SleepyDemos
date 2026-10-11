@@ -1,6 +1,7 @@
 using System;
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.TimeControls;
 using Cysharp.Threading.Tasks;
 using Hotfix.SceneManagement;
 using UnityEngine;
@@ -108,11 +109,17 @@ namespace Hotfix.WallSqueeze
                 }
                 return;
             }
+            if (GameTimeService.Scale <= 0)
+            {
+                input.CancelHold();
+                return;
+            }
+            float worldSeconds = GameTimeService.DeltaTime;
             int before = Simulation.Remaining;
-            Simulation.Advance(Time.unscaledDeltaTime, wall, target);
-            presentation.Render(Simulation, input.Selected, Time.unscaledDeltaTime);
-            bool feedbackEnded = LastCrushCount > 0 && crushFeedbackSeconds <= Time.unscaledDeltaTime;
-            crushFeedbackSeconds = Mathf.Max(0, crushFeedbackSeconds - Time.unscaledDeltaTime);
+            Simulation.Advance(worldSeconds, wall, target);
+            presentation.Render(Simulation, input.Selected, worldSeconds);
+            bool feedbackEnded = LastCrushCount > 0 && crushFeedbackSeconds <= worldSeconds;
+            crushFeedbackSeconds = Mathf.Max(0, crushFeedbackSeconds - worldSeconds);
             if (feedbackEnded)
             {
                 LastCrushCount = 0;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Core.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
@@ -19,6 +20,7 @@ namespace Core.Runtime.Inputs
         private readonly Dictionary<InputControl, Vector2> previousPadValues = new Dictionary<InputControl, Vector2>();
         private InputActionMap activeMap;
         private GameplayInputSettings settings;
+        private string appliedBindingOverrides;
         private GameplayInputActions pending;
         private bool pendingPointerPress;
         private bool pendingPointerMove;
@@ -45,6 +47,7 @@ namespace Core.Runtime.Inputs
         public GameplayInputContext Context => context;
         public InputDeviceKind DeviceKind => deviceKind;
         public GameplayInputSettings Settings => settings.Copy();
+        public string SourceId => session.SourceId;
         /// 更换提示图标或按钮说明；Gamepad遵循标准Xbox A/B/X/Y映射，不排斥兼容手柄。
         public event Action<InputDeviceKind> DeviceChanged;
 
@@ -58,13 +61,14 @@ namespace Core.Runtime.Inputs
             string gameplayMapName = "Gameplay", string interactionMapName = "Interaction", string menuMapName = "Menu")
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
-            settings = (inputSettings ?? new GameplayInputSettings()).Copy();
+            settings = (inputSettings ?? GameSettingsService.Current.Input).Copy();
             if (!settings.IsValid) throw new ArgumentException("输入配置无效。", nameof(inputSettings));
             // 移动端初次进入先提供触控入口；之后只由实际设备活动切换，不因平台强制盖回触屏。
             deviceKind = Application.isMobilePlatform ? InputDeviceKind.Touch : InputDeviceKind.KeyboardMouse;
             ValidateAsset(source, gameplayMapName, interactionMapName, menuMapName);
             session = new InputActionSession(source);
             asset = session.Asset;
+            appliedBindingOverrides = asset.SaveBindingOverridesAsJson();
             gameplayMap = asset.FindActionMap(gameplayMapName, true);
             interactionMap = asset.FindActionMap(interactionMapName, true);
             menu = asset.FindActionMap(menuMapName, true);
@@ -75,6 +79,7 @@ namespace Core.Runtime.Inputs
             InputSystem.onDeviceChange += OnDeviceChange;
             InputDeviceState.Activity += OnDeviceActivity;
             ActivateContext(GameplayInputContext.Gameplay);
+            GameSettingsService.Changed += OnSettingsChanged;
         }
 
         /// <summary>更换输入上下文并清除旧边沿；仍按住的按钮必须释放再按，避免Interact转成Confirm。</summary>
@@ -95,6 +100,19 @@ namespace Core.Runtime.Inputs
             if (value == null || !value.IsValid) throw new ArgumentException("输入配置无效。", nameof(value));
             settings = value.Copy();
             if (!settings.RumbleEnabled || settings.RumbleStrength == 0) StopRumble();
+        }
+
+        private void OnSettingsChanged(GameSettingsSnapshot value)
+        {
+            ApplySettings(value.Input);
+            // Session 先完成候选校验与加载；比较实际规范化覆盖，不因其它设置或 JSON 排版重建门闩。
+            string currentOverrides = asset.SaveBindingOverridesAsJson();
+            if (currentOverrides == appliedBindingOverrides)
+            {
+                return;
+            }
+            appliedBindingOverrides = currentOverrides;
+            ActivateContext(context);
         }
 
         /// <summary>菜单作用域报告Core UI模块的实际导航或指针设备，只更换提示，不再次提交UI动作。</summary>
@@ -183,6 +201,48 @@ namespace Core.Runtime.Inputs
             InputDeviceState.NotifyTouch(); SetDevice(InputDeviceKind.Touch); pending |= action; return true;
         }
 
+        /// <summary>读取当前持有的真实触点或桌面主指针，供多指世界拖动复用设备边界。</summary>
+        /// <param name="heldPointerId">已持有触点编号；负数表示尚未持有或桌面鼠标。</param>
+        /// <param name="point">屏幕像素位置。</param>
+        /// <param name="pointerId">真实触点编号，桌面鼠标为负数。</param>
+        /// <param name="pressed">本帧真实按下，不模拟 UI 提交。</param>
+        /// <returns>所属会话设备的该指针是否按住。</returns>
+        public bool ReadHeldPointer(int heldPointerId, out Vector2 point, out int pointerId, out bool pressed)
+        {
+            ThrowIfDisposed();
+            point = Vector2.zero;
+            pointerId = -1;
+            pressed = false;
+            var screen = Touchscreen.current;
+            if (screen != null && screen.added && screen.enabled && IsAllowedDevice(screen))
+            {
+                foreach (var touch in screen.touches)
+                {
+                    int id = touch.touchId.ReadValue();
+                    if (!touch.press.isPressed || heldPointerId >= 0 && id != heldPointerId)
+                    {
+                        continue;
+                    }
+                    pointerId = id;
+                    point = touch.position.ReadValue();
+                    pressed = touch.press.wasPressedThisFrame;
+                    return true;
+                }
+            }
+            if (heldPointerId >= 0)
+            {
+                return false;
+            }
+            var mouse = Mouse.current;
+            if (mouse == null || !mouse.added || !mouse.enabled || !IsAllowedDevice(mouse))
+            {
+                return false;
+            }
+            point = mouse.position.ReadValue();
+            pressed = mouse.leftButton.wasPressedThisFrame;
+            return mouse.leftButton.isPressed;
+        }
+
         /// <summary>播放可选短震动；仅作用于最近实际使用的手柄，暂停/断连/设备切换/Dispose停止。</summary>
         /// <param name="lowFrequency">0至1的低频电机强度。</param>
         /// <param name="highFrequency">0至1的高频电机强度。</param>
@@ -211,6 +271,7 @@ namespace Core.Runtime.Inputs
         {
             if (disposed) return;
             disposed = true; StopRumble();
+            GameSettingsService.Changed -= OnSettingsChanged;
             InputDeviceState.Activity -= OnDeviceActivity;
             InputSystem.onDeviceChange -= OnDeviceChange; PauseState.Changed -= OnPauseChanged;
             foreach (var map in new[] { gameplayMap, interactionMap, menu })

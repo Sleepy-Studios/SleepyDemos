@@ -15,157 +15,157 @@ MonoBehaviour:
   entries:
   - style: 1
     controlPath: buttonSouth
-    sprite: {fileID: 21300000, guid: 065bd5f4ada7e504ab5b87891e804304, type: 3}
+    sprite: {fileID: 21300000, guid: 47389e9cda0197c45b2d05bae7a1d414, type: 3}
+  - style: 1
+    controlPath: buttonEast
+    sprite: {fileID: 21300000, guid: 520b61de449c19a42a8caf21297184c9, type: 3}
+  - style: 1
+    controlPath: buttonWest
+    sprite: {fileID: 21300000, guid: 3783b4f9513fc6c4a8a661bc56434ac3, type: 3}
+  - style: 1
+    controlPath: buttonNorth
+    sprite: {fileID: 21300000, guid: 731c5482e0def4e4ea789d8cd045ab4e, type: 3}
+  - style: 1
+    controlPath: leftShoulder
+    sprite: {fileID: 21300000, guid: 5bf2db17a511d0f44b7257b40faaa07d, type: 3}
+  - style: 1
+    controlPath: rightShoulder
+    sprite: {fileID: 21300000, guid: 2e71a1d07f2383a4a8bf114c36586b51, type: 3}
+  - style: 1
+    controlPath: leftTrigger
+    sprite: {fileID: 21300000, guid: 1122a2ef4e7b34643b00720e6b28fe36, type: 3}
+  - style: 1
+    controlPath: rightTrigger
+    sprite: {fileID: 21300000, guid: 7ce7eaf478a00b1468b6dc2539af0414, type: 3}
+  - style: 1
+    controlPath: leftStick
+    sprite: {fileID: 21300000, guid: 3453f0529428766438f7cc60f75385f8, type: 3}
+  - style: 1
+    controlPath: rightStick
+    sprite: {fileID: 21300000, guid: f5a278968a0510e4693b3e5c2589d62c, type: 3}
+  - style: 1
+    controlPath: leftStickPress
+    sprite: {fileID: 21300000, guid: cd45b08c5152cdb458d50de36d1497be, type: 3}
+  - style: 1
+    controlPath: rightStickPress
+    sprite: {fileID: 21300000, guid: 24119136acdcd364ea3a942d88875df5, type: 3}
+  - style: 1
+    controlPath: start
+    sprite: {fileID: 21300000, guid: 5b8f16f1c13c91743bdafecaf6d108da, type: 3}
+  - style: 1
+    controlPath: dpad/up
+    sprite: {fileID: 21300000, guid: c06d9974019172e4198c6efd3b6007a8, type: 3}
+  - style: 1
+    controlPath: dpad/down
+    sprite: {fileID: 21300000, guid: 2340907c03fb9d2429dc18bc3b84a086, type: 3}
+  - style: 1
+    controlPath: dpad/left
+    sprite: {fileID: 21300000, guid: 913b52f6c819b654aa522682d66674b8, type: 3}
+  - style: 1
+    controlPath: dpad/right
+    sprite: {fileID: 21300000, guid: 510e479401a08e84c8b7abc2cef1e5eb, type: 3}
   - style: 2
     controlPath: buttonSouth
-    sprite: {fileID: 21300000, guid: ba4fd019a5b017c4c81fb82c7babb5f8, type: 3}
+    sprite: {fileID: 21300000, guid: 2e5b3b2588d824247a92f5ff0c189ebf, type: 3}
+  - style: 2
+    controlPath: buttonEast
+    sprite: {fileID: 21300000, guid: f1ac3ba3355e57d43a8ff44c80d1c7b5, type: 3}
+  - style: 2
+    controlPath: buttonWest
+    sprite: {fileID: 21300000, guid: 667516b3477a1ef4aa836f3ea23b7525, type: 3}
+  - style: 2
+    controlPath: buttonNorth
+    sprite: {fileID: 21300000, guid: af10ed97acf85284e9a739f5f9f4f729, type: 3}
+  - style: 2
+    controlPath: leftShoulder
+    sprite: {fileID: 21300000, guid: 3ca4aa32b53e91a4fa3d15c8253bc997, type: 3}
+  - style: 2
+    controlPath: rightShoulder
+    sprite: {fileID: 21300000, guid: 1862a19e0711f5a46b765a0ab1572dc7, type: 3}
+  - style: 2
+    controlPath: leftTrigger
+    sprite: {fileID: 21300000, guid: 210333f4fd109c94aa8fcaa1d554604f, type: 3}
+  - style: 2
+    controlPath: rightTrigger
+    sprite: {fileID: 21300000, guid: 94c539433897233418aaea0f7d350b16, type: 3}
+  - style: 2
+    controlPath: leftStick
+    sprite: {fileID: 21300000, guid: 723fb9a3efa0bfd40aef3a5839a50d55, type: 3}
+  - style: 2
+    controlPath: rightStick
+    sprite: {fileID: 21300000, guid: 89a9184e25fca194a8e935ac01afed8a, type: 3}
+  - style: 2
+    controlPath: leftStickPress
+    sprite: {fileID: 21300000, guid: 6a663dc7479d08345a0b60fd6d44bf57, type: 3}
+  - style: 2
+    controlPath: rightStickPress
+    sprite: {fileID: 21300000, guid: d0b87c0781aa14441b8b0c3e88db3fa3, type: 3}
+  - style: 2
+    controlPath: start
+    sprite: {fileID: 21300000, guid: 1f4110167d2fb244ca2ccbfba8ed3b99, type: 3}
+  - style: 2
+    controlPath: dpad/up
+    sprite: {fileID: 21300000, guid: c304791729e72fc4595df2c3ae4c297d, type: 3}
+  - style: 2
+    controlPath: dpad/down
+    sprite: {fileID: 21300000, guid: 556aa8a5d57fb30408116cf4a3858a39, type: 3}
+  - style: 2
+    controlPath: dpad/left
+    sprite: {fileID: 21300000, guid: a86176fbb10d4d245883feb5b1769212, type: 3}
+  - style: 2
+    controlPath: dpad/right
+    sprite: {fileID: 21300000, guid: 03a40669623d95b46a3bb83b9bd46281, type: 3}
   - style: 3
     controlPath: buttonSouth
-    sprite: {fileID: 21300000, guid: 8e587771093d85f4786fe0d34a557bbe, type: 3}
-  - style: 1
-    controlPath: buttonEast
-    sprite: {fileID: 21300000, guid: 442e292835ea40a4082bacabbe0766c3, type: 3}
-  - style: 2
-    controlPath: buttonEast
-    sprite: {fileID: 21300000, guid: b421f545e428bbb4687a6a61a448658f, type: 3}
+    sprite: {fileID: 21300000, guid: 84692f7d49fb46d49a972e3f88704f53, type: 3}
   - style: 3
     controlPath: buttonEast
-    sprite: {fileID: 21300000, guid: 483c8705c3cdc3b4d81b84cb92b841a4, type: 3}
-  - style: 1
-    controlPath: buttonWest
-    sprite: {fileID: 21300000, guid: 6e019abdb31a8634d94d377cc41faa9f, type: 3}
-  - style: 2
-    controlPath: buttonWest
-    sprite: {fileID: 21300000, guid: 0c010b72850d7c14ba4ffc3a219dc8f3, type: 3}
+    sprite: {fileID: 21300000, guid: 4d8ab7b1ecc68cc42be563c1eef501af, type: 3}
   - style: 3
     controlPath: buttonWest
-    sprite: {fileID: 21300000, guid: 4a0d283635ba4a94b9e21b9bcf7034da, type: 3}
-  - style: 1
-    controlPath: buttonNorth
-    sprite: {fileID: 21300000, guid: 17f0a065aa8bf2d48b6105cfd86e9004, type: 3}
-  - style: 2
-    controlPath: buttonNorth
-    sprite: {fileID: 21300000, guid: 876a4fc16f0a564419e8a3cd12ba1972, type: 3}
+    sprite: {fileID: 21300000, guid: be39ef051d348c04c9491d2e1a729473, type: 3}
   - style: 3
     controlPath: buttonNorth
-    sprite: {fileID: 21300000, guid: 828819b793df3ca46a111fe907eff9a2, type: 3}
-  - style: 1
-    controlPath: leftShoulder
-    sprite: {fileID: 21300000, guid: 926aaab6721f26b46bf8eeacf89178d6, type: 3}
-  - style: 2
-    controlPath: leftShoulder
-    sprite: {fileID: 21300000, guid: 9fcc4a9a6d216ce49b95850ccd480e02, type: 3}
+    sprite: {fileID: 21300000, guid: 4d236909d6a2c8a4f8f75ea3df73f2f1, type: 3}
   - style: 3
     controlPath: leftShoulder
-    sprite: {fileID: 21300000, guid: 0f3836a149a9c594c83d282ad1edb221, type: 3}
-  - style: 1
-    controlPath: rightShoulder
-    sprite: {fileID: 21300000, guid: 31d942784a459c747bde655a606a4c81, type: 3}
-  - style: 2
-    controlPath: rightShoulder
-    sprite: {fileID: 21300000, guid: e8029f019a2c9c2499b3b37eb4a1d8bf, type: 3}
+    sprite: {fileID: 21300000, guid: 385ebc1628d16aa45b17deccc9aaedac, type: 3}
   - style: 3
     controlPath: rightShoulder
-    sprite: {fileID: 21300000, guid: 496ada07b6ea9fb48bf2a19245c149eb, type: 3}
-  - style: 1
-    controlPath: leftTrigger
-    sprite: {fileID: 21300000, guid: 4dd0edd1e8f50ce4e8cb8d017f25b5be, type: 3}
-  - style: 2
-    controlPath: leftTrigger
-    sprite: {fileID: 21300000, guid: 963fb75693f62e7429b10dec100517f6, type: 3}
+    sprite: {fileID: 21300000, guid: f0d1bf553ec6af24fa85cedb09bdc4d1, type: 3}
   - style: 3
     controlPath: leftTrigger
-    sprite: {fileID: 21300000, guid: 19667afa88821d744bb59e85c534aa1a, type: 3}
-  - style: 1
-    controlPath: rightTrigger
-    sprite: {fileID: 21300000, guid: 908b5da87d59ed047b436d0d7770622e, type: 3}
-  - style: 2
-    controlPath: rightTrigger
-    sprite: {fileID: 21300000, guid: e821c76b1d770c642a2f6b07f9829368, type: 3}
+    sprite: {fileID: 21300000, guid: 89bc758255d2e764c9ba614df7086a59, type: 3}
   - style: 3
     controlPath: rightTrigger
-    sprite: {fileID: 21300000, guid: 0d02ee6a7ec5fb34c97601073c4e0781, type: 3}
-  - style: 1
-    controlPath: leftStick
-    sprite: {fileID: 21300000, guid: 609df399b1049f54cb25fc5273ba3d8a, type: 3}
-  - style: 2
-    controlPath: leftStick
-    sprite: {fileID: 21300000, guid: eff7d3303247bc64db483d37fd886291, type: 3}
+    sprite: {fileID: 21300000, guid: cca79de35f29c0e4eb0e71b5878447a2, type: 3}
   - style: 3
     controlPath: leftStick
-    sprite: {fileID: 21300000, guid: f31b8474a7db643449b845173b632daa, type: 3}
-  - style: 1
-    controlPath: rightStick
-    sprite: {fileID: 21300000, guid: eae799e6185a72c4285c36b33a1f63a4, type: 3}
-  - style: 2
-    controlPath: rightStick
-    sprite: {fileID: 21300000, guid: 889bc384d9aa0954394e0ed8b29a8de2, type: 3}
+    sprite: {fileID: 21300000, guid: 982d09d5748685d4ba60536e5154799e, type: 3}
   - style: 3
     controlPath: rightStick
-    sprite: {fileID: 21300000, guid: fdd921e09147c7845bfa74915c0949ce, type: 3}
-  - style: 1
-    controlPath: leftStickPress
-    sprite: {fileID: 21300000, guid: 172a80a0a0c464245abc88d8d9bdf211, type: 3}
-  - style: 2
-    controlPath: leftStickPress
-    sprite: {fileID: 21300000, guid: b6ae1a4a89ffa7243935773970e35d02, type: 3}
+    sprite: {fileID: 21300000, guid: ba5654a85942fed4dbb41760220888ce, type: 3}
   - style: 3
     controlPath: leftStickPress
-    sprite: {fileID: 21300000, guid: e3e25d84808e9874cbb85f76d31d4f4a, type: 3}
-  - style: 1
-    controlPath: rightStickPress
-    sprite: {fileID: 21300000, guid: c75872b1ec584f846a4091e716399dd1, type: 3}
-  - style: 2
-    controlPath: rightStickPress
-    sprite: {fileID: 21300000, guid: 7b95023991d919d4aab734e16a6daaac, type: 3}
+    sprite: {fileID: 21300000, guid: e8c8897bed0000d4e9d71a90ad050aba, type: 3}
   - style: 3
     controlPath: rightStickPress
-    sprite: {fileID: 21300000, guid: b9c4dd63972ba3742a5062c7397e985d, type: 3}
-  - style: 1
-    controlPath: dpad/up
-    sprite: {fileID: 21300000, guid: 1dcdfd88523e9884185454be669afb2d, type: 3}
-  - style: 2
-    controlPath: dpad/up
-    sprite: {fileID: 21300000, guid: 1a2bca8f2a9e21d48a2e4f72e61ebea1, type: 3}
-  - style: 3
-    controlPath: dpad/up
-    sprite: {fileID: 21300000, guid: 1512e94d4b4c7f7498adde160e619e75, type: 3}
-  - style: 1
-    controlPath: dpad/down
-    sprite: {fileID: 21300000, guid: cd6f886f45a3097498f878c2fae0821b, type: 3}
-  - style: 2
-    controlPath: dpad/down
-    sprite: {fileID: 21300000, guid: f54473a802cec0247bd3b4c7d74cfc84, type: 3}
-  - style: 3
-    controlPath: dpad/down
-    sprite: {fileID: 21300000, guid: 7fd649c0b494d154e85bd864bb87b7d8, type: 3}
-  - style: 1
-    controlPath: dpad/left
-    sprite: {fileID: 21300000, guid: a2cde4e744139da44a0d4efba651cb41, type: 3}
-  - style: 2
-    controlPath: dpad/left
-    sprite: {fileID: 21300000, guid: f9463ed579583e74e80537ff501ca1f7, type: 3}
-  - style: 3
-    controlPath: dpad/left
-    sprite: {fileID: 21300000, guid: 03eb2b4a0b1c1894ea1f35443468d726, type: 3}
-  - style: 1
-    controlPath: dpad/right
-    sprite: {fileID: 21300000, guid: 3bc22cb10d3ec76469fbb963f38a63c8, type: 3}
-  - style: 2
-    controlPath: dpad/right
-    sprite: {fileID: 21300000, guid: 23eb2b0a96e74a7449fcb71fabb0254d, type: 3}
-  - style: 3
-    controlPath: dpad/right
-    sprite: {fileID: 21300000, guid: db26264f06b92cf4e9e647b1d61ea918, type: 3}
-  - style: 1
-    controlPath: start
-    sprite: {fileID: 21300000, guid: e12c03a60c2e3c140bb9302ab5168120, type: 3}
-  - style: 2
-    controlPath: start
-    sprite: {fileID: 21300000, guid: ee1292464b857044480dd32ae1f8f4a7, type: 3}
+    sprite: {fileID: 21300000, guid: 13865277e446aae469f09cabf4dd8c1d, type: 3}
   - style: 3
     controlPath: start
-    sprite: {fileID: 21300000, guid: 6140b876cd97385458c34a5bbe2334c1, type: 3}
+    sprite: {fileID: 21300000, guid: 61a3b298cccf9b54a81a9e75c15f70db, type: 3}
+  - style: 3
+    controlPath: dpad/up
+    sprite: {fileID: 21300000, guid: dc275725e276acd46a339be6b0f7c79e, type: 3}
+  - style: 3
+    controlPath: dpad/down
+    sprite: {fileID: 21300000, guid: d68d5065d53c4cf408e4145aef6b6a83, type: 3}
+  - style: 3
+    controlPath: dpad/left
+    sprite: {fileID: 21300000, guid: f8a2be407d3a76d42aa74193c50f0d75, type: 3}
+  - style: 3
+    controlPath: dpad/right
+    sprite: {fileID: 21300000, guid: eb7711dc8ba56434fa1848bbe3425868, type: 3}
   - style: 0
     controlPath: buttonSouth
     sprite: {fileID: 21300000, guid: 64481f0cab54a324396220dc512ecd12, type: 3}
@@ -178,3 +178,326 @@ MonoBehaviour:
   - style: 0
     controlPath: buttonNorth
     sprite: {fileID: 21300000, guid: e6697f28a6688934abaafc18dca9982e, type: 3}
+  deviceEntries:
+  - deviceKind: 0
+    controlPath: leftButton
+    sprite: {fileID: 21300000, guid: f059afcb77dccbc4fb317da92b385d00, type: 3}
+  - deviceKind: 0
+    controlPath: rightButton
+    sprite: {fileID: 21300000, guid: b8e5dd25c10a2d8469246c869adbd4bc, type: 3}
+  - deviceKind: 0
+    controlPath: scroll
+    sprite: {fileID: 21300000, guid: 18ca2182a4f30e5418096e8d01dfa87e, type: 3}
+  - deviceKind: 0
+    controlPath: a
+    sprite: {fileID: 21300000, guid: d4323ebc5d68f5b458966044ea604d08, type: 3}
+  - deviceKind: 0
+    controlPath: b
+    sprite: {fileID: 21300000, guid: 9c134b7fa798d1e48aabe341efb90b4c, type: 3}
+  - deviceKind: 0
+    controlPath: c
+    sprite: {fileID: 21300000, guid: 63e021361c4adcd4b9d8e4165947d1f4, type: 3}
+  - deviceKind: 0
+    controlPath: d
+    sprite: {fileID: 21300000, guid: b1b40fb1238e2bc4cae3ce30e8bef99f, type: 3}
+  - deviceKind: 0
+    controlPath: e
+    sprite: {fileID: 21300000, guid: 8e51e3fbc3a09a8449e8563ecf2795e6, type: 3}
+  - deviceKind: 0
+    controlPath: f
+    sprite: {fileID: 21300000, guid: c8eff2cf2d19cdc42adc0c694f41fe3d, type: 3}
+  - deviceKind: 0
+    controlPath: g
+    sprite: {fileID: 21300000, guid: bf17a9ac3630c7e41803af694fe2532d, type: 3}
+  - deviceKind: 0
+    controlPath: h
+    sprite: {fileID: 21300000, guid: 7f4d4ff6f2d900741b6cbec7c649216c, type: 3}
+  - deviceKind: 0
+    controlPath: i
+    sprite: {fileID: 21300000, guid: 68695ecc159ea2f409fb2fafaba397fa, type: 3}
+  - deviceKind: 0
+    controlPath: j
+    sprite: {fileID: 21300000, guid: 8dee2cf282af026488d52e2bae5a9168, type: 3}
+  - deviceKind: 0
+    controlPath: k
+    sprite: {fileID: 21300000, guid: 3fa3ebca771e3b04b9d376934f12bdb4, type: 3}
+  - deviceKind: 0
+    controlPath: l
+    sprite: {fileID: 21300000, guid: a8acd72ae633fbb4ca706110996ca606, type: 3}
+  - deviceKind: 0
+    controlPath: m
+    sprite: {fileID: 21300000, guid: faf82d7b67d25dc4c83796115753289a, type: 3}
+  - deviceKind: 0
+    controlPath: n
+    sprite: {fileID: 21300000, guid: 9b6df07c183bc934c8c2a27b70d8e781, type: 3}
+  - deviceKind: 0
+    controlPath: o
+    sprite: {fileID: 21300000, guid: 4ef3d42db5ddb1643a3566266729cef4, type: 3}
+  - deviceKind: 0
+    controlPath: p
+    sprite: {fileID: 21300000, guid: b8ef587ea4e82444fb53a299a9e6bfbc, type: 3}
+  - deviceKind: 0
+    controlPath: q
+    sprite: {fileID: 21300000, guid: a83fdc1019a880f43b26c2e7f904ab64, type: 3}
+  - deviceKind: 0
+    controlPath: r
+    sprite: {fileID: 21300000, guid: 2880566b090cd4342b0348ffeecb7c48, type: 3}
+  - deviceKind: 0
+    controlPath: s
+    sprite: {fileID: 21300000, guid: 7ba4b7b1f26289d40a2240c18e109710, type: 3}
+  - deviceKind: 0
+    controlPath: t
+    sprite: {fileID: 21300000, guid: 1a6fd5042c049bf4bbdb6688cc7dea11, type: 3}
+  - deviceKind: 0
+    controlPath: u
+    sprite: {fileID: 21300000, guid: aa238427daf5dce42ab45e0108f6da9f, type: 3}
+  - deviceKind: 0
+    controlPath: v
+    sprite: {fileID: 21300000, guid: 830ee44172382ac439a07e94954b0143, type: 3}
+  - deviceKind: 0
+    controlPath: w
+    sprite: {fileID: 21300000, guid: 7f085336fe52c044299d0cb8c0674a0b, type: 3}
+  - deviceKind: 0
+    controlPath: x
+    sprite: {fileID: 21300000, guid: 3898d512efabcae4287f5a78d068af7f, type: 3}
+  - deviceKind: 0
+    controlPath: y
+    sprite: {fileID: 21300000, guid: 24a2f4b6053b4824dbfb99f478e00d9d, type: 3}
+  - deviceKind: 0
+    controlPath: z
+    sprite: {fileID: 21300000, guid: ea1e68e7e3a074340be5b21127dd9ede, type: 3}
+  - deviceKind: 0
+    controlPath: 0
+    sprite: {fileID: 21300000, guid: 5b9b8f58f1081e449b7c6cbac83344e1, type: 3}
+  - deviceKind: 0
+    controlPath: numpad0
+    sprite: {fileID: 21300000, guid: 5b9b8f58f1081e449b7c6cbac83344e1, type: 3}
+  - deviceKind: 0
+    controlPath: 1
+    sprite: {fileID: 21300000, guid: 45b7f42e6b160d54788832d20db8179f, type: 3}
+  - deviceKind: 0
+    controlPath: numpad1
+    sprite: {fileID: 21300000, guid: 45b7f42e6b160d54788832d20db8179f, type: 3}
+  - deviceKind: 0
+    controlPath: 2
+    sprite: {fileID: 21300000, guid: ce2948aa63ec6694d9a209b6658354ab, type: 3}
+  - deviceKind: 0
+    controlPath: numpad2
+    sprite: {fileID: 21300000, guid: ce2948aa63ec6694d9a209b6658354ab, type: 3}
+  - deviceKind: 0
+    controlPath: 3
+    sprite: {fileID: 21300000, guid: 56a536659a82c814b9828b671db81506, type: 3}
+  - deviceKind: 0
+    controlPath: numpad3
+    sprite: {fileID: 21300000, guid: 56a536659a82c814b9828b671db81506, type: 3}
+  - deviceKind: 0
+    controlPath: 4
+    sprite: {fileID: 21300000, guid: 85c8d2d4e3ffbb44da624d3e7278a05a, type: 3}
+  - deviceKind: 0
+    controlPath: numpad4
+    sprite: {fileID: 21300000, guid: 85c8d2d4e3ffbb44da624d3e7278a05a, type: 3}
+  - deviceKind: 0
+    controlPath: 5
+    sprite: {fileID: 21300000, guid: 3289020036ed6f4429349842f30f8d81, type: 3}
+  - deviceKind: 0
+    controlPath: numpad5
+    sprite: {fileID: 21300000, guid: 3289020036ed6f4429349842f30f8d81, type: 3}
+  - deviceKind: 0
+    controlPath: 6
+    sprite: {fileID: 21300000, guid: cf6cb3e7ce526c54396fed6429628783, type: 3}
+  - deviceKind: 0
+    controlPath: numpad6
+    sprite: {fileID: 21300000, guid: cf6cb3e7ce526c54396fed6429628783, type: 3}
+  - deviceKind: 0
+    controlPath: 7
+    sprite: {fileID: 21300000, guid: 85fdb945cc53b5f48b283f1fbcddc60f, type: 3}
+  - deviceKind: 0
+    controlPath: numpad7
+    sprite: {fileID: 21300000, guid: 85fdb945cc53b5f48b283f1fbcddc60f, type: 3}
+  - deviceKind: 0
+    controlPath: 8
+    sprite: {fileID: 21300000, guid: bfa038095e8bafc4b9264068eea35cda, type: 3}
+  - deviceKind: 0
+    controlPath: numpad8
+    sprite: {fileID: 21300000, guid: bfa038095e8bafc4b9264068eea35cda, type: 3}
+  - deviceKind: 0
+    controlPath: 9
+    sprite: {fileID: 21300000, guid: 673f61b5b62286e4c8fb5a83c721845c, type: 3}
+  - deviceKind: 0
+    controlPath: numpad9
+    sprite: {fileID: 21300000, guid: 673f61b5b62286e4c8fb5a83c721845c, type: 3}
+  - deviceKind: 0
+    controlPath: f1
+    sprite: {fileID: 21300000, guid: 31993d0df91cd4f42b732414e8c89103, type: 3}
+  - deviceKind: 0
+    controlPath: f2
+    sprite: {fileID: 21300000, guid: d291b1687280bc1449649fd50708e36b, type: 3}
+  - deviceKind: 0
+    controlPath: f3
+    sprite: {fileID: 21300000, guid: 37caeee4cfc55824e9d64e3089decffb, type: 3}
+  - deviceKind: 0
+    controlPath: f4
+    sprite: {fileID: 21300000, guid: f576c19450d38234ab04589a7a8a11e6, type: 3}
+  - deviceKind: 0
+    controlPath: f5
+    sprite: {fileID: 21300000, guid: bcd9b3248d8e0c64ebd5b9d1fc957bfa, type: 3}
+  - deviceKind: 0
+    controlPath: f6
+    sprite: {fileID: 21300000, guid: 84b39e0c70d32ce45bf6271aaff86252, type: 3}
+  - deviceKind: 0
+    controlPath: f7
+    sprite: {fileID: 21300000, guid: e193d3c7bd5b3814591a160757a10c06, type: 3}
+  - deviceKind: 0
+    controlPath: f8
+    sprite: {fileID: 21300000, guid: 7dea84769418db448aac2121aeab9d7f, type: 3}
+  - deviceKind: 0
+    controlPath: f9
+    sprite: {fileID: 21300000, guid: 82402f0524bf9f344ab568b7895faace, type: 3}
+  - deviceKind: 0
+    controlPath: f10
+    sprite: {fileID: 21300000, guid: 4cffa1bfc15e1054d823d1d3e293c289, type: 3}
+  - deviceKind: 0
+    controlPath: f11
+    sprite: {fileID: 21300000, guid: 56b0bff702ed0cc448e52834d005211b, type: 3}
+  - deviceKind: 0
+    controlPath: f12
+    sprite: {fileID: 21300000, guid: 151d66c09fde5c3499f7c147bebe2dbd, type: 3}
+  - deviceKind: 0
+    controlPath: escape
+    sprite: {fileID: 21300000, guid: 011e9eece080f64478502d522aabdfc2, type: 3}
+  - deviceKind: 0
+    controlPath: enter
+    sprite: {fileID: 21300000, guid: 2410929f73029c642af1bdcb64a08266, type: 3}
+  - deviceKind: 0
+    controlPath: backspace
+    sprite: {fileID: 21300000, guid: 7260f25edad3c894ead8cc59f5a8519b, type: 3}
+  - deviceKind: 0
+    controlPath: space
+    sprite: {fileID: 21300000, guid: 0c76d5ff5dcebe243aa5ebe6ff72a78b, type: 3}
+  - deviceKind: 0
+    controlPath: tab
+    sprite: {fileID: 21300000, guid: 6392057fd1cbcae4580882d3d89e04ed, type: 3}
+  - deviceKind: 0
+    controlPath: leftShift
+    sprite: {fileID: 21300000, guid: 5eeb12b918015ba49966ad48e8ceabf2, type: 3}
+  - deviceKind: 0
+    controlPath: rightShift
+    sprite: {fileID: 21300000, guid: 5eeb12b918015ba49966ad48e8ceabf2, type: 3}
+  - deviceKind: 0
+    controlPath: leftCtrl
+    sprite: {fileID: 21300000, guid: 4a48efcc9d994db4ea2850d1519c9fb6, type: 3}
+  - deviceKind: 0
+    controlPath: rightCtrl
+    sprite: {fileID: 21300000, guid: 4a48efcc9d994db4ea2850d1519c9fb6, type: 3}
+  - deviceKind: 0
+    controlPath: leftAlt
+    sprite: {fileID: 21300000, guid: 4cb07ed6f89e78f4d86ef2a08909c2f4, type: 3}
+  - deviceKind: 0
+    controlPath: rightAlt
+    sprite: {fileID: 21300000, guid: 4cb07ed6f89e78f4d86ef2a08909c2f4, type: 3}
+  - deviceKind: 0
+    controlPath: upArrow
+    sprite: {fileID: 21300000, guid: ddbd246df0f242b489c50e88a48f2a32, type: 3}
+  - deviceKind: 0
+    controlPath: downArrow
+    sprite: {fileID: 21300000, guid: 190218062c4ff3547bd5d0d65ed02302, type: 3}
+  - deviceKind: 0
+    controlPath: leftArrow
+    sprite: {fileID: 21300000, guid: 4b91cb8e896331f49a91f405e16c1445, type: 3}
+  - deviceKind: 0
+    controlPath: rightArrow
+    sprite: {fileID: 21300000, guid: dbf2a5c3c1076b24392958c65fb8f682, type: 3}
+  - deviceKind: 0
+    controlPath: minus
+    sprite: {fileID: 21300000, guid: 39fd7950b1ed4d14cbc0332b594980d9, type: 3}
+  - deviceKind: 0
+    controlPath: equals
+    sprite: {fileID: 21300000, guid: a4dcf02a2ef0d204e922909a30d220e0, type: 3}
+  - deviceKind: 0
+    controlPath: home
+    sprite: {fileID: 21300000, guid: 64be2297a904bc94d942e45836aeadcc, type: 3}
+  - deviceKind: 0
+    controlPath: end
+    sprite: {fileID: 21300000, guid: f4a24e1257e5ec0448d785c9e7e44df9, type: 3}
+  - deviceKind: 0
+    controlPath: insert
+    sprite: {fileID: 21300000, guid: 46b587a47e7c55e42a28e83274c29d4f, type: 3}
+  - deviceKind: 0
+    controlPath: delete
+    sprite: {fileID: 21300000, guid: acd5fc2d5e0837c45bf8cc3a0a028a3d, type: 3}
+  - deviceKind: 0
+    controlPath: pageUp
+    sprite: {fileID: 21300000, guid: 963126a150549784fa212b97bab0c595, type: 3}
+  - deviceKind: 0
+    controlPath: pageDown
+    sprite: {fileID: 21300000, guid: c15ca30bd9c164a4a994550cdff6cbdb, type: 3}
+  - deviceKind: 0
+    controlPath: capsLock
+    sprite: {fileID: 21300000, guid: f37c32a06497ea146812807ef712ad72, type: 3}
+  - deviceKind: 0
+    controlPath: numLock
+    sprite: {fileID: 21300000, guid: 6c6d0fa4791bcfc47a0cb253ecbb86c7, type: 3}
+  - deviceKind: 0
+    controlPath: scrollLock
+    sprite: {fileID: 21300000, guid: 315716e1b6ad8d44abef859fd7af712e, type: 3}
+  - deviceKind: 0
+    controlPath: printScreen
+    sprite: {fileID: 21300000, guid: e11950a57d4937e48baff9d0cc9232c3, type: 3}
+  - deviceKind: 0
+    controlPath: pause
+    sprite: {fileID: 21300000, guid: 0c31fa7dbb598584bb7c91a7562309fd, type: 3}
+  - deviceKind: 0
+    controlPath: numpadEnter
+    sprite: {fileID: 21300000, guid: 4705bf57e4db844428c18a821a5bcc7b, type: 3}
+  - deviceKind: 0
+    controlPath: numpadPlus
+    sprite: {fileID: 21300000, guid: 2a7e36f19583265469ac2bf3a4123826, type: 3}
+  - deviceKind: 0
+    controlPath: numpadMinus
+    sprite: {fileID: 21300000, guid: 39fd7950b1ed4d14cbc0332b594980d9, type: 3}
+  - deviceKind: 0
+    controlPath: numpadMultiply
+    sprite: {fileID: 21300000, guid: 0fff27cadac46504485eb55e6cab62e2, type: 3}
+  - deviceKind: 0
+    controlPath: numpadDivide
+    sprite: {fileID: 21300000, guid: b8362736c3470cf47bc286d8c9013037, type: 3}
+  - deviceKind: 0
+    controlPath: numpadPeriod
+    sprite: {fileID: 21300000, guid: 33adcfbfaa68a50499af3765018988e5, type: 3}
+  - deviceKind: 0
+    controlPath: numpadEquals
+    sprite: {fileID: 21300000, guid: a4dcf02a2ef0d204e922909a30d220e0, type: 3}
+  - deviceKind: 0
+    controlPath: leftMeta
+    sprite: {fileID: 21300000, guid: ee3ddc936aac4fd42a8ee70aacc6cb79, type: 3}
+  - deviceKind: 0
+    controlPath: rightMeta
+    sprite: {fileID: 21300000, guid: ee3ddc936aac4fd42a8ee70aacc6cb79, type: 3}
+  - deviceKind: 0
+    controlPath: semicolon
+    sprite: {fileID: 21300000, guid: 9ab1006afd3440748b575831d94ef214, type: 3}
+  - deviceKind: 0
+    controlPath: quote
+    sprite: {fileID: 21300000, guid: ea0f64cd75ee2aa409ace1596b63c7e9, type: 3}
+  - deviceKind: 0
+    controlPath: comma
+    sprite: {fileID: 21300000, guid: a1213550639923646908a3ef6452a785, type: 3}
+  - deviceKind: 0
+    controlPath: period
+    sprite: {fileID: 21300000, guid: 33adcfbfaa68a50499af3765018988e5, type: 3}
+  - deviceKind: 0
+    controlPath: slash
+    sprite: {fileID: 21300000, guid: b8362736c3470cf47bc286d8c9013037, type: 3}
+  - deviceKind: 0
+    controlPath: backslash
+    sprite: {fileID: 21300000, guid: 1167b19c428f13949a1026c7d80d6a25, type: 3}
+  - deviceKind: 0
+    controlPath: leftBracket
+    sprite: {fileID: 21300000, guid: d542b452c3eba734787269bb72c52e81, type: 3}
+  - deviceKind: 0
+    controlPath: rightBracket
+    sprite: {fileID: 21300000, guid: f65ec58dd1bb440498f40174037c3514, type: 3}
+  - deviceKind: 0
+    controlPath: backquote
+    sprite: {fileID: 21300000, guid: e28e7d599ad1d0f409dd040b4816b51a, type: 3}
+  keyboardBlank: {fileID: 21300000, guid: 72c9001e41ef2424685553739d783c34, type: 3}

@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using Core.Runtime.Inputs;
+using Core.Runtime.Settings;
 using Hotfix.KagitKart;
 using NUnit.Framework;
 using UnityEditor;
@@ -67,10 +68,11 @@ namespace Tests.Demo
         }
 
         [UnityTest]
-        public IEnumerator GamepadUsesOriginalScalarDeadzoneAndDpadPriority()
+        public IEnumerator GamepadUsesSharedScalarDeadzoneAndDpadPriority()
         {
             var pad = InputSystem.AddDevice<Gamepad>();
             Initialize(pad);
+            var settings = GameSettingsService.Current.Input;
             InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(0.1f, 1), rightTrigger = 0.65f });
             yield return null;
             yield return null;
@@ -79,12 +81,14 @@ namespace Tests.Demo
             Assert.That(controls.Throttle, Is.EqualTo(0.65f).Within(0.0001));
             InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(0.2f, 0), rightTrigger = 0.65f });
             yield return null;
-            Assert.That(input.ReadControls(false).Steer, Is.EqualTo((0.2f - 0.18f) / 0.82f).Within(0.0001));
+            Assert.That(input.ReadControls(false).Steer, Is.EqualTo(Mathf.Clamp01((0.2f - settings.GamepadDeadzone)
+                / (settings.GamepadMaximum - settings.GamepadDeadzone))).Within(0.0001));
             InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(0.6f, 1), rightTrigger = 0.65f, leftTrigger = 0.2f }
                 .WithButton(GamepadButton.RightShoulder).WithButton(GamepadButton.West).WithButton(GamepadButton.North));
             yield return null;
             controls = input.ReadControls(false);
-            Assert.That(controls.Steer, Is.EqualTo((0.6f - 0.18f) / 0.82f).Within(0.0001));
+            Assert.That(controls.Steer, Is.EqualTo(Mathf.Clamp01((0.6f - settings.GamepadDeadzone)
+                / (settings.GamepadMaximum - settings.GamepadDeadzone))).Within(0.0001));
             InputBindingDisplay.Get(input.PromptAction("Steer"), out string glyphPath);
             Assert.That(glyphPath, Is.EqualTo("leftStick"));
             Assert.That(controls.Drift && controls.Item && controls.LookBack, Is.True);

@@ -2,6 +2,7 @@ namespace Hotfix
 {
     using Core.Runtime;
     using Core.Runtime.Inputs;
+    using Core.Runtime.Localization;
     using Cysharp.Threading.Tasks;
     using Hotfix.SceneManagement;
     using SleepyStudios.LoopScroll;
@@ -27,6 +28,8 @@ namespace Hotfix
         {
             data = GlobalData.Get<MainMenuData>() ?? GlobalData.Add<MainMenuData>();
             entries = data.Entries;
+            LanguageService.SetText(Button_Settings.transform.Find("Label").GetComponent<TMPro.TMP_Text>(), "Settings.Title");
+            LanguageService.SetText(transform.Find("GalleryContent/Eyebrow").GetComponent<TMPro.TMP_Text>(), "Hub.Eyebrow");
             BindData<MainMenuData>(RenderMainData);
             BindData<UserData>(OnUserData);
             this.RegisterLoopScrollRect<MainMenuDemoItemView>(LoopScrollView_DemoList, OnDemoRectData);
@@ -73,7 +76,7 @@ namespace Hotfix
             while (IsEnable && ReferenceEquals(menuInput, scope))
             {
                 // OnShow 可能早于返回 Hub 的事务收尾，导航完成后自动恢复入口。
-                if (lastCanEnter != (!data.IsEntering && GameSceneNavigator.Instance?.IsTransitioning != true)) RefreshAvailability();
+                if (lastCanEnter != (!data.IsEntering && GameSceneNavigator.Instance?.IsTransitioning != true && !HubLanguageFlow.IsChanging)) RefreshAvailability();
                 if (InputDeviceState.ActiveKind == InputDeviceKind.Touch) scope.Update();
                 else scope.Update(!string.IsNullOrEmpty(entryFeedback) && Button_Start.interactable
                     ? Button_Start.gameObject : navigation.FirstSelection);
@@ -117,9 +120,9 @@ namespace Hotfix
             data = value;
             if ((uint)selectedIndex >= entries.Count) return;
             var entry = entries[selectedIndex];
-            TextMeshProUGUI_Title.text = entry.Title;
-            TextMeshProUGUI_Subtitle.text = entry.Subtitle;
-            TextMeshProUGUI_Description.text = entry.Description;
+            LanguageService.SetText(TextMeshProUGUI_Title, "Hub." + entry.Key + ".Title", 2);
+            LanguageService.SetText(TextMeshProUGUI_Subtitle, "Hub." + entry.Key + ".Subtitle");
+            LanguageService.SetText(TextMeshProUGUI_Description, "Hub." + entry.Key + ".Description");
             UIImageLoader_Hero.SetImage(entry.PreviewAddress, setNativeSize: false, isAsync: true);
             RenderAvailability();
         }
@@ -141,7 +144,14 @@ namespace Hotfix
             lastCanEnter = CanEnterDemo;
             RefreshVisibleCards();
             RefreshPrimaryAction();
-            TextMeshProUGUI_Status.text = entryFeedback ?? (lastCanEnter ? "选择一个玩法，开始体验" : "正在准备体验…");
+            if (string.IsNullOrEmpty(entryFeedback))
+            {
+                LanguageService.SetText(TextMeshProUGUI_Status, lastCanEnter ? "Hub.Ready" : "Hub.Preparing");
+            }
+            else
+            {
+                TextMeshProUGUI_Status.text = entryFeedback;
+            }
             TextMeshProUGUI_Status.color = string.IsNullOrEmpty(entryFeedback) ? new Color(.39f, .43f, .42f) : new Color(.72f, .22f, .16f);
         }
 
@@ -160,8 +170,8 @@ namespace Hotfix
             var entry = entries[selectedIndex];
             Button_Start.interactable = entry.CanEnter && CanEnterDemo;
             Button_Settings.interactable = CanEnterDemo;
-            TextMeshProUGUI_StartLabel.text = !entry.SceneId.HasValue ? "未开放" :
-                !CanEnterDemo ? "加载中…" : string.IsNullOrEmpty(entryFeedback) ? "开始体验" : "重试";
+            LanguageService.SetText(TextMeshProUGUI_StartLabel, !entry.SceneId.HasValue ? "Hub.Unavailable" :
+                !CanEnterDemo ? "Common.Loading" : string.IsNullOrEmpty(entryFeedback) ? "Hub.Start" : "Common.Retry");
         }
 
         private void RefreshVisibleCards()
@@ -183,15 +193,14 @@ namespace Hotfix
 
         private void RefreshInputHints()
         {
-            if (Application.isMobilePlatform || InputDeviceState.ActiveKind == InputDeviceKind.Touch)
-                TextMeshProUGUI_Hints.text = "滑动选择玩法 · 点击开始体验";
+            if (InputDeviceState.ActiveKind == InputDeviceKind.Touch)
+                LanguageService.SetText(TextMeshProUGUI_Hints, "Hub.TouchHints");
             else if (InputDeviceState.PromptKind == InputDeviceKind.Gamepad)
             {
-                string confirm = InputDeviceState.PromptStyle == GamepadStyle.PlayStation ? "×" :
-                    InputDeviceState.PromptStyle == GamepadStyle.Switch ? "B" : "A";
-                TextMeshProUGUI_Hints.text = $"方向键 / 摇杆 选择    {confirm} 确认";
+                string confirm = InputDeviceState.PromptStyle == GamepadStyle.PlayStation ? "×" : "A";
+                LanguageService.SetText(TextMeshProUGUI_Hints, "Hub.GamepadHints", null, confirm);
             }
-            else TextMeshProUGUI_Hints.text = "← → 选择    Enter 确认";
+            else LanguageService.SetText(TextMeshProUGUI_Hints, "Hub.KeyboardHints");
         }
     }
 }

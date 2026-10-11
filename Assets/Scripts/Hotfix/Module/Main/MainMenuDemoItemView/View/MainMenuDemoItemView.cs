@@ -1,4 +1,5 @@
 using Core.Runtime;
+using Core.Runtime.Localization;
 
 namespace Hotfix
 {
@@ -17,9 +18,9 @@ namespace Hotfix
                 previewAddress = data.PreviewAddress;
                 UIImageLoader_Preview.SetImage(previewAddress, setNativeSize: false, isAsync: true);
             }
-            TextMeshProUGUI_Title.text = data.Title;
-            TextMeshProUGUI_Description.text = data.Subtitle;
-            TextMeshProUGUI_Action.text = !data.SceneId.HasValue ? "未开放" : "当前选择";
+            LanguageService.SetText(TextMeshProUGUI_Title, "Hub." + data.Key + ".Title");
+            LanguageService.SetText(TextMeshProUGUI_Description, "Hub." + data.Key + ".Subtitle");
+            LanguageService.SetText(TextMeshProUGUI_Action, !data.SceneId.HasValue ? "Hub.Unavailable" : "Hub.Selected");
             Image_Badge.gameObject.SetActive(data.IsSelected || !data.SceneId.HasValue);
             Image_Badge.color = data.SceneId.HasValue ? new UnityEngine.Color(.12f, .69f, .57f) : new UnityEngine.Color(.48f, .50f, .47f);
             Image_Selection.enabled = data.IsSelected;

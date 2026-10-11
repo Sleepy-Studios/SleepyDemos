@@ -1,5 +1,6 @@
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.Settings;
 using Hotfix.Dlss;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -25,8 +26,22 @@ namespace Hotfix
             lookPad = TouchInputPad_Look;
             buttons = new Core.Runtime.Inputs.InputCommandButton[] { InputCommandButton_Sprint, InputCommandButton_Reset, InputCommandButton_Settings, InputCommandButton_Exit };
             prompts = new Core.Runtime.Inputs.InputBindingPrompt[] { InputBindingPrompt_Prompt_按住加速, InputBindingPrompt_Prompt_重置视角, InputBindingPrompt_Prompt_画质设置, InputBindingPrompt_Prompt_返回_Hub };
+            InputBindingPrompt_Prompt_按住加速.SetCaptionKey("Input.Sprint");
+            InputBindingPrompt_Prompt_重置视角.SetCaptionKey("Input.ResetView");
+            InputBindingPrompt_Prompt_画质设置.SetCaptionKey("Input.GraphicsSettings");
+            InputBindingPrompt_Prompt_返回_Hub.SetCaptionKey("Input.ReturnHub");
+            GameSettingsService.Changed += OnPublicSettingsChanged;
+            OnPublicSettingsChanged(GameSettingsService.Current);
             foreach (var button in buttons) { this.RegisterInputCommandButton(button, OnCommand); this.RegisterInputCommandHold(button, OnHold); }
             BindData<DlssData>(OnData);
+        }
+
+        private void OnPublicSettingsChanged(GameSettingsSnapshot value)
+        {
+            foreach (var prompt in prompts)
+            {
+                prompt.SetBindingsVisible(value.Accessibility.ShowInputPrompts);
+            }
         }
         /// <summary>组件初始化后、显示前绑定当前观察动作副本。</summary>
         /// <param name="actions">当前场景的动作副本。</param>
@@ -42,6 +57,12 @@ namespace Hotfix
         private void OnHold(string command, bool held) { if(command=="Sprint") GlobalData.Dispatch(new DlssSprintAction(held)); }
         private void ResetInput() { movePad.ResetInput(); lookPad.ResetInput(); GlobalData.Dispatch(new DlssSprintAction(false)); }
         protected override void OnHide() { ResetInput(); base.OnHide(); }
-        protected override void OnDestroy() { ResetInput(); data=null; base.OnDestroy(); }
+        protected override void OnDestroy()
+        {
+            GameSettingsService.Changed -= OnPublicSettingsChanged;
+            ResetInput();
+            data = null;
+            base.OnDestroy();
+        }
     }
 }

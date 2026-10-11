@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -9,7 +10,6 @@ namespace Core.Runtime.Rendering.Streamline
     /// 全局偏好与当前主相机状态；设置 UI 不拥有原生会话。
     public static partial class StreamlineRuntime
     {
-        private const string PreferenceKey = "SleepyDemos.Graphics.DlssMode";
         private static Camera boundCamera;
         private static Camera boundUi;
         private static StreamlineRuntimeDriver driver;
@@ -52,25 +52,27 @@ namespace Core.Runtime.Rendering.Streamline
 
         private static void InitializeSharedSettings()
         {
-            RequestedMode = ReadSavedMode();
             var go = new GameObject("Streamline Runtime");
             UnityEngine.Object.DontDestroyOnLoad(go);
             driver = go.AddComponent<StreamlineRuntimeDriver>();
         }
 
-        /// 读取持久化偏好，不初始化图形资源。
-        public static StreamlineDlssMode? ReadSavedMode() => DecodePreference(LocalDataManager.LoadData(PreferenceKey, 0));
-
-        /// <summary>保存全局档位并应用到当前相机；不能应用时保留偏好。</summary>
+        /// <summary>应用请求档位，不保存偏好；不支持的设备保留请求并回退原生渲染。</summary>
         /// <param name="mode">空表示关闭。</param>
-        public static void SetMode(StreamlineDlssMode? mode)
+        /// <param name="cancellationToken">取消应用并释放本次会话，不覆盖后来的请求。</param>
+        /// <returns>真实首帧已生效或已关闭时为 true；不可用原因见 Status。</returns>
+        public static async UniTask<bool> ApplyModeAsync(StreamlineDlssMode? mode, CancellationToken cancellationToken = default)
         {
-            if (mode.HasValue && DecodePreference((int)mode.Value) == null) throw new ArgumentOutOfRangeException(nameof(mode));
+            if (mode.HasValue && DecodePreference((int)mode.Value) == null)
+            {
+                throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
             Initialize();
             RequestedMode = mode;
-            LocalDataManager.SaveData(PreferenceKey, mode.HasValue ? (int)mode.Value : 0);
-            ReapplyAsync().Forget();
             Changed?.Invoke();
+            return await ReapplyAsync(cancellationToken);
         }
 
         /// <summary>公共 UI 相机绑定完成后登记当前主相机。</summary>
@@ -117,36 +119,91 @@ namespace Core.Runtime.Rendering.Streamline
             return reason == null;
         }
 
-        private static async UniTaskVoid ReapplyAsync()
+        private static async UniTask<bool> ReapplyAsync(CancellationToken cancellationToken = default)
         {
             int ticket = ++generation;
             changing = true;
-            while (ActiveSession?.IsBusy == true)
-            {
-                await UniTask.Yield();
-                if (ticket != generation) return;
-            }
             try
             {
+                while (ActiveSession?.IsBusy == true)
+                {
+                    await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                    if (ticket != generation)
+                    {
+                        return false;
+                    }
+                }
+
                 ActiveSession?.Dispose();
                 unavailableReason = null;
-                if (!RequestedMode.HasValue) return;
+                if (RequiresRestart)
+                {
+                    unavailableReason = "原生清理失败，请重启 Editor。";
+                    return false;
+                }
+
+                if (!RequestedMode.HasValue)
+                {
+                    return true;
+                }
+
                 // BindToBaseCamera 先于导航启用目标相机；下一帧再快照，避免把临时禁用状态当作恢复值。
-                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);
-                if (ticket != generation) return;
-                if (!CanEnable(out unavailableReason)) return;
+                await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate, cancellationToken);
+                if (ticket != generation || !CanEnable(out unavailableReason))
+                {
+                    return false;
+                }
+
                 var pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
-                if (pipeline == null) { unavailableReason = "当前管线不是 URP。"; return; }
+                if (pipeline == null)
+                {
+                    unavailableReason = "当前管线不是 URP。";
+                    return false;
+                }
+
                 var session = new StreamlineCameraSession(boundCamera, pipeline, boundUi);
                 session.Changed += NotifyChanged;
                 bool applied = await session.ApplyAsync(RequestedMode, ReadSize());
-                if (ticket != generation) return;
-                if (!applied) { unavailableReason = session.Error; session.Dispose(); }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ticket != generation)
+                {
+                    return false;
+                }
+
+                while (applied && !session.HasEvaluatedFrame && string.IsNullOrEmpty(session.Error))
+                {
+                    await UniTask.Yield(PlayerLoopTiming.Update, cancellationToken);
+                    if (ticket != generation)
+                    {
+                        return false;
+                    }
+
+                    session.Tick();
+                }
+
+                if (!applied || !string.IsNullOrEmpty(session.Error))
+                {
+                    unavailableReason = session.Error;
+                    session.Dispose();
+                    return false;
+                }
+
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                if (ticket == generation)
+                {
+                    ActiveSession?.Dispose();
+                }
+
+                throw;
             }
             catch (Exception exception)
             {
                 unavailableReason = exception.Message;
                 ActiveSession?.Dispose();
+                return false;
             }
             finally
             {
@@ -192,6 +249,8 @@ namespace Core.Runtime.Rendering.Streamline
             DetachCamera();
             IsInitialized = false;
             Changed = null;
+            RequestedMode = null;
+            unavailableReason = null;
             driver = null;
         }
     }

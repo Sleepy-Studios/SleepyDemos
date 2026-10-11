@@ -22,6 +22,7 @@
 | 修改资源组织或加载 | [资源命名规范](./architecture/asset-naming.md)、[资源运行时](./modules/resource-runtime.md)、[使用资源 Loader](./runbooks/use-resource-loader.md) |
 | 新增、替换或生成正式音频，选择平台导入设置 | [音频资源与导入规范](./architecture/audio-assets.md) |
 | 修改文案、多语言或公共字体 | [多语言与公共字体规范](./architecture/localization-fonts.md)、[TMP 字体生产流程](./runbooks/tmp-font-workflow.md) |
+| 公共设置、FontId、时间或电影演出 | [设置与表现模块](./modules/settings-presentation.md)、[接入公共设置与演出](./runbooks/use-settings-presentation.md) |
 | 新增 Demo | [新增 Demo](./runbooks/add-demo.md)，再按涉及的模块继续阅读 |
 | 新增或运行测试 | [测试架构](./architecture/testing.md)、[运行 Unity 自动化测试](./runbooks/run-unity-tests.md) |
 | 其他业务或工具任务 | 从下方模块、Agent 技能和 runbook 导航定位相关内容 |
@@ -46,6 +47,7 @@
   - 给维护模块的人看：关键模块的职责、入口、主链路、生命周期、边界和验证重点
   - [Core.Runtime](./modules/core-runtime.md)
   - [公共玩法输入](./modules/gameplay-input.md)
+  - [公共设置与表现](./modules/settings-presentation.md)
   - [热更新模块](./modules/hotfix.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)

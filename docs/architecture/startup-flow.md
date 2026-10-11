@@ -49,6 +49,7 @@
 - 切入 Hotfix 业务入口
 
 当前系统：
+- `GameSettingsInitializeSystem`：资源就绪后加载公共SO、玩家偏好与语言，在页面之前准备；并发调用共用完成任务
 - `UIInitializeSystem`
 - `HybridMetadataSystem`
 - `HotfixAssemblySystem`
@@ -84,7 +85,7 @@ Hotfix 入口位于：
 
 ## Unity Editor Demo 直启旁路
 
-Editor 可在 Demo 场景通过独立 `DemoIslandEditorBootstrap` 补齐最小运行时：读取正式 `HotfixConfig`，初始化 `ResourceServices`/YooAsset 和 `UIManager`，扫描 Hotfix View，幂等运行 `HotfixBootService`，注册世界过渡并建立 Editor 直启导航器。
+Editor 可在 Demo 场景通过独立 `DemoIslandEditorBootstrap` 补齐最小运行时：读取正式 `HotfixConfig`，初始化 `ResourceServices`/YooAsset，等待与正式启动共用的 `GameSettingsService.InitializeAsync`，再初始化 `UIManager`，扫描 Hotfix View，幂等运行 `HotfixBootService`，注册世界过渡并建立 Editor 直启导航器。
 
 该旁路不执行 HybridCLR 元数据补充、热更新程序集装配、完整 `HotfixEntry` 或 MainMenuView。Development Build 和 Release 不启用此旁路，仍固定从 AppEntrance 进入。Bootstrap 发现正式 Navigator 已存在时必须立即退出。
 

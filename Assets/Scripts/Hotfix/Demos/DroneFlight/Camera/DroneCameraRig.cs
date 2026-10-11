@@ -1,4 +1,6 @@
 using System;
+using Core.Runtime.Settings;
+using Core.Runtime.TimeControls;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -45,6 +47,7 @@ namespace Hotfix.DroneFlight
         private float transitionStartFieldOfView;
         private float transitionElapsed;
         private bool isTransitioning;
+        private bool reducedMotion;
         private Quaternion gimbalYawBindLocalRotation = Quaternion.identity;
         private Quaternion gimbalPitchBindLocalRotation = Quaternion.identity;
         private bool hasGimbalBindPose;
@@ -71,11 +74,20 @@ namespace Hotfix.DroneFlight
         private void Awake()
         {
             CaptureGimbalBindPose();
+            reducedMotion = GameSettingsService.Current.Accessibility.IsReducedMotion;
+            GameSettingsService.Changed += OnSettingsChanged;
+        }
+
+        private void OnDestroy() => GameSettingsService.Changed -= OnSettingsChanged;
+
+        private void OnSettingsChanged(GameSettingsSnapshot value)
+        {
+            reducedMotion = value.Accessibility.IsReducedMotion;
         }
 
         private void LateUpdate()
         {
-            if (outputCamera == null || droneBody == null)
+            if (outputCamera == null || droneBody == null || GameTimeService.Scale <= 0)
             {
                 return;
             }
@@ -86,9 +98,18 @@ namespace Hotfix.DroneFlight
             var targetFieldOfView = GetModeFieldOfView(mode);
             ApplyNearClipPlane();
 
+            if (reducedMotion)
+            {
+                isTransitioning = false;
+                followVelocity = Vector3.zero;
+                outputCamera.transform.SetPositionAndRotation(targetPosition, targetRotation);
+                outputCamera.fieldOfView = targetFieldOfView;
+                return;
+            }
+
             if (isTransitioning)
             {
-                transitionElapsed += Mathf.Max(0f, Time.unscaledDeltaTime);
+                transitionElapsed += Mathf.Max(0f, GameTimeService.DeltaTime);
                 var normalized = Mathf.Clamp01(transitionElapsed / Mathf.Max(0.01f, TransitionSeconds));
                 var eased = normalized * normalized * (3f - 2f * normalized);
                 outputCamera.transform.position = Vector3.Lerp(transitionStartPosition, targetPosition, eased);
@@ -111,8 +132,8 @@ namespace Hotfix.DroneFlight
                 ref followVelocity,
                 Mathf.Max(0.01f, smoothTime),
                 Mathf.Infinity,
-                Time.unscaledDeltaTime);
-            var blend = 1f - Mathf.Exp(-Mathf.Max(0.01f, RotationSharpness) * Time.unscaledDeltaTime);
+                GameTimeService.DeltaTime);
+            var blend = 1f - Mathf.Exp(-Mathf.Max(0.01f, RotationSharpness) * GameTimeService.DeltaTime);
             outputCamera.transform.rotation = Quaternion.Slerp(outputCamera.transform.rotation, targetRotation, blend);
             outputCamera.fieldOfView = Mathf.Lerp(outputCamera.fieldOfView, targetFieldOfView, blend);
         }

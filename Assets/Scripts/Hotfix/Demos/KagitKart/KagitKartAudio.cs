@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Core.Runtime.Settings;
 
 namespace Hotfix.KagitKart
 {
@@ -16,6 +17,10 @@ namespace Hotfix.KagitKart
         private readonly double[] ends = new double[28];
         private readonly float[] effectGains = new float[28];
         private readonly bool[] effectMusic = new bool[28];
+        private readonly bool[] effectUi = new bool[28];
+        private float globalMusic = 1;
+        private float globalEffects = 1;
+        private float globalUi = 1;
         private KagitKartEngineSynth engine;
         private readonly bool[] cpuFresh = new bool[3];
         private readonly KagitKartVehicle[] cpuKart = new KagitKartVehicle[3];
@@ -56,6 +61,24 @@ namespace Hotfix.KagitKart
         private int popupCount;
         private float popupSize;
         private double nextPopup;
+
+        private void OnEnable()
+        {
+            AudioSettingsRuntime.Changed += RefreshGlobalVolumes;
+            RefreshGlobalVolumes();
+        }
+
+        private void OnDisable()
+        {
+            AudioSettingsRuntime.Changed -= RefreshGlobalVolumes;
+        }
+
+        private void RefreshGlobalVolumes()
+        {
+            globalMusic = AudioSettingsRuntime.GetGain(AudioBus.Music);
+            globalEffects = AudioSettingsRuntime.GetGain(AudioBus.Effects);
+            globalUi = AudioSettingsRuntime.GetGain(AudioBus.Ui);
+        }
 
         /// <summary>借用 Loader 持有的原作音频 Bank 和摄像机，初始化一次。</summary>
         /// <param name="asset">固定原作提交导出的音频资产；由宿主保持加载句柄。</param>
@@ -226,8 +249,8 @@ namespace Hotfix.KagitKart
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             double now = AudioSettings.dspTime;
             duck = Mathf.Lerp(duck, paused ? 0.28f : 1, 1 - Mathf.Exp(-dt / 0.12f));
-            float musicGain = muted ? 0 : musicVolume * musicVolume * duck;
-            engine.SetVolume(sfxVolume * sfxVolume, muted);
+            float musicGain = muted ? 0 : musicVolume * musicVolume * duck * globalMusic;
+            engine.SetVolume(sfxVolume * sfxVolume * globalEffects, muted);
             for (int i = 0; i < music.Length; i++)
             {
                 var source = music[i];
@@ -243,7 +266,8 @@ namespace Hotfix.KagitKart
             }
             for (int i = 0; i < effects.Length; i++)
             {
-                effects[i].Volume = effectGains[i] * (effectMusic[i] ? musicGain : muted ? 0 : sfxVolume * sfxVolume);
+                effects[i].Volume = effectGains[i] * (effectMusic[i] ? musicGain : muted ? 0
+                    : sfxVolume * sfxVolume * (effectUi[i] ? globalUi : globalEffects));
                 if (effectMusic[i])
                 {
                     effects[i].Cutoff = music[0].Cutoff;
@@ -423,9 +447,11 @@ namespace Hotfix.KagitKart
             source.Pan = pan;
             effectGains[slot] = gain * intensity;
             effectMusic[slot] = isMusic;
+            effectUi[slot] = name == "click" || name == "pageTurn";
             source.FilterEnabled = effectMusic[slot];
             source.Cutoff = music[0].Cutoff;
-            source.Volume = effectGains[slot] * (isMusic ? musicVolume * musicVolume * duck : sfxVolume * sfxVolume);
+            source.Volume = muted ? 0 : effectGains[slot] * (isMusic ? musicVolume * musicVolume * duck * globalMusic
+                : sfxVolume * sfxVolume * (effectUi[slot] ? globalUi : globalEffects));
             if (at > now)
             {
                 source.PlayScheduled(at);

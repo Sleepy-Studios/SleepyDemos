@@ -1,3 +1,4 @@
+using Core.Runtime.TimeControls;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -28,7 +29,7 @@ namespace Hotfix.DroneFlight
 
         private void LateUpdate()
         {
-            if (!isTracking || target == null || outputCamera == null)
+            if (!isTracking || target == null || outputCamera == null || GameTimeService.Scale <= 0)
             {
                 return;
             }
@@ -38,7 +39,7 @@ namespace Hotfix.DroneFlight
             if (direction.sqrMagnitude > 0.0001f)
             {
                 var rotationSharpness = config != null ? config.CameraRotationSharpness : 3.5f;
-                var rotationBlend = 1f - Mathf.Exp(-rotationSharpness * Time.unscaledDeltaTime);
+                var rotationBlend = 1f - Mathf.Exp(-rotationSharpness * GameTimeService.DeltaTime);
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     Quaternion.LookRotation(direction, Vector3.up),
@@ -47,7 +48,7 @@ namespace Hotfix.DroneFlight
 
             var fieldOfViewSharpness = config != null ? config.FieldOfViewSharpness : 2.5f;
             var trackingFieldOfView = config != null ? config.TrackingFieldOfView : 35f;
-            var fovBlend = 1f - Mathf.Exp(-fieldOfViewSharpness * Time.unscaledDeltaTime);
+            var fovBlend = 1f - Mathf.Exp(-fieldOfViewSharpness * GameTimeService.DeltaTime);
             outputCamera.fieldOfView = Mathf.Lerp(outputCamera.fieldOfView, trackingFieldOfView, fovBlend);
         }
 

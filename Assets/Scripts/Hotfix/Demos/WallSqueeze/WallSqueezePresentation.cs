@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Core.Runtime.Settings;
 using UnityEngine;
 
 namespace Hotfix.WallSqueeze
@@ -20,6 +21,24 @@ namespace Hotfix.WallSqueeze
         private readonly List<GameObject> bodies = new();
         private readonly List<Transform> fragments = new();
         private float fragmentClock;
+        private bool reducedMotion;
+
+        private void Awake()
+        {
+            reducedMotion = GameSettingsService.Current.Accessibility.IsReducedMotion;
+            GameSettingsService.Changed += OnSettingsChanged;
+        }
+
+        private void OnDestroy() => GameSettingsService.Changed -= OnSettingsChanged;
+
+        private void OnSettingsChanged(GameSettingsSnapshot value)
+        {
+            reducedMotion = value.Accessibility.IsReducedMotion;
+            if (reducedMotion)
+            {
+                ClearFragments();
+            }
+        }
 
         /// <summary>从保存模板重建当前关卡并清除旧演出。</summary>
         /// <param name="simulation">已复位的规则状态。</param>
@@ -81,7 +100,7 @@ namespace Hotfix.WallSqueeze
                 {
                     feedback = true;
                     bodies[i].SetActive(false);
-                    for (int f = 0; f < 6; f++)
+                    for (int f = 0; !reducedMotion && f < 6; f++)
                     {
                         var fragment = Instantiate(fragmentTemplate, bodiesRoot).transform;
                         fragment.gameObject.SetActive(true);

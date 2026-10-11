@@ -1,3 +1,4 @@
+using Core.Runtime.TimeControls;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -18,7 +19,7 @@ namespace Hotfix.DroneFlight
 
         private void Update()
         {
-            StepVisual(Time.unscaledDeltaTime);
+            StepVisual(GameTimeService.DeltaTime);
         }
 
         /// <summary>
@@ -48,7 +49,7 @@ namespace Hotfix.DroneFlight
         /// <summary>
         /// 使用渲染帧时间推进旋翼相位，不参与飞行物理。
         /// </summary>
-        /// <param name="deltaTime">非缩放渲染帧时长。</param>
+        /// <param name="deltaTime">世界演出的缩放渲染帧时长，零时不推进相位。</param>
         internal void StepVisual(float deltaTime)
         {
             if (bladeRoot == null || !float.IsFinite(deltaTime) || deltaTime <= 0f || CurrentRpm <= 0f)

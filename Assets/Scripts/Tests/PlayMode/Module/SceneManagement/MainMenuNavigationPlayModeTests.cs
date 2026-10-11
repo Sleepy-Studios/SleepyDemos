@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.Localization;
+using Core.Runtime.Settings;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.SceneManagement;
@@ -33,6 +35,51 @@ namespace Tests.Module
         private Touchscreen touchscreen;
         private InputSettings originalInputSettings;
         private InputSettings testInputSettings;
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator HubLanguageRebuildPreservesSelectionAndRecoversAfterReopenFailure()
+        {
+            yield return PrepareHub();
+            yield return VerifyLanguageRebuildAsync().ToCoroutine();
+        }
+
+        private static async UniTask VerifyLanguageRebuildAsync()
+        {
+            var previous = GameSettingsService.Current;
+            var oldMenu = UIManager.Instance.Get<MainMenuView>();
+            GlobalData.Dispatch(new MainMenuSelectAction(1));
+            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
+                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            try
+            {
+                var next = previous.Copy();
+                next.Language = previous.Language == "en" ? "zh-CN" : "en";
+                var result = await HubLanguageFlow.ApplyAsync(next, reopen);
+                Assert.That(result.Succeeded, Is.True, result.Message);
+                Assert.That(oldMenu.State, Is.EqualTo(ViewState.Destroyed));
+                var rebuilt = UIManager.Instance.Get<MainMenuView>();
+                Assert.That(rebuilt, Is.Not.SameAs(oldMenu));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                Assert.That(Field<TMPro.TextMeshProUGUI>(rebuilt, "TextMeshProUGUI_Title").text,
+                    Is.EqualTo(LanguageService.Get("Hub.dlss.Title")));
+
+                var failedCandidate = next.Copy();
+                failedCandidate.Language = previous.Language;
+                int calls = 0;
+                result = await HubLanguageFlow.ApplyAsync(failedCandidate, () => ++calls == 1
+                    ? UniTask.FromException<UIOperationResult>(new InvalidOperationException("Expected reopen failure"))
+                    : reopen());
+                Assert.That(result.Succeeded, Is.False);
+                Assert.That(GameSettingsService.Current.Language, Is.EqualTo(next.Language));
+                Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(next.Language));
+                Assert.That(UIManager.Instance.Get<MainMenuView>().State, Is.EqualTo(ViewState.Visible));
+                Assert.That(HubLanguageFlow.IsChanging, Is.False);
+            }
+            finally
+            {
+                await HubLanguageFlow.ApplyAsync(previous, reopen);
+            }
+        }
 
         [UnityTest, Timeout(180000)]
         public IEnumerator FailedEntryRestoresNewMenuAndAllowsRetry()

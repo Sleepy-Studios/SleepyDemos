@@ -78,7 +78,7 @@ namespace Hotfix.KagitKart
             else
             {
                 string prefix = activeKind == InputDeviceKind.Gamepad ? "Pad" : "Key";
-                float steer = session.ReadAxis(prefix + "Steer", 0.18f);
+                float steer = session.ReadAxis(prefix + "Steer");
                 if (activeKind == InputDeviceKind.Gamepad)
                 {
                     if (session.Held("PadLeft"))

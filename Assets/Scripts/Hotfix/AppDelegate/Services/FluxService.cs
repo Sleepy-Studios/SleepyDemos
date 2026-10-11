@@ -17,6 +17,7 @@ namespace Hotfix.AppDelegate
             GlobalData.Add<UserData>().InitData();
             GlobalData.Add<MainMenuData>();
             GlobalData.Add<GraphicsSettingsData>();
+            GlobalData.Add<SettingsData>();
         }
 
         public static void ClearForRelogin()

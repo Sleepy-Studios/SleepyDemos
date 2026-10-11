@@ -4,6 +4,7 @@ namespace Hotfix
 {
     using Core.Runtime;
     using Core.Runtime.Inputs;
+    using Core.Runtime.Settings;
     using DroneFlight;
 
     [Module("DroneFlight")]
@@ -18,9 +19,12 @@ namespace Hotfix
             base.OnGameObjectInitialize();
             InitializeControlsReferences();
             InitializeControls();
+            resetProgressBar = UIProgressBar_ResetProgressFill;
+            GameSettingsService.Changed += OnSettingsChanged;
+            AddBinding(() => GameSettingsService.Changed -= OnSettingsChanged);
+            OnSettingsChanged(GameSettingsService.Current);
             BindData<DroneFlightData>(OnData);
             BindUpdate(UpdateControls);
-            resetProgressBar = UIProgressBar_ResetProgressFill;
         }
 
         /// <summary>交付会话数据；已显示的 HUD 立即切换遥测订阅。</summary>
@@ -43,7 +47,7 @@ namespace Hotfix
 
         protected override void OnDestroy() { ReleaseInput(); input = null; base.OnDestroy(); }
 
-        private string Key(string action) => params1?.Input?.Label(action, "") ?? "";
+        private string Key(string action) => showInputPrompts ? params1?.Input?.Label(action, "") ?? "" : "";
 
         private void OnSnapshotChanged(DroneFlightUiSnapshot snapshot)
         {
@@ -86,13 +90,36 @@ namespace Hotfix
         private DronePlayerInput input;
         private DroneEquipmentKind equipmentKind;
         private GameObject menuSelection;
+        private bool showInputPrompts = true;
+
+        private void OnSettingsChanged(GameSettingsSnapshot value)
+        {
+            showInputPrompts = value.Accessibility.ShowInputPrompts;
+            foreach (var prompt in prompts)
+            {
+                prompt.SetBindingsVisible(showInputPrompts);
+                if (prompt.GetComponentInParent<InputCommandButton>() == null)
+                {
+                    prompt.gameObject.SetActive(showInputPrompts);
+                }
+            }
+            if (state?.HasSnapshot == true)
+            {
+                OnSnapshotChanged(state.Snapshot);
+            }
+        }
 
         /// <summary>绑定当前实例并释放旧会话的输入订阅。</summary>
         /// <param name="value">当前无人机输入。</param>
         private void BindControls(DronePlayerInput value)
         {
             ReleaseInput(); input = value;
-            foreach (var prompt in prompts) prompt.BindAsset(input?.Session?.Asset);
+            foreach (var prompt in prompts)
+            {
+                prompt.BindAsset(input?.Session?.Asset);
+                prompt.SetCaptionKey(DronePlayerInput.CommonCaptionKey(prompt.Action?.name));
+                prompt.SetBindingsVisible(showInputPrompts);
+            }
             RefreshControls();
         }
 

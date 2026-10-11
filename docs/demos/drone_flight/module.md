@@ -190,7 +190,21 @@ DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什�
 
 Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使用公共 InputActionSession，键鼠保留原操作和键盘平滑；手柄左摇杆升降/偏航、右摇杆平移，触屏两个 TouchInputPad 同为摇杆模式。确认键短按解锁/锁定、长按按配置重载；Switch A 确认。返回键 Active → Waiting，再次返回退出 Hub；触屏有进入遥控入口。
 
+会话从 `GameSettingsService.Current.Input` 取得公共死区、视角倍率和 Y 轴反转参数，成功提交后应用新的参数及绑定覆盖；不回写 `DroneFlight.inputactions`。`DroneInputConfig` 继续保存无人机键盘平滑和长按重载时长。生效绑定属于 `InputActionSession.Asset`，提示通过 `BindAsset` 读取同一副本，改键后不能继续显示制作资产的旧键位。
+
+提示及触控区域跟随最近实际操作的设备，接入手柄本身与摇杆漂移不抢占键鼠提示。公共 `InputBindingPrompt` 复用保存的 `InputGlyphCatalog`，已有键盘键使用 Kenney 实际图标，缺少图形时才用空键帽加真实键名；手柄按已识别布局使用 Xbox、PlayStation、Switch 图标。帮助正文和部分遥测中的短键名仍按实际绑定生成文字。触控按钮保留可点击动作说明，`ShowInputPrompts` 只收起物理绑定和纯提示，不隐藏必需的触控命令入口。
+
 左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由 HUD View 读取 Data 并提交操作 Action，公共输入组件处理指针与提示；Handler 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
+
+公共说明与设置保存边界见[玩法输入](../../modules/gameplay-input.md)和[设置与表现](../../modules/settings-presentation.md)。动作说明在显示/绑定时读取 `LanguageService`；语言只在 Hub 切换并重建 UI，Demo 不订阅语言事件。
+
+## 公共时间与辅助偏好
+
+世界相机跟随、镜头过渡、旋翼、起落架、绳索与诊断绘制的表现时钟使用 `GameTimeService.DeltaTime`；飞控、装备和捕鱼任务的物理 Tick 继续使用固定步长，倍率由 Unity 调度频率体现，不重复乘倍率。输入采样、菜单、长按门闩和玩家视角增量继续使用未缩放时间。
+
+`GameTimeService.Scale` 为零时拒绝新的解锁、起降和装备动作，并清空持续飞行输入；物理和世界表现暂停。操作面板、帮助、诊断、返回 Waiting 和退出 Hub 保持可用，不能因世界冻结锁住菜单。临时演出调用方拥有 `GameTimeService.Push()` 返回的作用域并在退出时释放；Demo 不创建常驻倍率作用域，也不直接写 `Time.timeScale`。
+
+公共减少动态偏好由 `DroneCameraRig` 在初始化和设置提交时缓存，关闭附加镜头过渡；本 Demo 未实现额外镜头震动。HUD 的物理提示遵守 `ShowInputPrompts`。完整作用域、持续定格和设置 API 见[公共设置与表现](../../modules/settings-presentation.md)，接入步骤见[公共设置与演出接入](../../runbooks/use-settings-presentation.md)。
 
 
 ## HUD 子资源（2026-10-05）
