@@ -116,6 +116,7 @@ namespace Hotfix
 
         private void RefreshAvailability()
         {
+            GetComponentInParent<UIMenuScope>(true)?.SetNavigationEnabled(!IsListening);
             Row("Host").SetAvailable(!IsListening);
             Row("Device").SetAvailable(!IsListening);
             Row("CancelRebind").gameObject.SetActive(IsListening);
@@ -202,7 +203,11 @@ namespace Hotfix
                 bindings.Clear();
                 bindingsList.SetTotalCount(null);
             }
-            finally { releasing = false; }
+            finally
+            {
+                releasing = false;
+                GetComponentInParent<UIMenuScope>(true)?.SetNavigationEnabled(true);
+            }
         }
 
         private void OnDisable() => CancelRebind();

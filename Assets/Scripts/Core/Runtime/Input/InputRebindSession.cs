@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace Core.Runtime.Inputs
 {
@@ -81,7 +83,7 @@ namespace Core.Runtime.Inputs
         /// <summary>开始监听一个普通或复合子绑定；确认返回与整个复合绑定不可修改。</summary>
         /// <param name="actionPath">Map/Action 路径。</param>
         /// <param name="bindingIndex">绑定序号，复合动作需逐个子绑定重绑。</param>
-        /// <param name="completed">成功、取消或冲突时调用一次；第二参数为失败原因。</param>
+        /// <param name="completed">成功、取消或冲突时调用一次；点击 UI 控件不写入鼠标绑定，第二参数为失败原因。</param>
         public void Begin(string actionPath, int bindingIndex, Action<bool, string> completed)
         {
             ThrowIfDisposed();
@@ -95,12 +97,20 @@ namespace Core.Runtime.Inputs
             completion = completed;
             operation = action.PerformInteractiveRebinding(bindingIndex)
                 .WithCancelingThrough("*/{Cancel}")
+                .WithMatchingEventsBeingSuppressed(false)
                 .WithControlsExcluding("<Pointer>/position")
                 .WithControlsExcluding("<Pointer>/delta")
                 .OnMatchWaitForAnother(0.1f)
                 .OnCancel(_ => Finish(false, "已取消重绑定。"))
-                .OnComplete(_ =>
+                .OnComplete(rebind =>
                 {
+                    // 取消按钮需要收到指针事件；长按控件超过匹配等待期也不能写成鼠标绑定。
+                    if (IsPointerUiControl(rebind.selectedControl))
+                    {
+                        action.ApplyBindingOverride(bindingIndex, previous);
+                        Finish(false, "已取消重绑定。");
+                        return;
+                    }
                     try
                     {
                         ValidateConflict(action, bindingIndex);
@@ -130,6 +140,20 @@ namespace Core.Runtime.Inputs
                 Finish(false, "无法开始重绑定。");
                 throw;
             }
+        }
+
+        private static bool IsPointerUiControl(InputControl control)
+        {
+            if (control?.device is not Pointer pointer || EventSystem.current == null)
+            {
+                return false;
+            }
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
+            {
+                position = pointer.position.ReadValue()
+            }, hits);
+            return hits.Count > 0 && hits[0].gameObject.GetComponentInParent<Selectable>()?.IsInteractable() == true;
         }
 
         /// <summary>显式配置候选绑定，供按钮选键或制作工具使用。</summary>

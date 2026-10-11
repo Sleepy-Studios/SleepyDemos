@@ -781,6 +781,261 @@ namespace Tests.Module
         }
 
         [UnityTest, Timeout(180000)]
+        public IEnumerator InputBindingUiCancelsEditsAndRecycledResetTargetsCurrentActionBeforeApply()
+        {
+            yield return PrepareHub();
+            yield return VerifyInputBindingUiAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyInputBindingUiAsync()
+        {
+            var previous = GameSettingsService.Current;
+            bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
+            string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            var hosts = GameSettingsService.InputHosts;
+            int hostIndex = Enumerable.Range(0, hosts.Count).Single(index => hosts[index].DisplayKey == "Input.Dlss");
+            var source = hosts[hostIndex];
+            string sourceOverrides = source.Asset.SaveBindingOverridesAsJson();
+            InputActionSession running = null;
+            try
+            {
+                // 只隔离本用例选择的正式源；其它偏好及原存档在 finally 原样归还。
+                var baseline = previous.Copy();
+                baseline.BindingOverrides.Remove(source.SourceId);
+                var prepared = await GameSettingsService.ApplyAsync(baseline, _ => UniTask.FromResult(true));
+                Assert.That(prepared.Succeeded, Is.True, prepared.Message);
+                running = new InputActionSession(source.Asset);
+                running.Asset.devices = new InputDevice[] { keyboard };
+                running.SetMap("Observe");
+                var liveReset = running.Asset.FindAction("Observe/Reset", true);
+                int resetBinding = Enumerable.Range(0, liveReset.bindings.Count)
+                    .Single(index => liveReset.bindings[index].path == "<Keyboard>/r");
+                string defaultResetPath = liveReset.bindings[resetBinding].path;
+                var savedBaseline = GameSettingsService.Current;
+                string preferenceBeforeEdit = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+                var entry = Field<Button>(UIManager.Instance.Get<MainMenuView>(), "Button_Settings");
+                await Wait(() => entry.IsInteractable(), "设置事务结束后恢复入口", 5);
+                await Click(ButtonPosition(entry));
+                await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开正式改键宿主", 10);
+                var settings = UIManager.Instance.Get<HubSettingsView>();
+                var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                await SelectSettingsPageAsync(screen, SettingsCategory.Input);
+                var page = (InputSettingsPage)((SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView).Editor;
+                var host = page.Rows.Single(row => row.Key == "Host");
+                await UniTask.Yield();
+                await UniTask.Yield();
+                Canvas.ForceUpdateCanvases();
+                await Click(ButtonPosition((Button)host.Control));
+                var hostChoices = Field<UITab>(host, "options");
+                await Wait(() => hostChoices.Items.Count == hosts.Count, "正式宿主下拉选项", 5);
+                await Click(ButtonPosition(hostChoices.Items[hostIndex].GetComponent<Button>()));
+                await Wait(() => Field<InputRebindSession>(page, "session").SourceId == source.SourceId, "切换真实改键数据源", 5);
+                var list = Field<LoopScrollView>(page, "bindingsList");
+
+                InputRebindSession Candidate() => Field<InputRebindSession>(page, "session");
+                int FindRow(Guid actionId, int bindingIndex)
+                {
+                    var entries = Field<IList>(page, "bindings");
+                    return Enumerable.Range(0, entries.Count).Single(index =>
+                    {
+                        var entry = entries[index];
+                        var action = (InputAction)entry.GetType().GetField("Action").GetValue(entry);
+                        int binding = (int)entry.GetType().GetField("Index").GetValue(entry);
+                        return action.id == actionId && binding == bindingIndex;
+                    });
+                }
+                async UniTask<InputSettingsBindingRow> RevealRow(int index)
+                {
+                    EventSystem.current.SetSelectedGameObject(null);
+                    list.ScrollToCell(index, ScrollAlignment.Center);
+                    await Wait(() => list.GetVisibleCell(index)?.Context.IsCurrent == true, "正式绑定行显示", 5);
+                    await UniTask.Yield();
+                    return list.GetVisibleCell(index).GetComponentInChildren<InputSettingsBindingRow>(true);
+                }
+                async UniTask ListenAndBind(InputSettingsBindingRow row, Key key, string path)
+                {
+                    var prompt = Field<InputBindingPrompt>(row, "prompt");
+                    var action = prompt.Action;
+                    int bindingIndex = Field<int?>(prompt, "displayBindingIndex").Value;
+                    await Click(ButtonPosition(Field<Button>(row, "rebind")));
+                    await Wait(() => page.IsListening, "真实改键按钮开始监听", 5);
+                    Assert.That(EventSystem.current.sendNavigationEvents, Is.False, "监听期间保留指针，暂停原生确认与方向导航。");
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
+                    await Wait(() => !page.IsListening, "实际键盘输入完成监听", 5);
+                    if (key == Key.Enter)
+                    {
+                        Assert.That(EventSystem.current.sendNavigationEvents, Is.False, "确认键保持时不能提前恢复导航。");
+                        Assert.That(screen.Category, Is.EqualTo(SettingsCategory.Input));
+                    }
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                    await UniTask.Yield();
+                    Assert.That(action.bindings[bindingIndex].effectivePath, Is.EqualTo(path));
+                }
+                async UniTask Apply()
+                {
+                    int version = Field<int>(GlobalData.Get<SettingsData>(), "Version");
+                    await Click(ButtonPosition(Field<Button>(screen, "apply")));
+                    await Wait(() => !SettingsFlow.IsSubmitting
+                        && Field<int>(GlobalData.Get<SettingsData>(), "Version") == version + 1, "正式页面保存绑定", 15);
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "feedback"), "Settings.Applied");
+                }
+
+                var resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                string beforeCancel = Candidate().ExportOverrides();
+                await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
+                await Wait(() => page.IsListening, "进入候选监听", 5);
+                Assert.That(Field<Button>(screen, "apply").interactable, Is.False);
+                await UniTask.Yield();
+                await Click(ButtonPosition((Button)page.Rows.Single(row => row.Key == "CancelRebind").Control));
+                await Wait(() => !page.IsListening, "页面取消按钮释放监听", 5);
+                Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
+                Assert.That(Candidate().ExportOverrides(), Is.EqualTo(beforeCancel));
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preferenceBeforeEdit));
+
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
+                await Wait(() => page.IsListening, "开始长按控件取消检查", 5);
+                var heldCancel = new MouseState
+                {
+                    position = ButtonPosition((Button)page.Rows.Single(row => row.Key == "CancelRebind").Control)
+                };
+                InputSystem.QueueStateEvent(mouse, heldCancel.WithButton(MouseButton.Left));
+                await Wait(() => !page.IsListening, "长按控件超过匹配期仍取消", 5);
+                InputSystem.QueueStateEvent(mouse, heldCancel);
+                await UniTask.Yield();
+                Assert.That(Candidate().ExportOverrides(), Is.EqualTo(beforeCancel));
+
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
+                await Wait(() => page.IsListening, "再次开始鼠标绑定", 5);
+                var paper = (RectTransform)screen.transform.Find("Design/Paper");
+                var blank = new Vector2(paper.rect.xMin + paper.rect.width * 0.92f, paper.rect.center.y);
+                var pointer = new MouseState
+                {
+                    position = RectTransformUtility.WorldToScreenPoint(paper.GetComponentInParent<Canvas>().worldCamera,
+                        paper.TransformPoint(blank))
+                };
+                InputSystem.QueueStateEvent(mouse, pointer.WithButton(MouseButton.Left));
+                await Wait(() => !page.IsListening, "界面控件外仍允许鼠标绑定", 5);
+                InputSystem.QueueStateEvent(mouse, pointer);
+                await UniTask.Yield();
+                Assert.That(Candidate().Asset.FindAction(liveReset.id.ToString(), true)
+                    .bindings[resetBinding].effectivePath, Is.EqualTo("<Mouse>/leftButton"));
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await Click(ButtonPosition(Field<Button>(resetRow, "reset")));
+
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await ListenAndBind(resetRow, Key.Enter, "<Keyboard>/enter");
+                Assert.That(screen.Category, Is.EqualTo(SettingsCategory.Input), "菜单确认键可绑定，不能提交其它分类。");
+                await Wait(() => EventSystem.current.sendNavigationEvents, "松键后恢复既有导航门闩", 5);
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await Click(ButtonPosition(Field<Button>(resetRow, "reset")));
+
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await ListenAndBind(resetRow, Key.F12, "<Keyboard>/f12");
+                Assert.That(screen.Capture().BindingOverrides[source.SourceId], Is.EqualTo(Candidate().ExportOverrides()));
+                Assert.That(JsonUtility.ToJson(GameSettingsService.Current), Is.EqualTo(JsonUtility.ToJson(savedBaseline)),
+                    "监听成功只编辑页面候选，不能提前发布或保存。");
+                Assert.That(GameSettingsService.Current.BindingOverrides.ContainsKey(source.SourceId), Is.False,
+                    "JsonUtility 不序列化 Dictionary，绑定隔离必须独立检查。");
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preferenceBeforeEdit));
+                await Apply();
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"));
+                var saved = LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey);
+                Assert.That(saved.BindingOverrides[source.SourceId], Is.EqualTo(GameSettingsService.Current.BindingOverrides[source.SourceId]));
+                Assert.That(running.Pressed("Reset"), Is.False);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.F12));
+                await UniTask.Yield();
+                Assert.That(running.Pressed("Reset"), Is.True, "提交后正式动作副本读取新绑定的真实按下边沿。");
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                await UniTask.Yield();
+
+                // 先编辑头部动作，再回收尾部行；监听完成会重绑所有行，不能跨监听保留行身份。
+                var movedAction = Candidate().Asset.FindAction("Observe/Move", true);
+                int movedBinding = Enumerable.Range(0, movedAction.bindings.Count)
+                    .Single(index => movedAction.bindings[index].path == "<Keyboard>/w");
+                string movedDefault = movedAction.bindings[movedBinding].path;
+                await ListenAndBind(await RevealRow(FindRow(movedAction.id, movedBinding)), Key.F11, "<Keyboard>/f11");
+                await RevealRow(FindRow(liveReset.id, resetBinding));
+                var oldButtons = new Dictionary<Button, (Guid Action, int Binding)>();
+                for (int index = 0; index < list.Count; index++)
+                {
+                    var cell = list.GetVisibleCell(index);
+                    if (cell?.Context.IsCurrent != true) continue;
+                    var row = cell.GetComponentInChildren<InputSettingsBindingRow>(true);
+                    var prompt = Field<InputBindingPrompt>(row, "prompt");
+                    oldButtons[Field<Button>(row, "reset")] = (prompt.Action.id, Field<int?>(prompt, "displayBindingIndex").Value);
+                }
+                EventSystem.current.SetSelectedGameObject(null);
+                list.ScrollToCell(0);
+                await UniTask.Yield();
+                Canvas.ForceUpdateCanvases();
+                InputSettingsBindingRow recycled = null;
+                await Wait(() =>
+                {
+                    for (int index = 0; index < list.Count; index++)
+                    {
+                        var cell = list.GetVisibleCell(index);
+                        if (cell?.Context.IsCurrent != true) continue;
+                        var row = cell.GetComponentInChildren<InputSettingsBindingRow>(true);
+                        var button = Field<Button>(row, "reset");
+                        var prompt = Field<InputBindingPrompt>(row, "prompt");
+                        int binding = Field<int?>(prompt, "displayBindingIndex").Value;
+                        var canvas = button.GetComponentInParent<Canvas>();
+                        var rect = (RectTransform)button.transform;
+                        var center = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, rect.TransformPoint(rect.rect.center));
+                        if (button.IsInteractable() && prompt.Action.id == movedAction.id && binding == movedBinding
+                            && RectTransformUtility.RectangleContainsScreenPoint(list.ScrollRect.viewport, center, canvas.worldCamera)
+                            && oldButtons.TryGetValue(button, out var old)
+                            && (old.Action != prompt.Action.id || old.Binding != binding))
+                        {
+                            recycled = row;
+                            return true;
+                        }
+                    }
+                    return false;
+                }, "列表物理行回收为另一绑定身份", 5);
+                Assert.That(movedAction.bindings[movedBinding].effectivePath, Is.EqualTo("<Keyboard>/f11"));
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"));
+                await Click(ButtonPosition(Field<Button>(recycled, "reset")));
+                await Wait(() => !page.IsListening && Candidate().Asset.FindAction(movedAction.id.ToString(), true)
+                    .bindings[movedBinding].effectivePath == movedDefault, "次按钮重置当前回收行", 5);
+                Assert.That(Candidate().Asset.FindAction(liveReset.id.ToString(), true).bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"),
+                    "回收次按钮不能重置它之前绑定的动作。");
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"));
+
+                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
+                await Click(ButtonPosition(Field<Button>(resetRow, "reset")));
+                Assert.That(Candidate().Asset.FindAction(liveReset.id.ToString(), true).bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"),
+                    "重置同样只改变候选，应用前保持正式会话。");
+                await Apply();
+                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
+                Assert.That(source.Asset.SaveBindingOverridesAsJson(), Is.EqualTo(sourceOverrides), "正式制作资产始终不被改键写入。");
+            }
+            finally
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                try
+                {
+                    await UIManager.Instance.CloseAsync<HubSettingsView>(animated: false);
+                    await Wait(() => !SettingsFlow.IsSubmitting, "收口改键页面事务", 15);
+                    running?.Dispose();
+                    var restored = await GameSettingsService.ApplyAsync(previous, _ => UniTask.FromResult(true));
+                    Assert.That(restored.Succeeded, Is.True, restored.Message);
+                }
+                finally
+                {
+                    running?.Dispose();
+                    RestoreSettingsPreference(hadPreference, preference);
+                }
+            }
+        }
+
+        [UnityTest, Timeout(180000)]
         public IEnumerator HubSettingsLanguagePageRebuildsRealViewsFontsAndMenuFocus()
         {
             yield return PrepareHub();

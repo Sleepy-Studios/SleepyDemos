@@ -19,6 +19,7 @@ namespace Core.Runtime.Inputs
         private Selectable[] targets;
         private bool[] availability;
         private bool hierarchyChanged;
+        private bool navigationEnabled = true;
         private GameObject revealedSelection;
         private readonly Vector3[] scrollCorners = new Vector3[4];
         /// 本作用域收到返回，由页面决定关闭、退层或离开。
@@ -28,7 +29,7 @@ namespace Core.Runtime.Inputs
             if (EventSystem.current == null) return;
             BuildNavigation();
             scope = new MenuInputScope(EventSystem.current, selectionRoot: transform);
-            scope.SetContext(GameplayInputContext.Menu, First());
+            scope.SetContext(navigationEnabled ? GameplayInputContext.Menu : GameplayInputContext.Gameplay, First());
         }
         private void Update()
         {
@@ -42,6 +43,19 @@ namespace Core.Runtime.Inputs
             RevealSelectedControl();
         }
         private void OnTransformChildrenChanged() => hierarchyChanged = true;
+
+        /// <summary>临时抑制原生菜单导航，保留指针交互；恢复时等待确认和方向输入回到中立。</summary>
+        /// <param name="enabled">改键监听等输入采集期间传 false，结束或取消后传 true。</param>
+        public void SetNavigationEnabled(bool enabled)
+        {
+            if (navigationEnabled == enabled)
+            {
+                return;
+            }
+            navigationEnabled = enabled;
+            scope?.SetContext(enabled ? GameplayInputContext.Menu : GameplayInputContext.Gameplay, First());
+        }
+
         internal void CaptureSelection()
         {
             var selected = EventSystem.current?.currentSelectedGameObject?.GetComponent<Selectable>();

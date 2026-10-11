@@ -63,6 +63,10 @@
 
 滚动表单中的控件保持点击区域尺寸稳定，交互五态优先修改颜色、边框或独立装饰节点。设置行曾因按下时缩放 Button 根节点导致抬手命中滚动视口、点击丢失，不能直接照搬模板的根节点缩放。普通 ScrollRect 的键盘／手柄焦点显露由 UIMenuScope 处理；循环列表继续使用自己的导航。循环条目中的改键、重置等所有可点击操作都使用 LoopScrollMenuButton 的回收身份保护。
 
+采集新按键等临时输入使用 `UIMenuScope.SetNavigationEnabled(false)` 保留指针、暂停原生 Submit/Navigate；结束或取消后传 `true`，复用 MenuInputScope 的松键门闩恢复导航。不要在业务页手写 EventSystem 导航状态快照或永久排除 Enter／手柄确认键。
+
+固定分类已为图标预留文字区域时，停用模板 Desc 上按文本宽度驱动的 ContentSizeFitter；长译文使用 TMP 原生自动字号和制作侧上下限。否则文字矩形会被重新撑宽，即使开启自动字号也仍可能覆盖图标。不要在业务代码中逐语言计算文字位置。
+
 ## 常用调用
 
 ```csharp

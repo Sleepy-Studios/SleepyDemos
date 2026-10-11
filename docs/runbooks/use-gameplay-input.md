@@ -54,7 +54,7 @@
    ```
 
    需要纯显示数据时调用 `InputBindingDisplay.GetParts/Get` 的可选 bindingIndex。它只解析指定的非复合根绑定，不返回这个动作的第一组键位。复用为完整动作时调用 Bind，复用为指定复合子项时调用 BindPart；两者都会清除精确索引选择。
-4. 在候选 `InputRebindSession` 上查询 CanRebind，再开始 Begin；固定 UI／Menu 绑定显示为不可编辑。监听取消交给公共 Cancel 用途，冲突回退当前候选绑定。使用 ConflictingActionId 匹配正式动作文案，不解析诊断字符串来寻找动作。
+4. 在候选 `InputRebindSession` 上查询 CanRebind，再开始 Begin；固定 UI／Menu 绑定显示为不可编辑。监听取消交给公共 Cancel 用途，冲突回退当前候选绑定。指针事件保留给 UI，点击取消按钮或长按界面控件不能写成鼠标绑定；控件外的鼠标按键仍可绑定。使用 ConflictingActionId 匹配正式动作文案，不解析诊断字符串来寻找动作。
 5. 监听结束后 ExportOverrides，写入公共设置候选的 BindingOverrides[SourceId]，由设置页统一提交或取消。源资产与运行会话在候选阶段保持原绑定；退出释放候选。成功提交后公共会话接收覆盖，Router 仍等待提交时保持的新键松开再执行。
 
 ## 图标资源与设备扩展

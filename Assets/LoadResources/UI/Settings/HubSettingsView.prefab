@@ -5098,6 +5098,10 @@ PrefabInstance:
       propertyPath: states.Array.data[1].properties.Array.data[1].vector3Value.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5727140301582254342, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5813684774313497354, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -5121,6 +5125,22 @@ PrefabInstance:
     - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_fontColor.r
       value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMax
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMin
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_TextWrappingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_enableAutoSizing
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6679190613365847766, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
@@ -5566,6 +5586,10 @@ PrefabInstance:
       propertyPath: states.Array.data[1].properties.Array.data[1].vector3Value.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5727140301582254342, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5813684774313497354, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -5589,6 +5613,22 @@ PrefabInstance:
     - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_fontColor.r
       value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMax
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMin
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_TextWrappingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_enableAutoSizing
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6679190613365847766, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
@@ -6144,6 +6184,10 @@ PrefabInstance:
       propertyPath: states.Array.data[1].properties.Array.data[1].vector3Value.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5727140301582254342, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5813684774313497354, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -6167,6 +6211,22 @@ PrefabInstance:
     - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_fontColor.r
       value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMax
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMin
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_TextWrappingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_enableAutoSizing
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6679190613365847766, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
@@ -7813,6 +7873,10 @@ PrefabInstance:
       propertyPath: states.Array.data[1].properties.Array.data[1].vector3Value.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5727140301582254342, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5813684774313497354, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -7836,6 +7900,22 @@ PrefabInstance:
     - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_fontColor.r
       value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMax
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMin
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_TextWrappingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_enableAutoSizing
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6679190613365847766, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
@@ -8303,6 +8383,10 @@ PrefabInstance:
       propertyPath: states.Array.data[1].properties.Array.data[1].vector3Value.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5727140301582254342, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5813684774313497354, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -8326,6 +8410,22 @@ PrefabInstance:
     - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_fontColor.r
       value: 0.12
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMax
+      value: 28
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_fontSizeMin
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_TextWrappingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6614229291607701317, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
+      propertyPath: m_enableAutoSizing
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6679190613365847766, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       propertyPath: m_IsActive

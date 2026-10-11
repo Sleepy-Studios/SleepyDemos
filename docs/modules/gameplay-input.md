@@ -77,6 +77,8 @@ Caption 使用 LanguageService 一次性设置文案，没有语言监听；字�
 
 `InputRebindSession` 独占禁用的候选副本，监听、重置和冲突校验不改源资产或正在运行的会话。行交互先查询 `CanRebind`，UI／Menu Map 以及 Submit、Cancel、Point、Click 等安全动作保持固定；可展示其绑定但不可修改。监听以公共 Cancel 用途取消，取消、退出或销毁时释放操作和副本。`ExportOverrides` 在监听结束后校验导出，再交由公共设置提交；保存边界按正式目录验证 SourceId、绑定 GUID、冲突和固定入口。
 
+监听保留原生 UI 输入事件，使取消按钮可操作；调用页面继续通过既有菜单作用域阻断玩法输入，并用 `UIMenuScope.SetNavigationEnabled` 暂停 Submit/Navigate、结束后等待松键恢复。指针匹配结束时若命中可交互 UI Selectable，恢复原候选并报告取消，长按界面控件也不能被记为鼠标绑定；控件外的鼠标按键保持可绑定。
+
 InputActionSession 的参数和覆盖来自 GameSettingsService 成功提交快照。覆盖确实改变时 Router 清理旧边沿，并在当前上下文重建松键门闩；提交时已按住的新绑定必须松开再按才执行。音量等设置变化不会重置输入。详见[公共设置与表现](settings-presentation.md)。
 
 UIBind 可以生成 InputCommandButton 的点击与保持回调；RegisterExtend 将回调交给 View 持有并在销毁时退订。InputBindingPrompt.BindAsset 按源动作 GUID 绑定实际会话副本；TouchInputPad 在禁用、失焦与应用暂停时释放指针。

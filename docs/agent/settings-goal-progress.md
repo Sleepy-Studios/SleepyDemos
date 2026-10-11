@@ -14,7 +14,7 @@
 | G7 | 功能及既有宿主回归通过 | 公共玩法时钟、倍率/冻结租约、曲线制作配置；Drone/Wall/Kart直接相关回归通过 |
 | G8 | 公共API及GPU验收通过 | 七类黑幕/四方向擦幕形状、队列与取消、黑边/HUD、冻结中英Title通过；正式表现View属G10 |
 | G9 | Editor功能阶段通过 | DLSS、Drone、Wall、Kart和Hub接线；Showcase保持独立公共菜单宿主。正式分页、演出入口及视觉装配在G10后再验收 |
-| G10 | 正式装配及定向交互通过 | 五独立分页、五宿主Variant、输入提示和效果体验已装配；完整英文/宽窄屏/各Demo视觉仍待验 |
+| G10 | 正式装配及定向交互通过 | 五独立分页、五宿主Variant、输入提示和效果体验已装配；Hub英文五页常规/窄屏/超宽已查看，各Demo和体验页的完整画幅视觉仍待验 |
 | G11 | 尚未完成 | 最终编译/测试/视觉/Player/硬件与工具清理 |
 
 ## 已取得证据
@@ -59,6 +59,11 @@
 - 一次 Wall 复验在开始阶段遇到 Test Runner 恢复已删除 InitTestScene 的基础设施错误（9306c3f6），没有执行测试方法，不计通过。原生 XML 已保存在 Library/GlobalSettings/test-results；取消保存对话框、保存临时测试场景副本并恢复未改动的 AppEntrance 后继续验收，未覆盖正式场景。
 - Kart 旧 Current footer 已从重复漂移改为固定 Native UI Cancel，保留纸艺节点/布局/字段；实际动作与 Input.Back 文案及专属/公共设置往返复验 1/1（c673c2c8）。Wall 暂停菜单打开公共画质、关闭后仍保持暂停与原菜单、场景往返 1/1（1349f377）；下拉接入后的 Hub 五页生命周期/候选隔离/单次提交复验 1/1（9b0f08b9）。上述测试串行执行，没有全量测试；正式场景未改动。
 - 正式装配阶段本地提交 `03c7729b`，循环条目身份修复提交 `e516ba31`，均未推送。收尾发现退出场景时 Streamline Driver 先销毁、设置服务再关闭会重建运行对象；已修复 `ApplyModeAsync(null)` 不初始化 Driver。Unity 编译通过（107eea3e）；新清理顺序回归（779ce4f9）、设置初始化与保存隔离（f84574d8）、手动抗锯齿与不支持 DLSS 恢复（3116d1ec）、真实显示确认与冻结超时（889ac1fe）各 1/1 通过，全部退出后的 Console Error 为 0。没有运行全量测试。
+- 基础组件正式设置行及输入提示资源登记提交 `f414f145`，Streamline 退出修复提交 `189f28fa`，均未推送。英文五页已在正式启动的 Game View 中逐页查看 1920×1080、1024×768、3440×1440；分类长译文曾与图标重叠，根因是模板 Desc 的 ContentSizeFitter 将文字区域撑宽，已在制作资源停用该尺寸驱动，使用 TMP 原生自动字号及制作上下限。窄屏与超宽布局重开后已实际查看，中文语言页重建与恢复也已观察；未据此声称全部 Demo 和体验页完成画幅验收。
+- Windows Player 前置已通过正式 Hotfix Build 窗口完成 HybridCLR 生成及 DLL/AOT 同步，YooAsset 正式首包 `2026-10-12-259` 构建成功。Player 构建 `6ff9de9b` 在 C++ 编译失败：用户级 CMD AutoRun 为 `chcp 65001 >nul`，Bee 子进程受限 PATH 中没有 System32，导致命令找不到。全机命令及工具链存在；修复该用户级 Windows 配置超出只修改本项目的范围，已提出精确备份及绝对路径方案，等待用户授权。不能将失败构建计为 Player 通过；最新分类 Prefab 修改仍需重新打首包。前置窗口域重载曾有一次既有 IMGUI 布局错误，资源构建成功后无同类错误。
+- 正式改键页面回归发现取消按钮点击被原生重绑定吞掉并写成鼠标左键。公共监听保留 UI 事件，在匹配结束命中可交互 Selectable 时归还原候选；输入页复用 UIMenuScope 暂停 Submit/Navigate，完成或取消后复用原 MenuInputScope 的中立门闩恢复，不排除合法 Enter／手柄确认键。短点击/长按取消、面板空白区域鼠标绑定、Enter 保持与松键、候选/存档/制作资产隔离、正式会话生效及回收次按钮身份回归 1/1 通过（85ffd712）；清理后再次 1/1 通过（c0b8b105）。最初测试准备曾抢在 Hub 下一帧恢复入口前点击，已等待真实入口；点击 Modal 背景本身是取消操作，鼠标绑定正例使用面板空白区域。
+- 已核对并删除无外部调用及制作引用的旧 DlssSettingsView 源码/Prefab/meta，保留仍由 FluxService 注册的 GraphicsSettings Data/Handler/Action。四个新一次性装配 Builder 源码/meta 已清理，Hotfix.Editor 临时 LoopScroll 引用已归还；源备份保存在 Library。清理后编译通过（14be30f7）。随后删除五个已空目录的操作被自动审批以“blocked by policy”拒绝，未提供具体原因，未重试或换工具；先前被拒的两个 Global Builder 也仍待清理。此前的 DLL/AOT 与首包产物需在最新源码下重新生成，当前不作为最终 Player 交付。
+- 新导航抑制入口的直接回归：既有嵌套菜单返回与触控五态 1/1（ad421acb）、最近菜单作用域取消转交 1/1（8e7e8363）通过。没有运行全量测试；宽窄屏证据已从 Assets/Screenshots 迁至 `Library/GlobalSettings/evidence/settings-layout`，不将验收截图作为生产资源提交。
 
 第一阶段提交范围：公共能力、制作资产、宿主调用、直接相关测试和文档；不代表 G9/G10/G11 已全部完成。临时 GlobalSettingsAssetsBuilder 与 GlobalInputGlyphsBuilder 已完成生产，但删除操作被自动审批以“blocked by policy”拦截（未提供具体原因），两者及目录/meta 均排除提交，清理暂未完成。
 
