@@ -12,6 +12,7 @@ namespace Tests.Demo
         [Serializable]
         private sealed class Manifest
         {
+            public int sampleRate;
             public string sourceRevision;
             public ClipInfo[] clips;
         }
@@ -20,7 +21,7 @@ namespace Tests.Demo
         private sealed class ClipInfo
         {
             public string name;
-            public float duration;
+            public double duration;
             public int channels;
             public float rms;
         }
@@ -158,6 +159,19 @@ namespace Tests.Demo
                 Assert.That(clip.length, Is.EqualTo(item.duration).Within(0.01f), name);
                 Assert.That(clip.channels, Is.EqualTo(item.channels), name);
                 Assert.That(item.rms, Is.GreaterThan(0.00001f), name);
+                if (name.StartsWith("music_", StringComparison.Ordinal))
+                {
+                    string path = AssetDatabase.GetAssetPath(clip);
+                    Assert.That(Path.GetExtension(path), Is.EqualTo(".ogg"), name);
+                    Assert.That(clip.frequency, Is.EqualTo(manifest.sampleRate), name);
+                    // Unity 导入 WAV/OGG 均可能有一个采样的长度舍入，不能容忍编码器整块补帧。
+                    Assert.That(clip.samples, Is.EqualTo((int)Math.Round(item.duration * manifest.sampleRate)).Within(1), name);
+                    var importer = (AudioImporter)AssetImporter.GetAtPath(path);
+                    Assert.That(importer.defaultSampleSettings.loadType, Is.EqualTo(AudioClipLoadType.DecompressOnLoad), name);
+                    Assert.That(clip.LoadAudioData(), Is.True, name);
+                    Assert.That(clip.GetData(new float[4096 * clip.channels], clip.samples / 2), Is.True, name);
+                    clip.UnloadAudioData();
+                }
             }
             foreach (string chapter in new[] { "meadow", "bosphorus", "glacier", "desk" })
             {
