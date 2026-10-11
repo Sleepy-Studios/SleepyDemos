@@ -69,7 +69,11 @@ namespace Core.Runtime.Rendering.Streamline
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            Initialize();
+            if (mode.HasValue)
+            {
+                Initialize();
+            }
+
             RequestedMode = mode;
             Changed?.Invoke();
             return await ReapplyAsync(cancellationToken);

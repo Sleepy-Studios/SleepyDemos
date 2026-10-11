@@ -58,6 +58,7 @@
 - 正式显示确认测试发现 UIDropdown 在 ScrollRect 内被后续行遮挡，已复用该组件增加同页 popupRoot 挂载、容器边界约束与完整布局归还，设置和体验页接入。原异步收起初始化（f790b3dd）及浮层射线/后续 Modal/busy/禁用/销毁回归（31efb0b5）各 1/1 通过；正式显示页真实保留/恢复、冻结下十五秒超时与偏好回滚 1/1（bc2013c7），截图 DisplayConfirm.png 已查看。
 - 一次 Wall 复验在开始阶段遇到 Test Runner 恢复已删除 InitTestScene 的基础设施错误（9306c3f6），没有执行测试方法，不计通过。原生 XML 已保存在 Library/GlobalSettings/test-results；取消保存对话框、保存临时测试场景副本并恢复未改动的 AppEntrance 后继续验收，未覆盖正式场景。
 - Kart 旧 Current footer 已从重复漂移改为固定 Native UI Cancel，保留纸艺节点/布局/字段；实际动作与 Input.Back 文案及专属/公共设置往返复验 1/1（c673c2c8）。Wall 暂停菜单打开公共画质、关闭后仍保持暂停与原菜单、场景往返 1/1（1349f377）；下拉接入后的 Hub 五页生命周期/候选隔离/单次提交复验 1/1（9b0f08b9）。上述测试串行执行，没有全量测试；正式场景未改动。
+- 正式装配阶段本地提交 `03c7729b`，循环条目身份修复提交 `e516ba31`，均未推送。收尾发现退出场景时 Streamline Driver 先销毁、设置服务再关闭会重建运行对象；已修复 `ApplyModeAsync(null)` 不初始化 Driver。Unity 编译通过（107eea3e）；新清理顺序回归（779ce4f9）、设置初始化与保存隔离（f84574d8）、手动抗锯齿与不支持 DLSS 恢复（3116d1ec）、真实显示确认与冻结超时（889ac1fe）各 1/1 通过，全部退出后的 Console Error 为 0。没有运行全量测试。
 
 第一阶段提交范围：公共能力、制作资产、宿主调用、直接相关测试和文档；不代表 G9/G10/G11 已全部完成。临时 GlobalSettingsAssetsBuilder 与 GlobalInputGlyphsBuilder 已完成生产，但删除操作被自动审批以“blocked by policy”拦截（未提供具体原因），两者及目录/meta 均排除提交，清理暂未完成。
 

@@ -98,7 +98,7 @@
 
 主音量与音乐/音效分类增益在 DSP 各分类混音处与本地增益相乘，静音保留播放位置。全局减少动态和禁用相机抖动优先于赛车选项。规则推进、立体书和赛前/领奖表现使用公共玩法时长；UI、输入采样、帧率及 DSP 时钟保留未缩放语义，冻结期间暂停与退出仍可操作。API 与配置真源见[公共设置与表现](../../modules/settings-presentation.md)。
 
-模式页和暂停页均可打开独立 `KagitKartSettingsView` / `KagitKartControlsView`，各自保存正式 Prefab 与生命周期。设置复用公共 `LocalDataManager`，键为 `LocalDataKeys.KagitKartPreferences`；音乐默认 0.7、音效 0.9、自动油门和帧率默认关。保存成功才替换场景偏好，损坏记录回退默认而不覆盖存储，失败显示中文反馈。画面行按需打开已有 `DlssSettingsView`，不复制公共画质实现。
+模式页和暂停页均可打开独立 `KagitKartSettingsView` / `KagitKartControlsView`，各自保存正式 Prefab 与生命周期。设置复用公共 `LocalDataManager`，键为 `LocalDataKeys.KagitKartPreferences`；音乐默认 0.7、音效 0.9、自动油门和帧率默认关。保存成功才替换场景偏好，损坏记录回退默认而不覆盖存储，失败显示本地化反馈。画面行通过 `SettingsFlow.OpenAsync(GameSceneId.KagitKart)` 打开公共显示与画质分类，使用卡丁车纸艺 Prefab Variant，不复制公共画质实现。
 
 音乐/音效和静音交付现有音频宿主，自动油门仍允许主动刹车，触控显示独立于真实输入设备。帧率按真实 `Time.unscaledDeltaTime` 每半秒采样，独立于固定步比赛时钟。低动态显式开关覆盖纸卡、立体书、角色、纸景、赛前与冲线演出，并关闭镜头震动；切换赛前路线保留原有进度。`ReducedMotion=auto` 通过 Core.Runtime 的 `SystemMotionPreference` 在启动及修改该选项时读取：Windows 使用原生客户区动画开关，Android 使用系统动画尺度是否为零；查询失败使用正常动态，不修改系统偏好。Windows 真实读取 Test Runner 1/1（`09ae1204`），设置回归 2/2（`71fa701a`）。Android 条件分支尚未在 Player 或真机执行。首次四行操作卡与五类驾驶提示接入独立非交互 Widget，不创建输入作用域。
 

@@ -16,6 +16,39 @@ namespace Tests.Module
     public sealed class DisplaySettingsRuntimeTests
     {
         [UnityTest]
+        public IEnumerator ShutdownAfterStreamlineDriverDestroyDoesNotRecreateRuntime()
+        {
+            StreamlineRuntime.Initialize();
+            var driver = GameObject.Find("Streamline Runtime");
+            Assert.That(driver, Is.Not.Null);
+            try
+            {
+                UnityEngine.Object.Destroy(driver);
+                yield return null;
+                Assert.That(StreamlineRuntime.IsInitialized, Is.False);
+                DisplaySettingsRuntime.Shutdown();
+                yield return StreamlineRuntime.ApplyModeAsync(null).ToCoroutine();
+                Assert.That(StreamlineRuntime.IsInitialized, Is.False, "关闭和退出服务不能重建已销毁的运行对象");
+                Assert.That(GameObject.Find("Streamline Runtime"), Is.Null);
+
+                StreamlineRuntime.Initialize();
+                driver = GameObject.Find("Streamline Runtime");
+                Assert.That(StreamlineRuntime.IsInitialized, Is.True);
+                Assert.That(driver, Is.Not.Null, "下一次正式初始化仍可创建运行对象");
+            }
+            finally
+            {
+                DisplaySettingsRuntime.Shutdown();
+                if (driver != null)
+                {
+                    UnityEngine.Object.Destroy(driver);
+                }
+            }
+
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator ManualAntialiasingSurvivesUnsupportedDlssAndRestoresCameraAuthors()
         {
             DisplaySettingsRuntime.Shutdown();
