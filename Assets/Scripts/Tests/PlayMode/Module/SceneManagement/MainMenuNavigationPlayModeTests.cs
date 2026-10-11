@@ -40,7 +40,7 @@ namespace Tests.Module
             yield return PrepareHub();
             var firstMenu = UIManager.Instance.Get<MainMenuView>();
             // 直接使用保存的绑定，避免把 Prefab 的层级路径变成测试契约。
-            var button = CardForScene(firstMenu, GameSceneId.JinxCasino);
+            var button = CardForScene(firstMenu, GameSceneId.Dlss);
             yield return null; yield return null;
             Vector2 position = ButtonPosition(button);
             yield return Click(position);
@@ -51,7 +51,7 @@ namespace Tests.Module
             yield return Click(position);
             Assert.That(runtime.LoadCount, Is.EqualTo(1), "加载期间重复点击不能再发起进入请求。");
 
-            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 JinxCasino：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 Dlss：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "加载失败恢复 Hub", 15);
             var restoredMenu = UIManager.Instance.Get<MainMenuView>();
@@ -66,14 +66,14 @@ namespace Tests.Module
 
             // 新实例需要经过帧末 Canvas 注册/布局；随后仍验证真实射线并通过 InputSystem 点击。
             yield return null; yield return null;
-            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo("倒霉蛋俱乐部"), "失败恢复应保留待重试玩法。");
+            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo("DLSS 实验室"), "失败恢复应保留待重试玩法。");
             yield return Click(ButtonPosition(Field<Button>(restoredMenu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 2, "新 Hub 可以实际点击重试", 15);
-            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 JinxCasino：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 Dlss：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "重试失败也能恢复", 15);
             yield return null; yield return null;
-            Assert.That(CardForScene(UIManager.Instance.Get<MainMenuView>(), GameSceneId.JinxCasino).interactable, Is.True);
+            Assert.That(CardForScene(UIManager.Instance.Get<MainMenuView>(), GameSceneId.Dlss).interactable, Is.True);
         }
 
         [UnityTest, Timeout(180000)]

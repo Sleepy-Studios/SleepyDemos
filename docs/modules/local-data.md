@@ -12,12 +12,12 @@
 
 文件路径只能位于指定根目录内。偏好限制 128 KiB 字符，文件限制 16 MiB，JSON 最大深度 64；不反序列化外部提供的类型名。
 
-钓鱼使用 persistentDataPath/HowToFish，赌场旅程使用 persistentDataPath/JinxCasino，永久档案使用其 Profile 子目录。纸艺卡丁车的计时记录使用 persistentDataPath/KagitKart/Records，领域入口见 [纸艺卡丁车模块](../demos/kagit_kart/module.md)。只维护当前数据结构；损坏进度按空槽、损坏永久档案按新用户处理，读取不自动覆盖记录。不创建或读取备份，不搜索旧目录，不维护版本迁移。
+钓鱼使用 persistentDataPath/HowToFish，纸艺卡丁车的计时记录使用 persistentDataPath/KagitKart/Records，领域入口见 [纸艺卡丁车模块](../demos/kagit_kart/module.md)。只维护当前数据结构；损坏进度按空槽、损坏永久档案按新用户处理，读取不自动覆盖记录。不创建或读取备份，不搜索旧目录，不维护版本迁移。
 
 读取后的业务对象由调用方持有；预览使用独立副本，明确保存成功才提交保存状态。ClearData 只清本场内存状态，不删除本机记录。
 
 ## 验证
 
-公共读写使用 `Tests.Module.LocalDataManagerTests`，领域使用两个 Demo 的存档和偏好测试。重点检查三槽与跨 Demo 隔离、候选合法性、损坏回默认、原子写入失败保护及目录越界拒绝。
+公共读写使用 `Tests.Module.LocalDataManagerTests`，领域使用对应业务的存档和偏好测试。重点检查存储隔离、候选合法性、损坏回默认、原子写入失败保护及目录越界拒绝。
 
-2026-10-09：公共存储 6/6、两个 Demo 的偏好/存档/永久档案及画面设置直接相关用例通过。Unity Editor 编译无错误；UI 导航 51/51、生命周期 23/23、过渡 9/9、跨场景过渡 13/13 通过。未执行全量测试、真机与 IL2CPP 构建。
+历史记录（2026-10-09）：公共存储 6/6、当时两个 Demo 的偏好/存档/永久档案及画面设置直接相关用例通过；已移除业务的结果不代表当前实现。Unity Editor 编译无错误；UI 导航 51/51、生命周期 23/23、过渡 9/9、跨场景过渡 13/13 通过。未执行全量测试、真机与 IL2CPP 构建。

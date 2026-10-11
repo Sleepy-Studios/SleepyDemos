@@ -20,7 +20,7 @@
 
 目前完成协议与显式 `OfflineLocalNetworkSessionService`。离线实现只允许一人，拒绝 Join，不能作为互联网联机或 SDK 兼容证据。缺少 App ID 或已注册 SDK 适配时 `CreateInternet` 明确失败，不自动切换为离线。
 
-当前赌场目标已调整为完整单机，联网选型待定；保留这些已有协议与离线适配作为原型依赖，不继续扩建网络框架。旧P0显式离线链路曾通过Windows/Android IL2CPP构建，Windows解压启动到Hub；不构成任何SDK兼容或互联网联机证据。未来如采用Weaver，相关网络类型只进入AOT；Core不反向引用Hotfix。
+当前没有接入联网玩法；保留已有公共协议与离线适配，不继续扩建网络框架。未来如采用 Weaver，相关网络类型只进入 AOT；Core 不反向引用 Hotfix。历史原型构建结果不构成当前 SDK 兼容或互联网联机证据。
 
 ## 验证
 

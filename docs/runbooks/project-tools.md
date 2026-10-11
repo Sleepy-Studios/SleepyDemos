@@ -155,24 +155,6 @@
 
 ---
 
-## Demo 专属编辑器工具
-
-### 倒霉蛋俱乐部
-
-赌场一次性场景/UI/机台装配Builder已清理。当前维护已保存的场景、Prefab和模型资产；不再提供重生成菜单。正式平台构建入口保留，参见 [Demo运行手册](../demos/jinx_casino/runbooks/run.md)。
-
-`Tools/SleepyDemos/整蛊赌场/S1离线Player构建`在当前Editor生成Windows ZIP / Android APK，独立启动到赌场主菜单；旧P0/P4入口已删除。平台事务、恢复与产物状态详见上述运行手册。
-
-| 直达菜单 | 说明 |
-|----------|------|
-| `Tools/SleepyDemos/整蛊赌场/构建Windows S1独立样板` | 启动 Windows x64 IL2CPP 离线验证构建，生成 Player 与 ZIP |
-| `Tools/SleepyDemos/整蛊赌场/构建Android S1独立样板` | 启动 Android 8.0+、ARM64 离线验证 APK 构建 |
-| `Tools/SleepyDemos/整蛊赌场/重打包最近Windows S1分享包` | 为已成功生成的Player重打包Playable ZIP，排除调试辅助目录，不重新编译 |
-
-恢复因文件占用等原因中断时，使用`Tools/SleepyDemos/整蛊赌场/重试构建配置恢复`，保留已有ZIP/APK与备份，不把恢复重试当成取消构建。
-
-直达菜单与构建窗口共用同一事务，不并行执行；两个S1单机构建入口不要求联网SDK或App ID；构建不代表样板体验或真机验收完成。源码位于 `Assets/Scripts/Hotfix/Editor/JinxCasino/JinxCasinoPlayerBuildWindow.cs` 与 `JinxCasinoPlayerBuildPipeline.cs`。
-
 ## 五、Agent Skill（仓库内）
 
 项目级技能的入口和自动扫描方式见 [项目 Skill 入口](../agent/skills.md)。完整清单不在本文手写维护，以脚本输出为准：

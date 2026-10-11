@@ -27,7 +27,7 @@
 
 Core不处理下注、机台、牌局、角色运动约束或游戏时钟，也不创建界面、相机和第二套EventSystem。宿主保留自己的inputactions、动作到玩法命令的映射、提示文案、触控布局和设置存储。参数对象可由任意设置系统提供，模块不另建PlayerPrefs键或存档格式。
 
-JinxCasino已直接消费公共实现：原Exploration/Table/Menu资产及动作ID不变，构造时传入Map名称；不会重跑生成器。触控区域的脚本GUID、isLookPad和引用字段保持，保存资源已使用Core类型，不再保留原Hotfix类型的MovedFrom映射。DroneFlight 和 DLSS 使用各自动作资产及公共 InputActionSession；Showcase 使用菜单作用域，不复制设备底座。
+DroneFlight 和 DLSS 使用各自动作资产及公共 InputActionSession；Showcase 使用菜单作用域，不复制设备底座。
 
 ## 调用和生命周期
 
@@ -41,17 +41,17 @@ Router在移动端首次创建时默认Touch，其它平台默认KeyboardMouse�
 
 ## 维护和验证
 
-Map名称可配置；动作语义是公共契约，新增专属玩法应消费已有设备无关命令或在自己的ActionMap实现，不向Core加入赌场类型。原动作资产不被启停/改写，路由器只管理副本中指定的三张Map。
+Map名称可配置；动作语义是公共契约，新增专属玩法应消费已有设备无关命令或在自己的ActionMap实现，不向Core加入业务类型。原动作资产不被启停/改写，路由器只管理副本中指定的三张Map。
 
 迁移原有输入测试到Tests.Module，未复制一套新测试：EditMode验证增量/角速度、死区和暂停；PlayMode验证真实InputSystem上下文、菜单单次提交、断连/震动及触控指针归属。Demo入口回归验证真实保存资产和Prefab接线。模拟设备不等于Xbox/Android硬件验收；移入AOT后正式Player仍需重生成HybridCLR构建数据并验证。
 
-TouchInputPad保存资源已统一指向Core.Runtime.Inputs当前类型；赌场旧类型MovedFrom映射已删除，没有为旧原型维护输入别名。
+TouchInputPad保存资源已统一指向Core.Runtime.Inputs当前类型；不维护业务旧类型的MovedFrom映射或输入别名。
 
 接入步骤见[使用玩法输入](../runbooks/use-gameplay-input.md)。
 
 ## 通用会话与设备提示
 
-InputActionSession 克隆源资产，启停自己的 Map，SetMap 等待旧按钮/轴中立，Dispose 释放副本；ReadVector 对原始摇杆只应用一次公共死区。业务命令保留在 Demo，不扩展赌场枚举承载无人机四轴。
+InputActionSession 克隆源资产，启停自己的 Map，SetMap 等待旧按钮/轴中立，Dispose 释放副本；ReadVector 对原始摇杆只应用一次公共死区。业务命令保留在 Demo，无人机四轴由自己的动作配置表达。
 
 InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、光标及交互视觉；PromptDevice/PromptKind 独立选择已连接手柄，多个手柄优先最近实际使用者，离线后选剩余手柄或平台入口。连接、漂移和提示更换不提交动作。
 

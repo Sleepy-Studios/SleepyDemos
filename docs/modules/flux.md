@@ -25,7 +25,7 @@
 - `Assets/Scripts/Hotfix/Module/User/`：启动时记录本机硬件配置
 - `Assets/Scripts/Hotfix/Module/Main/`：大厅选择、导航状态和反馈
 - `Assets/Scripts/Hotfix/Module/GraphicsSettings/`：公共渲染设置请求与真实生效反馈。
-- `Assets/Scripts/Hotfix/Demos/`：无人机、DLSS、赌场、渔力全开、夹爆它和纸艺卡丁车随场景注册业务 Data。规则对象继续提供同一进度真源，Handler 接管业务修改，场景控制器保留物理与表现。
+- `Assets/Scripts/Hotfix/Demos/`：无人机、DLSS、渔力全开、夹爆它和纸艺卡丁车随场景注册业务 Data。规则对象继续提供同一进度真源，Handler 接管业务修改，场景控制器保留物理与表现。
 
 ## 核心 API
 

@@ -31,7 +31,7 @@ namespace Tests.Module
         [Test]
         public void DemoPages_HaveLocalBindingsAndSeparateHudParts()
         {
-            foreach (var demo in new[] { "how_to_fish", "jinx_casino", "drone_flight" })
+            foreach (var demo in new[] { "how_to_fish", "drone_flight" })
                 foreach (var path in Directory.GetFiles("Assets/LoadResources/Demos/" + demo + "/Prefabs/UI", "*.prefab", SearchOption.AllDirectories))
                 {
                     var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -53,9 +53,6 @@ namespace Tests.Module
                 var region = drone.GetComponentsInChildren<Transform>(true).Single(node => node.name == name);
                 Assert.That(PrefabUtility.GetCorrespondingObjectFromSource(region), Is.Not.Null, name);
             }
-            var casinoHud = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/jinx_casino/Prefabs/UI/JinxCasinoImmersionHudView.prefab");
-            foreach (var name in new[] { "MainMenu", "PauseMenu", "SaveSlotsPanel", "StandardEndingPanel", "LocalSettings" })
-                Assert.That(casinoHud.GetComponentsInChildren<Transform>(true).Any(node => node.name == name), Is.False, name);
         }
 
         [Test]

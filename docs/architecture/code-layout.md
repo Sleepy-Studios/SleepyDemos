@@ -50,7 +50,7 @@
 - `Module/Main`
 - `Module/Common`
 - `Module/User`、`Module/GraphicsSettings`
-- `Demos/`：无人机、DLSS、赌场、渔力全开、夹爆它、纸艺卡丁车与 LoopScroll 示例
+- `Demos/`：无人机、DLSS、渔力全开、夹爆它、纸艺卡丁车与 LoopScroll 示例
 
 不要放：
 - 通用资源加载框架

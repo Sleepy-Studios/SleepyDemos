@@ -70,7 +70,7 @@ Hotfix 的关键词是：
 
 ## 网络 SDK 与玩法
 
-第三方网络 SDK、需要编译期织入的 NetworkBehaviour / RPC 和稳定通用状态载体保留在 Core AOT 适配；Hotfix 解释命令与快照、执行具体规则。Core 不认识下注、赌场区域或结局。Windows / Android 的兼容性必须由各自 IL2CPP Player 证实，详见[通用会话模块](../modules/network-session.md)。
+第三方网络 SDK、需要编译期织入的 NetworkBehaviour / RPC 和稳定通用状态载体保留在 Core AOT 适配；Hotfix 解释命令与快照、执行具体规则。Core 不解释具体玩法规则。Windows / Android 的兼容性必须由各自 IL2CPP Player 证实，详见[通用会话模块](../modules/network-session.md)。
 
 ## 禁止事项
 
