@@ -192,16 +192,17 @@ namespace Tests.Module
         {
             yield return PrepareHub();
             var menu = UIManager.Instance.Get<MainMenuView>();
-            var button = CardForScene(menu, GameSceneId.BlockPorters);
+            var button = CardForScene(menu, GameSceneId.Dlss);
             yield return Click(ButtonPosition(button));
             Assert.That(runtime.LoadCount, Is.Zero);
-            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("小小搬豆工"));
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("DLSS 实验室"));
+            var selectedIndex = Field<List<MainMenuDemoEntry>>(menu, "entries").FindIndex(entry => entry.SceneId == GameSceneId.Dlss);
             var hero = Field<UIImageLoader>(menu, "UIImageLoader_Hero");
             var list = Field<LoopScrollView>(menu, "LoopScrollView_DemoList");
             yield return Wait(() => hero.TargetImage.sprite != null &&
-                hero.TargetImage.sprite == list.GetVisibleCell(1)?.GetComponentInChildren<UIImageLoader>().TargetImage.sprite,
+                hero.TargetImage.sprite == list.GetVisibleCell(selectedIndex)?.GetComponentInChildren<UIImageLoader>().TargetImage.sprite,
                 "大预览与卡片复用同一个主体 Sprite", 10);
-            var preview = list.GetVisibleCell(1).GetComponentInChildren<UIImageLoader>();
+            var preview = list.GetVisibleCell(selectedIndex).GetComponentInChildren<UIImageLoader>();
             Assert.That(hero.TargetImage.preserveAspect && preview.TargetImage.preserveAspect, Is.True);
 
             var entries = Field<List<MainMenuDemoEntry>>(menu, "entries");
@@ -226,13 +227,13 @@ namespace Tests.Module
             InputDeviceState.Notify(touchscreen);
             yield return null; yield return null;
             var menu = UIManager.Instance.Get<MainMenuView>();
-            yield return Tap(ButtonPosition(CardForScene(menu, GameSceneId.BlockPorters)));
+            yield return Tap(ButtonPosition(CardForScene(menu, GameSceneId.Dlss)));
             Assert.That(runtime.LoadCount, Is.Zero, "触控选择卡片不能直接进入场景。");
-            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("小小搬豆工"));
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("DLSS 实验室"));
             yield return Tap(ButtonPosition(Field<Button>(menu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 1, "触控开始按钮进入当前预览", 15);
-            AssertRequestedScene(GameSceneId.BlockPorters);
-            ExpectEntryFailure(GameSceneId.BlockPorters);
+            AssertRequestedScene(GameSceneId.Dlss);
+            ExpectEntryFailure(GameSceneId.Dlss);
             runtime.FailEntry();
             yield return Wait(IsStableHub, "触控进入失败收口", 15);
         }
@@ -299,6 +300,10 @@ namespace Tests.Module
                 Assert.That(startup, Is.Not.Null);
                 yield return Wait(() => startup.isDone, "AppEntrance 启动", 90);
             }
+            if (GameSceneNavigator.Instance?.CurrentScene == GameSceneId.Hub && UIManager.Instance?.Get<MainMenuView>() == null)
+            {
+                yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+            }
             yield return Wait(IsStableHub, "Hub 稳定", 90);
             originalInputSettings = InputSystem.settings;
             testInputSettings = Object.Instantiate(originalInputSettings);
@@ -339,6 +344,8 @@ namespace Tests.Module
                     runtime.FailEntry();
                     yield return Wait(IsStableHub, "清理待完成的进入请求", 15);
                 }
+                // Test Runner 退出 PlayMode 前按页面生命周期释放输入循环。
+                yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine();
             }
             finally
             {

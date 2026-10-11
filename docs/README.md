@@ -83,7 +83,6 @@
 
 | Demo | 统一入口 |
 |---|---|
-| 小小搬豆工 | [block_porters](demos/block_porters/README.md) |
 | 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
 | DLSS 实验室 | [dlss](demos/dlss/README.md) |
 | Loop Scroll 示例 | [loop_scroll](demos/loop_scroll/README.md) |

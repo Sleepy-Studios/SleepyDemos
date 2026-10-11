@@ -6,7 +6,6 @@ namespace Hotfix.SceneManagement
         Hub = 0,
         DroneFlight = 1,
         Dlss = 2,
-        BlockPorters = 3,
         JinxCasino = 4,
         HowToFish = 5,
         WallSqueeze = 6,
@@ -74,7 +73,6 @@ namespace Hotfix.SceneManagement
         internal const string DroneFlightAddress =
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
         internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
-        internal const string BlockPortersAddress = "Assets/LoadResources/Demos/block_porters/Scenes/Main.unity";
         internal const string JinxCasinoAddress = "Assets/LoadResources/Demos/jinx_casino/Scenes/Immersion.unity";
 
         internal const string HowToFishAddress = "Assets/LoadResources/Demos/how_to_fish/Scenes/Main.unity";
@@ -111,9 +109,6 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.Dlss:
                     definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", DlssAddress);
-                    return true;
-                case GameSceneId.BlockPorters:
-                    definition = new GameSceneDefinition(GameSceneId.BlockPorters, "小小搬豆工", BlockPortersAddress);
                     return true;
                 case GameSceneId.JinxCasino:
                     definition = new GameSceneDefinition(GameSceneId.JinxCasino, "倒霉蛋俱乐部", JinxCasinoAddress);

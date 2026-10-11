@@ -10,7 +10,7 @@
 | --- | --- |
 | `ArtSource/` | 赌场 Blender、生成脚本、概念图和公共图标 SVG |
 | `ArtSource~/how_to_fish/` | 渔力全开 Blender、导出记录和音频生成源 |
-| `Assets/Settings/BlockPorters/ArtSource/` | 搬豆工原图、提示词和补字清单 |
+| `Assets/Settings/BlockPorters/ArtSource/`（历史源稿） | 搬豆工已移除；项目外原图、提示词和补字清单保留，不再导回游戏工程 |
 
 `source-manifest.json` 记录迁移时每份源稿的相对路径、大小及 SHA-256。迁移共 366 文件、53,841,343 字节，包含搬豆工源目录的 `.meta`；复制后逐份哈希一致才删除游戏仓库原稿。该清单只描述迁移快照，修改源稿后应重新记录新版本。
 

@@ -4,7 +4,6 @@
 
 | Demo | 文档入口 | 内部标识 |
 |---|---|---|
-| 小小搬豆工 | [入口与维护](block_porters/README.md) | `BlockPorters` / `block_porters` |
 | 无人机飞行仿真 | [入口与维护](drone_flight/README.md) | `DroneFlight` / `drone_flight` |
 | DLSS 体验 | [入口与维护](dlss/README.md) | `Dlss` / `dlss` |
 | Loop Scroll 示例 | [入口与维护](loop_scroll/README.md) | `LoopScroll` / `loop_scroll` |

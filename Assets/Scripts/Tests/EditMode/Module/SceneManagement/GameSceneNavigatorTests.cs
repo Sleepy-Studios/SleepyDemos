@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using Hotfix;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
 
@@ -22,6 +23,13 @@ namespace Tests.Module
                 Assert.That(GameSceneCatalog.TryFindSceneId(definition.Address, out var resolved), Is.True);
                 Assert.That(resolved, Is.EqualTo(scene));
             }
+            foreach (var entry in new MainMenuData().Entries)
+            {
+                if (entry.SceneId.HasValue)
+                {
+                    Assert.That(GameSceneCatalog.TryGet(entry.SceneId.Value, out _), Is.True, entry.Key);
+                }
+            }
             Assert.That(GameSceneCatalog.TryFindSceneId("Assets/Scenes/AppEntrance.unity", out _), Is.False);
         }
 
@@ -33,9 +41,9 @@ namespace Tests.Module
             Assert.That(hub.Address, Is.Null);
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.DroneFlight, out var demo), Is.True);
             Assert.That(demo.Address, Is.EqualTo(GameSceneCatalog.DroneFlightAddress));
-            Assert.That(GameSceneCatalog.TryGet(GameSceneId.BlockPorters, out var porters), Is.True);
-            Assert.That(porters.Address, Is.EqualTo(GameSceneCatalog.BlockPortersAddress));
-            Assert.That(porters.IsHub, Is.False);
+            Assert.That(GameSceneCatalog.TryGet(GameSceneId.Dlss, out var dlss), Is.True);
+            Assert.That(dlss.Address, Is.EqualTo(GameSceneCatalog.DlssAddress));
+            Assert.That(dlss.IsHub, Is.False);
         }
 
         [Test]

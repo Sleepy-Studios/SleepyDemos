@@ -70,6 +70,4 @@ ValidationArtifacts~/
 # Editable art sources live in the independent art directory
 /ArtSource/
 /ArtSource~/
-/Assets/Settings/BlockPorters/ArtSource/
-/Assets/Settings/BlockPorters/ArtSource.meta
 **/__pycache__/
