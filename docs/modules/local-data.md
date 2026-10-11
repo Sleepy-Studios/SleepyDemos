@@ -12,7 +12,7 @@
 
 文件路径只能位于指定根目录内。偏好限制 128 KiB 字符，文件限制 16 MiB，JSON 最大深度 64；不反序列化外部提供的类型名。
 
-钓鱼使用 persistentDataPath/HowToFish，纸艺卡丁车的计时记录使用 persistentDataPath/KagitKart/Records，领域入口见 [纸艺卡丁车模块](../demos/kagit_kart/module.md)。只维护当前数据结构；损坏进度按空槽、损坏永久档案按新用户处理，读取不自动覆盖记录。不创建或读取备份，不搜索旧目录，不维护版本迁移。
+纸艺卡丁车的计时记录使用 persistentDataPath/KagitKart/Records，领域入口见 [纸艺卡丁车模块](../demos/kagit_kart/module.md)。只维护当前数据结构；损坏记录按对应业务默认值处理，读取不自动覆盖记录。不创建或读取备份，不搜索旧目录，不维护版本迁移。
 
 读取后的业务对象由调用方持有；预览使用独立副本，明确保存成功才提交保存状态。ClearData 只清本场内存状态，不删除本机记录。
 

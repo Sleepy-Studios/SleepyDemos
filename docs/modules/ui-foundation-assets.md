@@ -44,9 +44,9 @@ UIProgressBar 包装同节点 Filled Image 的数值和颜色。白色 Sprite �
 
 普通线性填充使用 `Sprites/White.png` 与 `UIProgressBar.SetValue/SetColor`；有形状的轨道和圆角遮罩继续使用带 Border 的 Sliced Sprite。设置 Slider 由自身控制 Fill Rect，填充用白色 Simple Image；不要再用长胶囊图拉伸当作内部填充。径向或明确需要纹理形状的 Filled 不按普通矩形处理。
 
-已迁移渔力全开张力与 Boss 两条进度、无人机重置进度和公共加载进度。既有序列化 Image 引用保留，初始化时缓存同节点 UIProgressBar；新建渔力全开资源也按该约定装配。
+无人机重置进度和公共加载进度使用公共 UIProgressBar。既有序列化 Image 引用保留，初始化时缓存同节点 UIProgressBar。
 
-定向验证：线性填充资源 1/1、无人机 HUD 绑定 1/1、渔力全开蜘蛛蟹流程 1/1。公共 Filled 网格测试覆盖精确 0%、1%、50%、100%。
+定向验证：线性填充资源 1/1、无人机 HUD 绑定 1/1。公共 Filled 网格测试覆盖精确 0%、1%、50%、100%。
 
 
 最终资源契约 59bfe436（4/4）通过：检查全部普通水平/竖直 Filled 的白 Sprite、UIProgressBar 和射线设置，不再按节点名称筛选；同时核查 Demo 页面绑定无外部节点、无缺失脚本以及无人机 HUD 子 Prefab 引用。一次性基础 UI/进度/页面迁移工具及其 meta 已删除，正式组件、保存资源和 Test Runner 是后续维护入口。

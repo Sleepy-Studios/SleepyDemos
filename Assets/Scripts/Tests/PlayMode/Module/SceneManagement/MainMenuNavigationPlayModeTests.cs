@@ -183,7 +183,13 @@ namespace Tests.Module
             finally
             {
                 entries.Clear(); entries.AddRange(originals);
-                if (menu.State != ViewState.Destroyed) list.SetTotalCount(entries, getItemKey: item => ((MainMenuDemoEntry)item).Key);
+                var currentMenu = UIManager.Instance.Get<MainMenuView>();
+                if (currentMenu != null && currentMenu.State != ViewState.Destroyed)
+                {
+                    Field<LoopScrollView>(currentMenu, "LoopScrollView_DemoList").SetTotalCount(entries,
+                        getItemKey: item => ((MainMenuDemoEntry)item).Key);
+                    GlobalData.Dispatch(new MainMenuSelectAction(0));
+                }
             }
         }
 

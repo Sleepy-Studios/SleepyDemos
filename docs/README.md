@@ -86,7 +86,6 @@
 | 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
 | DLSS 实验室 | [dlss](demos/dlss/README.md) |
 | Loop Scroll 示例 | [loop_scroll](demos/loop_scroll/README.md) |
-| 渔力全开单人复刻（开发中） | [how_to_fish](demos/how_to_fish/README.md) |
 | 夹爆它（MVP 验证版） | [wall_squeeze](demos/wall_squeeze/README.md) |
 | 纸艺卡丁车（源码迁移中） | [kagit_kart](demos/kagit_kart/README.md) |
 

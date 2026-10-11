@@ -31,7 +31,7 @@ namespace Tests.Module
         [Test]
         public void DemoPages_HaveLocalBindingsAndSeparateHudParts()
         {
-            foreach (var demo in new[] { "how_to_fish", "drone_flight" })
+            foreach (var demo in new[] { "drone_flight" })
                 foreach (var path in Directory.GetFiles("Assets/LoadResources/Demos/" + demo + "/Prefabs/UI", "*.prefab", SearchOption.AllDirectories))
                 {
                     var root = AssetDatabase.LoadAssetAtPath<GameObject>(path);

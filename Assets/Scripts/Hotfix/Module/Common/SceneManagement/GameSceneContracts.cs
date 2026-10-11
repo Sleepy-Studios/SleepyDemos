@@ -6,7 +6,6 @@ namespace Hotfix.SceneManagement
         Hub = 0,
         DroneFlight = 1,
         Dlss = 2,
-        HowToFish = 5,
         WallSqueeze = 6,
         KagitKart = 7
     }
@@ -73,7 +72,6 @@ namespace Hotfix.SceneManagement
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
         internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
 
-        internal const string HowToFishAddress = "Assets/LoadResources/Demos/how_to_fish/Scenes/Main.unity";
         internal const string WallSqueezeAddress = "Assets/LoadResources/Demos/wall_squeeze/Scenes/Main.unity";
         internal const string KagitKartAddress = "Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity";
 
@@ -107,9 +105,6 @@ namespace Hotfix.SceneManagement
                     return true;
                 case GameSceneId.Dlss:
                     definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", DlssAddress);
-                    return true;
-                case GameSceneId.HowToFish:
-                    definition = new GameSceneDefinition(GameSceneId.HowToFish, "渔力全开 · 单人", HowToFishAddress);
                     return true;
                 case GameSceneId.WallSqueeze:
                     definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", WallSqueezeAddress);

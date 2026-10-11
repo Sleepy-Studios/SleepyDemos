@@ -7,7 +7,6 @@
 | 无人机飞行仿真 | [入口与维护](drone_flight/README.md) | `DroneFlight` / `drone_flight` |
 | DLSS 体验 | [入口与维护](dlss/README.md) | `Dlss` / `dlss` |
 | Loop Scroll 示例 | [入口与维护](loop_scroll/README.md) | `LoopScroll` / `loop_scroll` |
-| 渔力全开单人复刻（开发中） | [入口与计划](how_to_fish/README.md) | `HowToFish` / `how_to_fish` |
 | 夹爆它（MVP 验证版） | [入口与验证案](wall_squeeze/README.md) | `WallSqueeze` / `wall_squeeze` |
 | 纸艺卡丁车（源码迁移中） | [入口与迁移](kagit_kart/README.md) | `KagitKart` / `kagit_kart` |
 
