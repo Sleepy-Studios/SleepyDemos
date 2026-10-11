@@ -89,7 +89,7 @@ Assets/LoadResources/Demos/drone_flight/
 6. 选择完成后无需再按 F；`R` 仍是唯一的电机解锁/锁定入口。F 只保留为旧 `Waiting` 状态的兼容入口，不进入常驻操作提示。
 7. 长按 R 只发送一次 `ReloadRequested`。场景协调器先按具体实例关闭本会话选择/HUD/F2 绘制/F3 面板，再调用 `GameSceneNavigator.ReloadCurrentAsync()`；新场景稳定后重新打开选择，正常 `Canceled` 不记录 Error。
 
-机型选择以 1920×1080 为设计基准，`DroneVehicleSelectionLayout` 按宿主尺寸和安全区缩放内容，超宽屏扩展独立背景，触屏放大卡片文字。三张透明 PNG 直接由成品 Prefab 的真实网格与材质渲染，大预览与卡片共用同一 Sprite；模型图保持比例，按钮/卡片底板使用带 Border 的 Sliced Sprite。`UIMenuScope`、`UICancelRelay` 与 `InputBindingPrompt` 继续提供公共导航、返回和实际绑定提示。一次性取图、装配工具完成后删除，日常通过 Prefab 和 UIBind 维护，不运行时重建 UI。
+机型选择以 1920×1080 为设计基准，`DroneVehicleSelectionLayout` 按宿主尺寸和安全区缩放内容，超宽屏扩展独立背景，触屏放大卡片文字。三张透明 PNG 直接由成品 Prefab 的真实网格与材质渲染，大预览与卡片共用同一 Sprite；模型图保持比例，按钮/卡片底板使用带 Border 的 Sliced Sprite。`UIMenuScope`、`UIMenuCancelRelay` 与 `InputBindingPrompt` 继续提供公共导航、返回和实际绑定提示。一次性取图、装配工具完成后删除，日常通过 Prefab 和 UIBind 维护，不运行时重建 UI。
 
 ## 配置边界
 
@@ -192,7 +192,7 @@ Data/DroneFlight.inputactions 保存 Flight/Waiting/Menu。DronePlayerInput 使�
 
 会话从 `GameSettingsService.Current.Input` 取得公共死区、视角倍率和 Y 轴反转参数，成功提交后应用新的参数及绑定覆盖；不回写 `DroneFlight.inputactions`。`DroneInputConfig` 继续保存无人机键盘平滑和长按重载时长。生效绑定属于 `InputActionSession.Asset`，提示通过 `BindAsset` 读取同一副本，改键后不能继续显示制作资产的旧键位。
 
-提示及触控区域跟随最近实际操作的设备，接入手柄本身与摇杆漂移不抢占键鼠提示。公共 `InputBindingPrompt` 复用保存的 `InputGlyphCatalog`，已有键盘键使用 Kenney 实际图标，缺少图形时才用空键帽加真实键名；手柄按已识别布局使用 Xbox、PlayStation、Switch 图标。帮助正文和部分遥测中的短键名仍按实际绑定生成文字。触控按钮保留可点击动作说明，`ShowInputPrompts` 只收起物理绑定和纯提示，不隐藏必需的触控命令入口。
+提示及触控区域跟随最近实际操作的设备，接入手柄本身与摇杆漂移不抢占键鼠提示。公共 `InputBindingPrompt` 复用保存的 `InputGlyphCatalog`，已有键盘键使用 Kenney 实际图标，缺少图形时才用空键帽加真实键名；手柄按已识别布局使用 Xbox、PlayStation、Switch 图标。帮助与遥测使用正式提示 Variant，触控/操作面板按稳定词条一次性设置动作说明，图标从实际会话绑定更新。触控按钮保留可点击动作说明，`ShowInputPrompts` 只收起物理绑定和纯提示，不隐藏必需的触控命令入口。
 
 左扳机/手机镜头模式将右摇杆交给镜头/准星，清空该摇杆平移量；西侧键装备、北侧键瞄准、方向键上下收放线、左肩切镜头、右肩操作面板。面板提供起降、档位、起落架、视野、帮助、诊断及退出。面板打开清空手动输入，继续原飞控稳定，不写刚体状态/PID；关闭等松键。触控/面板由 HUD View 读取 Data 并提交操作 Action，公共输入组件处理指针与提示；Handler 绑定当前输入，不扫描场景找机体。提示读取生效动作副本，F2/F3/F4 等不在 HUD 硬编码。
 

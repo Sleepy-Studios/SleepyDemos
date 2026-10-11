@@ -67,6 +67,19 @@
 
 固定分类已为图标预留文字区域时，停用模板 Desc 上按文本宽度驱动的 ContentSizeFitter；长译文使用 TMP 原生自动字号和制作侧上下限。否则文字矩形会被重新撑宽，即使开启自动字号也仍可能覆盖图标。不要在业务代码中逐语言计算文字位置。
 
+## 正式调用示例与维护入口
+
+新增页面前先看组件，再看下列实际调用；不要复制整个业务页面作为基础组件。
+
+| 要接入的能力 | 当前项目示例 |
+|---|---|
+| 分类与独立子页生命周期 | [SettingsScreen](../../Assets/Scripts/Hotfix/Module/Settings/UI/SettingsScreen.cs) 的 `Initialize / SelectCategory`，通过 `AddSubView` 持有五个独立分页，交给 `ViewTab.Init(views: ...)` 切换 |
+| 同类绑定条目回收与回显 | [InputSettingsPage](../../Assets/Scripts/Hotfix/Module/Settings/UI/InputSettingsPage.cs) 的 `AttachList / BindItem / RefreshBindings`，注册 `SettingsBindingItemView`，隐藏条目时清理旧动作回调 |
+| 固定异构控件的静默回显 | [SettingsPage](../../Assets/Scripts/Hotfix/Module/Settings/UI/SettingsPage.cs) 与 [UISettingRow](../../Assets/Scripts/Core/Runtime/Components/UISettingRow.cs)，使用已有控件并替换回调；不由行组件保存玩家设置 |
+| 提示图标与一次性动作文案 | [公共输入接入步骤](use-gameplay-input.md)，使用真实会话绑定、`SetCaptionKey` 和正式提示 Prefab；不要拼固定键名 |
+
+公共组件行为变更时，在本手册更新适用条件和调用示例；正式基础资源新增或替换时，在 [基础预制体维护](../modules/ui-foundation-assets.md) 登记路径、引用及验证范围。专属外观只记录在对应 Demo，公共生命周期与输入规则继续引用这里。检查实际资源和调用方后，再决定是否需要提取新组件。
+
 ## 常用调用
 
 ```csharp

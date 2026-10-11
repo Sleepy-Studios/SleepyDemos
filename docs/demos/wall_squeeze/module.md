@@ -38,7 +38,7 @@ HUD 保存黑框头尾分格：标题、剩余、保护、关卡与限时；底�
 
 `WallSqueezeInput.Router` 从 `GameSettingsService` 消费公共死区、震动与已验证绑定覆盖；源 `PlayerInput.asset` 保持制作数据，实际输入与提示读取 Router 的会话副本。有效覆盖改变时清除旧离散动作，并要求保持中的新键松开再按；仅音量或输入参数变化不重置当前玩法输入。返回键在 Interaction 请求暂停，进入 Menu 后确认/返回交给公共 UI，不重复提交玩法暂停。
 
-HUD 跟随最近实际操作设备；连接手柄和漂移不抢占键鼠提示。底部文字说明通过 `InputBindingDisplay` 解析实际选墙、沿轴导航及暂停绑定，保留本 Demo 的中文业务说明；`ShowInputPrompts` 收起操作提示，多只夹爆反馈仍可显示。公共 `InputBindingPrompt` 和 `InputGlyphCatalog` 提供 Kenney 实际键盘及各品牌手柄图标，只有缺少图形的键才使用空键帽；当前 WallSqueeze 底部仍是组合文字区域，不把它当成已经完成图标装配的提示组。
+HUD 跟随最近实际操作设备；连接手柄和漂移不抢占键鼠提示。底部提示通过 `InputBindingPrompt` 读取实际选墙、沿轴导航及暂停绑定，图标与动作词条分开显示，触屏说明通过一次性语言 API 赋值，保留多只夹爆等专属业务反馈；`ShowInputPrompts` 收起操作提示，多只夹爆反馈仍可显示。公共 `InputBindingPrompt` 和 `InputGlyphCatalog` 提供 Kenney 实际键盘及各品牌手柄图标，只有缺少图形的键才使用空键帽；底部保存独立提示组与本 Demo 的正式 Variant。
 
 `WallSqueezeWorld` 用 `GameTimeService.DeltaTime` 推进规则、倒计时、夹爆反馈和碎片；沿轴输入目标只乘一次公共倍率。世界冻结时不选墙、不拖墙、不推进规则或碎片，仍先采样未缩放输入并更新菜单，允许暂停和返回 Hub。`LocalPauseState` 继续处理失焦/断连和明确继续，不直接修改全局时间。
 
