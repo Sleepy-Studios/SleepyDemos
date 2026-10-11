@@ -1,16 +1,16 @@
 # 公共设置与效果体验美术确认
 
-G10 的页面与组件效果图。整体暖白、朱红色瑞士风格已确认；下列具体页面尚待用户确认，不能视为正式 UI 已装配或视觉验收完成。
+G10 的页面与组件效果图。用户于 2026-10-12 基本确认七张图，并要求公共逻辑复用、每个 Demo 使用自己的基础 UI Variant，保留原有风格，尤其纸艺卡丁车。暖白、朱红色瑞士风格用于 Hub 基础版本，不覆盖 Demo 美术；确认不等于正式 UI 已装配或视觉验收完成。
 
 | 页面或组件 | 效果图 | 提示词 | 确认状态 |
 |---|---|---|---|
-| 显示与画质 | [查看](graphics-settings-v1.png) | [查看](graphics-settings-v1.prompt.txt) | 待确认 |
-| 声音 | [查看](audio-settings-v1.png) | [查看](audio-settings-v1.prompt.txt) | 待确认 |
-| 控制 | [查看](controls-settings-v1.png) | [查看](controls-settings-v1.prompt.txt) | 待确认 |
-| 语言 | [查看](language-settings-v1.png) | [查看](language-settings-v1.prompt.txt) | 待确认 |
-| 辅助功能 | [查看](accessibility-settings-v1.png) | [查看](accessibility-settings-v1.prompt.txt) | 待确认 |
-| 公共输入提示 | [查看](input-prompt-v1.png) | [查看](input-prompt-v1.prompt.txt) | 待确认 |
-| 公共效果体验 | [查看](presentation-lab-v1.png) | [查看](presentation-lab-v1.prompt.txt) | 待确认 |
+| 显示与画质 | [查看](graphics-settings-v1.png) | [查看](graphics-settings-v1.prompt.txt) | 已基本确认，保留宿主风格 |
+| 声音 | [查看](audio-settings-v1.png) | [查看](audio-settings-v1.prompt.txt) | 已基本确认，保留宿主风格 |
+| 控制 | [查看](controls-settings-v1.png) | [查看](controls-settings-v1.prompt.txt) | 已基本确认，保留宿主风格 |
+| 语言 | [查看](language-settings-v1.png) | [查看](language-settings-v1.prompt.txt) | 已基本确认，保留宿主风格 |
+| 辅助功能 | [查看](accessibility-settings-v1.png) | [查看](accessibility-settings-v1.prompt.txt) | 已基本确认，保留宿主风格 |
+| 公共输入提示 | [查看](input-prompt-v1.png) | [查看](input-prompt-v1.prompt.txt) | 已基本确认，保留宿主风格 |
+| 公共效果体验 | [查看](presentation-lab-v1.png) | [查看](presentation-lab-v1.prompt.txt) | 已基本确认，保留宿主风格 |
 
 ## 图与实现的对应范围
 

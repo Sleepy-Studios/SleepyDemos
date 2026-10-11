@@ -6,6 +6,7 @@
 
 ## 通用规则
 
+- 写页面或新增公共 UI 前，先从下方按需求选型，再核对组件源码、基础 Prefab 和现有调用方。只有现有能力不能覆盖实际需求时才扩展；扩展后同步本入口和对应模块文档。
 - 每个组件只使用一个主入口：`Init(...)`、`SetData(...)` 或 `SetImage(...)`。
 - `Register` 表示追加回调，`Unregister` 表示移除回调，`SetAction` 表示覆盖回调。
 - `notify` 控制本次设置是否触发回调；静默回显或初始化默认值时传 `false`。
@@ -18,11 +19,17 @@
 | --- | --- |
 | `UITab` | 有限数量 Tab，只负责选中态、文案、图标和点击回调 |
 | `AccordionTab` | 两级手风琴 Tab，回调使用扁平化叶子索引 |
-| `ViewTab` | 用 `UITab` 驱动多个 View 或本地分页对象 |
+| `ViewTab` | 用 `UITab` 驱动多个独立 View；设置、商店等分类页优先使用 `views` 分支，维护各子页的加载、显隐和销毁生命周期 |
 | `AccordionViewTab` | 用 `AccordionTab` 叶子索引驱动多个 View 或本地分页对象 |
 | `ViewList` | 有限 View 列表，不承担循环滚动 |
+| `LoopScrollView` + `ItemView` | 数据条目多、同类条目需要回收复用的列表；通过 `LoopScrollRegisterExtend` 接入，使用稳定数据 Key |
+| 原生 `ScrollRect` + LayoutGroup | 数量有限、控件不同的固定表单，例如声音滑条、画质开关；不为少量异构行增加列表复用和数据绑定 |
 | `UIDropdown` | 基于 `UITab` 的基础下拉选择，默认文案绑定 TMP_Text |
 | `UIBtnSwitch` | 二态按钮开关 |
+| `UIState` + `UIStateInteraction` | 分别维护业务 Selected 与交互五态；不在每个页面重新写一套状态或导航输入 |
+| `UIMenuScope` | 页面/弹窗的焦点导航与返回，复用公共输入模块 |
+| `InputBindingPrompt` / `InputCommandButton` | 有效绑定图标与动作文案 / 可点击、可保持的触控命令；复用 Kenney 图标目录 |
+| `UISettingRow` | 对现有 Dropdown、Slider、Switch、Button 的设置行引用与回显；不负责分类切换、保存或输入会话 |
 | `UIImageLoader` | 按资源路径给 `Image` 加载 Sprite |
 | `TMPAutoFitLayoutElement` | TMP 文本按最大宽高自适应 LayoutElement 或自身尺寸 |
 | `TMPAutoScrollEnableBehaviour` | 单行 TMP 超宽后横向自动滚动 |
@@ -34,6 +41,24 @@
 | `PyramidLayoutGroup` | 固定尺寸品字或三角形布局 |
 | `FlowLayoutGroup` | 不同尺寸子项按宽度换行或按高度换列 |
 | `TMPLinkHandler` | 监听 TMP `<link>` 的 linkId 点击事件 |
+
+## 从需求找到资源和示例
+
+下面路径相对于项目根目录。公共控件入口为 `Assets/Scripts/Core/Runtime/Components/`；输入相关组件在 `Assets/Scripts/Core/Runtime/Input/`。基础资源以 [UI 预制体检查范围](../modules/ui-foundation-assets.md) 为准，不能只看名字相似就另建组件。
+
+| 需求 | 复用入口 / 资源 | 接入依据 |
+|---|---|---|
+| 分类按钮，仅选中回调 | `UITab`；`UI/Common/_TemplateInstantiatePrefab/Tab/Tab.prefab` | `Init` / `Register`；保留模板自带图标引用 |
+| 分类对应独立业务页面 | `ViewTab`；`UI/Common/_TemplateInstantiatePrefab/Tab/ViewTabVertical.prefab` | `Init(views: ...)`，各分类自己的 View、Prefab 和生命周期；不要改为一个脚本手动切全部区域 |
+| 大量同类数据条目 | `LoopScrollView`、`LoopScrollItemViewBridge`、`LoopScrollRegisterExtend` | [循环列表接入](use-loop-scroll.md)；现有 `MainMenuView` / `MainMenuDemoItemView` 展示数据绑定与条目复用 |
+| 下拉候选、开关、普通按钮 | `UIDropdown`、`UIBtnSwitch`；`_TemplateInstantiatePrefab/Dropdown/Dropdown`、`Btns/BtnSwitch`、`Btns/CommonButton` | 先验证现有 Prefab；制作数据与交互逻辑不复制到业务页 |
+| 设备按键提示与触控操作 | `InputBindingPrompt`、`InputCommandButton`；`UI/Common/Input/` | [公共输入](use-gameplay-input.md)；有效会话绑定、图标配置与触控释放共用底座 |
+| 保存反馈或控件说明 | `CommonTips`、`SimpleTips`；`SingleUIManager` | 本文“两类 Tips”；不要再造 Toast / Tooltip 宿主 |
+| 进度、倒计时、超宽文本 | `UIProgressBar`、`UICountdown`、`TMPAutoScrollEnableBehaviour` | 本文相关小节；使用已维护的时间和布局入口 |
+
+表中 `UI/...` 资源路径相对于 `Assets/LoadResources/`。每个 Demo 可从基础 Prefab 建立自己的 Variant，覆盖图片、字体组、颜色和布局；公共 API 和生命周期一致，不要求 Demo 外观与 Hub 相同。卡丁车等已有美术风格保持其作者资源。
+
+循环列表的判断依据是数据是否需要同类条目复用，不是页面上出现了滚动条。分类通常只有少量 Tab；固定设置表单使用原生布局；动作及绑定数量随宿主变化的控制列表使用循环列表。不要把所有设置项包装成同一个通用数据列表，也不要把大量动作全部实例化在 LayoutGroup 下。
 
 ## 常用调用
 
@@ -115,7 +140,7 @@ titleText.text = title;
 - 不要给 Tab、Dropdown 或 Accordion 传图片缩放参数；需要布局尺寸时改 prefab 布局。
 - 不要把 `Register` 当覆盖回调用；重复打开页面时应成对 `Unregister`，或使用组件提供的覆盖入口。
 - 不要在 `ViewList` 初始化回调里依赖外部循环变量；使用 `Action<TView, TData, int>` 的 index 参数。
-- `ViewList` 仅适合有限数量的 View 项；大量数据列表需要重新评估并单独设计。
+- `ViewList` 仅适合有限数量的 View 项；大量同类数据条目优先复用已有 `LoopScrollView` 和宿主桥接。
 - 不要把 `CanvasGroup.SetCanvasGroupVisible` 当作 GameObject 激活切换，也不要再增加同名 `CanvasGroup.Show/Hide`。
 - 不要从 Hotfix 直接复制大型 `UIUtil` 或第三方包的内部扩展到 `Core.Runtime/Extends`。
 - `TMPAutoScrollView.cs` 属于钓鱼项目的 ItemView 适配层；当前项目使用独立组件与预制体，直接操作 TMP，不引入这层包装。
