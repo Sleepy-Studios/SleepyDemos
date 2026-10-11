@@ -10,6 +10,7 @@
 - 新增模块或调整职责、依赖、目录时，读 [架构总览](docs/architecture/overview.md)、[代码与资源布局](docs/architecture/code-layout.md) 和 [Core / Hotfix 边界](docs/architecture/hotfix-boundary.md)。
 - 修改 C# 前，读 [文档维护与 C# 规范](docs/architecture/documentation-rules.md) 中的排版、命名和注释规则，并遵循根 `.editorconfig`；Flux 三件套按 `gen-module` 技能整理，私有字段不用 `_` 前缀。
 - 涉及启动、热更、资源、公共 UI 或 Demo 接入时，按文档导航读取对应架构、模块和 runbook；大型 UI 导航或过渡改动遵循导航中的跨层阅读要求。
+- 新增、替换或生成正式音频时，遵守[音频资源与导入规范](docs/architecture/audio-assets.md)：WAV 超过 2 MiB 必须从无损原稿导出 OGG，按用途手动选择平台导入 Preset；专用 DSP 按模块采样契约配置。
 - 同一任务已读且未变化的内容不重复加载；纯文字、格式修正不触发整套架构或模块阅读。
 
 ## 项目边界

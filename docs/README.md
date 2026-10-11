@@ -20,6 +20,7 @@
 | 使用时间、颜色、倒计时或通用 Tips | [Core.Runtime](./modules/core-runtime.md)、[UI 运行时](./modules/ui-runtime.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 修改启动或热更流程 | [启动与热更流程](./architecture/startup-flow.md)、[热更新模块](./modules/hotfix.md) |
 | 修改资源组织或加载 | [资源命名规范](./architecture/asset-naming.md)、[资源运行时](./modules/resource-runtime.md)、[使用资源 Loader](./runbooks/use-resource-loader.md) |
+| 新增、替换或生成正式音频，选择平台导入设置 | [音频资源与导入规范](./architecture/audio-assets.md) |
 | 新增 Demo | [新增 Demo](./runbooks/add-demo.md)，再按涉及的模块继续阅读 |
 | 新增或运行测试 | [测试架构](./architecture/testing.md)、[运行 Unity 自动化测试](./runbooks/run-unity-tests.md) |
 | 其他业务或工具任务 | 从下方模块、Agent 技能和 runbook 导航定位相关内容 |
@@ -33,6 +34,7 @@
 - `architecture/`
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
   - [资源命名规范](./architecture/asset-naming.md)
+  - [音频资源与导入规范](./architecture/audio-assets.md)
   - [资源系统设计原则](./architecture/resource-system.md)
   - [配置系统设计](./architecture/config-system.md)
   - [Core UI 渲染设计原则](./architecture/ui-rendering.md)
