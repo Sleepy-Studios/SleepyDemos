@@ -56,9 +56,13 @@
 
 ## 验证重点
 
-### Editor Offline 实际首包验收
+### Editor 运行验证
 
-用户已将本任务及后续功能任务原定 Windows Player 最终验收调整为 Editor Offline Play Mode 与实际首包验收，默认不构建 Player。继续使用既有 `Hotfix Build` 和 YooAsset 打包入口，不新增启动或验证框架。
+默认模式遵循 [根验证规则](../../AGENTS.md#验证与-unity-editor)。普通功能验证使用 `HotfixConfig.PlayMode = EditorSimulateMode`，通过正式 `AppEntrance` 启动，检查 Hub 与受影响 Demo 的资源加载和交互。复用 Unity Editor 已编译的代码及开发资源，无需重编译 DLL 或构建首包；临时改变配置时记录原值并在结束或失败后恢复。
+
+### 按明确要求执行 Offline 首包验收
+
+只有用户明确要求 Offline 验收时，才使用既有 `Hotfix Build` 和 YooAsset 打包入口执行以下流程，不新增启动或验证框架。
 
 - 验收前记录正式 `Assets/LoadResources/Config/HotfixConfig.asset` 的原状态，包括资源模式、包名、启动场景与路径；仅临时切换到 `OfflinePlayMode`，保留原配置以供结束或失败后完整恢复。
 - 使用本轮最新源码与资源生成的首包，核对实际 `StreamingAssets` 中的版本、清单与 Bundle / DLL 资源；旧版本或 EditorSimulate 的开发目录不能代替本轮首包。通过正式 `Assets/Scenes/AppEntrance.unity` 启动，核对 Offline 包初始化、Hub 与目标 Demo 的实际资源加载和交互，结束后恢复原配置。

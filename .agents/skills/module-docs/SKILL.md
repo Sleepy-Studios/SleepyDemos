@@ -77,4 +77,5 @@ description: "按 SleepyDemos 的 architecture / modules / runbooks 三层文档
 - 模块文档保持短而可维护；详细“怎么用”移到 runbook。
 - runbook 面向完成任务，不解释太多设计历史。
 - architecture 不写流水账步骤。
+- 共同协作规则引用 `AGENTS.md`，测试政策引用测试架构，技能维护引用 `docs/agent/skills.md`；验证模式等持续政策只链接权威正文，不在模块或 runbook 复制一套。
 - 小型 Data 三件套可以不单独写模块文档，除非出现独立入口、复杂规则或多人高频修改边界。

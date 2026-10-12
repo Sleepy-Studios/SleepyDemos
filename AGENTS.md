@@ -72,8 +72,8 @@
 
 ## 验证与 Unity Editor
 
-- 本任务及后续功能任务以 Editor Offline Play Mode 的实际首包流程替代原定 Windows Player 最终验收，默认不构建 Player。验收前记录 `HotfixConfig` 原状态，临时切换 `OfflinePlayMode`，使用正式 `AppEntrance` 和最新 `StreamingAssets`，结束或失败后恢复原配置；流程边界见[热更新模块](docs/modules/hotfix.md)。
-- Editor Offline 通过不等于独立 Player / IL2CPP 通过：`UNITY_EDITOR` 会复用已加载的 Hotfix 程序集，IL2CPP 编译、裁剪和原生发布验证后置；真实手柄和触屏仍需另行验收。
+- 默认使用 EditorSimulateMode 的编辑器运行流程，按受影响范围通过正式 `AppEntrance` 验证；不为普通功能验收重编译 DLL、重建首包或构建 Player。只有用户明确要求时才使用 Offline 首包验收，具体步骤见[热更新模块](docs/modules/hotfix.md)。
+- Editor 通过不等于独立 Player / IL2CPP 通过：`UNITY_EDITOR` 会复用已加载的 Hotfix 程序集；DLL 独立加载、IL2CPP 编译、裁剪、原生发布以及真实手柄和触屏需另行验收。
 - 测试程序集、保留价值与最小范围以 [测试架构](docs/architecture/testing.md) 为准；Unity Test Runner 为唯一自动化测试入口。
 - 首次调用任何 UnitySkills REST 前，按项目路径从 `~/.unity_skills/registry.json` 确认实例端口；缺失或不可信时扫描 `localhost:8090-8100/health`，核对项目名、Unity 版本和实例 ID，禁止写死端口。调用、串行执行与排障见 [运行 Unity 自动化测试](docs/runbooks/run-unity-tests.md)。
 - 已打开同一项目时不另起 BatchMode Unity。禁止用 `dotnet build`、`msbuild` 或类似方式构建 Unity 自动生成的 `.sln` / `.csproj`；编译结果通过 Unity Editor 编译/Console 或既有 Unity 测试入口确认。

@@ -69,7 +69,7 @@ Vulkan 验证需先保存并关闭 Editor，再使用 `-force-vulkan -streamline
 3. 检查原生初始化、设备访问与清理，确认无图形验证错误。
 4. 使用独立验证场景检查颜色、深度、运动矢量、曝光和历史，再验证最终画面。
 5. 验证 Overlay UI、场景切换、Resize、暂停恢复、设置切换和异常回退。
-6. 功能收尾使用 Editor Offline Play Mode 与最新实际首包，从正式 AppEntrance 复测并恢复 HotfixConfig；不默认构建 Windows Player。独立 IL2CPP、裁剪、交换链和原生插件发布另作后置发布验证；FG/MFG 仍记录实际测试 GPU，不能以 RTX 3050 的不支持结果代替成功验收。
+6. 从正式 AppEntrance 按[项目验证模式](../../AGENTS.md#验证与-unity-editor)复测受影响功能；Offline 首包仅在用户明确要求时执行。独立 IL2CPP、裁剪、交换链和原生插件发布另作后置发布验证；FG/MFG 仍记录实际测试 GPU，不能以 RTX 3050 的不支持结果代替成功验收。
 
 ## 验证与排障
 
