@@ -12,7 +12,7 @@
 
 `SettingsFlow.OpenAsync(category, token)` 仅在 Hub 通过 UIManager 按需打开 `HubSettingsView`；资源为 `UI/Settings/HubSettingsView.prefab`。Demo 没有公共设置按钮、快捷入口或专属公共设置弹窗，继续使用自己的玩法设置，并通过公共 API 消费 Hub 中保存的全局偏好。
 
-Main View 直接持有 UITab／ViewTab、候选和提交生命周期。Graphics、Audio、Input、Language、Accessibility 各自是独立 `*SettingsPanelView`，直接使用 UIBind 生成的基础控件引用。主页面只创建 View 对象并交付候选，ViewTab 在选中时异步加载对应 Prefab；不内嵌五页，也不保留 SettingsScreen／SettingsPage 包装层或多宿主根基类。五页共享一份独立候选，显示时回显、隐藏时释放编辑会话；AddSubView 持有销毁所有权。
+Main View 直接持有 UITab／ViewTab、候选和提交生命周期。Graphics、Audio、Input、Language、Accessibility 各自是独立 `*SettingsPanelView`，直接使用 UIBind 生成的基础控件引用。主页面只创建 View 对象并交付候选，先登记 ViewTab，再同步绑定五个 UITab 分类；ViewTab 在选中时异步加载对应 Prefab，避免逐帧分类初始化覆盖早点击。不内嵌五页，也不保留 SettingsScreen／SettingsPage 包装层或多宿主根基类。五页共享一份独立候选，显示时回显、隐藏时释放编辑会话；AddSubView 持有销毁所有权。
 
 子页位于 `UI/Settings/Panels/`。固定表单复用 UISettingRow、Dropdown、Slider、Switch、Button；控制页的同类绑定条目使用 LoopScrollView 和 `UI/Settings/SettingsBindingItemView.prefab` 回收复用。引用按实际节点通过正式 UIBind 生成，不维护额外地址路由。公共输入提示和各 Demo 原有基础 UI Variant 继续维护各自外观，卡丁车保留纸艺风格。
 ## 启动与事务
@@ -63,6 +63,8 @@ Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 P
 
 ## 验证边界
 
-已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。Hub 主设置、独立分页、绑定列表、确认弹窗和正式体验资源已经保存；Hub 分页/语言重建、Demo 相关入口与输入、显示确认和效果体验通过定向复测。Hub 英文五页已在 1920×1080、1024×768、3440×1440 查看；各 Demo 及体验页的完整中英画幅视觉、Player 和硬件仍待验收。Direct3D12 正式场景已独立验证七类后处理的图像变化、UI 隔离、释放恢复与制作资产保护，其中胶片颗粒检查连续三帧的动态变化；其它图形 API 未据此计为通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
+已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。Hub 主设置、独立分页、绑定列表、确认弹窗和正式体验资源已经保存。旧装配的 Hub 分页/语言重建、Demo 输入、显示确认和效果体验曾通过定向复测，英文五页三画幅也曾实际查看；这些是历史证据，不代表改为 Hub-only、主 ViewTab 与新基础模板后已全部通过。用户确认最低验收分辨率为 1920×1080，低于此范围的尺寸不支持；停止 1024×768 命中诊断，不因此修改公共 Canvas 策略或 Demo 布局。当前最低尺寸下五页懒加载、候选隔离、取消丢弃与单次应用已通过真实指针回归（9c41ec3d），改键/控件取消/回收身份已通过（a4fc8333）；其余 Hub 正式流程及四个 Demo 定向回归也已通过，证据见实施记录；新版中英目标画幅继续验收。已通过现有 Hotfix Build 和 YooAsset 工具重新生成并同步 DLL/AOT 和正式首包。Windows Player 构建 c6a073ba 在 C++ 阶段因用户级 CMD AutoRun 的 chcp 命令失败，尚未通过；真实手柄与触屏按用户要求记录待验，不阻塞电脑端收尾。
+
+Direct3D12 正式场景已独立验证七类后处理的图像变化、UI 隔离、释放恢复与制作资产保护，其中胶片颗粒检查连续三帧的动态变化；其它图形 API 未据此计为通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
 
 接入步骤见[公共设置与演出接入](../runbooks/use-settings-presentation.md)。

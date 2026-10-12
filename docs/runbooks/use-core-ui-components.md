@@ -71,6 +71,8 @@
 
 基础 Dropdown 的 Arrow 绑定 Image，使用 `Assets/LoadResources/UI/Common/Sprites/Tips/Arrow.png`，不要用 TMP 字符代替图标；UIDropdown 仍负责展开 180° 旋转及收起恢复。更换表现组件后保留原 arrow Transform 引用，不另加旋转脚本。
 
+TabItem 的 ChooseImg 使用全拉伸锚点，跟随页签根矩形；页面覆盖页签尺寸时不要保留模板固定尺寸的选中背景，否则背景会遮挡相邻内容。体验页的分类区域高 62，三个页签各宽 292、高 62。
+
 ## 正式调用示例与维护入口
 
 新增页面前先看组件，再看下列实际调用；不要复制整个业务页面作为基础组件。

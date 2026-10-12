@@ -285,14 +285,15 @@ namespace Hotfix
             {
                 names.Add(LanguageService.Get("Settings." + item));
             }
-            // UITab 异步制作期间只额外允许既定初选；语言重建的忙碌门卫不阻止首次加载。
+            // 五个固定分类同步绑定，避免打开后早点击被迟到的初选覆盖。
             int selected = categories.IndexOf(category);
             ViewTab_Editor_controls.UiTab.TrySelect = index => !busy || index == selected;
-            ViewTab_Editor_controls.Init(names, views: views, index: selected, action: () =>
+            ViewTab_Editor_controls.Init(views: views, index: -1, enableAnimation: false);
+            ViewTab_Editor_controls.UiTab.Init(names, initIndex: selected, action: () =>
             {
                 ViewTab_Editor_controls.UiTab.TrySelect = _ => !busy;
                 RefreshCategoryFonts();
-            }, enableAnimation: false, isAsync: true);
+            }, isAsync: false);
         }
 
         private void RefreshCategoryFonts()

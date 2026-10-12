@@ -39,6 +39,7 @@ namespace Tests.Module
         private Touchscreen touchscreen;
         private InputSettings originalInputSettings;
         private InputSettings testInputSettings;
+        private Tests.Demo.GameViewResolution resolution;
 
         [UnityTest, Timeout(180000)]
         public IEnumerator CommonLoadingAndFeedbackFollowHubLanguageAndPreserveDiagnostics()
@@ -926,7 +927,7 @@ namespace Tests.Module
                 resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
                 await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
                 await Wait(() => page.IsListening, "再次开始鼠标绑定", 5);
-                var paper = (RectTransform)screen.transform.Find("Design/Paper");
+                var paper = (RectTransform)Field<RectTransform>(screen, "RectTransform_Design").Find("Paper");
                 var blank = new Vector2(paper.rect.xMin + paper.rect.width * 0.92f, paper.rect.center.y);
                 var pointer = new MouseState
                 {
@@ -1106,6 +1107,7 @@ namespace Tests.Module
                     AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Label1"), "Common.Apply");
                     AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Feedback"), "Settings.Applied");
                     page = (LanguageSettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
+                    await Wait(() => page?.State == ViewState.Visible, "重建后的语言分页完成异步加载", 10);
                     choices = Field<UITab>(page, "UITab_Language_choices");
                     var cnFont = GameSettingsService.Config.Fonts.Entries.Single(item => item.FontId == 0 && item.Language == "zh-CN");
                     foreach (var choice in choices.Items)
@@ -1393,6 +1395,9 @@ namespace Tests.Module
 
         private IEnumerator PrepareHub()
         {
+            // 固定在项目最低支持尺寸，避免 Editor 窗口大小改变交互验收范围。
+            resolution = new Tests.Demo.GameViewResolution(1920, 1080);
+            yield return Wait(() => Screen.width == 1920 && Screen.height == 1080, "最低支持分辨率", 5);
             if (GameSceneNavigator.Instance == null)
             {
                 var startup = SceneManager.LoadSceneAsync("AppEntrance", LoadSceneMode.Single);
@@ -1455,6 +1460,8 @@ namespace Tests.Module
                 if (touchscreen != null && touchscreen.added) InputSystem.RemoveDevice(touchscreen);
                 if (originalInputSettings != null) InputSystem.settings = originalInputSettings;
                 if (testInputSettings != null) Object.Destroy(testInputSettings);
+                resolution?.Dispose();
+                resolution = null;
             }
         }
 

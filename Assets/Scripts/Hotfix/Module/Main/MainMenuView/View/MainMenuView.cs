@@ -175,8 +175,11 @@ namespace Hotfix
         private async UniTask OpenSettingsAsync()
         {
             var result = await SettingsFlow.OpenAsync();
-            if (result.Status == UIOperationStatus.Failed && IsEnable)
-                RefreshEntryControls(LanguageService.Get("Hub.SettingsFailure"));
+            if (result.Status == UIOperationStatus.Failed)
+            {
+                Debug.LogException(result.Exception);
+                if (IsEnable) RefreshEntryControls(LanguageService.Get("Hub.SettingsFailure"));
+            }
         }
 
         private void OnEffectsClick() => OpenEffectsAsync().Forget();
@@ -184,8 +187,11 @@ namespace Hotfix
         private async UniTask OpenEffectsAsync()
         {
             var result = await PresentationLabFlow.OpenAsync();
-            if (result.Status == UIOperationStatus.Failed && IsEnable)
-                RefreshEntryControls(LanguageService.Get("Hub.EffectsFailure"));
+            if (result.Status == UIOperationStatus.Failed)
+            {
+                Debug.LogException(result.Exception);
+                if (IsEnable) RefreshEntryControls(LanguageService.Get("Hub.EffectsFailure"));
+            }
         }
 
         private void RefreshPrimaryAction()

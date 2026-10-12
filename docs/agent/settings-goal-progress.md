@@ -1,6 +1,6 @@
 # 公共设置与表现 Goal 实施记录
 
-目标：按用户确认的 G0–G11 顺序实施公共设置、表现 API、全部 Demo 接入、功能验收、分页美术确认和正式 UI。七张分页/体验效果图已基本确认并装配；Hub 使用暖白/朱红瑞士方向，各 Demo 保留自身美术风格，正在最终验收。
+目标：按用户确认的 G0–G11 顺序实施公共设置、表现 API、全部 Demo 接入、功能验收、分页美术确认和正式 UI。七张分页/体验效果图已基本确认并装配；Hub 使用暖白/朱红瑞士方向，各 Demo 保留自身美术风格，正在最终验收。以下 API／旧宿主通过记录不代替 Hub-only、新 ViewTab 和新基础模板的运行验证。
 
 | Goal | 当前状态 | 交付与剩余 |
 |---|---|---|
@@ -22,6 +22,14 @@
 ### 当前 UI 范围覆盖原计划（2026-10-12）
 
 - 用户明确公共设置只在 Hub 修改，各 Demo 暂不需要公共设置界面。Demo 继续读取公共偏好和 API，保留自己的玩法参数、触控区域及美术风格；卡丁车专属设置不删除。
+- 用户随后确认电脑端最低验收尺寸为 1920×1080；低于该范围不支持。停止 1024×768 的命中探针，不为范围外问题修改公共 Canvas 或各 Demo 布局。现有 Hub 交互测试复用 GameViewResolution 固定最低尺寸，退出后恢复用户选择；历史低分辨率失败不再作为 Goal 阻塞项，最低支持尺寸的实际点击仍需单独证明。
+- 固定五分类使用 UITab 同步注册，ViewTab 保持异步按需加载；复用两个现有 Init 接口，不新增开关或管理器。正式编译零错误（4a39bdbf、5eb99883），既有迟到加载与重新初始化回归 1/1（cef0a0ad）。56a2ba53 在测试执行前遇到 Runner 重载已无 SceneAsset 的 InitTestScene，测试总数为零；不计业务成败。已核对当前仅加载未修改的 AppEntrance，随后以相同方法重试。
+- Unity 重新打开后，最低支持尺寸下核心 Hub 流程 1/1（9c41ec3d）：五页懒加载、共享候选隔离、恢复本页默认、真实取消后销毁/丢弃和单次应用通过。未更改 Canvas、Camera、Hub 布局或各 Demo。临时点击诊断及 Minimum-Categories.png 已清理；清理后正式编译零错误（04d8febe）。改键用例的旧 Design/Paper 定位已改为正式生成引用，业务断言不变；控件短/长取消、鼠标空白绑定、改键保存与回收身份 1/1（a4fc8333）。语言用例补齐等待独立分页异步加载后再读取控件，不把 Main View 可见当作子页已加载。
+- 当前 1920×1080 下六个 Hub 正式流程均已通过：核心候选 a7311c6c、改键 a4fc8333、语言重建 51287741、显示确认 b4d9f8bf、电影体验 a0463eb7、设置入口 221f5330，各 1/1；没有全量测试。四 Demo 定向回归各 1/1：DLSS 正式启动/返回 d14bc4b0、Drone HUD 正式绑定 79194626、Wall 往返/暂停/重试 c15336a5、Kart 专属设置/控制/真实按钮 e66d1bda。Drone 的完成结果通过 test_get_result 单独保存，丢失的旧 HTTP 等待已结束，没有重复运行。最低尺寸的取消按钮关闭；超宽与新版英文各页视觉、Player 仍待验。
+- 最新图片发现体验页页签选中背景沿用模板固定 298×146，超出页签自身 62 高并遮挡首行；通过原生 Prefab API 将公共 TabItem.ChooseImg 改为随根矩形拉伸，体验页固定三个 292×62 页签。复验体验与 Hub 核心均 1/1（a0463eb7、a7311c6c）；最新 Lab-Time 图已查看，首行、页眉与 Preview HUD 不再遮挡。Demo 资源、公共 Canvas 策略和正式 AppEntrance 保持原样。设置/效果入口沿用已有失败文案，并将实际返回异常记录到 Console。
+- 按用户要求直接复用现有 Hotfix Build 的一键编译并同步方法和 YooAsset Viewer 构建处理；当前临时 SettingsPlayerBuildBridge 仅提供调用入口，未重写同步或打包实现。生成及同步运行期间不并行运行测试，完成构建后清理临时源码与 meta。
+- 已完成现有 Hotfix Build 的 GenerateAll、窗口列表刷新与 DLL/AOT 同步；Hotfix 及十份 AOT 源/目标 SHA256 全部一致。现有 YooAsset Viewer 生成 DefaultPackage 首包 `2026-10-12-144329`，报告目标 Windows64、管线 ScriptableBuildPipeline、125 个 Bundle；StreamingAssets 128 个对应文件哈希全部匹配。临时 SettingsPlayerBuildBridge.cs/meta 已精准删除，清理后编译零错误（8d392763）。
+- 新 Windows Player 构建 c6a073ba 真实失败，BuildReport 19 条 C++ 错误均包含 `'chcp' is not recognized`；只读核对用户级 CMD AutoRun 仍为 `chcp 65001 >nul`。用户此前选择自行修复该 Windows 配置，本任务未写注册表、未改系统 PATH，也未将失败构建计为 Player 通过。报告保存在 Library/GlobalSettings/player-build-c6a073ba.json；新首包和同步结果仍有效，Player 启动/保存重启/显示与语言真机验证待系统问题解决后继续。
 - `HubSettingsView` 直接持有候选和应用事务，使用既有 `ViewTab` 按需加载五个独立分页 View/Prefab。删除 `SettingsPage`、各具体 Page、`SettingsScreen` 和 `SettingsViewBase`；无需宿主路由、页面地址重写或额外交互管理器。
 - `UIState` 自动处理同节点 Selectable 的 Normal/Hover/Focused/Pressed/Disabled，额外业务状态仍在同一个组件追加；删除 `UIStateInteraction`，正式资源原生合并并保留目标、样式和 GUID。
 - 原生删除四 Demo 公共按钮并重新生成 UIBind；DLSS 另删除设置动作、绑定、提示和输入目录条目。五 Hub 分页恢复标准生成 Address。一次性 `HubOnlySettingsAssetsMigration` 已清理。
