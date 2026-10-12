@@ -31,6 +31,8 @@
 - Hub 独立分页/候选用例尚未通过：五页懒加载、切换、候选编辑及默认值流程通过后，取消按钮命中断言失败（4557ee6d，补诊断复跑结果相同）。按钮正常启用、未裁剪、射线已注册且层级为 Pop/200；投影中心为屏幕 (905.07,150.40)，`RectangleContainsScreenPoint` 却返回 false，最高命中为 Paper。尚不能确定是坐标换算还是实际射线问题，不删除点击断言或改用直接 onClick 规避。取消按钮 Pivot 实验无效，已原生恢复原布局；详细诊断保存于 Library 的对应测试报告，临时扩展日志已简化。
 - 阶段提交只作为当前重构检查点。Hub 其它精确方法与四 Demo 最新回归因上述用例失败尚未继续执行；当前完整 UI 交互、画幅、Windows Player、真实硬件及被拒绝的目录清理仍未完成。未运行全量测试。
 - 本次检查点最初被已有 `.git/index.lock` 阻止。清理命令也被自动审批拒绝，没有换工具绕过；用户清理后核对锁已不存在，重新暂存成功，按授权保存本地阶段提交，不推送。任务路径列表在 `Library/GlobalSettings/ui-cleanup/stage-paths.txt`，排除旧 DLL/AOT、ProjectSettings、字体噪音和历史临时工具。最后简化诊断后 Unity 编译通过（0ca65019，零错误）。
+- 用户再次要求重试清理后，核对 Demo 公共分页文件仍全部不存在；旧 `Prefabs/UI/Settings` 仅剩四个空目录。重试清理这些空目录及两个 Global Builder 源码/meta 时，自动审批仍以 `blocked by policy` 拒绝，未提供具体原因，已停止重试。Builder 继续排除提交；残留空目录不代表 Demo 公共 UI 仍被加载。
+- Hub 点击定位对照（b2dcf6e1、7d028cab、97aa360b、9429aa40 原生 XML）仍为 0/1。数学射线与局部坐标正确；同相机的独立矩形可以命中，挂回 Design 并复制完整局部参数后失败；保持屏幕四角、尺寸与世界矩阵，挂到 Screen / 更高祖先或等价裸 Transform 则成功。子节点尺寸脏化、Canvas 切为 WorldSpace、Design 仅恢复 Z 缩放均无效，暂定位到 Design 父链路径，不能确认具体引擎缺陷。保留真实点击断言，未变更正式 UI 布局、相机或射线组件；诊断块已全部清理，详细证据保留在 Library。9abff3de 没有新的原生 XML，仅有 Runner 重载恢复错误，不计测试结果。
 
 - Unity Editor 6000.3.15f1 编译已多次通过；后续代码变更仍须重新验证。
 - GameSettingsSnapshotTests 3/3；InputRebindSessionTests 2/2；SettingsRuntimeTests 原3/3；PostProcessRuntimeTests 2/2；CinematicPresetTests 2/2通过。
