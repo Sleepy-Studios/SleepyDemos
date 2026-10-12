@@ -30,6 +30,12 @@
 | `KagitKartMinimap` | HUD 铅笔路线与本场车辆位置，不复制规则。 |
 | `KagitKartPostProcess` | 克隆本场纸印材质，临时安装官方全屏 Pass；世界 Base 相机单独描边与错版，切换管线或退出时恢复 Renderer。 |
 
+## 公共时间与模拟上限
+
+`World.Update` 将公共 `GameTimeService.DeltaTime` 交给本场固定步时钟，规则不再重复乘倍率。公共作用域与冻结生命周期见[设置与表现模块](../../modules/settings-presentation.md)，不另建 Demo 时间服务。
+
+作者的单帧最多八步与丢弃积压仍保留，实际快进受帧率限制：理论最大比赛推进为实际 FPS × 8 / 120。正常约60 FPS下0.25×/1×/2×的真实比赛计时与驾驶位移已验；请求3×的低帧验收实测22.42 FPS，比赛推进约1.495×，符合八步保护。该结果不意味着30 FPS或更低帧率仍可完整兑现3×，也不改变比赛/圈时/Ghost共用模拟时钟的语义。
+
 ## 纸印后处理
 
 `World` 通过已有 Loader 加载正式 `Art/Materials/Post.mat`，菜单和领奖台使用原作书本墨色，比赛读取章节材质的线性墨色。`Post.shader` 保留 `post.js` 的倒数深度 Laplacian、阈值与远距离淡出、整像素颜色错版、两层纸纤维和暗角。颜色保持线性，由 URP 最终输出转为 sRGB；UI Overlay 不参与纸印。
