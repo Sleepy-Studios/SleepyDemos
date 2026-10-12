@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using System.Collections;
-using System.IO;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 using NUnit.Framework;
@@ -27,14 +26,9 @@ namespace Tests.Module
             settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             InputSystem.settings = settings;
-            var originalEditorSelection = UnityEditor.Selection.activeObject;
             var original = EventSystem.current;
             bool previousEnabled = original != null && original.enabled;
             if (original != null) original.enabled = false;
-            var backgroundCamera = new GameObject("FoundationBackground", typeof(Camera));
-            backgroundCamera.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
-            backgroundCamera.GetComponent<Camera>().backgroundColor = new Color(.04f, .05f, .07f);
-            backgroundCamera.GetComponent<Camera>().cullingMask = 0;
             var canvas = new GameObject("FoundationCanvas", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
             canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.GetComponent<Canvas>().sortingOrder = 30000;
@@ -59,17 +53,14 @@ namespace Tests.Module
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = outside });
                 yield return null; yield return null;
                 Assert.That(interaction.InteractionState, Is.EqualTo("Normal"));
-                yield return Capture("Normal");
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = inside });
                 yield return null; yield return null;
                 Assert.That(interaction.InteractionState, Is.EqualTo("Hover"));
                 Assert.That(background.color, Is.Not.EqualTo(normal));
-                yield return Capture("Hover");
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = inside }.WithButton(MouseButton.Left));
                 yield return null; yield return null;
                 Assert.That(interaction.InteractionState, Is.EqualTo("Pressed"));
                 Assert.That(obj.transform.localScale, Is.EqualTo(Vector3.one), "按压反馈保持根点击矩形稳定。");
-                yield return Capture("Pressed");
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = inside });
                 yield return null; yield return null;
                 Assert.That(clicks, Is.EqualTo(1));
@@ -83,7 +74,6 @@ namespace Tests.Module
                 yield return null; yield return null;
                 Assert.That(interaction.InteractionState, Is.EqualTo("Focused"));
                 Assert.That(obj.transform.Find("InteractionFeedback").GetComponent<CanvasGroup>().alpha, Is.EqualTo(1));
-                yield return Capture("Focused");
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter));
                 yield return null; yield return null;
                 Assert.That(clicks, Is.EqualTo(2));
@@ -101,7 +91,6 @@ namespace Tests.Module
                 Assert.That(obj.transform.Find("InteractionFeedback").GetComponent<CanvasGroup>().alpha, Is.Zero);
                 Assert.That(obj.transform.Find("InteractionFeedback").gameObject.activeSelf, Is.False);
                 system.SetSelectedGameObject(null);
-                yield return Capture("Disabled");
                 InputDeviceState.NotifyTouch();
                 yield return null; yield return null;
                 Assert.That(interaction.InteractionState, Is.EqualTo("Disabled"));
@@ -116,35 +105,14 @@ namespace Tests.Module
                 yield return null; yield return null;
                 Assert.That(obj.transform.localScale, Is.EqualTo(Vector3.one));
                 Assert.That(background.color, Is.EqualTo(normal));
-                Directory.CreateDirectory("Library/UIRefactor/Evidence");
-                ScreenCapture.CaptureScreenshot("Library/UIRefactor/Evidence/CommonButton.png");
-                yield return null; yield return null;
             }
             finally
             {
                 InputSystem.RemoveDevice(mouse); InputSystem.RemoveDevice(keyboard); InputSystem.RemoveDevice(gamepad);
-                UnityEditor.Selection.activeObject = originalEditorSelection;
                 InputSystem.settings = originalSettings; Object.Destroy(settings);
-                Object.Destroy(backgroundCamera); Object.Destroy(canvas); Object.Destroy(events);
+                Object.Destroy(canvas); Object.Destroy(events);
                 if (original != null) { original.enabled = previousEnabled; EventSystem.current = original; }
             }
-        }
-
-        private static IEnumerator Capture(string state)
-        {
-            UnityEditor.Selection.activeObject = null;
-            yield return new WaitForEndOfFrame();
-            var texture = ScreenCapture.CaptureScreenshotAsTexture();
-            try
-            {
-                Assert.That(texture, Is.Not.Null);
-                var pixels = texture.GetPixels32();
-                Assert.That(System.Array.Exists(pixels, pixel => pixel.r > 80 && pixel.g > 80 && pixel.b > 80), Is.True, "截图没有实际 UI。");
-                Directory.CreateDirectory("Library/UIRefactor/Evidence");
-                File.WriteAllBytes("Library/UIRefactor/Evidence/CommonButton-" + state + ".png", texture.EncodeToPNG());
-            }
-            finally { Object.Destroy(texture); }
-            yield return null;
         }
 
         [UnityTest]

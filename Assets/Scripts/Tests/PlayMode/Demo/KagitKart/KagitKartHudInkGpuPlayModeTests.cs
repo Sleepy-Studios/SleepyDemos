@@ -10,6 +10,7 @@ using Object = UnityEngine.Object;
 
 namespace Tests.Demo
 {
+    [Category("RequiresGPU")]
     public sealed class KagitKartHudInkGpuPlayModeTests
     {
         [Serializable]

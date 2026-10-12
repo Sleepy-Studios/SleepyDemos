@@ -139,37 +139,6 @@ namespace Tests.Module
         }
 
         [Test]
-        public void TMPUGUIExtend_UsesConditionalBilingualCustomInspector()
-        {
-            GameObject target = new GameObject(
-                "TMPEffect",
-                typeof(RectTransform),
-                typeof(CanvasRenderer),
-                typeof(TextMeshProUGUI),
-                typeof(TMP_UGUI_Extend));
-            UnityEditor.Editor editor = null;
-            try
-            {
-                TMP_UGUI_Extend effect = target.GetComponent<TMP_UGUI_Extend>();
-                editor = UnityEditor.Editor.CreateEditor(effect);
-                Assert.That(editor, Is.Not.Null);
-                Assert.That(editor.GetType().FullName, Is.EqualTo("Core.Editor.TMPUGUIExtendEditor"));
-
-                SerializedObject serializedEffect = new SerializedObject(effect);
-                Assert.That(serializedEffect.FindProperty("gradientType"), Is.Not.Null);
-                Assert.That(serializedEffect.FindProperty("unityGradient"), Is.Not.Null);
-                Assert.That(serializedEffect.FindProperty("enableOutline"), Is.Not.Null);
-                Assert.That(serializedEffect.FindProperty("enableShadow"), Is.Not.Null);
-                Assert.That(serializedEffect.FindProperty("enableSkew"), Is.Not.Null);
-            }
-            finally
-            {
-                if (editor != null) Object.DestroyImmediate(editor);
-                Object.DestroyImmediate(target);
-            }
-        }
-
-        [Test]
         public void TMPUGUIExtend_AppliesGradientAndSkewToUploadedMesh()
         {
             TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(

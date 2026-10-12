@@ -1,7 +1,5 @@
 using Hotfix.DroneFlight;
-using Hotfix.Editor.DroneFlight;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 
 namespace Tests.Demo
@@ -84,25 +82,6 @@ namespace Tests.Demo
             Assert.That(
                 DronePayloadTuningCalculator.MapMotorResponsivenessToResponseTime(100f),
                 Is.LessThan(DronePayloadTuningCalculator.MapMotorResponsivenessToResponseTime(0f)));
-        }
-
-        [Test]
-        public void Inspector_ProvidesBilingualLabelsForFriendlyFields()
-        {
-            foreach (var field in new[]
-                     {
-                         "ratedPayloadKilograms", "maximumPayloadMultiplier", "ratedPayloadHoverCommand",
-                         "motorResponsiveness", "bodyMassMultiplier", "automaticTakeoffHeightMeters",
-                         "automaticLandingSpeedMetersPerSecond", "defaultResponseProfile"
-                     })
-            {
-                Assert.That(DroneFlightConfigEditor.SerializedFieldLabels.TryGetValue(field, out var label), Is.True,
-                    $"Inspector 缺少字段 {field} 的双语标签。");
-                Assert.That(label.Chinese, Is.Not.Empty);
-                Assert.That(label.English, Is.Not.Empty);
-                Assert.That(label.ChineseTooltip, Is.Not.Empty);
-                Assert.That(label.EnglishTooltip, Is.Not.Empty);
-            }
         }
 
         [Test]

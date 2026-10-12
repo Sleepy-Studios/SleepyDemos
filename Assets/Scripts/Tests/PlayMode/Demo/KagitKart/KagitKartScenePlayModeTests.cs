@@ -56,25 +56,25 @@ namespace Tests.Demo
                 && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "立体书封面");
             var book = Object.FindFirstObjectByType<KagitKartBookStage>();
             Assert.That(book.ClosedFraction, Is.EqualTo(1));
-            yield return Capture("MenuCover");
+            yield return WaitForPresentation();
             yield return KeyPress(Key.Enter);
             yield return Wait(() => UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible && !world.Busy, "模式选择");
             Assert.That(world.Session, Is.Null, "进入 Demo 应先选赛。");
-            yield return Capture("MenuMode");
+            yield return WaitForPresentation();
             Assert.That(book.ClosedFraction, Is.Zero, "开书应实际转动封面网格。");
             yield return KeyPress(Key.RightArrow);
             yield return KeyPress(Key.Enter);
             yield return Wait(() => UIManager.Instance.Get<KagitKartClassView>()?.State == ViewState.Visible && !world.Busy, "单场速度选择");
             Assert.That(world.Mode, Is.EqualTo(KagitKartRaceMode.SingleRace));
-            yield return Capture("MenuClass");
+            yield return WaitForPresentation();
             yield return KeyPress(Key.Enter);
             yield return Wait(() => UIManager.Instance.Get<KagitKartCharacterView>()?.State == ViewState.Visible && !world.Busy, "车手选择");
-            yield return Capture("MenuCharacter");
+            yield return WaitForPresentation();
             Assert.That(book.CurrentCharacterId, Is.EqualTo("tilki"));
             yield return KeyPress(Key.Enter);
             yield return Wait(() => UIManager.Instance.Get<KagitKartTrackView>()?.State == ViewState.Visible && !world.Busy, "章节选择");
             Assert.That(world.CharacterId, Is.EqualTo("tilki"), "静止鼠标不应抢走键盘车手焦点。");
-            yield return Capture("MenuTrack");
+            yield return WaitForPresentation();
             yield return KeyPress(Key.Enter);
             yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
                 && world.Session != null && !world.Busy && UIManager.Instance.Get<KagitKartHudView>()?.State == ViewState.Visible,
@@ -131,9 +131,6 @@ namespace Tests.Demo
             var mesh = map.canvasRenderer.GetMesh();
             Assert.That(mesh, Is.Not.Null, "小地图应提交实际 UI 网格。");
             Assert.That(mesh.vertexCount, Is.GreaterThan(0), "小地图应绘制实际路线与车辆。");
-            string folder = "D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews";
-            Directory.CreateDirectory(folder);
-            ScreenCapture.CaptureScreenshot(folder + "/RaceHud.png");
             yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             yield return null;
@@ -146,7 +143,6 @@ namespace Tests.Demo
             yield return new WaitForSecondsRealtime(0.2f);
             Assert.That(world.Session.RaceTime, Is.EqualTo(pausedTime));
             Assert.That(world.Session.Player.Position, Is.EqualTo(pausedPosition));
-            ScreenCapture.CaptureScreenshot(folder + "/RacePause.png");
             yield return null;
             world.Dispatch(KagitKartCommand.Resume);
             yield return Wait(() => !world.Session.Pause.IsPaused && UIManager.Instance.Get<KagitKartPauseView>() == null, "继续比赛");
@@ -252,7 +248,7 @@ namespace Tests.Demo
             Assert.That(world.Session.Player.Controls.Throttle, Is.EqualTo(1));
             Assert.That(world.Session.Player.Controls.Steer, Is.GreaterThan(0));
             Assert.That(world.Session.Player.Controls.Drift, Is.True);
-            yield return Capture("RaceTouch");
+            yield return WaitForPresentation();
             Touch(1, UnityEngine.InputSystem.TouchPhase.Ended, steer);
             Touch(2, UnityEngine.InputSystem.TouchPhase.Ended, gas);
             Touch(3, UnityEngine.InputSystem.TouchPhase.Ended, drift);
@@ -347,7 +343,7 @@ namespace Tests.Demo
                     Assert.That(row.Find("Points").GetComponent<TMPro.TMP_Text>().text, Is.EqualTo(result.TotalPoints.ToString()));
                 }
                 Assert.That(UIManager.Instance.Get<KagitKartHudView>().transform.Find("Viewport").gameObject.activeSelf, Is.False, "源results隐藏比赛HUD");
-                if (round == 0) yield return Capture("GrandPrixRaceResults");
+                if (round == 0) yield return WaitForPresentation();
                 if (round == 0) firstCupOrder = session.Race.Results.Select(row => row.CharacterId).ToArray();
                 var next = Button(resultsView, "Next");
                 Assert.That(next.gameObject.GetComponentInChildren<TMPro.TMP_Text>().text, Is.EqualTo("总积分榜"));
@@ -381,7 +377,7 @@ namespace Tests.Demo
                     Assert.That(mesh.vertices[1].x - mesh.vertices[0].x,
                         Is.EqualTo(bar.rectTransform.rect.width * standing.Points / highest).Within(0.01));
                 }
-                if (round == 0) yield return Capture("GrandPrixStandings");
+                if (round == 0) yield return WaitForPresentation();
                 var primary = Button(standingsView, "Next");
                 Assert.That(primary.gameObject.GetComponentInChildren<TMPro.TMP_Text>().text,
                     Is.EqualTo(round == 3 ? "颁奖典礼" : "下一章：" + KagitKartCatalog.TrackName(KagitKartCatalog.Tracks[round + 1])));
@@ -414,7 +410,7 @@ namespace Tests.Demo
             Assert.That(((RectTransform)podiumMenu.transform).anchoredPosition.y, Is.Zero);
             EventSystem.current.SetSelectedGameObject(podiumMenu.gameObject);
             yield return null;
-            yield return Capture("GrandPrixPodium");
+            yield return WaitForPresentation();
             var podium = Object.FindFirstObjectByType<KagitKartPodiumStage>();
             Assert.That(podium.IsComplete, Is.True);
             EventSystem.current.SetSelectedGameObject(Button(UIManager.Instance.Get<KagitKartPodiumView>(), "Menu").gameObject);
@@ -467,13 +463,13 @@ namespace Tests.Demo
                 yield return new WaitForSecondsRealtime(0.5f);
                 Assert.That(world.Hints.TutorialVisible, Is.True);
                 Assert.That(world.Settings.SeenTutorial, Is.False);
-                yield return Capture("TutorialKeyboard");
+                yield return WaitForPresentation();
                 world.Dispatch(KagitKartCommand.Resume);
                 yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "起跑");
                 Assert.That(world.Hints.TutorialVisible, Is.True, "倒计时三秒不占教程七秒。");
                 yield return new WaitForSecondsRealtime(3);
                 Assert.That(world.Hints.TutorialVisible, Is.True);
-                yield return Capture("TutorialKeyboard");
+                yield return WaitForPresentation();
                 world.Dispatch(KagitKartCommand.Pause);
                 yield return Wait(() => world.Session.Pause.IsPaused, "教程中暂停");
                 yield return new WaitForSecondsRealtime(0.5f);
@@ -525,7 +521,7 @@ namespace Tests.Demo
             yield return null;
             Assert.That(ink.mainTexture, Is.InstanceOf<RenderTexture>());
             Assert.That(ink.raycastTarget, Is.False);
-            yield return Capture("RaceInk");
+            yield return WaitForPresentation();
             world.Dispatch(KagitKartCommand.Pause);
             yield return Wait(() => world.Session.Pause.IsPaused, "墨水暂停");
             float left = world.Session.Player.InkTime;
@@ -625,7 +621,7 @@ namespace Tests.Demo
                         }, "正常逐帧回放，GO结束后幽灵分离且仍在视口内");
                         var ghostSkin = actor.GetComponent<SkinnedMeshRenderer>();
                         Assert.That(ghostSkin.isVisible, Is.True, "实际幽灵SkinnedMesh通过相机可见性");
-                        yield return Capture("TimeTrialGhost", 0);
+                        yield return WaitForPresentation(0);
                         foreach (double target in new[] { 0.4, 1.4 })
                         {
                             while (session.RaceTime < target)
@@ -701,7 +697,7 @@ namespace Tests.Demo
                         Assert.That(ttView.transform.Find("Viewport/BoardFrame/SheetGroup/Sheet/NewRecord").gameObject.activeSelf, Is.True);
                         Assert.That(ttView.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Next").gameObject.activeInHierarchy, Is.False);
                         Assert.That(Button(ttView, "Restart").gameObject.activeInHierarchy, Is.True);
-                        yield return Capture("TimeTrialResults");
+                        yield return WaitForPresentation();
                         best = saved;
                         Assert.That(saved.bestRace.Value, Is.EqualTo(world.PlayerEntry.FinishTime).Within(0.000001));
                         CollectionAssert.AreEqual(session.Race.GhostRecorder.Snapshot(world.PlayerEntry.FinishTime,
@@ -762,25 +758,13 @@ namespace Tests.Demo
         }
 
 
-        private static IEnumerator Capture(string name, float settleSeconds = 2)
+        private static IEnumerator WaitForPresentation(float settleSeconds = 2)
         {
             if (settleSeconds > 0)
             {
                 yield return new WaitForSecondsRealtime(settleSeconds);
             }
             yield return new WaitForEndOfFrame();
-            string folder = "D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews";
-            Directory.CreateDirectory(folder);
-            // 立即保留本帧像素；异步截图可能落在测试继续快进后的下一帧。
-            var snapshot = ScreenCapture.CaptureScreenshotAsTexture();
-            try
-            {
-                File.WriteAllBytes(folder + "/" + name + ".png", snapshot.EncodeToPNG());
-            }
-            finally
-            {
-                Object.Destroy(snapshot);
-            }
             yield return null;
         }
 
@@ -848,7 +832,7 @@ namespace Tests.Demo
                 var mode = UIManager.Instance.Get<KagitKartModeView>();
                 mode.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Settings").onClick.Invoke();
                 yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "菜单设置");
-                yield return Capture("Settings");
+                yield return WaitForPresentation();
                 yield return KeyPress(Key.Escape);
                 yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>() == null, "返回模式");
                 Assert.That(UIManager.Instance.Get<KagitKartModeView>(), Is.SameAs(mode));
@@ -871,7 +855,7 @@ namespace Tests.Demo
                     "返回提示读取固定菜单 Cancel，不读取漂移或预览设备的玩法动作。");
                 Assert.That(footer.transform.Find("Caption").GetComponent<TMPro.TMP_Text>().text,
                     Is.EqualTo(Core.Runtime.Localization.LanguageService.Get("Input.Back")));
-                yield return Capture("Controls");
+                yield return WaitForPresentation();
                 touchscreen = InputSystem.AddDevice<Touchscreen>();
                 yield return Tap(UIManager.Instance.Get<KagitKartControlsView>(), "Back");
                 yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartControlsView>() == null, "返回模式");

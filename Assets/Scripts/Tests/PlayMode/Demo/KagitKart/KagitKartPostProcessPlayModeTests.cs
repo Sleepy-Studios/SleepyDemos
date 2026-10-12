@@ -118,6 +118,7 @@ namespace Tests.Demo
         }
 
         [Test]
+        [Category("RequiresGPU")]
         public void GpuPointDepthPreservesAffineInvZAndInksStepsAndPhysicalMisregistration()
         {
             const int size = 16;

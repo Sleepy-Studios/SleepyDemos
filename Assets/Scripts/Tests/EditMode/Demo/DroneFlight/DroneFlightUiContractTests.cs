@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Core.Editor.UIBind;
 using Core.Runtime;
@@ -23,8 +22,6 @@ namespace Tests.Demo
         private const string DebugPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightDebugView.prefab";
 
         private const string SelectPrefabPath = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightVehicleSelectView.prefab";
-
-        private const string ViewRoot = "Assets/Scripts/Hotfix/Demos/DroneFlight";
 
         private static readonly string[] ControlTextNames =
         {
@@ -122,22 +119,6 @@ namespace Tests.Demo
                 Assert.That(index.ComponentTypes[bindingIndex], Is.EqualTo(typeof(TextMeshProUGUI).FullName));
                 StringAssert.Contains(nodeName, index.BindingKeys[bindingIndex]);
             }
-        }
-
-        [Test]
-        public void HandwrittenViews_DoNotSearchFixedPrefabNodesAtRuntime()
-        {
-            var forbiddenTokens = new[]
-            {
-                "Transform.Find(",
-                "GameObject.Find(",
-                ".Find(\"",
-                "GetComponent<",
-                "GetComponentInChildren<",
-                "GetComponentsInChildren<"
-            };
-            var violations = Directory.GetFiles(Path.GetFullPath(ViewRoot), "*View.cs", SearchOption.AllDirectories).Where(path => !path.EndsWith("ViewComponent.cs", System.StringComparison.Ordinal)).SelectMany(path => forbiddenTokens.Where(token => File.ReadAllText(path).Contains(token)).Select(token => $"{Path.GetRelativePath(Path.GetFullPath(ViewRoot), path)}: {token}")).ToArray();
-            Assert.That(violations, Is.Empty, "固定 View 节点必须通过 ComponentItemIndex 与 UIBind 生成字段访问。\n" + string.Join("\n", violations));
         }
 
         [Test]

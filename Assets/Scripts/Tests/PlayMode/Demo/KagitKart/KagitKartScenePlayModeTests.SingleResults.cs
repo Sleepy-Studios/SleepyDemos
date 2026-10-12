@@ -79,7 +79,7 @@ namespace Tests.Demo
                     Assert.That(((RectTransform)restart.transform).anchoredPosition.y, Is.Zero);
                     EventSystem.current.SetSelectedGameObject(restart.gameObject);
                     yield return null;
-                    yield return Capture("SingleRaceResults");
+                    yield return WaitForPresentation();
                     EventSystem.current.SetSelectedGameObject(restart.gameObject);
                     yield return KeyPress(Key.Enter);
                     yield return Wait(() => world.Session != null && !ReferenceEquals(world.Session, session)

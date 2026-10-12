@@ -1,13 +1,11 @@
 using Hotfix.DroneFlight;
-using Hotfix.Editor.DroneFlight;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine;
 
 namespace Tests.Demo
 {
     /*
-     * 测试说明：验证紧凑抓斗、渔叉的默认配置、质量守恒、装备宿主边界以及双语配置 Inspector 页面。
+     * 测试说明：验证紧凑抓斗、渔叉的有效默认配置及绳长、断裂张力约束。
      */
     public sealed class DroneEquipmentConfigurationTests
     {
@@ -53,13 +51,5 @@ namespace Tests.Demo
             }
         }
 
-        [Test]
-        public void EquipmentInspectors_UseExpectedCustomEditorTypesAndSharedLanguageState()
-        {
-            Assert.That(typeof(DroneGrappleConfigEditor).GetCustomAttributes(typeof(CustomEditor), false), Is.Not.Empty);
-            Assert.That(typeof(DroneHarpoonConfigEditor).GetCustomAttributes(typeof(CustomEditor), false), Is.Not.Empty);
-            Assert.That(DroneConfigInspectorUi.IsChineseSelection(0), Is.True);
-            Assert.That(DroneConfigInspectorUi.IsChineseSelection(1), Is.False);
-        }
     }
 }

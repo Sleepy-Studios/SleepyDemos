@@ -158,6 +158,7 @@ namespace Tests.Module
 #endif
 
         [UnityTest]
+        [Category("RequiresGPU")]
         public IEnumerator CurtainShaderRendersAllPatternsAndCoverageBoundaries()
         {
             yield return RunCurtainImageCaseAsync().ToCoroutine();

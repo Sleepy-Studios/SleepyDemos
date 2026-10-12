@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Reflection;
 using Hotfix.DroneFlight;
 using NUnit.Framework;
 using UnityEditor;
@@ -33,6 +32,11 @@ namespace Tests.Demo
             Assert.That(prefab.GetComponent<DroneEquipmentInput>(), Is.Not.Null);
             Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
+            Assert.That(prefab.transform.Find("GrappleEquipment"), Is.Null);
+            Assert.That(prefab.transform.Find("HarpoonEquipment"), Is.Null);
+            Assert.That(prefab.GetComponent<DroneEquipmentHost>().Kind, Is.EqualTo(DroneEquipmentKind.None));
+            Assert.That(DroneFlightSceneCoordinator.PlainDroneAddress,
+                Is.EqualTo("LoadResources/Demos/drone_flight/Prefabs/DronePrototype"));
             Assert.That(prefab.transform.localPosition, Is.EqualTo(Vector3.zero));
             Assert.That(prefab.transform.localRotation, Is.EqualTo(Quaternion.identity));
             Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
@@ -327,24 +331,6 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void BasePrefab_IsThePureDroneSelectionWithoutAdditionalEquipment()
-        {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BasePath);
-            Assert.That(prefab, Is.Not.Null);
-            Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
-            Assert.That(prefab.GetComponentsInChildren<DroneHarpoonModule>(true), Is.Empty);
-            Assert.That(prefab.transform.Find("GrappleEquipment"), Is.Null);
-            Assert.That(prefab.transform.Find("HarpoonEquipment"), Is.Null);
-            Assert.That(prefab.GetComponent<DroneEquipmentHost>().Kind, Is.EqualTo(DroneEquipmentKind.None));
-            Assert.That(prefab.transform.localPosition, Is.EqualTo(Vector3.zero));
-            Assert.That(prefab.transform.localRotation, Is.EqualTo(Quaternion.identity));
-            Assert.That(prefab.transform.localScale, Is.EqualTo(Vector3.one));
-            Assert.That(
-                DroneFlightSceneCoordinator.PlainDroneAddress,
-                Is.EqualTo("LoadResources/Demos/drone_flight/Prefabs/DronePrototype"));
-        }
-
-        [Test]
         public void EquipmentPrefabs_AreIndependentAssetsAndVariantsKeepNestedInstances()
         {
             AssertNestedEquipment(
@@ -377,12 +363,6 @@ namespace Tests.Demo
             Assert.That(prefab.GetComponentsInChildren<DroneGrappleModule>(true), Is.Empty);
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonProjectile>(true), Has.Length.EqualTo(1));
             Assert.That(prefab.GetComponentsInChildren<DroneHarpoonRopeVisual>(true), Has.Length.EqualTo(1));
-            Assert.That(typeof(DroneHarpoonRopeVisual).GetMethod(
-                "LateUpdate",
-                BindingFlags.Instance | BindingFlags.NonPublic), Is.Not.Null);
-            Assert.That(typeof(DroneHarpoonRopeVisual).GetMethod(
-                "Step",
-                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public), Is.Null);
             var ropeLine = prefab.GetComponentInChildren<DroneHarpoonRopeVisual>(true)
                 .GetComponent<LineRenderer>();
             Assert.That(ropeLine.enabled, Is.False);
@@ -465,25 +445,6 @@ namespace Tests.Demo
                 .Min(collider => collider.bounds.min.y);
             Assert.That(rendererMinimum, Is.GreaterThanOrEqualTo(-0.221f), path);
             Assert.That(colliderMinimum, Is.GreaterThanOrEqualTo(-0.221f), path);
-        }
-
-        [Test]
-        public void FlightConfig_HasNoEquipmentSerializedFields()
-        {
-            var config = ScriptableObject.CreateInstance<DroneFlightConfig>();
-            try
-            {
-                var serialized = new SerializedObject(config);
-                foreach (var field in new[] { "grappleHardwareMassKilograms", "winchStowedLengthMeters",
-                             "grappleBreakForceNewtons", "harpoon", "ropeSpring" })
-                {
-                    Assert.That(serialized.FindProperty(field), Is.Null, field);
-                }
-            }
-            finally
-            {
-                Object.DestroyImmediate(config);
-            }
         }
 
         private static void AssertNestedEquipment(

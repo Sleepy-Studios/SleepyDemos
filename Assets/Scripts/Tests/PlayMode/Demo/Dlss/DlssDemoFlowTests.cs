@@ -260,6 +260,7 @@ namespace Tests.Demo
         }
 
         [UnityTest]
+        [Category("RequiresGPU"), Category("RequiresStreamlineSDK")]
         public IEnumerator EditorDirectStartupUsesSharedSettings()
         {
             if (!StreamlineRuntime.IsBackendSupported) Assert.Ignore("Windows Editor DX12/Vulkan required.");
@@ -274,6 +275,7 @@ namespace Tests.Demo
         }
 
         [UnityTest]
+        [Category("RequiresGPU"), Category("RequiresStreamlineSDK")]
         public IEnumerator FormalStartupModesAndHubReturn()
         {
             if (!StreamlineRuntime.IsBackendSupported) Assert.Ignore("Requires Windows Editor DX12/Vulkan.");

@@ -10,6 +10,7 @@ using UnityEngine.TestTools;
 
 namespace Tests.Module
 {
+    [Category("RequiresGPU"), Category("RequiresStreamlineSDK")]
     public sealed class StreamlineNativeProbeTests
     {
         [Serializable]
@@ -32,6 +33,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
+        [Category("RequiresVulkanInterposer")]
         public IEnumerator VulkanPresentInterceptionAdvances()
         {
             if (Application.platform != RuntimePlatform.WindowsEditor || SystemInfo.graphicsDeviceType != GraphicsDeviceType.Vulkan)

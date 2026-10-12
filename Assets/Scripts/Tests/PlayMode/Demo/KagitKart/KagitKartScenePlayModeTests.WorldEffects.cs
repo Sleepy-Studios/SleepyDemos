@@ -23,6 +23,7 @@ namespace Tests.Demo
     public sealed partial class KagitKartScenePlayModeTests
     {
         [UnityTest, Timeout(180000)]
+        [Category("RequiresGPU"), Category("RequiresAudioDevice")]
         public IEnumerator NativeAudioMixerHasRealOutput()
         {
             KagitKartWorld world = null;
@@ -67,6 +68,7 @@ namespace Tests.Demo
         }
 
         [UnityTest, Timeout(180000)]
+        [Category("RequiresGPU")]
         public IEnumerator NativeFallSummonsPaperCraneAndReturnsToRoad()
         {
             KagitKartWorld world = null;
@@ -117,14 +119,14 @@ namespace Tests.Demo
                 Assert.That(player.TrackInfo.HasGround, Is.False);
                 yield return Wait(() => !player.Grounded && player.Position.y < initialY - 0.1f
                     && player.VerticalSpeed < 0 && !player.Rescuing, "正式重力落空");
-                yield return Capture("NativeRescueFalling", 0);
+                yield return WaitForPresentation(0);
                 yield return Wait(() => player.RescueStage == 1 && NativeCraneHas(crane, player)
                     && NativeProperty<int>(crane, "BodyCount") > 0 && NativeProperty<int>(crane, "WingCount") > 0, "实际纸鹤提起");
-                yield return Capture("NativeRescueLift", 0);
+                yield return WaitForPresentation(0);
                 yield return Wait(() => player.RescueStage == 2 && NativeCraneHas(crane, player), "实际纸鹤搬运");
-                yield return Capture("NativeRescueCarry", 0);
+                yield return WaitForPresentation(0);
                 yield return Wait(() => player.RescueStage == 3 && NativeCraneHas(crane, player), "实际纸鹤放下");
-                yield return Capture("NativeRescueDrop", 0);
+                yield return WaitForPresentation(0);
                 yield return Wait(() => !player.Rescuing && player.Grounded, "实际救援落地");
                 Assert.That(QueryNative(track, player.Position).HasGround, Is.True);
                 Assert.That(player.GraceTime, Is.GreaterThan(0));
@@ -132,7 +134,7 @@ namespace Tests.Demo
                     KagitKartVehicleSignal.RescueDrop, KagitKartVehicleSignal.RescueLand }, signals);
                 Assert.That(NativeRouteTime(audio, "respawnLift"), Is.GreaterThan(0));
                 Assert.That(NativeRouteTime(audio, "respawnDrop"), Is.GreaterThan(0));
-                yield return Capture("NativeRescueLanded", 0);
+                yield return WaitForPresentation(0);
                 yield return Wait(() => NativeField<Array>(crane, "slots").Cast<object>()
                     .All(slot => NativeField<KagitKartVehicle>(slot, "kart") != player), "纸鹤离场释放车手引用");
             }
@@ -150,6 +152,7 @@ namespace Tests.Demo
         }
 
         [UnityTest, Timeout(240000)]
+        [Category("RequiresGPU"), Category("RequiresAudioDevice")]
         public IEnumerator NativeEightItemsRenderAndReachUnityAudioOutput()
         {
             KagitKartWorld world = null;
@@ -192,7 +195,7 @@ namespace Tests.Demo
                     if (name == "rocket3")
                     {
                         Assert.That(NativeBatchCount(visuals, 3), Is.EqualTo(3));
-                        yield return Capture("NativeItemRocket3Stowed", 0);
+                        yield return WaitForPresentation(0);
                     }
                     string route = "use_" + (name == "rocket3" ? "rocket" : name);
                     double routeBefore = NativeRouteTime(audio, route);
@@ -203,12 +206,12 @@ namespace Tests.Demo
                         yield return Wait(() => player.ItemHeld && session.Items.Hazards.Any(hazard => hazard.Held == player)
                             && NativeBatchCount(visuals, 1) > 0, "正式 E 按住口香糖");
                         AssertNativeBatchAssets(visuals, 1);
-                        yield return Capture("NativeItemGumHeld", 0);
+                        yield return WaitForPresentation(0);
                         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                         yield return Wait(() => !player.ItemHeld && player.Item == null && session.Items.Hazards
                             .Any(hazard => hazard.Owner == player && hazard.Held == null && !hazard.Dead)
                             && NativeBatchCount(visuals, 1) > 0, "正式 E 松开掉落口香糖");
-                        yield return Capture("NativeItemGumDropped", 0);
+                        yield return WaitForPresentation(0);
                     }
                     else
                     {
@@ -238,7 +241,7 @@ namespace Tests.Demo
                                 Assert.That(projectile.Target, Is.Not.SameAs(player));
                             }
                         }
-                        yield return Capture("NativeItem_" + name, 0);
+                        yield return WaitForPresentation(0);
                         InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                     }
                     yield return Wait(() => NativeRouteTime(audio, route) > routeBefore, "真实音频事件路由 " + name);
@@ -250,19 +253,19 @@ namespace Tests.Demo
                             && NativeBatchCount(visuals, 5) > 0, "真实瓶子爆墨提交墨滴");
                         Assert.That(session.Karts.Any(kart => kart != player && kart.InkTime > 0), Is.True);
                         AssertNativeBatchAssets(visuals, 5);
-                        yield return Capture("NativeItemInkBurst", 0);
+                        yield return WaitForPresentation(0);
                     }
                     else if (name == "scissors")
                     {
                         yield return Wait(() => session.Items.Projectiles.Any(value => value.Kind == name
                             && value.Owner == player && value.Phase == 2 && value.PhaseTime > 0.3)
                             && NativeBatchCount(visuals, 6) > 0, "真实剪刀下降");
-                        yield return Capture("NativeItemScissorsDive", 0);
+                        yield return WaitForPresentation(0);
                         yield return Wait(() => events.Skip(firstEvent).Any(signal => signal.Kind == "snip")
                             && NativeField<Array>(visuals, "snips").Cast<object>().Any(snip => NativeField<bool>(snip, "on"))
                             && NativeBatchCount(visuals, 8) > 0, "真实剪断事件与地面印记");
                         Assert.That(session.Karts.Any(kart => kart.SpinTime > 0 && kart.SpinCause == "scissors"), Is.True);
-                        yield return Capture("NativeItemScissorsSnip", 0);
+                        yield return WaitForPresentation(0);
                     }
                     if (name is "plane" or "homing")
                     {

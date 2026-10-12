@@ -100,6 +100,7 @@ namespace Tests.Module
         }
 
         [UnityTest]
+        [Category("RequiresGPU"), Category("RequiresStreamlineSDK")]
         public IEnumerator FailedUnloadRestoresDlssCameraAndPreference()
         {
             if (!StreamlineRuntime.IsBackendSupported) Assert.Ignore("Windows Editor DX12/Vulkan required.");

@@ -1,4 +1,4 @@
-﻿#if UNITY_EDITOR
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Linq;
@@ -48,11 +48,11 @@ namespace Tests.Demo
                 var countdown = HudField<RectTransform>(notice, "countdown");
                 Assert.That(countdown.gameObject.activeSelf, Is.True);
                 Assert.That(countdown.GetComponentInChildren<TMP_Text>(true).text, Is.EqualTo("3"));
-                yield return Capture("HudNativeTimeTrial3", 0.55f);
+                yield return WaitForPresentation(0.55f);
                 yield return Wait(() => world.Session.Race.Countdown == 2, "原作第二声倒计时");
-                yield return Capture("HudNativeTimeTrial2", 0.55f);
+                yield return WaitForPresentation(0.55f);
                 yield return Wait(() => world.Session.Race.Countdown == 1, "原作第三声倒计时");
-                yield return Capture("HudNativeTimeTrial1", 0.55f);
+                yield return WaitForPresentation(0.55f);
                 yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "真实倒计时发出Go");
                 world.Dispatch(KagitKartCommand.Pause);
                 yield return Wait(() => world.Session.Pause.IsPaused, "Go期间真实暂停");
@@ -84,7 +84,7 @@ namespace Tests.Demo
                 AssertHudInventory(slot, player);
                 Assert.That(HudField<RectTransform>(slot, "heldBorder").gameObject.activeSelf, Is.True);
                 Assert.That(HudField<TMP_Text>(slot, "count").gameObject.activeInHierarchy, Is.False);
-                yield return Capture("HudNativeHeldGum", 0);
+                yield return WaitForPresentation(0);
                 player.Controls = default;
                 world.Session.Items.Advance(KagitKartSimulationClock.Step, itemTime += KagitKartSimulationClock.Step, true);
                 slot.Advance(0, world.ReducedMotion);
@@ -113,7 +113,7 @@ namespace Tests.Demo
                 Vector2 frozenReel = reel.anchoredPosition;
                 slot.Advance(0, world.ReducedMotion);
                 Assert.That(reel.anchoredPosition, Is.EqualTo(frozenReel), "暂停感知dt=0不推进轮盘。");
-                yield return Capture("HudNativeRoulette", 0);
+                yield return WaitForPresentation(0);
                 for (int step = 0; step < 240 && player.Roulette > 0; step++)
                 {
                     world.Session.Items.Advance(KagitKartSimulationClock.Step, itemTime += KagitKartSimulationClock.Step, true);
@@ -122,7 +122,7 @@ namespace Tests.Demo
                 Assert.That(player.Item, Is.Not.Null);
                 Assert.That(reel.gameObject.activeSelf, Is.False);
                 AssertHudInventory(slot, player);
-                yield return Capture("HudNativeActualInventory", 0);
+                yield return WaitForPresentation(0);
             }
             finally
             {
@@ -162,7 +162,7 @@ namespace Tests.Demo
                 // 以下显式构造HUD事件/显示状态，只验收表现，不证明驾驶或完赛规则。
                 HudRaceFixture(notice, session.Player, "countdown", 2);
                 notice.Advance(0, 0.04f);
-                yield return Capture("HudFixtureProjectedCard", 0);
+                yield return WaitForPresentation(0);
                 var text = HudField<KagitKartCountdownCard>(notice, "countdownCard");
                 float earlyHeight = text.canvasRenderer.GetMesh().bounds.size.y;
                 Assert.That(text.sprite, Is.Not.Null, "使用正式原字形Sprite");
@@ -196,7 +196,7 @@ namespace Tests.Demo
                 Assert.That(threat.gameObject.activeSelf, Is.True);
                 var slot = UIManager.Instance.Get<KagitKartHudView>().gameObject.GetComponentInChildren<KagitKartItemSlot>(true);
                 Assert.That(HudField<Image>(notice, "threatIcon").sprite, Is.SameAs(slot.Icon("homing")));
-                yield return Capture("HudFixtureFlipThreatAndSigns", 0);
+                yield return WaitForPresentation(0);
                 HudRaceFixture(notice, session.Player, "checkpoint", split: 0.25);
                 Assert.That(HudField<TMP_Text>(notice, "splitText").text, Is.EqualTo("+0.25"));
                 ColorUtility.TryParseHtmlString("#d9483b", out var behindColor);
@@ -217,7 +217,7 @@ namespace Tests.Demo
                 Assert.That(ScreenPoint(threat).x, Is.GreaterThan(Screen.width / 2f));
                 Assert.That(ScreenPoint(threat).y, Is.GreaterThan(Screen.height / 2f));
                 Assert.That(HudField<Image>(notice, "threatRing").fillAmount, Is.EqualTo(0.3f).Within(0.001f));
-                yield return Capture("HudFixtureThreatNearRight", 0);
+                yield return WaitForPresentation(0);
                 projectiles.Remove(projectile);
                 HudSet(session.Player, nameof(KagitKartVehicle.Heading), heading);
                 var banner = HudTransient(notice, "Banner");
@@ -257,7 +257,7 @@ namespace Tests.Demo
                 Assert.That(HudField<RectTransform>(notice, "finish").gameObject.activeSelf, Is.True);
                 Assert.That(HudField<RectTransform>(notice, "waiting").gameObject.activeSelf, Is.True);
                 StringAssert.Contains("1 秒", HudField<RectTransform>(notice, "waiting").GetComponentInChildren<TMP_Text>().text);
-                yield return Capture("HudFixtureFinishAndWait", 0);
+                yield return WaitForPresentation(0);
                 HudSet(session.Race, nameof(KagitKartRace.WaitLeft), 0.0);
                 notice.Advance(0, 0);
                 Assert.That(HudField<RectTransform>(notice, "waiting").gameObject.activeSelf, Is.False);

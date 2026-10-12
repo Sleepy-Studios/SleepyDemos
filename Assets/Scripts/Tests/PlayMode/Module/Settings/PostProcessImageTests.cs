@@ -25,6 +25,7 @@ using Object = UnityEngine.Object;
 namespace Tests.Module
 {
     /// 正式启动、真实世界及 UI 相机栈的 GPU 回归；不依赖 DLSS 硬件可用性。
+    [Category("RequiresGPU")]
     public sealed class PostProcessImageTests
     {
         private GameSettingsSnapshot savedSettings;

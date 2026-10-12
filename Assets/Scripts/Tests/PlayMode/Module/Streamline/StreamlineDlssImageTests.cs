@@ -19,6 +19,7 @@ using Object = UnityEngine.Object;
 
 namespace Tests.Module
 {
+    [Category("RequiresGPU"), Category("RequiresStreamlineSDK")]
     public sealed class StreamlineDlssImageTests
     {
         [Serializable]

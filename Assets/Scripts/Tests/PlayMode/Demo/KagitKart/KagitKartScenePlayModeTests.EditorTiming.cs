@@ -62,12 +62,14 @@ namespace Tests.Demo
         }
 
         [UnityTest, Timeout(600000)]
+        [Category("RequiresGPU"), Category("RequiresAudioDevice"), Category("EditorPerformance")]
         public IEnumerator NormalDrivingRecordsLongEditorTimingsForChaptersOneAndTwo()
         {
             yield return RecordNormalEditorRoads(KagitKartCatalog.Tracks.Take(2).ToArray());
         }
 
         [UnityTest, Timeout(600000)]
+        [Category("RequiresGPU"), Category("RequiresAudioDevice"), Category("EditorPerformance")]
         public IEnumerator NormalDrivingRecordsLongEditorTimingsForChaptersThreeAndFour()
         {
             yield return RecordNormalEditorRoads(KagitKartCatalog.Tracks.Skip(2).ToArray());

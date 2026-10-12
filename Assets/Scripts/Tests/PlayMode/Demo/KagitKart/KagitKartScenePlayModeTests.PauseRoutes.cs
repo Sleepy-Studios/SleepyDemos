@@ -43,7 +43,7 @@ namespace Tests.Demo
             quit.onClick.Invoke();
             StringAssert.Contains("杯赛进度将丢失", pause.gameObject.GetComponentsInChildren<TMP_Text>().Single(text => text.name == "Detail").text);
             Assert.That(world.Session, Is.SameAs(session), "GP第一次返回菜单只确认，不退出。");
-            yield return Capture("PauseGpQuitConfirmation", 0);
+            yield return WaitForPresentation(0);
             EventSystem.current.SetSelectedGameObject(Button(pause, "Resume").gameObject);
             Assert.That(pause.gameObject.GetComponentsInChildren<TMP_Text>().Single(text => text.name == "Detail").text.Contains("确定退出"), Is.False);
             EventSystem.current.SetSelectedGameObject(quit.gameObject);

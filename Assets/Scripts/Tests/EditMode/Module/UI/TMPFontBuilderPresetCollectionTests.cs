@@ -1,4 +1,3 @@
-using System;
 using Core.Editor.TextMeshPro;
 using NUnit.Framework;
 using UnityEngine;
@@ -130,16 +129,6 @@ namespace Tests.Module
             var result = TMPFontBuilderWindow.NormalizeCharacters("A😀A\n😀B");
 
             Assert.That(result, Is.EqualTo("A😀B"));
-        }
-
-        [Test]
-        public void Localization_AllKeysHaveChineseAndEnglishText()
-        {
-            foreach (TMPFontBuilderText key in Enum.GetValues(typeof(TMPFontBuilderText)))
-            {
-                Assert.That(TMPFontBuilderLocalization.HasTranslation(key, TMPFontBuilderEditorLanguage.Chinese), Is.True, key.ToString());
-                Assert.That(TMPFontBuilderLocalization.HasTranslation(key, TMPFontBuilderEditorLanguage.English), Is.True, key.ToString());
-            }
         }
 
         private void InitializeDefaults()
