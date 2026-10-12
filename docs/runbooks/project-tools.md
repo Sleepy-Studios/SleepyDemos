@@ -1,6 +1,6 @@
 # 项目工具与 Agent 技能总览
 
-本文档汇总 SleepyDemos 仓库内**可直接使用**的 Unity 编辑器工具、第三方插件入口，以及供 Codex / Claude / Cursor 等 Agent 使用的**仓库内** Skill 与 Rule。新增菜单或 Skill 时请同步更新本页。
+本文档汇总 SleepyDemos 仓库内**可直接使用**的 Unity 编辑器工具、第三方插件入口，以及供 Codex / Claude 等 Agent 使用的**仓库内**技能。新增工具菜单时同步更新本页；技能说明见独立入口。
 
 ## 如何判断工具归属
 
@@ -9,7 +9,7 @@
 | 项目自研编辑器工具 | `Assets/Scripts/Core/Editor` | 本文 + 必要时单独 `runbooks/*.md` |
 | 仓库内插件（随项目提交） | `Assets/Plugins/` | 本文「第三方插件」 |
 | UPM 开发依赖 | `Packages/manifest.json` | 本文「UPM 包」+ 上游链接 |
-| Agent Skill / Rule | `.claude/`、`.codex/`、`.cursor/` | 本文「Agent」+ [项目 Skill 入口](../agent/skills.md) |
+| Agent Skill | `.agents/skills/` 权威源、`.claude/skills/` 发布副本 | [项目 Skill 入口](../agent/skills.md) |
 
 ---
 
@@ -151,69 +151,18 @@
 
 ---
 
-## 五、Agent Skill（仓库内）
+## 五、Agent 入口
 
-项目级技能的入口和自动扫描方式见 [项目 Skill 入口](../agent/skills.md)。完整清单不在本文手写维护，以脚本输出为准：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/agent/list_skills.ps1
-```
-
-项目约定：
-
-- **Codex**：`.codex/skills/`
-- **Claude**：`.claude/skills/`
-- **Cursor**：`.cursor/skills/`（当前仅同步部分技能，以目录实际文件为准）
-
-当前需要特别知道的仓库内 Skill：
-
-| Skill | 路径 | 适用 Agent | 何时使用 |
-|-------|------|------------|----------|
-| **git-commit** | `.claude/skills/git-commit/`<br>`.cursor/skills/git-commit/`<br>`.codex/skills/git-commit/` | Claude、Cursor、Codex | 根据 **staged** 变更生成 Conventional Commits（中文 subject）、commit、push |
-| **sync-skills** | `.claude/skills/sync-skills/`<br>`.codex/skills/sync-skills/` | Claude、Codex | 双向查漏补缺 `.claude` / `.codex` 的 skill 和 rule；单技能模式可方向覆盖同步 |
-| **task-retrospective** | `.claude/skills/task-retrospective/`<br>`.codex/skills/task-retrospective/` | Claude、Codex | 任务结束后复盘、沉淀最优提示词（保存路径见 skill 内说明） |
-| **gen-module** | `.claude/skills/gen-module/`<br>`.codex/skills/gen-module/` | Claude、Codex | 生成或修改 Flux 模块 Action / Data / Handler；从钓鱼项目迁入，使用前确认当前模块结构、协议类型和网络发送方式匹配 |
-| **module-docs** | `.claude/skills/module-docs/`<br>`.codex/skills/module-docs/` | Claude、Codex | 做完大型模块或调整模块文档边界时，按 architecture / modules / runbooks 三层体系补齐文档 |
-
-### 远程 / 非仓库 Skill
-
-以下**不在**本仓库 `.claude/skills` 中，但通过 UPM 或本机 Cursor 插件使用，链接供查阅：
-
-| 名称 | 类型 | 链接 / 说明 |
-|------|------|-------------|
-| **Unity-Skills** | UPM 包（Editor REST） | [github.com/Besty0728/Unity-Skills](https://github.com/Besty0728/Unity-Skills) — 见上文「UnitySkills 常用入口」 |
-| **Cursor 内置 / 用户级 Skills** | 本机 `~/.cursor/skills*` 或插件缓存 | 不在仓库内；不写入本表，避免与项目 Skill 混淆 |
-
-同步 Claude / Codex 技能（预览 / 执行）：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1 -DryRun
-```
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .codex/skills/sync-skills/scripts/sync_skills.ps1
-```
+技能发现、选择和单向发布只维护在 [项目 Skill 入口](../agent/skills.md)。共同规则只维护在 [AGENTS.md](../../AGENTS.md)，不再设置重复的 pre-task 规则文件。
 
 ---
 
-## 六、Agent Rule（仓库内）
-
-与 Skill 不同，Rule 在会话开始时由 Agent 自动加载，用于协作约束。
-
-| 规则文件 | 路径 | 作用 |
-|----------|------|------|
-| **pre-task-validation** | `.claude/rules/pre-task-validation.md`<br>`.codex/rules/pre-task-validation.md` | 非平凡任务动手前：先读代码/Prefab/调用链，再向用户提问 |
-
-入口导航中的硬规则仍以 [AGENTS.md](../../AGENTS.md)、[CLAUDE.md](../../CLAUDE.md) 与 `docs/architecture/` 为准。
-
----
-
-## 七、维护本页
+## 六、维护本页
 
 在以下情况**必须**更新本文（同一 PR / 任务内）：
 
 - 新增或删除 `Core.Editor` 的 `[MenuItem]` 入口
-- 新增/变更仓库内 Agent Skill 或 Rule，并同步检查 [项目 Skill 入口](../agent/skills.md)
+- 技能入口或发布流程变化时，更新 [项目 Skill 入口](../agent/skills.md)；技能名单无需同步本页
 - 新增常用 UPM 工具包或更换其 Git 地址
 - Runbook 更名或职责变化导致上表链接失效
 

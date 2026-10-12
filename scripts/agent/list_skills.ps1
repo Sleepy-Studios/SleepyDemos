@@ -1,7 +1,5 @@
 param(
     [string]$Filter = "",
-    [ValidateSet("auto", "codex", "claude")]
-    [string]$Prefer = "auto",
     [switch]$Json
 )
 
@@ -140,64 +138,22 @@ function Get-SkillDirectories {
         }
 }
 
-$preferredSide = $Prefer
-if ($preferredSide -eq "auto") {
-    $preferredSide = "codex"
-}
-
-$codexRoot = Join-Path $ProjectRoot ".codex\skills"
+$sourceRoot = Join-Path $ProjectRoot ".agents\skills"
 $claudeRoot = Join-Path $ProjectRoot ".claude\skills"
-$rawSkills = @()
-$rawSkills += Get-SkillDirectories -Root $codexRoot -Side "codex"
-$rawSkills += Get-SkillDirectories -Root $claudeRoot -Side "claude"
-
-$skillMap = [ordered]@{}
-foreach ($skill in $rawSkills) {
-    $key = $skill.Name
-    if (-not $skillMap.Contains($key)) {
-        $skillMap[$key] = [ordered]@{
-            Name = $key
-            CodexPath = $null
-            ClaudePath = $null
-            CodexDescription = ""
-            ClaudeDescription = ""
-        }
-    }
-
-    if ($skill.Side -eq "codex") {
-        $skillMap[$key].CodexPath = $skill.Path
-        $skillMap[$key].CodexDescription = $skill.Description
-    }
-    elseif ($skill.Side -eq "claude") {
-        $skillMap[$key].ClaudePath = $skill.Path
-        $skillMap[$key].ClaudeDescription = $skill.Description
-    }
-}
-
-$items = foreach ($entry in $skillMap.Values) {
-    $description = ""
-    if ($preferredSide -eq "codex") {
-        $description = if ($entry.CodexDescription) { $entry.CodexDescription } else { $entry.ClaudeDescription }
-    }
-    else {
-        $description = if ($entry.ClaudeDescription) { $entry.ClaudeDescription } else { $entry.CodexDescription }
-    }
-
-    $status = "Codex+Claude"
-    if ($entry.CodexPath -and -not $entry.ClaudePath) {
-        $status = "Only Codex"
-    }
-    elseif ($entry.ClaudePath -and -not $entry.CodexPath) {
-        $status = "Only Claude"
-    }
-
+$items = @(Get-SkillDirectories -Root $sourceRoot -Side "agents" | ForEach-Object {
+    $sourceSkillDirectory = Split-Path -Parent (Join-Path $ProjectRoot $_.Path)
+    $directoryName = Split-Path -Leaf $sourceSkillDirectory
+    $claudeFile = Join-Path (Join-Path $claudeRoot $directoryName) "SKILL.md"
     [pscustomobject]@{
-        Name = $entry.Name
-        Description = $description
-        CodexPath = $entry.CodexPath
-        ClaudePath = $entry.ClaudePath
-        Status = $status
+        Name = $_.Name
+        Description = $_.Description
+        SourcePath = $_.Path
+        ClaudePath = if (Test-Path -LiteralPath $claudeFile) { ConvertTo-DisplayPath $claudeFile } else { $null }
+        Status = if ($directoryName -eq "unity-skills") { "Upstream" } elseif (Test-Path -LiteralPath $claudeFile) { "Source + Claude copy" } else { "Source only" }
     }
+})
+if (@($items | Group-Object Name | Where-Object Count -gt 1).Count -gt 0) {
+    throw "Duplicate skill names in authoritative .agents/skills."
 }
 
 if ($Filter) {
@@ -230,9 +186,7 @@ Write-Output "| ---: | --- | --- | --- | --- |"
 $index = 1
 foreach ($item in $items) {
     $links = @()
-    if ($item.CodexPath) {
-        $links += "[Codex]($($item.CodexPath))"
-    }
+    $links += "[Source]($($item.SourcePath))"
     if ($item.ClaudePath) {
         $links += "[Claude]($($item.ClaudePath))"
     }
@@ -247,4 +201,4 @@ foreach ($item in $items) {
 }
 
 Write-Output ""
-Write-Output "New skills are included automatically when placed under ``.codex/skills/<name>/SKILL.md`` or ``.claude/skills/<name>/SKILL.md``."
+Write-Output "Self-authored source skills are discovered from ``.agents/skills/<name>/SKILL.md``. Claude copies are not scanned as another source."

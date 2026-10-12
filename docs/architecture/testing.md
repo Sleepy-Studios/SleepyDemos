@@ -31,6 +31,8 @@
 2. 同一功能存在多条相关用例时，运行对应测试类。
 3. 任务跨越多个模块时，运行所有直接受影响的测试类。
 
+相关检查通过后，只有新改动、失败或具体未解决风险才触发重复或扩大验证；自动化不能替代实际运行或视觉验收。
+
 跨模块不等于全量回归。除非用户明确要求“全量测试”或“完整回归”，否则不得默认运行整个 `Tests.EditMode`、整个 `Tests.PlayMode` 或第三方包测试。
 
 项目全量测试默认只包括项目自有的 `Tests.EditMode` 与 `Tests.PlayMode`。Package、插件或 Unity 自带测试属于第三方测试，只有用户明确指定时才纳入。验收报告需要列出实际运行的方法或测试类，并明确说明是否执行过全量测试。
@@ -55,3 +57,5 @@ Unity 6.3 的 Player 程序集查询可能因为 Input System 或 Performance Te
 - 不通过删除断言、忽略业务错误或改变测试分类来规避失败。
 - 不再维护与 Unity Test Runner 并行的自定义基础设施校验菜单或 BatchMode 包装器。
 - Unity Editor 已打开项目时，不另起 BatchMode 实例，也不使用 `dotnet build` 或 `msbuild` 验证 Unity 工程。
+
+具体实例发现、串行 Test Runner 调用、结果读取与排障见 [运行 Unity 自动化测试](../runbooks/run-unity-tests.md)。

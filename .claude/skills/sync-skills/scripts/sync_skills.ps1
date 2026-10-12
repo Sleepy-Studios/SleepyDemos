@@ -1,252 +1,99 @@
 param(
+    [ValidatePattern('^[a-z0-9][a-z0-9-]*$')]
     [string]$SkillName,
-
-    [ValidateSet("claude", "codex")]
-    [string]$From,
-
-    [ValidateSet("claude", "codex")]
-    [string]$To,
-
-    [switch]$NoRules,
-    [switch]$UseLinks,
     [switch]$DryRun
 )
 
 $ErrorActionPreference = "Stop"
+$projectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..\..\..")).Path
+$sourceRoot = Join-Path $projectRoot ".agents\skills"
+$targetRoot = Join-Path $projectRoot ".claude\skills"
 
-function Test-SkillDirectory {
-    param([System.IO.DirectoryInfo]$Directory)
-
-    return Test-Path -LiteralPath (Join-Path $Directory.FullName "SKILL.md")
-}
-
-function Get-SideRoot {
-    param([string]$ProjectRoot, [string]$Side)
-
-    return Join-Path $ProjectRoot ".$Side"
-}
-
-function Get-SkillMap {
-    param([string]$Root)
-
-    $map = @{}
-    if (-not (Test-Path -LiteralPath $Root)) {
-        return $map
+function Assert-PublishPath {
+    param([string]$Path)
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $boundary = [System.IO.Path]::GetFullPath($targetRoot) + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $fullPath.StartsWith($boundary, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Publish path is outside .claude/skills: $fullPath"
     }
-
-    Get-ChildItem -LiteralPath $Root -Directory | Where-Object {
-        $_.Name -ne "sync-skills" -and (Test-SkillDirectory $_)
-    } | ForEach-Object {
-        $map[$_.Name] = $_.FullName
-    }
-
-    return $map
-}
-
-function Get-RuleMap {
-    param([string]$Root)
-
-    $map = @{}
-    if (-not (Test-Path -LiteralPath $Root)) {
-        return $map
-    }
-
-    Get-ChildItem -LiteralPath $Root -Force | ForEach-Object {
-        $map[$_.Name] = $_.FullName
-    }
-
-    return $map
-}
-
-function Copy-Directory {
-    param(
-        [string]$Source,
-        [string]$Destination,
-        [bool]$Overwrite
-    )
-
-    if (Test-Path -LiteralPath $Destination) {
-        if (-not $Overwrite) {
-            Write-Host "Skip existing: $Destination"
-            return
+    # 核对整条父链，禁止沿已有链接写入共享源目录。
+    $cursor = $fullPath
+    while ($cursor -and $cursor -ne $projectRoot) {
+        if (Test-Path -LiteralPath $cursor) {
+            $item = Get-Item -LiteralPath $cursor
+            if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                throw "Publishing through a link is not allowed: $cursor"
+            }
         }
-
-        if ($DryRun) {
-            Write-Host "[dry-run] replace $Destination with $Source"
-            return
-        }
-
-        Remove-Item -LiteralPath $Destination -Recurse -Force
-    }
-
-    if ($DryRun) {
-        if ($UseLinks) {
-            Write-Host "[dry-run] link $Destination -> $Source"
-        }
-        else {
-            Write-Host "[dry-run] copy $Source -> $Destination"
-        }
-        return
-    }
-
-    if ($UseLinks) {
-        New-Item -ItemType Junction -Path $Destination -Target $Source | Out-Null
-        Write-Host "Linked $Destination -> $Source"
-    }
-    else {
-        Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
-        Write-Host "Copied $Source -> $Destination"
+        $cursor = Split-Path -Parent $cursor
     }
 }
 
-function Copy-RuleItem {
-    param(
-        [string]$Source,
-        [string]$Destination,
-        [bool]$Overwrite
-    )
-
-    if (Test-Path -LiteralPath $Destination) {
-        if (-not $Overwrite) {
-            Write-Host "Skip existing: $Destination"
-            return
-        }
-
-        if ($DryRun) {
-            Write-Host "[dry-run] replace $Destination with $Source"
-            return
-        }
-
-        Remove-Item -LiteralPath $Destination -Recurse -Force
-    }
-
-    if ($DryRun) {
-        Write-Host "[dry-run] copy $Source -> $Destination"
-        return
-    }
-
-    Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
-    Write-Host "Copied $Source -> $Destination"
-}
-
-function Sync-MissingMapItems {
-    param(
-        [hashtable]$SourceMap,
-        [hashtable]$TargetMap,
-        [string]$TargetRoot,
-        [string]$Label,
-        [string]$Kind
-    )
-
-    $missing = $SourceMap.Keys | Where-Object { -not $TargetMap.ContainsKey($_) } | Sort-Object
-    if (-not $missing) {
-        Write-Host "${Label}: no missing $Kind."
-        return 0
-    }
-
-    foreach ($name in $missing) {
-        $destination = Join-Path $TargetRoot $name
-        if ($Kind -eq "skills") {
-            Copy-Directory -Source $SourceMap[$name] -Destination $destination -Overwrite $false
-        }
-        else {
-            Copy-RuleItem -Source $SourceMap[$name] -Destination $destination -Overwrite $false
-        }
-    }
-
-    return $missing.Count
-}
-
-function Sync-RulesOneWay {
-    param([string]$SourceRoot, [string]$TargetRoot)
-
-    $rules = Get-RuleMap -Root $SourceRoot
-    if ($rules.Count -eq 0) {
-        Write-Host "Rules: no source rules found."
-        return 0
-    }
-
-    foreach ($name in ($rules.Keys | Sort-Object)) {
-        Copy-RuleItem -Source $rules[$name] -Destination (Join-Path $TargetRoot $name) -Overwrite $true
-    }
-
-    return $rules.Count
-}
-
-$SkillRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $SkillRoot)
-$claudeRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side "claude"
-$codexRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side "codex"
-$claudeSkills = Join-Path $claudeRoot "skills"
-$codexSkills = Join-Path $codexRoot "skills"
-$claudeRules = Join-Path $claudeRoot "rules"
-$codexRules = Join-Path $codexRoot "rules"
-
-foreach ($path in @($claudeSkills, $codexSkills, $claudeRules, $codexRules)) {
-    if (-not (Test-Path -LiteralPath $path)) {
-        if ($DryRun) {
-            Write-Host "[dry-run] create $path"
-        }
-        else {
-            New-Item -ItemType Directory -Force -Path $path | Out-Null
-        }
-    }
-}
-
-Write-Host "Project: $ProjectRoot"
-
+$skills = @(Get-ChildItem -LiteralPath $sourceRoot -Directory -Force | Where-Object {
+    $_.Name -ne "unity-skills" -and (Test-Path -LiteralPath (Join-Path $_.FullName "SKILL.md"))
+} | Sort-Object Name)
 if ($SkillName) {
-    if (-not $From -or -not $To) {
-        throw "When -SkillName is used, pass both -From claude|codex and -To claude|codex."
-    }
-    if ($From -eq $To) {
-        throw "-From and -To must be different."
-    }
-    if ($SkillName -eq "sync-skills") {
-        throw "sync-skills itself is not synced by this script."
-    }
-
-    $sourceRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side $From
-    $targetRoot = Get-SideRoot -ProjectRoot $ProjectRoot -Side $To
-    $sourceSkill = Join-Path (Join-Path $sourceRoot "skills") $SkillName
-    $targetSkill = Join-Path (Join-Path $targetRoot "skills") $SkillName
-
-    if (-not (Test-Path -LiteralPath (Join-Path $sourceSkill "SKILL.md"))) {
-        throw "Source skill not found or invalid: $sourceSkill"
-    }
-
-    Write-Host "Sync skill: $SkillName ($From -> $To)"
-    Copy-Directory -Source $sourceSkill -Destination $targetSkill -Overwrite $true
-
-    if (-not $NoRules) {
-        Write-Host "Sync rules: $From -> $To"
-        $count = Sync-RulesOneWay -SourceRoot (Join-Path $sourceRoot "rules") -TargetRoot (Join-Path $targetRoot "rules")
-        Write-Host "Rules synced: $count"
-    }
-
-    Write-Host "Done. Restart Claude/Codex or start a new session if synced changes do not appear."
-    return
+    $skills = @($skills | Where-Object Name -eq $SkillName)
+    if ($skills.Count -ne 1) { throw "Self-authored source skill not found: $SkillName" }
 }
 
-if ($From -or $To) {
-    throw "-From and -To are only valid with -SkillName."
+Write-Output "Project: $projectRoot"
+foreach ($skill in $skills) {
+    if ($skill.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+        throw "Source skill must be a physical directory: $($skill.FullName)"
+    }
+    $destination = Join-Path $targetRoot $skill.Name
+    Assert-PublishPath $destination
+    $sourceFiles = @{}
+    $pending = [System.Collections.Generic.Queue[string]]::new()
+    $pending.Enqueue($skill.FullName)
+    while ($pending.Count -gt 0) {
+        foreach ($item in Get-ChildItem -LiteralPath $pending.Dequeue() -Force) {
+            if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                throw "Source link is not published: $($item.FullName)"
+            }
+            if ($item.PSIsContainer) { $pending.Enqueue($item.FullName); continue }
+            $relative = $item.FullName.Substring($skill.FullName.Length + 1)
+            if ($relative -eq "agents\openai.yaml") { continue }
+            $sourceFiles[$relative] = $item.FullName
+        }
+    }
+    foreach ($relative in ($sourceFiles.Keys | Sort-Object)) {
+        $target = Join-Path $destination $relative
+        Assert-PublishPath $target
+        if ((Test-Path -LiteralPath $target -PathType Leaf) -and
+            (Get-FileHash -LiteralPath $target).Hash -eq (Get-FileHash -LiteralPath $sourceFiles[$relative]).Hash) {
+            continue
+        }
+        Write-Output "$(if ($DryRun) { '[dry-run] ' })Publish $($skill.Name)/$relative"
+        if (-not $DryRun) {
+            $parent = Split-Path -Parent $target
+            if (-not (Test-Path -LiteralPath $parent)) { [System.IO.Directory]::CreateDirectory($parent) | Out-Null }
+            Copy-Item -LiteralPath $sourceFiles[$relative] -Destination $target
+        }
+    }
+    if (-not (Test-Path -LiteralPath $destination)) { continue }
+    $targetFiles = @()
+    $targetDirectories = @()
+    $pending.Enqueue($destination)
+    while ($pending.Count -gt 0) {
+        foreach ($item in Get-ChildItem -LiteralPath $pending.Dequeue() -Force) {
+            Assert-PublishPath $item.FullName
+            if ($item.PSIsContainer) { $targetDirectories += $item.FullName; $pending.Enqueue($item.FullName) }
+            else { $targetFiles += $item.FullName }
+        }
+    }
+    foreach ($file in $targetFiles) {
+        $relative = $file.Substring($destination.Length + 1)
+        if ($sourceFiles.ContainsKey($relative)) { continue }
+        Write-Output "$(if ($DryRun) { '[dry-run] ' })Remove derived file $($skill.Name)/$relative"
+        if (-not $DryRun) { Remove-Item -LiteralPath $file }
+    }
+    foreach ($directory in ($targetDirectories | Sort-Object Length -Descending)) {
+        if (@(Get-ChildItem -LiteralPath $directory -Force).Count -eq 0) {
+            Write-Output "$(if ($DryRun) { '[dry-run] ' })Remove empty derived directory $directory"
+            if (-not $DryRun) { Remove-Item -LiteralPath $directory }
+        }
+    }
 }
-
-$claudeSkillMap = Get-SkillMap -Root $claudeSkills
-$codexSkillMap = Get-SkillMap -Root $codexSkills
-$claudeRuleMap = Get-RuleMap -Root $claudeRules
-$codexRuleMap = Get-RuleMap -Root $codexRules
-
-Write-Host "Claude skills: $($claudeSkillMap.Count)"
-Write-Host "Codex skills:  $($codexSkillMap.Count)"
-Write-Host "Claude rules:  $($claudeRuleMap.Count)"
-Write-Host "Codex rules:   $($codexRuleMap.Count)"
-
-$addedSkillsToCodex = Sync-MissingMapItems -SourceMap $claudeSkillMap -TargetMap $codexSkillMap -TargetRoot $codexSkills -Label "Missing in .codex/skills" -Kind "skills"
-$addedSkillsToClaude = Sync-MissingMapItems -SourceMap $codexSkillMap -TargetMap $claudeSkillMap -TargetRoot $claudeSkills -Label "Missing in .claude/skills" -Kind "skills"
-$addedRulesToCodex = Sync-MissingMapItems -SourceMap $claudeRuleMap -TargetMap $codexRuleMap -TargetRoot $codexRules -Label "Missing in .codex/rules" -Kind "rules"
-$addedRulesToClaude = Sync-MissingMapItems -SourceMap $codexRuleMap -TargetMap $claudeRuleMap -TargetRoot $claudeRules -Label "Missing in .claude/rules" -Kind "rules"
-
-Write-Host "Done. Added skills to Codex: $addedSkillsToCodex; added skills to Claude: $addedSkillsToClaude."
-Write-Host "Done. Added rules to Codex: $addedRulesToCodex; added rules to Claude: $addedRulesToClaude."
-Write-Host "Restart Claude/Codex or start a new session if newly synced items do not appear."
+Write-Output "Done. Published source selection: $($skills.Count). Upstream skills and unknown target skills were not changed."

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Unity Demo ½¨Ä£Á÷Ë®Ïß"
-  short_description: "´ÓÍæ·¨ĞèÇóµ½ Blender ½¨Ä£¡¢Unity µ¼ÈëÓëÑéÊÕ±Õ»·"
+  display_name: "Unity Demo å»ºæ¨¡æµæ°´çº¿"
+  short_description: "ä»ç©æ³•éœ€æ±‚åˆ° Blender å»ºæ¨¡ã€Unity å¯¼å…¥ä¸éªŒæ”¶é—­ç¯"
   default_prompt: "Use $unity-demo-model-pipeline to turn this Unity Demo gameplay requirement into a confirmed model, import, and validation workflow."

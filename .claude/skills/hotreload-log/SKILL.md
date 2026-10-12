@@ -1,9 +1,11 @@
 ---
 name: hotreload-log
-description: Use when Unity Play Mode 中使用 Hot Reload，需要判断 C# 改动是否已应用，读取 Hot Reload Timeline 证据，检查 Reload finished、Changes partially applied、patches.json、modifiedMethods、failures、newFields，或决定是否退出 Play Mode 正常编译。
+description: "仅在用户明确要求排查 Unity Hot Reload 时，读取 Timeline 或补丁证据，判断指定 C# 修改是否应用；普通代码修改不自动检查热重载。"
 ---
 
 # Hot Reload Log
+
+用户明确要求排查时才使用；读日志本身不授权退出 Play Mode 或重启 Unity。
 
 ## 概述
 
@@ -15,7 +17,7 @@ description: Use when Unity Play Mode 中使用 Hot Reload，需要判断 C# 改
 |---|---|
 | 面板显示 `Reload finished`；`patches.json` 包含本次修改的方法；`failures` 为空 | 继续在 Play Mode 内验证 |
 | 面板显示 `Changes partially applied`；关键方法已出现在 `modifiedMethods` 且 `failures` 为空 | 可以继续，但要说明 partial 状态并实测行为 |
-| 关键方法缺失、`failures` 非空，或出现 unsupported changes | 退出 Play Mode，让 Unity 正常重新编译 |
+| 关键方法缺失、`failures` 非空，或出现 unsupported changes | 报告未应用范围；只有已有授权时退出 Play Mode 正常编译 |
 | 出现新增字段、删除字段、enum 成员变化 | 即使方法补丁成功也要谨慎，结构变化需要重点验证 |
 
 ## 读取位置
