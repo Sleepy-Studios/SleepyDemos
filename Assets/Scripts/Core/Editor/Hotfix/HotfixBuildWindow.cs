@@ -887,7 +887,8 @@ namespace Core.Editor.Hotfix
                     using (var ssh = new SshClient(connectionInfo))
                     {
                         ssh.Connect();
-                        ssh.RunCommand($"rm -rf \"{remotePath}\" && mkdir -p \"{remotePath}\"");
+                        string quotedPath = QuoteForShell(remotePath);
+                        ssh.RunCommand($"rm -rf -- {quotedPath} && mkdir -p -- {quotedPath}");
                         ssh.Disconnect();
                     }
 
@@ -939,8 +940,19 @@ namespace Core.Editor.Hotfix
         private string BuildRemoteBundlePath()
         {
             string root = config.ServerBasePath.Trim().TrimEnd('/');
+            if (!root.StartsWith("/", StringComparison.Ordinal) ||
+                root.Any(char.IsControl) || root.Split('/').Any(segment => segment is "." or ".."))
+            {
+                throw new InvalidOperationException("远程根路径必须是非根目录的绝对路径，且不能包含相对跳转或控制字符。");
+            }
+
             string platformFolder = isPcPlatform ? "PC" : "Android";
             return $"{root}/{platformFolder}";
+        }
+
+        private static string QuoteForShell(string path)
+        {
+            return "'" + path.Replace("'", "'\"'\"'") + "'";
         }
 
         private void ValidateSshConfig()

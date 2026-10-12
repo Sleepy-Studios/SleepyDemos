@@ -29,10 +29,6 @@ namespace Core.Runtime.Inputs
         /// <param name="source">保存的动作资产。</param>
         public InputActionSession(InputActionAsset source)
         {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
             SourceId = GetSourceId(source);
             InputDeviceState.Initialize();
             Asset = UnityEngine.Object.Instantiate(source);

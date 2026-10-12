@@ -481,7 +481,7 @@ namespace Tests.Module
                 yield return null; yield return null;
                 Assert.That(session.ReadVector("Move").y, Is.GreaterThan(0));
                 Assert.That(session.ReadVector("Look").x, Is.GreaterThan(0));
-                session.SetMap("Menu"); session.SetMap("Observe"); yield return null;
+                session.SetMap(null); session.SetMap("Observe"); yield return null;
                 Assert.That(session.ReadVector("Move"), Is.EqualTo(Vector2.zero));
                 InputSystem.QueueStateEvent(pad, new GamepadState()); yield return null;
                 session.ReadVector("Move"); session.ReadVector("Look");

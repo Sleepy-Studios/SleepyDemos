@@ -8,7 +8,7 @@
 - 想调参、重建资源或运行测试：看[调试和整定 DroneFlight](runbooks/tune.md)。
 - 想迁移到其它项目：看[迁移 DroneFlight](runbooks/migrate.md)。
 - 想在独立场景接入：看[在独立场景使用 DroneFlight](runbooks/standalone.md)。
-- 想了解方案为什么演变成现在这样：看[设计演进与决策记录](history.md)。
+- 想了解方案为什么演变成现在这样：看[设计演进与决策记录](../../agent/archive/drone-flight-history.md)。
 - 想追溯最初需求：看[DroneFlight 原始 Goal](../../agent/prompts/demos/drone_flight/original-goal.md)。
 
 ## 职责与边界
@@ -65,7 +65,7 @@ Assets/LoadResources/Demos/drone_flight/
 - `Fishing/DroneBezierMissionPath` 保存入场、闭合环绕和俯冲三组分段三次贝塞尔；路径 Prefab 根在运行时移动到鱼的水面投影，控制点可在 Scene 视图编辑。
 - `DroneMissionAutopilot` 只生成 `DroneControlInput`、目标高度和偏航输入，禁止直接写 Transform 或刚体速度；实际飞行继续经过现有四旋翼控制链。
 - `DroneFishingMissionCoordinator` 管理阶段、超时、鱼随机位置和重播。鱼在命中前为 Kinematic，命中后解除冻结，质量通过现有渔叉绳索进入飞控载荷反馈。
-- `DroneCinematicCameraTracker` 缓动旋转和 FOV，但持续保持初始世界坐标。自动渔叉瞄准通过 `IDroneAutomatedAimingEquipment` 适配世界坐标目标，玩家原有 `V/H` 入口不变。
+- `DroneCinematicCameraTracker` 缓动旋转和 FOV，但持续保持初始世界坐标。协调器和追踪器要求绑定 `DroneFishingMissionConfig`；装配缺失直接报告失败，不再使用历史场景默认值。自动渔叉瞄准通过 `IDroneAutomatedAimingEquipment` 适配世界坐标目标，玩家原有 `V/H` 入口不变。
 
 确定性重建入口为 `Tools > SleepyDemos > DroneFlight > Build Fishing MVP Scene`。Builder 只重建捕鱼路径 Prefab、场景和两套 MVP 材质，不修改无人机 FBX、正式机体 Prefab 或模型契约。
 
@@ -181,10 +181,10 @@ F2 单独控制世界空间中的四旋翼升力、总升力、重力、目标/�
 
 自动化只运行本任务精确类：配置/Prefab 契约、正式 `DronePrototype` 自动起飞、载荷调校、UI 数据时序、场景导航及装备物理。Game View 仍需人工确认四爪抓取手感、摆动衰减、渔叉准星/弹道一致、真实后坐、动态/静态命中和连续回收。
 
-DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。`Tests/EditMode/Demo/DroneFlight` 中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；日志包含测试组目的、完整用例名、中文结果和耗时，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
+DroneFlight 测试文件顶部必须用中文说明该测试组负责验证什么。`Tests/EditMode/Demo/DroneFlight` 中的单一 `DroneFlightTestDiagnostics` 编辑器回调统一覆盖 EditMode 与 PlayMode，输出 `[DroneFlight测试][开始/结束]` 日志；按测试命名空间/fixture 自动识别，日志包含可读测试类名、完整用例名、中文结果和耗时，不维护手工中文类名/目的对照表，不在每个测试方法中重复粘贴 `Debug.Log`。`DroneRotorPhysicsTests` 的合成夹具必须保留可见机身、X 形机臂和四个 CW/CCW 彩色旋翼标记；正式 Prefab 起飞用例直接显示 `DronePrototype`，使维护者在 Scene 视图中能够分辨正在测试的对象和运动结果。可视化节点只属于测试程序集，不得进入生产 Prefab 或运行时代码。
 
 操作和调参见[调试和整定 DroneFlight](runbooks/tune.md)，Editor 直启见[直接运行 Demo 岛](../../runbooks/run-demo-island-directly.md)。
-设计演进见[DroneFlight 设计演进与决策记录](history.md)，未来接入正式项目见[迁移 DroneFlight](runbooks/migrate.md)，最初需求见[原始 Goal](../../agent/prompts/demos/drone_flight/original-goal.md)。
+设计演进见[DroneFlight 设计演进与决策记录](../../agent/archive/drone-flight-history.md)，未来接入正式项目见[迁移 DroneFlight](runbooks/migrate.md)，最初需求见[原始 Goal](../../agent/prompts/demos/drone_flight/original-goal.md)。
 
 ## 三端输入与面板
 

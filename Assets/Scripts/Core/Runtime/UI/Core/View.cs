@@ -498,11 +498,6 @@ namespace Core.Runtime
                 cancellationToken.ThrowIfCancellationRequested();
                 return true;
             }
-            catch (OperationCanceledException)
-            {
-                await CleanupFailedLoadAsync(instance);
-                throw;
-            }
             catch (Exception)
             {
                 await CleanupFailedLoadAsync(instance);

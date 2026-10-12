@@ -64,6 +64,11 @@ namespace Hotfix.DroneFlight
 
         private void Awake()
         {
+            if (config == null)
+            {
+                throw new System.InvalidOperationException("捕鱼任务缺少任务配置。");
+            }
+
             launchButton?.onClick.AddListener(BeginMission);
             completedReplayButton?.onClick.AddListener(Replay);
             failedReplayButton?.onClick.AddListener(Replay);
@@ -464,14 +469,13 @@ namespace Hotfix.DroneFlight
             failedPanel?.SetActive(showFailed);
         }
 
-        // 配置资产缺失时保留旧 Demo 数值，避免历史场景在迁移期间直接失效。
-        private Vector2 FishAreaHalfExtents => config != null ? config.FishAreaHalfExtents : new Vector2(3f, 3f);
-        private float FishDepthMeters => config != null ? config.FishDepthMeters : -5f;
-        private int OrbitLoops => config != null ? config.OrbitLoops : 2;
-        private float RouteSpeedMetersPerSecond => config != null ? config.RouteSpeedMetersPerSecond : 4f;
-        private float ReturnSpeedMetersPerSecond => config != null ? config.ReturnSpeedMetersPerSecond : 3f;
-        private float MaximumTrackingErrorMeters => config != null ? config.MaximumTrackingErrorMeters : 2.5f;
-        private float RoutePhaseTimeoutSeconds => config != null ? config.RoutePhaseTimeoutSeconds : 60f;
-        private float FiringTimeoutSeconds => config != null ? config.FiringTimeoutSeconds : 10f;
+        private Vector2 FishAreaHalfExtents => config.FishAreaHalfExtents;
+        private float FishDepthMeters => config.FishDepthMeters;
+        private int OrbitLoops => config.OrbitLoops;
+        private float RouteSpeedMetersPerSecond => config.RouteSpeedMetersPerSecond;
+        private float ReturnSpeedMetersPerSecond => config.ReturnSpeedMetersPerSecond;
+        private float MaximumTrackingErrorMeters => config.MaximumTrackingErrorMeters;
+        private float RoutePhaseTimeoutSeconds => config.RoutePhaseTimeoutSeconds;
+        private float FiringTimeoutSeconds => config.FiringTimeoutSeconds;
     }
 }

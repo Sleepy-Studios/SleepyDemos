@@ -36,9 +36,9 @@ namespace Tests.Module
         [Test]
         public void NormalizeAddress_ReplacesBackslashes()
         {
-            var normalized = ResourceServices.Default.NormalizeAddress("LoadResources/UI\\Views\\TestView");
+            var normalized = ResourceServices.Default.NormalizeAddress("LoadResources/UI\\Views\\SampleView");
 
-            Assert.That(normalized, Is.EqualTo("LoadResources/UI/Views/TestView"));
+            Assert.That(normalized, Is.EqualTo("LoadResources/UI/Views/SampleView"));
         }
     }
 }

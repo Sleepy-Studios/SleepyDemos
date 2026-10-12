@@ -670,13 +670,19 @@ namespace Hotfix.DroneFlight
 
         private void RefreshRuntimeTuning()
         {
-            if (config == null || body == null || !config.TryValidate(out _))
+            if (config == null || body == null)
             {
                 return;
             }
 
             var signature = CalculateRuntimeTuningSignature();
             if (signature == runtimeTuningSignature)
+            {
+                return;
+            }
+
+            runtimeTuningSignature = signature;
+            if (!config.TryValidate(out _))
             {
                 return;
             }
@@ -705,7 +711,6 @@ namespace Hotfix.DroneFlight
                 preserveOutput: true);
             TryCreateControlAllocator();
 
-            runtimeTuningSignature = signature;
         }
 
         private void SynchronizeRuntimeConfig()

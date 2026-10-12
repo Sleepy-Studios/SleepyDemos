@@ -17,6 +17,7 @@ namespace Tests.Demo
         {
             var cameraObject = new GameObject("MissionCamera", typeof(Camera));
             var target = new GameObject("DroneTarget");
+            var config = ScriptableObject.CreateInstance<DroneFishingMissionConfig>();
             try
             {
                 cameraObject.transform.position = new Vector3(2f, 5f, -10f);
@@ -24,6 +25,7 @@ namespace Tests.Demo
                 var camera = cameraObject.GetComponent<Camera>();
                 camera.fieldOfView = 60f;
                 var tracker = cameraObject.AddComponent<DroneCinematicCameraTracker>();
+                tracker.Configure(config);
                 tracker.CaptureInitialPose();
                 target.transform.position = new Vector3(-3f, 3f, 2f);
                 var initialPosition = cameraObject.transform.position;
@@ -43,6 +45,7 @@ namespace Tests.Demo
             {
                 Object.Destroy(cameraObject);
                 Object.Destroy(target);
+                Object.Destroy(config);
             }
         }
 

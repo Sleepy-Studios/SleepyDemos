@@ -38,18 +38,15 @@ namespace Hotfix.DroneFlight
             var direction = target.position - initialPosition;
             if (direction.sqrMagnitude > 0.0001f)
             {
-                var rotationSharpness = config != null ? config.CameraRotationSharpness : 3.5f;
-                var rotationBlend = 1f - Mathf.Exp(-rotationSharpness * GameTimeService.DeltaTime);
+                var rotationBlend = 1f - Mathf.Exp(-config.CameraRotationSharpness * GameTimeService.DeltaTime);
                 transform.rotation = Quaternion.Slerp(
                     transform.rotation,
                     Quaternion.LookRotation(direction, Vector3.up),
                     rotationBlend);
             }
 
-            var fieldOfViewSharpness = config != null ? config.FieldOfViewSharpness : 2.5f;
-            var trackingFieldOfView = config != null ? config.TrackingFieldOfView : 35f;
-            var fovBlend = 1f - Mathf.Exp(-fieldOfViewSharpness * GameTimeService.DeltaTime);
-            outputCamera.fieldOfView = Mathf.Lerp(outputCamera.fieldOfView, trackingFieldOfView, fovBlend);
+            var fovBlend = 1f - Mathf.Exp(-config.FieldOfViewSharpness * GameTimeService.DeltaTime);
+            outputCamera.fieldOfView = Mathf.Lerp(outputCamera.fieldOfView, config.TrackingFieldOfView, fovBlend);
         }
 
         internal void CaptureInitialPose()
@@ -58,7 +55,7 @@ namespace Hotfix.DroneFlight
             outputCamera = GetComponent<Camera>();
             initialPosition = transform.position;
             initialRotation = transform.rotation;
-            initialFieldOfView = outputCamera != null ? outputCamera.fieldOfView : 60f;
+            initialFieldOfView = outputCamera.fieldOfView;
             hasCapturedInitialPose = true;
         }
 
@@ -70,6 +67,11 @@ namespace Hotfix.DroneFlight
 
         internal void BeginTracking(Transform trackingTarget)
         {
+            if (config == null)
+            {
+                throw new System.InvalidOperationException("固定机位追踪缺少捕鱼任务配置。");
+            }
+
             target = trackingTarget;
             isTracking = target != null;
         }

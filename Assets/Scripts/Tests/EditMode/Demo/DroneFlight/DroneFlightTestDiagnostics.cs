@@ -1,53 +1,16 @@
 using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.TestTools.TestRunner.Api;
 using UnityEngine;
 
 /*
  * DroneFlight 自动化测试统一可读性入口。
- * 这里集中维护各测试组的中文用途，并在 Unity Test Runner 执行具体用例时向 Console 输出开始、结束和结果。
+ * 依据测试类型命名识别无人机用例，并在 Unity Test Runner 执行时输出开始、结束和结果。
  */
 namespace Tests.Demo
 {
     internal static class DroneFlightTestDiagnostics
     {
-        private static readonly IReadOnlyDictionary<string, string> SuiteDescriptions =
-            new Dictionary<string, string>
-            {
-                ["DroneFlightSceneNavigationTests"] = "验证 DroneFlight 场景收集、启动入口和主相机契约",
-                ["DroneFlightControlV2Tests"] = "验证轨迹、姿态和控制分配等飞控数学",
-                ["DroneControlInputTests"] = "验证飞行输入归一化与非法值保护",
-                ["DroneAttitudeMathTests"] = "验证姿态误差、航向和机体系速度数学",
-                ["DroneHudFormatterTests"] = "验证 HUD、快捷键提示和飞控告警",
-                ["DroneHudPresentationTests"] = "验证相机仪表按视角显示字段与切换提示",
-                ["DroneDebugPresentationTests"] = "验证调试遥测、装备字段与面板适配",
-                ["DroneFlightUiContractTests"] = "验证正式 UI 地址、层级和布局契约",
-                ["DroneLandingGearStateMachineTests"] = "验证起落架状态机和手动切换",
-                ["DroneMotorModelTests"] = "验证电机一阶响应、推力和运行时调参",
-                ["DroneEquipmentConfigurationTests"] = "验证抓斗、渔叉配置及装备编辑器契约",
-                ["DroneConfigInspectorTests"] = "验证三套配置 Inspector 的双语状态、字段覆盖和诊断",
-                ["DroneFlightPortabilityBoundaryTests"] = "验证 DroneFlight 可迁移核心与宿主适配边界",
-                ["DroneCruiseTests"] = "验证通用航点路线有效性和单次、循环、往返推进",
-                ["DroneFishingMissionTests"] = "验证捕鱼 MVP 路径、自动驾驶和独立场景契约",
-                ["DroneDebugPresentationTests"] = "验证 F2/F3 独立路由与动力矢量显示平滑",
-                ["DroneTelemetryBufferTests"] = "验证遥测环形缓冲和摘要统计",
-                ["DroneRotorVisualTests"] = "验证旋翼视觉转速、方向和停止行为",
-                ["DroneResponseProfileTests"] = "验证 Cine、Normal、Sport 响应档位",
-                ["DroneResetHoldTrackerTests"] = "验证短按和长按重载输入判定",
-                ["DroneRemoteControlSequenceTests"] = "验证遥控体验 Waiting 与 Active 状态切换",
-                ["DronePrototypeContractTests"] = "验证正式模型、Prefab、材质、旋翼轴和装备 Variant 契约",
-                ["DronePidControllerTests"] = "验证 PID、滤波、限幅和抗积分饱和",
-                ["DronePayloadTuningCalculatorTests"] = "验证载荷、悬停前馈和动力储备计算",
-                ["DroneRotorPhysicsTests"] = "验证可视化夹具、正式无人机起飞及四旋翼飞控物理",
-                ["DroneEquipmentPhysicsPlayModeTests"] = "验证抓斗包围吸附、渔叉停靠冲量和绳索受力",
-                ["DroneFishingMissionPlayModeTests"] = "验证捕鱼 MVP 固定机位和自动渔叉瞄准",
-                ["DroneStandaloneBootstrapPlayModeTests"] = "验证独立场景无需宿主框架即可装配手动无人机",
-                ["DroneFlightHudBindingPlayModeTests"] = "验证 HUD 固定节点的 UIBind 运行时初始化与刷新",
-                ["DroneCameraLifecycleTests"] = "验证第三人称、机腹和云台镜头生命周期",
-                ["DroneUnifiedInputPlayModeTests"] = "验证三端四轴输入、帮助与操作菜单门闩、指南焦点与设备提示"
-            };
-
         [InitializeOnLoadMethod]
         private static void RegisterCallbacks()
         {
@@ -98,21 +61,25 @@ namespace Tests.Demo
                     return false;
                 }
 
-                var fullName = test.FullName ?? string.Empty;
-                foreach (var entry in SuiteDescriptions)
+                var fixture = test;
+                while (fixture != null && fixture.TypeInfo == null)
                 {
-                    var marker = $".{entry.Key}.";
-                    if (fullName.IndexOf(marker, StringComparison.Ordinal) < 0)
-                    {
-                        continue;
-                    }
-
-                    suiteName = entry.Key;
-                    description = entry.Value;
-                    return true;
+                    fixture = fixture.Parent;
                 }
 
-                return false;
+                var type = fixture?.TypeInfo?.Type;
+                if (type?.Namespace != "Tests.Demo"
+                    || !(type.Name.StartsWith("Drone", StringComparison.Ordinal)
+                         || type.Name.StartsWith("Quadrotor", StringComparison.Ordinal)))
+                {
+                    return false;
+                }
+
+                suiteName = type.Name;
+                description = string.IsNullOrEmpty(test.Description)
+                    ? "无人机回归"
+                    : test.Description;
+                return true;
             }
 
             private static string TranslateStatus(TestStatus status)

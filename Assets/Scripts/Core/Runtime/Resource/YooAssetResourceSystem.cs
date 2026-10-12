@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using YooAsset;
-using Object = UnityEngine.Object;
 
 namespace Core.Runtime
 {
@@ -66,68 +65,6 @@ namespace Core.Runtime
                 case ResourcePlayMode.EditorSimulateMode:
                 default:
                     return EPlayMode.EditorSimulateMode;
-            }
-        }
-
-        public static async UniTask<TextAsset> LoadTextAssetAsync(string location)
-        {
-            if (!IsInitialized)
-            {
-                await InitializeAsync();
-            }
-
-            if (!IsInitialized || DefaultPackage == null)
-            {
-                Debug.LogError($"YooAssets 未初始化，无法加载 TextAsset: {location}");
-                return null;
-            }
-
-            var handle = DefaultPackage.LoadAssetAsync<TextAsset>(NormalizeLocation(location));
-            await handle;
-            if (handle.Status != EOperationStatus.Succeeded)
-            {
-                Debug.LogWarning($"YooAssets 加载 TextAsset 失败: {location}, {handle.Error}");
-                handle.Release();
-                return null;
-            }
-
-            var asset = handle.AssetObject as TextAsset;
-            handle.Release();
-            return asset;
-        }
-
-        public static async UniTask<T> LoadAssetAsync<T>(string location) where T : Object
-        {
-            if (!IsInitialized)
-            {
-                await InitializeAsync();
-            }
-
-            if (!IsInitialized || DefaultPackage == null)
-            {
-                Debug.LogError($"YooAssets 未初始化，无法加载资源: {location}");
-                return null;
-            }
-
-            var handle = DefaultPackage.LoadAssetAsync<T>(NormalizeLocation(location));
-            await handle;
-            if (handle.Status != EOperationStatus.Succeeded)
-            {
-                Debug.LogWarning($"YooAssets 加载资源失败: {location}, {handle.Error}");
-                handle.Release();
-                return null;
-            }
-
-            var asset = handle.GetAssetObject<T>();
-            handle.Release();
-            return asset;
-        }
-
-        public static void ReleaseAsset(Object asset)
-        {
-            if (asset != null)
-            {
-                Resources.UnloadAsset(asset);
             }
         }
 

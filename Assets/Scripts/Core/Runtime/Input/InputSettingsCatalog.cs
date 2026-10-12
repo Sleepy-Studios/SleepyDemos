@@ -110,7 +110,6 @@ namespace Core.Runtime.Inputs
                     throw new ArgumentException("按键覆盖记录不属于正式输入配置。");
                 }
                 using var candidate = new InputRebindSession(match.Asset, record.Value);
-                candidate.ExportOverrides();
             }
         }
 
