@@ -25,14 +25,18 @@
 - `HubSettingsView` 直接持有候选和应用事务，使用既有 `ViewTab` 按需加载五个独立分页 View/Prefab。删除 `SettingsPage`、各具体 Page、`SettingsScreen` 和 `SettingsViewBase`；无需宿主路由、页面地址重写或额外交互管理器。
 - `UIState` 自动处理同节点 Selectable 的 Normal/Hover/Focused/Pressed/Disabled，额外业务状态仍在同一个组件追加；删除 `UIStateInteraction`，正式资源原生合并并保留目标、样式和 GUID。
 - 原生删除四 Demo 公共按钮并重新生成 UIBind；DLSS 另删除设置动作、绑定、提示和输入目录条目。五 Hub 分页恢复标准生成 Address。一次性 `HubOnlySettingsAssetsMigration` 已清理。
-- 新建的 `Assets/LoadResources/Demos/{dlss,drone_flight,kagit_kart,wall_squeeze}/UI` 中各四个公共分页 Variant 均已无生产引用。删除命令曾被自动审批以 `blocked by policy` 拒绝，未提供具体原因，没有换工具绕过。用户清理后，已重新核对四目录及对应 `UI.meta` 均不存在；这些未跟踪资产不纳入提交，Demo 公共分页残留已清理。
+- 新建的 `Assets/LoadResources/Demos/{dlss,drone_flight,kagit_kart,wall_squeeze}/UI` 中各四个公共分页 Variant 均已无生产引用。删除命令曾被命令策略以 `blocked by policy` 拒绝，未提供具体原因，没有换工具绕过。用户清理后，已重新核对四目录及对应 `UI.meta` 均不存在；这些未跟踪资产不纳入提交，Demo 公共分页残留已清理。
 - 原阶段结果保留为历史证据；当前结构的编译和定向复验在本节追加，不将历史五宿主测试作为 Hub-only 新结构通过。
+- 用户新增优先范围：`_TemplateInstantiatePrefab` 的基础模板统一为暖白、深墨、朱红的瑞士风五态，控件根不缩放；BtnSwitch1 保留选择型及原 GUID，BtnSwitch2 用于滑块开关。公共 SwitchRow 行根保持不变，Hub 偏好 13 处与体验页 11 处共 24 个调用复用它；语言和 Auto/On/Off 减少动态保留 Tab/Dropdown。Dropdown Arrow 改用指定 `Sprites/Tips/Arrow.png` 的 Image，展开 180° 行为保留。本次制作改造使用下述新资源检查与实际 Canvas 截图验收，不沿用旧截图。
+- 新样式当前证据：基础资源最新复验 5/5（247574ad）；CommonButton 新原生 XML 1/1（b635b2c7），五态五图已实际查看。滑块开关初次 d1dff24b 为 0/1，临时验证禁用后未重新选中却期待 Focused；仅修验证准备后复验 1/1（fe841386）。真实 Canvas 首次预览 1/1（b6df198a）、Dropdown 浮层生命周期 1/1（1b93e3a0）通过，以 fresh 原生 XML 为准，REST 恢复错误不覆盖真实结果。SwitchRow Control 纵向锚点已固定为 0.5，尺寸 64×28；两个 ViewTab 白底、隐藏 UITab 制作模板及既有选项/标题关闭样式已修正。最新模板、SwitchRow 与 Arrow 开合实际预览 1/1（cd7c66db），主代理已查看全部图。编译 037fe23c 零错误；FoundationUiStylesMigration 源码/meta、临时开关和预览用例及 Hub 诊断均已清理，清理后编译 3caa7722 零错误、Console Error 为 0。PreviewRenderUtility 的 14 张空白图无效，不作为证据；不称整体 UI 或 Goal 完成。
+- 按 `Library/GlobalSettings/template-style-before.json` 对照作者资产：首次 1982 项 SHA256 全部相同；精确清理四个空目录 meta 后复核为 1978 项相同、变化 0，预期缺失仅四个 `Demos/{dlss,drone_flight,kagit_kart,wall_squeeze}/Prefabs/UI/Settings.meta`，不属于作者美术资产损坏。清单覆盖四 Demo 目录文件及 Prefab/Scene 序列化 GUID 可达的 Assets 依赖和 meta。61 个 Prefab/Scene 根均不依赖本次 14 个模板 GUID；该核对不代表运行时画幅、交互或硬件验收。
 - 新结构 Unity 编译零错误（30b32fbe，后续诊断修改编译也零错误）。刷新原生测试发现后，基础资源实际 5/5（4aeb0e6e）、设置行 3/3（bf9bfc24）通过；真实按钮五态 1/1（8593490d 原生 XML，REST 重载恢复失败）、嵌套菜单/业务态恢复 1/1（71f58f8a）、动态循环列表控件 1/1（9ba7ad85）通过。五态实际截图已查看，位于 `Library/UIRefactor/Evidence`。
 - Hub 独立分页/候选用例尚未通过：五页懒加载、切换、候选编辑及默认值流程通过后，取消按钮命中断言失败（4557ee6d，补诊断复跑结果相同）。按钮正常启用、未裁剪、射线已注册且层级为 Pop/200；投影中心为屏幕 (905.07,150.40)，`RectangleContainsScreenPoint` 却返回 false，最高命中为 Paper。尚不能确定是坐标换算还是实际射线问题，不删除点击断言或改用直接 onClick 规避。取消按钮 Pivot 实验无效，已原生恢复原布局；详细诊断保存于 Library 的对应测试报告，临时扩展日志已简化。
-- 阶段提交只作为当前重构检查点。Hub 其它精确方法与四 Demo 最新回归因上述用例失败尚未继续执行；当前完整 UI 交互、画幅、Windows Player、真实硬件及被拒绝的目录清理仍未完成。未运行全量测试。
-- 本次检查点最初被已有 `.git/index.lock` 阻止。清理命令也被自动审批拒绝，没有换工具绕过；用户清理后核对锁已不存在，重新暂存成功，按授权保存本地阶段提交，不推送。任务路径列表在 `Library/GlobalSettings/ui-cleanup/stage-paths.txt`，排除旧 DLL/AOT、ProjectSettings、字体噪音和历史临时工具。最后简化诊断后 Unity 编译通过（0ca65019，零错误）。
-- 用户再次要求重试清理后，核对 Demo 公共分页文件仍全部不存在；旧 `Prefabs/UI/Settings` 仅剩四个空目录。重试清理这些空目录及两个 Global Builder 源码/meta 时，自动审批仍以 `blocked by policy` 拒绝，未提供具体原因，已停止重试。Builder 继续排除提交；残留空目录不代表 Demo 公共 UI 仍被加载。
+- 阶段提交只作为当前重构检查点。Hub 其它精确方法与四 Demo 最新回归因上述用例失败尚未继续执行；当前完整 UI 交互、画幅、Windows Player、真实硬件仍未完成；本次空目录清理的最终回读状态见下文。未运行全量测试。
+- 本次检查点最初被已有 `.git/index.lock` 阻止。清理命令也被命令策略拒绝，没有换工具绕过；用户清理后核对锁已不存在，重新暂存成功，按授权保存本地阶段提交，不推送。任务路径列表在 `Library/GlobalSettings/ui-cleanup/stage-paths.txt`，排除旧 DLL/AOT、ProjectSettings、字体噪音和历史临时工具。最后简化诊断后 Unity 编译通过（0ca65019，零错误）。
+- 用户再次要求重试清理后，核对 Demo 公共分页文件仍全部不存在；旧 `Prefabs/UI/Settings` 仅剩四个空目录。当时重试清理这些空目录及两个 Global Builder 源码/meta，命令返回 `blocked by policy`；只有命令策略拒绝证据。当前已核对 GlobalSettingsAssetsBuilder、GlobalInputGlyphsBuilder 及各自 meta 不存在；四个 `Prefabs/UI/Settings` 空目录的首次普通删除后，Unity 因残留 meta 在 12:05:23 重建目录，不能将命令成功视为完整清理；主代理随后精确清理对应 meta 并再次清理空目录，随后延时磁盘回读确认四对 Directory=False/Meta=False，当前残留已清理，不代表 Demo 公共 UI 仍被加载。
 - Hub 点击定位对照（b2dcf6e1、7d028cab、97aa360b、9429aa40 原生 XML）仍为 0/1。数学射线与局部坐标正确；同相机的独立矩形可以命中，挂回 Design 并复制完整局部参数后失败；保持屏幕四角、尺寸与世界矩阵，挂到 Screen / 更高祖先或等价裸 Transform 则成功。子节点尺寸脏化、Canvas 切为 WorldSpace、Design 仅恢复 Z 缩放均无效，暂定位到 Design 父链路径，不能确认具体引擎缺陷。保留真实点击断言，未变更正式 UI 布局、相机或射线组件；诊断块已全部清理，详细证据保留在 Library。9abff3de 没有新的原生 XML，仅有 Runner 重载恢复错误，不计测试结果。
+- 新样式下原候选用例 4bcb60cb 仍为 0/1，取消按钮最高命中 Paper，原断言保留。本轮临时诊断 7d82f3a6 取得 fresh 原生结果 0/1：同 Screen 下原 Design、新空 RectTransform 精确复制完整参数及再次挂回原 Design，原生命中均为 false；矩阵差不超过 1.86e-9、角点差不超过 4.77e-7，父矩形一致且 drivenBy 为空、drivenProperties 为 None。该对照不支持原 Design 实例缓存或驱动者的解释，具体根因仍待定位，不据此认定 Unity 缺陷。诊断调用、helper 和局部反射已全部清理，原真实指针断言保持，测试文件回到 HEAD 内容。Hub Cancel 未修复，原范围与 G11 尚未完成。
 
 - Unity Editor 6000.3.15f1 编译已多次通过；后续代码变更仍须重新验证。
 - GameSettingsSnapshotTests 3/3；InputRebindSessionTests 2/2；SettingsRuntimeTests 原3/3；PostProcessRuntimeTests 2/2；CinematicPresetTests 2/2通过。
@@ -77,10 +81,10 @@
 - 基础组件正式设置行及输入提示资源登记提交 `f414f145`，Streamline 退出修复提交 `189f28fa`，均未推送。英文五页已在正式启动的 Game View 中逐页查看 1920×1080、1024×768、3440×1440；分类长译文曾与图标重叠，根因是模板 Desc 的 ContentSizeFitter 将文字区域撑宽，已在制作资源停用该尺寸驱动，使用 TMP 原生自动字号及制作上下限。窄屏与超宽布局重开后已实际查看，中文语言页重建与恢复也已观察；未据此声称全部 Demo 和体验页完成画幅验收。
 - Windows Player 前置已通过正式 Hotfix Build 窗口完成 HybridCLR 生成及 DLL/AOT 同步，YooAsset 正式首包 `2026-10-12-259` 构建成功。Player 构建 `6ff9de9b` 在 C++ 编译失败：用户级 CMD AutoRun 为 `chcp 65001 >nul`，Bee 子进程受限 PATH 中没有 System32，导致命令找不到。全机命令及工具链存在；修复该用户级 Windows 配置超出只修改本项目的范围，已提出精确备份及绝对路径方案，等待用户授权。不能将失败构建计为 Player 通过；最新分类 Prefab 修改仍需重新打首包。前置窗口域重载曾有一次既有 IMGUI 布局错误，资源构建成功后无同类错误。
 - 正式改键页面回归发现取消按钮点击被原生重绑定吞掉并写成鼠标左键。公共监听保留 UI 事件，在匹配结束命中可交互 Selectable 时归还原候选；输入页复用 UIMenuScope 暂停 Submit/Navigate，完成或取消后复用原 MenuInputScope 的中立门闩恢复，不排除合法 Enter／手柄确认键。短点击/长按取消、面板空白区域鼠标绑定、Enter 保持与松键、候选/存档/制作资产隔离、正式会话生效及回收次按钮身份回归 1/1 通过（85ffd712）；清理后再次 1/1 通过（c0b8b105）。最初测试准备曾抢在 Hub 下一帧恢复入口前点击，已等待真实入口；点击 Modal 背景本身是取消操作，鼠标绑定正例使用面板空白区域。
-- 已核对并删除无外部调用及制作引用的旧 DlssSettingsView 源码/Prefab/meta，保留仍由 FluxService 注册的 GraphicsSettings Data/Handler/Action。四个新一次性装配 Builder 源码/meta 已清理，Hotfix.Editor 临时 LoopScroll 引用已归还；源备份保存在 Library。清理后编译通过（14be30f7）。随后删除五个已空目录的操作被自动审批以“blocked by policy”拒绝，未提供具体原因，未重试或换工具；先前被拒的两个 Global Builder 也仍待清理。此前的 DLL/AOT 与首包产物需在最新源码下重新生成，当前不作为最终 Player 交付。
+- 已核对并删除无外部调用及制作引用的旧 DlssSettingsView 源码/Prefab/meta，保留仍由 FluxService 注册的 GraphicsSettings Data/Handler/Action。四个新一次性装配 Builder 源码/meta 已清理，Hotfix.Editor 临时 LoopScroll 引用已归还；源备份保存在 Library。清理后编译通过（14be30f7）。随后删除五个已空目录的操作被命令策略以“blocked by policy”拒绝，未提供具体原因，未重试或换工具；当时两个 Global Builder 也待清理；当前已核对其源码和 meta 不存在。此前的 DLL/AOT 与首包产物需在最新源码下重新生成，当前不作为最终 Player 交付。
 - 新导航抑制入口的直接回归：既有嵌套菜单返回与触控五态 1/1（ad421acb）、最近菜单作用域取消转交 1/1（8e7e8363）通过。没有运行全量测试；宽窄屏证据已从 Assets/Screenshots 迁至 `Library/GlobalSettings/evidence/settings-layout`，不将验收截图作为生产资源提交。
 
-第一阶段提交范围：公共能力、制作资产、宿主调用、直接相关测试和文档；不代表 G9/G10/G11 已全部完成。临时 GlobalSettingsAssetsBuilder 与 GlobalInputGlyphsBuilder 已完成生产，但删除操作被自动审批以“blocked by policy”拦截（未提供具体原因），两者及目录/meta 均排除提交，清理暂未完成。
+第一阶段提交范围：公共能力、制作资产、宿主调用、直接相关测试和文档；不代表 G9/G10/G11 已全部完成。临时 GlobalSettingsAssetsBuilder 与 GlobalInputGlyphsBuilder 已完成生产，删除命令曾返回 `blocked by policy`，证据仅表明命令策略拒绝。当前已核对两者源码及各自 meta 不存在；四 Demo 的 `Prefabs/UI/Settings` 空目录及对应 meta 已由主代理再次精确清理，并经延时磁盘回读确认不存在；首次只删目录导致 Unity 重建，不作为完成证据。
 
 本轮基础组件复用与定向收尾（2026-10-12）：
 
@@ -101,7 +105,7 @@ G11 基础组件与独立效果补验（2026-10-12）：
 - 中文体验页的画幅检查发现下拉间距透出后方字段、切分类沿用旧滚动位置。公共 DropdownRow 增加原生 Image / ContentSizeFitter 覆盖全部选项及间距，体验页切页停止惯性并回到首项，不新增浮层框架。新增归位代码最初漏掉初始化时的禁用父级，入口回归 b7029fe1 未通过；补齐查询后，真实入口、滚动归位、动态选项覆盖、冻结播放/取消和退出恢复精确回归 1/1（2a76028c）通过。
 - 七类后处理现在分别取得实际像素证据：原独立景深段保留，正式 Lab 调色、泛光、色差、暗角、畸变和颗粒分别只启用自身效果，不修改制作预设原值。颗粒验证三帧变化及邻像素纹理，静态项验证复拍稳定；各项均验证 UI 清晰、释放恢复及制作 Profile 不变。Direct3D12 精确 GPU 用例 1/1（600da858）通过，六项最新 Applied 图已实际查看，图片与对应基线/恢复帧在 `Library/Settings/evidence/post-process/Direct3D12/Lab*.png`。
 - 最新 Unity 编译无错误（ec76da4c），上述定向复验结束后 Console Error 为 0。制作时使用临时 Prefab 实例并归还场景；AppEntrance 磁盘 SHA256 前后相同，未新增 Builder。同步基础资源、组件操作手册和输入文档；源码/文档格式检查通过，原生序列化的空组件名称行仍按 Unity 格式保存。
-- 没有运行全量测试；Demo 和体验页完整中英画幅、原生模拟触控命中、Windows Player 与真实硬件仍需补验。用户级 chcp 修复仍待明确授权，旧 DLL/AOT 与首包不作为最新交付；被自动审批拒绝的历史临时工具未换方式重试删除。
+- 没有运行全量测试；Demo 和体验页完整中英画幅、原生模拟触控命中、Windows Player 与真实硬件仍需补验。用户级 chcp 修复由用户自行处理，结果尚未复核，旧 DLL/AOT 与首包不作为最新交付；当时命令策略拒绝的历史临时工具没有换方式绕过删除；当前两个 Global Builder 源码及 meta 已不存在。
 
 G11 公共浮层与退出生命周期补验（2026-10-12）：
 

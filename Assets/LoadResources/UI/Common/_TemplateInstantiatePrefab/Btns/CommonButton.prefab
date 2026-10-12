@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6294207971802007602}
   - component: {fileID: 1236644830210415268}
   - component: {fileID: 4316750524109364592}
+  - component: {fileID: 5981697770874807675}
   m_Layer: 5
   m_Name: CommonButton
   m_TagString: Untagged
@@ -63,7 +64,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.18, g: 0.2, b: 0.24, a: 1}
+  m_Color: {r: 0.969, g: 0.961, b: 0.937, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -167,148 +168,8 @@ MonoBehaviour:
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 9
-      target: {fileID: 636220441735193056}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 1
-      target: {fileID: 5838971210007552577}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 0.18, g: 0.2, b: 0.24, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 1
-      target: {fileID: 1219334388329737316}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1259979365148455014}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 8882402885037654051}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 4317094254211770942}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1061739472235581428}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-  - stateName: Hover
-    properties:
-    - propertyType: 0
-      target: {fileID: 3182956052064941668}
-      boolValue: 1
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 2
-      target: {fileID: 6376628455429728566}
-      boolValue: 0
-      floatValue: 0.6
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 9
-      target: {fileID: 636220441735193056}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 1
-      target: {fileID: 5838971210007552577}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 0.40960002, g: 0.424, b: 0.4528, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 1
-      target: {fileID: 1219334388329737316}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1259979365148455014}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 8882402885037654051}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 4317094254211770942}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1061739472235581428}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-  - stateName: Focused
-    properties:
-    - propertyType: 0
-      target: {fileID: 3182956052064941668}
-      boolValue: 1
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 2
-      target: {fileID: 6376628455429728566}
+      target: {fileID: 5981697770874807675}
       boolValue: 0
       floatValue: 1
       stringValue: 
@@ -328,7 +189,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.2784, g: 0.296, b: 0.3312, a: 1}
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -336,40 +197,108 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+  - stateName: Hover
+    properties:
+    - propertyType: 0
+      target: {fileID: 3182956052064941668}
+      boolValue: 1
+      floatValue: 0
+      stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1259979365148455014}
+    - propertyType: 2
+      target: {fileID: 6376628455429728566}
       boolValue: 0
-      floatValue: 0
+      floatValue: 0.55
       stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 3}
+      vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 8882402885037654051}
+    - propertyType: 2
+      target: {fileID: 5981697770874807675}
       boolValue: 0
-      floatValue: 0
+      floatValue: 1
       stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 3}
+      vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 4317094254211770942}
+    - propertyType: 9
+      target: {fileID: 636220441735193056}
       boolValue: 0
       floatValue: 0
       stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 3, y: 0}
+      vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1061739472235581428}
+    - propertyType: 1
+      target: {fileID: 5838971210007552577}
+      boolValue: 0
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 0.94, g: 0.91, b: 0.87, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 1
+      target: {fileID: 1219334388329737316}
+      boolValue: 0
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+  - stateName: Focused
+    properties:
+    - propertyType: 0
+      target: {fileID: 3182956052064941668}
+      boolValue: 1
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 1, g: 1, b: 1, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 2
+      target: {fileID: 6376628455429728566}
+      boolValue: 0
+      floatValue: 1
+      stringValue: 
+      colorValue: {r: 1, g: 1, b: 1, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 2
+      target: {fileID: 5981697770874807675}
+      boolValue: 0
+      floatValue: 1
+      stringValue: 
+      colorValue: {r: 1, g: 1, b: 1, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 9
+      target: {fileID: 636220441735193056}
       boolValue: 0
       floatValue: 0
       stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 3, y: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 1
+      target: {fileID: 5838971210007552577}
+      boolValue: 0
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 1
+      target: {fileID: 1219334388329737316}
+      boolValue: 0
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
+      vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   - stateName: Pressed
     properties:
@@ -389,6 +318,14 @@ MonoBehaviour:
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 2
+      target: {fileID: 5981697770874807675}
+      boolValue: 0
+      floatValue: 1
+      stringValue: 
+      colorValue: {r: 1, g: 1, b: 1, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 9
       target: {fileID: 636220441735193056}
       boolValue: 0
@@ -396,13 +333,13 @@ MonoBehaviour:
       stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0.96, y: 0.96, z: 0.96}
+      vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
       target: {fileID: 5838971210007552577}
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.111600004, g: 0.124000005, b: 0.1488, a: 1}
+      colorValue: {r: 0.77, g: 0.15, b: 0.09, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -412,38 +349,6 @@ MonoBehaviour:
       stringValue: 
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1259979365148455014}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 8882402885037654051}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 4317094254211770942}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1061739472235581428}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   - stateName: Disabled
     properties:
@@ -463,6 +368,14 @@ MonoBehaviour:
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
+    - propertyType: 2
+      target: {fileID: 5981697770874807675}
+      boolValue: 0
+      floatValue: 0.45
+      stringValue: 
+      colorValue: {r: 1, g: 1, b: 1, a: 1}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 9
       target: {fileID: 636220441735193056}
       boolValue: 0
@@ -476,7 +389,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.42, g: 0.44, b: 0.47, a: 0.6}
+      colorValue: {r: 0.835, g: 0.82, b: 0.788, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -484,42 +397,22 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.65, g: 0.67, b: 0.7, a: 1}
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1259979365148455014}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 8882402885037654051}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 0, y: 1.5}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 4317094254211770942}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
-    - propertyType: 8
-      target: {fileID: 1061739472235581428}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 1}
-      vector2Value: {x: 1.5, y: 0}
-      vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
+--- !u!225 &5981697770874807675
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1471738563870359201}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1652003822303187851
 GameObject:
   m_ObjectHideFlags: 0
@@ -555,7 +448,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 1.5}
+  m_SizeDelta: {x: 0, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7865565821547788309
 CanvasRenderer:
@@ -578,14 +471,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -670,7 +563,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0.114, g: 0.114, b: 0.106, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -767,7 +660,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1.5, y: 0}
+  m_SizeDelta: {x: 2, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2238626843674759529
 CanvasRenderer:
@@ -790,14 +683,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -842,7 +735,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1.5, y: 0}
+  m_SizeDelta: {x: 2, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8846198830136507409
 CanvasRenderer:
@@ -865,14 +758,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -969,7 +862,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 1.5}
+  m_SizeDelta: {x: 0, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &7348386513365812407
 CanvasRenderer:
@@ -992,14 +885,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

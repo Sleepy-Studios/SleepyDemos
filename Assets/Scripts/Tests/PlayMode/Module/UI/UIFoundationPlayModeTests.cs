@@ -68,7 +68,7 @@ namespace Tests.Module
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = inside }.WithButton(MouseButton.Left));
                 yield return null; yield return null;
                 Assert.That(interaction.InteractionState, Is.EqualTo("Pressed"));
-                Assert.That(obj.transform.localScale.x, Is.EqualTo(.96f).Within(.001f));
+                Assert.That(obj.transform.localScale, Is.EqualTo(Vector3.one), "按压反馈保持根点击矩形稳定。");
                 yield return Capture("Pressed");
                 InputSystem.QueueStateEvent(mouse, new MouseState { position = inside });
                 yield return null; yield return null;

@@ -25,7 +25,7 @@
 | `LoopScrollView` + `ItemView` | 数据条目多、同类条目需要回收复用的列表；通过 `LoopScrollRegisterExtend` 接入，使用稳定数据 Key |
 | 原生 `ScrollRect` + LayoutGroup | 数量有限、控件不同的固定表单，例如声音滑条、画质开关；不为少量异构行增加列表复用和数据绑定 |
 | `UIDropdown` | 基于 `UITab` 的基础下拉选择，默认文案绑定 TMP_Text |
-| `UIBtnSwitch` | 二态按钮开关 |
+| `UIBtnSwitch` | 二态按钮逻辑；BtnSwitch1 为选择型，BtnSwitch2 为滑块开关型 |
 | `UIState` | 同节点 Selectable 自动驱动五态，Selected/On/Off 按需追加在同一组件；无 Selectable 时手动切换 |
 | `UIMenuScope` | 页面/弹窗的焦点导航与返回，复用公共输入模块 |
 | `InputBindingPrompt` / `InputCommandButton` | 有效绑定图标与动作文案 / 可点击、可保持的触控命令；复用 Kenney 图标目录 |
@@ -51,7 +51,7 @@
 | 分类按钮，仅选中回调 | `UITab`；`UI/Common/_TemplateInstantiatePrefab/Tab/Tab.prefab` | `Init` / `Register`；保留模板自带图标引用 |
 | 分类对应独立业务页面 | `ViewTab`；`UI/Common/_TemplateInstantiatePrefab/Tab/ViewTabVertical.prefab` | `Init(views: ...)`，各分类自己的 View、Prefab 和生命周期；不要改为一个脚本手动切全部区域 |
 | 大量同类数据条目 | `LoopScrollView`、`LoopScrollItemViewBridge`、`LoopScrollRegisterExtend` | [循环列表接入](use-loop-scroll.md)；现有 `MainMenuView` / `MainMenuDemoItemView` 展示数据绑定与条目复用 |
-| 下拉候选、开关、普通按钮 | `UIDropdown`、`UIBtnSwitch`；`_TemplateInstantiatePrefab/Dropdown/Dropdown`、`Btns/BtnSwitch`、`Btns/CommonButton` | 先验证现有 Prefab；制作数据与交互逻辑不复制到业务页 |
+| 下拉候选、开关、普通按钮 | `UIDropdown`、`UIBtnSwitch`；`_TemplateInstantiatePrefab/Dropdown/Dropdown`、`Btns/BtnSwitch1`、`Btns/BtnSwitch2`、`Btns/CommonButton` | BtnSwitch1 表现二态选择，BtnSwitch2 表现滑块开关；Hub 二态偏好使用 SwitchRow 内的 BtnSwitch2 |
 | 固定设置表单行 | `UISettingRow`；`UI/Common/Settings/{Dropdown,Slider,Switch,Action}Row.prefab` | 复用对应基础控件，业务分页绑定独立候选；示例 `Hotfix/Module/Settings/UI` |
 | 设备按键提示与触控操作 | `InputBindingPrompt`、`InputCommandButton`；`UI/Common/Input/` | [公共输入](use-gameplay-input.md)；有效会话绑定、图标配置与触控释放共用底座 |
 | 保存反馈或控件说明 | `CommonTips`、`SimpleTips`；`SingleUIManager` | 本文“两类 Tips”；不要再造 Toast / Tooltip 宿主 |
@@ -68,6 +68,8 @@
 固定分类已为图标预留文字区域时，停用模板 Desc 上按文本宽度驱动的 ContentSizeFitter；长译文使用 TMP 原生自动字号和制作侧上下限。否则文字矩形会被重新撑宽，即使开启自动字号也仍可能覆盖图标。不要在业务代码中逐语言计算文字位置。
 
 下拉选项浮层须有独立不透明背景，覆盖选项之间的间距；背景高度随实际选项数量更新。公共 `DropdownRow` 在 `TabView` 使用原生 Image 和纵向 Preferred Size 的 ContentSizeFitter，不按制作模板的初始项数固定背景高度。页面继续通过 UIDropdown 指定同页 popupRoot，不自行创建第二套浮层。
+
+基础 Dropdown 的 Arrow 绑定 Image，使用 `Assets/LoadResources/UI/Common/Sprites/Tips/Arrow.png`，不要用 TMP 字符代替图标；UIDropdown 仍负责展开 180° 旋转及收起恢复。更换表现组件后保留原 arrow Transform 引用，不另加旋转脚本。
 
 ## 正式调用示例与维护入口
 
@@ -129,6 +131,8 @@ switchButton.SetAction(OnSwitchChanged);
 switchButton.SetStatus(savedValue, notify: false);
 switchButton.Register(OnSwitchAnalytics);
 ```
+
+公共 SwitchRow 保留行根与 UISettingRow，内部嵌套 BtnSwitch2；Hub 偏好 13 处、体验页 11 处共 24 个使用方复用同一行。迁移内部 Control 只重绑行组件的 control、toggle、onLabel、offLabel，保持页面引用的行根组件不变。减少动态的 Auto/On/Off 继续使用 Dropdown，语言选择继续使用 UITab。旧 BtnSwitch 重命名为 BtnSwitch1 后 GUID 保持不变，已有选择型引用无需改写。
 
 ```csharp
 imageLoader.SetImage("LoadResources/UI/Icons/IconStart", setNativeSize: true, isAsync: false);
@@ -258,7 +262,7 @@ tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 
 接入 Demo 前先验收公共模板，逐项检查组件绑定、中文字体、Sprite 与 Border、布局、遮罩、射线和导航。通用按钮模板为 `Common/_TemplateInstantiatePrefab/Btns/CommonButton.prefab`；Tab、下拉和开关继续使用各自模板。
 
-`UIState` 直接消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。背景与文字在常态清晰可读；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深或改变装饰，Disabled 降低强调且不可操作。触屏不显示交互强调，但仍显示禁用状态。滚动表单不缩放按钮点击矩形，保持按下与抬手命中一致。
+`UIState` 直接消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。基础模板统一采用暖白、深墨和朱红；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深或改变装饰，Disabled 降低强调且不可操作。触屏不显示交互强调，但仍显示禁用状态。五态不缩放控件根节点，保持按下与抬手的点击矩形一致。
 
 业务值与交互反馈职责分开，表现统一配置在同一个 UIState；不要再额外挂交互桥或用原生 Transition 修改同一颜色或缩放。Normal 必须恢复所拥有的属性，关闭、失焦及禁用不能留下按压缩放。纯背景需要状态时手动调用，不参与导航；反馈 Graphic 不拦截射线。触控命令保持与释放继续由 InputCommandButton 负责，表现状态不接管命令生命周期。
 
@@ -266,7 +270,7 @@ tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 
 修改基础模板后运行 `UIFoundationAssetTests` 与 `UIFoundationPlayModeTests`，检查真实鼠标悬停/点击/移出、键鼠与手柄提交、禁用及反复开关；检查 0%、1%、50%、100% 的实际填充网格和不同尺寸下的边框。自动断言不代替视觉检查，必须查看目标 Canvas 的状态截图。
 
-单 UIState 合并后的验收仍待执行，先运行 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback` 检查业务态叠加和退出恢复，再运行上述直接受影响的资源与真实输入测试。旧模板的 17 项五态截图及通过记录仅保留为[历史证据](../modules/ui-foundation-assets.md#验证)，不作为本轮合并已通过的结论。
+本次模板样式与 BtnSwitch2 替换后的最终验收仍待主代理汇总，复用 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback` 检查业务态叠加和退出恢复，再运行上述直接受影响的资源与真实输入测试。旧模板的 17 项五态截图及通过记录仅保留为[历史证据](../modules/ui-foundation-assets.md#验证)，不作为本次装配已通过的结论；普通外观变化默认不另留永久测试文件。
 
 
 `UICancelRelay` 配置在按钮、Slider 等可导航控件上；优先转交最近的 UIMenuScope，宿主已经持有 MenuInputScope 的页面则转交最近的父级 ICancelHandler。只有选中控件接收原生 Cancel，不依赖事件自动向上冒泡，不为转发再创建一个输入作用域。

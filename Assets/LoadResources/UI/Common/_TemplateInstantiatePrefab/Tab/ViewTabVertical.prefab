@@ -91,7 +91,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 1.5}
+  m_SizeDelta: {x: 0, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6444099489312693910
 CanvasRenderer:
@@ -114,14 +114,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -166,7 +166,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1.5, y: 0}
+  m_SizeDelta: {x: 2, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5345156774424696031
 CanvasRenderer:
@@ -189,14 +189,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -241,7 +241,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 1.5}
+  m_SizeDelta: {x: 0, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2611392226771354867
 CanvasRenderer:
@@ -264,14 +264,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -339,8 +339,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9372549, g: 0.9372549, b: 0.9372549, a: 1}
-  m_RaycastTarget: 1
+  m_Color: {r: 0.969, g: 0.961, b: 0.937, a: 1}
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -453,7 +453,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 0}
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -461,7 +461,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.7176471, g: 0.74509805, b: 0.7764706, a: 1}
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 8
@@ -527,7 +527,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 0.28}
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -535,7 +535,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.7176471, g: 0.74509805, b: 0.7764706, a: 1}
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 8
@@ -601,7 +601,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 1, g: 1, b: 1, a: 0.12}
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -609,7 +609,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.7176471, g: 0.74509805, b: 0.7764706, a: 1}
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 8
@@ -675,7 +675,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.62, g: 0.62, b: 0.62, a: 0.38}
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -683,7 +683,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.7176471, g: 0.74509805, b: 0.7764706, a: 1}
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 8
@@ -749,7 +749,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.42, g: 0.44, b: 0.47, a: 0.6}
+      colorValue: {r: 0.969, g: 0.961, b: 0.937, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 1
@@ -757,7 +757,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.65, g: 0.67, b: 0.7, a: 1}
+      colorValue: {r: 0.114, g: 0.114, b: 0.106, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
     - propertyType: 8
@@ -854,14 +854,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_Color: {r: 0.969, g: 0.961, b: 0.937, a: 1}
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 9c3f66665368f2542acefbfd4f60f1c6, type: 3}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -950,7 +950,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1.5, y: 0}
+  m_SizeDelta: {x: 2, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2209063424634050741
 CanvasRenderer:
@@ -973,14 +973,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.85, b: 1, a: 1}
+  m_Color: {r: 0.949, g: 0.243, b: 0.161, a: 1}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1131,17 +1131,25 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2866539992634043078}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
-      propertyPath: states.Array.data[0].properties.Array.data[1].target
+      propertyPath: states.Array.data[5].properties.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[0].properties.Array.data[0].target
       value: 
       objectReference: {fileID: 7906599348353584054}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
-      propertyPath: states.Array.data[0].properties.Array.data[2].target
+      propertyPath: states.Array.data[0].properties.Array.data[1].target
       value: 
       objectReference: {fileID: 7756992229334386540}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[0].properties.Array.data[2].target
+      value: 
+      objectReference: {fileID: 5277105565878759352}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[0].properties.Array.data[6].target
       value: 
-      objectReference: {fileID: 5808104410833336831}
+      objectReference: {fileID: 1160135076601702925}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[0].properties.Array.data[7].target
       value: 
@@ -1155,6 +1163,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 574112208878188393}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[1].properties.Array.data[0].target
+      value: 
+      objectReference: {fileID: 7906599348353584054}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[1].properties.Array.data[1].target
+      value: 
+      objectReference: {fileID: 7756992229334386540}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[2].properties.Array.data[0].target
       value: 
       objectReference: {fileID: 7906599348353584054}
@@ -1165,7 +1181,7 @@ PrefabInstance:
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[2].properties.Array.data[5].target
       value: 
-      objectReference: {fileID: 5808104410833336831}
+      objectReference: {fileID: 5197688434547147730}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[2].properties.Array.data[6].target
       value: 
@@ -1189,7 +1205,7 @@ PrefabInstance:
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[3].properties.Array.data[5].target
       value: 
-      objectReference: {fileID: 5808104410833336831}
+      objectReference: {fileID: 5197688434547147730}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[3].properties.Array.data[6].target
       value: 
@@ -1213,7 +1229,7 @@ PrefabInstance:
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[4].properties.Array.data[5].target
       value: 
-      objectReference: {fileID: 5808104410833336831}
+      objectReference: {fileID: 5197688434547147730}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[4].properties.Array.data[6].target
       value: 
@@ -1235,6 +1251,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 7756992229334386540}
     - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].target
+      value: 
+      objectReference: {fileID: 1160135076601702925}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].target
+      value: 
+      objectReference: {fileID: 1160135076601702925}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: states.Array.data[5].properties.Array.data[5].target
       value: 
       objectReference: {fileID: 5808104410833336831}
@@ -1250,6 +1274,70 @@ PrefabInstance:
       propertyPath: states.Array.data[5].properties.Array.data[8].target
       value: 
       objectReference: {fileID: 574112208878188393}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].boolValue
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].boolValue
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].colorValue.a
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].colorValue.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].colorValue.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].colorValue.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].colorValue.a
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].colorValue.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].colorValue.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].colorValue.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].vector3Value.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].vector3Value.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[3].vector3Value.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].vector3Value.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].vector3Value.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8610521759949578263, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+      propertyPath: states.Array.data[5].properties.Array.data[4].vector3Value.z
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8894436035475033154, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -1263,6 +1351,11 @@ PrefabInstance:
       addedObject: {fileID: 254102315998163981}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+--- !u!1 &1160135076601702925 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4333947420726794967, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+  m_PrefabInstance: {fileID: 3187676087055593690}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &3518400203052602839 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 2084947639763756301, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
@@ -1290,6 +1383,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!225 &5277105565878759352 stripped
+CanvasGroup:
+  m_CorrespondingSourceObject: {fileID: 7278077644690956130, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}
+  m_PrefabInstance: {fileID: 3187676087055593690}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &7613013520731712495 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5015389258421181237, guid: e60cf5bc4bf296540b96b75be484dc3a, type: 3}

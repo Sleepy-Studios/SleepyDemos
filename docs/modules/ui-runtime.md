@@ -156,12 +156,15 @@ Loading --加载失败或取消--> Faulted
 
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/`：基础组件模板仓库。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/ViewTabVertical.prefab`：`ViewTab` 基础模板，结构为 `ViewTabVertical / Tab / ViewRoot`。
-- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Btns/BtnSwitch.prefab`：`UIBtnSwitch` 基础模板。
+- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Btns/BtnSwitch1.prefab`：选择型 `UIBtnSwitch` 模板；由原 BtnSwitch 重命名，保留原 GUID。
+- `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Btns/BtnSwitch2.prefab`：滑块开关型 `UIBtnSwitch` 模板，公共设置的二态偏好使用此模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Dropdown/Dropdown.prefab`：`UIDropdown` 基础模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/AccordionTab.prefab`：`AccordionTab` 基础模板。
 - `Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Tab/AccordionViewTab.prefab`：`AccordionViewTab` 基础模板。
 
 `ViewTab` 模板遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
+
+基础模板使用暖白、深墨、朱红的瑞士风表现，交互五态不缩放控件根节点。Dropdown 的 Arrow 使用 Image，Sprite 为 `Assets/LoadResources/UI/Common/Sprites/Tips/Arrow.png`；保留 UIDropdown 展开时旋转 180° 的制作引用和行为。公共 SwitchRow 保留行根与 UISettingRow 引用，内部 Control 使用 BtnSwitch2；Hub 的 13 个偏好开关与体验页的 11 个开关共用该行，不复制开关逻辑。三态减少动态和语言选项继续使用原下拉或 Tab。
 
 普通有限分类使用 `ViewTab` 异步加载各自独立的 View 和 Prefab，页面持有子 View 的生命周期；固定异构表单使用 `UISettingRow` 与原生布局，改键等同类数据列表使用 `LoopScrollView + ItemView`。设置宿主与独立分页的实际入口见[基础组件手册](../runbooks/use-core-ui-components.md#正式调用示例与维护入口)。
 
