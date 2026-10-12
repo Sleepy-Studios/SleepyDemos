@@ -125,7 +125,7 @@ namespace Hotfix.KagitKart
             Dispatch(KagitKartCommand.Refresh);
             try
             {
-                var token = this.GetCancellationTokenOnDestroy();
+                var token = lifetimeCancellation.Token;
                 var shown = controls
                     ? await UIManager.Instance.ShowAsync<KagitKartControlsView>(view => view.SetData(this), new UIShowOptions(animated: false), token)
                     : await UIManager.Instance.ShowAsync<KagitKartSettingsView>(view => view.SetData(this), new UIShowOptions(animated: false), token);

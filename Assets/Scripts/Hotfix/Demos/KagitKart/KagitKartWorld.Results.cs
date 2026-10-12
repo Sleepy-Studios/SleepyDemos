@@ -43,7 +43,7 @@ namespace Hotfix.KagitKart
             try
             {
                 while (uiBusy) await UniTask.Yield();
-                var token = this.GetCancellationTokenOnDestroy();
+                var token = lifetimeCancellation.Token;
                 var closed = await UIManager.Instance.CloseAsync(modal, animated: false, cancellationToken: token);
                 if (closed.Status == UIOperationStatus.Failed) throw closed.Exception;
                 token.ThrowIfCancellationRequested();

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Threading;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 using Cysharp.Threading.Tasks;
@@ -20,6 +21,7 @@ namespace Hotfix.KagitKart
         [SerializeField] private InputActionAsset inputTemplate;
         private IResourceLoader loader;
         private IResourceLoader raceLoader;
+        private readonly CancellationTokenSource lifetimeCancellation = new CancellationTokenSource();
         private KagitKartSourceCatalog source;
         private KagitKartRecordStore records;
         private KagitKartSceneryWorld scenery;
@@ -77,7 +79,7 @@ namespace Hotfix.KagitKart
             try
             {
                 records = new KagitKartRecordStore();
-                var token = this.GetCancellationTokenOnDestroy();
+                var token = lifetimeCancellation.Token;
                 if (!await DemoIslandEditorBootstrap.EnsureReadyAsync(token))
                 {
                     return;
@@ -167,7 +169,7 @@ namespace Hotfix.KagitKart
                 bookStage.gameObject.SetActive(false);
                 StopRound();
                 CapturePreviousStandings();
-                var token = this.GetCancellationTokenOnDestroy();
+                var token = lifetimeCancellation.Token;
                 var owned = ResourceServices.CreateLoader();
                 raceLoader = owned;
                 string name = KagitKartCatalog.TrackAssetName(TrackId);
@@ -543,7 +545,7 @@ namespace Hotfix.KagitKart
                 {
                     GrandPrix = null;
                 }
-                var token = this.GetCancellationTokenOnDestroy();
+                var token = lifetimeCancellation.Token;
                 var options = new UIShowOptions(animated: false);
                 UIOperationResult shown;
                 switch (page)
@@ -596,7 +598,7 @@ namespace Hotfix.KagitKart
                 while (uiBusy) await UniTask.Yield();
                 await CloseViewsAsync();
                 StopRound();
-                var token = this.GetCancellationTokenOnDestroy();
+                var token = lifetimeCancellation.Token;
                 if (podium == null)
                 {
                     var instance = await loader.InstantiateAsync(Root + "Prefabs/PodiumStage", transform);
@@ -637,7 +639,7 @@ namespace Hotfix.KagitKart
             try
             {
                 var shown = await UIManager.Instance.ShowAsync<KagitKartPodiumView>(view => view.SetData(this),
-                    new UIShowOptions(animated: false), this.GetCancellationTokenOnDestroy());
+                    new UIShowOptions(animated: false), lifetimeCancellation.Token);
                 if (shown.Status == UIOperationStatus.Failed) throw shown.Exception;
                 menu = shown.View;
             }
@@ -781,7 +783,7 @@ namespace Hotfix.KagitKart
                     bool desired = results || Session.Pause.IsPaused;
                     if (desired && modal == null)
                     {
-                        var token = this.GetCancellationTokenOnDestroy();
+                        var token = lifetimeCancellation.Token;
                         var shown = results
                             ? await UIManager.Instance.ShowAsync<KagitKartResultsView>(view => view.SetData(this), new UIShowOptions(animated: false), token)
                             : await UIManager.Instance.ShowAsync<KagitKartPauseView>(view => view.SetData(this), new UIShowOptions(animated: false), token);
@@ -962,6 +964,8 @@ namespace Hotfix.KagitKart
 
         private void OnDestroy()
         {
+            exiting = true;
+            lifetimeCancellation.Cancel();
             Core.Runtime.Settings.GameSettingsService.Changed -= OnPublicSettingsChanged;
             ready = false;
             DisposeHints();
@@ -983,6 +987,7 @@ namespace Hotfix.KagitKart
             if (postProcess != null) postProcess.enabled = false;
             loader?.Dispose();
             loader = null;
+            lifetimeCancellation.Dispose();
             if (GlobalData.Get<KagitKartData>()?.World == this)
             {
                 GlobalData.Remove<KagitKartData>();

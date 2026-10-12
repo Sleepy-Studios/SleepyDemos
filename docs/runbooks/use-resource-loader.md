@@ -59,6 +59,8 @@ Loader.ReleaseAsset(sprite);
 
 如果资源生命周期跟随 loader，可以在持有者销毁时统一 `Dispose` loader。
 
+销毁期间尚未结束的异步请求由 loader 收口，返回 null；调用方仍须在 await 后检查自身生命周期和结果。已 Dispose 的 loader 不再复用，需要新生命周期时调用 `ResourceServices.CreateLoader()`。
+
 ## 加载全局共享资源
 
 跨系统共享资源可以通过全局资源服务加载：

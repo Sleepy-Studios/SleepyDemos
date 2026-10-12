@@ -68,6 +68,8 @@
 
 ## 验证与 Unity Editor
 
+- 本任务及后续功能任务以 Editor Offline Play Mode 的实际首包流程替代原定 Windows Player 最终验收，默认不构建 Player。验收前记录 `HotfixConfig` 原状态，临时切换 `OfflinePlayMode`，使用正式 `AppEntrance` 和最新 `StreamingAssets`，结束或失败后恢复原配置；流程边界见[热更新模块](docs/modules/hotfix.md)。
+- Editor Offline 通过不等于独立 Player / IL2CPP 通过：`UNITY_EDITOR` 会复用已加载的 Hotfix 程序集，IL2CPP 编译、裁剪和原生发布验证后置；真实手柄和触屏仍需另行验收。
 - 按改动选择直接相关的已有测试、编译检查、日志或运行时/人工验证；检查通过后，仅因新改动、失败或具体未解决风险扩大或重复验证。
 - 自动化测试统一放在 `Assets/Scripts/Tests`，只维护 `Tests.EditMode` 和 `Tests.PlayMode` 两个测试程序集，不在 Core、Hotfix 或 Demo 生产目录新建 Test Assembly。新增测试前读 [测试架构](docs/architecture/testing.md)，遵守目录、命名空间及程序集配置。
 - 有稳定断言和长期回归价值的行为优先补永久测试；文字、格式、视觉微调不机械新增测试脚本。运行验证不等于必须新增永久测试。

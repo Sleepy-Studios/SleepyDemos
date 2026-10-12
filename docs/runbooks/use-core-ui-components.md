@@ -272,7 +272,7 @@ tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 
 修改基础模板后运行 `UIFoundationAssetTests` 与 `UIFoundationPlayModeTests`，检查真实鼠标悬停/点击/移出、键鼠与手柄提交、禁用及反复开关；检查 0%、1%、50%、100% 的实际填充网格和不同尺寸下的边框。自动断言不代替视觉检查，必须查看目标 Canvas 的状态截图。
 
-本次模板样式与 BtnSwitch2 替换后的最终验收仍待主代理汇总，复用 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback` 检查业务态叠加和退出恢复，再运行上述直接受影响的资源与真实输入测试。旧模板的 17 项五态截图及通过记录仅保留为[历史证据](../modules/ui-foundation-assets.md#验证)，不作为本次装配已通过的结论；普通外观变化默认不另留永久测试文件。
+本次模板样式与 BtnSwitch2 替换已完成直接相关资源、真实输入及 Canvas 预览验收，结果见[基础资源验证](../modules/ui-foundation-assets.md#验证)。Hub 新主 ViewTab、五分页及体验页的中英三画幅、实际切页/取消/关闭也已通过，详见[实施记录](../agent/settings-goal-progress.md)。复用 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback` 维护业务态叠加和退出恢复；普通外观变化默认不另留永久测试文件。
 
 
 `UICancelRelay` 配置在按钮、Slider 等可导航控件上；优先转交最近的 UIMenuScope，宿主已经持有 MenuInputScope 的页面则转交最近的父级 ICancelHandler。只有选中控件接收原生 Cancel，不依赖事件自动向上冒泡，不为转发再创建一个输入作用域。

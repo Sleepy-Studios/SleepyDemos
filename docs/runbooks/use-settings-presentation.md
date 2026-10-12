@@ -58,4 +58,4 @@ PushLetterbox 返回 CinematicPresenter.LetterboxHandle，仍可作为 IDisposab
 
 初始化失败先查 ConfigAddress、YooAsset Config 采集和 SO 引用；字体失败查 FontId 双语言映射及材质 atlas。设置保存失败查 Feedback 和 LocalDataManager 的大小/校验反馈，不能直接覆写新默认值掩盖损坏。画质降级查 DisplaySettingsRuntime.Status 与 StreamlineRuntime.Status。演出缺根先完成正式 View 注册，禁止用临时 Canvas 兜底。
 
-正式 Hub-only 主 ViewTab、五独立分页与体验页已完成本轮电脑端定向运行及中英三画幅验收；Windows Player仍受构建环境问题阻塞，真实硬件另列待验。电脑端最低验收尺寸为 1920×1080，低于此范围不支持；不要按 Editor 面板的实际窗口尺寸启动 Hub 交互验收。现有 MainMenuNavigationPlayModeTests 复用 GameViewResolution 临时固定最低尺寸，结束后恢复用户选择。按直接受影响范围验证Hub 设置打开和返回及各 Demo 公共入口已移除、分页候选保留与释放、绑定列表回收、显示确认恢复、Hub 语言重建以及演出停止／退出；测试与真实设备结果记录到[实施记录](../agent/settings-goal-progress.md)。持续接入使用上述公共入口与正式资源，不依赖一次性制作菜单。
+正式 Hub-only 主 ViewTab、五独立分页与体验页已完成本轮电脑端定向运行及中英三画幅验收；最终 Editor Offline 实际首包已通过；独立 Player/IL2CPP 与真实硬件按用户要求后置。电脑端最低验收尺寸为 1920×1080，低于此范围不支持；不要按 Editor 面板的实际窗口尺寸启动 Hub 交互验收。现有 MainMenuNavigationPlayModeTests 复用 GameViewResolution 临时固定最低尺寸，结束后恢复用户选择。按直接受影响范围验证Hub 设置打开和返回及各 Demo 公共入口已移除、分页候选保留与释放、绑定列表回收、显示确认恢复、Hub 语言重建以及演出停止／退出；测试与真实设备结果记录到[实施记录](../agent/settings-goal-progress.md)。持续接入使用上述公共入口与正式资源，不依赖一次性制作菜单。

@@ -1,6 +1,6 @@
 # 公共设置与表现 Goal 实施记录
 
-目标：按用户确认的 G0–G11 顺序实施公共设置、表现 API、全部 Demo 接入、功能验收、分页美术确认和正式 UI。七张分页/体验效果图已基本确认并装配；Hub 使用暖白/朱红瑞士方向，各 Demo 保留自身美术风格，正在最终验收。以下 API／旧宿主通过记录不代替 Hub-only、新 ViewTab 和新基础模板的运行验证。
+目标：按用户确认的 G0–G11 实施公共设置与表现能力，已按最终 Hub-only 和 Editor Offline 范围完成电脑端交付。七张效果图已确认并装配；Hub 使用暖白/朱红瑞士方向，各 Demo 保留自身美术风格。以下历史记录以本节最新范围与结果为准。
 
 | Goal | 当前状态 | 交付与剩余 |
 |---|---|---|
@@ -8,14 +8,23 @@
 | G1 | Editor功能验收通过 | 独立快照、SO、统一偏好、启动/直启、并发初始化、迁移、保存失败及事务回滚通过 |
 | G2 | 公共API及Hub重建通过 | 中英文 FontId、一次性文本 API、正式语言页和真实 Hub 销毁重建/失败恢复通过；英文五页三画幅已查看 |
 | G3 | 功能及正式宿主回归通过 | 公共参数、改键、最近实际设备提示；Kenney 键鼠/三类手柄资源与正式提示及Demo Variants接入，真实硬件记录待验 |
-| G4 | Editor功能及GPU验收通过 | 管线副本、显示确认、手动FXAA/MSAA、DLSS/DLAA接管和关闭恢复通过；Player显示验证待完成 |
+| G4 | Editor功能及GPU验收通过 | 管线副本、显示确认、手动FXAA/MSAA、DLSS/DLAA接管和关闭恢复通过；Offline正式显示确认通过 |
 | G5 | 功能及正式宿主接入通过 | 分类总线/DSP增益、静音与辅助限制；普通音源及通知隔离回归、正式声音页候选与应用通过 |
 | G6 | 七类API及独立Editor图像验证通过 | 基础/可更新临时作用域、允许限制与亮度；Direct3D12 正式场景验证七类各自变化、UI 隔离及释放恢复，其它平台仍未验 |
 | G7 | 功能及真实宿主三倍率验收通过 | 四 Demo 的 0.25×/1×/2×真实运动或计时与释放恢复通过；Kart低帧快进受作者八步上限限制，边界已实测 |
 | G8 | 公共API及GPU验收通过 | 七类黑幕/四方向擦幕形状、队列与取消、黑边/HUD、冻结中英Title及同根注册复用通过；正式表现View已装配 |
 | G9 | 当前范围定向验收通过 | Hub 六个正式流程与四 Demo 各自定向回归通过；公共设置仅 Hub，Demo 专属界面和 API 接入保留。Showcase保持独立公共菜单宿主 |
 | G10 | 新版电脑端 UI 已验收 | 主 ViewTab 与五独立分页、单 UIState、新基础模板；中英三画幅 54 图与真实切页/返回通过，关闭按钮另验三画幅；真实硬件待验 |
-| G11 | Editor 验收与清理完成，Player 未通过 | 最新编译/定向测试/中英三画幅通过；Windows C++ 构建受 chcp 配置影响，真实手柄/触屏按用户要求待验 |
+| G11 | 按修订范围完成 | 正式 AppEntrance / Offline实际首包、五分页与四Demo往返通过；临时工具清理、配置恢复；独立Player/IL2CPP及真实硬件按用户要求后置 |
+
+## 最终 Offline 收尾（2026-10-12）
+
+- 用户授权备份并修复 HKCU Command Processor AutoRun，仅将 chcp 改为绝对路径，值类型和其余值保持，系统 PATH 未改。受限子进程 PATH 下 CMD 退出码0、无错误；备份和证据在 `Library/GlobalSettings/registry-backup`。
+- 用户将本任务及后续功能任务的 Windows Player 最终验收改为 Editor Offline 实际首包，不再默认构建 Player。旧 c6a073ba 失败保留为历史，不再阻塞本轮交付；独立首包 DLL、IL2CPP/裁剪、原生发布及真实手柄/触屏仍未验。
+- 使用现有 Font Builder 中文预设补齐公共“〈〉”，保留字体 GUID、材质和采样参数；仅编译/同步 Hotfix DLL，再经现有 YooAsset Viewer 构建 `2026-10-12-165911`。128项 Bundle/版本/清单文件与 StreamingAssets SHA256一致；Unity meta和复制任务生成的BuiltinCatalog不混入该比较。
+- 正式 AppEntrance 从全新 Play 会话走 BuiltinFileSystem，精确临时用例70d5d059为1/1：五分页、候选/保存、改键、真实中英重建、显示确认、冻结演出及四Demo实际进入/卸载/Hub相机恢复通过。无人机先完成机型选择，卡丁车等待正式主菜单；此结果不等同全部玩法回归或新的完整美术验收。
+- 实际 Offline 暴露并修复在途句柄提前释放、卡丁车销毁时取消顺序、场内换镜头后导航停用旧监听器三项生命周期问题。修复分别归 Core.Runtime 与 Hotfix；无 Demo 美术资产覆盖。临时用例和四项操作菜单源码/meta已清理，不新增永久测试文件。
+- HotfixConfig磁盘模式恢复EditorSimulate，原未保存的Editor Offline选择恢复；现有Hotfix Build窗口将首包路径更新为最新版本，保留该构建路径更新。AppEntrance哈希未变，原ProjectSettings改动继续排除提交。清理后编译c87f885e零错误、Console Error为零；报告保存在 `Library/GlobalSettings/test-results/70d5d059.json`，没有运行全量测试。
 
 ## 本轮电脑端视觉验收（2026-10-12）
 
@@ -39,7 +48,9 @@ Kart 额外请求 3×、目标30 FPS并临时每帧短延迟形成真实低帧�
 
 原生XML与JSON在 `Library/GlobalSettings/test-results` 按上述job保存；一次性串行运行脚本已精确删除。正式代码、Demo资源、AppEntrance与当前首包未变，无需重复打包。整体Goal仍未完成：Windows Player仍真实失败，硬件验收按用户要求记录待验。
 
-## 当前交付审计与剩余阻塞（2026-10-12）
+## 历史交付审计与原 Player 阻塞（2026-10-12）
+
+以下为用户调整验收范围前的记录；当前状态以上方“最终 Offline 收尾”为准。
 
 - 以当前制作配置、Core.Runtime程序集依赖、正式启动系统、Hub主ViewTab/五独立分页和七张美术图索引复核交付结构；FontId 0/1/2的中英字体/材质映射存在，Core.Runtime不引用Hotfix，无语言事件、旧SettingsPage/Screen/Base或UIStateInteraction实现残留。Demo公共设置资源和临时验收代码已清理，专属界面不由公共设置接管。
 - 回读本轮关键16份原生Test Runner报告，均为各1/1，包含新版中英三画幅、关闭/取消、改键/回收、语言重建、显示确认、四Demo定向入口和四宿主非零倍率；54张运行图和当前首包版本2026-10-12-144329均在磁盘。未运行全量回归，不据此声明全部Demo任务或真实硬件已验。

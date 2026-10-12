@@ -68,8 +68,10 @@ namespace Hotfix.SceneManagement
         public async UniTask<GameSceneRuntimeResult> LoadAsync(string address, Action<float> onProgress)
         {
             var sourceScene = currentHandle?.Scene ?? hubScene;
-            var sourceCamera = currentCamera != null ? currentCamera : hubCamera;
-            var sourceAudioListener = currentAudioListener != null ? currentAudioListener : hubAudioListener;
+            var (sourceCamera, sourceAudioListener) = ResolveSourcePresentation(sourceScene,
+                currentCamera != null ? currentCamera : hubCamera, currentAudioListener != null ? currentAudioListener : hubAudioListener);
+            bool sourceCameraEnabled = sourceCamera.enabled;
+            bool sourceListenerEnabled = sourceAudioListener.enabled;
             sourceAudioListener.enabled = false;
 
             var loadResult = await sceneLoader.LoadSceneAsync(
@@ -78,7 +80,7 @@ namespace Hotfix.SceneManagement
                 onProgress);
             if (!loadResult.Succeeded)
             {
-                sourceAudioListener.enabled = true;
+                sourceAudioListener.enabled = sourceListenerEnabled;
                 return GameSceneRuntimeResult.Failure(loadResult.Error);
             }
 
@@ -90,7 +92,7 @@ namespace Hotfix.SceneManagement
                     out var presentationError))
             {
                 await sceneLoader.UnloadSceneAsync(targetHandle);
-                sourceAudioListener.enabled = true;
+                sourceAudioListener.enabled = sourceListenerEnabled;
                 return GameSceneRuntimeResult.Failure(presentationError);
             }
 
@@ -127,8 +129,8 @@ namespace Hotfix.SceneManagement
                 targetCamera.enabled = false;
                 UIRootManager.Instance.BindToBaseCamera(sourceCamera);
                 SceneManager.SetActiveScene(sourceScene);
-                sourceCamera.enabled = true;
-                sourceAudioListener.enabled = true;
+                sourceCamera.enabled = sourceCameraEnabled;
+                sourceAudioListener.enabled = sourceListenerEnabled;
                 await sceneLoader.UnloadSceneAsync(targetHandle);
                 return GameSceneRuntimeResult.Failure($"场景表现切换失败: {exception.Message}");
             }
@@ -143,8 +145,10 @@ namespace Hotfix.SceneManagement
             }
 
             var contentHandle = currentHandle;
-            var contentCamera = currentCamera;
-            var contentAudioListener = currentAudioListener;
+            // Demo 可以在场内换镜头，离场须停用当前绑定的表现相机和监听器。
+            var (contentCamera, contentAudioListener) = ResolveSourcePresentation(contentHandle.Scene, currentCamera, currentAudioListener);
+            bool contentCameraEnabled = contentCamera.enabled;
+            bool contentListenerEnabled = contentAudioListener.enabled;
             try
             {
                 contentAudioListener.enabled = false;
@@ -175,10 +179,17 @@ namespace Hotfix.SceneManagement
                 hubCamera.enabled = false;
                 UIRootManager.Instance.BindToBaseCamera(contentCamera);
                 SceneManager.SetActiveScene(contentHandle.Scene);
-                contentCamera.enabled = true;
-                contentAudioListener.enabled = true;
+                contentCamera.enabled = contentCameraEnabled;
+                contentAudioListener.enabled = contentListenerEnabled;
                 return GameSceneRuntimeResult.Failure($"返回 Hub 失败: {exception.Message}");
             }
+        }
+
+        internal static (Camera Camera, AudioListener Listener) ResolveSourcePresentation(Scene scene, Camera camera, AudioListener listener)
+        {
+            var live = UIRootManager.Instance.BaseCamera;
+            return live != null && live.gameObject.scene == scene && live.TryGetComponent<AudioListener>(out var liveListener)
+                ? (live, liveListener) : (camera, listener);
         }
 
         private static bool TryFindScenePresentation(
@@ -259,21 +270,22 @@ namespace Hotfix.SceneManagement
         public async UniTask<GameSceneRuntimeResult> ReloadAsync(string address, Action<float> onProgress)
         {
             var sourceScene = currentScene;
-            var sourceCamera = currentCamera;
-            var sourceListener = currentAudioListener;
+            var (sourceCamera, sourceListener) = GameSceneRuntime.ResolveSourcePresentation(sourceScene, currentCamera, currentAudioListener);
+            bool sourceCameraEnabled = sourceCamera.enabled;
+            bool sourceListenerEnabled = sourceListener.enabled;
             var sourceHandle = currentHandle;
             sourceListener.enabled = false;
             var result = await sceneLoader.LoadSceneAsync(address, LoadSceneMode.Additive, onProgress);
             if (!result.Succeeded)
             {
-                sourceListener.enabled = true;
+                sourceListener.enabled = sourceListenerEnabled;
                 return GameSceneRuntimeResult.Failure(result.Error);
             }
 
             if (!TryFindPresentation(result.Handle.Scene, out var targetCamera, out var targetListener, out var error))
             {
                 await sceneLoader.UnloadSceneAsync(result.Handle);
-                sourceListener.enabled = true;
+                sourceListener.enabled = sourceListenerEnabled;
                 return GameSceneRuntimeResult.Failure(error);
             }
 
@@ -305,9 +317,13 @@ namespace Hotfix.SceneManagement
             }
             catch (Exception exception)
             {
+                targetListener.enabled = false;
+                targetCamera.enabled = false;
+                UIRootManager.Instance.BindToBaseCamera(sourceCamera);
+                SceneManager.SetActiveScene(sourceScene);
                 await sceneLoader.UnloadSceneAsync(result.Handle);
-                sourceCamera.enabled = true;
-                sourceListener.enabled = true;
+                sourceCamera.enabled = sourceCameraEnabled;
+                sourceListener.enabled = sourceListenerEnabled;
                 return GameSceneRuntimeResult.Failure($"Editor 直启场景重载失败: {exception.Message}");
             }
         }

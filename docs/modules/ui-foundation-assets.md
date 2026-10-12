@@ -61,9 +61,9 @@ UIProgressBar 包装同节点 Filled Image 的数值和颜色。白色 Sprite �
 
 历史证据保存于 Library/UIRefactor，原生 XML 按 jobId 单独保留。旧双组件结构的资源检查包含所有 17 个模板；当时通过记录为资源 2/2、基础交互/填充 2/2、组件生命周期 10/10、提示组件 21/21。资源复核1de7c6fc为2/2通过，真实输入与实际填充网格f882abfd为2/2通过；当时五态截图已逐张查看，禁用态无强调边框、按下态有缩小与变深。截图夹具配置独立背景相机，避免无相机场景下的残帧；未执行全量测试。这些记录不证明本轮单 UIState 合并后的结构已通过。
 
-本次模板样式与开关替换后的最终定向验收仍待主代理汇总：复用 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback`，覆盖单组件 Selected/On 与交互叠加、禁用及启停恢复，再运行直接受影响的 UIFoundationAssetTests 和 UIFoundationPlayModeTests。检查源模板及 Variant 的引用与业务态，重新查看真实输入五态截图；测试结果与视觉结果分别记录，不为普通外观装配另留永久测试文件。
+本次模板样式与开关替换已完成直接相关资源、真实输入及 Canvas 预览验收，证据如下。复用 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback` 维护单组件 Selected/On 与交互叠加、禁用及启停恢复；测试结果与视觉结果分别记录，不为普通外观装配另留永久测试文件。
 
-当前定向证据：基础资源最新复验 5/5（247574ad）；CommonButton 新原生 XML 1/1（b635b2c7），五态五张实际截图已查看。滑块开关初次 d1dff24b 为 0/1，临时验证禁用后未重新选择焦点；仅修验证准备后复验 1/1（fe841386）。真实 Canvas 首次预览 1/1（b6df198a）及 Dropdown 浮层生命周期 1/1（1b93e3a0）通过，以 fresh 原生 XML 为准，REST 恢复错误分别记录。首次预览发现的 SwitchRow 高度、两个 ViewTab 蓝底及隐藏 UITab 制作模板已修正；最新模板、SwitchRow 与 Arrow 开合预览 1/1（cd7c66db），主代理已查看全部实际图。PreviewRenderUtility 先前生成的 14 张空白图无效，不作为证据。Hub Cancel 的真实命中仍未通过，整体 UI 与 Goal 尚未完成；没有运行全量测试。
+当前定向证据：基础资源最新复验 5/5（247574ad）；CommonButton 新原生 XML 1/1（b635b2c7），五态五张实际截图已查看。滑块开关初次 d1dff24b 为 0/1，临时验证禁用后未重新选择焦点；仅修验证准备后复验 1/1（fe841386）。真实 Canvas 首次预览 1/1（b6df198a）及 Dropdown 浮层生命周期 1/1（1b93e3a0）通过，以 fresh 原生 XML 为准，REST 恢复错误分别记录。首次预览发现的 SwitchRow 高度、两个 ViewTab 蓝底及隐藏 UITab 制作模板已修正；最新模板、SwitchRow 与 Arrow 开合预览 1/1（cd7c66db），主代理已查看全部实际图。PreviewRenderUtility 先前生成的 14 张空白图无效，不作为证据。Hub Cancel 后续真实点击 1/1（9c41ec3d），新版中英三画幅实际切页/取消/返回 1/1（59b4065c），关闭按钮三画幅真实点击 1/1（6a0ba70d），不再保留此前的待修状态；没有运行全量测试。
 
 状态截图使用真实 Canvas 与实际输入，检查默认、悬停、聚焦、按下、禁用；数值断言不能代替截图检查。公共模板验收完成后才能迁移各 Demo。
 

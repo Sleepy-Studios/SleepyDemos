@@ -123,7 +123,7 @@ namespace Tests.Module
         private static void AssertMappedText(TMPro.TMP_Text target, string key, params object[] args)
         {
             Assert.That(target.text, Is.EqualTo(args.Length == 0 ? LanguageService.Get(key) : LanguageService.Format(key, args)));
-            var config = UnityEditor.AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
+            var config = GameSettingsService.Config;
             Assert.That(config, Is.Not.Null);
             int fontId = -1;
             foreach (var entry in config.Language.Entries)

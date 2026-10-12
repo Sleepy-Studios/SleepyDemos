@@ -67,7 +67,7 @@
 
 `ResourceServices.Default` 是全局资源服务入口，默认实现是 `YooAssetResourceService`。
 
-当前 YooAsset 适配目标版本为 `3.0.5`，只使用 3.x 原生接口，不启用 `YOOASSET_LEGACY_API` 兼容层：
+当前 YooAsset 适配目标版本为 `3.0.6`，只使用 3.x 原生接口，不启用 `YOOASSET_LEGACY_API` 兼容层：
 
 - 包初始化使用 `InitializePackageAsync` 与各运行模式对应的 `*PlayModeOptions`。
 - 编辑器模拟构建使用 `EditorSimulateBuildInvoker.Build`。
@@ -83,6 +83,8 @@
 - 某个 loader 实例化出的 GameObject，应由同一个 loader 释放。
 - 某个 loader 加载出的资源，应由同一个 loader 释放或随 loader `Dispose` 释放。
 - 全局服务加载出的共享资源由服务内部共享 loader 持有。
+
+`Dispose` 关闭 loader，后续加载返回 null，不能复用。已经开始的异步加载或实例化保留句柄直到等待结束，再释放；关闭后不交付资源，迟到实例立即销毁。不能在 await 前释放在途句柄，否则 YooAsset Provider 可能因零引用挂起，或恢复后读取已释放句柄。普通未关闭 loader 的加载失败仍记录错误。
 
 `IResourceSceneLoader` 是运行期内容场景入口：
 
