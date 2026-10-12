@@ -1480,6 +1480,8 @@ namespace Tests.Module
             Canvas.ForceUpdateCanvases();
             var rect = (RectTransform)button.transform;
             var position = RectTransformUtility.WorldToScreenPoint(button.GetComponentInParent<Canvas>().worldCamera, rect.TransformPoint(rect.rect.center));
+            // 桌面鼠标使用整像素坐标，避免投影的分数像素落在原生矩形命中的精度空隙。
+            position = new Vector2(Mathf.Round(position.x), Mathf.Round(position.y));
             Assert.That(position.x, Is.InRange(0, Screen.width));
             Assert.That(position.y, Is.InRange(0, Screen.height));
             var hits = new List<RaycastResult>();
