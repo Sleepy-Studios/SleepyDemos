@@ -64,6 +64,12 @@
 - 本地 Bundle 路径当前使用 `DefaultPackage/Simulate`。这些生成物是当前开发快照；后续源码变更后发布前仍须重新生成并验证 IL2CPP Player，不能将快照提交当成发布验收。
 - `FlowLayoutGroup.OnValidate` 增加 Editor 条件编译，避免 Player 覆写不存在的 uGUI 方法；对应横向、纵向两个精确 EditMode 测试均通过。
 
+### 2026-10-12 公共设置本地生成快照
+
+- 使用 `Tools/一键打包工具`（同 `Tools/UI Framework/Hotfix Build`）现有的一键编译并同步流程；同步时 Hotfix 与十项 AOT 来源/目标 SHA256 核对一致，列表新增 Newtonsoft.Json、SleepyStudios.LoopScroll、URP Core 和 JSONSerializeModule。
+- 通过现有 YooAsset Viewer 的 ScriptableBuildPipeline 构建 `2026-10-12-144329`，125 个 Bundle；StreamingAssets 的 128 个对应文件哈希一致，HotfixConfig 保存最新本地路径。仅作为当前开发快照，不等同 Player 验收。
+- Windows IL2CPP Player c6a073ba 在 C++ 阶段因用户级 CMD AutoRun 中的相对 chcp 命令失败。系统配置由用户自行处理；本任务不修改注册表或 PATH，未将失败结果计为通过。失败构建后 PostIl2CppStrip 来源缓存为空，目标快照仍保留；下次同步前须先成功重生成来源，不能拿旧 StrippedAOTAssembly2 缓存代替。
+
 ### 接入检查
 
 - Editor 中能打开 `Tools/UI Framework/Hotfix Build`。

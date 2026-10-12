@@ -12,20 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d93f28d34dbf4789b6c84aeffdfb9445, type: 3}
   m_Name: HotfixConfig
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.HotfixConfig
+  StartupScene: 
   PlayMode: 0
   PackageName: DefaultPackage
   BaseServerURL: 
   RemoteBaseServerURL: 
-  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/Simulate
+  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-10-12-144329
   AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/StandaloneWindows64
   AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/StandaloneWindows64
   AotTargetPath: Assets/LoadResources/Codes/Aot
   AotAssemblies:
   - Core.Runtime.dll
+  - Newtonsoft.Json.dll
+  - SleepyStudios.LoopScroll.dll
   - System.Core.dll
   - UniTask.dll
   - Unity.InputSystem.dll
+  - Unity.RenderPipelines.Core.Runtime.dll
   - UnityEngine.CoreModule.dll
+  - UnityEngine.JSONSerializeModule.dll
   - mscorlib.dll
   HotfixSourcePath: HybridCLRData/HotUpdateDlls/StandaloneWindows64
   HotfixTargetPath: Assets/LoadResources/Codes/Hotfix
