@@ -3,7 +3,7 @@ using Core.Runtime.Inputs;
 
 namespace Hotfix.KagitKart
 {
-    /// 纸艺卡丁车独立偏好；公共画质设置由 GraphicsSettings 持久化。
+    /// 纸艺卡丁车独立偏好；公共画质与辅助偏好在 Hub 统一维护。
     [Serializable]
     public sealed class KagitKartSettings
     {

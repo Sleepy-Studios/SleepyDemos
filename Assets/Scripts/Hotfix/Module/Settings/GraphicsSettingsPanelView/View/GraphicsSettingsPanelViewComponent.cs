@@ -7,7 +7,6 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
 
     [Source("LoadResources/UI/Settings/Panels/GraphicsSettingsPanelView")]
     public partial class GraphicsSettingsPanelView
@@ -23,7 +22,22 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private GraphicsSettingsPage GraphicsSettingsPage_Page;
+        private UISettingRow UISettingRow_WindowMode;
+        private UISettingRow UISettingRow_Resolution;
+        private UISettingRow UISettingRow_Quality;
+        private UISettingRow UISettingRow_VSync;
+        private UISettingRow UISettingRow_FrameLimit;
+        private UISettingRow UISettingRow_Dlss;
+        private UISettingRow UISettingRow_Antialiasing;
+        private UISettingRow UISettingRow_MsaaSamples;
+        private UISettingRow UISettingRow_Brightness;
+        private UISettingRow UISettingRow_ColorGrading;
+        private UISettingRow UISettingRow_Bloom;
+        private UISettingRow UISettingRow_Vignette;
+        private UISettingRow UISettingRow_DepthOfField;
+        private UISettingRow UISettingRow_ChromaticAberration;
+        private UISettingRow UISettingRow_LensDistortion;
+        private UISettingRow UISettingRow_FilmGrain;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +49,22 @@ namespace Hotfix
                 return;
             }
 
-            GraphicsSettingsPage_Page = componentItemIndex.Get<GraphicsSettingsPage>(0);
+            UISettingRow_WindowMode = componentItemIndex.Get<UISettingRow>(0);
+            UISettingRow_Resolution = componentItemIndex.Get<UISettingRow>(1);
+            UISettingRow_Quality = componentItemIndex.Get<UISettingRow>(2);
+            UISettingRow_VSync = componentItemIndex.Get<UISettingRow>(3);
+            UISettingRow_FrameLimit = componentItemIndex.Get<UISettingRow>(4);
+            UISettingRow_Dlss = componentItemIndex.Get<UISettingRow>(5);
+            UISettingRow_Antialiasing = componentItemIndex.Get<UISettingRow>(6);
+            UISettingRow_MsaaSamples = componentItemIndex.Get<UISettingRow>(7);
+            UISettingRow_Brightness = componentItemIndex.Get<UISettingRow>(8);
+            UISettingRow_ColorGrading = componentItemIndex.Get<UISettingRow>(9);
+            UISettingRow_Bloom = componentItemIndex.Get<UISettingRow>(10);
+            UISettingRow_Vignette = componentItemIndex.Get<UISettingRow>(11);
+            UISettingRow_DepthOfField = componentItemIndex.Get<UISettingRow>(12);
+            UISettingRow_ChromaticAberration = componentItemIndex.Get<UISettingRow>(13);
+            UISettingRow_LensDistortion = componentItemIndex.Get<UISettingRow>(14);
+            UISettingRow_FilmGrain = componentItemIndex.Get<UISettingRow>(15);
         }
     }
 }

@@ -73,8 +73,6 @@ namespace Hotfix
         private InputCommandButton InputCommandButton_CopyTelemetry;
         private InputCommandButton InputCommandButton_Exit;
         private InputCommandButton InputCommandButton_Panel1;
-        private Button Button_GraphicsSettings;
-        private TextMeshProUGUI TextMeshProUGUI_GraphicsSettingsLabel;
         private InputCommandButton InputCommandButton_OpenOperations;
         private InputCommandButton InputCommandButton_OpenHelp;
 
@@ -137,11 +135,8 @@ namespace Hotfix
             InputCommandButton_CopyTelemetry = componentItemIndex.Get<InputCommandButton>(46);
             InputCommandButton_Exit = componentItemIndex.Get<InputCommandButton>(47);
             InputCommandButton_Panel1 = componentItemIndex.Get<InputCommandButton>(48);
-            Button_GraphicsSettings = componentItemIndex.Get<Button>(49);
-            TextMeshProUGUI_GraphicsSettingsLabel = componentItemIndex.Get<TextMeshProUGUI>(50);
-            InputCommandButton_OpenOperations = componentItemIndex.Get<InputCommandButton>(51);
-            InputCommandButton_OpenHelp = componentItemIndex.Get<InputCommandButton>(52);
-            this.RegisterButton(Button_GraphicsSettings, OnGraphicsSettingsClick);
+            InputCommandButton_OpenOperations = componentItemIndex.Get<InputCommandButton>(49);
+            InputCommandButton_OpenHelp = componentItemIndex.Get<InputCommandButton>(50);
         }
     }
 }

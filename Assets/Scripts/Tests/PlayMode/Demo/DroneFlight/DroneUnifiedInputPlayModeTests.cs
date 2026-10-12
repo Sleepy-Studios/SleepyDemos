@@ -138,6 +138,111 @@ namespace Tests.Demo
         }
 
         [UnityTest]
+        public IEnumerator CruiseWaitingClockFreezesWhileSavedHudPanelRemainsUsableAndResumes()
+        {
+            yield return VerifyCruiseWaitingClockAsync().ToCoroutine();
+        }
+
+        private async UniTask VerifyCruiseWaitingClockAsync()
+        {
+            Assert.That(GameTimeService.Scale, Is.GreaterThan(0), "用例从正常运行倍率开始。");
+            var canvas = new GameObject("DroneCruiseHudCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var events = EventSystem.current == null ? new GameObject("CruiseEvents", typeof(EventSystem), typeof(InputSystemUIInputModule)) : null;
+            var hud = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/DroneFlightHudView.prefab"), canvas.transform);
+            var view = new DroneFlightHudView { Loader = new DroneFlightHudBindingPlayModeTests.OwnedObjectLoader() };
+            var routeRoot = new GameObject("CruiseClockRoute");
+            var route = routeRoot.AddComponent<DroneCruiseRoute>();
+            var first = new GameObject("WaitingWaypoint").transform;
+            var second = new GameObject("NextWaypoint").transform;
+            first.SetParent(routeRoot.transform);
+            second.SetParent(routeRoot.transform);
+            var body = drone.GetComponent<Rigidbody>();
+            var waitingWaypoint = new DroneCruiseWaypoint();
+            waitingWaypoint.Configure(first, 3, 0, DroneCruiseHeadingMode.KeepCurrent);
+            var nextWaypoint = new DroneCruiseWaypoint();
+            nextWaypoint.Configure(second, 0, 0, DroneCruiseHeadingMode.KeepCurrent);
+            route.Configure(DroneCruiseMode.Once, 4, new[] { waitingWaypoint, nextWaypoint });
+            var runner = drone.AddComponent<DroneCruiseRunner>();
+            runner.Configure(controller, body, route);
+            var remaining = typeof(DroneCruiseRunner).GetField("remainingWaitSeconds",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            try
+            {
+                Assert.That(remaining, Is.Not.Null);
+                InputDeviceState.Notify(gamepad);
+                view.InitWithGameObject(hud);
+                view.SetData(new DroneFlightViewData(null, data.SessionId, input));
+                await view.ShowAsync(false);
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                first.position = body.position;
+                second.position = body.position + Vector3.forward * 2;
+                runner.StartCruise();
+                float deadline = Time.realtimeSinceStartup + 5;
+                while (runner.State != DroneCruiseState.Waiting && Time.realtimeSinceStartup < deadline)
+                {
+                    await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
+                }
+                Assert.That(runner.State, Is.EqualTo(DroneCruiseState.Waiting), "真实 FixedUpdate 到达首航点后开始巡航等待。");
+                var index = hud.GetComponent<ComponentItemIndex>();
+                var operationPanel = System.Array.Find(index.Components, item => item is RectTransform && item.name == "OperationPanel").gameObject;
+                float frozenWait;
+                using (var time = GameTimeService.Push(GameTimeService.Scale))
+                using (time.Freeze())
+                {
+                    await UniTask.WaitForEndOfFrame();
+                    frozenWait = (float)remaining.GetValue(runner);
+                    Assert.That(frozenWait, Is.GreaterThan(0));
+                    await UniTask.Delay(200, ignoreTimeScale: true);
+                    Assert.That((float)remaining.GetValue(runner), Is.EqualTo(frozenWait), "冻结期间 Unity 不调度巡航等待的 FixedUpdate。");
+                    Assert.That(runner.CurrentWaypointIndex, Is.Zero);
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.RightShoulder));
+                    await UniTask.Delay(100, ignoreTimeScale: true);
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                    await UniTask.Delay(100, ignoreTimeScale: true);
+                    Assert.That(input.IsPanelOpen, Is.True, "冻结期间真实手柄操作仍打开菜单。");
+                    Assert.That(operationPanel.activeInHierarchy, Is.True, "保存态 HUD 实际显示操作面板。");
+                    Assert.That(view.State, Is.EqualTo(ViewState.Visible));
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.RightShoulder));
+                    await UniTask.Delay(100, ignoreTimeScale: true);
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                    await UniTask.Delay(100, ignoreTimeScale: true);
+                    Assert.That(input.IsPanelOpen, Is.False);
+                    Assert.That(operationPanel.activeInHierarchy, Is.False, "冻结期间真实手柄操作关闭同一菜单。");
+                    Assert.That((float)remaining.GetValue(runner), Is.EqualTo(frozenWait));
+                    Assert.That(runner.State, Is.EqualTo(DroneCruiseState.Waiting));
+                }
+                deadline = Time.realtimeSinceStartup + 3;
+                while ((float)remaining.GetValue(runner) >= frozenWait && Time.realtimeSinceStartup < deadline)
+                {
+                    await UniTask.NextFrame(PlayerLoopTiming.LastUpdate);
+                }
+                Assert.That((float)remaining.GetValue(runner), Is.LessThan(frozenWait), "释放冻结后真实巡航等待时钟恢复。");
+                Assert.That(runner.CurrentWaypointIndex, Is.Zero);
+                Assert.That(runner.State, Is.EqualTo(DroneCruiseState.Waiting));
+            }
+            finally
+            {
+                runner.Stop();
+                InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                input.SetPanelOpen(false);
+                try
+                {
+                    await view.DestroyAsync();
+                }
+                finally
+                {
+                    Object.Destroy(routeRoot);
+                    Object.Destroy(runner);
+                    Object.Destroy(canvas);
+                    if (events != null) Object.Destroy(events);
+                }
+            }
+        }
+
+        [UnityTest]
         public IEnumerator HelpPreservesSourceMenuAndRequiresReleaseBeforeFlight()
         {
             InputSystem.QueueStateEvent(gamepad, new GamepadState { leftStick = Vector2.up });

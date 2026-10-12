@@ -25,8 +25,7 @@ namespace Hotfix.KagitKart
         Settings,
         Controls,
         ChangeSetting,
-        GraphicsSettings,
-        CloseOptions,
+        CloseOptions = 22,
         MarkTutorialSeen,
         ShowStandings
     }

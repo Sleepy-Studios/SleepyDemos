@@ -174,7 +174,7 @@ namespace Hotfix
 
         private async UniTask OpenSettingsAsync()
         {
-            var result = await SettingsFlow.OpenAsync(GameSceneId.Hub);
+            var result = await SettingsFlow.OpenAsync();
             if (result.Status == UIOperationStatus.Failed && IsEnable)
                 RefreshEntryControls(LanguageService.Get("Hub.SettingsFailure"));
         }

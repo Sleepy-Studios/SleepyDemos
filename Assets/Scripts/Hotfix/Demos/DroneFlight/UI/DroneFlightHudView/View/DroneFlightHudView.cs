@@ -20,7 +20,6 @@ namespace Hotfix
             base.OnGameObjectInitialize();
             InitializeControlsReferences();
             InitializeControls();
-            Core.Runtime.Localization.LanguageService.SetText(TextMeshProUGUI_GraphicsSettingsLabel, "Settings.Graphics");
             resetProgressBar = UIProgressBar_ResetProgressFill;
             GameSettingsService.Changed += OnSettingsChanged;
             AddBinding(() => GameSettingsService.Changed -= OnSettingsChanged);
@@ -224,7 +223,6 @@ namespace Hotfix
 
         private void ClosePanel() => GlobalData.Dispatch(new DroneFlightControlAction("ClosePanel"));
         private void OnCommand(string name) => GlobalData.Dispatch(new DroneFlightControlAction(name));
-        private void OnGraphicsSettingsClick() => SettingsFlow.OpenAsync(Hotfix.SceneManagement.GameSceneId.DroneFlight).Forget();
         private void OnHold(string name, bool held) => GlobalData.Dispatch(new DroneFlightHoldAction(name, held));
         private void InitializeControls()
         {

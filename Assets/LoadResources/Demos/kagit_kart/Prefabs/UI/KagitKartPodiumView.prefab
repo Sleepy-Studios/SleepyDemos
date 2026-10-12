@@ -2276,7 +2276,6 @@ GameObject:
   - component: {fileID: 2711877631644167639}
   - component: {fileID: 1126670157872878542}
   - component: {fileID: 6377344335773349537}
-  - component: {fileID: 2838322233667413963}
   m_Layer: 5
   m_Name: Menu
   m_TagString: Untagged
@@ -2611,19 +2610,6 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &2838322233667413963
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6569445609211359541}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 6377344335773349537}
 --- !u!1 &7177002687099847122
 GameObject:
   m_ObjectHideFlags: 0

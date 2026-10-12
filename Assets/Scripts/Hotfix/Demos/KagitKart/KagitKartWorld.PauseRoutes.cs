@@ -9,12 +9,9 @@ namespace Hotfix.KagitKart
 {
     public sealed partial class KagitKartWorld
     {
-        // 公共画质页是项目追加的Modal，继续由其自身退出契约处理。
-        private bool GraphicsOptionsVisible => graphicsSettingsView?.State == ViewState.Visible;
-
         private bool TryHandleRaceShortcuts()
         {
-            if (Session == null || GraphicsOptionsVisible)
+            if (Session == null)
             {
                 return false;
             }

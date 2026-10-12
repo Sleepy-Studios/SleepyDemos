@@ -504,7 +504,6 @@ GameObject:
   - component: {fileID: 2878491814423477082}
   - component: {fileID: 8320139753324872991}
   - component: {fileID: 4208407001730609571}
-  - component: {fileID: 3733381338110683152}
   - component: {fileID: 8489633674580770216}
   m_Layer: 5
   m_Name: Next
@@ -852,19 +851,6 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &3733381338110683152
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2114388226833921013}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 4208407001730609571}
 --- !u!114 &8489633674580770216
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1091,7 +1077,6 @@ GameObject:
   - component: {fileID: 1701897271603140445}
   - component: {fileID: 695743732644176085}
   - component: {fileID: 5762482301199945390}
-  - component: {fileID: 924989255407403732}
   m_Layer: 5
   m_Name: Hub
   m_TagString: Untagged
@@ -1438,19 +1423,6 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &924989255407403732
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3608751725495046860}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 5762482301199945390}
 --- !u!1 &3705129448345578170
 GameObject:
   m_ObjectHideFlags: 0
@@ -1933,7 +1905,7 @@ RectTransform:
   - {fileID: 8328750937654099225}
   - {fileID: 4152302803421107693}
   - {fileID: 4099791617422332347}
-  - {fileID: 2434070343430718662}
+  - {fileID: 6619068660422697278}
   - {fileID: 8098690597403756128}
   - {fileID: 6852290717729927595}
   - {fileID: 6568944122224406250}
@@ -2312,7 +2284,7 @@ MonoBehaviour:
   - {fileID: 7881956299928058410}
   - {fileID: 2839535788894048990}
   - {fileID: 2743428184775775880}
-  - {fileID: 2434070343430718663}
+  - {fileID: 4984455952471533069}
   - {fileID: 3375855877143285685}
   - {fileID: 2878491814423477082}
   - {fileID: 1415589216282249110}
@@ -3671,12 +3643,7 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
---- !u!224 &2434070343430718662 stripped
-RectTransform:
-  m_CorrespondingSourceObject: {fileID: 8798953901449160187, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
-  m_PrefabInstance: {fileID: 2434070343430718661}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2434070343430718663 stripped
+--- !u!114 &4984455952471533069 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7272141677155181256, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
   m_PrefabInstance: {fileID: 2434070343430718661}
@@ -3687,6 +3654,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: def88c851468d4f4eb1a11f37ed7e25f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.KagitKart.KagitKartResultRow
+--- !u!224 &6619068660422697278 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 8798953901449160187, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
+  m_PrefabInstance: {fileID: 2434070343430718661}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2802704573203942591
 PrefabInstance:
   m_ObjectHideFlags: 0

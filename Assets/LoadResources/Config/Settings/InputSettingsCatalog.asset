@@ -39,8 +39,6 @@ MonoBehaviour:
       displayKey: Input.ResetView
     - actionId: 2896408d-4b9f-4986-9567-605d472b6718
       displayKey: Input.ReturnHub
-    - actionId: fe209e91-7c5b-4dbd-901c-074d6cf05971
-      displayKey: Input.Settings
   - displayKey: Input.DroneFlight
     asset: {fileID: -944628639613478452, guid: 301b27e55897ec7478306fcd6476c7aa, type: 3}
     actions:

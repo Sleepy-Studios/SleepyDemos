@@ -1,10 +1,6 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Core.Runtime;
-using Core.Runtime.Localization;
-using Cysharp.Threading.Tasks;
-using Hotfix.SceneManagement;
 
 namespace Hotfix.WallSqueeze
 {
@@ -17,8 +13,6 @@ namespace Hotfix.WallSqueeze
         [SerializeField] private Button next;
         [SerializeField] private Button retry;
         [SerializeField] private Button hub;
-        [SerializeField] private Button graphics;
-        [SerializeField] private TMP_Text graphicsLabel;
         private WallSqueezeWorld world;
         /// 当前模式下可用的首个菜单焦点。
         public GameObject FirstSelection => continueButton.gameObject.activeSelf ? continueButton.gameObject : next.gameObject.activeSelf ? next.gameObject : retry.gameObject;
@@ -32,15 +26,12 @@ namespace Hotfix.WallSqueeze
             next.onClick.RemoveListener(Next);
             retry.onClick.RemoveListener(Retry);
             hub.onClick.RemoveListener(Hub);
-            graphics.onClick.RemoveListener(Graphics);
             if (owner != null)
             {
                 continueButton.onClick.AddListener(Continue);
                 next.onClick.AddListener(Next);
                 retry.onClick.AddListener(Retry);
                 hub.onClick.AddListener(Hub);
-                graphics.onClick.AddListener(Graphics);
-                LanguageService.SetText(graphicsLabel, "Settings.Graphics");
                 Render();
             }
         }
@@ -67,13 +58,5 @@ namespace Hotfix.WallSqueeze
         private void Next() => world?.Dispatch(WallSqueezeCommand.Next);
         private void Retry() => world?.Dispatch(WallSqueezeCommand.Retry);
         private void Hub() => world?.Dispatch(WallSqueezeCommand.Hub);
-        private void Graphics() => OpenGraphicsAsync().Forget();
-
-        private async UniTask OpenGraphicsAsync()
-        {
-            var result = await SettingsFlow.OpenAsync(GameSceneId.WallSqueeze, token: this.GetCancellationTokenOnDestroy());
-            if (result.Status == UIOperationStatus.Failed)
-                await SingleUIManager.Instance.ShowTipsMessageBarAsync(LanguageService.Get("Hub.SettingsFailure"), CommonTipsType.Warning);
-        }
     }
 }

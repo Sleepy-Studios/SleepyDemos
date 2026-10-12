@@ -426,9 +426,6 @@ namespace Hotfix.KagitKart
                 case KagitKartCommand.ChangeSetting:
                     SaveSetting(action);
                     return;
-                case KagitKartCommand.GraphicsSettings:
-                    OpenGraphicsSettingsAsync().Forget();
-                    return;
                 case KagitKartCommand.CloseOptions:
                     CloseOptionsCommandAsync().Forget();
                     return;
@@ -501,7 +498,6 @@ namespace Hotfix.KagitKart
                     Session.Pause.RequestPause(LocalPauseReason.User);
                     break;
                 case KagitKartCommand.Resume:
-                    if (GraphicsOptionsVisible) break;
                     if (optionsView != null) ResumeFromOptionsAsync().Forget();
                     else Session.Pause.TryResume();
                     break;

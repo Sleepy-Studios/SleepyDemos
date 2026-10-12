@@ -44,7 +44,7 @@ namespace Tests.Module
             var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/UI/Common/_TemplateInstantiatePrefab/Btns/CommonButton.prefab");
             var obj = Object.Instantiate(source, canvas.transform);
             var button = obj.GetComponent<Button>();
-            var interaction = obj.GetComponent<UIStateInteraction>();
+            var interaction = obj.GetComponent<UIState>();
             var mouse = InputSystem.AddDevice<Mouse>();
             var keyboard = InputSystem.AddDevice<Keyboard>();
             var gamepad = InputSystem.AddDevice<Gamepad>();

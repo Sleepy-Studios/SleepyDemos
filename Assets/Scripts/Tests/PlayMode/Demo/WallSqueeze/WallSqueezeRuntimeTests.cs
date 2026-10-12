@@ -371,6 +371,40 @@ namespace Tests.Demo
             Assert.That(wallShape.bounds.size.y, Is.EqualTo(9).Within(.001f));
             Assert.That(bodyShape.bounds.size.x, Is.EqualTo(.8f).Within(.001f));
             Assert.That(bodyShape.bounds.size.y, Is.EqualTo(.8f).Within(.001f));
+            float frozenElapsed;
+            using (var time = GameTimeService.Push(GameTimeService.Scale))
+            using (time.Freeze())
+            {
+                yield return null;
+                frozenElapsed = world.Simulation.ElapsedSeconds;
+                Vector2 frozenWall = world.Simulation.Walls[0].Center;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.D));
+                yield return new WaitForSecondsRealtime(.2f);
+                Assert.That(world.Simulation.ElapsedSeconds, Is.EqualTo(frozenElapsed), "全局冻结停止真实 World.Update 的玩法时钟。");
+                Assert.That(world.Simulation.Walls[0].Center, Is.EqualTo(frozenWall));
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
+                yield return null;
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return Wait(() => UIManager.Instance.Get<WallSqueezeMenuView>()?.State == ViewState.Visible, "冻结期间键盘暂停入口");
+                var frozenMenu = UIManager.Instance.Get<WallSqueezeMenuView>();
+                var selection = frozenMenu.gameObject.GetComponent<WallSqueezeMenuPanel>().FirstSelection;
+                Assert.That(selection.GetComponent<Button>().interactable, Is.True);
+                EventSystem.current.SetSelectedGameObject(selection);
+                yield return null;
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter));
+                yield return null;
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return Wait(() => !world.Paused && UIManager.Instance.Get<WallSqueezeMenuView>()?.IsEnable != true
+                    && world.Input.Router.Context == GameplayInputContext.Interaction, "冻结期间菜单继续入口");
+                Assert.That(world.Simulation.ElapsedSeconds, Is.EqualTo(frozenElapsed));
+                Assert.That(world.Simulation.Walls[0].Center, Is.EqualTo(frozenWall));
+            }
+            yield return Wait(() => world.Simulation.ElapsedSeconds > frozenElapsed, "释放冻结后真实玩法时钟恢复");
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.D));
             yield return null;
             yield return null;
@@ -389,17 +423,11 @@ namespace Tests.Demo
             yield return new WaitForSecondsRealtime(.15f);
             Assert.That(world.Simulation.Bodies[0].Center, Is.EqualTo(before));
             var menu = UIManager.Instance.Get<WallSqueezeMenuView>();
-            var graphics = Array.Find(menu.gameObject.GetComponentsInChildren<Button>(true), button => button.name == "Graphics");
-            Assert.That(graphics, Is.Not.Null);
-            graphics.onClick.Invoke();
-            yield return Wait(() => UIManager.Instance.Get<WallSqueezeGlobalSettingsView>()?.State == ViewState.Visible, "暂停菜单公共画质入口");
-            Assert.That(menu.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(world.Paused, Is.True);
-            Assert.That(world.Simulation.Bodies[0].Center, Is.EqualTo(before));
-            yield return UIManager.Instance.CloseAsync<WallSqueezeGlobalSettingsView>(animated: false).ToCoroutine();
+            Assert.That(Array.Find(menu.gameObject.GetComponentsInChildren<Button>(true), button => button.name == "Graphics"), Is.Null,
+                "Demo 暂停目录只保留玩法菜单，公共设置入口属于 Hub。");
             Assert.That(UIManager.Instance.Get<WallSqueezeMenuView>(), Is.SameAs(menu));
             Assert.That(menu.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(world.Paused, Is.True, "关闭公共设置不能解除 Demo 本地暂停。");
+            Assert.That(world.Paused, Is.True);
             world.Dispatch(WallSqueezeCommand.Retry);
             yield return Wait(() => !world.Paused && world.Input.Router.Context == GameplayInputContext.Interaction, "暂停后重试");
             world.Simulation.Advance(2.2f, 0, 15.65f);

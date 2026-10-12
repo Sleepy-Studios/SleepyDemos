@@ -964,9 +964,6 @@ PrefabInstance:
       addedObject: {fileID: 1439209883943210165}
     - targetCorrespondingSourceObject: {fileID: 2964112020451112784, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7199871145859307709}
-    - targetCorrespondingSourceObject: {fileID: 2964112020451112784, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 6896385684338410581}
   m_SourcePrefab: {fileID: 100100000, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
 --- !u!1 &95367082777763402 stripped
@@ -974,17 +971,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4505210621701855751, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
   m_PrefabInstance: {fileID: 4600276298703619149}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &438559152270755752 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4161719483971961829, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
-  m_PrefabInstance: {fileID: 4600276298703619149}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 95367082777763402}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
 --- !u!225 &751818531763545036 stripped
 CanvasGroup:
   m_CorrespondingSourceObject: {fileID: 3871274970788308865, guid: fa597159b9e00784683dc64fde1ad5e8, type: 3}
@@ -1026,19 +1012,6 @@ MonoBehaviour:
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
   m_LayoutPriority: 1
---- !u!114 &7199871145859307709
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1654460186134639389}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 438559152270755752}
 --- !u!114 &6896385684338410581
 MonoBehaviour:
   m_ObjectHideFlags: 0

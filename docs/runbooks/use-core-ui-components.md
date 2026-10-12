@@ -26,7 +26,7 @@
 | 原生 `ScrollRect` + LayoutGroup | 数量有限、控件不同的固定表单，例如声音滑条、画质开关；不为少量异构行增加列表复用和数据绑定 |
 | `UIDropdown` | 基于 `UITab` 的基础下拉选择，默认文案绑定 TMP_Text |
 | `UIBtnSwitch` | 二态按钮开关 |
-| `UIState` + `UIStateInteraction` | 分别维护业务 Selected 与交互五态；不在每个页面重新写一套状态或导航输入 |
+| `UIState` | 同节点 Selectable 自动驱动五态，Selected/On/Off 按需追加在同一组件；无 Selectable 时手动切换 |
 | `UIMenuScope` | 页面/弹窗的焦点导航与返回，复用公共输入模块 |
 | `InputBindingPrompt` / `InputCommandButton` | 有效绑定图标与动作文案 / 可点击、可保持的触控命令；复用 Kenney 图标目录 |
 | `UISettingRow` | 对现有 Dropdown、Slider、Switch、Button 的设置行引用与回显；不负责分类切换、保存或输入会话 |
@@ -75,9 +75,9 @@
 
 | 要接入的能力 | 当前项目示例 |
 |---|---|
-| 分类与独立子页生命周期 | [SettingsScreen](../../Assets/Scripts/Hotfix/Module/Settings/UI/SettingsScreen.cs) 的 `Initialize / SelectCategory`，通过 `AddSubView` 持有五个独立分页，交给 `ViewTab.Init(views: ...)` 切换 |
-| 同类绑定条目回收与回显 | [InputSettingsPage](../../Assets/Scripts/Hotfix/Module/Settings/UI/InputSettingsPage.cs) 的 `AttachList / BindItem / RefreshBindings`，注册 `SettingsBindingItemView`，隐藏条目时清理旧动作回调 |
-| 固定异构控件的静默回显 | [SettingsPage](../../Assets/Scripts/Hotfix/Module/Settings/UI/SettingsPage.cs) 与 [UISettingRow](../../Assets/Scripts/Core/Runtime/Components/UISettingRow.cs)，使用已有控件并替换回调；不由行组件保存玩家设置 |
+| 分类与独立子页生命周期 | [HubSettingsView](../../Assets/Scripts/Hotfix/Module/Settings/HubSettingsView/View/HubSettingsView.cs) 与 [GraphicsSettingsPanelView](../../Assets/Scripts/Hotfix/Module/Settings/GraphicsSettingsPanelView/View/GraphicsSettingsPanelView.cs) 等独立分页；宿主持有候选和子 View，交给 `ViewTab.Init(views: ...)` 异步加载与切换 |
+| 同类绑定条目回收与回显 | [InputSettingsPanelView](../../Assets/Scripts/Hotfix/Module/Settings/InputSettingsPanelView/View/InputSettingsPanelView.cs) 与 [SettingsBindingItemView](../../Assets/Scripts/Hotfix/Module/Settings/SettingsBindingItemView/View/SettingsBindingItemView.cs)，通过 LoopScroll 注册同类绑定条目，隐藏或回收时清理旧动作回调 |
+| 固定异构控件的静默回显 | [AudioSettingsPanelView](../../Assets/Scripts/Hotfix/Module/Settings/AudioSettingsPanelView/View/AudioSettingsPanelView.cs) 与 [UISettingRow](../../Assets/Scripts/Core/Runtime/Components/UISettingRow.cs)，使用普通布局及现有控件，替换回调并编辑候选；不由行组件保存玩家设置 |
 | 提示图标与一次性动作文案 | [公共输入接入步骤](use-gameplay-input.md)，使用真实会话绑定、`SetCaptionKey` 和正式提示 Prefab；不要拼固定键名 |
 
 公共组件行为变更时，在本手册更新适用条件和调用示例；正式基础资源新增或替换时，在 [基础预制体维护](../modules/ui-foundation-assets.md) 登记路径、引用及验证范围。专属外观只记录在对应 Demo，公共生命周期与输入规则继续引用这里。检查实际资源和调用方后，再决定是否需要提取新组件。
@@ -102,7 +102,7 @@ viewTab.Init(
     itemImages: iconPaths,
     index: 0,
     enableAnimation: true,
-    isAsync: false);
+    isAsync: true);
 viewTab.Register(OnViewTabSelected);
 ```
 
@@ -188,7 +188,11 @@ UIDropdown 浮层接入的直接回归是 `UIComponentLifecyclePlayModeTests.Dro
 
 ## 交互状态与业务选中
 
-UIStateInteraction 绑定独立 UIState，配置 Normal/Hover/Focused/Pressed/Disabled；UITab 的 Normal/Selected 继续表示业务状态。鼠标悬停和方向导航不能修改 Tab 索引。触屏不显示交互反馈；禁用逻辑仍由 Selectable/CanvasGroup 控制。由 UIState 接管的属性关闭原生 Transition，避免同一属性被两方写入。
+控件同一 GameObject 只挂一个 UIState，默认配置 Normal/Hover/Focused/Pressed/Disabled；同节点有 Selectable 时自动消费原生 EventSystem，无 Selectable 时由业务手动切换。业务需要的 Selected、On、Off 追加在同一状态表，由 UITab、UIBtnSwitch 等维护业务值并调用 `SetState`，不再挂独立 UIStateInteraction，也不新增状态管理器。
+
+自动控件按 Normal 基底、业务态、交互态顺序应用。Normal 配齐状态退出所需的恢复值，业务态只声明增量，交互态覆盖本次反馈；释放、失焦或解除禁用后恢复仍有效的业务态。`CurrentStateId` 表示业务态，`InteractionState` 表示自动交互态。鼠标悬停和方向导航不能修改 Tab 索引，Submit 表现不会代替 Button 再点击一次。隐藏清除瞬态，不清空 Selected/On；触屏不显示交互强调，Disabled 仍有效，禁用逻辑继续由 Selectable/CanvasGroup 控制。
+
+由 UIState 拥有的属性关闭原生 Transition，避免双写。保留现有 Decoration 或反馈节点的制作引用，用它们表现五态；纯装饰不承担导航或射线。状态变化才写表现，页面不用维护自己的设备监听和五态切换。
 
 TMPAutoFitLayoutElement 在 Inspector 保存设计字号，运行时更改使用 SetDesignFontSize(value)。TMP 自动缩小后的当前 fontSize 不再作为恢复依据；文本变短恢复设计字号，不读取 TMP 私有字段。SimpleTips 的正式资源使用该组件，正文超高由滚动区域承载，不启用超高缩字。CommonTips 正文使用 TMPAutoScroll，保持单行与固定字号。
 
@@ -254,13 +258,15 @@ tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 
 接入 Demo 前先验收公共模板，逐项检查组件绑定、中文字体、Sprite 与 Border、布局、遮罩、射线和导航。通用按钮模板为 `Common/_TemplateInstantiatePrefab/Btns/CommonButton.prefab`；Tab、下拉和开关继续使用各自模板。
 
-`UIStateInteraction` 消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。背景与文字在常态清晰可读；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深并轻微收缩，Disabled 降低强调且不可操作。触屏没有悬停和焦点反馈，但仍显示禁用状态。
+`UIState` 直接消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。背景与文字在常态清晰可读；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深或改变装饰，Disabled 降低强调且不可操作。触屏不显示交互强调，但仍显示禁用状态。滚动表单不缩放按钮点击矩形，保持按下与抬手命中一致。
 
-交互 UIState 与 Tab 的 Normal/Selected 或开关 On/Off 分开；不要同时用原生 Transition 修改同一颜色或缩放。全部状态必须恢复自己修改的属性，关闭、失焦及禁用不能留下按压缩放。纯背景和装饰不挂交互组件或参与导航，反馈 Graphic 不拦截射线。
+业务值与交互反馈职责分开，表现统一配置在同一个 UIState；不要再额外挂交互桥或用原生 Transition 修改同一颜色或缩放。Normal 必须恢复所拥有的属性，关闭、失焦及禁用不能留下按压缩放。纯背景需要状态时手动调用，不参与导航；反馈 Graphic 不拦截射线。触控命令保持与释放继续由 InputCommandButton 负责，表现状态不接管命令生命周期。
 
 `UIProgressBar` 只包装同节点 Image 的 `fillAmount` 与颜色，不实现交互或业务缓动。普通填充使用项目公共 `Sprites/White.png`、Filled 和 Image.color；需固定圆角的背景或遮罩使用有 Border 的 Sliced，填充在遮罩内变化。Filled 必须保存非空 Sprite：没有 Sprite 时 UGUI 会绘制普通矩形，忽略填充逻辑。特殊形状和径向填充保留相应 Sprite 与 FillMethod，不强制使用白块。
 
 修改基础模板后运行 `UIFoundationAssetTests` 与 `UIFoundationPlayModeTests`，检查真实鼠标悬停/点击/移出、键鼠与手柄提交、禁用及反复开关；检查 0%、1%、50%、100% 的实际填充网格和不同尺寸下的边框。自动断言不代替视觉检查，必须查看目标 Canvas 的状态截图。
+
+单 UIState 合并后的验收仍待执行，先运行 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback` 检查业务态叠加和退出恢复，再运行上述直接受影响的资源与真实输入测试。旧模板的 17 项五态截图及通过记录仅保留为[历史证据](../modules/ui-foundation-assets.md#验证)，不作为本轮合并已通过的结论。
 
 
 `UICancelRelay` 配置在按钮、Slider 等可导航控件上；优先转交最近的 UIMenuScope，宿主已经持有 MenuInputScope 的页面则转交最近的父级 ICancelHandler。只有选中控件接收原生 Cancel，不依赖事件自动向上冒泡，不为转发再创建一个输入作用域。

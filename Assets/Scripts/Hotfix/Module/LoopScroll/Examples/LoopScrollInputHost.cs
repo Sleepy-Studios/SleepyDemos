@@ -34,7 +34,7 @@ namespace Hotfix.LoopScroll.Examples
             if (page == null) yield break;
             foreach (var target in GetComponentsInChildren<Selectable>(true))
             {
-                if (target.GetComponent<UIStateInteraction>() != null || target.targetGraphic == null) continue;
+                if (target.GetComponent<UIState>() != null || target.targetGraphic == null) continue;
                 var original = target.targetGraphic.color;
                 var state = target.gameObject.AddComponent<UIState>();
                 var definitions = new List<UIStateInfo>();
@@ -67,7 +67,6 @@ namespace Hotfix.LoopScroll.Examples
                     }
                 });
                 state.ConfigureStates(definitions); target.transition = Selectable.Transition.None;
-                target.gameObject.AddComponent<UIStateInteraction>().Bind(state);
                 if (target is Button) target.gameObject.AddComponent<UICancelRelay>();
             }
             scope = gameObject.AddComponent<UIMenuScope>(); scope.Canceled += Back;

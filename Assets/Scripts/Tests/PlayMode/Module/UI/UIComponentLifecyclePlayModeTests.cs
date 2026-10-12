@@ -10,6 +10,9 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 using TMPro;
@@ -432,6 +435,142 @@ namespace Tests.Module
             }
             finally { Object.Destroy(root); Object.Destroy(events); }
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator InputPromptButtonNativeTouchKeepsSingleClickAndHoldOwnershipAndCaptionDoesNotBlock()
+        {
+            var originalSettings = InputSystem.settings;
+            var settings = Object.Instantiate(originalSettings);
+            settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            settings.updateMode = InputSettings.UpdateMode.ProcessEventsInDynamicUpdate;
+            InputSystem.settings = settings;
+            var previousEvents = EventSystem.current;
+            bool previousEnabled = previousEvents != null && previousEvents.enabled;
+            var previousSelection = previousEvents != null ? previousEvents.currentSelectedGameObject : null;
+            var previousDevice = InputDeviceState.ActiveDevice;
+            if (previousEvents != null) previousEvents.enabled = false;
+            var canvas = new GameObject("PromptTouchCanvas", typeof(RectTransform), typeof(Canvas), typeof(GraphicRaycaster));
+            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.GetComponent<Canvas>().sortingOrder = 30000;
+            var events = new GameObject("PromptTouchEvents", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            var system = events.GetComponent<EventSystem>();
+            EventSystem.current = system;
+            events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+            var touchscreen = InputSystem.AddDevice<Touchscreen>();
+            using var descriptionAction = new InputAction("Description", InputActionType.Button, "<Keyboard>/space");
+            try
+            {
+                var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/UI/Common/Input/InputPromptButton.prefab");
+                var root = Object.Instantiate(source, canvas.transform);
+                var button = root.GetComponent<Button>();
+                var command = root.GetComponent<InputCommandButton>();
+                Assert.That(button, Is.Not.Null);
+                Assert.That(command.IsHoldCommand, Is.False, "公共基底先验证原制作的离散按钮。");
+                var rect = (RectTransform)root.transform;
+                rect.anchoredPosition = Vector2.zero;
+
+                // 正式纯说明覆盖按钮位置；其 caption 和真实键帽都不能截走底下的触控命令。
+                var description = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(
+                    "Assets/LoadResources/UI/Common/Input/InputPrompt.prefab"), canvas.transform);
+                var descriptionRect = (RectTransform)description.transform;
+                descriptionRect.anchorMin = descriptionRect.anchorMax = descriptionRect.pivot = Vector2.one * 0.5f;
+                descriptionRect.anchoredPosition = Vector2.zero;
+                descriptionRect.sizeDelta = rect.sizeDelta;
+                var prompt = description.GetComponent<InputBindingPrompt>();
+                prompt.SetDisplayDevice(InputDeviceKind.KeyboardMouse);
+                prompt.Bind(descriptionAction);
+                foreach (var graphic in description.GetComponentsInChildren<Graphic>(true))
+                {
+                    Assert.That(graphic.raycastTarget, Is.False, "正式说明文字及键帽必须透传射线。");
+                }
+                int clicks = 0;
+                var holds = new List<bool>();
+                command.Clicked += _ => clicks++;
+                command.HoldChanged += (_, held) => holds.Add(held);
+                Canvas.ForceUpdateCanvases();
+                yield return null;
+                yield return null;
+                Vector2 inside = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
+                var glyphs = description.GetComponentsInChildren<Image>();
+                Assert.That(Array.Exists(glyphs, glyph => glyph.sprite != null), Is.True, "纯说明必须呈现正式键帽，不能只验空槽射线。");
+                foreach (var glyph in glyphs)
+                {
+                    if (glyph.sprite == null) continue;
+                    inside = RectTransformUtility.WorldToScreenPoint(null, glyph.rectTransform.TransformPoint(glyph.rectTransform.rect.center));
+                    break;
+                }
+                Assert.That(RectTransformUtility.RectangleContainsScreenPoint(rect, inside), Is.True,
+                    "测试键帽须覆盖真实按钮内部，不能在按钮外模拟命中。");
+                Vector2 outside = RectTransformUtility.WorldToScreenPoint(null,
+                    rect.TransformPoint(new Vector3(rect.rect.xMax + 50, rect.rect.center.y)));
+                var hits = new List<RaycastResult>();
+                system.RaycastAll(new PointerEventData(system) { position = inside }, hits);
+                Assert.That(hits, Is.Not.Empty);
+                Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(button),
+                    "实际触摸射线须穿过正式说明组件命中公共按钮。");
+
+                yield return Touch(1, UnityEngine.InputSystem.TouchPhase.Began, inside);
+                Assert.That(clicks, Is.Zero);
+                yield return Touch(1, UnityEngine.InputSystem.TouchPhase.Ended, inside);
+                yield return null;
+                Assert.That(clicks, Is.EqualTo(1), "一次实际触摸只交付一次离散命令。");
+                Assert.That(holds, Is.Empty);
+
+                var fields = new SerializedObject(command);
+                fields.FindProperty("hold").boolValue = true;
+                fields.ApplyModifiedPropertiesWithoutUndo();
+                yield return Touch(11, UnityEngine.InputSystem.TouchPhase.Began, inside);
+                Assert.That(holds, Is.EqualTo(new[] { true }));
+                yield return Touch(12, UnityEngine.InputSystem.TouchPhase.Began, inside);
+                Assert.That(holds, Is.EqualTo(new[] { true }), "第二手指不能抢走或重复开始保持。");
+                yield return Touch(12, UnityEngine.InputSystem.TouchPhase.Ended, inside);
+                Assert.That(holds, Is.EqualTo(new[] { true }), "非所有者松手不能释放第一手指的保持。");
+                yield return Touch(11, UnityEngine.InputSystem.TouchPhase.Moved, outside);
+                yield return Touch(11, UnityEngine.InputSystem.TouchPhase.Ended, outside);
+                Assert.That(holds, Is.EqualTo(new[] { true, false }), "所有者拖出后松手仍须配对释放。");
+                Assert.That(clicks, Is.EqualTo(1), "保持与拖出释放不能额外交付离散命令。");
+
+                yield return Touch(13, UnityEngine.InputSystem.TouchPhase.Began, inside);
+                root.SetActive(false);
+                Assert.That(holds, Is.EqualTo(new[] { true, false, true, false }), "隐藏必须立即释放正在保持的真实指针。");
+                yield return Touch(13, UnityEngine.InputSystem.TouchPhase.Ended, inside);
+                root.SetActive(true);
+                yield return null;
+                yield return null;
+                Assert.That(clicks, Is.EqualTo(1), "隐藏后的旧抬手不能触发恢复后的按钮。");
+                yield return Touch(14, UnityEngine.InputSystem.TouchPhase.Began, inside);
+                yield return Touch(14, UnityEngine.InputSystem.TouchPhase.Ended, inside);
+                Assert.That(holds, Is.EqualTo(new[] { true, false, true, false, true, false }));
+                Assert.That(clicks, Is.EqualTo(1), "保持操作的原生 Button Click 不得重复提交。");
+            }
+            finally
+            {
+                canvas.SetActive(false);
+                events.SetActive(false);
+                InputSystem.RemoveDevice(touchscreen);
+                if (previousDevice != null && previousDevice.added) InputDeviceState.Notify(previousDevice);
+                InputSystem.settings = originalSettings;
+                Object.Destroy(settings);
+                Object.Destroy(canvas);
+                Object.Destroy(events);
+                if (previousEvents != null)
+                {
+                    previousEvents.enabled = previousEnabled;
+                    EventSystem.current = previousEvents;
+                    previousEvents.SetSelectedGameObject(previousSelection);
+                }
+            }
+            yield return null;
+
+            IEnumerator Touch(int id, UnityEngine.InputSystem.TouchPhase phase, Vector2 position)
+            {
+                InputSystem.QueueStateEvent(touchscreen, new TouchState { touchId = id, phase = phase, position = position });
+                // 两帧包含原生 InputSystem 更新和 EventSystem.Process，不直接调用 Pointer 接口。
+                yield return null;
+                yield return null;
+            }
         }
 
         [UnityTest]

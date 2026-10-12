@@ -125,12 +125,64 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 1344627968073225172}
+  - {fileID: 7925320673962596040}
+  - {fileID: 3204867477195161481}
+  - {fileID: 6117688246366489256}
+  - {fileID: 2324592847135597680}
+  - {fileID: 7174592822672267358}
+  - {fileID: 4554627413295049684}
+  - {fileID: 336214714713373957}
+  - {fileID: 5058181932832184152}
+  - {fileID: 8088609884025251175}
+  - {fileID: 2897307131413384003}
+  - {fileID: 7290552438660080057}
+  - {fileID: 7006713722051233499}
+  - {fileID: 4692006018515542447}
+  - {fileID: 6258043720595456573}
   componentTypes:
-  - Hotfix.InputSettingsPage
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - TMPro.TextMeshProUGUI
+  - Core.Runtime.UISettingRow
+  - SleepyStudios.LoopScroll.LoopScrollView
   bindingKeys:
-  - InputSettingsPanelView/Page|Hotfix.InputSettingsPage
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/MouseLookMultiplier|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/TouchLookMultiplier|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadLookMultiplier|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadLookDegreesPerSecond|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadDeadzone|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadMaximum|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/RumbleStrength|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadInvertY|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/RumbleEnabled|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Host|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Device|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Binding feedback|TMPro.TextMeshProUGUI
+  - InputSettingsPanelView/Page/CancelRebind|Core.Runtime.UISettingRow
+  - InputSettingsPanelView/Page/Bindings|SleepyStudios.LoopScroll.LoopScrollView
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &1279796973078289443
 GameObject:
@@ -764,7 +816,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 684189361561085114}
-  - component: {fileID: 1344627968073225172}
   m_Layer: 5
   m_Name: Page
   m_TagString: Untagged
@@ -798,33 +849,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1344627968073225172
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3997362467904778667}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 928938eff47ad594fa346fe05a717b3c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.InputSettingsPage
-  rows:
-  - {fileID: 7925320673962596040}
-  - {fileID: 3204867477195161481}
-  - {fileID: 6117688246366489256}
-  - {fileID: 2324592847135597680}
-  - {fileID: 7174592822672267358}
-  - {fileID: 4554627413295049684}
-  - {fileID: 336214714713373957}
-  - {fileID: 5058181932832184152}
-  - {fileID: 8088609884025251175}
-  - {fileID: 2897307131413384003}
-  - {fileID: 7290552438660080057}
-  - {fileID: 4692006018515542447}
-  bindingFeedback: {fileID: 7006713722051233499}
-  bindingsList: {fileID: 6258043720595456573}
 --- !u!1 &4284689634579123201
 GameObject:
   m_ObjectHideFlags: 0

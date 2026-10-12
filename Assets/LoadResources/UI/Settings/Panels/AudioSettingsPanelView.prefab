@@ -234,7 +234,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 824405757094301557}
-  - component: {fileID: 3951878790921689309}
   m_Layer: 5
   m_Name: Page
   m_TagString: Untagged
@@ -262,24 +261,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3951878790921689309
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2414827747427758623}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eb83959724a7c4d46810125a74766596, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Hotfix::Hotfix.AudioSettingsPage
-  rows:
-  - {fileID: 5466572421356631896}
-  - {fileID: 2981469570033102063}
-  - {fileID: 8361431166641091280}
-  - {fileID: 2192739673573274829}
-  - {fileID: 1712780899119123543}
 --- !u!1 &2886871137035001738
 GameObject:
   m_ObjectHideFlags: 0
@@ -421,12 +402,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
-  - {fileID: 3951878790921689309}
+  - {fileID: 5466572421356631896}
+  - {fileID: 2981469570033102063}
+  - {fileID: 8361431166641091280}
+  - {fileID: 2192739673573274829}
+  - {fileID: 1712780899119123543}
   componentTypes:
-  - Hotfix.AudioSettingsPage
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
   bindingKeys:
-  - AudioSettingsPanelView/Page|Hotfix.AudioSettingsPage
+  - AudioSettingsPanelView/Page/Parameters/Viewport/Content/Master|Core.Runtime.UISettingRow
+  - AudioSettingsPanelView/Page/Parameters/Viewport/Content/Music|Core.Runtime.UISettingRow
+  - AudioSettingsPanelView/Page/Parameters/Viewport/Content/Effects|Core.Runtime.UISettingRow
+  - AudioSettingsPanelView/Page/Parameters/Viewport/Content/Ui|Core.Runtime.UISettingRow
+  - AudioSettingsPanelView/Page/Parameters/Viewport/Content/Muted|Core.Runtime.UISettingRow
   bindingMethods:
+  - None
+  - None
+  - None
+  - None
   - None
 --- !u!1 &8917704344119796764
 GameObject:

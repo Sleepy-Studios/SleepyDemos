@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
+    using TMPro;
 
     [Source("LoadResources/UI/Settings/Panels/LanguageSettingsPanelView")]
     public partial class LanguageSettingsPanelView
@@ -23,7 +23,8 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private LanguageSettingsPage LanguageSettingsPage_Page;
+        private UITab UITab_Language_choices;
+        private TextMeshProUGUI TextMeshProUGUI_Language_help;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +36,8 @@ namespace Hotfix
                 return;
             }
 
-            LanguageSettingsPage_Page = componentItemIndex.Get<LanguageSettingsPage>(0);
+            UITab_Language_choices = componentItemIndex.Get<UITab>(0);
+            TextMeshProUGUI_Language_help = componentItemIndex.Get<TextMeshProUGUI>(1);
         }
     }
 }

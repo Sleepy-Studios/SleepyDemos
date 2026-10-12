@@ -32,7 +32,6 @@
             BindChoice(choices[3], "TouchControls", false);
             BindChoice(choices[4], "AutoAccelerate", true);
             BindChoice(choices[5], "ShowFps", true);
-            Button_Graphics.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.GraphicsSettings));
             Button_Back.onClick.AddListener(Back);
             UIMenuScope_Sheet.Canceled += Back;
             BindData<KagitKartData>(_ => Render());
@@ -87,7 +86,7 @@
             Select(choices[3], Choice(settings.TouchControls));
             Select(choices[4], settings.AutoAccelerate ? 0 : 1);
             Select(choices[5], settings.ShowFps ? 0 : 1);
-            Slider_Music.interactable = Slider_Sfx.interactable = Button_Graphics.interactable = Button_Back.interactable = !world.Busy;
+            Slider_Music.interactable = Slider_Sfx.interactable = Button_Back.interactable = !world.Busy;
             TextMeshProUGUI_Status.text = world.SettingsFeedback ?? "设置立即生效并保存在本机。";
         }
 

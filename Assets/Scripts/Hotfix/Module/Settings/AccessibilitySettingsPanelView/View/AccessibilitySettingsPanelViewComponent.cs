@@ -7,7 +7,6 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
 
     [Source("LoadResources/UI/Settings/Panels/AccessibilitySettingsPanelView")]
     public partial class AccessibilitySettingsPanelView
@@ -23,7 +22,9 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private AccessibilitySettingsPage AccessibilitySettingsPage_Page;
+        private UISettingRow UISettingRow_ReducedMotion;
+        private UISettingRow UISettingRow_CameraShake;
+        private UISettingRow UISettingRow_InputPrompts;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +36,9 @@ namespace Hotfix
                 return;
             }
 
-            AccessibilitySettingsPage_Page = componentItemIndex.Get<AccessibilitySettingsPage>(0);
+            UISettingRow_ReducedMotion = componentItemIndex.Get<UISettingRow>(0);
+            UISettingRow_CameraShake = componentItemIndex.Get<UISettingRow>(1);
+            UISettingRow_InputPrompts = componentItemIndex.Get<UISettingRow>(2);
         }
     }
 }

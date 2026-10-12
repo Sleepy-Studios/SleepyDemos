@@ -30,8 +30,6 @@ namespace Hotfix
         private InputBindingPrompt InputBindingPrompt_Prompt_按住加速;
         private InputCommandButton InputCommandButton_Reset;
         private InputBindingPrompt InputBindingPrompt_Prompt_重置视角;
-        private InputCommandButton InputCommandButton_Settings;
-        private InputBindingPrompt InputBindingPrompt_Prompt_画质设置;
         private InputCommandButton InputCommandButton_Exit;
         private InputBindingPrompt InputBindingPrompt_Prompt_返回_Hub;
 
@@ -52,10 +50,8 @@ namespace Hotfix
             InputBindingPrompt_Prompt_按住加速 = componentItemIndex.Get<InputBindingPrompt>(4);
             InputCommandButton_Reset = componentItemIndex.Get<InputCommandButton>(5);
             InputBindingPrompt_Prompt_重置视角 = componentItemIndex.Get<InputBindingPrompt>(6);
-            InputCommandButton_Settings = componentItemIndex.Get<InputCommandButton>(7);
-            InputBindingPrompt_Prompt_画质设置 = componentItemIndex.Get<InputBindingPrompt>(8);
-            InputCommandButton_Exit = componentItemIndex.Get<InputCommandButton>(9);
-            InputBindingPrompt_Prompt_返回_Hub = componentItemIndex.Get<InputBindingPrompt>(10);
+            InputCommandButton_Exit = componentItemIndex.Get<InputCommandButton>(7);
+            InputBindingPrompt_Prompt_返回_Hub = componentItemIndex.Get<InputBindingPrompt>(8);
         }
     }
 }

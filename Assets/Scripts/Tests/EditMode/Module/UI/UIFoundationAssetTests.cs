@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using Core.Runtime;
+using Hotfix;
 using NUnit.Framework;
 using TMPro;
 using UnityEditor;
@@ -11,6 +12,40 @@ namespace Tests.Module
 {
     public sealed class UIFoundationAssetTests
     {
+        [Test]
+        public void HubSettingsUsesIndependentPanelsAndLocalBindings()
+        {
+            var root = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/UI/Settings/HubSettingsView.prefab");
+            Assert.That(root, Is.Not.Null);
+            var tab = root.GetComponentInChildren<ViewTab>(true);
+            Assert.That(tab, Is.Not.Null);
+            Assert.That(tab.Parent.childCount, Is.Zero, "主设置不内嵌未选择的分页。");
+            CheckBindings(root);
+            var panels = new SettingsPanelView[]
+            {
+                new GraphicsSettingsPanelView(), new AudioSettingsPanelView(), new InputSettingsPanelView(),
+                new AccessibilitySettingsPanelView(), new LanguageSettingsPanelView()
+            };
+            foreach (var panel in panels)
+            {
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + panel.Address + ".prefab");
+                Assert.That(prefab, Is.Not.Null, panel.Address);
+                CheckBindings(prefab);
+            }
+
+            void CheckBindings(GameObject root)
+            {
+                foreach (var node in root.GetComponentsInChildren<Transform>(true))
+                    Assert.That(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(node.gameObject), Is.Zero, root.name + "/" + node.name);
+                foreach (var index in root.GetComponentsInChildren<ComponentItemIndex>(true))
+                    foreach (var component in index.Components)
+                    {
+                        Assert.That(component, Is.Not.Null, root.name);
+                        Assert.That(component.transform == root.transform || component.transform.IsChildOf(root.transform), Is.True, root.name);
+                    }
+            }
+        }
+
         [Test]
         public void LinearProgress_UsesWhiteSpriteAndSharedComponent()
         {
@@ -90,13 +125,11 @@ namespace Tests.Module
                     if (image.type == Image.Type.Sliced && image.sprite != null)
                         Assert.That(image.sprite.border.sqrMagnitude, Is.GreaterThan(0), path + "/" + image.name);
                 }
-                foreach (var interaction in root.GetComponentsInChildren<UIStateInteraction>(true))
-                    Assert.That(interaction.GetComponent<Selectable>(), Is.Not.Null, path + "/" + interaction.name);
                 foreach (var button in root.GetComponentsInChildren<Button>(true))
                 {
                     Assert.That(button.transition, Is.EqualTo(Selectable.Transition.None), path + "/" + button.name);
-                    Assert.That(button.GetComponent<UIStateInteraction>(), Is.Not.Null, path + "/" + button.name);
-                    var state = button.transform.Find("InteractionFeedback").GetComponent<UIState>();
+                    Assert.That(button.GetComponents<UIState>().Length, Is.EqualTo(1), path + "/" + button.name);
+                    var state = button.GetComponent<UIState>();
                     foreach (string name in new[] { "Normal", "Hover", "Focused", "Pressed", "Disabled" })
                     {
                         var definition = state.GetState(name);
@@ -105,14 +138,25 @@ namespace Tests.Module
                     }
                     var normalScaleProperty = state.GetState("Normal").properties.FirstOrDefault(property => property.propertyType == UIStatePropertyType.TransformLocalScale);
                     var pressedScaleProperty = state.GetState("Pressed").properties.FirstOrDefault(property => property.propertyType == UIStatePropertyType.TransformLocalScale);
-                    Assert.That(normalScaleProperty, Is.Not.Null, path + "/" + button.name + "/Normal");
-                    Assert.That(pressedScaleProperty, Is.Not.Null, path + "/" + button.name + "/Pressed");
-                    var normalScale = normalScaleProperty.vector3Value;
-                    var pressedScale = pressedScaleProperty.vector3Value;
-                    Assert.That(pressedScale.sqrMagnitude, Is.LessThan(normalScale.sqrMagnitude), path);
-                    Assert.That(pressedScale.sqrMagnitude, Is.GreaterThan(0), path);
-                    foreach (var graphic in button.transform.Find("InteractionFeedback").GetComponentsInChildren<Graphic>(true))
-                        Assert.That(graphic.raycastTarget, Is.False, path);
+                    if (normalScaleProperty != null || pressedScaleProperty != null)
+                    {
+                        Assert.That(normalScaleProperty, Is.Not.Null, path + "/" + button.name + "/Normal");
+                        Assert.That(pressedScaleProperty, Is.Not.Null, path + "/" + button.name + "/Pressed");
+                        Assert.That(pressedScaleProperty.vector3Value.sqrMagnitude,
+                            Is.LessThanOrEqualTo(normalScaleProperty.vector3Value.sqrMagnitude), path);
+                        Assert.That(pressedScaleProperty.vector3Value.sqrMagnitude, Is.GreaterThan(0), path);
+                    }
+                    Assert.That(state.GetState("Pressed").properties.Any(pressed => state.GetState("Normal").properties.Any(normal =>
+                        normal.target == pressed.target && normal.propertyType == pressed.propertyType
+                        && (pressed.propertyType == UIStatePropertyType.GraphicColor && normal.colorValue != pressed.colorValue
+                            || pressed.propertyType == UIStatePropertyType.CanvasGroupAlpha && normal.floatValue != pressed.floatValue
+                            || pressed.propertyType == UIStatePropertyType.GameObjectActive && normal.boolValue != pressed.boolValue
+                            || pressed.propertyType == UIStatePropertyType.TransformLocalScale && normal.vector3Value != pressed.vector3Value))),
+                        Is.True, "按下反馈必须与普通态区分，保持点击矩形的控件可以使用颜色或装饰反馈。");
+                    var feedback = button.transform.Find("InteractionFeedback");
+                    if (feedback != null)
+                        foreach (var graphic in feedback.GetComponentsInChildren<Graphic>(true))
+                            Assert.That(graphic.raycastTarget, Is.False, path);
                 }
             }
         }

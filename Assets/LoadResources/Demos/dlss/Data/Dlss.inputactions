@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "Dlss",
     "maps": [
         {
@@ -63,15 +64,6 @@
                     "name": "Exit",
                     "type": "Button",
                     "id": "2896408d-4b9f-4986-9567-605d472b6718",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Settings",
-                    "type": "Button",
-                    "id": "fe209e91-7c5b-4dbd-901c-074d6cf05971",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -243,36 +235,8 @@
                     "action": "Exit",
                     "isComposite": false,
                     "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "47dcc845-bd2b-4e14-99c0-19f70491bbb4",
-                    "path": "<Keyboard>/escape",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "KeyboardMouse",
-                    "action": "Settings",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "c24289e7-ad15-4156-a6d1-a91c502c0692",
-                    "path": "<Gamepad>/start",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "Gamepad",
-                    "action": "Settings",
-                    "isComposite": false,
-                    "isPartOfComposite": false
                 }
             ]
-        },
-        {
-            "name": "Menu",
-            "id": "ee942b91-927b-49c6-bce3-180aa71060b7",
-            "actions": [],
-            "bindings": []
         }
     ],
     "controlSchemes": []

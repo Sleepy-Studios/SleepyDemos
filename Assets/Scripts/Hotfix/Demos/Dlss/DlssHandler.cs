@@ -41,29 +41,17 @@ namespace Hotfix.Dlss
                 case DlssSprintAction sprint:
                     if (State.Sprint == sprint.Held)
                         return;
-                    if (!sprint.Held || !State.IsExiting && !State.SettingsOpen)
+                    if (!sprint.Held || !State.IsExiting)
                         State.Sprint = sprint.Held;
                     break;
-                case DlssSettingsClosedAction closed when ReferenceEquals(closed.Source, State):
-                    if (!State.SettingsOpen)
-                        return;
-                    State.SettingsOpen = false;
-                    scene.RestoreControls();
-                    break;
                 case DlssControlAction control:
-                    if (State.IsExiting || State.SettingsOpen)
+                    if (State.IsExiting)
                         return;
                     switch (control.Command)
                     {
                         case "Reset":
                             scene.ResetCamera();
                             break;
-                        case "Settings":
-                            State.SettingsOpen = true;
-                            State.Sprint = false;
-                            ApplyState();
-                            scene.ShowSettings();
-                            return;
                         case "Exit":
                             State.IsExiting = true;
                             State.Sprint = false;

@@ -7,8 +7,8 @@
 | 预制体 | 本次检查与修复 |
 | --- | --- |
 | CommonButton | 新增可直接复用的按钮模板，五态反馈与取消转发 |
-| BtnSwitch | 中文 TMP、原 On/Off 对象绑定、五态与业务状态隔离 |
-| TabItem | TMP 文案、业务 Selected、独立五态、无重复反馈层 |
+| BtnSwitch | 中文 TMP、原 On/Off 对象绑定、同一 UIState 的业务态与五态叠加 |
+| TabItem | TMP 文案、同一 UIState 的业务 Selected 与五态、无重复反馈层 |
 | Tab | 模板项和选中对象绑定，移除容器的无效交互 |
 | ViewTabVertical | 嵌套 Tab、分页布局、滚动遮罩和绑定 |
 | AccordionTab | 根项/叶项 TMP 文案、展开与选中、嵌套交互覆盖 |
@@ -38,11 +38,15 @@
 | `UI/Common/Input/InputPrompt` | 图标/键帽组与独立文案；从实际会话绑定读取按键，设备变化仅刷新绑定表现 |
 | `UI/Common/Input/InputPromptButton` | 上述提示的可点击 Variant；复用 InputCommandButton 的离散/保持输入与释放语义 |
 
-四个 Demo 从公共提示创建自己的 Prompt / PromptButton Variant，设置宿主也使用各自 Variant。资源覆盖负责外观，公共组件继续负责行为；卡丁车保留纸艺资源。分类子页、固定表单与循环绑定列表的选择及调用案例统一维护在[基础组件手册](../runbooks/use-core-ui-components.md#从需求找到资源和示例)。
+四个 Demo 从公共提示创建自己的 Prompt / PromptButton Variant，资源覆盖负责外观，公共组件负责行为；卡丁车保留纸艺资源。公共设置只在 Hub 开放，不制作 Demo 设置宿主。分类子页、固定表单与循环绑定列表的选择及调用案例统一维护在[基础组件手册](../runbooks/use-core-ui-components.md#从需求找到资源和示例)。
 
 ## 行为和生命周期
 
-交互 UIState 只修改自己拥有的背景、文字、反馈层和缩放。Tab/开关业务状态继续由各自组件管理。默认态和禁用态关闭反馈层；Hover 提亮并显示细边，Focused 使用较粗焦点边，Pressed 变深并按原缩放轻微收缩。离开、隐藏和解除禁用后恢复原值。触屏仍抑制悬停/聚焦反馈，但必须表现禁用。
+每个控件只有一个 UIState，默认状态为 Normal、Hover、Focused、Pressed、Disabled。同节点 Selectable 自动驱动五态；无 Selectable 的业务或装饰节点手动切换，不挂独立交互桥或全局状态管理器。Tab/开关继续持有业务值，所需 Selected、On、Off 追加在同一状态表。
+
+自动控件按 Normal 基底、业务态、交互态顺序应用。Normal 保存所拥有属性的恢复值，Hover 提亮并显示细边，Focused 使用明确焦点边，Pressed 变深或改变装饰，Disabled 降低强调且关闭反馈层。状态退出恢复仍有效的业务表现；隐藏清除按下、悬停与 Submit 瞬态，不清空业务值。滚动表单保持点击矩形稳定，不统一缩放按钮根节点。触屏抑制交互强调，禁用态仍须清楚可见。
+
+保留现有 Decoration、纸卡等节点及强类型引用，关闭由 UIState 拥有属性的原生 Transition。迁移通过 Unity 原生 Prefab 操作合并状态与重绑引用，保留源资产 GUID、Variant 继承和 Demo 的外观覆盖；不要按状态数组位置搬迁业务定义。状态反馈 Graphic 不拦截射线，触控命令的保持、释放和隐藏清理由 InputCommandButton 负责。
 
 UIState 在 Inspector 验证时清空查找缓存；更改状态定义后不会继续查到旧状态。Dropdown 默认文案及 Accordion 文案使用 TMP，不能只换 Prefab 的文字组件而不修复读取方。
 
@@ -50,7 +54,9 @@ UIProgressBar 包装同节点 Filled Image 的数值和颜色。白色 Sprite �
 
 ## 验证
 
-实际证据保存于 Library/UIRefactor，原生 XML 按 jobId 单独保留。资源检查包含所有 17 个模板；已有通过记录为资源 2/2、基础交互/填充 2/2、组件生命周期 10/10、提示组件 21/21。最终资源复核1de7c6fc为2/2通过，真实输入与实际填充网格f882abfd为2/2通过；五态截图已逐张查看，禁用态无强调边框、按下态有缩小与变深。截图夹具配置独立背景相机，避免无相机场景下的残帧；未执行全量测试。
+历史证据保存于 Library/UIRefactor，原生 XML 按 jobId 单独保留。旧双组件结构的资源检查包含所有 17 个模板；当时通过记录为资源 2/2、基础交互/填充 2/2、组件生命周期 10/10、提示组件 21/21。资源复核1de7c6fc为2/2通过，真实输入与实际填充网格f882abfd为2/2通过；当时五态截图已逐张查看，禁用态无强调边框、按下态有缩小与变深。截图夹具配置独立背景相机，避免无相机场景下的残帧；未执行全量测试。这些记录不证明本轮单 UIState 合并后的结构已通过。
+
+本轮编译、资源与运行验收待执行：先运行 `Tests.Module.UnifiedInputPlayModeTests.NestedMenuRestoresParentAndTouchSuppressesInteractionFeedback`，覆盖单组件 Selected/On 与交互叠加、禁用及启停恢复，再运行直接受影响的 UIFoundationAssetTests 和 UIFoundationPlayModeTests。检查源模板及 Variant 的引用与业务态，重新查看真实输入五态截图；测试结果与视觉结果分别记录。
 
 状态截图使用真实 Canvas 与实际输入，检查默认、悬停、聚焦、按下、禁用；数值断言不能代替截图检查。公共模板验收完成后才能迁移各 Demo。
 

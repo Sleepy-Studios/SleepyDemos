@@ -1,49 +1,78 @@
 using System;
+using System.Collections.Generic;
 using Core.Runtime;
 using Core.Runtime.Settings;
+using UnityEngine;
 
 namespace Hotfix
 {
-    /// ViewTab 持有的独立分页，每次显示才绑定候选，隐藏时释放编辑会话。
+    /// 独立设置分页共享候选生命周期；控件与编辑规则由具体 View 直接持有。
     public abstract class SettingsPanelView : View
     {
-        private GameSettingsSnapshot candidate;
-        private Action edited;
-        protected abstract SettingsPage Page { get; }
-        public SettingsPage Editor => Page;
+        protected GameSettingsSnapshot Candidate { get; private set; }
+        protected Action Edited { get; private set; }
+        protected Transform PopupRoot { get; private set; }
+        public IReadOnlyList<UISettingRow> Rows { get; private set; }
 
-        /// <summary>存入宿主候选；未初始化时不访问控件，可见页立即重新绑定。</summary>
-        /// <param name="value">同一宿主五个分页共享的独立候选，不是服务 Current 本体。</param>
-        /// <param name="changed">用户修改后通知宿主。</param>
-        public void SetData(GameSettingsSnapshot value, Action changed)
+        /// <summary>在首次加载前存入共享候选；可见分页立即重新回显。</summary>
+        /// <param name="value">Hub 五个分页共享的独立候选。</param>
+        /// <param name="changed">用户编辑后通知宿主。</param>
+        /// <param name="popupRoot">下拉选项逃出滚动裁剪的宿主挂载根。</param>
+        public void SetData(GameSettingsSnapshot value, Action changed, Transform popupRoot)
         {
-            candidate = value ?? throw new ArgumentNullException(nameof(value));
-            edited = changed;
+            Candidate = value ?? throw new ArgumentNullException(nameof(value));
+            Edited = changed;
+            PopupRoot = popupRoot;
             if (IsEnable)
             {
-                Page.Release();
-                Page.Bind(candidate, edited);
+                Release();
+                Refresh();
             }
+        }
+
+        protected void InitializeRows(params UISettingRow[] rows)
+        {
+            foreach (var row in rows)
+            {
+                if (row == null)
+                {
+                    throw new InvalidOperationException("设置分页缺少正式控件引用。");
+                }
+                if (row.Control != null && row.Control.TryGetComponent<UIDropdown>(out var dropdown))
+                {
+                    dropdown.SetPopupRoot(PopupRoot);
+                }
+            }
+            Rows = rows;
+        }
+
+        public abstract void Refresh();
+        public virtual void Release() { }
+
+        protected void Change(Action mutation)
+        {
+            mutation();
+            Edited?.Invoke();
         }
 
         protected override void OnShow()
         {
-            Page.Release();
-            Page.Bind(candidate, edited);
+            Release();
+            Refresh();
             base.OnShow();
         }
 
         protected override void OnHide()
         {
-            Page.Release();
+            Release();
             base.OnHide();
         }
 
         protected override void OnDestroy()
         {
-            if (Page != null)
+            if (Rows != null)
             {
-                Page.Release();
+                Release();
             }
             base.OnDestroy();
         }

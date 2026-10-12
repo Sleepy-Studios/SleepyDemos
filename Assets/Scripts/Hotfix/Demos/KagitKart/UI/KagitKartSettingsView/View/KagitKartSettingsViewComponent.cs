@@ -22,7 +22,7 @@ namespace Hotfix
         public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
-            return new Hotfix.KagitKart.KagitKartMenuPaperTransition();
+            return new Core.Runtime.EmptyUITransition();
         }
 
         private RectTransform RectTransform_Viewport;
@@ -35,7 +35,6 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_SfxValue;
         private Button Button_SoundOn;
         private Button Button_SoundOff;
-        private Button Button_Graphics;
         private Button Button_MotionAuto;
         private Button Button_MotionOn;
         private Button Button_MotionOff;
@@ -70,20 +69,19 @@ namespace Hotfix
             TextMeshProUGUI_SfxValue = componentItemIndex.Get<TextMeshProUGUI>(7);
             Button_SoundOn = componentItemIndex.Get<Button>(8);
             Button_SoundOff = componentItemIndex.Get<Button>(9);
-            Button_Graphics = componentItemIndex.Get<Button>(10);
-            Button_MotionAuto = componentItemIndex.Get<Button>(11);
-            Button_MotionOn = componentItemIndex.Get<Button>(12);
-            Button_MotionOff = componentItemIndex.Get<Button>(13);
-            Button_ShakeOn = componentItemIndex.Get<Button>(14);
-            Button_ShakeOff = componentItemIndex.Get<Button>(15);
-            Button_TouchAuto = componentItemIndex.Get<Button>(16);
-            Button_TouchOn = componentItemIndex.Get<Button>(17);
-            Button_TouchOff = componentItemIndex.Get<Button>(18);
-            Button_AutoOn = componentItemIndex.Get<Button>(19);
-            Button_AutoOff = componentItemIndex.Get<Button>(20);
-            Button_FpsOn = componentItemIndex.Get<Button>(21);
-            Button_FpsOff = componentItemIndex.Get<Button>(22);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(23);
+            Button_MotionAuto = componentItemIndex.Get<Button>(10);
+            Button_MotionOn = componentItemIndex.Get<Button>(11);
+            Button_MotionOff = componentItemIndex.Get<Button>(12);
+            Button_ShakeOn = componentItemIndex.Get<Button>(13);
+            Button_ShakeOff = componentItemIndex.Get<Button>(14);
+            Button_TouchAuto = componentItemIndex.Get<Button>(15);
+            Button_TouchOn = componentItemIndex.Get<Button>(16);
+            Button_TouchOff = componentItemIndex.Get<Button>(17);
+            Button_AutoOn = componentItemIndex.Get<Button>(18);
+            Button_AutoOff = componentItemIndex.Get<Button>(19);
+            Button_FpsOn = componentItemIndex.Get<Button>(20);
+            Button_FpsOff = componentItemIndex.Get<Button>(21);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(22);
         }
     }
 }

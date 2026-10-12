@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
+    using Core.Runtime.Inputs;
+    using TMPro;
 
     [Source("LoadResources/UI/Settings/HubSettingsView")]
     public partial class HubSettingsView
@@ -23,7 +24,23 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private SettingsScreen SettingsScreen_Screen;
+        private RectTransform RectTransform_Design;
+        private UIMenuScope UIMenuScope_Design;
+        private CanvasGroup CanvasGroup_Editor_controls;
+        private ViewTab ViewTab_Editor_controls;
+        private TextMeshProUGUI TextMeshProUGUI_Desc;
+        private TextMeshProUGUI TextMeshProUGUI_Title;
+        private Button Button_Close;
+        private TextMeshProUGUI TextMeshProUGUI_Category_title;
+        private TextMeshProUGUI TextMeshProUGUI_Actual_state;
+        private TextMeshProUGUI TextMeshProUGUI_Help;
+        private TextMeshProUGUI TextMeshProUGUI_Feedback;
+        private Button Button_Reset;
+        private TextMeshProUGUI TextMeshProUGUI_Label;
+        private Button Button_Apply;
+        private TextMeshProUGUI TextMeshProUGUI_Label1;
+        private Button Button_Cancel;
+        private TextMeshProUGUI TextMeshProUGUI_Label2;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +52,23 @@ namespace Hotfix
                 return;
             }
 
-            SettingsScreen_Screen = componentItemIndex.Get<SettingsScreen>(0);
+            RectTransform_Design = componentItemIndex.Get<RectTransform>(0);
+            UIMenuScope_Design = componentItemIndex.Get<UIMenuScope>(1);
+            CanvasGroup_Editor_controls = componentItemIndex.Get<CanvasGroup>(2);
+            ViewTab_Editor_controls = componentItemIndex.Get<ViewTab>(3);
+            TextMeshProUGUI_Desc = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(5);
+            Button_Close = componentItemIndex.Get<Button>(6);
+            TextMeshProUGUI_Category_title = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_Actual_state = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_Help = componentItemIndex.Get<TextMeshProUGUI>(9);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(10);
+            Button_Reset = componentItemIndex.Get<Button>(11);
+            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(12);
+            Button_Apply = componentItemIndex.Get<Button>(13);
+            TextMeshProUGUI_Label1 = componentItemIndex.Get<TextMeshProUGUI>(14);
+            Button_Cancel = componentItemIndex.Get<Button>(15);
+            TextMeshProUGUI_Label2 = componentItemIndex.Get<TextMeshProUGUI>(16);
         }
     }
 }

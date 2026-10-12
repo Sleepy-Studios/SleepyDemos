@@ -29,10 +29,6 @@ namespace Hotfix.Dlss
 
         internal InputActionSession Actions => input;
 
-        internal bool AcceptsControls => data != null && !data.IsExiting && !SettingsOpen;
-
-        private bool SettingsOpen => data?.SettingsOpen == true;
-
         [SerializeField]
         private Camera worldCamera;
         [SerializeField]
@@ -48,8 +44,6 @@ namespace Hotfix.Dlss
 
         private bool exiting => data?.IsExiting == true;
 
-        private View settingsView;
-
         private void Start() => InitializeAsync().Forget();
 
         private async UniTask InitializeAsync()
@@ -59,7 +53,6 @@ namespace Hotfix.Dlss
             movingOrigin = movingObject != null ? movingObject.position : Vector3.zero;
             ResetCamera();
             input = new InputActionSession(actions);
-            UIManager.Instance.OnClose += OnSettingsClosed;
             input.SetMap("Observe");
             data = GlobalData.Add(new DlssData(this));
             var opened = await UIManager.Instance.ShowAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIShowOptions(false), lifetime.Token);
@@ -80,24 +73,16 @@ namespace Hotfix.Dlss
             UpdateCameraInput();
             if (input?.Pressed("Exit") == true)
                 RequestExit();
-            if (input?.Pressed("Settings") == true)
-                OpenSettings();
         }
 
         private void UpdateCameraInput()
         {
             if (input == null)
                 return;
-            string map = SettingsOpen ? "Menu" : "Observe";
-            if (input.Map?.name != map)
-            {
-                input.SetMap(map);
-            }
-
-            if (SettingsOpen || Core.Runtime.TimeControls.GameTimeService.Scale == 0)
-                return;
             if (input.Pressed("Reset"))
                 GlobalData.Dispatch(new DlssControlAction("Reset"));
+            if (Core.Runtime.TimeControls.GameTimeService.Scale == 0)
+                return;
             bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
             Vector2 mouse = input.Held("LookHold") && !overUi ? input.Read<Vector2>("MouseLook") : Vector2.zero;
             Vector2 pad = input.ReadVector("Look");
@@ -110,36 +95,6 @@ namespace Hotfix.Dlss
             float speed = input.Held("Sprint") || controls?.Sprint == true ? 8 : 3;
             worldCamera.transform.position += (worldCamera.transform.forward * move.y + worldCamera.transform.right * move.x)
                 * (speed * Core.Runtime.TimeControls.GameTimeService.DeltaTime);
-        }
-
-        /// 打开公共设置并马上退出观察动作；关闭后等松键再恢复。
-        public void OpenSettings() => GlobalData.Dispatch(new DlssControlAction("Settings"));
-
-        internal void ShowSettings() => ShowSettingsAsync().Forget();
-
-        private async UniTask ShowSettingsAsync()
-        {
-            if (!IsCurrent)
-                return;
-            input?.SetMap("Menu");
-            if (controls != null)
-                await UIManager.Instance.CloseAsync(controls, false);
-            var result = await SettingsFlow.OpenAsync(GameSceneId.Dlss, token: lifetime.Token);
-            settingsView = result.View;
-            if (IsCurrent && result.Status == UIOperationStatus.Failed)
-            {
-                Debug.LogException(result.Exception, this);
-                GlobalData.Dispatch(new DlssSettingsClosedAction(data));
-            }
-        }
-
-        private void OnSettingsClosed(View closed)
-        {
-            if (IsCurrent && ReferenceEquals(closed, settingsView))
-            {
-                settingsView = null;
-                GlobalData.Dispatch(new DlssSettingsClosedAction(data));
-            }
         }
 
         internal void RestoreControls() => RestoreControlsAsync().Forget();
@@ -159,7 +114,6 @@ namespace Hotfix.Dlss
         private void OnDestroy()
         {
             lifetime.Cancel();
-            UIManager.Instance.OnClose -= OnSettingsClosed;
             input?.Dispose();
             data?.Handler.Dispose();
             if (controls != null)

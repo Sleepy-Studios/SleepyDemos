@@ -4,13 +4,13 @@
 
 ## 设置候选
 
-在资源服务就绪后等待 `GameSettingsService.InitializeAsync()`。业务入口通过 `SettingsFlow.OpenAsync(host, category, token)` 打开对应正式宿主；当前场景已注册时也可以使用省略 host 的重载。默认进入画质页，传 Audio／Input 等分类可以定位对应独立分页。Hub 使用 `UI/Settings/HubSettingsView`，四个 Demo 使用各自 `Demos/<DemoId>/Prefabs/UI/Settings/` 下的 GlobalSettingsView Variant；完整路径见[模块文档](../modules/settings-presentation.md)。
+在资源服务就绪后等待 `GameSettingsService.InitializeAsync()`。仅从 Hub 调用 `SettingsFlow.OpenAsync(category, token)`，默认进入画质页，传 Audio／Input 等分类可定位对应独立分页。资源为 `UI/Settings/HubSettingsView`；API 会拒绝非 Hub 打开。Demo 使用自己的玩法设置，消费公共偏好和服务 API。
 
-每次打开页面从 Current 创建完整独立候选。分类用已有 UITab／ViewTab 的 views 分支，分别接 GraphicsSettingsPanelView、AudioSettingsPanelView、InputSettingsPanelView、LanguageSettingsPanelView、AccessibilitySettingsPanelView；五页资源位于 `UI/Settings/Panels/`。宿主保存正式 pageRoots 与 ViewTab 引用，AddSubView 持有子页生命周期，显示时绑定候选、隐藏时释放编辑器。新增设置项优先在对应独立页复用 UISettingRow 与基础控件，修改固定引用后走正式 UIBind 生成。
+每次打开主设置 View 从 Current 创建完整独立候选。分类直接使用 `ViewTab.Init(labels, views: views)`，传入 GraphicsSettingsPanelView、AudioSettingsPanelView、InputSettingsPanelView、LanguageSettingsPanelView、AccessibilitySettingsPanelView。先 SetData 交付候选，再交给 ViewTab 按选择异步加载；Main Prefab 只保留公共挂载根，不制作 pageRoots 或 SettingsPage。AddSubView 持有子页销毁所有权，分页自身显示时回显、隐藏时释放编辑会话。分页资源位于 `UI/Settings/Panels/`。新增项在对应 View 直接使用 UISettingRow 与基础控件，修改引用后通过正式 UIBind 重新生成。
 
 应用由 SettingsFlow 经 SettingsApplyAction 协调，Core 使用者也可直接等待 GameSettingsService.ApplyAsync。检查 SettingsApplyResult，不以控件请求值替代生效状态。显示模式或分辨率改变时，正式 DisplayConfirmView 在未缩放的 15 秒内等待保留或恢复；任务由 Flow 持有，尊重取消令牌。超时、拒绝、取消或失败恢复实际显示与旧偏好。正在提交或监听改键时禁用重复应用，关页按原生命周期取消编辑。
 
-恢复分类默认值从 GetDefaults 取该分类，覆盖当前候选对应部分，随后仍须用户应用。关页丢掉候选；不能向制作 SO 写玩家数据。Demo 设置弹窗隐藏语言分类，画质快捷入口直接选择画质页。宿主 Variant 只调整制作外观，专属飞控／赛车参数继续放原 Demo 页面；保留纸卡、触控和业务菜单的原布局。
+恢复分类默认值从 GetDefaults 取该分类，覆盖当前候选对应部分，随后仍须用户应用。关页丢掉候选，不向制作 SO 写玩家数据。Demo 不提供公共设置入口；专属飞控／赛车参数继续放原 Demo 页面，保留纸卡、触控和业务菜单的原布局。
 
 手动抗锯齿编辑 `candidate.Graphics.Antialiasing`；选 MSAA 时同时设置 `MsaaSamples`（2、4、8，默认4）。用 `DisplaySettingsRuntime.CanUseAntialiasing(mode, samples, out reason)` 查询当前档位支持情况。FXAA 等后处理抗锯齿关闭原生 MSAA；MSAA 关闭后处理抗锯齿。相机默认保留制作配置。
 
@@ -58,4 +58,4 @@ PushLetterbox 返回 CinematicPresenter.LetterboxHandle，仍可作为 IDisposab
 
 初始化失败先查 ConfigAddress、YooAsset Config 采集和 SO 引用；字体失败查 FontId 双语言映射及材质 atlas。设置保存失败查 Feedback 和 LocalDataManager 的大小/校验反馈，不能直接覆写新默认值掩盖损坏。画质降级查 DisplaySettingsRuntime.Status 与 StreamlineRuntime.Status。演出缺根先完成正式 View 注册，禁止用临时 Canvas 兜底。
 
-本轮正式 UI 与资源接线尚需运行／视觉复测。按直接受影响范围验证五宿主打开和返回、分页候选保留与释放、绑定列表回收、显示确认恢复、Hub 语言重建以及演出停止／退出；测试与真实设备结果记录到[实施记录](../agent/settings-goal-progress.md)。持续接入使用上述公共入口与正式资源，不依赖一次性制作菜单。
+本轮正式 UI 与资源接线尚需运行／视觉复测。按直接受影响范围验证Hub 设置打开和返回及各 Demo 公共入口已移除、分页候选保留与释放、绑定列表回收、显示确认恢复、Hub 语言重建以及演出停止／退出；测试与真实设备结果记录到[实施记录](../agent/settings-goal-progress.md)。持续接入使用上述公共入口与正式资源，不依赖一次性制作菜单。

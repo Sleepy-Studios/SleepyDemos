@@ -891,6 +891,14 @@ MonoBehaviour:
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
+  - stateName: Hover
+    properties: []
+  - stateName: Focused
+    properties: []
+  - stateName: Pressed
+    properties: []
+  - stateName: Disabled
+    properties: []
   currentStateId: Normal
 --- !u!1 &2841038576532004867
 GameObject:
@@ -1260,6 +1268,14 @@ MonoBehaviour:
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
+  - stateName: Hover
+    properties: []
+  - stateName: Focused
+    properties: []
+  - stateName: Pressed
+    properties: []
+  - stateName: Disabled
+    properties: []
   currentStateId: Normal
 --- !u!1 &3548736983383568177
 GameObject:
@@ -1567,6 +1583,14 @@ MonoBehaviour:
       colorValue: {r: 1, g: 1, b: 1, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
+  - stateName: Hover
+    properties: []
+  - stateName: Focused
+    properties: []
+  - stateName: Pressed
+    properties: []
+  - stateName: Disabled
+    properties: []
   currentStateId: Normal
 --- !u!1 &4136275620543277220
 GameObject:

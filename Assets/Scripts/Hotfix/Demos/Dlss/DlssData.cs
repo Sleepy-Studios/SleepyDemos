@@ -14,9 +14,6 @@ namespace Hotfix.Dlss
         /// 是否正在返回大厅。
         public bool IsExiting { get; internal set; }
 
-        /// 公共设置是否正在阻断观察输入。
-        public bool SettingsOpen { get; internal set; }
-
         /// 触屏加速是否保持；关闭控件时释放。
         public bool Sprint { get; internal set; }
 
@@ -35,7 +32,7 @@ namespace Hotfix.Dlss
         /// 重置业务状态，使上一轮请求结果失效。
         public void ClearData()
         {
-            IsExiting = SettingsOpen = Sprint = false;
+            IsExiting = Sprint = false;
         }
     }
 }

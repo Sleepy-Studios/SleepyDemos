@@ -7,7 +7,6 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
 
     [Source("LoadResources/UI/Settings/Panels/AudioSettingsPanelView")]
     public partial class AudioSettingsPanelView
@@ -23,7 +22,11 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private AudioSettingsPage AudioSettingsPage_Page;
+        private UISettingRow UISettingRow_Master;
+        private UISettingRow UISettingRow_Music;
+        private UISettingRow UISettingRow_Effects;
+        private UISettingRow UISettingRow_Ui;
+        private UISettingRow UISettingRow_Muted;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +38,11 @@ namespace Hotfix
                 return;
             }
 
-            AudioSettingsPage_Page = componentItemIndex.Get<AudioSettingsPage>(0);
+            UISettingRow_Master = componentItemIndex.Get<UISettingRow>(0);
+            UISettingRow_Music = componentItemIndex.Get<UISettingRow>(1);
+            UISettingRow_Effects = componentItemIndex.Get<UISettingRow>(2);
+            UISettingRow_Ui = componentItemIndex.Get<UISettingRow>(3);
+            UISettingRow_Muted = componentItemIndex.Get<UISettingRow>(4);
         }
     }
 }

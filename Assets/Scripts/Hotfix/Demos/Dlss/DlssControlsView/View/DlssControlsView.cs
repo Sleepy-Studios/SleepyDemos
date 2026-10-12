@@ -24,7 +24,7 @@ namespace Hotfix
             touchControls = RectTransform_TouchControls.gameObject;
             movePad = TouchInputPad_Move;
             lookPad = TouchInputPad_Look;
-            buttons = new Core.Runtime.Inputs.InputCommandButton[] { InputCommandButton_Sprint, InputCommandButton_Reset, InputCommandButton_Settings, InputCommandButton_Exit };
+            buttons = new Core.Runtime.Inputs.InputCommandButton[] { InputCommandButton_Sprint, InputCommandButton_Reset, InputCommandButton_Exit };
             prompts = gameObject.GetComponentsInChildren<InputBindingPrompt>(true);
             foreach (var prompt in prompts)
             {
@@ -32,7 +32,6 @@ namespace Hotfix
                 {
                     "Sprint" => "Input.Sprint",
                     "Reset" => "Input.ResetView",
-                    "Settings" => "Input.Settings",
                     "Exit" => "Input.ReturnHub",
                     _ => throw new System.InvalidOperationException("正式 DLSS 提示缺少已配置的观察动作。")
                 });

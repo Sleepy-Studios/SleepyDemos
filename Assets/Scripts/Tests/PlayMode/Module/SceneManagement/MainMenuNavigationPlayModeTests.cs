@@ -681,8 +681,16 @@ namespace Tests.Module
                 await Click(ButtonPosition(entry));
                 await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开正式设置宿主", 10);
                 var settings = UIManager.Instance.Get<HubSettingsView>();
-                var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                var screen = settings;
+                await Wait(() => Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView is GraphicsSettingsPanelView
+                    && Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView.State == ViewState.Visible, "初选画质页懒加载", 10);
                 var pages = Field<List<View>>(screen, "views").ToArray();
+                foreach (var page in pages.Where(page => page is not GraphicsSettingsPanelView))
+                {
+                    Assert.That(page.State, Is.EqualTo(ViewState.Created), "主设置打开时不预加载其它独立 View。");
+                    Assert.That(page.IsLoaded, Is.False);
+                    Assert.That(page.gameObject, Is.Null);
+                }
                 var expected = new Dictionary<SettingsCategory, Type>
                 {
                     { SettingsCategory.Graphics, typeof(GraphicsSettingsPanelView) },
@@ -694,25 +702,34 @@ namespace Tests.Module
                 foreach (var item in expected)
                 {
                     await SelectSettingsPageAsync(screen, item.Key);
-                    var selected = Field<ViewTab>(screen, "viewTab").CurrentClickView;
+                    var selected = Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
                     Assert.That(selected, Is.InstanceOf(item.Value), "分类必须显示独立 View，而不是本地对象显隐替代页生命周期。");
                     foreach (var page in pages)
                     {
-                        Assert.That(page.State, Is.EqualTo(ReferenceEquals(page, selected) ? ViewState.Visible : ViewState.LoadedHidden));
-                        if (!ReferenceEquals(page, selected))
+                        if (ReferenceEquals(page, selected))
                         {
+                            Assert.That(page.State, Is.EqualTo(ViewState.Visible));
+                        }
+                        else if (page.IsLoaded)
+                        {
+                            Assert.That(page.State, Is.EqualTo(ViewState.LoadedHidden));
                             Assert.That(page.gameObject, Is.Not.SameAs(selected.gameObject));
                             Assert.That(page.gameObject.activeSelf, Is.False);
+                        }
+                        else
+                        {
+                            Assert.That(page.State, Is.EqualTo(ViewState.Created), "未选择分页保持未加载。");
+                            Assert.That(page.gameObject, Is.Null);
                         }
                     }
                 }
 
                 await SelectSettingsPageAsync(screen, SettingsCategory.Accessibility);
-                var accessibility = (SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView;
+                var accessibility = (SettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
                 System.IO.Directory.CreateDirectory("Library/GraphicsSettings");
                 ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Accessibility.png");
                 await UniTask.Yield();
-                var shake = (Button)accessibility.Editor.Rows.Single(row => row.Key == "CameraShake").Control;
+                var shake = (Button)accessibility.Rows.Single(row => row.Key == "CameraShake").Control;
                 int shakeClicks = 0;
                 shake.onClick.AddListener(() => shakeClicks++);
                 await Click(ButtonPosition(shake));
@@ -725,11 +742,11 @@ namespace Tests.Module
                 Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(previous.Audio.Master));
                 Assert.That(GameSettingsService.Current.Accessibility.CameraShake, Is.EqualTo(previous.Accessibility.CameraShake));
                 Assert.That(AudioSettingsRuntime.GetGain(AudioBus.Music), Is.EqualTo(previous.Audio.Muted ? 0 : previous.Audio.Master * previous.Audio.Music).Within(0.0001f));
-                await Click(ButtonPosition(Field<Button>(screen, "reset")));
+                await Click(ButtonPosition(Field<Button>(screen, "Button_Reset")));
                 Assert.That(JsonUtility.ToJson(screen.Capture().Audio), Is.EqualTo(JsonUtility.ToJson(GameSettingsService.GetDefaults().Audio)));
                 Assert.That(screen.Capture().Accessibility.CameraShake, Is.EqualTo(!previous.Accessibility.CameraShake), "恢复本类默认不能清掉其它分页候选。");
                 Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(previous.Audio.Master), "恢复默认仍只修改候选。");
-                await Click(ButtonPosition(Field<Button>(screen, "cancel")));
+                await Click(ButtonPosition(Field<Button>(screen, "Button_Cancel")));
                 await Wait(() => settings.State == ViewState.Destroyed, "取消设置并等待子页回收", 10);
                 Assert.That(pages.All(page => page.State == ViewState.Destroyed), Is.True, "父宿主关闭返回前必须完成所有子 View 销毁。");
                 Assert.That(GameSettingsService.Current.Accessibility.CameraShake, Is.EqualTo(previous.Accessibility.CameraShake));
@@ -740,12 +757,12 @@ namespace Tests.Module
                 await Click(ButtonPosition(entry));
                 await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "重新打开独立候选", 10);
                 settings = UIManager.Instance.Get<HubSettingsView>();
-                screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                screen = settings;
                 pages = Field<List<View>>(screen, "views").ToArray();
                 await SelectSettingsPageAsync(screen, SettingsCategory.Audio);
                 edited = await EditMasterVolumeAsync(screen, previous.Audio.Master);
                 int version = Field<int>(GlobalData.Get<SettingsData>(), "Version");
-                var apply = Field<Button>(screen, "apply");
+                var apply = Field<Button>(screen, "Button_Apply");
                 var position = ButtonPosition(apply);
                 await Click(position);
                 await Click(position);
@@ -756,8 +773,8 @@ namespace Tests.Module
                 var saved = LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey);
                 Assert.That(saved, Is.Not.Null);
                 Assert.That(saved.Audio.Master, Is.EqualTo(edited).Within(0.0001f), "通过正式页面完成本机保存。");
-                AssertMappedText(Field<TMPro.TMP_Text>(screen, "feedback"), "Settings.Applied");
-                await Click(ButtonPosition(Field<Button>(screen, "close")));
+                AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Feedback"), "Settings.Applied");
+                await Click(ButtonPosition(Field<Button>(screen, "Button_Close")));
                 await Wait(() => settings.State == ViewState.Destroyed, "应用后关闭宿主", 10);
                 Assert.That(pages.All(page => page.State == ViewState.Destroyed), Is.True);
                 Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(edited).Within(0.0001f));
@@ -818,9 +835,9 @@ namespace Tests.Module
                 await Click(ButtonPosition(entry));
                 await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开正式改键宿主", 10);
                 var settings = UIManager.Instance.Get<HubSettingsView>();
-                var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                var screen = settings;
                 await SelectSettingsPageAsync(screen, SettingsCategory.Input);
-                var page = (InputSettingsPage)((SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView).Editor;
+                var page = (InputSettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
                 var host = page.Rows.Single(row => row.Key == "Host");
                 await UniTask.Yield();
                 await UniTask.Yield();
@@ -830,7 +847,7 @@ namespace Tests.Module
                 await Wait(() => hostChoices.Items.Count == hosts.Count, "正式宿主下拉选项", 5);
                 await Click(ButtonPosition(hostChoices.Items[hostIndex].GetComponent<Button>()));
                 await Wait(() => Field<InputRebindSession>(page, "session").SourceId == source.SourceId, "切换真实改键数据源", 5);
-                var list = Field<LoopScrollView>(page, "bindingsList");
+                var list = Field<LoopScrollView>(page, "LoopScrollView_Bindings");
 
                 InputRebindSession Candidate() => Field<InputRebindSession>(page, "session");
                 int FindRow(Guid actionId, int bindingIndex)
@@ -874,17 +891,17 @@ namespace Tests.Module
                 async UniTask Apply()
                 {
                     int version = Field<int>(GlobalData.Get<SettingsData>(), "Version");
-                    await Click(ButtonPosition(Field<Button>(screen, "apply")));
+                    await Click(ButtonPosition(Field<Button>(screen, "Button_Apply")));
                     await Wait(() => !SettingsFlow.IsSubmitting
                         && Field<int>(GlobalData.Get<SettingsData>(), "Version") == version + 1, "正式页面保存绑定", 15);
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "feedback"), "Settings.Applied");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Feedback"), "Settings.Applied");
                 }
 
                 var resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
                 string beforeCancel = Candidate().ExportOverrides();
                 await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
                 await Wait(() => page.IsListening, "进入候选监听", 5);
-                Assert.That(Field<Button>(screen, "apply").interactable, Is.False);
+                Assert.That(Field<Button>(screen, "Button_Apply").interactable, Is.False);
                 await UniTask.Yield();
                 await Click(ButtonPosition((Button)page.Rows.Single(row => row.Key == "CancelRebind").Control));
                 await Wait(() => !page.IsListening, "页面取消按钮释放监听", 5);
@@ -1059,18 +1076,18 @@ namespace Tests.Module
                 foreach (string language in new[] { previous.Language == "en" ? "zh-CN" : "en", previous.Language })
                 {
                     var settings = UIManager.Instance.Get<HubSettingsView>();
-                    var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                    var screen = settings;
                     var pages = Field<List<View>>(screen, "views").ToArray();
                     await SelectSettingsPageAsync(screen, SettingsCategory.Language);
-                    var page = (LanguageSettingsPage)((SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView).Editor;
-                    var choices = Field<UITab>(page, "choices");
+                    var page = (LanguageSettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
+                    var choices = Field<UITab>(page, "UITab_Language_choices");
                     int nextIndex = LanguageService.Languages.Select((item, index) => (item, index)).Single(value => value.item.Id == language).index;
                     string liveLanguage = GameSettingsService.Current.Language;
                     await Click(ButtonPosition(choices.Items[nextIndex].GetComponent<Button>()));
                     Assert.That(screen.Capture().Language, Is.EqualTo(language));
                     Assert.That(GameSettingsService.Current.Language, Is.EqualTo(liveLanguage));
                     Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(liveLanguage));
-                    await Click(ButtonPosition(Field<Button>(screen, "apply")));
+                    await Click(ButtonPosition(Field<Button>(screen, "Button_Apply")));
                     await Wait(() => !HubLanguageFlow.IsChanging && UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible
                         && UIManager.Instance.Get<HubSettingsView>() != settings, "语言应用并重建真实设置页", 15);
                     Assert.That(settings.State, Is.EqualTo(ViewState.Destroyed));
@@ -1081,15 +1098,15 @@ namespace Tests.Module
                     Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
                     oldMenu = UIManager.Instance.Get<MainMenuView>();
                     var rebuilt = UIManager.Instance.Get<HubSettingsView>();
-                    screen = Field<SettingsScreen>(rebuilt, "SettingsScreen_Screen");
+                    screen = rebuilt;
                     Assert.That(screen.Category, Is.EqualTo(SettingsCategory.Language));
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "title"), "Settings.Title");
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "categoryTitle"), "Settings.Language");
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "help"), "Settings.LanguageHelp");
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "applyLabel"), "Common.Apply");
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "feedback"), "Settings.Applied");
-                    page = (LanguageSettingsPage)((SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView).Editor;
-                    choices = Field<UITab>(page, "choices");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Title"), "Settings.Title");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Category_title"), "Settings.Language");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Help"), "Settings.LanguageHelp");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Label1"), "Common.Apply");
+                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Feedback"), "Settings.Applied");
+                    page = (LanguageSettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
+                    choices = Field<UITab>(page, "UITab_Language_choices");
                     var cnFont = GameSettingsService.Config.Fonts.Entries.Single(item => item.FontId == 0 && item.Language == "zh-CN");
                     foreach (var choice in choices.Items)
                     {
@@ -1105,8 +1122,8 @@ namespace Tests.Module
                     Assert.That(EventSystem.current.currentSelectedGameObject.GetComponent<Selectable>().IsInteractable(), Is.True);
                 }
                 var current = UIManager.Instance.Get<HubSettingsView>();
-                var currentScreen = Field<SettingsScreen>(current, "SettingsScreen_Screen");
-                await Click(ButtonPosition(Field<Button>(currentScreen, "cancel")));
+                var currentScreen = current;
+                await Click(ButtonPosition(Field<Button>(currentScreen, "Button_Cancel")));
                 await Wait(() => current.State == ViewState.Destroyed, "关闭还原语言后的设置页", 10);
                 InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.LeftShoulder));
                 await UniTask.Yield();
@@ -1151,18 +1168,19 @@ namespace Tests.Module
             {
                 using var clock = GameTimeService.Push(GameTimeService.Scale);
                 using var freeze = clock.Freeze();
-                await SettingsFlow.OpenAsync(GameSceneId.Hub);
+                await SettingsFlow.OpenAsync();
                 await UniTask.Yield();
                 await UniTask.Yield();
                 var settings = UIManager.Instance.Get<HubSettingsView>();
-                var screen = Field<SettingsScreen>(settings, "SettingsScreen_Screen");
+                var screen = settings;
+                await SelectSettingsPageAsync(screen, SettingsCategory.Graphics);
                 var modes = new[] { -1, (int)FullScreenMode.Windowed, (int)FullScreenMode.FullScreenWindow, (int)FullScreenMode.ExclusiveFullScreen };
                 for (int decision = 0; decision < 3; decision++)
                 {
                     var before = GameSettingsService.Current;
                     string beforePreference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
-                    var page = (SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView;
-                    var row = page.Editor.Rows.Single(value => value.Key == "WindowMode");
+                    var page = (SettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
+                    var row = page.Rows.Single(value => value.Key == "WindowMode");
                     var choices = Field<UITab>(row, "options");
                     int choice = Array.FindIndex(modes, value => value >= 0 && value != (int)Screen.fullScreenMode
                         && value != before.Graphics.WindowMode);
@@ -1170,7 +1188,7 @@ namespace Tests.Module
                     await Click(ButtonPosition((Button)row.Control));
                     await Click(ButtonPosition(choices.Items[choice].GetComponent<Button>()));
                     Assert.That(screen.Capture().Graphics.WindowMode, Is.EqualTo(modes[choice]));
-                    await Click(ButtonPosition(Field<Button>(screen, "apply")));
+                    await Click(ButtonPosition(Field<Button>(screen, "Button_Apply")));
                     DisplayConfirmView confirm = null;
                     await Wait(() => (confirm = UIManager.Instance.Get<DisplayConfirmView>())?.IsEnable == true,
                         "正式十五秒显示确认", 10);
@@ -1343,17 +1361,18 @@ namespace Tests.Module
             }
         }
 
-        private async UniTask SelectSettingsPageAsync(SettingsScreen screen, SettingsCategory category)
+        private async UniTask SelectSettingsPageAsync(HubSettingsView screen, SettingsCategory category)
         {
-            var tab = Field<ViewTab>(screen, "viewTab");
+            var tab = Field<ViewTab>(screen, "ViewTab_Editor_controls");
             await Click(ButtonPosition(tab.UiTab.Items[(int)category].GetComponent<Button>()));
-            await Wait(() => screen.Category == category && tab.CurrentClickView?.State == ViewState.Visible, "显示独立设置分类 " + category, 5);
+            await Wait(() => screen.Category == category && tab.CurrentClickView?.GetType().Name == category + "SettingsPanelView"
+                && tab.CurrentClickView.State == ViewState.Visible, "懒加载并显示独立设置分类 " + category, 10);
         }
 
-        private async UniTask<float> EditMasterVolumeAsync(SettingsScreen screen, float original)
+        private async UniTask<float> EditMasterVolumeAsync(HubSettingsView screen, float original)
         {
-            var page = (SettingsPanelView)Field<ViewTab>(screen, "viewTab").CurrentClickView;
-            var slider = (Slider)page.Editor.Rows.Single(row => row.Key == "Master").Control;
+            var page = (SettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
+            var slider = (Slider)page.Rows.Single(row => row.Key == "Master").Control;
             Canvas.ForceUpdateCanvases();
             var track = (RectTransform)slider.handleRect.parent;
             float normalized = original < 0.5f ? 0.8f : 0.2f;
@@ -1459,7 +1478,8 @@ namespace Tests.Module
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current) { position = position }, hits);
             Assert.That(hits, Is.Not.Empty);
-            Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(button), "实际入口不能被其它 UI 遮挡。");
+            Assert.That(hits[0].gameObject.GetComponentInParent<Button>(), Is.SameAs(button),
+                "实际入口不能被其它 UI 遮挡。命中=" + hits[0].gameObject.name + "; 目标=" + button.name);
             return position;
         }
 
@@ -1525,8 +1545,16 @@ namespace Tests.Module
         private static void ExpectEntryFailure(GameSceneId target) =>
             LogAssert.Expect(LogType.Error, new Regex($@"\[MainMenu\] 无法进入 {target}：测试场景加载失败"));
 
-        private static T Field<T>(object instance, string name) =>
-            (T)instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(instance);
+        private static T Field<T>(object instance, string name)
+        {
+            for (var type = instance.GetType(); type != null; type = type.BaseType)
+            {
+                var field = type.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+                if (field != null) return (T)field.GetValue(instance);
+            }
+            Assert.Fail("测试对象缺少正式字段：" + name);
+            return default;
+        }
 
         private static bool IsStableHub() => GameSceneNavigator.Instance != null &&
             GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning &&

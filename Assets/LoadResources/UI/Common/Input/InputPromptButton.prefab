@@ -127,9 +127,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3802521406085650240, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6743697684856723860}
-    - targetCorrespondingSourceObject: {fileID: 3802521406085650240, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 8496855365280435503}
   m_SourcePrefab: {fileID: 100100000, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
 --- !u!1 &6783845189142908240 stripped
 GameObject:
@@ -296,16 +293,3 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &8496855365280435503
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6783845189142908240}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 6743697684856723860}

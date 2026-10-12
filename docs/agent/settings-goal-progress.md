@@ -13,11 +13,24 @@
 | G6 | 七类API及独立Editor图像验证通过 | 基础/可更新临时作用域、允许限制与亮度；Direct3D12 正式场景验证七类各自变化、UI 隔离及释放恢复，其它平台仍未验 |
 | G7 | 功能及既有宿主回归通过 | 公共玩法时钟、倍率/冻结租约、曲线制作配置；Drone/Wall/Kart直接相关回归通过 |
 | G8 | 公共API及GPU验收通过 | 七类黑幕/四方向擦幕形状、队列与取消、黑边/HUD、冻结中英Title及同根注册复用通过；正式表现View已装配 |
-| G9 | Editor功能及正式入口通过 | DLSS、Drone、Wall、Kart和Hub接线及正式公共设置往返通过；Showcase保持独立公共菜单宿主。完整画幅与玩法时钟补验归G11 |
-| G10 | 正式装配及定向交互通过 | 五独立分页、五宿主Variant、输入提示和效果体验已装配；Hub英文五页常规/窄屏/超宽已查看，各Demo和体验页的完整画幅视觉仍待验 |
+| G9 | Hub入口范围收缩，定向复验中 | DLSS、Drone、Wall、Kart继续消费公共API；公共设置只在Hub打开，移除四Demo公共入口与弹窗。Showcase保持独立公共菜单宿主 |
+| G10 | Hub主View与五独立分页复验中 | 主View直接使用ViewTab按需加载独立View，删除SettingsPage/Screen/Base；单UIState默认五态。先前画幅证据不代表新结构已验收 |
 | G11 | 尚未完成 | 最终编译/测试/视觉/Player/硬件与工具清理 |
 
 ## 已取得证据
+
+### 当前 UI 范围覆盖原计划（2026-10-12）
+
+- 用户明确公共设置只在 Hub 修改，各 Demo 暂不需要公共设置界面。Demo 继续读取公共偏好和 API，保留自己的玩法参数、触控区域及美术风格；卡丁车专属设置不删除。
+- `HubSettingsView` 直接持有候选和应用事务，使用既有 `ViewTab` 按需加载五个独立分页 View/Prefab。删除 `SettingsPage`、各具体 Page、`SettingsScreen` 和 `SettingsViewBase`；无需宿主路由、页面地址重写或额外交互管理器。
+- `UIState` 自动处理同节点 Selectable 的 Normal/Hover/Focused/Pressed/Disabled，额外业务状态仍在同一个组件追加；删除 `UIStateInteraction`，正式资源原生合并并保留目标、样式和 GUID。
+- 原生删除四 Demo 公共按钮并重新生成 UIBind；DLSS 另删除设置动作、绑定、提示和输入目录条目。五 Hub 分页恢复标准生成 Address。一次性 `HubOnlySettingsAssetsMigration` 已清理。
+- 新建的 `Assets/LoadResources/Demos/{dlss,drone_flight,kagit_kart,wall_squeeze}/UI` 中各四个公共分页 Variant 均已无生产引用。删除命令曾被自动审批以 `blocked by policy` 拒绝，未提供具体原因，没有换工具绕过。用户清理后，已重新核对四目录及对应 `UI.meta` 均不存在；这些未跟踪资产不纳入提交，Demo 公共分页残留已清理。
+- 原阶段结果保留为历史证据；当前结构的编译和定向复验在本节追加，不将历史五宿主测试作为 Hub-only 新结构通过。
+- 新结构 Unity 编译零错误（30b32fbe，后续诊断修改编译也零错误）。刷新原生测试发现后，基础资源实际 5/5（4aeb0e6e）、设置行 3/3（bf9bfc24）通过；真实按钮五态 1/1（8593490d 原生 XML，REST 重载恢复失败）、嵌套菜单/业务态恢复 1/1（71f58f8a）、动态循环列表控件 1/1（9ba7ad85）通过。五态实际截图已查看，位于 `Library/UIRefactor/Evidence`。
+- Hub 独立分页/候选用例尚未通过：五页懒加载、切换、候选编辑及默认值流程通过后，取消按钮命中断言失败（4557ee6d，补诊断复跑结果相同）。按钮正常启用、未裁剪、射线已注册且层级为 Pop/200；投影中心为屏幕 (905.07,150.40)，`RectangleContainsScreenPoint` 却返回 false，最高命中为 Paper。尚不能确定是坐标换算还是实际射线问题，不删除点击断言或改用直接 onClick 规避。取消按钮 Pivot 实验无效，已原生恢复原布局；详细诊断保存于 Library 的对应测试报告，临时扩展日志已简化。
+- 阶段提交只作为当前重构检查点。Hub 其它精确方法与四 Demo 最新回归因上述用例失败尚未继续执行；当前完整 UI 交互、画幅、Windows Player、真实硬件及被拒绝的目录清理仍未完成。未运行全量测试。
+- 本次检查点最初被已有 `.git/index.lock` 阻止。清理命令也被自动审批拒绝，没有换工具绕过；用户清理后核对锁已不存在，重新暂存成功，按授权保存本地阶段提交，不推送。任务路径列表在 `Library/GlobalSettings/ui-cleanup/stage-paths.txt`，排除旧 DLL/AOT、ProjectSettings、字体噪音和历史临时工具。最后简化诊断后 Unity 编译通过（0ca65019，零错误）。
 
 - Unity Editor 6000.3.15f1 编译已多次通过；后续代码变更仍须重新验证。
 - GameSettingsSnapshotTests 3/3；InputRebindSessionTests 2/2；SettingsRuntimeTests 原3/3；PostProcessRuntimeTests 2/2；CinematicPresetTests 2/2通过。

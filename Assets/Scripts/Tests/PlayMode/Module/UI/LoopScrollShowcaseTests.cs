@@ -97,7 +97,7 @@ namespace Tests.Module
             try
             {
                 yield return null; yield return null;
-                var button = Button("language"); var interaction = button.GetComponent<Core.Runtime.UIStateInteraction>();
+                var button = Button("language"); var interaction = button.GetComponent<Core.Runtime.UIState>();
                 Assert.That(interaction, Is.Not.Null);
                 var rect = (RectTransform)button.transform;
                 Vector2 point = RectTransformUtility.WorldToScreenPoint(button.GetComponentInParent<Canvas>().worldCamera, rect.TransformPoint(rect.rect.center));

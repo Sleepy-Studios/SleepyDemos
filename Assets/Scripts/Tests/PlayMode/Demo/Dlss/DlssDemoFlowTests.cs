@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using Core.Runtime;
 using Core.Runtime.Localization;
 using Core.Runtime.Settings;
+using Core.Runtime.TimeControls;
 using Core.Runtime.Rendering.Streamline;
 using Hotfix;
 using Hotfix.Dlss;
@@ -77,7 +78,6 @@ namespace Tests.Demo
                     {
                         "Sprint" => "Input.Sprint",
                         "Reset" => "Input.ResetView",
-                        "Settings" => "Input.Settings",
                         "Exit" => "Input.ReturnHub",
                         _ => throw new InvalidOperationException("测试收到未知正式观察动作。")
                     };
@@ -159,7 +159,7 @@ namespace Tests.Demo
         }
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator SettingsPopupBlocksObservationAndReturnsToHubWithoutEntry()
+        public IEnumerator FrozenObservationStopsWorldButKeepsResetAndExitAvailable()
         {
             isUiTest = true;
             if (GameSceneNavigator.Instance == null)
@@ -168,23 +168,95 @@ namespace Tests.Demo
                 while (!startup.isDone) yield return null;
             }
             yield return WaitUntil(() => UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible && !GameSceneNavigator.Instance.IsTransitioning, "Hub");
-            Assert.That(UIManager.Instance.Get<DlssGlobalSettingsView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null);
             yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Dlss).ToCoroutine();
             DlssDemoController owner = null;
             yield return WaitUntil(() => (owner = Object.FindFirstObjectByType<DlssDemoController>()) != null && owner.Actions != null && UIManager.Instance.Get<DlssControlsView>() != null, "观察控件");
-            Assert.That(UIManager.Instance.Get<DlssGlobalSettingsView>(), Is.Null, "实验室不自动加载悬浮入口。");
             var controls = UIManager.Instance.Get<DlssControlsView>();
+            Assert.That(controls.gameObject.GetComponentsInChildren<Core.Runtime.Inputs.InputBindingPrompt>(true)
+                .Any(prompt => prompt.Action?.name == "Settings"), Is.False, "Demo 不保留公共设置操作提示。");
             var mode = StreamlineRuntime.RequestedMode;
-            owner.OpenSettings();
-            yield return WaitUntil(() => UIManager.Instance.Get<DlssGlobalSettingsView>()?.State == ViewState.Visible, "普通Pop");
-            Assert.That(owner.Actions.Map.name, Is.EqualTo("Menu"));
-            Assert.That(owner.AcceptsControls, Is.False); Assert.That(controls.gameObject.activeSelf, Is.False);
-            Click(UIManager.Instance.Get<DlssGlobalSettingsView>(), "Close");
-            yield return WaitUntil(() => UIManager.Instance.Get<DlssGlobalSettingsView>() == null && controls.gameObject.activeSelf && owner.Actions.Map.name == "Observe", "关闭后恢复观察");
-            Assert.That(StreamlineRuntime.RequestedMode, Is.EqualTo(mode));
-            owner.RequestExit();
-            yield return WaitUntil(() => owner == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub && !GameSceneNavigator.Instance.IsTransitioning, "正常返回Hub");
-            Assert.That(UIManager.Instance.Get<DlssGlobalSettingsView>(), Is.Null);
+            const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var moving = (Transform)typeof(DlssDemoController).GetField("movingObject", fields).GetValue(owner);
+            var spinning = (Transform)typeof(DlssDemoController).GetField("spinningObject", fields).GetValue(owner);
+            var camera = (Camera)typeof(DlssDemoController).GetField("worldCamera", fields).GetValue(owner);
+            Assert.That(moving, Is.Not.Null);
+            Assert.That(spinning, Is.Not.Null);
+            Assert.That(camera, Is.Not.Null);
+            var homePosition = (Vector3)typeof(DlssDemoController).GetField("homePosition", fields).GetValue(owner);
+            var homeRotation = (Quaternion)typeof(DlssDemoController).GetField("homeRotation", fields).GetValue(owner);
+            var previousInputSettings = InputSystem.settings;
+            var inputSettings = Object.Instantiate(previousInputSettings);
+            inputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            inputSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = inputSettings;
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            try
+            {
+                // 隔离本用例的正式运行副本，原制作资产与公共存档不变。
+                owner.Actions.Asset.devices = new InputDevice[] { keyboard };
+                owner.Actions.Asset.RemoveAllBindingOverrides();
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                yield return WaitUntil(() => Vector3.Distance(camera.transform.position, homePosition) > .05f, "真实观察输入离开初始视角");
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+                Quaternion frozenRotation;
+                using (var time = GameTimeService.Push(GameTimeService.Scale))
+                using (time.Freeze())
+                {
+                    // 等当前已采样的 Unity 帧结束，再观察真实动画消费者。
+                    yield return new WaitForEndOfFrame();
+                    Vector3 frozenMoving = moving.position;
+                    frozenRotation = spinning.rotation;
+                    Vector3 frozenCamera = camera.transform.position;
+                    Quaternion frozenCameraRotation = camera.transform.rotation;
+                    yield return new WaitForSecondsRealtime(.2f);
+                    Assert.That(moving.position, Is.EqualTo(frozenMoving));
+                    Assert.That(Quaternion.Angle(spinning.rotation, frozenRotation), Is.LessThan(.001f));
+                    Assert.That(camera.transform.position, Is.EqualTo(frozenCamera));
+                    Assert.That(Quaternion.Angle(camera.transform.rotation, frozenCameraRotation), Is.LessThan(.001f));
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Escape));
+                    yield return null;
+                    yield return null;
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                    yield return new WaitForSecondsRealtime(.15f);
+                    Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null, "旧 Esc 快捷键不能从 Demo 打开 Hub 公共设置。");
+                    Assert.That(owner.Actions.Map.name, Is.EqualTo("Observe"));
+                    Assert.That(controls.gameObject.activeInHierarchy, Is.True);
+                    Assert.That(camera.transform.position, Is.EqualTo(frozenCamera));
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.R));
+                    yield return null;
+                    yield return null;
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                    yield return WaitUntil(() => Vector3.Distance(camera.transform.position, homePosition) < .001f
+                        && Quaternion.Angle(camera.transform.rotation, homeRotation) < .001f, "冻结期间真实 Reset 恢复观察视角");
+                    Assert.That(moving.position, Is.EqualTo(frozenMoving));
+                    Assert.That(Quaternion.Angle(spinning.rotation, frozenRotation), Is.LessThan(.001f));
+                }
+                yield return WaitUntil(() => Quaternion.Angle(spinning.rotation, frozenRotation) > .1f, "释放冻结后真实场景动画恢复");
+                Assert.That(StreamlineRuntime.RequestedMode, Is.EqualTo(mode));
+                using (var time = GameTimeService.Push(GameTimeService.Scale))
+                using (time.Freeze())
+                {
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Backspace));
+                    yield return null;
+                    yield return null;
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                    yield return WaitUntil(() => owner == null && GameSceneNavigator.Instance.CurrentScene == GameSceneId.Hub
+                        && !GameSceneNavigator.Instance.IsTransitioning, "冻结期间真实返回动作完成 Hub 导航");
+                    Assert.That(UIManager.Instance.Get<DlssControlsView>(), Is.Null);
+                    Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null);
+                }
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.settings = previousInputSettings;
+                Object.Destroy(inputSettings);
+            }
         }
 
         [UnityTest]
@@ -195,7 +267,7 @@ namespace Tests.Demo
                 "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity", new LoadSceneParameters(LoadSceneMode.Single));
             while (!load.isDone) yield return null;
             yield return WaitUntil(() => GameSceneNavigator.Instance?.IsEditorDirect == true, "Editor direct rendering service");
-            Assert.That(UIManager.Instance.Get<DlssGlobalSettingsView>(), Is.Null, "直启不自动加载画面设置。");
+            Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null, "直启不自动加载 Hub 设置。");
             StreamlineRuntime.ApplyModeAsync(StreamlineDlssMode.Quality).Forget();
             yield return WaitUntil(() => StreamlineRuntime.EffectiveMode == StreamlineDlssMode.Quality, "Editor direct Quality");
             Assert.AreSame(UIRootManager.Instance.BaseCamera, StreamlineRuntime.BoundCamera);
@@ -273,15 +345,6 @@ namespace Tests.Demo
                 Assert.Greater(maximum - minimum, 0.1f, "Blank world: " + StreamlineRuntime.Status);
                 Object.Destroy(screenshot);
             }
-            yield return UIManager.Instance.ShowAsync<DlssGlobalSettingsView>().ToCoroutine();
-            var view = UIManager.Instance.Get<DlssGlobalSettingsView>();
-            Assert.IsNotNull(view);
-            yield return new WaitForEndOfFrame();
-            var panelScreenshot = ScreenCapture.CaptureScreenshotAsTexture();
-            File.WriteAllBytes(Path.Combine(folder, "Panel.png"), panelScreenshot.EncodeToPNG());
-            Object.Destroy(panelScreenshot);
-            Click(view, "Close");
-            yield return WaitUntil(() => UIManager.Instance.Get<DlssGlobalSettingsView>() == null, "Close ordinary graphics popup");
             Assert.That(StreamlineRuntime.RequestedMode, Is.EqualTo(StreamlineDlssMode.Quality));
             var main = StreamlineRuntime.BoundCamera;
             Vector3 screen = main.WorldToScreenPoint(main.transform.position + main.transform.forward * 10);

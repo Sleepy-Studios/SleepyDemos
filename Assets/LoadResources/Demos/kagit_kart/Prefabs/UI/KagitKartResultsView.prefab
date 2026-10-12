@@ -41,7 +41,7 @@ RectTransform:
   - {fileID: 3303579705275917877}
   - {fileID: 2933622273099779996}
   - {fileID: 2447193609882339544}
-  - {fileID: 6542018901854017196}
+  - {fileID: 2366010982390330192}
   - {fileID: 3207141315427701527}
   - {fileID: 1158310273461190402}
   - {fileID: 8053818251485422866}
@@ -2220,7 +2220,6 @@ GameObject:
   - component: {fileID: 4798956899011445674}
   - component: {fileID: 5182866471800928622}
   - component: {fileID: 1379939169839933206}
-  - component: {fileID: 3700578791408514369}
   m_Layer: 5
   m_Name: Hub
   m_TagString: Untagged
@@ -2567,19 +2566,6 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &3700578791408514369
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6615622157430900758}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 1379939169839933206}
 --- !u!1 &6699223244983617639
 GameObject:
   m_ObjectHideFlags: 0
@@ -2594,7 +2580,6 @@ GameObject:
   - component: {fileID: 5021124674473232406}
   - component: {fileID: 3868358261582780930}
   - component: {fileID: 8653246552384586563}
-  - component: {fileID: 3528757362123157704}
   - component: {fileID: 2625864490141930504}
   m_Layer: 5
   m_Name: Next
@@ -2942,19 +2927,6 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &3528757362123157704
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6699223244983617639}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 8653246552384586563}
 --- !u!114 &2625864490141930504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3414,7 +3386,7 @@ MonoBehaviour:
   - {fileID: 3688258541030138118}
   - {fileID: 3909597597815703727}
   - {fileID: 4540141038943817707}
-  - {fileID: 6542018901854017197}
+  - {fileID: 4477208963955536995}
   - {fileID: 2121896974109430300}
   - {fileID: 5021124674473232406}
   - {fileID: 6564314415771125618}
@@ -3528,7 +3500,6 @@ GameObject:
   - component: {fileID: 3177324509685126485}
   - component: {fileID: 1752842608510065312}
   - component: {fileID: 7938103880073170386}
-  - component: {fileID: 5471897902987475362}
   m_Layer: 5
   m_Name: Restart
   m_TagString: Untagged
@@ -3875,19 +3846,6 @@ MonoBehaviour:
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal
---- !u!114 &5471897902987475362
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7313740853723182607}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 7938103880073170386}
 --- !u!1 &8015336484836534216
 GameObject:
   m_ObjectHideFlags: 0
@@ -5099,12 +5057,12 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
---- !u!224 &6542018901854017196 stripped
+--- !u!224 &2366010982390330192 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8798953901449160187, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
   m_PrefabInstance: {fileID: 6542018901854017195}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &6542018901854017197 stripped
+--- !u!114 &4477208963955536995 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7272141677155181256, guid: baddcbfc309031943ac6b68f7690c21e, type: 3}
   m_PrefabInstance: {fileID: 6542018901854017195}

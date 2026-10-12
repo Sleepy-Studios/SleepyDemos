@@ -1011,9 +1011,6 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7692518401129387452, guid: 1cb13dc5a5ab77b4b90588c7ecec09f9, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6648166456452539571}
-    - targetCorrespondingSourceObject: {fileID: 7692518401129387452, guid: 1cb13dc5a5ab77b4b90588c7ecec09f9, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1055554941889721027}
   m_SourcePrefab: {fileID: 100100000, guid: 1cb13dc5a5ab77b4b90588c7ecec09f9, type: 3}
 --- !u!224 &2636145785112777515 stripped
@@ -1057,19 +1054,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7692518401129387452, guid: 1cb13dc5a5ab77b4b90588c7ecec09f9, type: 3}
   m_PrefabInstance: {fileID: 670290310476644714}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &6648166456452539571
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7173119055910524118}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 7267585064795929656}
 --- !u!114 &1055554941889721027
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1082,17 +1066,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa46cd6596aebf2438cc8f603eb794c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.UICancelRelay
---- !u!114 &7267585064795929656 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 7896779784930245970, guid: 1cb13dc5a5ab77b4b90588c7ecec09f9, type: 3}
-  m_PrefabInstance: {fileID: 670290310476644714}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8916458670580690326}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
 --- !u!224 &8050970748316902990 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7419559719828039460, guid: 1cb13dc5a5ab77b4b90588c7ecec09f9, type: 3}

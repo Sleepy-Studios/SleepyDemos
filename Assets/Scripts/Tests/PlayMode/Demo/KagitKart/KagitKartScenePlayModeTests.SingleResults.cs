@@ -69,7 +69,7 @@ namespace Tests.Demo
                     yield return KeyPress(Key.LeftArrow);
                     EventSystem.current.SetSelectedGameObject(restart.gameObject);
                     yield return null;
-                    Assert.That(restart.GetComponent<UIStateInteraction>().InteractionState, Is.EqualTo("Focused"));
+                    Assert.That(restart.GetComponent<UIState>().InteractionState, Is.EqualTo("Focused"));
                     Assert.That(restart.targetGraphic.color, Is.EqualTo((Color)new Color32(45, 42, 50, 255)), "选中仍为原作墨底");
                     Assert.That(restart.transform.Find("FocusInnerEdge").gameObject.activeSelf, Is.True);
                     Assert.That(((RectTransform)restart.transform).anchoredPosition.y, Is.GreaterThan(0));

@@ -36,6 +36,8 @@ HUD 保存黑框头尾分格：标题、剩余、保护、关卡与限时；底�
 
 ## 公共设置、输入与时间
 
+公共设置只在 Hub 修改，本 Demo 菜单保留继续、重试及返回等玩法操作，不提供公共设置按钮或分页。
+
 `WallSqueezeInput.Router` 从 `GameSettingsService` 消费公共死区、震动与已验证绑定覆盖；源 `PlayerInput.asset` 保持制作数据，实际输入与提示读取 Router 的会话副本。有效覆盖改变时清除旧离散动作，并要求保持中的新键松开再按；仅音量或输入参数变化不重置当前玩法输入。返回键在 Interaction 请求暂停，进入 Menu 后确认/返回交给公共 UI，不重复提交玩法暂停。
 
 HUD 跟随最近实际操作设备；连接手柄和漂移不抢占键鼠提示。底部提示通过 `InputBindingPrompt` 读取实际选墙、沿轴导航及暂停绑定，图标与动作词条分开显示，触屏说明通过一次性语言 API 赋值，保留多只夹爆等专属业务反馈；`ShowInputPrompts` 收起操作提示，多只夹爆反馈仍可显示。公共 `InputBindingPrompt` 和 `InputGlyphCatalog` 提供 Kenney 实际键盘及各品牌手柄图标，只有缺少图形的键才使用空键帽；底部保存独立提示组与本 Demo 的正式 Variant。

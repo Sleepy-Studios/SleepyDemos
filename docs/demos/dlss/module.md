@@ -2,15 +2,15 @@
 
 ## 体验方式
 
-在 Editor 运行 `Assets/Scenes/AppEntrance.unity`，从 Hub 进入「DLSS 实验室」。在 Hub 的画面设置入口或实验室已有操作控件中按需打开公共 Pop，可选择关闭、Quality、Balanced、Performance、Ultra Performance 或 DLAA。没有全局右上角悬浮按钮。首次默认关闭，之后记住选择；关闭面板不关闭效果。
+在 Editor 运行 `Assets/Scenes/AppEntrance.unity`，先在 Hub 设置显示与画质，再进入「DLSS 实验室」。Hub 可选择关闭、Quality、Balanced、Performance、Ultra Performance 或 DLAA；实验室不提供公共设置按钮或快捷键。首次默认关闭，之后记住选择；关闭面板不关闭效果。
 
-键鼠维持右键转向、WASD 移动、Shift 加速、R 重置、Backspace 返回；手柄左摇杆移动、右摇杆转向、左肩加速、西侧键重置、返回键退出、Menu 打开设置；触屏使用移动区/视角拖动区及按钮。观察动作保存在 Data/Dlss.inputactions，触控界面保存在 Prefabs/UI/DlssControls.prefab。场景包含移动物体、细线和透明面，用于观察静态细节和运动表现。
+键鼠维持右键转向、WASD 移动、Shift 加速、R 重置、Backspace 返回；手柄左摇杆移动、右摇杆转向、左肩加速、西侧键重置、返回键退出；触屏使用移动区/视角拖动区及按钮。观察动作保存在 Data/Dlss.inputactions，触控界面保存在 Prefabs/UI/DlssControls.prefab。场景包含移动物体、细线和透明面，用于观察静态细节和运动表现。
 
 ## 模块边界
 
 实验室只负责场景、演示物体和视角交互，代码位于 `Hotfix/Demos/Dlss`，资源位于 `LoadResources/Demos/dlss`。它使用标准 MainCamera 和公共场景导航，不持有 DLSS 会话、不设置管线、不提供自己的画质 UI。
 
-通用 DLSS 由 [Streamline 模块](../../modules/streamline.md) 管理。公共面板代码位于 `Hotfix/Module/GraphicsSettings`，资源位于 `LoadResources/UI/GraphicsSettings`；图像输出由 Core 的渲染流程完成，与面板显示无关。
+通用 DLSS 由 [Streamline 模块](../../modules/streamline.md) 管理。主设置和独立画质分页代码位于 `Hotfix/Module/Settings`，资源位于 `LoadResources/UI/Settings`；图像输出由 Core 的渲染流程完成，与面板显示无关。
 
 `GameSceneId.Dlss` 仍表示实验室场景，不是 DLSS 功能开关。场景地址为 `Assets/LoadResources/Demos/dlss/Scenes/Main.unity`。Build Settings 仍只包含 AppEntrance。本实验室仍从正式入口进入；已有 DroneFlight Editor 直启路径也初始化公共渲染服务和设置入口。
 
@@ -28,14 +28,14 @@
 
 截图和原始报告只放临时目录；用户体验重点是画面差异、相机控制和 UI 手感。
 
-观察输入使用 Core InputActionSession；设置打开时停止 Observe，关闭后经过中立门闩恢复。DLSS 功能仍受 GPU/平台限制，移动端使用已有不支持时的原生渲染回退；三端输入接入不表示 Android 支持 DLSS。
+观察输入使用 Core InputActionSession，读取 Hub 保存的参数与绑定。DLSS 功能仍受 GPU/平台限制，移动端使用已有不支持时的原生渲染回退；三端输入接入不表示 Android 支持 DLSS。
 
 
 ## 状态与页面生命周期
 
-`DlssAction → DlssHandler → DlssData` 管理重置、设置、退出和触屏加速请求；场景控制器保留相机移动、连续轴采样与演示物体动画。Data 随场景注册和移除，页面加载使用场景取消令牌，完成后核对注册实例。
+`DlssAction → DlssHandler → DlssData` 管理重置、退出和触屏加速请求；场景控制器保留相机移动、连续轴采样与演示物体动画。Data 随场景注册和移除，页面加载使用场景取消令牌，完成后核对注册实例。
 
-观察控件仍使用原地址 `DlssControls.prefab`，现在由 `DlssControlsView` 和 UIManager 管理。UIBind 生成组件引用和输入回调，View 声明一次 Data 绑定；隐藏前由 Core 退订，输入组件禁用时释放保持操作。打开设置关闭观察 View，关闭设置重新显示缓存 View，离场销毁该 View。
+观察控件仍使用原地址 `DlssControls.prefab`，由 `DlssControlsView` 和 UIManager 管理。UIBind 生成组件引用和输入回调，View 声明一次 Data 绑定；隐藏前由 Core 退订，输入组件禁用时释放保持操作，离场销毁该 View。
 
 公共 `GraphicsSettingsData/Handler` 随 FluxService 注册。模式按钮派发 Action，Handler 提交公共设置候选，由设置服务协调显示、保存及 Streamline 应用；Data 发布服务实际请求档位、生效档位、尺寸和反馈。显示状态不推测 GPU 执行结果。
 
@@ -46,6 +46,6 @@
 
 ## Flux 入口整理
 
-控制页的离场恢复由所属 Demo 负责。公共设置 View 不再引用 Demo Data；控制器监听 UIManager 关闭结果并恢复观察与松键门闩。模式请求采用 PascalCase Action 参数，生效状态仍由公共 Streamline 服务事件发布。
+控制页的离场恢复由所属 Demo 负责。公共设置只在 Hub 打开，不再维护实验室设置弹窗与观察恢复之间的路线。生效状态仍由公共 Streamline 服务事件发布。
 
 2026-10-06 Flux 风格整理后的精确验证及失败范围见 [本轮实施记录](../../agent/flux-style-cleanup-2026-10-06.md)。

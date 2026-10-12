@@ -81,7 +81,7 @@ Loading --加载失败或取消--> Faulted
 ## 基础组件边界
 
 本模块只承载基础有限 UI 组件：
-- `UITab`：有限 Tab，支持静态项和基于 prefab 的动态项，支持 Button/Toggle、UIState 状态驱动（`Normal/Selected`）和拦截回调。文本优先使用 TMP（`TextMeshProUGUI`），可附带图标配置。
+- `UITab`：有限 Tab，支持静态项和基于 prefab 的动态项、Button 点击、UIState 业务状态（`Normal/Selected`）和拦截回调。文本优先使用 TMP（`TextMeshProUGUI`），可附带图标配置；悬停和焦点反馈不修改 Tab 索引。
 - `ViewList`：有限列表，复用已创建 View 项，不承担大量数据虚拟化滚动。
 - `UIBtnSwitch`：按钮开关状态组件，视觉状态优先由 `UIState`（`On/Off`）驱动，必要时兼容旧的 On/Off 节点。
 - `UIDropdown`：基于 `UITab` 的基础下拉选择组件。
@@ -90,7 +90,7 @@ Loading --加载失败或取消--> Faulted
 - `AccordionViewTab`：通过 `AccordionTab` 叶子索引驱动多个 View 或本地 ViewRoot 子节点切换。
 - `UIImageLoader`：按 Sprite 资源路径加载图片，支持同步/异步和 `SetNativeSize`。
 - `UITipsStack`：复用隐藏消息模板，管理独立时长、悬停展开、关闭与安全区滚动；业务通过 SingleUIManager 的导航入口交付消息。
-- `UIState`：序列化状态切换组件，用于 Normal/Selected 等轻量状态；状态项使用固定枚举和强类型组件引用，不使用反射属性名或字符串解析。
+- `UIState`：单组件表现状态，默认提供 `Normal/Hover/Focused/Pressed/Disabled`。同一 GameObject 有 `Selectable` 时自动消费原生 EventSystem；没有时由业务手动切换。`Selected/On/Off` 按需追加在同一状态表，状态属性使用固定枚举和强类型引用，不使用反射属性名或字符串解析。
 - `TMPAutoFitLayoutElement`：根据 TMP 自然尺寸在 `LayoutElement` 与 `ContentSizeFitter` 之间选择布局驱动，并处理最大宽高、换行和自动字号。
 - `TMPAutoScrollEnableBehaviour`：超宽 TMP 文本横向滚动；监听 TMP 顶点脏回调，兼容业务直接给 `.text` 赋值；使用顶点和四维 UV 裁剪，不添加独立 `RectMask2D`。宽度或字体网格变化会重测，支持非缩放时间与非循环完成事件。
 - `TMP_UGUI_Extend` / `GradientUI`：分别提供 TMP 专用复合效果与任意 Graphic 的简单渐变。TMP 复合效果拥有并释放自己的材质实例，不修改共享字体材质。
@@ -163,6 +163,8 @@ Loading --加载失败或取消--> Faulted
 
 `ViewTab` 模板遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
 
+普通有限分类使用 `ViewTab` 异步加载各自独立的 View 和 Prefab，页面持有子 View 的生命周期；固定异构表单使用 `UISettingRow` 与原生布局，改键等同类数据列表使用 `LoopScrollView + ItemView`。设置宿主与独立分页的实际入口见[基础组件手册](../runbooks/use-core-ui-components.md#正式调用示例与维护入口)。
+
 仓库当前没有 `Assets/LoadResources/UI/UIFrameworkValidation/`、对应 Hotfix 模块或验证菜单；`MainMenuView` 的旧验证按钮回调也未启用。公共组件自动化验证统一放在 `Assets/Scripts/Tests` 并通过 Unity Test Runner 运行，不以旧验证页作为可用入口。
 
 基础组件公共入口统一收口在一个主方法上：
@@ -221,9 +223,13 @@ CommonTips 使用 `CommonTipsType.Warning/Success/Notice` 三种状态，图标�
 
 ## 三端控件表现
 
-UIState 继续只写声明的表现属性。UIStateInteraction 消费 EventSystem 的悬停、按下、选择及 Submit 事件，不点击业务按钮；业务 Selected 由 UITab/Toggle 等维护独立目标。交互优先级为 Disabled、Pressed、Focused、Hover、Normal；鼠标显示 Hover，键盘/手柄显示 Focused，触屏统一映射 Normal，但禁用仍阻止输入。
+同一控件只挂一个 UIState，直接消费 EventSystem 的悬停、按下、选择及 Submit 事件，不代替 Button 提交点击。Tab 索引、开关值等仍由各自控件持有，业务通过同一 UIState 的 Selected、On、Off 表现它们；没有 Selectable 的节点仅手动应用业务状态，不新增状态管理器。
 
-已保存组件使用独立 InteractionFeedback，不与业务颜色/开关抢属性；其原生 Transition 关闭。动态 Showcase 在宿主桥接里显式配置 UIState，不修改包源码。UITab 使用一条初始化流程，异步时逐项 Yield；隐藏/销毁取消当前代际，旧完成与 finally 不影响新初始化。
+自动控件按 Normal 基底、业务态、交互态的顺序叠加；Normal 必须定义所拥有属性的恢复值，交互退出后重新呈现仍有效的业务态。交互优先级为 Disabled、Pressed、Focused、Hover、Normal；鼠标显示 Hover，键盘/手柄显示 Focused，触屏映射 Normal，禁用仍显示 Disabled 并由 Selectable/CanvasGroup 阻止输入。隐藏时清除悬停、按下和 Submit 瞬态，不清除业务选择；设备和原生交互条件变化会刷新，稳定状态不重复写表现属性。
+
+状态可继续控制现有 Decoration 或反馈节点，保留 Demo 外观；由 UIState 拥有的属性关闭原生 Transition，避免双写。动态 Showcase 在宿主里直接配置 UIState，不修改包源码。UITab 使用一条初始化流程，异步时逐项 Yield；隐藏/销毁取消当前代际，旧完成与 finally 不影响新初始化。
+
+单 UIState 合并后的资源检查、真实输入与业务态恢复仍待本轮定向验收；旧双组件模板的截图和通过记录仅作为历史证据，不能代替当前结构的验证。直接回归入口见[基础预制体维护](ui-foundation-assets.md#验证)。
 
 鼠标设备识别来自真实移动或按下，不把新界面的 PointerEnter、Point 初始状态当成实际操作。这样触屏打开菜单后，静止鼠标不会隐藏触控区。Hub 保存确认提示，处于根页面时不显示无效返回；Loop Scroll 保存确认/返回提示，全部引用同一公共图标目录。
 

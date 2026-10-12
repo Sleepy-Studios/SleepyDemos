@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using Core.Runtime;
 using Core.Runtime.Localization;
+using Core.Runtime.TimeControls;
 using Cysharp.Threading.Tasks;
 using Hotfix;
 using Hotfix.KagitKart;
@@ -94,6 +95,27 @@ namespace Tests.Demo
             yield return KeyPress(Key.Enter);
             Assert.That(world.IntroPlaying, Is.False, "键盘跳过演出进入倒计时。");
             yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "正常倒计时起跑");
+            double frozenRaceTime;
+            using (var time = GameTimeService.Push(GameTimeService.Scale))
+            using (time.Freeze())
+            {
+                yield return null;
+                frozenRaceTime = world.Session.RaceTime;
+                Vector3 frozenPosition = world.Session.Player.Position;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
+                yield return new WaitForSecondsRealtime(.2f);
+                Assert.That(world.Session.RaceTime, Is.EqualTo(frozenRaceTime), "全局冻结停止真实比赛更新，不直接推进 Session。");
+                Assert.That(world.Session.Player.Position, Is.EqualTo(frozenPosition));
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+                yield return KeyPress(Key.Escape);
+                yield return Wait(() => UIManager.Instance.Get<KagitKartPauseView>()?.State == ViewState.Visible, "冻结期间键盘打开暂停目录");
+                yield return KeyPress(Key.Escape);
+                yield return Wait(() => !world.Session.Pause.IsPaused && UIManager.Instance.Get<KagitKartPauseView>() == null, "冻结期间菜单取消继续比赛");
+                Assert.That(world.Session.RaceTime, Is.EqualTo(frozenRaceTime));
+                Assert.That(world.Session.Player.Position, Is.EqualTo(frozenPosition));
+            }
+            yield return Wait(() => world.Session.RaceTime > frozenRaceTime, "释放冻结后比赛时钟恢复");
             Vector3 before = world.Session.Player.Position;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
             yield return new WaitForSecondsRealtime(1.8f);
@@ -380,7 +402,7 @@ namespace Tests.Demo
             var podiumMenu = Button(UIManager.Instance.Get<KagitKartPodiumView>(), "Menu");
             EventSystem.current.SetSelectedGameObject(podiumMenu.gameObject);
             yield return null;
-            Assert.That(podiumMenu.GetComponent<UIStateInteraction>().InteractionState, Is.EqualTo("Focused"));
+            Assert.That(podiumMenu.GetComponent<UIState>().InteractionState, Is.EqualTo("Focused"));
             Assert.That(podiumMenu.targetGraphic.color, Is.EqualTo((Color)new Color32(45, 42, 50, 255)), "原领奖 primary 墨底，选中不染暖黄");
             Assert.That(podiumMenu.GetComponentInChildren<TMPro.TMP_Text>().color,
                 Is.EqualTo((Color)new Color32(250, 244, 228, 255)), "原领奖 primary 浅字");
@@ -811,7 +833,7 @@ namespace Tests.Demo
             Assert.That(condition(), Is.True, step);
         }
         [UnityTest, Timeout(240000)]
-        public IEnumerator SettingsAndGraphicsRestorePauseAndItsActualButtons()
+        public IEnumerator SettingsAndControlsRestorePauseAndTheirActualButtons()
         {
             string previousLanguage = LanguageService.CurrentLanguage;
             try
@@ -895,10 +917,8 @@ namespace Tests.Demo
                 yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "暂停设置");
                 var settings = UIManager.Instance.Get<KagitKartSettingsView>();
                 Assert.That(pause.State, Is.EqualTo(ViewState.LoadedHidden));
-                settings.gameObject.GetComponentsInChildren<Button>().Single(button => button.name == "Graphics").onClick.Invoke();
-                yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartGlobalSettingsView>()?.State == ViewState.Visible, "公共画面设置");
-                Assert.That(settings.State, Is.EqualTo(ViewState.Visible), "公共 Modal 保留底层专属设置生命周期，输入由上层菜单接管。");
-                yield return UIManager.Instance.CloseAsync<KagitKartGlobalSettingsView>().ToCoroutine();
+                Assert.That(settings.gameObject.GetComponentsInChildren<Button>(true).Any(button => button.name == "Graphics"), Is.False,
+                    "纸艺专属设置保留，公共设置只在 Hub 开放。");
                 Assert.That(UIManager.Instance.Get<KagitKartSettingsView>(), Is.SameAs(settings));
                 Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
                 yield return KeyPress(Key.Escape);

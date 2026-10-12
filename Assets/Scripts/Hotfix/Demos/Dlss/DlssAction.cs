@@ -7,13 +7,13 @@ namespace Hotfix.Dlss
     {
     }
 
-    /// 请求重置视角、打开设置或返回大厅。
+    /// 请求重置视角或返回大厅。
     public sealed class DlssControlAction : DlssAction
     {
         public string Command;
 
         /// <summary>
-        /// 请求重置视角、打开设置或返回大厅。构造后通过 GlobalData.Dispatch 派发。
+        /// 请求重置视角或返回大厅。构造后通过 GlobalData.Dispatch 派发。
         /// </summary>
         /// <param name="command">已配置的业务输入动作名称；保持原输入资产的命名。</param>
         public DlssControlAction(string command)
@@ -34,17 +34,6 @@ namespace Hotfix.Dlss
         public DlssSprintAction(bool held)
         {
             Held = held;
-        }
-    }
-
-    /// 公共设置关闭后恢复观察控件。
-    internal sealed class DlssSettingsClosedAction : DlssAction
-    {
-        internal DlssData Source;
-
-        internal DlssSettingsClosedAction(DlssData source)
-        {
-            Source = source;
         }
     }
 

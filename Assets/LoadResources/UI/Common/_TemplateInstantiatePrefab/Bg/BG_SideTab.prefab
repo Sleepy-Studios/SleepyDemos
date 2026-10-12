@@ -2413,14 +2413,12 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 5
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2866539992634043078, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
     m_RemovedGameObjects:
     - {fileID: 231286957900369472, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 4235974395784348615, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1653853574450980576}
     - targetCorrespondingSourceObject: {fileID: 4235974395784348615, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1614612239134628282}
@@ -2430,17 +2428,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 574112208878188393, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
   m_PrefabInstance: {fileID: 650857823581493741}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &3373109613661319979 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 2866539992634043078, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
-  m_PrefabInstance: {fileID: 650857823581493741}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7255771285541130843}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
 --- !u!114 &3582592135085355499 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4089166401401858054, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
@@ -2457,19 +2444,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4235974395784348615, guid: d9aa743254ed24141b0f8f7a08eee101, type: 3}
   m_PrefabInstance: {fileID: 650857823581493741}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1653853574450980576
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3729398275543636522}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 3373109613661319979}
 --- !u!114 &1614612239134628282
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2556,10 +2530,6 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2562313330045062310, guid: 260036025267c9646829ceccf53781da, type: 3}
-      propertyPath: interactionState
-      value: 
-      objectReference: {fileID: 8966005227672312014}
     - target: {fileID: 3506211622472989858, guid: 260036025267c9646829ceccf53781da, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -2675,14 +2645,3 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3506211622472989858, guid: 260036025267c9646829ceccf53781da, type: 3}
   m_PrefabInstance: {fileID: 3532045834049403500}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8966005227672312014 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5578269683416408738, guid: 260036025267c9646829ceccf53781da, type: 3}
-  m_PrefabInstance: {fileID: 3532045834049403500}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState

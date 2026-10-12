@@ -155,8 +155,8 @@ GameObject:
   - component: {fileID: 100032}
   - component: {fileID: 100033}
   - component: {fileID: 100034}
-  - component: {fileID: 2653074874403358285}
   - component: {fileID: 1118221275098570147}
+  - component: {fileID: 3598813032493405728}
   m_Layer: 5
   m_Name: AddButton
   m_TagString: Untagged
@@ -266,19 +266,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &2653074874403358285
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100030}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 4737478003085311234}
 --- !u!114 &1118221275098570147
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -291,6 +278,70 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa46cd6596aebf2438cc8f603eb794c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.UICancelRelay
+--- !u!114 &3598813032493405728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
+  states:
+  - stateName: Normal
+    properties:
+    - propertyType: 2
+      target: {fileID: 580296250172399382}
+      boolValue: 0
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Hover
+    properties:
+    - propertyType: 2
+      target: {fileID: 580296250172399382}
+      boolValue: 0
+      floatValue: 0.45
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Focused
+    properties:
+    - propertyType: 2
+      target: {fileID: 580296250172399382}
+      boolValue: 0
+      floatValue: 1
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Pressed
+    properties:
+    - propertyType: 2
+      target: {fileID: 580296250172399382}
+      boolValue: 0
+      floatValue: 0.7
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Disabled
+    properties:
+    - propertyType: 2
+      target: {fileID: 580296250172399382}
+      boolValue: 0
+      floatValue: 0.2
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  currentStateId: Normal
 --- !u!1 &100040
 GameObject:
   m_ObjectHideFlags: 0
@@ -303,8 +354,8 @@ GameObject:
   - component: {fileID: 100042}
   - component: {fileID: 100043}
   - component: {fileID: 100044}
-  - component: {fileID: 3299840087533141774}
   - component: {fileID: 8494753550819627044}
+  - component: {fileID: 8352943574672782257}
   m_Layer: 5
   m_Name: CloseButton
   m_TagString: Untagged
@@ -414,19 +465,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &3299840087533141774
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100040}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4d6c26b2baf7ca468b81afddff27030, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIStateInteraction
-  interactionState: {fileID: 9218959954710257929}
 --- !u!114 &8494753550819627044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -439,6 +477,70 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa46cd6596aebf2438cc8f603eb794c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.UICancelRelay
+--- !u!114 &8352943574672782257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
+  states:
+  - stateName: Normal
+    properties:
+    - propertyType: 2
+      target: {fileID: 2917981824222381468}
+      boolValue: 0
+      floatValue: 0
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Hover
+    properties:
+    - propertyType: 2
+      target: {fileID: 2917981824222381468}
+      boolValue: 0
+      floatValue: 0.45
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Focused
+    properties:
+    - propertyType: 2
+      target: {fileID: 2917981824222381468}
+      boolValue: 0
+      floatValue: 1
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Pressed
+    properties:
+    - propertyType: 2
+      target: {fileID: 2917981824222381468}
+      boolValue: 0
+      floatValue: 0.7
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  - stateName: Disabled
+    properties:
+    - propertyType: 2
+      target: {fileID: 2917981824222381468}
+      boolValue: 0
+      floatValue: 0.2
+      stringValue: 
+      colorValue: {r: 0, g: 0, b: 0, a: 0}
+      vector2Value: {x: 0, y: 0}
+      vector3Value: {x: 0, y: 0, z: 0}
+  currentStateId: Normal
 --- !u!1 &1071380188753499848
 GameObject:
   m_ObjectHideFlags: 0
@@ -599,7 +701,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1092058656712586253}
   - component: {fileID: 580296250172399382}
-  - component: {fileID: 4737478003085311234}
   m_Layer: 5
   m_Name: InteractionFeedback
   m_TagString: Untagged
@@ -642,70 +743,6 @@ CanvasGroup:
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
---- !u!114 &4737478003085311234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1305246426657961813}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
-  states:
-  - stateName: Normal
-    properties:
-    - propertyType: 2
-      target: {fileID: 580296250172399382}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Hover
-    properties:
-    - propertyType: 2
-      target: {fileID: 580296250172399382}
-      boolValue: 0
-      floatValue: 0.45
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Focused
-    properties:
-    - propertyType: 2
-      target: {fileID: 580296250172399382}
-      boolValue: 0
-      floatValue: 1
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Pressed
-    properties:
-    - propertyType: 2
-      target: {fileID: 580296250172399382}
-      boolValue: 0
-      floatValue: 0.7
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Disabled
-    properties:
-    - propertyType: 2
-      target: {fileID: 580296250172399382}
-      boolValue: 0
-      floatValue: 0.2
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  currentStateId: Normal
 --- !u!1 &2139954940130328793
 GameObject:
   m_ObjectHideFlags: 0
@@ -716,7 +753,6 @@ GameObject:
   m_Component:
   - component: {fileID: 8586296398770179940}
   - component: {fileID: 2917981824222381468}
-  - component: {fileID: 9218959954710257929}
   m_Layer: 5
   m_Name: InteractionFeedback
   m_TagString: Untagged
@@ -759,70 +795,6 @@ CanvasGroup:
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
---- !u!114 &9218959954710257929
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2139954940130328793}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7444081ba40c405c9be70450cf03d8bd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UIState
-  states:
-  - stateName: Normal
-    properties:
-    - propertyType: 2
-      target: {fileID: 2917981824222381468}
-      boolValue: 0
-      floatValue: 0
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Hover
-    properties:
-    - propertyType: 2
-      target: {fileID: 2917981824222381468}
-      boolValue: 0
-      floatValue: 0.45
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Focused
-    properties:
-    - propertyType: 2
-      target: {fileID: 2917981824222381468}
-      boolValue: 0
-      floatValue: 1
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Pressed
-    properties:
-    - propertyType: 2
-      target: {fileID: 2917981824222381468}
-      boolValue: 0
-      floatValue: 0.7
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  - stateName: Disabled
-    properties:
-    - propertyType: 2
-      target: {fileID: 2917981824222381468}
-      boolValue: 0
-      floatValue: 0.2
-      stringValue: 
-      colorValue: {r: 0, g: 0, b: 0, a: 0}
-      vector2Value: {x: 0, y: 0}
-      vector3Value: {x: 0, y: 0, z: 0}
-  currentStateId: Normal
 --- !u!1 &2650968935085913427
 GameObject:
   m_ObjectHideFlags: 0

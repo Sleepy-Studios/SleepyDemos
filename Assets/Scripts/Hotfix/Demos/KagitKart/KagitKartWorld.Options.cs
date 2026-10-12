@@ -9,7 +9,6 @@ namespace Hotfix.KagitKart
     public sealed partial class KagitKartWorld
     {
         private View optionsView;
-        private View graphicsSettingsView;
         private bool systemReducedMotion;
         private float fpsElapsed;
         private int fpsFrames;
@@ -27,8 +26,8 @@ namespace Hotfix.KagitKart
         public bool ShowInputPrompts => publicAccessibility.ShowInputPrompts;
         /// 按真实渲染帧间隔采样，独立于比赛规则固定步。
         public int FramesPerSecond { get; private set; } = -1;
-        /// 操作弹窗或公共画质弹窗正在使用菜单输入。
-        private bool OptionsOpen => optionsView != null || graphicsSettingsView?.State == ViewState.Visible;
+        /// 专属设置或操作说明正在使用菜单输入。
+        private bool OptionsOpen => optionsView != null;
 
         private static void ValidateSettings(KagitKartSettings value)
         {
@@ -152,49 +151,8 @@ namespace Hotfix.KagitKart
             }
         }
 
-        private async UniTaskVoid OpenGraphicsSettingsAsync()
-        {
-            if (!(optionsView is KagitKartSettingsView) || graphicsSettingsView?.State == ViewState.Visible)
-            {
-                return;
-            }
-            busy = true;
-            Dispatch(KagitKartCommand.Refresh);
-            try
-            {
-                var shown = await SettingsFlow.OpenAsync(Hotfix.SceneManagement.GameSceneId.KagitKart, token: this.GetCancellationTokenOnDestroy());
-                if (shown.Status == UIOperationStatus.Failed)
-                {
-                    throw shown.Exception;
-                }
-                graphicsSettingsView = shown.View;
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            catch (Exception exception)
-            {
-                SettingsFeedback = "画面设置加载失败，请重试。";
-                Debug.LogException(exception, this);
-            }
-            finally
-            {
-                busy = false;
-                Dispatch(KagitKartCommand.Refresh);
-            }
-        }
-
         private async UniTask CloseOptionsAsync()
         {
-            if (graphicsSettingsView != null && graphicsSettingsView.State != ViewState.Destroyed)
-            {
-                var closed = await UIManager.Instance.CloseAsync(graphicsSettingsView);
-                if (closed.Status == UIOperationStatus.Failed)
-                {
-                    throw closed.Exception;
-                }
-            }
-            graphicsSettingsView = null;
             if (optionsView != null)
             {
                 var closed = await UIManager.Instance.CloseAsync(optionsView);

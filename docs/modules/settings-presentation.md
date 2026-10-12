@@ -8,22 +8,13 @@
 
 制作允许范围和帧率选项由 SettingsOptions 配置，服务 Options 返回副本；候选仍通过公共安全边界校验，制作数据只能收紧范围。InputHosts 给控制页面提供宿主身份与源动作，页面先克隆再编辑；语言名称和格式文化来自 LanguageService.Languages。
 
-## 正式界面与宿主复用
+## Hub 设置界面
 
-`SettingsFlow.OpenAsync(host, category, token)` 通过 UIManager 按需打开当前宿主的设置弹窗；默认分类为显示与画质。正式启动不预先创建弹窗，各 Demo 保留自己的原设置按钮或快捷键。五个宿主复用同一候选与提交事务，Hub 基底和四个 Demo 的真正 Prefab Variants 保留各自外观。
+`SettingsFlow.OpenAsync(category, token)` 仅在 Hub 通过 UIManager 按需打开 `HubSettingsView`；资源为 `UI/Settings/HubSettingsView.prefab`。Demo 没有公共设置按钮、快捷入口或专属公共设置弹窗，继续使用自己的玩法设置，并通过公共 API 消费 Hub 中保存的全局偏好。
 
-| 宿主 | View | Assets/LoadResources 下的正式 Prefab |
-| --- | --- | --- |
-| Hub | HubSettingsView | `UI/Settings/HubSettingsView.prefab` |
-| DroneFlight | DroneFlightGlobalSettingsView | `Demos/drone_flight/Prefabs/UI/Settings/DroneFlightGlobalSettingsView.prefab` |
-| DLSS | DlssGlobalSettingsView | `Demos/dlss/Prefabs/UI/Settings/DlssGlobalSettingsView.prefab` |
-| WallSqueeze | WallSqueezeGlobalSettingsView | `Demos/wall_squeeze/Prefabs/UI/Settings/WallSqueezeGlobalSettingsView.prefab` |
-| KagitKart | KagitKartGlobalSettingsView | `Demos/kagit_kart/Prefabs/UI/Settings/KagitKartGlobalSettingsView.prefab` |
+Main View 直接持有 UITab／ViewTab、候选和提交生命周期。Graphics、Audio、Input、Language、Accessibility 各自是独立 `*SettingsPanelView`，直接使用 UIBind 生成的基础控件引用。主页面只创建 View 对象并交付候选，ViewTab 在选中时异步加载对应 Prefab；不内嵌五页，也不保留 SettingsScreen／SettingsPage 包装层或多宿主根基类。五页共享一份独立候选，显示时回显、隐藏时释放编辑会话；AddSubView 持有销毁所有权。
 
-`SettingsScreen` 保存制作引用，分类交给原有 UITab／ViewTab 的 views 分支。Graphics、Audio、Input、Language、Accessibility 分别由五个独立 `*SettingsPanelView`、Prefab 与生命周期承载，分页内部的 `SettingsPage` 只编辑对应类别。五页共享宿主的一份独立候选；显示时绑定、隐藏时释放编辑会话，宿主通过 AddSubView 持有销毁所有权。Demo 隐藏语言页，选择该分类会回到画质页。固定表单复用 UISettingRow 与已有 Dropdown、Slider、Switch、Button；控制页的同类绑定条目使用 LoopScrollView、SettingsBindingItemView 和 InputSettingsBindingRow 回收复用，不另建分页或列表框架。
-
-子页正式资源位于 `UI/Settings/Panels/`，绑定条目位于 `UI/Settings/SettingsBindingItemView.prefab`。UIBind 生成各 View 的固定引用，Variant 可覆盖 Sprite、字体样式、颜色和布局；卡丁车继续保留纸艺风格和原专属选项。
-
+子页位于 `UI/Settings/Panels/`。固定表单复用 UISettingRow、Dropdown、Slider、Switch、Button；控制页的同类绑定条目使用 LoopScrollView 和 `UI/Settings/SettingsBindingItemView.prefab` 回收复用。引用按实际节点通过正式 UIBind 生成，不维护额外地址路由。公共输入提示和各 Demo 原有基础 UI Variant 继续维护各自外观，卡丁车保留纸艺风格。
 ## 启动与事务
 
 资源服务就绪后，正式启动的 `GameSettingsInitializeSystem` 在公共 UI 初始化之前加载 `GameSettingsConfig`。Editor Demo 直启调用同一个 `InitializeAsync`；并发等待共用完成源，不能用只适合顺序复用的 UniTask Preserve 代替并发共享。
@@ -72,6 +63,6 @@ Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 P
 
 ## 验证边界
 
-已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。五宿主、独立分页、绑定列表、确认弹窗和正式体验资源已经保存；Hub 分页/语言重建、Demo 相关入口与输入、显示确认和效果体验通过定向复测。Hub 英文五页已在 1920×1080、1024×768、3440×1440 查看；各 Demo 及体验页的完整中英画幅视觉、Player 和硬件仍待验收。Direct3D12 正式场景已独立验证七类后处理的图像变化、UI 隔离、释放恢复与制作资产保护，其中胶片颗粒检查连续三帧的动态变化；其它图形 API 未据此计为通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
+已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。Hub 主设置、独立分页、绑定列表、确认弹窗和正式体验资源已经保存；Hub 分页/语言重建、Demo 相关入口与输入、显示确认和效果体验通过定向复测。Hub 英文五页已在 1920×1080、1024×768、3440×1440 查看；各 Demo 及体验页的完整中英画幅视觉、Player 和硬件仍待验收。Direct3D12 正式场景已独立验证七类后处理的图像变化、UI 隔离、释放恢复与制作资产保护，其中胶片颗粒检查连续三帧的动态变化；其它图形 API 未据此计为通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
 
 接入步骤见[公共设置与演出接入](../runbooks/use-settings-presentation.md)。

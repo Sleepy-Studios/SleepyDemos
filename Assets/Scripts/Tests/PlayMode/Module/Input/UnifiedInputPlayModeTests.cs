@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Core.Runtime;
 using Core.Runtime.Inputs;
@@ -555,13 +556,31 @@ namespace Tests.Module
             var root = new GameObject("UnifiedInputTest", typeof(EventSystem), typeof(InputSystemUIInputModule));
             var system = root.GetComponent<EventSystem>();
             EventSystem.current = system;
-            var first = new GameObject("First", typeof(RectTransform), typeof(Button), typeof(UIStateInteraction));
+            var first = new GameObject("First", typeof(RectTransform), typeof(Button), typeof(Image), typeof(UIState));
             var second = new GameObject("Second", typeof(RectTransform), typeof(Button));
             var keyboard = InputSystem.AddDevice<Keyboard>();
             first.transform.SetParent(root.transform); second.transform.SetParent(root.transform);
             MenuInputScope parent = null, child = null;
             try
             {
+                var state = first.GetComponent<UIState>();
+                var image = first.GetComponent<Image>();
+                var definitions = new List<UIStateInfo>(state.States);
+                state.GetState("Normal").properties.Add(new UIStateProperty
+                    { propertyType = UIStatePropertyType.GraphicColor, target = image, colorValue = Color.white });
+                state.GetState("Normal").properties.Add(new UIStateProperty
+                    { propertyType = UIStatePropertyType.TransformLocalScale, target = first.transform, vector3Value = Vector3.one });
+                state.GetState("Pressed").properties.Add(new UIStateProperty
+                    { propertyType = UIStatePropertyType.GraphicColor, target = image, colorValue = Color.black });
+                state.GetState("Pressed").properties.Add(new UIStateProperty
+                    { propertyType = UIStatePropertyType.TransformLocalScale, target = first.transform, vector3Value = Vector3.one * 0.8f });
+                state.GetState("Disabled").properties.Add(new UIStateProperty
+                    { propertyType = UIStatePropertyType.GraphicColor, target = image, colorValue = Color.gray });
+                definitions.Add(new UIStateInfo { stateName = "Selected", properties = new List<UIStateProperty>
+                    { new() { propertyType = UIStatePropertyType.GraphicColor, target = image, colorValue = Color.red } } });
+                definitions.Add(new UIStateInfo { stateName = "On", properties = new List<UIStateProperty>
+                    { new() { propertyType = UIStatePropertyType.GraphicColor, target = image, colorValue = Color.green } } });
+                state.ConfigureStates(definitions);
                 parent = new MenuInputScope(system);
                 parent.SetContext(GameplayInputContext.Menu, first);
                 yield return null; parent.Update();
@@ -574,12 +593,37 @@ namespace Tests.Module
                 Assert.That(system.currentSelectedGameObject, Is.SameAs(first));
                 InputDeviceState.Notify(keyboard);
                 yield return null;
-                Assert.That(first.GetComponent<UIStateInteraction>().InteractionState, Is.EqualTo("Focused"));
+                Assert.That(state.InteractionState, Is.EqualTo("Focused"));
+                state.SetState("Selected");
+                var pointer = new PointerEventData(system) { pointerId = -1, button = PointerEventData.InputButton.Left };
+                state.OnPointerDown(pointer);
+                Assert.That(state.InteractionState, Is.EqualTo("Pressed"));
+                Assert.That(image.color, Is.EqualTo(Color.black));
+                state.OnPointerUp(pointer);
+                Assert.That(state.CurrentStateId, Is.EqualTo("Selected"));
+                Assert.That(image.color, Is.EqualTo(Color.red), "交互退出必须恢复业务选择，不是清为未选择。");
+                Assert.That(first.transform.localScale, Is.EqualTo(Vector3.one));
                 InputDeviceState.NotifyTouch();
-                first.GetComponent<UIStateInteraction>().OnSubmit(new BaseEventData(system));
-                Assert.That(first.GetComponent<UIStateInteraction>().InteractionState, Is.EqualTo("Normal"));
+                state.OnSubmit(new BaseEventData(system));
+                Assert.That(state.InteractionState, Is.EqualTo("Normal"));
+                state.SetState("On");
                 first.GetComponent<Button>().interactable = false;
                 Assert.That(first.GetComponent<Button>().IsInteractable(), Is.False);
+                yield return null;
+                yield return null;
+                Assert.That(state.InteractionState, Is.EqualTo("Disabled"));
+                Assert.That(image.color, Is.EqualTo(Color.gray));
+                first.GetComponent<Button>().interactable = true;
+                yield return null;
+                yield return null;
+                Assert.That(state.CurrentStateId, Is.EqualTo("On"));
+                Assert.That(image.color, Is.EqualTo(Color.green));
+                first.SetActive(false);
+                Assert.That(state.InteractionState, Is.EqualTo("Normal"));
+                Assert.That(image.color, Is.EqualTo(Color.green), "禁用只清交互，不重置开关业务值。");
+                first.SetActive(true);
+                yield return null;
+                Assert.That(image.color, Is.EqualTo(Color.green));
             }
             finally
             {

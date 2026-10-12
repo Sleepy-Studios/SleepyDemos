@@ -7,7 +7,8 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
+    using SleepyStudios.LoopScroll;
+    using TMPro;
 
     [Source("LoadResources/UI/Settings/Panels/InputSettingsPanelView")]
     public partial class InputSettingsPanelView
@@ -23,7 +24,20 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private InputSettingsPage InputSettingsPage_Page;
+        private UISettingRow UISettingRow_MouseLookMultiplier;
+        private UISettingRow UISettingRow_TouchLookMultiplier;
+        private UISettingRow UISettingRow_GamepadLookMultiplier;
+        private UISettingRow UISettingRow_GamepadLookDegreesPerSecond;
+        private UISettingRow UISettingRow_GamepadDeadzone;
+        private UISettingRow UISettingRow_GamepadMaximum;
+        private UISettingRow UISettingRow_RumbleStrength;
+        private UISettingRow UISettingRow_GamepadInvertY;
+        private UISettingRow UISettingRow_RumbleEnabled;
+        private UISettingRow UISettingRow_Host;
+        private UISettingRow UISettingRow_Device;
+        private TextMeshProUGUI TextMeshProUGUI_Binding_feedback;
+        private UISettingRow UISettingRow_CancelRebind;
+        private LoopScrollView LoopScrollView_Bindings;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +49,20 @@ namespace Hotfix
                 return;
             }
 
-            InputSettingsPage_Page = componentItemIndex.Get<InputSettingsPage>(0);
+            UISettingRow_MouseLookMultiplier = componentItemIndex.Get<UISettingRow>(0);
+            UISettingRow_TouchLookMultiplier = componentItemIndex.Get<UISettingRow>(1);
+            UISettingRow_GamepadLookMultiplier = componentItemIndex.Get<UISettingRow>(2);
+            UISettingRow_GamepadLookDegreesPerSecond = componentItemIndex.Get<UISettingRow>(3);
+            UISettingRow_GamepadDeadzone = componentItemIndex.Get<UISettingRow>(4);
+            UISettingRow_GamepadMaximum = componentItemIndex.Get<UISettingRow>(5);
+            UISettingRow_RumbleStrength = componentItemIndex.Get<UISettingRow>(6);
+            UISettingRow_GamepadInvertY = componentItemIndex.Get<UISettingRow>(7);
+            UISettingRow_RumbleEnabled = componentItemIndex.Get<UISettingRow>(8);
+            UISettingRow_Host = componentItemIndex.Get<UISettingRow>(9);
+            UISettingRow_Device = componentItemIndex.Get<UISettingRow>(10);
+            TextMeshProUGUI_Binding_feedback = componentItemIndex.Get<TextMeshProUGUI>(11);
+            UISettingRow_CancelRebind = componentItemIndex.Get<UISettingRow>(12);
+            LoopScrollView_Bindings = componentItemIndex.Get<LoopScrollView>(13);
         }
     }
 }
