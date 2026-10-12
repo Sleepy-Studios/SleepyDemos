@@ -25,7 +25,9 @@ namespace Tests.Module
             PlayerPrefs.DeleteKey(key);
             PlayerPrefs.Save();
             if (Directory.Exists(directory))
+            {
                 Directory.Delete(directory, true);
+            }
         }
 
         [Test]
@@ -47,9 +49,10 @@ namespace Tests.Module
             Assert.That(LocalDataManager.LoadData(key, 7), Is.EqualTo(7));
             Assert.That(PlayerPrefs.HasKey(key), Is.False);
             PlayerPrefs.SetString(key, "{broken");
-            Assert.That(LocalDataManager.LoadData(key, 7, out var warning), Is.EqualTo(7));
-            Assert.That(warning, Is.Not.Empty);
+            Assert.That(LocalDataManager.LoadData(key, 7), Is.EqualTo(7));
             Assert.That(PlayerPrefs.GetString(key), Is.EqualTo("{broken"));
+            PlayerPrefs.SetString(key, "15");
+            Assert.That(LocalDataManager.LoadData(key, 7, _ => throw new ArgumentException("无效记录。")), Is.EqualTo(7));
         }
 
         [Test]
@@ -59,19 +62,22 @@ namespace Tests.Module
             Assert.Throws<ArgumentException>(() => LocalDataManager.SaveData(key, -1, value =>
             {
                 if (value < 0)
+                {
                     throw new ArgumentException("非法候选。");
+                }
             }));
             Assert.That(LocalDataManager.LoadData(key, 0), Is.EqualTo(15));
         }
 
         [Test]
-        public void FileWritesAreIndependentAndInvalidWritesPreservePrimary()
+        public void FileWritesAreIndependentAndContentIsParsedByBusiness()
         {
             LocalDataManager.SaveFile("First.json", "{\"coins\":15}", directory);
             LocalDataManager.SaveFile("Second.json", "{\"coins\":2}", directory);
             Assert.That(LocalDataManager.LoadFile("First.json", directory), Does.Contain("15"));
-            Assert.Catch<Exception>(() => LocalDataManager.SaveFile("First.json", "{broken", directory));
-            Assert.That(LocalDataManager.LoadFile("First.json", directory), Does.Contain("15"));
+            LocalDataManager.SaveFile("First.json", "{broken", directory);
+            Assert.That(LocalDataManager.LoadFile("First.json", directory), Is.EqualTo("{broken"));
+            Assert.That(LocalDataManager.LoadFile("Second.json", directory), Does.Contain("2"));
             Assert.That(Directory.GetFiles(directory, "*.tmp-*").Length, Is.Zero);
         }
 
@@ -80,17 +86,24 @@ namespace Tests.Module
         {
             LocalDataManager.SaveFile("Slot.json", "{\"coins\":15}", directory);
             using (var locked = new FileStream(Path.Combine(directory, "Slot.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
                 Assert.Throws<IOException>(() => LocalDataManager.SaveFile("Slot.json", "{\"coins\":2}", directory));
+            }
             Assert.That(LocalDataManager.LoadFile("Slot.json", directory), Does.Contain("15"));
             Assert.That(Directory.GetFiles(directory, "*.tmp-*").Length, Is.Zero);
         }
 
         [Test]
-        public void MissingAndCorruptFilesReturnNullAndPathsCannotEscapeRoot()
+        public void MissingAndUnreadableFilesReturnNullAndPathsCannotEscapeRoot()
         {
             Assert.That(LocalDataManager.LoadFile("Missing.json", directory), Is.Null);
             Directory.CreateDirectory(directory);
-            File.WriteAllText(Path.Combine(directory, "Corrupt.json"), "{broken");
+            LocalDataManager.SaveFile("Locked.json", "{}", directory);
+            using (var locked = new FileStream(Path.Combine(directory, "Locked.json"), FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                Assert.That(LocalDataManager.LoadFile("Locked.json", directory), Is.Null);
+            }
+            File.WriteAllBytes(Path.Combine(directory, "Corrupt.json"), new byte[] { 0xff });
             Assert.That(LocalDataManager.LoadFile("Corrupt.json", directory), Is.Null);
             Assert.Throws<ArgumentException>(() => LocalDataManager.LoadFile("../Outside.json", directory));
             Assert.Throws<ArgumentException>(() => LocalDataManager.SaveFile(Path.GetFullPath("Outside.json"), "{}", directory));

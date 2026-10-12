@@ -15,23 +15,17 @@ namespace Tests.Module
 {
     public sealed class GameSettingsServiceTests
     {
-        private const string LegacyKey = "SleepyDemos.Graphics.DlssMode";
         private bool hadPreferences;
         private string preferences;
-        private bool hadLegacy;
-        private string legacy;
 
         [UnitySetUp]
         public IEnumerator SetUp()
         {
             hadPreferences = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
             preferences = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
-            hadLegacy = PlayerPrefs.HasKey(LegacyKey);
-            legacy = PlayerPrefs.GetString(LegacyKey);
             GameSettingsService.Shutdown();
             yield return null;
             PlayerPrefs.DeleteKey(GameSettingsService.PreferenceKey);
-            PlayerPrefs.DeleteKey(LegacyKey);
             if (!ResourceServices.Default.IsInitialized)
             {
                 yield return ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default).ToCoroutine();
@@ -43,7 +37,6 @@ namespace Tests.Module
         {
             GameSettingsService.Shutdown();
             Restore(GameSettingsService.PreferenceKey, hadPreferences, preferences);
-            Restore(LegacyKey, hadLegacy, legacy);
             PlayerPrefs.Save();
             yield return null;
         }
@@ -158,7 +151,7 @@ namespace Tests.Module
         {
             PlayerPrefs.SetString(GameSettingsService.PreferenceKey, "{broken");
             yield return GameSettingsService.InitializeAsync().ToCoroutine();
-            Assert.That(GameSettingsService.Feedback, Is.Not.Empty);
+            Assert.That(GameSettingsService.Feedback, Is.Null);
             Assert.That(GameSettingsService.Current.Language, Is.EqualTo("zh-CN"));
             var next = GameSettingsService.Current;
             next.Language = "en";
@@ -174,12 +167,10 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator LegacyMigrationAndDisplayCancelRestoreCompleteCandidate()
+        public IEnumerator DisplayCancelRestoresCompleteCandidate()
         {
-            LocalDataManager.SaveData(LegacyKey, 0);
             yield return GameSettingsService.InitializeAsync().ToCoroutine();
-            Assert.That(PlayerPrefs.HasKey(LegacyKey), Is.False);
-            Assert.That(PlayerPrefs.HasKey(GameSettingsService.PreferenceKey), Is.True);
+            LocalDataManager.SaveData(GameSettingsService.PreferenceKey, GameSettingsService.Current);
             var previous = GameSettingsService.Current;
             string saved = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
             var actual = DisplaySettingsRuntime.Capture();

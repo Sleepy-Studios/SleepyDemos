@@ -15,7 +15,6 @@ namespace Core.Runtime.Settings
     {
         public const string PreferenceKey = "SleepyDemos.Settings";
         public const string ConfigAddress = "LoadResources/Config/Settings/GameSettingsConfig";
-        private const string LegacyDlssKey = "SleepyDemos.Graphics.DlssMode";
         private static GameSettingsSnapshot current = new();
         private static GameSettingsConfig config;
         private static IResourceLoader configLoader;
@@ -38,7 +37,7 @@ namespace Core.Runtime.Settings
         /// 可改键宿主的只读制作身份；用 InputRebindSession 克隆动作后编辑。
         public static IReadOnlyList<InputSettingsCatalog.Entry> InputHosts => config != null ? config.Inputs.Entries
             : throw new InvalidOperationException("公共设置尚未初始化。");
-        /// 本机损坏回退或应用的最近反馈。
+        /// 最近一次设置应用的反馈。
         public static string Feedback { get; private set; }
         /// 公共参数已成功提交；不是语言或文本刷新事件。
         public static event Action<GameSettingsSnapshot> Changed;
@@ -88,16 +87,8 @@ namespace Core.Runtime.Settings
 
                 config.Validate();
                 var defaults = config.GetDefaults();
-                current = LocalDataManager.LoadData(PreferenceKey, defaults, out string warning, Validate);
-                Feedback = warning;
-                if (!PlayerPrefs.HasKey(PreferenceKey) && PlayerPrefs.HasKey(LegacyDlssKey))
-                {
-                    current.Graphics.DlssMode = (int?)StreamlineRuntime.DecodePreference(
-                        LocalDataManager.LoadData(LegacyDlssKey, 0)) ?? 0;
-                    LocalDataManager.SaveData(PreferenceKey, current, Validate);
-                    PlayerPrefs.DeleteKey(LegacyDlssKey);
-                    PlayerPrefs.Save();
-                }
+                current = LocalDataManager.LoadData(PreferenceKey, defaults, Validate);
+                Feedback = null;
 
                 LanguageService.Initialize(config.Language, config.Fonts, current.Language);
                 await ApplyRuntimeAsync(current, CancellationToken.None);
@@ -159,7 +150,6 @@ namespace Core.Runtime.Settings
             {
                 var next = candidate?.Copy();
                 Validate(next);
-                LanguageService.ValidateLanguage(next.Language);
                 if (next.Language != previous.Language && !allowLanguageChange)
                 {
                     throw new InvalidOperationException("请返回 Hub 切换语言。");

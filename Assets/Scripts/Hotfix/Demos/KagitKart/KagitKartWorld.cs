@@ -182,20 +182,7 @@ namespace Hotfix.KagitKart
                 ghost = null;
                 if (Mode == KagitKartRaceMode.TimeTrial)
                 {
-                    try
-                    {
-                        ghost = records.Load(TrackId, SpeedClass, CharacterId).ghost;
-                    }
-                    catch (IOException exception)
-                    {
-                        Feedback = "无法读取最佳记录，本场仍可正常比赛。";
-                        Debug.LogWarning(exception.Message, this);
-                    }
-                    catch (UnauthorizedAccessException exception)
-                    {
-                        Feedback = "无法读取最佳记录，本场仍可正常比赛。";
-                        Debug.LogWarning(exception.Message, this);
-                    }
+                    ghost = records.Load(TrackId, SpeedClass, CharacterId).ghost;
                 }
                 uint seed = unchecked((uint)DateTime.UtcNow.Ticks);
                 Session = new KagitKartSession(source, data, plan, Mode, CharacterId, SpeedClass,
@@ -675,22 +662,11 @@ namespace Hotfix.KagitKart
             }
         }
 
-        /// <summary>章节预览读取当前速度与角色的最佳成绩；读取失败返回 null 供中文页面提示。</summary>
+        /// <summary>章节预览读取当前速度与角色的最佳成绩；没有有效数据时返回空记录。</summary>
         /// <param name="trackId">原作章节标识。</param>
         public KagitKartTimeTrialRecord LoadRecord(string trackId)
         {
-            try
-            {
-                return records.Load(trackId, SpeedClass, CharacterId);
-            }
-            catch (IOException)
-            {
-                return null;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return null;
-            }
+            return records.Load(trackId, SpeedClass, CharacterId);
         }
 
         private async UniTaskVoid ChangeRoundAsync()

@@ -16,7 +16,7 @@ namespace Hotfix.KagitKart
 
         /// 当前本机赛车偏好；只有保存成功才替换。
         public KagitKartSettings Settings { get; private set; } = new();
-        /// 设置读取/保存反馈，不覆盖比赛结果反馈。
+        /// 设置保存反馈，不覆盖比赛结果反馈。
         public string SettingsFeedback { get; private set; }
         /// 当前低动态策略；自动使用启动或选项变更时读取的系统偏好。
         public bool ReducedMotion => publicAccessibility.IsReducedMotion || Settings.ResolveReducedMotion(systemReducedMotion);
@@ -41,9 +41,9 @@ namespace Hotfix.KagitKart
         {
             publicAccessibility = GameSettingsService.Current.Accessibility;
             GameSettingsService.Changed += OnPublicSettingsChanged;
-            Settings = LocalDataManager.LoadData(LocalDataKeys.KagitKartPreferences, new KagitKartSettings(), out string warning, ValidateSettings);
+            Settings = LocalDataManager.LoadData(LocalDataKeys.KagitKartPreferences, new KagitKartSettings(), ValidateSettings);
             systemReducedMotion = Settings.ReducedMotion == "auto" && SystemMotionPreference.ReadReducedMotion();
-            SettingsFeedback = warning == null ? null : "本机设置损坏，已使用默认设置。";
+            SettingsFeedback = null;
         }
 
         private void OnPublicSettingsChanged(GameSettingsSnapshot value)

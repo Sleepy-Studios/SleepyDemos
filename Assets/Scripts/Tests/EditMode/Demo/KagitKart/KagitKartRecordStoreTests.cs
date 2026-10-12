@@ -62,15 +62,15 @@ namespace Tests.Demo
         }
 
         [Test]
-        public void CorruptGhostPreservesValidTimesAndReadDoesNotOverwrite()
+        public void CorruptRecordReturnsNoDataAndReadDoesNotOverwrite()
         {
             string path = Path.Combine(directory, LocalDataKeys.KagitKartRecord("meadow", 120, "tilki"));
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             const string json = "{\"bestLap\":2,\"bestRace\":9,\"ghost\":{\"hz\":20,\"frames\":[1]}}";
             File.WriteAllText(path, json);
             var record = store.Load("meadow", 120, "tilki");
-            Assert.That(record.bestLap, Is.EqualTo(2));
-            Assert.That(record.bestRace, Is.EqualTo(9));
+            Assert.That(record.bestLap, Is.Null);
+            Assert.That(record.bestRace, Is.Null);
             Assert.That(record.ghost, Is.Null);
             Assert.That(File.ReadAllText(path), Is.EqualTo(json));
             File.WriteAllText(path, "invalid-json");

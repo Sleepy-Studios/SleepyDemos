@@ -76,8 +76,7 @@
             if (world.Mode == KagitKartRaceMode.TimeTrial)
             {
                 var best = world.LoadRecord(id);
-                TextMeshProUGUI_Record.text = best == null ? "最佳成绩读取失败，本场仍可比赛。"
-                    : "全程最佳  " + (best.bestRace.HasValue ? KagitKartHudView.TimeText(best.bestRace.Value) : "暂无记录")
+                TextMeshProUGUI_Record.text = "全程最佳  " + (best.bestRace.HasValue ? KagitKartHudView.TimeText(best.bestRace.Value) : "暂无记录")
                     + "\n单圈最佳  " + (best.bestLap.HasValue ? KagitKartHudView.TimeText(best.bestLap.Value) : "暂无记录");
             }
             Render();

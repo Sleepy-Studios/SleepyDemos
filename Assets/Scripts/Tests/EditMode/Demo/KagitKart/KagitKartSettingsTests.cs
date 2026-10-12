@@ -51,8 +51,7 @@ namespace Tests.Demo
                 loaded.CameraShake = false;
                 Assert.That(LocalDataManager.LoadData(key, new KagitKartSettings()).CameraShake, Is.True);
                 PlayerPrefs.SetString(key, "{invalid");
-                var fallback = LocalDataManager.LoadData(key, new KagitKartSettings(), out string warning);
-                Assert.That(warning, Is.Not.Null);
+                var fallback = LocalDataManager.LoadData(key, new KagitKartSettings());
                 Assert.That(fallback.IsValid(), Is.True);
                 Assert.That(PlayerPrefs.GetString(key), Is.EqualTo("{invalid"));
             }

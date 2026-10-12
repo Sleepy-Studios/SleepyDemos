@@ -195,13 +195,17 @@ namespace Tests.Module
         }
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator HubLanguageSaveFailureRestoresPreferencesSelectionAndVisibleHub()
+        public IEnumerator HubLanguageDisplayCancelRestoresPreferencesSelectionAndVisibleHub()
         {
+            if (!DisplaySettingsRuntime.SupportsDesktopDisplay)
+            {
+                Assert.Ignore("显示确认取消回归需要桌面显示设置支持。");
+            }
             yield return PrepareHub();
-            yield return VerifyLanguageSaveFailureAsync().ToCoroutine();
+            yield return VerifyLanguageDisplayCancelAsync().ToCoroutine();
         }
 
-        private async UniTask VerifyLanguageSaveFailureAsync()
+        private async UniTask VerifyLanguageDisplayCancelAsync()
         {
             var previous = GameSettingsService.Current;
             bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
@@ -212,18 +216,10 @@ namespace Tests.Module
                 UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
             var next = previous.Copy();
             next.Language = previous.Language == "en" ? "zh-CN" : "en";
-            int records = 0;
-            foreach (var host in GameSettingsService.InputHosts)
-            {
-                // 单条合法且低于 64KiB；三条合并后在真正 SaveData 的 128KiB 边界失败。
-                next.BindingOverrides[host.SourceId] = "{\"bindings\":[]}" + new string(' ', 50000);
-                if (++records == 3)
-                {
-                    break;
-                }
-            }
-            Assert.That(records, Is.EqualTo(3));
-            // 公共音频通知证明候选已通过应用阶段；大小异常不是提前校验失败。
+            next.Graphics.WindowMode = DisplaySettingsRuntime.Capture().WindowMode == (int)FullScreenMode.Windowed
+                ? (int)FullScreenMode.FullScreenWindow
+                : (int)FullScreenMode.Windowed;
+            // 公共音频通知证明候选已实际应用，再由显示确认取消触发回滚。
             next.Audio.Master = AudioSettingsRuntime.GetGain(AudioBus.Music) > 0.5f ? 0.25f : 0.75f;
             next.Audio.Music = 1;
             next.Audio.Muted = false;
@@ -243,10 +239,10 @@ namespace Tests.Module
                 {
                     reopenCount++;
                     return reopen();
-                });
+                }, _ => UniTask.FromResult(false));
                 Assert.That(result.Succeeded, Is.False);
-                Assert.That(result.Canceled, Is.False);
-                Assert.That(result.Message, Does.Contain("本机记录超过允许大小"), "必须在持久化大小边界失败，不能以候选校验失败代替保存失败。");
+                Assert.That(result.Canceled, Is.True);
+                Assert.That(result.Message, Does.Contain("设置已取消"));
                 Assert.That(runtimeAppliedAfterClose, Is.True);
                 Assert.That(reopenCount, Is.EqualTo(1));
                 Assert.That(oldMenu.State, Is.EqualTo(ViewState.Destroyed));

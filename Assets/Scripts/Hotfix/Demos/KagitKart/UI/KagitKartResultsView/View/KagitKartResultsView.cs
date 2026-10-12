@@ -53,7 +53,7 @@ namespace Hotfix
                 }
                 rows[laps.Count].SetLap(0, owner.PlayerEntry.FinishTime, false, owner.CharacterId, laps.Count, owner.ReducedMotion);
                 var record = owner.LoadRecord(owner.TrackId);
-                newRecord = record?.bestRace != null && System.Math.Abs(record.bestRace.Value - owner.PlayerEntry.FinishTime) < 0.001;
+                newRecord = record.bestRace.HasValue && System.Math.Abs(record.bestRace.Value - owner.PlayerEntry.FinishTime) < 0.001;
             }
             else
             {

@@ -14,7 +14,7 @@ namespace Hotfix.KagitKart
         public KagitKartGhostData ghost;
     }
 
-    /// 最佳成绩领域规则；公共存储负责大小限制、安全路径与原子写入。
+    /// 最佳成绩领域规则；公共存储只负责文件读写。
     public sealed class KagitKartRecordStore
     {
         private readonly string directory;
@@ -31,11 +31,11 @@ namespace Hotfix.KagitKart
             this.directory = directory ?? Path.Combine(Application.persistentDataPath, LocalDataKeys.KagitKartDirectory);
         }
 
-        /// <summary>缺失或损坏返回空记录；损坏幽灵不抹去合法成绩，读取不自动覆盖文件。</summary>
+        /// <summary>读取并校验完整记录；缺失、读取失败或记录损坏统一返回空记录。</summary>
         /// <param name="track">原作赛道标识。</param>
         /// <param name="speedClass">80、120 或 200。</param>
         /// <param name="character">原作角色标识。</param>
-        /// <returns>独立记录，实际 IO 失败继续抛出供页面提示。</returns>
+        /// <returns>独立记录，没有有效数据时为空记录。</returns>
         public KagitKartTimeTrialRecord Load(string track, int speedClass, string character)
         {
             string path = LocalDataKeys.KagitKartRecord(track, speedClass, character);
@@ -46,19 +46,11 @@ namespace Hotfix.KagitKart
             }
             try
             {
-                var record = JsonConvert.DeserializeObject<KagitKartTimeTrialRecord>(json, JsonSettings) ?? new KagitKartTimeTrialRecord();
-                if (!Positive(record.bestLap))
+                var record = JsonConvert.DeserializeObject<KagitKartTimeTrialRecord>(json, JsonSettings);
+                if (record == null || !Positive(record.bestLap) || !Positive(record.bestRace) ||
+                    !ValidGhost(record.ghost) || Math.Abs(record.ghost.total - record.bestRace.Value) > 1e-6)
                 {
-                    record.bestLap = null;
-                }
-                if (!Positive(record.bestRace))
-                {
-                    record.bestRace = null;
-                }
-                if (!ValidGhost(record.ghost) || !record.bestRace.HasValue ||
-                    Math.Abs(record.ghost.total - record.bestRace.Value) > 1e-6)
-                {
-                    record.ghost = null;
+                    return new KagitKartTimeTrialRecord();
                 }
                 return record;
             }
