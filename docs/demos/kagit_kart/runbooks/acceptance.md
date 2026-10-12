@@ -2,7 +2,7 @@
 
 本清单用于收口和后续定向回归。来源固定为 `da100b21ae1c5332d2843d21a9bb7b68b97e9c2a` 的 [Kâğıt Kart](https://github.com/BurakErdemci/kagit-kart/tree/da100b21ae1c5332d2843d21a9bb7b68b97e9c2a)；[原始 Goal](../../../agent/prompts/demos/kagit_kart/original-goal.md) 只追溯需求，逐页效果图审批已取消。当前实现详见 [模块说明](../module.md) 和 [源模块对应](source-migration.md)。截至 2026-10-11，完整单人内容已接入并有下表定向证据；仍保留末节的未验证项，不能据此声称百分之百像素一致或完成全部平台验收。
 
-正式运行代码为 `Assets/Scripts/Hotfix/Demos/KagitKart/`，资源为 `Assets/LoadResources/Demos/kagit_kart/`。下表使用当前文档记录的 Unity Test Runner 实际结果，不将外部候选、正在运行的作业或离线公式等同于原生玩法通过。测试均沿用 `Tests.EditMode` / `Tests.PlayMode`，没有执行全量测试。
+正式运行代码为 `Assets/Scripts/Hotfix/Demos/KagitKart/`，资源为 `Assets/LoadResources/Demos/kagit_kart/`。下表使用当前文档记录的 Unity Test Runner 实际结果，不将外部候选、正在运行的作业或离线公式等同于原生玩法通过。测试均沿用 `Tests.EditMode` / `Tests.PlayMode`，没有执行全量测试。表内 job 与通过数量保留相应日期证据，不证明后续治理修改已经重验；当前本地存储只维护完整当前记录，读取失败视为暂无数据，最新契约见 [模块说明](../module.md#计时记录)。
 
 ## 需求 → 实现 → 证据
 
@@ -24,7 +24,7 @@
 | 原章音乐/音效/实时引擎、漂移/道具/救援/终点、暂停混音、纸景声 | 97 Clip、Audio/EngineSynth/BoostSynth/AudioDsp、Scenery真实Popup与源1401项size | 算法/原生WebAudio/资产11/11（`912553ee`）；原生Intro→Countdown→Race及真实P/UI继续1/1（`9c1f1c0d`），Listener最终PCM peak=0.6997126；八道具新use_*路由及PCM peak=0.6655096（`19bc564c`）。载体AudioSource历史采样为零，最终Listener采样有效；总线非零不等于孤立SFX或人工听感，详见[audio.md](audio.md)。 |
 | GP暂停退出确认、Demo标题/Hub区分、子页P/Start继续、Esc/B返回、TT R阶段 | PauseView、World.PauseRoutes与已有公共菜单/Cancellation | 原生1/1（`61e8c7bd`）：GP二次确认/移焦取消、正常标题返回与独立Hub入口、设置/操作子页继续、电影期间R无效、倒计时子页实际重赛，SkipIntro整组隐藏。没有新公共导航框架。 |
 | Hub/直启、自包含加载、损坏/占用存档、页面/资源生命周期与工具收口 | Main.unity / GameSceneId.KagitKart、Loader、Bootstrap、World.StopRound、公共本地存储 | RecordStore5/5，以上Hub/GP/TT/重赛/多层Modal及原生释放；资源命名/标签1/1（`10658471`）。阶段编译绿/Console0见module；一次性Bake及meta已清理。没有Player/IL2CPP构建证据。 |
-| 正常比赛帧分布/峰值/内存与最终Console | 既有四章起步采样、正常道路长圈方法及外部EditorTiming JSON | 四章正常长圈前两章`a975b049`、后两章`62f99115`均终态1/1，每章至少45秒且实际完成一圈，帧分布、自然事件、GC和内存已记入[性能记录](editor-performance.md)。测量期间临时关闭独立Game View VSync并finally恢复原值；旧`a399f34a`含Editor呈现等待，不作当前性能依据，也不称项目/Player问题已修复。草原74.96ms单帧尚未精确定因，不据窗口通过声称整场三圈或所有特效组合稳定60帧。 |
+| 正常比赛帧分布/峰值/内存与最终Console | 既有四章起步采样、正常道路长圈方法及外部EditorTiming JSON | 四章正常长圈前两章`a975b049`、后两章`62f99115`均终态1/1，每章至少45秒且实际完成一圈，帧分布、自然事件、GC和内存已记入[性能记录](../../../agent/archive/kagit-editor-performance.md)。测量期间临时关闭独立Game View VSync并finally恢复原值；旧`a399f34a`含Editor呈现等待，不作当前性能依据，也不称项目/Player问题已修复。草原74.96ms单帧尚未精确定因，不据窗口通过声称整场三圈或所有特效组合稳定60帧。 |
 
 ## 原作与真实 Unity 画面对照
 
@@ -32,11 +32,11 @@
 
 | 对照 | 原作截图 | Unity实际截图 | 本图可证明与限制 |
 |---|---|---|---|
-| 模式菜单 | ![原作模式菜单](/D:/Unity/ReferenceProjects/kagit-kart/docs/shots/menu.jpg) | ![Unity模式菜单](/D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/MenuMode.png) | 原书本、剪纸景物、车手、三个模式卡与中文显示；焦点、取景和布局适配不同，旧截图不替代全部纸卡五态/退出测试。 |
-| 草原赛道/中文路牌 | ![原作草原起点](/D:/Unity/ReferenceProjects/kagit-kart/docs/shots/meadow-grid.jpg) | ![Unity草原真实长圈](/D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/EditorTiming_meadow_LongRoad_20261010_225412.png) | 原纸景/角色、当前HUD/地图与中文显示；Unity为真实长圈返回起点、原作为倒计时，不能当同一瞬间/同一车数。此图对应最终草原45秒采样，性能数字以JSON和性能记录为准。 |
-| 领奖台 | ![原作领奖台](/D:/Unity/ReferenceProjects/kagit-kart/docs/shots/podium.jpg) | ![Unity实际大奖赛领奖](/D:/Unity/Unity_Project/SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/GrandPrixPodium.png) | 原1/2/3纸台、前三角色、纸屑、书本与中文真实积分；名次/车手不同属实际赛果。返回菜单已修为源主按钮墨底浅字，当前图可见焦点红内沿；`3c1f80d5`实际GP复验同时验证抬纸和移焦复位。 |
+| 模式菜单 | ![原作模式菜单](https://raw.githubusercontent.com/BurakErdemci/kagit-kart/da100b21ae1c5332d2843d21a9bb7b68b97e9c2a/docs/shots/menu.jpg) | ![Unity模式菜单](../../../../../SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/MenuMode.png) | 原书本、剪纸景物、车手、三个模式卡与中文显示；焦点、取景和布局适配不同，旧截图不替代全部纸卡五态/退出测试。 |
+| 草原赛道/中文路牌 | ![原作草原起点](https://raw.githubusercontent.com/BurakErdemci/kagit-kart/da100b21ae1c5332d2843d21a9bb7b68b97e9c2a/docs/shots/meadow-grid.jpg) | ![Unity草原真实长圈](../../../../../SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/EditorTiming_meadow_LongRoad_20261010_225412.png) | 原纸景/角色、当前HUD/地图与中文显示；Unity为真实长圈返回起点、原作为倒计时，不能当同一瞬间/同一车数。此图对应最终草原45秒采样，性能数字以JSON和性能记录为准。 |
+| 领奖台 | ![原作领奖台](https://raw.githubusercontent.com/BurakErdemci/kagit-kart/da100b21ae1c5332d2843d21a9bb7b68b97e9c2a/docs/shots/podium.jpg) | ![Unity实际大奖赛领奖](../../../../../SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/GrandPrixPodium.png) | 原1/2/3纸台、前三角色、纸屑、书本与中文真实积分；名次/车手不同属实际赛果。返回菜单已修为源主按钮墨底浅字，当前图可见焦点红内沿；`3c1f80d5`实际GP复验同时验证抬纸和移焦复位。 |
 
-另外的真实证据保留在同一 `Previews/`：`MenuCover/Class/Character/Track`、`Settings/Controls/TutorialKeyboard`、`HudNative*`、`HudFixture*`、`RaceInk`、`GrandPrixRaceResults/Standings`、`TimeTrialGhost/Results`、`SingleRaceResults`、`NativeRescue*`、`NativeItem*`。`HudFixture*`为明确表现样本；`Race_*.png`和部分早期HudNative图含旧HUD，不能当最终布局证据。外部路径是本机证据，不进入Unity依赖/资源打包；换机器时需带同一来源目录。
+另外的真实证据保留在同一 `Previews/`：`MenuCover/Class/Character/Track`、`Settings/Controls/TutorialKeyboard`、`HudNative*`、`HudFixture*`、`RaceInk`、`GrandPrixRaceResults/Standings`、`TimeTrialGhost/Results`、`SingleRaceResults`、`NativeRescue*`、`NativeItem*`。`HudFixture*`为明确表现样本；`Race_*.png`和部分早期HudNative图含旧HUD，不能当最终布局证据。图片来源按 [独立美术源规范](../../../runbooks/maintain-art-sources.md) 管理：原作使用固定 commit 的公开图片链接，Unity 证据使用游戏仓库旁 `SleepyDemos-ArtSource` 的相对链接。换机器时按相同相邻目录布局提供美术源仓库；缺少它只影响证据图片预览，不影响 Unity 运行和打包。没有将大图复制入游戏仓库。
 
 ## 仍需明确记录的收口项
 

@@ -138,7 +138,12 @@ EventDispatcher.AddEventListener(EventConst.AppResume, OnAppResume, true);
 
 ## 模块规则
 
-事件系统的编码约束独立放在 [rules/](./rules/README.md) 下。接入事件、命名事件、编写示例或调整生命周期时，先看规则文件。
+- 业务事件名集中在 `EventConst`，不用散落裸字符串；使用模块前缀与 `_` 分隔，不用 `.`。
+- 同一个事件名只使用一种参数签名，触发者不依赖监听顺序；回调异常记录后继续后续监听，回调允许移除自己。
+- UI 优先在 `OnShow` 注册、`OnHide` 移除；若绑定对象生命周期则初始化注册、销毁移除，必须成对。
+- `permanent=true` 只用于启动后长期存在的全局监听，不用于普通 UI、Demo 或玩法对象。
+- `RemoveEvent(name)` 清理该名称全部监听；`RemoveAll(false)` 保留永久监听，`RemoveAll()` 清理全部。切 Demo 或重置业务时按持有者实际生命周期选择。
+- 文档示例中的常量必须在示例 `EventConst` 中定义，不用同一名称同时演示无参数和带参数；展示监听时同时展示注册和移除。
 
 ## 与其他系统的边界
 
@@ -152,16 +157,6 @@ EventDispatcher.AddEventListener(EventConst.AppResume, OnAppResume, true);
 - 需要保存并反复读取：用 `GlobalData`
 - 是 UI 栈行为：用 `UIManager`
 - 是按钮、点击、拖拽输入：用 Unity UI 事件系统
-
-## 约束
-
-- 同一个事件名只能使用同一种参数签名。
-- 不要使用裸字符串散落在业务代码里，优先写入 `EventConst`。
-- 事件名建议带模块前缀，例如 `MainMenu_Refresh`。
-- 触发事件时不依赖监听顺序。
-- 回调异常会被记录，但不会中断后续监听。
-- 触发时允许监听者移除自己。
-- 事件系统只负责通知，不负责业务状态保存。
 
 ## 验证重点
 

@@ -1,8 +1,10 @@
 # DroneFlight 设计演进与决策记录
 
+> 历史归档：记录当时的实现与验证，不能作为当前规则或实时通过证明。当前入口见 [正式文档导航](../../README.md)。
+
 ## 用途
 
-本文只记录影响长期维护的改版原因、被替代方案和仍有效约束。当前实现以 [DroneFlight 模块说明](module.md) 为准，具体操作以相关 runbook 为准。
+本文只记录影响长期维护的改版原因、被替代方案和仍有效约束。当前实现以 [DroneFlight 模块说明](../../demos/drone_flight/module.md) 为准，具体操作以相关 runbook 为准。
 
 ## 2026-08-13：飞行仿真初版
 
@@ -56,7 +58,7 @@
 - 可迁移核心不能引用 UIManager、ResourceServices 或 GameSceneNavigator；这些依赖只允许出现在明确的宿主适配器中。
 - 三套配置 Inspector 必须共用互斥语言状态，并保证所有字段、Tooltip 和错误诊断完整双语。
 - 模型层级、轴向、材质槽和物理挂点只在 `DroneFlightModelContract` 定义；文档解释语义，测试执行门禁。
-- 当前不承诺只复制两个目录即可零修改运行；迁移时按 [迁移 DroneFlight](runbooks/migrate.md)替换宿主适配点。
+- 当前不承诺只复制两个目录即可零修改运行；迁移时按 [迁移 DroneFlight](../../demos/drone_flight/runbooks/migrate.md)替换宿主适配点。
 
 ## 2026-08-15：移除原型期兼容层
 

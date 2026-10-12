@@ -7,7 +7,7 @@
 - 路径使用 `docs/agent/prompts/demos/<demo_id>/original-goal.md`。
 - 正文尽量保留原始提示词，文件头必须说明它不是当前实现真源。
 - 当前代码位置、能力、边界和验证方式以 architecture、modules、runbooks 为准。
-- 不归档阶段复选框、恢复点或已经完成的实施计划；仍有效的结论应沉淀进三层长期文档。
+- 本目录只保存原始需求。阶段过程不放这里；有追溯价值的决策和失败证据按 [文档维护规则](../../architecture/documentation-rules.md) 隔离到 `docs/agent/archive`，当前结论写入正式三层文档。
 - 原始 Goal 中的历史路径可以保留，但不得从当前导航把读者引向已删除的旧计划。
 
 ## 当前归档

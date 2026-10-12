@@ -1,5 +1,7 @@
 # 全项目代码精简与三端操作审计
 
+> 历史归档：记录当时的实现与验证，不能作为当前规则或实时通过证明。当前入口见 [正式文档导航](../../README.md)。
+
 > 历史说明：小小搬豆工、倒霉蛋俱乐部、渔力全开已于 2026-10-11 从当前项目移除；下述相关内容仅记录当时实施与验证。
 
 审计范围为本项目自有 Core.Runtime、Core.Editor、Hotfix、Demo、测试及保存资源接线。初始清点 445 个 C# 文件；全域扫描类型引用、反射、直接设备读取、一次性工具及异步/生命周期入口，再沿实际调用和保存资源确认处理项。第三方插件、导入包源码与独立 SleepyLoopScroll 仓库未重构。扫描覆盖不等于所有玩法已做实机或性能验收。
@@ -32,9 +34,9 @@
 
 ## 当前使用方式
 
-- 页面自动发现见 [UI 运行时](../modules/ui-runtime.md) 与 [接入 View](../runbooks/create-ui-view.md)。
-- 三端设备、状态与提示见 [公共输入](../modules/gameplay-input.md) 与 [接入输入](../runbooks/use-gameplay-input.md)。
-- Demo 长期入口仍在 [Demo 文档目录](../demos/README.md)。日常编辑保存资产，不重跑历史装配工具。
+- 页面自动发现见 [UI 运行时](../../modules/ui-runtime.md) 与 [接入 View](../../runbooks/create-ui-view.md)。
+- 三端设备、状态与提示见 [公共输入](../../modules/gameplay-input.md) 与 [接入输入](../../runbooks/use-gameplay-input.md)。
+- Demo 长期入口仍在 [Demo 文档目录](../../demos/README.md)。日常编辑保存资产，不重跑历史装配工具。
 
 ## 验证边界
 

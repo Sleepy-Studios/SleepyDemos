@@ -144,7 +144,7 @@ F2 用于观察矢量方向和趋势，F3 用于读取未经显示平滑的精�
 3. 运行 `DroneRotorPhysicsTests` 时打开 Scene 视图并关闭 Gizmos 过滤。合成夹具名为 `DronePhysicsFixture`，包含灰色机身 Cube、两条黑色 X 形机臂，以及橙色 CCW、蓝色 CW 旋翼标记；这些对象没有启用 Collider，只用于观察姿态和轨迹，不参与物理结果。
 4. `FormalDronePrototype_AutomaticTakeoffProducesRealLift` 使用真实 `DronePrototype` 模型。观察它从测试出生高度自动上升，测试同时校验真实总推力、高度增量、姿态和有限速度。
 5. 如果运动过快看不清，可在测试运行时暂停 Unity 或使用 Test Runner 的单用例执行；不要为了方便观察修改 `Time.timeScale`、飞控配置或断言阈值。
-6. 新增 DroneFlight 测试文件时，放入对应 TestMode 的 `Demo/DroneFlight` 目录并使用 `Tests.Demo` 命名空间；先在文件顶部补中文测试说明，再在 `Tests/EditMode/Demo/DroneFlight` 中唯一的 `DroneFlightTestDiagnostics` 描述表登记测试类。该入口同时覆盖 EditMode 与 PlayMode，保证 Console 日志可读。
+6. 新增 DroneFlight 测试文件时，放入对应 TestMode 的 `Demo/DroneFlight` 目录并使用 `Tests.Demo` 命名空间；文件顶部保留中文测试说明；唯一 `DroneFlightTestDiagnostics` 按测试命名空间/fixture 自动识别 EditMode 与 PlayMode，输出可读测试类名、用例和中文状态，不维护手工描述表。
 
 设备和 UI 的保存态 Prefab 是装配真源；一次性生成工具完成任务后删除。维护 `DronePrototype`、两个装备 Prefab、组合 Variant 或三页 UI 时直接编辑对应资产，UI 绑定使用现有 UIBind，不通过旧机体 Builder 覆盖界面。修改后通过 Unity Test Runner 运行直接相关测试，不另起 BatchMode，也不使用 dotnet/msbuild。
 

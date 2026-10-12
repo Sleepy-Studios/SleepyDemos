@@ -110,7 +110,7 @@
 3. 在 `Assets/Scripts/Hotfix/Demos/<DemoName>/` 下建立玩法代码
 4. 创建 YooAsset 可加载场景并登记运行期场景目录
 5. 通过 `GameSceneNavigator` 从 Hub 暴露该 Demo，并提供返回 Hub 的入口
-6. 把测试放入现有 `Tests.EditMode` / `Tests.PlayMode`，不要新建 Demo 测试程序集
+6. 按 [测试架构](docs/architecture/testing.md) 选择最小验证，只有明确长期价值时保留新增测试
 7. 检查是否真的需要把能力上提到 Core
 
 ## 文档地图

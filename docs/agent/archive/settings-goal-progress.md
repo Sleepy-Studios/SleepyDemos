@@ -1,5 +1,7 @@
 # 公共设置与表现 Goal 实施记录
 
+> 历史归档：保留阶段原文、当时失败与后续修复，文内“当前/尚未完成”均指相应阶段，不构成实时状态。最终授权范围与交付边界以 [公共设置与表现模块](../../modules/settings-presentation.md#交付状态与验证边界) 为准；本次治理未重新运行旧报告、读取系统配置或验证历史机器状态。
+
 目标：按用户确认的 G0–G11 实施公共设置与表现能力，已按最终 Hub-only 和 Editor Offline 范围完成电脑端交付。七张效果图已确认并装配；Hub 使用暖白/朱红瑞士方向，各 Demo 保留自身美术风格。以下历史记录以本节最新范围与结果为准。
 
 | Goal | 当前状态 | 交付与剩余 |
@@ -188,6 +190,6 @@ G9收尾核对：Showcase保持独立包示例及既有公共菜单宿主，不�
 
 收尾验收本地提交：`6a8fbfbb test(settings): 补齐Hub语言事务和电影演出验收`，没有推送。
 
-G10首张[显示与画质效果图](art/settings/graphics-settings-v1.png)已用内置imagegen生成，沿用已确认整体方向，展示DLSS关闭时手动MSAA4、选择/实际状态和接管说明；[生成提示词](art/settings/graphics-settings-v1.prompt.txt)一并保存。该图是美术预览，效果图中的键帽仅表示布局和风格；正式输入提示使用已导入Kenney资源。用户随后已基本确认全部七图并要求保留各 Demo 风格，当前实施状态见上方 G10 装配记录。
+G10首张[显示与画质效果图](../art/settings/graphics-settings-v1.png)已用内置imagegen生成，沿用已确认整体方向，展示DLSS关闭时手动MSAA4、选择/实际状态和接管说明；[生成提示词](../art/settings/graphics-settings-v1.prompt.txt)一并保存。该图是美术预览，效果图中的键帽仅表示布局和风格；正式输入提示使用已导入Kenney资源。用户随后已基本确认全部七图并要求保留各 Demo 风格，当前实施状态见上方 G10 装配记录。
 
-G10其余六张已生成并保存，完整[美术确认索引](art/settings/README.md)记录各图及提示词。已按实际Kenney资源修正控制页X键以及公共提示图的PlayStation菜单键/Backspace。出图阶段只增加美术预览和文档；用户确认后已进入正式 Prefab 装配和有效绑定、交互验收，不能把预览图视为运行结果。
+G10其余六张已生成并保存，完整[美术确认索引](../art/settings/README.md)记录各图及提示词。已按实际Kenney资源修正控制页X键以及公共提示图的PlayStation菜单键/Backspace。出图阶段只增加美术预览和文档；用户确认后已进入正式 Prefab 装配和有效绑定、交互验收，不能把预览图视为运行结果。

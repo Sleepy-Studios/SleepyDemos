@@ -92,22 +92,9 @@ Demo 场景不加入 Build Settings。当前 Build Settings 只保留 `Assets/Sc
 
 这条旁路只在 Editor 补齐最小运行时，不执行完整 HybridCLR 装配，也不得扩展到 Development 或 Release。正式运行仍从 `AppEntrance → Hub` 进入。
 
-## 7. 添加测试
+## 7. 选择验证
 
-自动化测试只进入现有两个物理程序集：
-
-```text
-Assets/Scripts/Tests/EditMode/Demo/<DemoName>/
-Assets/Scripts/Tests/PlayMode/Demo/<DemoName>/
-```
-
-- 命名空间使用 `Tests.Demo`。
-- 不在 Hotfix 或 Core 下创建测试程序集。
-- 不为单个 Demo 新建 asmdef。
-- 生产程序集不得引用测试程序集。
-- 优先写纯逻辑 EditMode 测试；必须依赖 Rigidbody、Scene 或生命周期时再使用 PlayMode。
-
-验证时按“精确方法 → 当前测试类 → 本任务直接影响的多个测试类”选择最小范围。只有用户明确要求全量回归时，才运行整个 `Tests.EditMode` 和 `Tests.PlayMode`。
+按 [测试架构](../architecture/testing.md) 判断是否需要永久测试并选择最小相关验证，不机械为新 Demo 添加测试文件。目录、命名空间和程序集规则只维护在该正文；运行步骤见 [Unity Test Runner 操作](run-unity-tests.md)。
 
 ## 8. 判断文档落点
 

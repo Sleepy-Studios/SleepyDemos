@@ -43,7 +43,7 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 ## 全局设置与相机接入
 
-`StreamlineRuntime` 对外提供可等待 `ApplyModeAsync`、`RequestedMode`、`EffectiveMode`、`Status`、尺寸及 `Changed`；`CanEnable` 查询当前后端和相机兼容条件，实际 GPU 支持仍以 SDK 运行结果为准。偏好由公共 GameSettingsService 保存在 `SleepyDemos.Settings`，仅成功迁移后删除旧DLSS键。Streamline只负责实际应用，不自行保存；设备或相机不支持不会覆盖用户请求。
+`StreamlineRuntime` 对外提供可等待 `ApplyModeAsync`、`RequestedMode`、`EffectiveMode`、`Status`、尺寸及 `Changed`；`CanEnable` 查询当前后端和相机兼容条件，实际 GPU 支持仍以 SDK 运行结果为准。偏好由公共 GameSettingsService 保存在当前 `SleepyDemos.Settings` 契约，不迁移旧独立 DLSS 键。Streamline只负责实际应用，不自行保存；设备或相机不支持不会覆盖用户请求。
 
 `UIRootManager.BindToBaseCamera` 先解除旧会话，再绑定目标相机及公共 UI 相机；场景导航回滚经过同一个入口。运行时服务由正式启动和 UI 初始化共用，不由 Demo 创建。当前支持屏幕透视主相机与单个公共 UI Overlay，额外相机栈、正交、XR 或局部视口回退。
 
@@ -53,7 +53,7 @@ G0–G2 已完成 Editor 基线与独立画面闭环；G3 公共主相机接入�
 
 运行驱动和呈现相机使用普通运行时 GameObject 与 `DontDestroyOnLoad`，不可叠加 `HideFlags.DontSave`。该组合会在退出 Play 后遗留对象（Unity 官方 [UUM-87097](https://issuetracker.unity.com/issues/8938/gameobjects-with-hideflagsdontsaveineditor-paired-with-the-dontdestroyonload-method-are-not-relieved-up-when-the-play-mode-is-exited)）；域重载丢失会话引用后，旧呈现相机仍会在正常 UI 之后清黑屏。临时管线和纹理继续显式管理，不使用运行对象的生命周期代替 GPU 排空。
 
-正式设置位于 `Hotfix/Module/Settings`，通过 `SettingsFlow.OpenAsync` 按宿主打开显示与画质分类；五类独立分页由现有 UITab/ViewTab 管理。公共设置候选经 GameSettingsService 提交，DisplaySettingsRuntime 协调手动抗锯齿与 DLSS；Streamline Changed 继续反馈真实状态。设置使用 UIManager 的 Pop/Modal 按需加载，各 Demo 使用自己的 Prefab Variant，关闭后销毁。DLSS Demo 自己处理关页后恢复观察输入，公共页面不引用 Demo 状态。正式资源位于 `LoadResources/UI/Settings`；实验室负责观察交互，Renderer 配置属于 Core.Editor。
+正式公共设置只在 Hub 通过 `SettingsFlow.OpenAsync` 按需打开；分页、候选与显示确认契约见 [设置模块](settings-presentation.md)。DisplaySettingsRuntime 协调手动抗锯齿与 DLSS，Streamline Changed 反馈实际状态。Demo 消费 Hub 已保存偏好，不维护公共设置按钮、快捷入口或设置宿主 Variant；DLSS 实验室只负责观察交互，Renderer 配置属于 Core.Editor。
 
 启动和 Demo 直启均不预加载设置 UI，不提供全局悬浮入口。关闭按钮、UIMenuScope Cancel 或公共遮罩通过 UIManager 关闭，恢复原入口焦点。
 

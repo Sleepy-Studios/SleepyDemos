@@ -6,7 +6,7 @@
 - [公共设置与表现](../../modules/settings-presentation.md)、[公共玩法输入](../../modules/gameplay-input.md)
 - [实现原理与架构](architecture/design.md)
 - [正式模型契约](model-contract.md)
-- [设计演进与决策记录](history.md)
+- [设计演进与决策记录](../../agent/archive/drone-flight-history.md)
 - [调试与整定](runbooks/tune.md)
 - [独立场景接入](runbooks/standalone.md)
 - [迁移到正式项目](runbooks/migrate.md)

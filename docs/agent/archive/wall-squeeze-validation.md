@@ -1,5 +1,7 @@
 # MVP 验证记录
 
+> 历史归档：保留当时数据、截图与报告，不构成最新代码或硬件已验结论。一次性验证用例与探针不作为长期入口；当前职责见 [正式文档导航](../../README.md)。
+
 ## v0.2 六关与 HUD 扩展
 
 2026-10-06：普通、顶墙、钻缝三种怪，六个保存关卡、固定隔墙、35 秒限时救援和黑框分格 HUD 已完成。运行环境 Unity 6000.3.15f1；未执行全量测试。
@@ -16,7 +18,7 @@
 
 公共导航没有新改动，因此未重复此前导航测试。新增规则测试保留用于长期回归；未增加生产测试程序集。真实硬件、首次可读性与玩法乐趣仍需人工体验。
 
-实际运行图：[第一关](../art/mvp-expanded-first.png)、[第六关](../art/mvp-expanded-six.png)。已检查完整头尾黑框、计数、暂停/重来、三种怪物图例、两轴箭头、护甲与薄体轮廓。截图通过临时跳关取景，自动测试另经正式“下一关”入口验证六关接线，不代表人工手感验收。
+实际运行图：[第一关](../../demos/wall_squeeze/art/mvp-expanded-first.png)、[第六关](../../demos/wall_squeeze/art/mvp-expanded-six.png)。已检查完整头尾黑框、计数、暂停/重来、三种怪物图例、两轴箭头、护甲与薄体轮廓。截图通过临时跳关取景，自动测试另经正式“下一关”入口验证六关接线，不代表人工手感验收。
 
 本次只修改 Hotfix Demo、专属资源、对应测试和文档；未新增 Core 能力、场景路由或 BuildSettings。一次性升级脚本、菜单与临时截图已清理。测试期间公共动态字体自动更新，使用包含用户未提交内容的外部保护副本恢复原 SHA256 `BBE470E5B63BA80198562DA715F8FDDA655D37113A0A925E863FD37E48D051FB`；自动更新后的副本也保存在 `font-protection/HarmonyOS_CNSupplement.after-upgrade-validation.asset`，未用 Git 版本覆盖用户字体。
 
@@ -43,7 +45,7 @@
 
 资源命名检查中，本 Demo 路径问题为 0。全仓扫描仍报告其他目录的 162 项 Error、59 项 Warning，未在本任务修改；摘要见上述证据目录的 `AssetNamingSummary.txt`。
 
-正式第三关 GameView 截图为 [mvp-gameplay-3.png](../art/mvp-gameplay-3.png)。已检查 HUD、暂停/重试按钮、红蓝方块、两轴箭头及黑灰把手可见；世界形状使用本 Demo 的单位 Sprite，未修改公共 White 导入设置。截图是实际运行画面，通过程序参考路径进入第三关，不代表人工操作手感验收。
+正式第三关 GameView 截图为 [mvp-gameplay-3.png](../../demos/wall_squeeze/art/mvp-gameplay-3.png)。已检查 HUD、暂停/重试按钮、红蓝方块、两轴箭头及黑灰把手可见；世界形状使用本 Demo 的单位 Sprite，未修改公共 White 导入设置。截图是实际运行画面，通过程序参考路径进入第三关，不代表人工操作手感验收。
 
 ## 保存与清理
 

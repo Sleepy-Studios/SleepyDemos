@@ -19,7 +19,7 @@ Main View 直接持有 UITab／ViewTab、候选和提交生命周期。Graphics�
 
 资源服务就绪后，正式启动的 `GameSettingsInitializeSystem` 在公共 UI 初始化之前加载 `GameSettingsConfig`。Editor Demo 直启调用同一个 `InitializeAsync`；并发等待共用完成源，不能用只适合顺序复用的 UniTask Preserve 代替并发共享。
 
-无有效记录时使用制作默认值；损坏记录保留反馈。只有不存在新记录时迁移旧 `SleepyDemos.Graphics.DlssMode`；新记录成功落盘后删除旧键。
+本机记录不存在、读取/反序列化失败或完整候选校验失败时，统一使用制作默认值，不暴露读取故障分类，也不自动写默认值；`Feedback` 初始化为空，只记录实际应用反馈。仅维护当前 `SleepyDemos.Settings` 契约，不迁移旧独立 DLSS 键。保存失败继续抛给应用流程，页面提示一次；成功保存后才提交当前快照。
 
 设置页持有完整候选，应用顺序为显示/画质、音量、后处理、保存、语言选择、发布公共参数通知。关闭或取消页面丢弃候选；恢复本页默认只改该页候选。SettingsFlow 通过 SettingsApplyAction 等待实际提交结果，忙碌或改键监听期间不接受第二次应用。显示模式与分辨率改变打开独立 `DisplayConfirmView`，使用未缩放的 15 秒确认期限；超时、取消、拒绝或确认失败恢复之前实际显示及旧偏好。确认任务由外部 Flow 持有，退出时归还确认 View。输入会话在提交通知后应用验证过的参数与 override。通知不用于文本刷新。
 
@@ -61,10 +61,18 @@ CinematicRuntime 要求 UIManager 托管的正式 View 显式初始化并 Regist
 
 Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 PresentationWorld 世界租约、PresentationLabView 与 CinematicOverlayView；体验页分别调用公共后处理、时间和电影 API。退出通过 UIManager.ReplaceAsync 返回 Hub，成功后销毁体验页并归还世界资源；失败或取消且体验页仍可见时恢复表现根。停止和退出只释放本次作用域，不解除其它调用方的冻结。该体验页不会把暂时的速度、黑边或后处理预览写成玩家设置。正式 UI 位于 `UI/Presentation/`，世界资源位于 `Art/Presentation/PresentationWorld.prefab`。
 
-## 验证边界
+## 交付状态与验证边界
 
-已有直接相关测试覆盖快照、字体、输入候选、音量增益、后处理参数、管线资产保护、时间租约、遮幕队列/取消与 HUD 恢复。Hub 主设置、独立分页、绑定列表、确认弹窗和正式体验资源已经保存。旧装配的 Hub 分页/语言重建、Demo 输入、显示确认和效果体验曾通过定向复测，英文五页三画幅也曾实际查看；这些是历史证据，不代表改为 Hub-only、主 ViewTab 与新基础模板后已全部通过。用户确认最低验收分辨率为 1920×1080，低于此范围的尺寸不支持；停止 1024×768 命中诊断，不因此修改公共 Canvas 策略或 Demo 布局。当前最低尺寸下五页懒加载、候选隔离、取消丢弃与单次应用已通过真实指针回归（9c41ec3d），改键/控件取消/回收身份已通过（a4fc8333）；其余 Hub 正式流程及四个 Demo 定向回归也已通过，证据见实施记录。新版中英 Hub、五分类与体验三分类在 1920×1080、2560×1440、3440×1440 收齐 54 张截图；实际分页切换、取消与 Esc 返回通过，右上关闭按钮另以整像素鼠标坐标通过三画幅真实点击。已通过现有 Hotfix Build 和 YooAsset 工具重新生成并同步 DLL/AOT 和正式首包。旧 Player 构建 c6a073ba 的失败保留为历史，AutoRun 已获授权备份修复。最终 Editor Offline 实际首包 2026-10-12-165911 的正式启动、五分页与四 Demo 往返 1/1 通过（70d5d059）；独立 Player/IL2CPP 与真实硬件按用户要求后置。
+按 2026-10-12 最终授权范围，G0–G11 的电脑端交付已完成：公共设置仅在 Hub 打开，五个独立分页与效果体验复用现有基础 UI；Demo 保留自己的玩法设置、公共 API 接入和美术 Variant。七张效果图已确认并装配，Hub 风格不覆盖 Demo。详细 API 与生命周期以上述正文为准，不再维护并行进度清单。
 
-Direct3D12 正式场景已独立验证七类后处理的图像变化、UI 隔离、释放恢复与制作资产保护，其中胶片颗粒检查连续三帧的动态变化；其它图形 API 未据此计为通过。实际结果与阶段状态见[实施记录](../agent/settings-goal-progress.md)。模拟设备不能替代真实手柄；截图、Player 与硬件结果分别记录。
+本节汇总已记录的结果，本次文档治理没有重新运行 Unity 或核验历史机器配置：
 
-接入步骤见[公共设置与演出接入](../runbooks/use-settings-presentation.md)。
+- Hub、五分类与体验三分类，中英两语言、1920×1080 / 2560×1440 / 3440×1440 共 54 张运行截图；实际切页、取消、Esc 返回与三画幅关闭按钮均有定向通过记录。最低支持尺寸为 1920×1080，旧窄屏试验不作为验收要求。
+- 正式 AppEntrance / Editor Offline 实际首包 `2026-10-12-165911` 的五分页、候选保存、语言重建、显示确认、冻结及四 Demo 往返为 1/1（`70d5d059`）；128 项包文件与 StreamingAssets 哈希一致，原配置已恢复。Editor 复用已加载 Hotfix 程序集，不能据此证明首包 DLL 独立加载。
+- 七类后处理在 Direct3D12 正式场景取得独立图像变化、UI 隔离、释放恢复和制作资产保护证据。四 Demo 的 0.25× / 1× / 2×实际运动或计时及释放恢复有定向通过记录；Kart 在低帧率受作者每帧最多 8 个固定步骤限制，不能保证任意倍率完整兑现。
+- 历史 Windows Player 构建失败与后来获授权修复 AutoRun 的记录均保留在归档；系统修复未重新执行 Player 构建，不把旧失败写成仍在阻塞当前 Editor 交付，也不把修复当作 Player 已通过。
+- 没有执行全量回归。独立 Player / IL2CPP、裁剪、其它图形 API 与真实手柄 / 触屏均按授权后置；定向流程和模拟设备不代表所有玩法或硬件已验。
+
+阶段报告、job ID、机器修复顺序与早期失败见 [历史实施记录](../agent/archive/settings-goal-progress.md)。后续新增结果只更新对应实际范围，不由历史通过推断最新代码已生效。
+
+接入步骤见 [公共设置与演出接入](../runbooks/use-settings-presentation.md)。

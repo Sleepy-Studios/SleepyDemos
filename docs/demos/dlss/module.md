@@ -12,7 +12,7 @@
 
 通用 DLSS 由 [Streamline 模块](../../modules/streamline.md) 管理。主设置和独立画质分页代码位于 `Hotfix/Module/Settings`，资源位于 `LoadResources/UI/Settings`；图像输出由 Core 的渲染流程完成，与面板显示无关。
 
-`GameSceneId.Dlss` 仍表示实验室场景，不是 DLSS 功能开关。场景地址为 `Assets/LoadResources/Demos/dlss/Scenes/Main.unity`。Build Settings 仍只包含 AppEntrance。本实验室仍从正式入口进入；已有 DroneFlight Editor 直启路径也初始化公共渲染服务和设置入口。
+`GameSceneId.Dlss` 仍表示实验室场景，不是 DLSS 功能开关。场景地址为 `Assets/LoadResources/Demos/dlss/Scenes/Main.unity`。Build Settings 仍只包含 AppEntrance。本实验室仍从正式入口进入；已有 DroneFlight Editor 直启路径也初始化公共渲染服务，但不增加设置 UI 入口。
 
 ## 编辑器维护
 
@@ -24,9 +24,9 @@
 
 ## 验证
 
-相关 PlayMode 用例 `Tests.Demo.DlssDemoFlowTests.FormalStartupModesAndHubReturn` 检查正式启动、DroneFlight 实际选择和退出、Hub 与实验室沿用设置、各档画面、面板开关、窗口变化、暂停恢复、屏幕坐标及不支持相机回退。2026-09-22 双后端公共流程已通过，另已通过失败回滚、Editor 直启与设置持久化检查。未执行全量测试。
+定向验证可使用现有 `Tests.Demo.DlssDemoFlowTests` 的直接相关方法；实际最小范围按 [测试架构](../../architecture/testing.md) 选择。本次治理未运行该 Demo。正式 Editor Offline 与公共效果的最后记录见 [设置交付边界](../../modules/settings-presentation.md#交付状态与验证边界)，不据此推断所有 DLSS 档位、GPU 或 Player 已通过。
 
-截图和原始报告只放临时目录；用户体验重点是画面差异、相机控制和 UI 手感。
+早期模式用例的通过与黑帧失败均保留在 [验证历史](../../agent/archive/dlss-validation-history.md)，不是当前仍然失败或已经修复的实时结论。
 
 观察输入使用 Core InputActionSession，读取 Hub 保存的参数与绑定。DLSS 功能仍受 GPU/平台限制，移动端使用已有不支持时的原生渲染回退；三端输入接入不表示 Android 支持 DLSS。
 
@@ -39,13 +39,6 @@
 
 公共 `GraphicsSettingsData/Handler` 随 FluxService 注册。模式按钮派发 Action，Handler 提交公共设置候选，由设置服务协调显示、保存及 Streamline 应用；Data 发布服务实际请求档位、生效档位、尺寸和反馈。显示状态不推测 GPU 执行结果。
 
-本轮定向验证：观察控件生命周期、设置阻断恢复、Editor 直启和偏好测试通过。GPU 综合用例在原有“画面不能为空”断言失败，截图为全黑；运行时相机已启用，Game View 未呈现，画面验收仍待解决。没有运行全项目测试。
-
-
-2026-10-05本轮Flux验收：控制页、设置阻断/恢复及直接启动专项通过；正式模式回归4c951732仍在Off画面像素断言失败（黑帧）。不能据状态检查通过宣称视觉验收通过，完整范围见[实施记录](../../agent/flux-ui-refactor-2026-10-05.md)。
-
 ## Flux 入口整理
 
 控制页的离场恢复由所属 Demo 负责。公共设置只在 Hub 打开，不再维护实验室设置弹窗与观察恢复之间的路线。生效状态仍由公共 Streamline 服务事件发布。
-
-2026-10-06 Flux 风格整理后的精确验证及失败范围见 [本轮实施记录](../../agent/flux-style-cleanup-2026-10-06.md)。

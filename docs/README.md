@@ -3,9 +3,8 @@
 这套文档的目标不是把所有目录都配一个说明文件，而是给协作者和 agent 一张可维护的“地图”。
 
 ## 入口文件
-- `AGENTS.md`：Codex / 通用 agent 的入口导航
-- `CLAUDE.md`：Claude Code 的入口导航
-- 两者都只保留短导航和硬规则，详细内容统一落在 `docs/` 中
+- `AGENTS.md`：所有 agent 的共同协作规则与入口导航
+- `CLAUDE.md`：仅 `@AGENTS.md` 导入，共同规则不复制；详细主题正文维护在 `docs/` 中
 
 ## 按任务阅读
 
@@ -66,8 +65,6 @@
 - `agent/`
   - Agent 协作入口与项目级技能说明
   - [项目 Skill 入口](./agent/skills.md)
-  - [全项目精简与三端操作审计](./agent/code-audit-2026-10-03.md)
-  - [Flux / UIBind 重构实施与验证](./agent/flux-ui-refactor-2026-10-05.md)
   - [原始 Goal 归档规则](./agent/prompts/README.md)
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
@@ -110,7 +107,9 @@
 - 关键入口、边界、流程变化时，必须同步改文档。
 - 新增重要公共模块时，补对应 `modules/*.md`；新增 Demo 时，建立 `demos/<DemoId>/README.md` 与必要维护文档。
 - 删除或合并重要模块时，清理对应模块文档和导航链接。
-- 如果规则变化影响入口判断或协作方式，要同步更新 `AGENTS.md` 和 `CLAUDE.md`。
+- 共同规则只更新 `AGENTS.md`，`CLAUDE.md` 保持薄导入；主题政策只在对应正文维护。
 - 文档应保持“短、能定位、可执行”，不要写成长篇空话。
 
-- [Flux 代码风格与职责整理记录](agent/flux-style-cleanup-2026-10-06.md)：2026-10-06 的实施范围、阶段提交及验证限制。
+## 历史追溯
+
+旧实施记录与被替代方案集中在 [历史索引](agent/archive/README.md)，不作为默认任务入口或当前状态真源。

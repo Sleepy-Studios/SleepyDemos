@@ -2,7 +2,7 @@
 
 ## 接手已有 MVP
 
-先读 [README](../README.md)、[验证记录](validation.md)、[模块维护](../module.md)，再查看实际保存的 Scene / World / UI Prefab 与 [当前验证案](../architecture/mvp-validation.md)。先体验已有版本，按本轮新指令迭代；场景和资源是正式真源，不重复生成或重建已验收资产。
+先读 [README](../README.md)、[验证记录](../../../agent/archive/wall-squeeze-validation.md)、[模块维护](../module.md)，再查看实际保存的 Scene / World / UI Prefab 与 [当前验证案](../architecture/mvp-validation.md)。先体验已有版本，按本轮新指令迭代；场景和资源是正式真源，不重复生成或重建已验收资产。
 
 ## 新对话启动提示词
 

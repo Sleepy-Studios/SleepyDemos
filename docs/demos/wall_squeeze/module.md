@@ -48,4 +48,4 @@ HUD 跟随最近实际操作设备；连接手柄和漂移不抢占键鼠提示�
 
 ## 验证入口
 
-EditMode：`Tests.Demo.WallSqueezeSimulationTests`；PlayMode：`Tests.Demo.WallSqueezeRuntimeTests`。仅运行本次直接相关类，不默认全量。实际结果、截图与未完成的体验验收见 [验证记录](runbooks/validation.md)。
+EditMode：`Tests.Demo.WallSqueezeSimulationTests`；PlayMode：`Tests.Demo.WallSqueezeRuntimeTests`。仅运行本次直接相关类，不默认全量。实际结果、截图与未完成的体验验收见 [验证记录](../../agent/archive/wall-squeeze-validation.md)。
