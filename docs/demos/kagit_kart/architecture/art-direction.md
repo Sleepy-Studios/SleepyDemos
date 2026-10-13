@@ -66,7 +66,7 @@ KagitKartChoiceCard 是角色/章节焦点预览桥，保留原组件与事件�
 
 两条音量 Slider 共用 `Foundation/KagitKartSlider.prefab`，它继承公共 `Common/_TemplateInstantiatePrefab/CommonSlider.prefab`。Variant 集中矩形墨色轨道、填充、手柄及子节点布局，保留纸艺外观；不启用继承手柄的圆角、描边或阴影。页面维护根位置、0–10 的整数音量值和业务事件，不重复保存这些图片样式；同名 Track／Fill Area／Handle Area 子节点保留原组件引用。
 
-设置选择钮与设备分类选择钮在 Choice 风格 Variant 的同一 UIState 上追加 SelectionMark 的 Selected 业务态，页面保留选择值和事件；不复制另一套选中管理器。三张纸重卡通过 ClassCard Variant 继承按钮基底，保留 Grammage、PaperName、Description、Gauge 与分格线；显示内容、特有纸色和原矩形继续按纸重角色维护，不把多标签卡简化成只有一个 Label。
+设置选择钮与设备分类选择钮在 Choice 风格 Variant 的同一 UIState 上追加完整红纸卡的 Selected 业务态，Normal 恢复纸面与墨字，旧 SelectionMark 保持关闭；页面保留选择值和事件，不复制另一套选中管理器。三张纸重卡通过 ClassCard Variant 继承按钮基底，保留 Grammage、PaperName、Description、Gauge 与分格线；显示内容、特有纸色和原矩形继续按纸重角色维护，不把多标签卡简化成只有一个 Label。
 
 三张比赛模式卡使用 ModeCard Variant，保留 Label、Description 和原专属信息节点；各模式文字及布局继续属于页面。14 个设置选择钮与 3 个设备选择钮的 Selected 目标、值及 Normal 复位字段保留在同一 UIState 契约中。
 
@@ -83,6 +83,7 @@ KagitKartChoiceCard 是角色/章节焦点预览桥，保留原组件与事件�
 | `KagitKartTrackButton.prefab` | Track / Track0–3 |
 | `KagitKartReturnToHubButton.prefab` | Pause / Hub |
 | `KagitKartHudCommandButton.prefab` | HUD / Throttle、Brake、Drift、Item、LookBack |
+| `KagitKartTouchSteeringButton.prefab` | HUD / SteeringGroup / Left、Right；继承 HudCommandButton，仅左右箭头使用 |
 | `KagitKartItemCommandButton.prefab` | HUD / ItemCard，保留道具槽专属内容 |
 | `KagitKartSlider.prefab` | Settings / Viewport / SheetGroup / Sheet / Music、Sfx；公共源为 `UI/Common/_TemplateInstantiatePrefab/CommonSlider.prefab` |
 
@@ -91,6 +92,10 @@ Title 的 CoverHit 保留透明全屏翻书点击区。HUD 的离散/保持命�
 ## 可读性与换风格
 
 暖纸底用墨色文字，墨色主要按钮用暖纸文字；焦点边、业务选中标记与禁用表现分别可辨。纸影独立于点击目标，装饰不拦截射线。普通控件反馈不能覆盖父 Group 的缩放/旋转或改变根点击尺寸。
+
+2026-10-13 用户已确认[设置与触控局部效果图](../../../agent/art/ui-foundation/kagit-settings-touch-v1.png)。设置业务选中使用完整深砖红纸卡 `#C94432` 与暖白字 `#FAF4E4`，旧 SelectionMark 条保持关闭；Normal 恢复原纸面和墨字。Hover、Focused、Pressed、Disabled 只使用既有焦点边和整卡透明度反馈，不覆盖业务选中的底色和文字。样式统一维护在 `KagitKartChoiceButton.prefab`，覆盖设置页 14 个选项和操作说明页 3 个设备页签；页面继续维护原业务值、绑定、文案、尺寸与布局，不在实例重复保存状态颜色。原生装配、状态切换与实际页面截图分别验收，不能以效果图确认代替。
+
+触屏转向使用左右两个保持按钮，样式由 `KagitKartTouchSteeringButton.prefab` 维护；它继承 `KagitKartHudCommandButton.prefab`，只用于左右箭头。Normal 沿用纸纹与墨字，真实指针按住的 Pressed 为朱红 `#C94432` / 米白字 `#FAF4E4`，松手恢复；不追加业务 Selected 或交互桥。硬阴影复用同节点 ImageExtend，偏移 `(8,-10)`、柔化 0、墨色 alpha=1。纸面保持 Sliced 九宫格，UseSpriteAlpha 必须关闭，使用支持的矩形硬影路径；透明轮廓阴影仅支持 Simple，不能给 Sliced 开启后把原生回退误认为效果生效。原纸面和纸边继续由九宫格网格绘制，特效外扩不改变点击矩形。每个按钮为 160×140 Canvas 设计单位，中间间隔 24，箭头标签为 96；根点击矩形保持稳定，纸卡只保留轻微相反角度。布局由 HUD 的 SteeringGroup 维护，原横向滑条与滑块节点退出当前契约；按住、释放、多指及隐藏清理遵循公共命令组件，真实触屏手感与安全区仍需在设备上验收。其它 HUD 按钮继续使用原风格源。
 
 KagitKartMenuPaperMotion 持有外层卡片 Group 的 CanvasGroup，既有 Book/Sheet 动作和生命周期继续维护；按钮的 InteractionFeedback 只使用自己局部的透明度。不得把所有 CanvasGroup 归入按钮风格，或移除父 Group 上的现有组件。
 

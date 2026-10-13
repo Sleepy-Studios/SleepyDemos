@@ -12,6 +12,7 @@ namespace Core.Runtime
     public sealed class ActionConvert<T> : ActionBase
     {
         private readonly List<Action<T>> actions = new List<Action<T>>();
+        private Action<T>[] snapshot = Array.Empty<Action<T>>();
 
         public void Add(Action<T> action)
         {
@@ -21,6 +22,7 @@ namespace Core.Runtime
             }
 
             actions.Add(action);
+            snapshot = actions.ToArray();
             refCount = actions.Count;
         }
 
@@ -31,16 +33,19 @@ namespace Core.Runtime
                 return;
             }
 
-            actions.Remove(action);
+            if (actions.Remove(action))
+            {
+                snapshot = actions.ToArray();
+            }
             refCount = actions.Count;
         }
 
         public void Invoke(T data)
         {
-            var snapshot = actions.ToArray();
-            for (int i = 0; i < snapshot.Length; i++)
+            var current = snapshot;
+            for (int i = 0; i < current.Length; i++)
             {
-                snapshot[i]?.Invoke(data);
+                current[i]?.Invoke(data);
             }
         }
 
@@ -56,12 +61,14 @@ namespace Core.Runtime
     public sealed class ActionConvert<T, U>
     {
         private readonly List<Action<T, U>> actions = new List<Action<T, U>>();
+        private Action<T, U>[] snapshot = Array.Empty<Action<T, U>>();
 
         public void Add(Action<T, U> action)
         {
             if (action != null && !actions.Contains(action))
             {
                 actions.Add(action);
+                snapshot = actions.ToArray();
             }
         }
 
@@ -72,15 +79,18 @@ namespace Core.Runtime
                 return;
             }
 
-            actions.Remove(action);
+            if (actions.Remove(action))
+            {
+                snapshot = actions.ToArray();
+            }
         }
 
         public void Invoke(T data1, U data2)
         {
-            var snapshot = actions.ToArray();
-            for (int i = 0; i < snapshot.Length; i++)
+            var current = snapshot;
+            for (int i = 0; i < current.Length; i++)
             {
-                snapshot[i]?.Invoke(data1, data2);
+                current[i]?.Invoke(data1, data2);
             }
         }
     }

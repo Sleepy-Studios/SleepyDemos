@@ -18,7 +18,7 @@ MonoBehaviour:
   skyBottom: {r: 0.8784314, g: 0.5411765, b: 0.41568628, a: 1}
   sunDirection: {x: 0.3498426, y: 0.71967626, z: -0.5997302}
   sunColor: {r: 0.72156864, g: 0.7764706, b: 1, a: 1}
-  sunIntensity: 0.42971835
+  sunIntensity: 1.35
   skyMaterial: {fileID: 2100000, guid: ddf59bf0e965a694685120db8718cf30, type: 2}
   batches:
   - sourceName: scenery:vapur

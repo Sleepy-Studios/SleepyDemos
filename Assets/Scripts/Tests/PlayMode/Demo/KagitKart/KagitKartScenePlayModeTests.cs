@@ -230,18 +230,21 @@ namespace Tests.Demo
             world.Dispatch(KagitKartCommand.Resume);
             yield return Wait(() => world.Session.Race.State == KagitKartRaceState.Running, "触屏大奖赛起跑");
             var hud = UIManager.Instance.Get<KagitKartHudView>();
+            // 此用例固定显示触控区，不改写用户可能已保存的关闭偏好。
+            typeof(KagitKartWorld).GetProperty(nameof(KagitKartWorld.Settings)).SetValue(world, world.Settings.WithValue("TouchControls", 1));
+            Core.Runtime.Inputs.InputDeviceState.Notify(touchscreen);
+            yield return Wait(() => HudField<Button>(hud, "Button_Right").gameObject.activeInHierarchy, "实际触屏布局刷新");
             var slot = hud.gameObject.GetComponentInChildren<KagitKartItemSlot>(true);
             Assert.That(((RectTransform)slot.transform).sizeDelta.x, Is.EqualTo(136));
             Assert.That(HudField<Image>(slot, "window").rectTransform.sizeDelta.x, Is.EqualTo(Screen.height <= 520 ? 102 : 94));
 
-            Vector2 steer = ScreenPoint(hud.gameObject.GetComponentsInChildren<Core.Runtime.Inputs.TouchInputPad>().Single().transform);
+            Vector2 steer = ScreenPoint(Button(hud, "Right").transform);
             Vector2 gas = ScreenPoint(Button(hud, "Throttle").transform);
             Vector2 drift = ScreenPoint(Button(hud, "Drift").transform);
             Touch(1, UnityEngine.InputSystem.TouchPhase.Began, steer);
             Touch(2, UnityEngine.InputSystem.TouchPhase.Began, gas);
             Touch(3, UnityEngine.InputSystem.TouchPhase.Began, drift);
             yield return new WaitForSecondsRealtime(0.1f);
-            Touch(1, UnityEngine.InputSystem.TouchPhase.Moved, steer + Vector2.right * (Screen.width * 0.04f));
             // 等待 Input System、UI 指针和固定步命令均实际处理，不用墙钟时间代替输入帧。
             yield return null;
             yield return null;
@@ -872,9 +875,8 @@ namespace Tests.Demo
                     Assert.That(HudField<Button>(hud, item.Field).GetComponentInChildren<TMPro.TMP_Text>(true).text,
                         Is.EqualTo(item.English));
                 }
-                var steerLabel = HudField<Core.Runtime.Inputs.TouchInputPad>(hud, "TouchInputPad_Steering")
-                    .GetComponentInChildren<TMPro.TMP_Text>(true);
-                Assert.That(steerLabel.text, Is.EqualTo("←   Steer   →"));
+                Assert.That(HudField<Button>(hud, "Button_Left").GetComponentInChildren<TMPro.TMP_Text>(true).text, Is.EqualTo("←"));
+                Assert.That(HudField<Button>(hud, "Button_Right").GetComponentInChildren<TMPro.TMP_Text>(true).text, Is.EqualTo("→"));
                 var itemSlot = hud.gameObject.GetComponentInChildren<KagitKartItemSlot>(true);
                 Assert.That(HudField<TMPro.TMP_Text>(itemSlot, "itemName").text, Is.Not.EqualTo("Item"),
                     "触控道具按钮文案不能覆写库存纸卡的道具名称。");

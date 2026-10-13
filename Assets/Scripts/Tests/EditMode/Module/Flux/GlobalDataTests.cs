@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Core.Runtime;
 using NUnit.Framework;
@@ -76,6 +77,34 @@ namespace Tests.Module
             Assert.That(value, Is.Zero);
             GlobalData.Dispatch(new SetValue { Value = 4 });
             Assert.That(value, Is.EqualTo(4));
+        }
+
+        [Test]
+        public void SubscriberChangesPreserveCurrentDispatchAndReachNestedDispatch()
+        {
+            GlobalData.Add<Data>();
+            var calls = new List<string>();
+            bool nested = false;
+            Action<Data> second = data => calls.Add("second:" + data.Value);
+            Action<Data> added = data => calls.Add("added:" + data.Value);
+            GlobalData.Subscribe<Data>(data =>
+            {
+                calls.Add("first:" + data.Value);
+                if (!nested)
+                {
+                    nested = true;
+                    GlobalData.UnSubscribe(second);
+                    GlobalData.Subscribe(added, false);
+                    GlobalData.Dispatch(new SetValue { Value = 2 });
+                }
+            }, false);
+            GlobalData.Subscribe(second, false);
+
+            GlobalData.Dispatch(new SetValue { Value = 1 });
+            Assert.That(calls, Is.EqualTo(new[] { "first:1", "first:2", "added:2", "second:2" }));
+            calls.Clear();
+            GlobalData.Dispatch(new SetValue { Value = 3 });
+            Assert.That(calls, Is.EqualTo(new[] { "first:3", "added:3" }));
         }
 
         [Test]

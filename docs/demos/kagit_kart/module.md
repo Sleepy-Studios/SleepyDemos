@@ -2,7 +2,7 @@
 
 ## 当前职责
 
-独立规则归 `Hotfix.KagitKart`，不依赖场景、UI、全局 Time 设置或浏览器运行环境。不新增程序集，不修改其他 Demo 业务。公共输入补齐标量轴读取与门闩、摇杆轴图标以及横向滑条能力，职责仍在 Core.Runtime。
+独立规则归 `Hotfix.KagitKart`，不依赖场景、UI、全局 Time 设置或浏览器运行环境。不新增程序集，不修改其他 Demo 业务。标量轴读取与门闩、摇杆轴图标及触控保持组件复用 Core.Runtime，Demo 只转换驾驶命令。
 
 | 类型 | 当前职责 |
 |---|---|
@@ -42,6 +42,8 @@
 
 宿主复用 URP 的 `FullScreenPassRendererFeature` 和 `CopyDepthPass`，在透明绘制后补充最终深度，避免 SSAO 提前复制而漏掉透明幽灵的深度。运行时只安装到当前管线 Renderer，退出或切换管线时移除自有 Feature、恢复深度复制模式，不保存共享管线资产。兼容模式关闭效果并提示；其它后端的实际画面和资源释放按对应验收记录判断。
 
+本 Demo 的 Paper、Items、Sky、FX 和 HUD Shader 不读取 AO 或 `_CameraOpaqueTexture`，纸印只读取 Blit 颜色与场景深度。宿主在 `beginCameraRendering` 匹配本场世界相机时，临时关闭颜色复制并停用原本活跃的 SSAO 实例；在 `endCameraRendering` 恢复该次渲染前的 `requiresColorOption` 原枚举和具体 SSAO 实例状态。其它相机不进入这段作用域，切管线、重绑或卸载也会收回未结束的临时改动；共享 Feature 不销毁，公共设置仍维护相机原偏好。保留 `FinalDepthPass` 与透明后深度，确保透明幽灵轮廓和公共景深需求。
+
 ## 数据与边界
 
 `Data/Tracks/*.json` 完整保存原版赛道定义与 `sampleTrack` 的采样结果，含道路、左右边缘、坡度、表面、跳台和加速带索引。文件按项目规范命名为 `Meadow`、`Bosphorus`、`Glacier`、`Desk`，内部 ID 不变。`SourceCatalog.json` 的角色属性与赛车、速度组别和道路参数已经接入运动规则。
@@ -70,7 +72,7 @@
 
 正式资产为 `Data/PlayerInput.asset`，比赛使用 Drive，全局快捷键使用 Global；键盘、标准手柄和触屏最终都输出 `KagitKartControls`。菜单确认和返回使用 Core 的 `UIMenuScope`，不新增菜单输入底座。操作提示绑定同一会话动作副本，手柄单轴复用公共会话的死区参数，方向键覆盖摇杆。
 
-宿主每帧先 `CaptureFrame`，然后用缓存的读取委托调用 `Session.AdvanceInputFrame`，在每个固定步 `ReadControls(是否倒计时)`。零步帧不丢短按，追赶步不重复消费短按；按住泡泡糖与漂移保留持续状态。触控通过公共 `TouchInputPad`、`InputCommandButton.HoldChanged` 接入。自动油门默认关闭，倒计时始终手动油门，主动刹车优先。
+宿主每帧先 `CaptureFrame`，然后用缓存的读取委托调用 `Session.AdvanceInputFrame`，在每个固定步 `ReadControls(是否倒计时)`。零步帧不丢短按，追赶步不重复消费短按；按住泡泡糖与漂移保留持续状态。触控通过公共 `InputCommandButton.HoldChanged` 接入，转向由 Left / Right 两个保持命令交付，不再使用横向滑条。自动油门默认关闭，倒计时始终手动油门，主动刹车优先。
 
 输入类别切换或更换手柄时清空旧触控与锁存命令；键盘和鼠标互切只更新设备提示，保留持续驾驶和已缓存短按。交付的触控命令按原作与当前物理命令合并，转向取绝对值较大者、油门和刹车取较大者、按钮取或。显式开启触控不伪造设备识别，鼠标也可操作保存的触控组件。隐藏触控区会释放保持按钮与转向值。`InputCleared` 由宿主连接本场命令和触控组件清理；失焦、后台、手柄断连同时调用 `ResetInput` 和公共暂停门闩。退出释放输入副本和设备订阅。
 
@@ -102,13 +104,15 @@
 
 `Paper.shader` 转译原作道路、越野带、书页、加速贴纸、水波和纸洞的印刷算法；`PaperSky.shader` 保留七段天空印刷与纸纤维。纸洞使用 Unity 裁剪空间和 `SV_Depth`，不直接套用 WebGL 深度换算。后端编译、驾驶视觉和性能需按实际执行范围验证，不能由源码转译推断通过。
 
+Paper / Items 的屏幕 halftone 将输出像素间距按实际渲染目标高度换算，坐标和 `aa` 共用 `dotPx`，避免降低 renderScale 后输出网点被放大。AA 仍由公共显示设置处理，主光阴影尺寸和纸纤维保留当前契约；参数核对、再导入 Shader 的必要转换及视觉边界见[画质维护](runbooks/source-migration.md#画质参数与平台转换)。
+
 `SceneryWorld.Render` 由场景宿主每帧调用，显式传入比赛摄像机、赛道距离、表现时间、暂停后的 dt 和回头状态。实例矩阵属于各场世界，不修改共享数据或材质；场景静态部分使用保存的 MeshRenderer，纸景按原作沿程分批实例绘制。折起沿用 70–110 米触发、身后 60 米折回、回头保持、弹簧过冲和纸片颤动；跳台提前 125 米立起。天空材质由宿主绑定本场摄像机的 Skybox，不修改项目全局 RenderSettings。
 
 ## 场景与页面生命周期
 
 `World` 等待 `DemoIslandEditorBootstrap.EnsureReadyAsync` 和 `GameSceneNavigator.WaitUntilStableAsync`，通过公共 Loader 加载原作配置、赛道、AI 路线和角色资产。比赛 Loader 每场独立释放，退出同时解除输入、暂停与镜头订阅；不在 MonoBehaviour 字段初始化中读取本地存储路径。大奖赛下一章使用现有积分状态，重赛调用原作回滚；计时赛读取最佳幽灵，并在实际完赛后按当前完整记录契约保存。
 
-HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建全局 Canvas/EventSystem，触控按钮复用 `InputCommandButton`，横向滑条复用 `TouchInputPad`，提示绑定实际动作并复用 `InputBindingPrompt` 和项目图标目录。驾驶使用公共 `MenuInputScope.Interaction` 关闭菜单 Submit，暂停和结算通过 `UIMenuScope` 接管焦点，避免漂移 Space 同时确认 HUD 按钮。
+HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建全局 Canvas/EventSystem，触控按钮复用 `InputCommandButton`，左右转向按钮从本 Demo Foundation 嵌套并通过正式 UIBind 生成引用；提示绑定实际动作并复用 `InputBindingPrompt` 和项目图标目录。驾驶使用公共 `MenuInputScope.Interaction` 关闭菜单 Submit，暂停和结算通过 `UIMenuScope` 接管焦点，避免漂移 Space 同时确认 HUD 按钮。
 
 页面显示前由SetData交付场景来源；嵌套Modal遮挡时保留来源，关闭或销毁时解除订阅与引用，退出前等待关闭本场具体 View，不在 `OnDestroy` 发起按类型异步关闭。暂停同时冻结规则与纸景、镜头的表现时间，不改变全局 Time 设置。场景切换回滚时恢复本场页面并保留明确继续门闩。
 
@@ -168,6 +172,8 @@ HUD不保留原作不存在的常驻底部操作条，避免遮挡来袭预警�
 
 ## 暂停返回与子页快捷键
 
+设置页的两态/三态选项由 `KagitKartSettingsView.BindChoice → ChangeSetting → SaveSetting` 保存真实偏好，Flux 刷新后逐组应用唯一 Selected，其余为 Normal；保存失败仍显示原值和反馈。选择外观由 `KagitKartChoiceButton` 风格 Variant 维护，Normal 必须关闭旧 SelectionMark 并恢复纸面/文字，业务 Selected 使用完整红纸卡；操作说明的三个设备页签复用同一状态契约。具体样式与确认图见[美术维护](architecture/art-direction.md#可读性与换风格)。
+
 暂停页的“返回菜单”复用Demo标题路由，并清除杯赛；“返回大厅”仍是独立项目入口。GP先显示杯赛进度丢失提示，第二次选同一行才退出；移焦到其它行或打开子页取消确认，复用已有纸卡Focused事件，不新增通用确认弹窗。计时赛/普通比赛一次选择返回标题。
 
 World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复比赛；Esc/B继续交给公共菜单只退一层。TT的R仅在非赛前电影的倒计时、Running、Finishing有效，仍沿已有重赛/资源关闭链；不扩大为任意页面热键。公共画面设置仅在 Hub 打开，不把旧赛车公共 Modal 路由作为本场契约。
@@ -190,10 +196,14 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 
 `SceneryWorld` 的真实目标 false→true 发布源最大尺寸、0.18秒波次与坡台位置，World订阅并在StopRound退订，Audio汇聚rustle。四World资产保存源1401项size（766/227/363/45），保持来源版本、顺序、位置、尺度和GUID；不能由接线正确推断长期性能通过。
 
+静止纸景和坡台在弹簧到达目标且速度归零后跳过姿态重算，目标变化或 flutter 立即唤醒。实例局部姿态变化时标记对应批次，根变换变化时重算所有世界矩阵；章节动态、摄像机相关更新、材质时间与逐帧绘制继续执行。不能通过冻结动态纸景或减少可见更新频率取得性能收益。
+
+输入直接使用完整动作名常量，保持公共输入绑定和短按锁存。HUD 数字复用 TMP 格式化，数量和静态文本只在值变化时提交，时间仍逐帧按百分秒向下截取；Editor 的 TMP Inspector 字符串与 Player 热路径分配分别计量。音效缓存、加速双缓冲和音频线程参数交接见 [音频维护](runbooks/audio.md)。
+
 ## 验证与维护边界
 
 - 当前玩法、源算法、坐标转换、资源地址和生命周期以上述正文与 [源码维护](runbooks/source-migration.md) 为准。存档只遵守“计时记录”中的当前完整记录契约，不恢复旧部分修补行为。
 - 定向验收覆盖与尚未验证范围见 [验收对照](runbooks/acceptance.md)；设备模拟、合成轨迹、自动驾驶、GPU样本和人工驾驶分别记录，不相互替代。
 - 2026-10-10/11阶段数量、job、早期结构与“未完成”原文保存在 [验证历史](../../agent/archive/kagit-validation-history.md)；旧结果不能证明本次治理后的代码已重新验证。
-- 性能复查使用 [现有两项长期采样入口](runbooks/editor-performance.md)，历史数字独立归档。具体慢帧需实际定因，不把窗口均值当整场或Player性能保证。
+- 长圈流程复用 [现有两项长期采样入口](runbooks/editor-performance.md)，CPU/GC 定因与比较使用 [正式性能工具](../../modules/performance-tools.md)，历史数字独立归档。具体慢帧需实际定因，不把窗口均值当整场或Player性能保证。
 - 独立Player/IL2CPP、Android、真实手柄/触屏、全部屏幕比例及人工听感以各自实际记录为准，不从Editor通过推断。

@@ -110,7 +110,7 @@ Hub 与 Demo 输入提示的目录分别为 `HubInputGlyphCatalog.asset` 与原 
 
 每个控件只有一个 UIState，默认状态为 Normal、Hover、Focused、Pressed、Disabled。同节点 Selectable 自动驱动五态；无 Selectable 的业务或装饰节点手动切换，不挂独立交互桥或全局状态管理器。Tab/开关继续持有业务值，所需 Selected、On、Off 追加在同一状态表。
 
-自动控件按 Normal 基底、业务态、交互态顺序应用。Normal 保存所拥有属性的恢复值，Hover 提亮并显示细边，Focused 使用明确焦点边，Pressed 变深或改变装饰，Disabled 降低强调且关闭反馈层。状态退出恢复仍有效的业务表现；隐藏清除按下、悬停与 Submit 瞬态，不清空业务值。滚动表单保持点击矩形稳定，不统一缩放按钮根节点。触屏抑制交互强调，禁用态仍须清楚可见。
+自动控件按 Normal 基底、业务态、交互态顺序应用。Normal 保存所拥有属性的恢复值，Hover 提亮并显示细边，Focused 使用明确焦点边，Pressed 变深或改变装饰，Disabled 降低强调且关闭反馈层。状态退出恢复仍有效的业务表现；隐藏清除按下、悬停与 Submit 瞬态，不清空业务值。滚动表单保持点击矩形稳定，不统一缩放按钮根节点。触屏允许真实指针按住的 Pressed，抑制 Hover、Focused 与 Submit 瞬态，禁用态仍须清楚可见。
 
 保留现有 Decoration、纸卡等节点及强类型引用，关闭由 UIState 拥有属性的原生 Transition。迁移通过 Unity 原生 Prefab 操作合并状态与重绑引用，保留源资产 GUID、Variant 继承和 Demo 的外观覆盖；不要按状态数组位置搬迁业务定义。状态反馈 Graphic 不拦截射线，触控命令的保持、释放和隐藏清理由 InputCommandButton 负责。
 

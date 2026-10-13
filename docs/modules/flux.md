@@ -13,7 +13,7 @@
 
 它适合保存并反复读取的业务状态，例如玩家数据、Demo 当前状态、设置状态。一次性通知仍优先使用 `EventDispatcher`。
 
-如果 Action 走网络请求，推荐使用钓鱼项目同款写法：`Reduce` 中调用 `SendMsg(command, request)`，回包方法使用 `[MessageHandler(command, MessageHandler.State.Success)]` 或 Error 标注。网络成功 / 错误处理方法执行完成后，框架会自动 `ApplyState()`。只有纯本地修改才需要手动调用 `ApplyState()`。
+如果 Action 走网络请求，`Reduce` 中调用 `SendMsg(command, request)`，回包方法使用 `[MessageHandler(command, MessageHandler.State.Success)]` 或 Error 标注。网络成功 / 错误处理方法执行完成后，框架会自动 `ApplyState()`。只有纯本地修改才需要手动调用 `ApplyState()`。
 
 ## 代码位置
 
@@ -65,7 +65,7 @@ GlobalData.Subscribe<MyData>(OnMyDataChanged, true);  // 订阅后立即回调�
 GlobalData.Subscribe<MyData>(OnMyDataChanged, false); // 只接收后续状态变化
 ```
 
-默认值是 `true`，与钓鱼项目一致。回调列表使用快照遍历，回调中取消订阅不会破坏本轮通知。
+默认值是 `true`。Handler 和订阅回调在注册关系变化时生成快照，派发时复用，不再为每次刷新复制数组。回调中增删不会改变本轮顺序；嵌套及下一次派发使用新快照。该契约由 `GlobalDataTests.SubscriberChangesPreserveCurrentDispatchAndReachNestedDispatch` 验证。
 
 ### 清理状态
 

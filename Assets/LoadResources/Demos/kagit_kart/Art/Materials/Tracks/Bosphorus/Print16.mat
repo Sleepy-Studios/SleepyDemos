@@ -52,6 +52,7 @@ Material:
     - _Cull: 2
     - _DstBlend: 0
     - _Flat: 1
+    - _ReceiveShadows: 1
     - _SrcBlend: 1
     - _Unlit: 0
     - _UseHalftone: 1
@@ -66,8 +67,9 @@ Material:
     - uScroll: 0.05
     - uTime: 0
     m_Colors:
-    - _AmbientColor: {r: 0.0849441, g: 0.100449376, b: 0.2085434, a: 0.33422536}
+    - _AmbientColor: {r: 0.26685977, g: 0.315571, b: 0.6551584, a: 1.05}
     - _BaseColor: {r: 0.020288562, g: 0.06662595, b: 0.19461781, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
     - _FogColor: {r: 0.043735027, g: 0.05448028, b: 0.1620294, a: 1}
     - _FogRange: {r: 150, g: 700, b: 0, a: 0}
     - _Gradient: {r: 0.38, g: 0.7, b: 1, a: 0}

@@ -9,6 +9,8 @@ namespace Hotfix.KagitKart
     public sealed class KagitKartAudio : MonoBehaviour
     {
         private readonly Dictionary<string, double> lastPlayed = new();
+        private readonly Dictionary<string, AudioClip> effectClips = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> worldBuckets = new(StringComparer.Ordinal);
         private readonly double[] wallAt = new double[8];
         private readonly double[] bumpSeen = new double[64];
         private readonly double[] bumpPlayed = new double[64];
@@ -93,11 +95,20 @@ namespace Hotfix.KagitKart
             listener = camera != null ? camera : throw new ArgumentNullException(nameof(camera));
             dsp = gameObject.AddComponent<KagitKartAudioDsp>();
             dsp.Initialize();
+            dsp.PrepareEffects(bank.Clips);
             white = ReadNoise("bank_white");
             crackle = ReadNoise("bank_crackle");
+            bank.CopyEffectsTo(effectClips);
+            foreach (string name in effectClips.Keys)
+            {
+                worldBuckets.Add(name, name + ":world");
+            }
+            worldBuckets.Add("boost", "boost:world");
+            worldBuckets.Add("tier", "tier:world");
             for (int i = 0; i < effects.Length; i++)
             {
                 effects[i] = dsp.CreateVoice();
+                effects[i].PrepareBoost();
             }
             for (int i = 0; i < music.Length; i++)
             {
@@ -146,8 +157,9 @@ namespace Hotfix.KagitKart
                 session.Items.Signaled -= OnItem;
                 session.Collisions.Bumped -= OnBump;
                 session.Pause.Changed -= OnPause;
-                foreach (var kart in session.Karts)
+                for (int kartIndex = 0; kartIndex < session.Karts.Count; kartIndex++)
                 {
+                    var kart = session.Karts[kartIndex];
                     kart.Signaled -= OnVehicle;
                 }
             }
@@ -404,7 +416,16 @@ namespace Hotfix.KagitKart
             {
                 return false;
             }
-            string bucket = (rateKey ?? name) + (distant ? ":world" : "");
+            string bucket = rateKey ?? name;
+            if (distant)
+            {
+                if (!worldBuckets.TryGetValue(bucket, out string key))
+                {
+                    key = bucket + ":world";
+                    worldBuckets.Add(bucket, key);
+                }
+                bucket = key;
+            }
             double now = AudioSettings.dspTime;
             if (lastPlayed.TryGetValue(bucket, out double last) && now - last < gap)
             {
@@ -438,11 +459,12 @@ namespace Hotfix.KagitKart
             bool isMusic = name.StartsWith("sting_", StringComparison.Ordinal);
             if (name == "boost")
             {
-                source.SetWave(KagitKartBoostSynth.Render(kart.BoostSource, kart.LastBoostDuration, white, crackle, 44100, audioRandom.Next()), 44100);
+                source.SetBoost(kart.BoostSource, kart.LastBoostDuration, white, crackle, audioRandom.Next());
             }
             else
             {
-                source.Clip = bank.GetClip(isMusic ? name : "sfx_" + name);
+                source.Clip = isMusic ? bank.GetClip(name) : effectClips.TryGetValue(name, out var clip)
+                    ? clip : throw new ArgumentException("纸艺卡丁车原作音频缺失：sfx_" + name, nameof(name));
             }
             source.Pan = pan;
             effectGains[slot] = gain * intensity;
@@ -568,12 +590,12 @@ namespace Hotfix.KagitKart
                     Play("boost", kart, gain: kart.IsPlayer ? 1 : 0.55f, gap: 0.02f);
                     break;
                 case KagitKartVehicleSignal.Hit:
-                    string cause = kart.SpinCause == "rocket" ? "homing" : kart.SpinCause;
-                    if (cause != "gum" && cause != "plane" && cause != "homing" && cause != "scissors" && cause != "foil" && cause != "burnout")
+                    string hit = kart.SpinCause switch
                     {
-                        cause = "default";
-                    }
-                    Play("hit_" + cause, kart, gain: kart.IsPlayer ? 1 : 0.7f, important: kart.IsPlayer);
+                        "gum" => "hit_gum", "plane" => "hit_plane", "rocket" or "homing" => "hit_homing",
+                        "scissors" => "hit_scissors", "foil" => "hit_foil", "burnout" => "hit_burnout", _ => "hit_default"
+                    };
+                    Play(hit, kart, gain: kart.IsPlayer ? 1 : 0.7f, important: kart.IsPlayer);
                     break;
                 case KagitKartVehicleSignal.Inked:
                     if (kart.IsPlayer)
@@ -585,7 +607,8 @@ namespace Hotfix.KagitKart
                     Play("hop", kart, gain: kart.IsPlayer ? 1 : 0.4f, gap: 0.02f);
                     break;
                 case KagitKartVehicleSignal.DriftTier:
-                    Play("tier_" + Mathf.Clamp(kart.DriftTier - 1, 0, 2), kart, gain: kart.IsPlayer ? 1 : 0.35f, gap: 0.01f, rateKey: "tier");
+                    Play(kart.DriftTier <= 1 ? "tier_0" : kart.DriftTier == 2 ? "tier_1" : "tier_2",
+                        kart, gain: kart.IsPlayer ? 1 : 0.35f, gap: 0.01f, rateKey: "tier");
                     break;
                 case KagitKartVehicleSignal.DriftCancel:
                     if (kart.IsPlayer)
@@ -636,7 +659,13 @@ namespace Hotfix.KagitKart
                     }
                     break;
                 case "itemUse":
-                    Play("use_" + (signal.Item == "rocket3" ? "rocket" : signal.Item), signal.Kart, gain: mine ? 1 : 0.7f, gap: 0.02f);
+                    string use = signal.Item switch
+                    {
+                        "rocket" or "rocket3" => "use_rocket", "gum" => "use_gum", "plane" => "use_plane",
+                        "homing" => "use_homing", "ink" => "use_ink", "foil" => "use_foil",
+                        "scissors" => "use_scissors", _ => "use_" + signal.Item
+                    };
+                    Play(use, signal.Kart, gain: mine ? 1 : 0.7f, gap: 0.02f);
                     break;
                 case "projectile":
                     if (signal.State == "lock")
@@ -739,8 +768,9 @@ namespace Hotfix.KagitKart
         {
             Array.Clear(nearest, 0, nearest.Length);
             Array.Fill(cpuDistance, float.PositiveInfinity);
-            foreach (var kart in session.Karts)
+            for (int kartIndex = 0; kartIndex < session.Karts.Count; kartIndex++)
             {
+                var kart = session.Karts[kartIndex];
                 if (kart.IsPlayer)
                 {
                     continue;

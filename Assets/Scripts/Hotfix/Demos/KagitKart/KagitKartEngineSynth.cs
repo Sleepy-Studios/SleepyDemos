@@ -1,11 +1,13 @@
 using System;
-using System.Threading;
+using Unity.Profiling;
 
 namespace Hotfix.KagitKart
 {
     /// engine.js 的实时节点迁移；噪声时钟、滤波频率和振幅调制独立，禁止用循环变速代替。
     internal sealed class KagitKartEngineSynth
     {
+        private static readonly ProfilerMarker ControlSync = new("KagitKart.Engine.ControlSync");
+        private static readonly ProfilerMarker AudioBlock = new("KagitKart.Engine.AudioBlock");
         private readonly object gate = new();
         private readonly int rate;
         private readonly float[] white, pink;
@@ -15,6 +17,7 @@ namespace Hotfix.KagitKart
         private readonly Param body, flutter, rattle, squeak, whine, roar, wind, shimmer;
         private readonly Param frequency, bodyCutoff, puttFrequency, puttDepth, flutterFrequency;
         private readonly Param rattleCutoff, squeakCutoff, whineFrequency, roarCutoff, windCutoff, pan;
+        private readonly Param[] parameters;
         private readonly Oscillator sawA = new(), sawB = new(), sub = new(), putt = new();
         private readonly Oscillator flutterLfo = new(), rattleLfo = new(), squeakLfo = new();
         private readonly Oscillator whineOsc = new(), whineLfo = new(), shimmerLfo = new();
@@ -29,21 +32,40 @@ namespace Hotfix.KagitKart
             internal double Value;
             private double target;
             private double step;
+            private double pendingTarget, pendingStep, pendingValue;
+            private bool resetPending;
             private readonly int rate;
 
             internal Param(int rate, double value = 0)
             {
                 this.rate = rate;
-                Value = target = value;
+                Value = target = pendingTarget = value;
             }
 
             internal void Set(double value, double tau, bool immediate = false)
             {
-                target = value;
-                step = 1 - Math.Exp(-1 / (rate * tau));
+                pendingTarget = value;
+                pendingStep = 1 - Math.Exp(-1 / (rate * tau));
                 if (immediate)
                 {
-                    Value = target;
+                    ResetValue(value);
+                }
+            }
+
+            internal void ResetValue(double value)
+            {
+                pendingValue = value;
+                resetPending = true;
+            }
+
+            internal void Apply()
+            {
+                target = pendingTarget;
+                step = pendingStep;
+                if (resetPending)
+                {
+                    Value = pendingValue;
+                    resetPending = false;
                 }
             }
 
@@ -178,6 +200,9 @@ namespace Hotfix.KagitKart
             flutterFrequency = new Param(rate, 30); rattleCutoff = new Param(rate, 420);
             squeakCutoff = new Param(rate, 1900); whineFrequency = new Param(rate, 820);
             roarCutoff = new Param(rate, 1100); windCutoff = new Param(rate, 2500); pan = new Param(rate);
+            parameters = new[] { active, volume, body, flutter, rattle, squeak, whine, roar, wind, shimmer,
+                frequency, bodyCutoff, puttFrequency, puttDepth, flutterFrequency, rattleCutoff, squeakCutoff,
+                whineFrequency, roarCutoff, windCutoff, pan };
             flutterFilter.Set("bandpass", 1900, 1.3, rate);
             roarHigh.Set("highpass", 150, 0.7, rate);
             shimmerFilter.Set("bandpass", 7000, 3, rate);
@@ -189,6 +214,7 @@ namespace Hotfix.KagitKart
 
         internal void SetActive(bool on)
         {
+            using var sample = ControlSync.Auto();
             lock (gate)
             {
                 active.Set(on ? 1 : 0, on ? 0.08 : 0.05);
@@ -197,6 +223,7 @@ namespace Hotfix.KagitKart
 
         internal void SetVolume(float gain, bool muted)
         {
+            using var sample = ControlSync.Auto();
             lock (gate)
             {
                 volume.Set(muted ? 0 : gain, muted ? 0.04 : 0.05);
@@ -207,6 +234,7 @@ namespace Hotfix.KagitKart
             bool rescuing, string surface, bool drifting, int tier, float boostTime, float boostStrength,
             float draftCharge, bool invincible, float steering)
         {
+            using var sample = ControlSync.Auto();
             lock (gate)
             {
                 double f0 = 58 * Math.Pow(2, rpm * 2);
@@ -239,6 +267,7 @@ namespace Hotfix.KagitKart
 
         internal void SetCpu(int index, float frequency, float cutoff, float gain, float panning, bool fresh, bool present = true)
         {
+            using var sample = ControlSync.Auto();
             lock (gate)
             {
                 var cpu = cpus[index];
@@ -252,7 +281,7 @@ namespace Hotfix.KagitKart
                 cpu.Gain.Set(gain, present ? 0.08 : 0.05);
                 if (fresh)
                 {
-                    cpu.Gain.Value = 0;
+                    cpu.Gain.ResetValue(0);
                 }
                 cpu.Pan.Set(panning, 0.08);
             }
@@ -262,10 +291,14 @@ namespace Hotfix.KagitKart
         {
             lock (gate)
             {
-                foreach (var gain in new[] { body, flutter, rattle, squeak, whine, roar, wind, shimmer })
-                {
-                    gain.Set(0, 0.05);
-                }
+                body.Set(0, 0.05);
+                flutter.Set(0, 0.05);
+                rattle.Set(0, 0.05);
+                squeak.Set(0, 0.05);
+                whine.Set(0, 0.05);
+                roar.Set(0, 0.05);
+                wind.Set(0, 0.05);
+                shimmer.Set(0, 0.05);
                 foreach (var cpu in cpus)
                 {
                     cpu.Gain.Set(0, 0.03);
@@ -274,8 +307,30 @@ namespace Hotfix.KagitKart
             }
         }
 
-        internal void Begin() => Monitor.Enter(gate);
-        internal void End() => Monitor.Exit(gate);
+        internal void Begin()
+        {
+            AudioBlock.Begin();
+            // 块起点只复制参数；滤波历史与逐采样平滑仅由音频线程修改，不让主线程等待整块 DSP。
+            lock (gate)
+            {
+                foreach (var parameter in parameters)
+                {
+                    parameter.Apply();
+                }
+                foreach (var cpu in cpus)
+                {
+                    cpu.Frequency.Apply();
+                    cpu.Cutoff.Apply();
+                    cpu.Gain.Apply();
+                    cpu.Pan.Apply();
+                }
+            }
+        }
+
+        internal void End()
+        {
+            AudioBlock.End();
+        }
 
         internal void Mix(ref float left, ref float right)
         {

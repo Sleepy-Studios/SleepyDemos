@@ -2,7 +2,6 @@
 using System;
 using System.Collections;
 using System.Linq;
-using System.Reflection;
 using Core.Runtime.Inputs;
 using Core.Runtime.Settings;
 using Hotfix.KagitKart;
@@ -290,8 +289,8 @@ namespace Tests.Demo
             InputDeviceState.NotifyTouch();
             input.SetTouchHold("Throttle", true);
             input.SetTouchHold("Drift", true);
-            input.SetTouchSteer(-0.8f);
-            Assert.That(input.ReadControls(false).Steer, Is.EqualTo(-0.8f));
+            input.SetTouchHold("Left", true);
+            Assert.That(input.ReadControls(false).Steer, Is.EqualTo(-1));
             InputDeviceState.Notify(keyboard);
             controls = input.ReadControls(false);
             Assert.That(controls.Drift, Is.False);
@@ -322,9 +321,10 @@ namespace Tests.Demo
             canvas.transform.SetParent(root.transform);
             canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.GetComponent<Canvas>().sortingOrder = 32000;
-            var sliderObject = Rect(canvas.transform, "Steer", new Vector2(0.25f, 0.3f));
-            var slider = sliderObject.AddComponent<TouchInputPad>();
-            slider.ConfigureHorizontal(96);
+            var rightObject = Rect(canvas.transform, "Right", new Vector2(0.25f, 0.3f));
+            var leftObject = Rect(canvas.transform, "Left", new Vector2(0.25f, 0.65f));
+            BindHold(rightObject, "Right");
+            BindHold(leftObject, "Left");
             var gasObject = Rect(canvas.transform, "Throttle", new Vector2(0.65f, 0.3f));
             var driftObject = Rect(canvas.transform, "Drift", new Vector2(0.85f, 0.3f));
             BindHold(gasObject, "Throttle");
@@ -332,7 +332,8 @@ namespace Tests.Demo
             try
             {
                 yield return null;
-                Vector2 steerPoint = RectTransformUtility.WorldToScreenPoint(null, sliderObject.transform.position);
+                Vector2 steerPoint = RectTransformUtility.WorldToScreenPoint(null, rightObject.transform.position);
+                Vector2 leftPoint = RectTransformUtility.WorldToScreenPoint(null, leftObject.transform.position);
                 Vector2 gasPoint = RectTransformUtility.WorldToScreenPoint(null, gasObject.transform.position);
                 Vector2 driftPoint = RectTransformUtility.WorldToScreenPoint(null, driftObject.transform.position);
                 Touch(screen, 1, UnityEngine.InputSystem.TouchPhase.Began, steerPoint);
@@ -340,13 +341,8 @@ namespace Tests.Demo
                 Touch(screen, 3, UnityEngine.InputSystem.TouchPhase.Began, driftPoint);
                 yield return null;
                 yield return null;
-                float travel = 96 * Screen.height / 720f;
-                Touch(screen, 1, UnityEngine.InputSystem.TouchPhase.Moved, steerPoint + new Vector2(travel * 0.5f, 0));
-                yield return null;
-                yield return null;
-                input.SetTouchSteer(slider.Move.x);
                 var controls = input.ReadControls(false);
-                Assert.That(controls.Steer, Is.EqualTo(0.5f).Within(0.02));
+                Assert.That(controls.Steer, Is.EqualTo(1));
                 Assert.That(controls.Throttle, Is.EqualTo(1));
                 Assert.That(controls.Drift, Is.True);
                 Touch(screen, 2, UnityEngine.InputSystem.TouchPhase.Ended, gasPoint);
@@ -355,13 +351,55 @@ namespace Tests.Demo
                 controls = input.ReadControls(false);
                 Assert.That(controls.Throttle, Is.Zero);
                 Assert.That(controls.Drift, Is.True);
-                Assert.That(controls.Steer, Is.EqualTo(0.5f).Within(0.02));
-                sliderObject.SetActive(false);
+                Assert.That(controls.Steer, Is.EqualTo(1));
+                Touch(screen, 4, UnityEngine.InputSystem.TouchPhase.Began, leftPoint);
+                yield return null;
+                yield return null;
+                Assert.That(input.ReadControls(false).Steer, Is.Zero, "左右两指同时保持时回正。");
+                Touch(screen, 1, UnityEngine.InputSystem.TouchPhase.Ended, steerPoint);
+                yield return null;
+                yield return null;
+                Assert.That(input.ReadControls(false).Steer, Is.EqualTo(-1), "松开右指后保留左转。");
+                Vector2 outside = new Vector2(Screen.width * 0.5f, Screen.height * 0.85f);
+                Touch(screen, 4, UnityEngine.InputSystem.TouchPhase.Moved, outside);
+                yield return null;
+                yield return null;
+                Assert.That(input.ReadControls(false).Steer, Is.EqualTo(-1), "拖出仍由原按钮持有，避免触点小偏移中断转向。");
+                Touch(screen, 4, UnityEngine.InputSystem.TouchPhase.Ended, outside);
+                yield return null;
+                yield return null;
+                Assert.That(input.ReadControls(false).Steer, Is.Zero, "按钮外抬手同样释放原指针。");
+                Touch(screen, 5, UnityEngine.InputSystem.TouchPhase.Began, steerPoint);
+                yield return null;
+                yield return null;
+                Assert.That(input.ReadControls(false).Steer, Is.EqualTo(1));
+                rightObject.SendMessage("OnApplicationFocus", false);
+                Assert.That(input.ReadControls(false).Steer, Is.Zero, "失焦释放保持转向。");
+                Touch(screen, 5, UnityEngine.InputSystem.TouchPhase.Ended, steerPoint);
+                yield return null;
+                Touch(screen, 6, UnityEngine.InputSystem.TouchPhase.Began, steerPoint);
+                yield return null;
+                yield return null;
+                rightObject.SendMessage("OnApplicationPause", true);
+                Assert.That(input.ReadControls(false).Steer, Is.Zero, "挂起释放保持转向。");
+                Touch(screen, 6, UnityEngine.InputSystem.TouchPhase.Ended, steerPoint);
+                yield return null;
+                Touch(screen, 7, UnityEngine.InputSystem.TouchPhase.Began, leftPoint);
+                yield return null;
+                yield return null;
+                Assert.That(input.ReadControls(false).Steer, Is.EqualTo(-1));
+                leftObject.SetActive(false);
                 driftObject.SetActive(false);
-                input.SetTouchSteer(slider.Move.x);
                 controls = input.ReadControls(false);
                 Assert.That(controls.Steer, Is.Zero);
                 Assert.That(controls.Drift, Is.False);
+                rightObject.GetComponent<InputCommandButton>().OnPointerDown(new PointerEventData(system) { pointerId = 91 });
+                Assert.That(input.ReadControls(false).Steer, Is.EqualTo(1));
+                input.SetDriving(false);
+                canvas.SetActive(false);
+                input.SetDriving(true);
+                canvas.SetActive(true);
+                Assert.That(input.ReadControls(false).Steer, Is.Zero, "暂停恢复不能重新使用未松开的旧指针。");
             }
             finally
             {
@@ -398,8 +436,7 @@ namespace Tests.Demo
         private void BindHold(GameObject obj, string command)
         {
             var button = obj.AddComponent<InputCommandButton>();
-            typeof(InputCommandButton).GetField("command", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(button, command);
-            typeof(InputCommandButton).GetField("hold", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(button, true);
+            button.Configure(command, true);
             button.HoldChanged += input.SetTouchHold;
         }
 
@@ -415,18 +452,18 @@ namespace Tests.Demo
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
             yield return null;
             yield return null;
-            input.SetTouchSteer(-0.8f);
+            input.SetTouchHold("Left", true);
             input.SetTouchHold("Brake", true);
             input.SetTouchHold("Item", true);
             var mixed = input.ReadControls(false);
-            Assert.That(mixed.Steer, Is.EqualTo(-0.8f));
+            Assert.That(mixed.Steer, Is.EqualTo(-1));
             Assert.That(mixed.Throttle, Is.EqualTo(1), "触控刹车不丢键盘油门，规则层决定加减速。");
             Assert.That(mixed.Brake, Is.EqualTo(1));
             Assert.That(mixed.Item, Is.True);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D));
             yield return null;
             Assert.That(input.ReadControls(false).Steer, Is.EqualTo(1), "原作采用绝对值较大的转向命令。");
-            input.SetTouchSteer(0);
+            input.SetTouchHold("Left", false);
             input.SetTouchHold("Brake", false);
             input.SetTouchHold("Item", false);
             var released = input.ReadControls(false);

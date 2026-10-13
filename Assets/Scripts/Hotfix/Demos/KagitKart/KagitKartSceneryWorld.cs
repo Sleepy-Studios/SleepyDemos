@@ -14,6 +14,8 @@ namespace Hotfix.KagitKart
 
         private Matrix4x4[][] poses;
         private Matrix4x4[][] worldPoses;
+        private bool[] dirtyBatches;
+        private Matrix4x4 previousRoot;
         private MaterialPropertyBlock[] blocks;
         private PopupState[][] states;
         private PopupState[] rampStates;
@@ -50,10 +52,12 @@ namespace Hotfix.KagitKart
             }
             poses = new Matrix4x4[asset.batches.Length][];
             worldPoses = new Matrix4x4[poses.Length][];
+            dirtyBatches = new bool[poses.Length];
             blocks = new MaterialPropertyBlock[poses.Length];
             for (int b = 0; b < poses.Length; b++)
             {
                 poses[b] = (Matrix4x4[])asset.batches[b].poses.Clone();
+                dirtyBatches[b] = true;
                 worldPoses[b] = new Matrix4x4[poses[b].Length];
                 blocks[b] = new MaterialPropertyBlock();
                 blocks[b].SetVectorArray("_InstanceColor", asset.batches[b].colors);
@@ -75,6 +79,8 @@ namespace Hotfix.KagitKart
             for (int i = 0; i < rampStates.Length; i++)
             {
                 rampRotations[i] = rampTransforms[i].localRotation;
+                rampTransforms[i].localRotation = rampRotations[i] * Quaternion.AngleAxis(
+                    asset.ramps[i].theta * Mathf.Rad2Deg, Vector3.right);
             }
             staticBlock = new MaterialPropertyBlock();
             dynamics = JsonConvert.DeserializeObject<Dynamics>(asset.dynamicsData.text);
@@ -121,6 +127,11 @@ namespace Hotfix.KagitKart
                             QueuePopup(item.position - Vector3.up * 0.02f, item.size);
                         }
                     }
+                    // 目标检测始终运行；静止纸景按原作休眠，目标变化或 flutter 会立即唤醒。
+                    if (state.angle == (state.target ? 1 : 0) && state.speed == 0 && state.flutter <= 0)
+                    {
+                        continue;
+                    }
                     float before = state.angle;
                     AdvanceSpring(ref state, dt, reducedMotion);
                     if (!reducedMotion && group.flutter && state.target && before < 1 && state.angle >= 1
@@ -149,6 +160,10 @@ namespace Hotfix.KagitKart
                     pendingSize = Mathf.Max(pendingSize, 3);
                     pendingPosition = rampTransforms[i].position;
                 }
+                if (state.angle == (state.target ? 1 : 0) && state.speed == 0)
+                {
+                    continue;
+                }
                 AdvanceSpring(ref state, dt, reducedMotion);
                 rampTransforms[i].localRotation = rampRotations[i] * Quaternion.AngleAxis(
                     asset.ramps[i].theta * (1 - Mathf.Clamp(state.angle, 0, 1.25f)) * Mathf.Rad2Deg, Vector3.right);
@@ -167,13 +182,19 @@ namespace Hotfix.KagitKart
                 renderer.SetPropertyBlock(staticBlock);
             }
             Matrix4x4 root = transform.localToWorldMatrix;
+            bool rootChanged = !root.Equals(previousRoot);
+            previousRoot = root;
             for (int b = 0; b < poses.Length; b++)
             {
                 var batch = asset.batches[b];
-                Matrix4x4 parent = root * batch.parent;
-                for (int i = 0; i < poses[b].Length; i++)
+                if (rootChanged || dirtyBatches[b])
                 {
-                    worldPoses[b][i] = parent * poses[b][i];
+                    Matrix4x4 parent = root * batch.parent;
+                    for (int i = 0; i < poses[b].Length; i++)
+                    {
+                        worldPoses[b][i] = parent * poses[b][i];
+                    }
+                    dirtyBatches[b] = false;
                 }
                 blocks[b].SetFloat("uTime", time);
                 for (int submesh = 0; submesh < batch.mesh.subMeshCount; submesh++)
@@ -259,17 +280,17 @@ namespace Hotfix.KagitKart
             for (int i = 0; i < dynamics.windmills.Length; i++)
             {
                 var w = dynamics.windmills[i];
-                poses[bind.sails][i] = poses[dynamics.mill][w.i]
+                SetPose(bind.sails, i, poses[dynamics.mill][w.i]
                     * Matrix4x4.Translate(new Vector3(0, 9.3f, 2.75f))
-                    * Matrix4x4.Rotate(Quaternion.AngleAxis((float)(-(w.phase + time * w.spin) * 180 / Math.PI), Vector3.forward));
+                    * Matrix4x4.Rotate(Quaternion.AngleAxis((float)(-(w.phase + time * w.spin) * 180 / Math.PI), Vector3.forward)));
             }
             for (int i = 0; i < dynamics.clouds.Length; i++)
             {
                 var c = dynamics.clouds[i];
                 double yaw = Math.Atan2(cameraX - c.x, cameraZ - c.z);
                 var matrix = Pose(c.x, c.y, c.z, yaw, c.sc, c.sc, c.sc);
-                poses[bind.cloud][i] = matrix;
-                poses[bind.strings][i] = matrix;
+                SetPose(bind.cloud, i, matrix);
+                SetPose(bind.strings, i, matrix);
             }
             for (int i = 0; i < dynamics.ferries.Length; i++)
             {
@@ -282,8 +303,8 @@ namespace Hotfix.KagitKart
                 f.x = toEast ? dynamics.west + 18 + ease * width : dynamics.east - 18 - ease * width;
                 double bob = Math.Sin(time * 1.3 + i) * 0.12;
                 var matrix = Pose(f.x, dynamics.pageY + 0.2 + bob, f.z, toEast ? Math.PI / 2 : -Math.PI / 2);
-                poses[bind.ferry][i] = matrix;
-                poses[bind.ferryLights][i] = matrix;
+                SetPose(bind.ferry, i, matrix);
+                SetPose(bind.ferryLights, i, matrix);
             }
             for (int i = 0; i < dynamics.puffs.Length; i++)
             {
@@ -295,8 +316,8 @@ namespace Hotfix.KagitKart
                 }
                 var ferry = dynamics.ferries[p.ferry];
                 double g = p.age / 4, scale = 0.6 + g * 2.4;
-                poses[bind.smoke][i] = Pose(ferry.x + Math.Sin(i * 1.7 + time) * g * 2 - g * 3,
-                    dynamics.pageY + 8.6 + g * 11, ferry.z + g * 1.5, 0, scale, scale * 0.85, scale);
+                SetPose(bind.smoke, i, Pose(ferry.x + Math.Sin(i * 1.7 + time) * g * 2 - g * 3,
+                    dynamics.pageY + 8.6 + g * 11, ferry.z + g * 1.5, 0, scale, scale * 0.85, scale));
             }
             if (dynamics.chimney != null)
             {
@@ -304,8 +325,8 @@ namespace Hotfix.KagitKart
                 for (int i = 0; i < 14; i++)
                 {
                     double g = (time * 0.28 + i / 14.0) % 1, scale = 0.5 + g * 2.6;
-                    poses[bind.smoke][i] = Pose(c.x + Math.Sin(i * 2.1 + time * 0.5) * g * 2 + g * 5,
-                        c.y + g * 16, c.z + g * 2, 0, scale, scale * 0.8, scale);
+                    SetPose(bind.smoke, i, Pose(c.x + Math.Sin(i * 2.1 + time * 0.5) * g * 2 + g * 5,
+                        c.y + g * 16, c.z + g * 2, 0, scale, scale * 0.8, scale));
                 }
             }
             if (dynamics.cable.Length > 1)
@@ -320,7 +341,7 @@ namespace Hotfix.KagitKart
                     var a = dynamics.cable[i];
                     var b = dynamics.cable[i + 1];
                     double yaw = Math.Atan2(b.x - a.x, b.z - a.z) + Math.Sin(time * 1.3 + k) * 0.03;
-                    poses[bind.gondola][k] = Pose(a.x + (b.x - a.x) * w, a.y + (b.y - a.y) * w, a.z + (b.z - a.z) * w, yaw);
+                    SetPose(bind.gondola, k, Pose(a.x + (b.x - a.x) * w, a.y + (b.y - a.y) * w, a.z + (b.z - a.z) * w, yaw));
                 }
             }
             if (dynamics.mug != null)
@@ -330,8 +351,8 @@ namespace Hotfix.KagitKart
                 {
                     double g = (time * 0.12 + i / 8.0) % 1, scale = 1.2 + g * 2.2 * (1 - g * 0.5);
                     double yaw = Math.Atan2(cameraX - mug.x, cameraZ - mug.z) + Math.Sin(i * 1.7) * 0.4;
-                    poses[bind.steam][i] = Pose(mug.x + Math.Sin(time * 0.6 + i) * 3 * g, mug.top + g * 30,
-                        mug.z + Math.Cos(time * 0.5 + i * 2) * 3 * g, yaw, scale * (1 - g * 0.3), scale, scale);
+                    SetPose(bind.steam, i, Pose(mug.x + Math.Sin(time * 0.6 + i) * 3 * g, mug.top + g * 30,
+                        mug.z + Math.Cos(time * 0.5 + i * 2) * 3 * g, yaw, scale * (1 - g * 0.3), scale, scale));
                 }
             }
         }
@@ -420,7 +441,16 @@ namespace Hotfix.KagitKart
                 * Quaternion.AngleAxis(-(1 - angle) * 90, Vector3.right), scale);
             foreach (int batch in group.batches)
             {
+                SetPose(batch, index, pose);
+            }
+        }
+
+        private void SetPose(int batch, int index, Matrix4x4 pose)
+        {
+            if (!poses[batch][index].Equals(pose))
+            {
                 poses[batch][index] = pose;
+                dirtyBatches[batch] = true;
             }
         }
     }

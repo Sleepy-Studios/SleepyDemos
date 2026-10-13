@@ -10,7 +10,7 @@
 - 某个流程结束后通知 UI 播放一次提示
 - Core 运行时向 Hotfix 广播轻量状态变化
 
-第一版沿用参考项目常见的 `AddEventListener / RemoveEventListener / TriggerEvent` 写法，事件名使用 `string` 常量管理。相比参考项目，SleepyDemos 额外补上参数签名校验、重复注册保护、异常隔离和移除接口。
+事件系统使用 `AddEventListener / RemoveEventListener / TriggerEvent` 接口，事件名使用 `string` 常量管理，并提供参数签名校验、重复注册保护、异常隔离和移除接口。
 
 设计约束：
 - 事件分发器在 Core，业务事件名在 Hotfix
@@ -110,7 +110,7 @@ EventDispatcher.RemoveEventListener(EventConst.MainMenuRefresh, Refresh);
 
 ```csharp
 EventDispatcher.AddEventListener<string>(EventConst.DemoEnterRequested, OnDemoEnterRequested);
-EventDispatcher.TriggerEvent(EventConst.DemoEnterRequested, "fishing");
+EventDispatcher.TriggerEvent(EventConst.DemoEnterRequested, "drone_flight");
 EventDispatcher.RemoveEventListener<string>(EventConst.DemoEnterRequested, OnDemoEnterRequested);
 ```
 

@@ -16,6 +16,11 @@ namespace Hotfix.KagitKart
         private Material material;
         private RenderPipelineAsset pipeline;
         private bool compatibilityMode;
+        private UniversalAdditionalCameraData cameraData;
+        private CameraOverrideOption previousColorOption;
+        private bool ownsColorOption;
+        private readonly List<ScreenSpaceAmbientOcclusion> ambientFeatures = new();
+        private readonly List<ScreenSpaceAmbientOcclusion> temporarilyDisabledAmbient = new();
 
         private sealed class Installation
         {
@@ -53,6 +58,8 @@ namespace Hotfix.KagitKart
 
         private void OnEnable()
         {
+            RenderPipelineManager.beginCameraRendering += BeginCamera;
+            RenderPipelineManager.endCameraRendering += EndCamera;
             if (material != null)
             {
                 SetPipeline(GraphicsSettings.currentRenderPipeline);
@@ -88,6 +95,13 @@ namespace Hotfix.KagitKart
                 {
                     continue;
                 }
+                foreach (var existing in renderer.rendererFeatures)
+                {
+                    if (existing is ScreenSpaceAmbientOcclusion ambient && !ambientFeatures.Contains(ambient))
+                    {
+                        ambientFeatures.Add(ambient);
+                    }
+                }
                 var feature = ScriptableObject.CreateInstance<KagitKartPostFeature>();
                 feature.name = "KagitKart 原作纸印";
                 feature.hideFlags = HideFlags.HideAndDontSave;
@@ -103,8 +117,45 @@ namespace Hotfix.KagitKart
             }
         }
 
+        private void BeginCamera(ScriptableRenderContext context, Camera camera)
+        {
+            if (camera != worldCamera) return;
+            cameraData = worldCamera.GetUniversalAdditionalCameraData();
+            previousColorOption = cameraData.requiresColorOption;
+            cameraData.requiresColorOption = CameraOverrideOption.Off;
+            ownsColorOption = true;
+            // 纸印材质不读取 AO；只在世界相机的原生渲染作用域停用，不影响共享 Renderer 的其它相机。
+            foreach (var feature in ambientFeatures)
+            {
+                if (feature != null && feature.isActive)
+                {
+                    temporarilyDisabledAmbient.Add(feature);
+                    feature.SetActive(false);
+                }
+            }
+        }
+
+        private void EndCamera(ScriptableRenderContext context, Camera camera)
+        {
+            if (camera == worldCamera) RestoreCameraSettings();
+        }
+
+        private void RestoreCameraSettings()
+        {
+            if (ownsColorOption && cameraData != null) cameraData.requiresColorOption = previousColorOption;
+            ownsColorOption = false;
+            cameraData = null;
+            foreach (var feature in temporarilyDisabledAmbient)
+            {
+                if (feature != null) feature.SetActive(true);
+            }
+            temporarilyDisabledAmbient.Clear();
+        }
+
         private void Uninstall()
         {
+            RestoreCameraSettings();
+            ambientFeatures.Clear();
             foreach (var entry in installations)
             {
                 var feature = entry.Value.feature;
@@ -131,7 +182,12 @@ namespace Hotfix.KagitKart
             worldCamera = null;
         }
 
-        private void OnDisable() => Uninstall();
+        private void OnDisable()
+        {
+            RenderPipelineManager.beginCameraRendering -= BeginCamera;
+            RenderPipelineManager.endCameraRendering -= EndCamera;
+            Uninstall();
+        }
 
         private void OnDestroy() => Release();
     }

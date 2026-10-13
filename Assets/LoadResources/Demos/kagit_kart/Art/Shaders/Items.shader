@@ -556,8 +556,9 @@ float3 kkPagePrint( float2 wp, float3 paper ) {
     float dark = max(1-step(-0.3333,nl),1-shadow);
     if (_UseHalftone > 0.5 && dark > 0.01)
     {
-     float2 p = i.positionCS.xy/uDotPx; p=float2(p.x+p.y,p.y-p.x)*0.70710678;
-     float d=length(frac(p)-0.5), r=0.36*dark, aa=0.7/uDotPx+0.02;
+     float dotPx = uDotPx * _ScaledScreenParams.y / _ScreenParams.y;
+     float2 p = i.positionCS.xy/dotPx; p=float2(p.x+p.y,p.y-p.x)*0.70710678;
+     float d=length(frac(p)-0.5), r=0.36*dark, aa=0.7/dotPx+0.02;
      outgoing = lerp(outgoing,uInk.rgb*0.9+outgoing*0.25,(1-smoothstep(r-aa,r+aa,d))*0.42);
     }
 

@@ -1,6 +1,6 @@
 # 纸艺卡丁车
 
-`KagitKart` / `kagit_kart` 是 Kâğıt Kart 的中文 Unity 单人 Demo，包含四条原版赛道、八角色、三种模式与键盘/手柄/多指触屏操作。保留源码规则、3D立体书、纸景动画、文具道具、纸鹤救援、章节音乐和纸印效果，已完成定向规则对照、原生场景流程、关键画面及四章长圈性能验收。实际证据和未验证项见[验收对照](runbooks/acceptance.md)；不声明像素完全一致、Player构建或Android真机通过。
+`KagitKart` / `kagit_kart` 是 Kâğıt Kart 的中文 Unity 单人 Demo，包含四条原版赛道、八角色、三种模式与键盘/手柄/多指触屏操作。保留源码规则、3D立体书、纸景动画、文具道具、纸鹤救援、章节音乐和纸印效果，已有定向规则对照、原生场景流程、关键画面及历史四章长圈证据。本次新 AA、UI 与优化后的复测以[2026-10-13 性能收口](runbooks/performance-2026-10-13.md)为准；实际证据和未验证项见[验收对照](runbooks/acceptance.md)，不声明像素完全一致、Player构建或Android真机通过。
 
 - [模块与当前能力](module.md)
 - [界面美术与控件外观](architecture/art-direction.md)
@@ -8,11 +8,12 @@
 - [音频维护与保真边界](runbooks/audio.md)
 - [完整需求与实际验收对照](runbooks/acceptance.md)
 - [Editor 性能记录](runbooks/editor-performance.md)
+- [2026-10-13 性能收口与条件边界](runbooks/performance-2026-10-13.md)
 - [原始 Goal](../../agent/prompts/demos/kagit_kart/original-goal.md)：只用于需求追溯。
 
 代码：`Assets/Scripts/Hotfix/Demos/KagitKart/`。数据：`Assets/LoadResources/Demos/kagit_kart/Data/`。测试：`Tests.Demo.KagitKartRuleTests`。
 
-画面沿用原作立体书、纸景、剪纸角色、文具道具和硬阴影。玩家可见内容统一简体中文；触屏保留原作横向转向滑条。用户已确认中文比赛 HUD 方向；后续直接忠实迁移原版 UI，不再要求逐页效果图确认。比赛 HUD、暂停和结算均使用正式 Prefab 与 UIBind 生成绑定。
+画面沿用原作立体书、纸景、剪纸角色、文具道具和硬阴影。玩家可见内容统一简体中文；触屏按已确认局部设计使用左右保持转向按钮。用户已确认中文比赛 HUD 方向；后续直接忠实迁移原版 UI，不再要求逐页效果图确认。比赛 HUD、暂停和结算均使用正式 Prefab 与 UIBind 生成绑定。
 
 选赛使用原作桌面立体书：封面开合、曲面卷页、纸景铰链弹出、车手切换与转盘、镜头过渡均已接入。纸卡入场与焦点表现保留原作时序，布局露出 3D 舞台。已有键盘、模拟手柄与多指触屏的场景流程记录；范围与限制见验收对照，阶段数量与job只保留在 [验证历史](../../agent/archive/kagit-validation-history.md)。
 

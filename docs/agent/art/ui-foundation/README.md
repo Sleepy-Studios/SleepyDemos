@@ -10,18 +10,21 @@
 | 运行期 Loading | [v2](scene-loading-v2.png) | 用户已确认并装配 CommonLoading；无人机场景全屏主视觉与独立信息层 |
 | 启动 Loading | [v3](startup-loading-v3.png) | 用户已确认并装配 StartupLoading；瑞士风抽象艺术背景与边缘信息 |
 | 设置页分类图标 | [v1](settings-icons-v1.png) | 用户已确认设计，并指定安装 Vector Graphics 直接复用单套 SVG；尺寸示例不作为多套资产 |
+| 纸艺卡丁车设置与触控 | [v1](kagit-settings-touch-v1.png) | 2026-10-13 用户已确认选中配色和左右按钮方向；图中方向键尺寸仅为概念，最终按用户修正缩为 160×140，原生装配和验收独立记录 |
 
 按用户要求，仓库仅保留当前采用的图和提示词；早期网页式 Loading、海岛背景、误画 BtnSwitch1 的控件图及被替代的规范板已清理。原始生成输出仍保留在本机生成目录，必要的旧图副本位于 `$CODEX_HOME/generated_images/<thread-id>/retired-designs/`，不作为当前设计依据。
 
 03正式原生截图已获用户认可；随后新增设置页五个分类图标和具体默认值显示要求。图标源为 `Assets/LoadResources/UI/Common/Sprites/Settings/*.svg`，五个透明200×200 viewBox以50×50显示，保留同一套曲线路径与双色，无独立小稿或状态稿。原始规范板用于确认形状，不裁切板上的文案或尺寸样例作为正式资源。uGUI使用Vector Graphics包的SVGImage，具体限制见[公共美术规范](../../../architecture/ui-art-direction.md)。
 
-Loading 参考 [Game UI Database 的 GTA V 自动加载画面](https://www.gameuidatabase.com/gameData.php?id=115&autoload=1599)与[荒野大镖客 2 加载画面](https://www.gameuidatabase.com/gameData.php?id=34&autoload=5759)，两页真实截图已浏览核对。GTA V 采用全屏插画、左下品牌、右下加载状态；其中右侧活动宣传块不套用本项目。钓鱼项目的正式 Prefab 结构也已核对：全屏 Bg、顶部 Logo/GameType、底部 Loading 进度百分比与 GameTips。借鉴画面优先和边缘状态布局，不使用这些游戏的版权图片作为项目资产。
+Loading 参考 [Game UI Database 的 GTA V 自动加载画面](https://www.gameuidatabase.com/gameData.php?id=115&autoload=1599)与[荒野大镖客 2 加载画面](https://www.gameuidatabase.com/gameData.php?id=34&autoload=5759)，两页真实截图已浏览核对。GTA V 采用全屏插画、左下品牌、右下加载状态；其中右侧活动宣传块不套用本项目。借鉴画面优先和边缘状态布局，不使用这些游戏的版权图片作为项目资产。
 
 启动 v3 与运行期 v2 均已正式装配，图片和提示词保留为审批材料。去字正式背景分别为 `Assets/LoadResources/UI/Common/Loading/Art/StartupBackdrop.png` 与 `SceneBackdropDrone.png`，由 `Assets/Scenes/StartupLoading.prefab`、`Assets/LoadResources/UI/Common/CommonLoading.prefab` 使用；文字、说明、百分比与 Filled 均为独立 UI。背景使用等比覆盖，信息层不参与裁切。运行期 DLSS 与纸艺卡丁车复用现有无文字预览图，夹爆它复用已确认抽象背景，具体映射见[场景导航](../../../modules/scene-runtime.md)。启动 v2 仅布局获认可，海岛背景不实施；Loading v1 均已否决。
 
 原生装配及 Canvas 预览已完成，原生资源收口报告为 `Library/UIArt/finalization-report.txt`；预览不是正式入口运行截图。最新四 Demo 往返、重载、失败恢复、多画幅可读性与性能结果须按实际运行另行记录，不以效果图批准或 Prefab 保存代替。
 
 公共规范板生成的宣传语、色值标签与装饰英文不作为正式需求；实现以[公共美术规范](../../../architecture/ui-art-direction.md)、现有资源与实际功能为准。动效不建立统一规范；纯透明度控制优先 CanvasGroup。
+
+纸艺卡丁车局部效果图只确认上述选中态和左右触控按钮；其余设置项、百分比、页面布局与比赛画面继续沿用正式实现，不按生成图片改业务值或删三态选项。样式落在该 Demo Foundation Variant，维护边界见[纸艺卡丁车美术规范](../../../demos/kagit_kart/architecture/art-direction.md)。效果图不是原生截图，不从图中裁切文字或箭头作正式资产。
 
 ## 完整 Hub 基础效果图
 

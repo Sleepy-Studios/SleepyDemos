@@ -1289,10 +1289,6 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u8BA1\u65F6\u8D5B\u5FEB\u6377\u91CD\u8D5B"
     english: Quick time trial restart
-  - key: Input.Kart.TouchSteer
-    fontId: 0
-    chinese: "\u5DE6\u62C7\u6307\u5DE6\u53F3\u62D6\u52A8\u8F6C\u5411\u6ED1\u6761"
-    english: Drag the steering slider left or right with your left thumb
   - key: Input.Kart.TouchThrottle
     fontId: 0
     chinese: "\u6309\u4F4F\u201C\u6CB9\u95E8\u201D\uFF0C\u6216\u5F00\u542F\u81EA\u52A8\u6CB9\u95E8"
@@ -1426,10 +1422,6 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u8DF3\u8FC7\u6F14\u51FA"
     english: Skip cinematic
-  - key: Input.Kart.TouchSteerControl
-    fontId: 0
-    chinese: "\u2190   \u8F6C\u5411   \u2192"
-    english: "\u2190   Steer   \u2192"
   - key: Input.Kart.AutoThrottleOn
     fontId: 0
     chinese: "\u81EA\u52A8\u6CB9\u95E8\uFF1A\u5F00"
@@ -1442,3 +1434,15 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u624B\u67C4\u56FE\u6807"
     english: Controller icons
+  - key: Input.Kart.TouchSteer
+    fontId: 0
+    chinese: "\u6309\u4F4F\u5DE6\u8F6C\u6216\u53F3\u8F6C\u6309\u94AE\uFF1B\u677E\u5F00\u56DE\u6B63"
+    english: Hold Left or Right to steer; release to straighten
+  - key: Input.Kart.TouchLeft
+    fontId: 0
+    chinese: "\u2190"
+    english: "\u2190"
+  - key: Input.Kart.TouchRight
+    fontId: 0
+    chinese: "\u2192"
+    english: "\u2192"

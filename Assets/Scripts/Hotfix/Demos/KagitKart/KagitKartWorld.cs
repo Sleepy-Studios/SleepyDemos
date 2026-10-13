@@ -52,6 +52,7 @@ namespace Hotfix.KagitKart
         private bool uiDirty;
         private float presentationTime;
         private float refreshTime;
+        private KagitKartAction refreshAction;
         private KagitKartQueryInfo cameraTrackInfo;
         private int cameraTrackHint = -1;
 
@@ -286,7 +287,6 @@ namespace Hotfix.KagitKart
                 Dispatch(KagitKartCommand.SkipIntro);
                 return;
             }
-            hud?.ReadTouch();
             gameplayMenuScope.Update();
             if (IntroPlaying)
             {
@@ -836,7 +836,13 @@ namespace Hotfix.KagitKart
         /// <summary>从当前页面或输入派发本场命令。</summary>
         /// <param name="command">要执行的领域流程操作。</param>
         /// <param name="playClick">UI 确认默认为 true，源全局硬件动作可显式省略 click。</param>
-        public void Dispatch(KagitKartCommand command, bool playClick = true) => GlobalData.Dispatch(new KagitKartAction(this, command, playClick: playClick));
+        public void Dispatch(KagitKartCommand command, bool playClick = true)
+        {
+            // Refresh 同步派发且没有回填数据；只在本 World 生命周期内复用。
+            GlobalData.Dispatch(command == KagitKartCommand.Refresh
+                ? refreshAction ??= new KagitKartAction(this, command)
+                : new KagitKartAction(this, command, playClick: playClick));
+        }
 
         private void ClearInput()
         {

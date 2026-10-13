@@ -11,6 +11,7 @@ namespace Core.Runtime
         private static readonly Type objectType = typeof(object);
         private static readonly Dictionary<Type, IData> state = new Dictionary<Type, IData>();
         private static readonly Dictionary<Type, List<IHandler>> reducers = new Dictionary<Type, List<IHandler>>();
+        private static readonly Dictionary<Type, IHandler[]> reducerSnapshots = new Dictionary<Type, IHandler[]>();
         private static readonly Dictionary<Type, List<IHandler>> stateHandlers = new Dictionary<Type, List<IHandler>>();
         private static readonly Dictionary<Type, ActionBase> subjects = new Dictionary<Type, ActionBase>();
         private static readonly HashSet<Type> processingList = new HashSet<Type>();
@@ -137,12 +138,12 @@ namespace Core.Runtime
             }
 
             var actionType = action.GetType();
-            if (!reducers.TryGetValue(actionType, out var handlers))
+            if (!reducerSnapshots.TryGetValue(actionType, out var snapshot))
             {
                 var baseType = actionType.BaseType;
                 while (baseType != null && baseType != objectType && !baseType.IsInterface)
                 {
-                    if (reducers.TryGetValue(baseType, out handlers))
+                    if (reducerSnapshots.TryGetValue(baseType, out snapshot))
                     {
                         break;
                     }
@@ -150,12 +151,12 @@ namespace Core.Runtime
                 }
             }
 
-            if (handlers == null)
+            if (snapshot == null)
             {
                 return;
             }
 
-            var snapshot = handlers.ToArray();
+            // 注册关系变更时替换快照；回调中增删 Handler 不改变当前派发顺序。
             for (int i = 0; i < snapshot.Length; i++)
             {
                 snapshot[i]?.ReduceAny(action);
@@ -302,6 +303,7 @@ namespace Core.Runtime
                 if (!list.Contains(handler))
                 {
                     list.Add(handler);
+                    reducerSnapshots[handler.ActionType] = list.ToArray();
                 }
             }
         }
@@ -327,6 +329,11 @@ namespace Core.Runtime
                     if (list.Count == 0)
                     {
                         reducers.Remove(handler.ActionType);
+                        reducerSnapshots.Remove(handler.ActionType);
+                    }
+                    else
+                    {
+                        reducerSnapshots[handler.ActionType] = list.ToArray();
                     }
                 }
             }

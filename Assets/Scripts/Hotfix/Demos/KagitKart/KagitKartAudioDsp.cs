@@ -25,7 +25,7 @@ namespace Hotfix.KagitKart
             internal int Rate;
             internal int References;
             internal bool IsEffect;
-            internal int Frames => Data.Length / Channels;
+            internal int Frames;
         }
 
         internal sealed class Voice
@@ -40,6 +40,9 @@ namespace Hotfix.KagitKart
             private int readRevision;
             private readonly Biquad left = new();
             private readonly Biquad right = new();
+            private readonly Biquad boostFilter = new();
+            private readonly Samples waveA = new() { Channels = 1, Rate = 44100, IsEffect = true };
+            private readonly Samples waveB = new() { Channels = 1, Rate = 44100, IsEffect = true };
             internal volatile float Volume;
             internal volatile float Pitch = 1;
             internal volatile float Pan;
@@ -57,13 +60,23 @@ namespace Hotfix.KagitKart
 
             internal Voice(KagitKartAudioDsp owner) => this.owner = owner;
 
-            internal void SetWave(float[] values, int rate)
+            internal void PrepareBoost()
             {
+                int frames = KagitKartBoostSynth.FrameCount("start", 1.5f, 44100);
+                waveA.Data = new float[frames];
+                waveB.Data = new float[frames];
+            }
+
+            internal void SetBoost(string source, float duration, float[] white, float[] crackle, int seed)
+            {
+                // 仅写未播放的缓冲，音频块结束后持锁交换；不覆盖音频线程正在读取的数据。
+                var next = ReferenceEquals(samples, waveA) ? waveB : waveA;
+                next.Frames = KagitKartBoostSynth.RenderInto(source, duration, white, crackle, 44100, seed, next.Data, boostFilter);
                 AudioClip release;
                 lock (owner.gate)
                 {
                     release = owner.Release(samples);
-                    samples = new Samples { Data = values, Channels = 1, Rate = rate, IsEffect = true };
+                    samples = next;
                 }
                 release?.UnloadAudioData();
             }
@@ -207,14 +220,9 @@ namespace Hotfix.KagitKart
                 return;
             }
             Samples next = null;
-            if (clip != null && !loaded.TryGetValue(clip, out next))
+            if (clip != null)
             {
-                next = new Samples { Asset = clip, Rate = clip.frequency, Channels = clip.channels, Data = new float[clip.samples * clip.channels], IsEffect = clip.name.StartsWith("Sfx_", StringComparison.Ordinal) };
-                if (!clip.LoadAudioData() || !clip.GetData(next.Data, 0))
-                {
-                    throw new InvalidOperationException("原作音频必须使用 DecompressOnLoad：" + clip.name);
-                }
-                loaded.Add(clip, next);
+                next = PrepareClip(clip);
             }
             AudioClip release;
             lock (gate)
@@ -229,9 +237,36 @@ namespace Hotfix.KagitKart
             release?.UnloadAudioData();
         }
 
+        internal void PrepareEffects(IReadOnlyList<AudioClip> clips)
+        {
+            for (int i = 0; i < clips.Count; i++)
+            {
+                if (clips[i].name.StartsWith("Sfx_", StringComparison.Ordinal))
+                {
+                    PrepareClip(clips[i]);
+                }
+            }
+        }
+
+        private Samples PrepareClip(AudioClip clip)
+        {
+            if (!loaded.TryGetValue(clip, out var next))
+            {
+                next = new Samples { Asset = clip, Rate = clip.frequency, Channels = clip.channels,
+                    Frames = clip.samples, Data = new float[clip.samples * clip.channels],
+                    IsEffect = clip.name.StartsWith("Sfx_", StringComparison.Ordinal) };
+                if (!clip.LoadAudioData() || !clip.GetData(next.Data, 0))
+                {
+                    throw new InvalidOperationException("原作音频必须使用 DecompressOnLoad：" + clip.name);
+                }
+                loaded.Add(clip, next);
+            }
+            return next;
+        }
+
         private AudioClip Release(Samples samples)
         {
-            if (samples?.Asset != null && --samples.References == 0)
+            if (samples?.Asset != null && --samples.References == 0 && !samples.IsEffect)
             {
                 loaded.Remove(samples.Asset);
                 return samples.Asset;
@@ -293,8 +328,15 @@ namespace Hotfix.KagitKart
             lock (gate)
             {
                 voices.Clear();
-                loaded.Clear();
             }
+            foreach (var clip in loaded.Keys)
+            {
+                if (clip != null)
+                {
+                    clip.UnloadAudioData();
+                }
+            }
+            loaded.Clear();
             if (carrier != null)
             {
                 Destroy(carrier);

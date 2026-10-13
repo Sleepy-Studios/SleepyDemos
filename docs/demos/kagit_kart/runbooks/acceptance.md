@@ -4,6 +4,8 @@
 
 正式运行代码为 `Assets/Scripts/Hotfix/Demos/KagitKart/`，资源为 `Assets/LoadResources/Demos/kagit_kart/`。下表使用当前文档记录的 Unity Test Runner 实际结果，不将外部候选、正在运行的作业或离线公式等同于原生玩法通过。测试均沿用 `Tests.EditMode` / `Tests.PlayMode`，没有执行全量测试。表内 job 与通过数量保留相应日期证据，不证明后续治理修改已经重验；当前本地存储只维护完整当前记录，读取失败视为暂无数据，最新契约见 [模块说明](../module.md#计时记录)。
 
+2026-10-13 的 AA、阴影与纸纤维参数核对及 Paper / Items 屏幕网点缩放修正见[画质维护](source-migration.md#画质参数与平台转换)。当前两份 Shader 已保存平台换算，但多 renderScale 的实际 GPU 视觉验收尚未完成；下表历史 Shader 结果不能替代本次修正复验。
+
 ## 需求 → 实现 → 证据
 
 | 需求范围 | 当前实现 | 实际证据与准确边界 |
@@ -12,7 +14,7 @@
 | 四赛道、路线/地形/捷径与章节特色；八角色/属性；80g/120g/200g | Tracks / Worlds / AiPlans、八份角色 Prefab、SceneryWorld、CharacterVisual | 四章资源4/4（`8df7f53d`）、章节动态4/4（`8206ebdc`）；角色资源9/9，八角色50组骨姿态8/8（`4a486885`）。AI 29/29及后续四场GP单项通过，包含四章×三组别完整运动三圈；固定步模拟不是人工驾驶。 |
 | 一玩家+七AI、单场三圈、四场GP、本场成绩→总榜→下一章/领奖 | Race、GrandPrix、Results/Standings/Podium 正式 View/Prefab | 正式AI四章三圈流程1/1（`855a98e9`）；单场实际三圈、再赛和回标题1/1（`b01a3de2`），按钮五态及路由复验1/1（`2e76608f`）。最终GP四场三圈→成绩/总榜→领奖→封面复验1/1（`3c1f80d5`），含主按钮墨底浅字、焦点红内沿、抬纸和移焦复位。用正式规则和按钮，不是合成赛果；仍是自动驾驶场景验收。 |
 | 计时三圈、最佳圈/全程、新纪录、同身份幽灵与慢场不覆盖 | RecordStore、GhostRecorder/Playback、World真实保存、TT结果表 | 原生存取/回放1/1（`f1ecf9de`），最终复验1/1（`7488e02f`）：实际 raceEnd 保存、同身份回放、位置/朝向/末端隐藏、较慢第二场保留原记录；正常起步后立即保存帧像素，已检查 `TimeTrialGhost.png` 的分离透明幽灵与纸印轮廓。只使用临时记录目录，未写用户成绩。 |
-| 键鼠、手柄、触屏同一命令；横向滑条、多指、保持/短按、自动油门与清输入 | PlayerInput.asset、KagitKartInput；复用 Core 输入/菜单/触控/暂停 | 真实绑定9/9（`f914479c`）；新版菜单三端2/2（`23bcab93`）；最终HUD下模拟手柄、三指触屏与暂停恢复1/1（`10dec2c8`）。Editor Keyboard/Gamepad/Touchscreen 设备模拟，不冒充真手柄或Android触摸。 |
+| 键鼠、手柄、触屏同一命令；左右保持转向、多指、保持/短按、自动油门与清输入 | PlayerInput.asset、KagitKartInput；HUD 左右按钮复用 Core InputCommandButton，原横向滑条不再作为当前入口 | 既有绑定9/9（`f914479c`）、菜单三端2/2（`23bcab93`）及HUD设备模拟1/1（`10dec2c8`）为此前阶段记录，不能代替本次左右按钮迁移复验。真实手柄、Android触摸与多指手感仍需设备验证。 |
 | 全中文菜单/HUD/教程/错误反馈与统一译名 | Catalog、HarmonyOS_CN、13页正式 Prefab/UIBind、中文书本印刷/路牌 | 原生各页截图及上述流程；本轮只读核13页 `m_text`、8角色/4赛道/8道具映射及动态 caller，未发现源 raw name/exception.Message 进入玩家文字；异常细节只写日志。按键符号、克重单位不计为漏译；所有屏幕比例缺字/溢出并未穷举。 |
 | 设置/操作说明、减少动态系统来源、镜头抖动/音量/静音/触控/FPS与保存异常 | Settings/Controls、World.Options、Core.SystemMotionPreference；公共画面 Modal | 偏好2/2（`646ad162`）、Windows真实系统读取1/1（`09ae1204`）、设置/公共画面多层恢复1/1（`c27c5f14`）。Android分支未在Player或真机执行。 |
 | 首次教程、五类驾驶提示；完整原HUD、轮盘、库存、名次、百分秒、倒计时、分段/预警/最后圈/冲线/等待/翻页/地图 | Hints、ItemSlot、HudNotice、CountdownCard、Minimap | 教程1/1（`2513c7c4`）；真实初始三火箭、E/held gum、箱体轮盘1/1（`f07d8a16`）；正式通知/投影/暂停双时钟/退订1/1（`7235e63f`）。后者使用明确表现事件样本，不能声称每种通知都在自然比赛触发。数字3/2/1及地图直接执行源算法导出。 |

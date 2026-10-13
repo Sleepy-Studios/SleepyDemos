@@ -99,7 +99,7 @@ Hub 使用公共基础外观；Demo 按自己的宿主风格覆盖表现。纸�
 
 ## 状态、透明度与声音
 
-控件使用一个 `UIState` 表现 Normal、Hover、Focused、Pressed、Disabled，业务 Selected/On/Off 按需追加。五态要清楚可辨，Normal 恢复所拥有属性；触屏抑制交互强调，禁用仍可读。状态反馈优先改变颜色、完整焦点边或装饰，保持根尺寸与点击矩形稳定。
+控件使用一个 `UIState` 表现 Normal、Hover、Focused、Pressed、Disabled，业务 Selected/On/Off 按需追加。五态要清楚可辨，Normal 恢复所拥有属性；触屏允许真实指针按住的 Pressed，仍抑制 Hover、Focused 及 Submit 瞬态，禁用仍可读。状态反馈优先改变颜色、完整焦点边或装饰，保持根尺寸与点击矩形稳定。
 
 纯透明度控制优先 `CanvasGroup.alpha`，其 alpha 与子元素自身 alpha 相乘；检查多层 CanvasGroup，避免重复衰减。需要隐藏且禁止交互/射线时复用 `SetCanvasGroupVisible(false)`；需要触发激活生命周期时使用现有 `Show/Hide`。本规范不统一动效时长、曲线或转场设计，沿用正式导航与表现契约。
 

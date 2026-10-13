@@ -46,8 +46,10 @@ namespace Hotfix
         private KagitKartMinimap KagitKartMinimap_Minimap;
         private KagitKartHudNotice KagitKartHudNotice_HudNotice;
         private RectTransform RectTransform_TouchControls;
-        private TouchInputPad TouchInputPad_Steering;
-        private RectTransform RectTransform_SteerKnob;
+        private Button Button_Left;
+        private InputCommandButton InputCommandButton_Left;
+        private Button Button_Right;
+        private InputCommandButton InputCommandButton_Right;
         private Button Button_Throttle;
         private InputCommandButton InputCommandButton_Throttle;
         private Button Button_Brake;
@@ -91,19 +93,21 @@ namespace Hotfix
             KagitKartMinimap_Minimap = componentItemIndex.Get<KagitKartMinimap>(18);
             KagitKartHudNotice_HudNotice = componentItemIndex.Get<KagitKartHudNotice>(19);
             RectTransform_TouchControls = componentItemIndex.Get<RectTransform>(20);
-            TouchInputPad_Steering = componentItemIndex.Get<TouchInputPad>(21);
-            RectTransform_SteerKnob = componentItemIndex.Get<RectTransform>(22);
-            Button_Throttle = componentItemIndex.Get<Button>(23);
-            InputCommandButton_Throttle = componentItemIndex.Get<InputCommandButton>(24);
-            Button_Brake = componentItemIndex.Get<Button>(25);
-            InputCommandButton_Brake = componentItemIndex.Get<InputCommandButton>(26);
-            Button_Drift = componentItemIndex.Get<Button>(27);
-            InputCommandButton_Drift = componentItemIndex.Get<InputCommandButton>(28);
-            Button_Item = componentItemIndex.Get<Button>(29);
-            InputCommandButton_Item = componentItemIndex.Get<InputCommandButton>(30);
-            Button_LookBack = componentItemIndex.Get<Button>(31);
-            InputCommandButton_LookBack = componentItemIndex.Get<InputCommandButton>(32);
-            Button_Auto = componentItemIndex.Get<Button>(33);
+            Button_Left = componentItemIndex.Get<Button>(21);
+            InputCommandButton_Left = componentItemIndex.Get<InputCommandButton>(22);
+            Button_Right = componentItemIndex.Get<Button>(23);
+            InputCommandButton_Right = componentItemIndex.Get<InputCommandButton>(24);
+            Button_Throttle = componentItemIndex.Get<Button>(25);
+            InputCommandButton_Throttle = componentItemIndex.Get<InputCommandButton>(26);
+            Button_Brake = componentItemIndex.Get<Button>(27);
+            InputCommandButton_Brake = componentItemIndex.Get<InputCommandButton>(28);
+            Button_Drift = componentItemIndex.Get<Button>(29);
+            InputCommandButton_Drift = componentItemIndex.Get<InputCommandButton>(30);
+            Button_Item = componentItemIndex.Get<Button>(31);
+            InputCommandButton_Item = componentItemIndex.Get<InputCommandButton>(32);
+            Button_LookBack = componentItemIndex.Get<Button>(33);
+            InputCommandButton_LookBack = componentItemIndex.Get<InputCommandButton>(34);
+            Button_Auto = componentItemIndex.Get<Button>(35);
         }
     }
 }

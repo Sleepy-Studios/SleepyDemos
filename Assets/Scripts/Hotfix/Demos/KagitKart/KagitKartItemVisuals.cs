@@ -435,8 +435,9 @@ namespace Hotfix.KagitKart
 
         private void UpdateGum(float dt, float alpha, bool reduced)
         {
-            foreach (var hazard in session.Items.Hazards)
+            for (int hazardIndex = 0; hazardIndex < session.Items.Hazards.Count; hazardIndex++)
             {
+                var hazard = session.Items.Hazards[hazardIndex];
                 if (hazard.Dead || batches[Gum].count >= 69)
                 {
                     continue;
@@ -677,8 +678,9 @@ namespace Hotfix.KagitKart
 
         private void UpdateProjectiles(float alpha)
         {
-            foreach (var projectile in session.Items.Projectiles)
+            for (int projectileIndex = 0; projectileIndex < session.Items.Projectiles.Count; projectileIndex++)
             {
+                var projectile = session.Items.Projectiles[projectileIndex];
                 if (projectile.Dead)
                 {
                     continue;

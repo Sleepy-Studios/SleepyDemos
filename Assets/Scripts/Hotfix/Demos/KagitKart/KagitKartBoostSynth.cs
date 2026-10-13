@@ -15,6 +15,25 @@ namespace Hotfix.KagitKart
         /// <returns>尚未经过总线动力学的单声道样本，包含原作 SFX 总线 0.85 增益。</returns>
         public static float[] Render(string source, float duration, float[] white, float[] crackle, int sampleRate, int seed)
         {
+            var result = new float[FrameCount(source, duration, sampleRate)];
+            RenderInto(source, duration, white, crackle, sampleRate, seed, result, new KagitKartAudioDsp.Biquad());
+            return result;
+        }
+
+        internal static int FrameCount(string source, float duration, int sampleRate)
+        {
+            if (sampleRate <= 0 || duration < 0 || !float.IsFinite(duration))
+            {
+                throw new ArgumentException("加速配方采样或持续时间无效。");
+            }
+            double s = Math.Min(1.5, duration == 0 ? 0.8 : duration) / 1.4;
+            double d = 0.35 + 0.45 * s + (source == "start" ? 0.3 : 0);
+            return (int)Math.Ceiling((d + 0.5) * sampleRate);
+        }
+
+        internal static int RenderInto(string source, float duration, float[] white, float[] crackle,
+            int sampleRate, int seed, float[] buffer, KagitKartAudioDsp.Biquad filter)
+        {
             if (white == null || white.Length == 0 || crackle == null || crackle.Length == 0 || sampleRate <= 0 || duration < 0 || float.IsNaN(duration) || float.IsInfinity(duration))
             {
                 throw new ArgumentException("加速配方采样或持续时间无效。");
@@ -23,34 +42,36 @@ namespace Hotfix.KagitKart
             double s = Math.Min(1.5, duration == 0 ? 0.8 : duration) / 1.4;
             double d = 0.35 + 0.45 * s + (source == "start" ? 0.3 : 0);
             double soft = source == "draft" ? 0.6 : 1;
-            var result = new float[(int)Math.Ceiling((d + 0.5) * sampleRate)];
-            var random = new KagitKartRandom(unchecked((uint)seed));
-            Noise(result, white, sampleRate, random, 0, d + 0.3, "bandpass", source == "draft" ? 900 : 350,
+            int frames = FrameCount(source, duration, sampleRate);
+            var result = buffer.AsSpan(0, frames);
+            result.Clear();
+            uint random = unchecked((uint)seed);
+            Noise(result, white, sampleRate, ref random, filter, 0, d + 0.3, "bandpass", source == "draft" ? 900 : 350,
                 source == "draft" ? 4200 : 2800, d * 0.7, 1.1, 0.04, 0.5 * soft * (0.7 + 0.3 * s), d * 0.3, d * 0.25);
-            Noise(result, crackle, sampleRate, random, 0, d + 0.2, "bandpass", 1800, 1800, 0, 0.8, 0.03, 0.28 * soft, d * 0.35);
+            Noise(result, crackle, sampleRate, ref random, filter, 0, d + 0.2, "bandpass", 1800, 1800, 0, 0.8, 0.03, 0.28 * soft, d * 0.35);
             if (source != "draft")
             {
-                Tone(result, sampleRate, 0, 0.42, 120, 58, 0.084, "sine", 0.003, 0.45 * (0.6 + 0.4 * s), 0.06);
+                Tone(result, sampleRate, filter, 0, 0.42, 120, 58, 0.084, "sine", 0.003, 0.45 * (0.6 + 0.4 * s), 0.06);
             }
             if (source == "pad")
             {
-                Tone(result, sampleRate, 0, 0.3, 300, 1400, 0.16, "sawtooth", 0.005, 0.12, 0.06, filter: 3000);
+                Tone(result, sampleRate, filter, 0, 0.3, 300, 1400, 0.16, "sawtooth", 0.005, 0.12, 0.06, cutoff: 3000);
             }
             if (source == "start")
             {
-                Noise(result, white, sampleRate, random, 0, 1.2, "lowpass", 420, 420, 0, 0.8, 0.05, 0.35, 0.25);
-                Tone(result, sampleRate, 0, 1.2, 70, 70, 0, "sine", 0.03, 0.3, 0.2);
+                Noise(result, white, sampleRate, ref random, filter, 0, 1.2, "lowpass", 420, 420, 0, 0.8, 0.05, 0.35, 0.25);
+                Tone(result, sampleRate, filter, 0, 1.2, 70, 70, 0, "sine", 0.03, 0.3, 0.2);
             }
             if (source == "trick")
             {
-                Ping(result, sampleRate, 0.02, 2093, 0.12);
-                Ping(result, sampleRate, 0.07, 2637, 0.1);
+                Ping(result, sampleRate, filter, 0.02, 2093, 0.12);
+                Ping(result, sampleRate, filter, 0.07, 2637, 0.1);
             }
             for (int i = 0; i < result.Length; i++)
             {
                 result[i] *= 0.85f;
             }
-            return result;
+            return frames;
         }
 
         private static double Envelope(double t, double attack, double peak, double tau, double hold)
@@ -62,12 +83,12 @@ namespace Hotfix.KagitKart
             return peak * Math.Exp(-Math.Max(0, t - attack - hold) / tau);
         }
 
-        private static void Noise(float[] output, float[] noise, int sr, KagitKartRandom random, double at, double duration,
+        private static void Noise(Span<float> output, float[] noise, int sr, ref uint random, KagitKartAudioDsp.Biquad filter, double at, double duration,
             string type, double from, double to, double sweep, double q, double attack, double peak, double tau, double hold = 0)
         {
             // 原作 BufferSource 在 rate=1 时将噪声起点取最近采样，不能截断。
-            int offset = (int)Math.Round(random.Next() * Math.Max(1, noise.Length - sr * 0.8), MidpointRounding.AwayFromZero);
-            var filter = new KagitKartAudioDsp.Biquad();
+            int offset = (int)Math.Round(KagitKartRandom.Next(ref random) * Math.Max(1, noise.Length - sr * 0.8), MidpointRounding.AwayFromZero);
+            filter.Reset();
             int first = (int)Math.Round(at * sr);
             int count = Math.Min((int)Math.Round(duration * sr), output.Length - first);
             for (int i = 0; i < count; i++)
@@ -79,11 +100,14 @@ namespace Hotfix.KagitKart
             }
         }
 
-        private static void Tone(float[] output, int sr, double at, double duration, double from, double to, double sweep,
-            string type, double attack, double peak, double tau, double filter = 0)
+        private static void Tone(Span<float> output, int sr, KagitKartAudioDsp.Biquad lowpass, double at, double duration, double from, double to, double sweep,
+            string type, double attack, double peak, double tau, double cutoff = 0)
         {
-            var lowpass = filter > 0 ? new KagitKartAudioDsp.Biquad() : null;
-            lowpass?.Set("lowpass", filter, 0.7, sr);
+            if (cutoff > 0)
+            {
+                lowpass.Reset();
+                lowpass.Set("lowpass", cutoff, 0.7, sr);
+            }
             int first = (int)Math.Round(at * sr);
             int count = Math.Min((int)Math.Round(duration * sr), output.Length - first);
             double phase = 0;
@@ -94,7 +118,7 @@ namespace Hotfix.KagitKart
                 double dt = frequency / sr;
                 double value = type == "sawtooth" ? 2 * phase - 1 - PolyBlep(phase, dt)
                     : type == "triangle" ? 2 / Math.PI * Math.Asin(Math.Sin(2 * Math.PI * phase)) : Math.Sin(2 * Math.PI * phase);
-                if (lowpass != null)
+                if (cutoff > 0)
                 {
                     value = lowpass.Tick((float)value);
                 }
@@ -118,10 +142,10 @@ namespace Hotfix.KagitKart
             return 0;
         }
 
-        private static void Ping(float[] output, int sr, double at, double frequency, double peak)
+        private static void Ping(Span<float> output, int sr, KagitKartAudioDsp.Biquad filter, double at, double frequency, double peak)
         {
-            Tone(output, sr, at, 0.5, frequency, frequency, 0, "sine", 0.002, peak, 0.1);
-            Tone(output, sr, at, 0.5, frequency * 2, frequency * 2, 0, "triangle", 0.002, peak * 0.18, 0.07);
+            Tone(output, sr, filter, at, 0.5, frequency, frequency, 0, "sine", 0.002, peak, 0.1);
+            Tone(output, sr, filter, at, 0.5, frequency * 2, frequency * 2, 0, "triangle", 0.002, peak * 0.18, 0.07);
         }
     }
 }

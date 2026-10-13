@@ -892,6 +892,17 @@ namespace Tests.Module
                 InputDeviceState.NotifyTouch();
                 state.OnSubmit(new BaseEventData(system));
                 Assert.That(state.InteractionState, Is.EqualTo("Normal"));
+                var finger = new PointerEventData(system) { pointerId = 1, button = PointerEventData.InputButton.Left };
+                var secondFinger = new PointerEventData(system) { pointerId = 2, button = PointerEventData.InputButton.Left };
+                state.OnPointerDown(finger);
+                Assert.That(state.InteractionState, Is.EqualTo("Pressed"), "真实触屏按住有按压反馈");
+                state.OnPointerDown(secondFinger);
+                state.OnPointerUp(secondFinger);
+                Assert.That(state.InteractionState, Is.EqualTo("Pressed"), "另一根手指不能释放原指针的反馈");
+                state.OnPointerUp(finger);
+                Assert.That(state.InteractionState, Is.EqualTo("Normal"));
+                Assert.That(image.color, Is.EqualTo(Color.red), "触屏释放恢复业务选择");
+                Assert.That(first.transform.localScale, Is.EqualTo(Vector3.one));
                 state.SetState("On");
                 first.GetComponent<Button>().interactable = false;
                 Assert.That(first.GetComponent<Button>().IsInteractable(), Is.False);

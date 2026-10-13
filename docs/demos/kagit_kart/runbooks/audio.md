@@ -14,7 +14,7 @@ python Tools/KagitKart/export_audio.py D:/Unity/ReferenceProjects/kagit-kart
 
 曲目包括标题、领奖台、结算、四章比赛、四章开场、四章最后一圈及终点/最后一圈短曲。章节节拍沿用原作赛道配置：草原 118、博斯普鲁斯 96、冰川 128、书桌 124；最后一圈升两个半音、速度乘 1.12，并使用原作高潮段落。每首的 Start 包含第一次完整乐段，Loop 保存后续两个循环，保留交替声部和已建立的混响尾音；运行时按 DSP 时钟和实际采样数准确接续。
 
-资产位于 `Assets/LoadResources/Demos/kagit_kart/Audio/SFX/`，Music、Stingers 为其子目录，遵守项目目前登记的 Demo 音频目录。`Bank_White`、`Bank_Pink`、`Bank_Crackle` 保存原作共享噪声，使用 PCM。`Data/AudioManifest.json` 记录来源版本、采样率、时长、渲染 PCM 的峰值/RMS 和循环属性；`Data/AudioBank.asset` 保存全部 AudioClip 引用，运行时由宿主 Loader 保持加载句柄。音乐导入仍使用 Vorbis quality 0.9，其余使用 PCM；全部为 DecompressOnLoad 且不预加载，DSP 仅在分配声部时读取采样，旧声部引用耗尽后释放解码数据。不要改成 Streaming 或 CompressedInMemory：当前 DSP 需要 `AudioClip.GetData`。
+资产位于 `Assets/LoadResources/Demos/kagit_kart/Audio/SFX/`，Music、Stingers 为其子目录，遵守项目目前登记的 Demo 音频目录。`Bank_White`、`Bank_Pink`、`Bank_Crackle` 保存原作共享噪声，使用 PCM。`Data/AudioManifest.json` 记录来源版本、采样率、时长、渲染 PCM 的峰值/RMS 和循环属性；`Data/AudioBank.asset` 保存全部 AudioClip 引用，运行时由宿主 Loader 保持加载句柄。音乐导入仍使用 Vorbis quality 0.9，其余使用 PCM；全部为 DecompressOnLoad 且不预加载。DSP 初始化时预热短音效 PCM，按场景缓存；音乐及其他非短音效在分配声部时读取采样，旧声部引用耗尽后释放解码数据。退出 Demo 时销毁 DSP 并释放所有缓存；重赛和返回 Demo 菜单保留短音效缓存。不要改成 Streaming 或 CompressedInMemory：当前 DSP 需要 `AudioClip.GetData`。
 
 Music 的 30 个源文件由 427.84 MiB WAV 缩为 60.46 MiB OGG，减少 85.9%；保留原 GUID、44.1 kHz、双声道和循环采样长度，播放代码与 Bank 引用不变。这是源文件体积优化，不能当作包体或运行内存同幅缩小的证据。源编码与 Unity 导入压缩均有损；调音后从原作源码重新导出，不对现有 OGG 反复转码。本地 Git 历史中的这批 WAV 同时清除，原始 PCM 可依据固定版本 WebAudio 源码重新渲染。
 
@@ -33,6 +33,10 @@ Music 的 30 个源文件由 427.84 MiB WAV 缩为 60.46 MiB OGG，减少 85.9%�
 - 设置滑块调用 `SetVolumes(music, sfx, muted)`。暂停遵循原作：比赛冻结、引擎渐静，音乐继续播放并降音量、低通滤波。
 
 声音宿主随场景销毁退订所有事件，使用本地 AudioSource，不依赖新的公共音频框架。
+
+加速声在每个音效声部预留两份 PCM 缓冲，复用滤波状态和数值随机内核；写未播放的缓冲，等待当前音频块结束后交换，保留本次实际帧数和播放长度。不能覆盖音频线程正在读取的数据，也不能用统一固定长度替代原事件配方。
+
+引擎控制参数在音频块起点持短锁复制，逐采样平滑、滤波历史和振荡器相位由音频线程推进。主线程不持有整块引擎 DSP 锁；参数的目标、时间常数和 fresh 复位语义仍按原作执行。分配和线程等待的收益须通过新的同条件采样确认，算法对照与实际 Listener 输出分别验收。
 
 ## 验证与保真边界
 

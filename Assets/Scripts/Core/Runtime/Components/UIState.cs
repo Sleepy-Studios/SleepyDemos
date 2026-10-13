@@ -63,6 +63,7 @@ namespace Core.Runtime
         private Selectable selectable;
         private bool hovered;
         private bool pressed;
+        private int pressedPointerId;
         private float submitUntil;
         private string appliedBusiness;
         private string appliedInteraction;
@@ -176,8 +177,8 @@ namespace Core.Runtime
                 bool focus = EventSystem.current != null && EventSystem.current.currentSelectedGameObject == gameObject;
                 bool touch = InputDeviceState.ActiveKind == InputDeviceKind.Touch;
                 bool keyboardFocus = InputDeviceState.ActiveKind == InputDeviceKind.Gamepad || InputDeviceState.ActiveDevice is Keyboard;
-                interaction = !selectable.IsInteractable() ? "Disabled" : touch ? "Normal"
-                    : pressed || Time.unscaledTime < submitUntil ? "Pressed"
+                interaction = !selectable.IsInteractable() ? "Disabled" : pressed ? "Pressed" : touch ? "Normal"
+                    : Time.unscaledTime < submitUntil ? "Pressed"
                     : focus && keyboardFocus ? "Focused" : hovered && InputDeviceState.ActiveKind == InputDeviceKind.KeyboardMouse ? "Hover" : "Normal";
             }
             ApplyCombinedState(interaction, force);
@@ -216,14 +217,23 @@ namespace Core.Runtime
         /// <param name="value">原生指针事件。</param>
         public void OnPointerDown(PointerEventData value)
         {
-            if (selectable == null || value.button != PointerEventData.InputButton.Left) return;
+            if (selectable == null || value.button != PointerEventData.InputButton.Left || pressed) return;
             RecordPointer(value);
             pressed = selectable.IsInteractable();
+            pressedPointerId = value.pointerId;
             Refresh();
         }
         /// <summary>释放按下表现，恢复当前业务态。</summary>
         /// <param name="value">原生指针事件。</param>
-        public void OnPointerUp(PointerEventData value) { pressed = false; Refresh(); }
+        public void OnPointerUp(PointerEventData value)
+        {
+            if (!pressed || value.pointerId != pressedPointerId)
+            {
+                return;
+            }
+            pressed = false;
+            Refresh();
+        }
         /// <summary>原生焦点改变只刷新表现。</summary>
         /// <param name="value">EventSystem 选择事件。</param>
         public void OnSelect(BaseEventData value) => Refresh();

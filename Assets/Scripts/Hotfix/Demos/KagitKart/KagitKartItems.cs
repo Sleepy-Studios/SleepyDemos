@@ -196,8 +196,9 @@ namespace Hotfix.KagitKart
                     return false;
                 }
             }
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 if (kart.Item == "scissors")
                 {
                     return false;
@@ -232,8 +233,9 @@ namespace Hotfix.KagitKart
                 projectile.PreviousPosition = projectile.Position;
                 projectile.PreviousHeading = projectile.Heading;
             }
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 if (kart.Roulette <= 0)
                 {
                     continue;
@@ -316,8 +318,9 @@ namespace Hotfix.KagitKart
         public void ClearInput()
         {
             Array.Clear(previousItem, 0, previousItem.Length);
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 kart.Controls = default;
             }
         }
@@ -329,8 +332,9 @@ namespace Hotfix.KagitKart
                 return;
             }
             disposed = true;
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 ClearItem(kart);
                 kart.Roulette = kart.RouletteDuration = 0;
             }
@@ -378,8 +382,9 @@ namespace Hotfix.KagitKart
         private KagitKartVehicle Leader(bool unfinished = false)
         {
             KagitKartVehicle best = null;
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 if (unfinished && kart.Finished)
                 {
                     continue;
@@ -394,8 +399,9 @@ namespace Hotfix.KagitKart
 
         private KagitKartVehicle AtPlace(int place)
         {
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 if (kart.Place == place)
                 {
                     return kart;
@@ -782,8 +788,9 @@ namespace Hotfix.KagitKart
 
         private bool HitKarts(KagitKartProjectile projectile)
         {
-            foreach (var kart in karts)
+            for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
             {
+                var kart = karts[kartIndex];
                 if (kart.Rescuing || kart == projectile.Owner && projectile.Age < 0.4)
                 {
                     continue;
@@ -976,8 +983,9 @@ namespace Hotfix.KagitKart
             Threat(projectile, target, (float)(0.7 - projectile.PhaseTime));
             if (u >= 1)
             {
-                foreach (var kart in karts)
+                for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
                 {
+                    var kart = karts[kartIndex];
                     var delta = kart.Position - target.Position;
                     if (kart.Rescuing || kart.BoostTime > 0 || delta.x * delta.x + delta.z * delta.z > 36 || Mathf.Abs(delta.y) > 3)
                     {
@@ -1019,8 +1027,9 @@ namespace Hotfix.KagitKart
                 {
                     continue;
                 }
-                foreach (var kart in karts)
+                for (int kartIndex = 0; kartIndex < karts.Count; kartIndex++)
                 {
+                    var kart = karts[kartIndex];
                     if (kart == hazard.Held || kart.Rescuing || kart == hazard.Owner && hazard.Held == null && now - hazard.DroppedAt < 0.5)
                     {
                         continue;

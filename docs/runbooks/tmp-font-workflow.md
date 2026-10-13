@@ -63,4 +63,4 @@ Unity 菜单：
 
 ## 参考来源
 
-实现参考了 `fishinggameplay` 中 `TMP_Alpha8_ASTC.cs` 的 atlas 外置与绑定逻辑，并保留了“一次生成最终产物”的思路。`TMPFontAutoSwitcherAutoAdd.cs` 和 `ChangeText2TextMeshPro.cs` 属于旧项目 UI 运行时/批量迁移链路，SleepyDemos 当前没有对应业务组件，因此没有直接迁入。
+字体生成流程一次生成最终产物，并完成 atlas 外置与绑定。

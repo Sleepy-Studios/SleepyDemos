@@ -10,6 +10,7 @@ namespace Hotfix.KagitKart
     {
         private readonly InputActionSession session;
         private KagitKartControls touch;
+        private bool touchLeft, touchRight;
         private bool pendingDrift, pendingItem;
         private bool driving;
         private bool disposed;
@@ -56,9 +57,9 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            string prefix = activeKind == InputDeviceKind.Gamepad ? "Pad" : "Key";
-            pendingDrift |= session.Pressed(prefix + "Drift");
-            pendingItem |= session.Pressed(prefix + "Item");
+            bool pad = activeKind == InputDeviceKind.Gamepad;
+            pendingDrift |= session.Pressed(pad ? "PadDrift" : "KeyDrift");
+            pendingItem |= session.Pressed(pad ? "PadItem" : "KeyItem");
         }
 
         /// <summary>在固定步读取统一赛车命令；短按只在第一次读取时消费，按住仍持续交付。</summary>
@@ -77,8 +78,8 @@ namespace Hotfix.KagitKart
             }
             else
             {
-                string prefix = activeKind == InputDeviceKind.Gamepad ? "Pad" : "Key";
-                float steer = session.ReadAxis(prefix + "Steer");
+                bool pad = activeKind == InputDeviceKind.Gamepad;
+                float steer = session.ReadAxis(pad ? "PadSteer" : "KeySteer");
                 if (activeKind == InputDeviceKind.Gamepad)
                 {
                     if (session.Held("PadLeft"))
@@ -93,11 +94,11 @@ namespace Hotfix.KagitKart
                 result = new KagitKartControls
                 {
                     Steer = Mathf.Clamp(steer, -1, 1),
-                    Throttle = Mathf.Clamp01(session.Read<float>(prefix + "Throttle")),
-                    Brake = Mathf.Clamp01(session.Read<float>(prefix + "Brake")),
-                    Drift = session.Held(prefix + "Drift"),
-                    Item = session.Held(prefix + "Item"),
-                    LookBack = session.Held(prefix + "LookBack")
+                    Throttle = Mathf.Clamp01(session.Read<float>(pad ? "PadThrottle" : "KeyThrottle")),
+                    Brake = Mathf.Clamp01(session.Read<float>(pad ? "PadBrake" : "KeyBrake")),
+                    Drift = session.Held(pad ? "PadDrift" : "KeyDrift"),
+                    Item = session.Held(pad ? "PadItem" : "KeyItem"),
+                    LookBack = session.Held(pad ? "PadLookBack" : "KeyLookBack")
                 };
             }
             // 原作按命令合并触控与物理输入；显式显示触控区时鼠标也能操作保存的触控组件。
@@ -130,22 +131,8 @@ namespace Hotfix.KagitKart
         public InputAction PromptAction(string command) => Asset.FindAction("Drive/" +
             (InputDeviceState.PromptKind == InputDeviceKind.Gamepad ? "Pad" : "Key") + command, true);
 
-        /// <summary>接收公共触控滑条的归一化横轴。</summary>
-        /// <param name="steer">有限的转向值，内部钳制到 [-1,1]。</param>
-        public void SetTouchSteer(float steer)
-        {
-            if (float.IsNaN(steer) || float.IsInfinity(steer))
-            {
-                throw new ArgumentOutOfRangeException(nameof(steer));
-            }
-            if (driving && !disposed)
-            {
-                touch.Steer = Mathf.Clamp(steer, -1, 1);
-            }
-        }
-
         /// <summary>接收公共 InputCommandButton 的保持回调，短按道具和漂移也锁存到固定步。</summary>
-        /// <param name="command">Throttle、Brake、Drift、Item 或 LookBack。</param>
+        /// <param name="command">Left、Right、Throttle、Brake、Drift、Item 或 LookBack；左右同时保持时回正。</param>
         /// <param name="held">指针是否保持。</param>
         public void SetTouchHold(string command, bool held)
         {
@@ -155,6 +142,12 @@ namespace Hotfix.KagitKart
             }
             switch (command)
             {
+                case "Left":
+                    touchLeft = held;
+                    break;
+                case "Right":
+                    touchRight = held;
+                    break;
                 case "Throttle":
                     touch.Throttle = held ? 1 : 0;
                     break;
@@ -175,6 +168,7 @@ namespace Hotfix.KagitKart
                 default:
                     throw new ArgumentException("触控命令无效。", nameof(command));
             }
+            touch.Steer = (touchRight ? 1 : 0) - (touchLeft ? 1 : 0);
         }
 
         /// 失焦、切后台及设备断连时清理保持状态并建立松键门闩，宿主另外冻结比赛时钟。
@@ -227,6 +221,7 @@ namespace Hotfix.KagitKart
         private void ClearPending()
         {
             touch = default;
+            touchLeft = touchRight = false;
             pendingDrift = pendingItem = false;
             capturedFrame = -1;
         }

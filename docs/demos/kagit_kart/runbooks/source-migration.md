@@ -18,7 +18,7 @@
 | `track/defs/*.js`、`trackSampler.js` | 用原版 `sampleTrack(def, config.track)` 导出四条定义及采样；Unity 查询与原生四章场景已接入。 |
 | `items/items.js` | 已迁移八行名次概率、近领跑者限制、道具箱及轮盘、八种道具效果、投射物碰撞、预警和复用；世界道具表现及HUD图标轮盘已接入。 |
 | `core/config.js`、`characters/characters.js` | 保存参数与完整 roster，中文显示名统一由 Unity 目录提供。 |
-| `input/input.js`、`ui/touch.js` | 正式 `Data/PlayerInput.asset` 与 `KagitKartInput` 保留原版键盘、标准手柄、横向滑条、保持按钮和短按锁存，复用公共输入；HUD、选赛、暂停与重赛三端流程通过定向场景测试，中文设置与三设备操作说明已接入，画面设置复用公共 Modal；系统低动态查询、首次教程及驾驶提示已接入并定向验证。 |
+| `input/input.js`、`ui/touch.js` | 正式 `Data/PlayerInput.asset` 与 `KagitKartInput` 保留原版键盘、标准手柄、保持按钮和短按锁存，复用公共输入；当前触屏转向按已确认的局部设计改为左右保持按钮，替换原横向滑条，迁移后的结果按本次定向验收记录判断。中文设置与三设备操作说明已接入，公共画面设置只在 Hub 开放；系统低动态查询、首次教程及驾驶提示沿用既有接入。 |
 | `track/trackQuery.js` | 已迁移高度加权查找、空间网格、捷径换段、坡度、道路两侧、水面、跳台、加速带、表面定位及网格位置。 |
 | `kart/kart.js`、`kart/collisions.js` | 已迁移车辆运动、漂移、特技、壁碰、救援、保护、质量互撞和尾流；独立规则事件已接入角色/道具/比赛特效与音频；正式冰川掉落/纸鹤四阶段及释放已通过原生定向验证；完整人工听感仍未验收。 |
 | `characters/models.js`、`paperkit.js`、`atlas.js` | 直接执行固定原作的建模与绘图算法导出八角色，不重画造型。已转换为正式骨骼 Mesh、图集、材质与 Prefab，比赛与菜单骨链动画已接入。 |
@@ -49,6 +49,32 @@
 
 `export-paper-shader.mjs` 将固定原作的印刷算法转译为 Unity HLSL，保留原作计算，只替换纹理采样、GLSL 类型与 HLSL 保留字、源坐标和深度接口。正式 Shader 保存到 Demo 的 `Art/Shaders/`，不依赖外部工具运行。原生预览使用隔离 Preview Scene 与 URP Render Request，未修改用户场景；原生 Shader 变体的编译错误需在渲染后检查，不能只依赖 C# 编译通过。
 
+### 画质参数与平台转换
+
+2026-10-13 按原作与当前项目源码核对以下参数；这是维护依据，不是新一轮视觉或设备验收结果。
+
+| 项目 | 原作与 Unity 当前约定 |
+|---|---|
+| 抗锯齿 | 原作 WebGL Renderer 的 `antialias=false`，高画质 Post 目标另用 `samples=4`，两者属于不同目标。Unity 由公共 `DisplaySettingsRuntime` 应用用户 AA 偏好，并在当前 Renderer 或设备不支持 MSAA 时回退 FXAA；不按原作单个开关强制关闭 AA 或强制 4×MSAA，不更改全局设置。磁盘 `PC_Renderer.asset` 的 `m_RenderingMode=2` 对应当前 URP 的 Forward+；Deferred/Deferred+ 不支持 MSAA 的分支继续由公共能力查询处理。 |
+| 主光阴影 | PC 主光阴影图为 2048、Mobile 为 1024，与原作对应尺寸匹配。Three.js 与 URP 的阴影 bias / normalBias 接口和尺度不同，不直接搬运数字或改写公共管线偏移。尺寸相同不代表阴影外观已经一致。 |
+| 世界纸纤维 | Paper / Items 沿用 `world.xz * 0.14 + world.y * 0.09` 和 `world.xz * 0.021` 的双层采样，原作频率已匹配；不为性能比较改低纹理频率。 |
+| 后处理纸纤维 | `Post.shader` 保留 256 / 1100 两层尺寸与 `uPR` 换算；`KagitKartPostProcess` 按本场目标高度与相机像素高度交付 `uPR`，不再重复乘缩放。 |
+| 屏幕网点 | Paper / Items 的屏幕像素网点需要把输出像素间距转换为实际渲染目标像素。两份 Shader 同时使用下述 `dotPx`，网点坐标和抗锯齿宽度都引用它；不能只修其中一份或只改坐标。 |
+
+本 Demo 的 `Scenes/Main.unity` 已通过原生场景保存制作默认值：SMAA、High、`renderPostProcessing=true`。公共设置选择 `CameraDefault` 时沿用该场景 AA；用户明确选择 Off / FXAA / SMAA / MSAA 等模式时仍由 `DisplaySettingsRuntime` 覆盖，不在 Demo 每帧强写。当前 SMAA 与原作高画质目标的 4×MSAA 使用不同算法，不能声称完全等价；纸印后处理之后的原生 AA 还须检查纸边、网点、墨边及透明幽灵，不能仅凭场景字段或测试通过视为视觉完成。
+
+```hlsl
+float dotPx = uDotPx * _ScaledScreenParams.y / _ScreenParams.y;
+float2 p = i.positionCS.xy / dotPx;
+float aa = 0.7 / dotPx + 0.02;
+```
+
+该转换已落在本项目 `Paper.shader` 与 `Items.shader` 的 halftone 分支；保留原网点旋转、半径和混色计算。`renderScale=1` 时表达式不改变间距；例如 `uDotPx=6`、`renderScale=0.75` 时目标内间距为 4.5，放大后的输出网点间距仍为 6。这个数值推导不代替实际 GPU 图像和多分辨率验收。
+
+外部 `D:\Unity\ReferenceProjects\kagit-kart-tools\export-paper-shader.mjs` 属于参考工具路径，本次只修改当前 Unity 项目，未修改该外部导出器。之后重新导入生成的 HLSL，必须在同一步落实上述平台转换，并核对 Paper / Items 两份 Shader 的坐标与 `aa` 都使用 `dotPx`；不能直接覆盖为旧 `generatedHLSL` 而丢失修正。后端 Shader 编译、四章实际画面及缩放后网点仍按实际验收记录判断，当前不声明视觉完成。
+
+### 其它原作资源导出
+
 `export-ui-art.mjs` 直接执行原作 `ui/icons.js`，将八个道具、八个角色头像、三个模式、四条赛道草图和四个操作图标保存为 27 张透明 PNG。正式资源位于 `Art/UI/Items/`、`Portraits/`、`Modes/`、`Tracks/` 和 `Controls/`，已通过 Unity 导入为单图 Sprite 并添加资源标签；模式、头像和章节插图已保存到选赛 Prefab，道具窗口、来袭预警与逆行图标已接入。保留原作剪纸和错版印刷绘图，不将土耳其语文字烘入这些图标。导入必须明确 `SpriteImportMode.Single`，避免空的多图模式导致资源无法取得 Sprite。
 
 `export-stage.mjs` 直接执行原作 `cinematics/stage.js` 与 `print.js`，在内存中暴露原有变形与纸景数据，不修改参考仓库。独立参考输出位于 `SourceExports/Stage/book/`，保留封面与卷页基础顶点、29 个纸景/文具部件铰链数据和四章印刷。中文文字以项目 `HarmonyOS_CN.ttf` 替换拉丁字模。Unity 中保存 16 个 Mesh、12 个纸材质、立体书 Prefab 和精简动态数据；菜单开合、翻页、纸景与车手联动已接入并通过新版三端场景测试。
@@ -57,7 +83,9 @@
 
 `export-podium.mjs` 直接执行 `createPodium` 与 `podiumShot`；原生领奖台 Mesh、图集与配置保存在 Demo 独立目录，`Fixtures/OriginalPodium.json` 保存四场景 44 组源码快照。书本在颁奖时直接打开最终章，收起拱门与 `podiumFold` 纸景，镜头由领奖台接管。Unity 浮点四元数每步归一化，避免原作双精度旋转迁入后积累误差触发原生矩阵断言。中文纸卡沿用原作壁钟入场时序，不使用比赛固定时钟。
 
-纸艺 Shader 的光照保留 Three.js `RE_Direct_Toon` / `RE_IndirectDiffuse_Toon` 调用的 `BRDF_Lambert`（1/π），避免沿用相同原作灯光强度时画面过曝。该修正同时影响四章赛道和书本舞台；外部 Shader 导出入口与正式 Shader 同步，未修改项目全局画面设置。
+纸艺 Shader 的光照保留 Three.js `RE_Direct_Toon` / `RE_IndirectDiffuse_Toon` 调用的 `BRDF_Lambert`（1/π）。输入不得再预除 π：四章 World 的 `sunIntensity` 直接使用 `definition.theme.sun.intensity`，材质 `_AmbientColor` 使用 `theme.ambient.color` 的线性值乘 `theme.ambient.intensity`。2026-10-13 修正了四章资源和 Shader 同时除 π 导致的暗淡画面。书本舞台沿用自己的源输入，不随赛道资源批量缩放。
+
+外部 `export-world.mjs` 已输出未经 π 缩放的原作 theme；`export-paper-shader.mjs` 与正式 Shader 保留 Lambert 系数。重新导入时遵循同一约定，不在资源装配阶段再次补偿亮度，也不更改公共画质偏好。
 
 `Fixtures/OriginalMotion.json` 来自实际执行固定提交内的 JS 查询与赛车运动。它是跨语言迁移的行为参考数据，不是 C# 实现生成的期望值。查询输入先转为 float32，使两端从同一位置开始；刹车和救援的阈值仍保留原作时间精度。原作变化时重新运行 JS 生成参考，不修改参考值来掩盖 Unity 行为错误。
 

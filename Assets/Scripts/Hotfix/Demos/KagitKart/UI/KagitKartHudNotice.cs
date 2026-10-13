@@ -67,6 +67,9 @@ namespace Hotfix.KagitKart
         private float goLeft = -1, splitLeft, splitWall = 1, splitFrom;
         private bool splitShown;
         private int shownPlace;
+        private int shownTotal = -1, shownLap = -1, shownLaps = -1;
+        private double shownCentiseconds = -1;
+        private int shownWaitSeconds = -1;
 
         private enum NoticeKind
         {
@@ -91,6 +94,9 @@ namespace Hotfix.KagitKart
             Clear();
             world = owner;
             session = owner?.Session;
+            shownTotal = shownLap = shownLaps = -1;
+            shownWaitSeconds = -1;
+            shownCentiseconds = -1;
             if (session == null)
             {
                 return;
@@ -291,7 +297,12 @@ namespace Hotfix.KagitKart
             waiting.gameObject.SetActive(wait);
             if (wait)
             {
-                waitingText.text = $"等待其他车手 · {Math.Ceiling(session.Race.WaitLeft):0} 秒";
+                int seconds = (int)Math.Ceiling(session.Race.WaitLeft);
+                if (shownWaitSeconds != seconds)
+                {
+                    shownWaitSeconds = seconds;
+                    waitingText.SetText("等待其他车手 · {0} 秒", seconds);
+                }
             }
             UpdateThreat(dt, wallDt, reduced);
         }
@@ -304,12 +315,32 @@ namespace Hotfix.KagitKart
             {
                 SetPlace(place, false);
             }
-            totalText.gameObject.SetActive(session.Karts.Count > 1);
-            totalText.text = "/" + session.Karts.Count;
-            lapText.text = $"<size=36%>圈</size> {Mathf.Clamp(world.PlayerEntry.Progress.Lap, 1, session.Race.Laps)}/{session.Race.Laps}";
+            if (shownTotal != session.Karts.Count)
+            {
+                shownTotal = session.Karts.Count;
+                totalText.gameObject.SetActive(shownTotal > 1);
+                totalText.SetText("/{0}", shownTotal);
+            }
+            int lap = Mathf.Clamp(world.PlayerEntry.Progress.Lap, 1, session.Race.Laps);
+            if (shownLap != lap || shownLaps != session.Race.Laps)
+            {
+                shownLap = lap;
+                shownLaps = session.Race.Laps;
+                lapText.SetText("<size=36%>圈</size> {0}/{1}", lap, shownLaps);
+            }
             double seconds = player.Finished ? world.PlayerEntry.FinishTime
                 : world.IntroPlaying || session.Race.State == KagitKartRaceState.Countdown ? 0 : session.RaceTime;
-            clockText.text = KagitKartHudMotion.TimeText(seconds);
+            if (!(seconds >= 0) || double.IsInfinity(seconds))
+            {
+                seconds = 0;
+            }
+            double centiseconds = Math.Floor(seconds * 100);
+            if (shownCentiseconds != centiseconds)
+            {
+                shownCentiseconds = centiseconds;
+                clockText.SetText("{0:0}:{1:00}.{2:00}", (float)Math.Floor(seconds / 60),
+                    (float)Math.Floor(seconds % 60), (float)Math.Floor(seconds * 100 % 100));
+            }
         }
 
         private void ApplySizing()
@@ -511,8 +542,9 @@ namespace Hotfix.KagitKart
             }
             Vector3 relative = Vector3.back;
             float heading = 0;
-            foreach (var projectile in session.Items.Projectiles)
+            for (int projectileIndex = 0; projectileIndex < session.Items.Projectiles.Count; projectileIndex++)
             {
+                var projectile = session.Items.Projectiles[projectileIndex];
                 if (projectile != null && projectile.Target == session.Player && projectile.Kind == threatKind)
                 {
                     relative = projectile.Position - session.Player.Position;

@@ -18,7 +18,7 @@ MonoBehaviour:
   skyBottom: {r: 0.9882353, g: 0.9372549, b: 0.8156863, a: 1}
   sunDirection: {x: -0.51009786, y: 0.79575264, z: 0.32646263}
   sunColor: {r: 1, g: 0.9529412, b: 0.8392157, a: 1}
-  sunIntensity: 0.6684507
+  sunIntensity: 2.1
   skyMaterial: {fileID: 2100000, guid: 74c2b18c37e88bc4fb35c93876963041, type: 2}
   batches:
   - sourceName: scenery:strings

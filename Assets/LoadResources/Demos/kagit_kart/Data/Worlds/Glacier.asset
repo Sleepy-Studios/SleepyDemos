@@ -18,7 +18,7 @@ MonoBehaviour:
   skyBottom: {r: 1, g: 0.76862746, b: 0.7607843, a: 1}
   sunDirection: {x: -0.8401549, y: 0.42567846, z: -0.33606195}
   sunColor: {r: 1, g: 0.8392157, b: 0.76862746, a: 1}
-  sunIntensity: 0.70028174
+  sunIntensity: 2.2
   skyMaterial: {fileID: 2100000, guid: fe5fd873250aecc46ab8cddd4481b140, type: 2}
   batches:
   - sourceName: scenery:gondola

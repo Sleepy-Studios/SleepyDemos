@@ -18,7 +18,7 @@ MonoBehaviour:
   skyBottom: {r: 0.9529412, g: 0.7882353, b: 0.54509807, a: 1}
   sunDirection: {x: 0.31025264, y: 0.87904906, z: 0.36196136}
   sunColor: {r: 1, g: 0.8862745, b: 0.6901961, a: 1}
-  sunIntensity: 0.63661975
+  sunIntensity: 2
   skyMaterial: {fileID: 2100000, guid: 5b1bd2a6e05de5d459a0e0f3c7964776, type: 2}
   batches:
   - sourceName: scenery:steam

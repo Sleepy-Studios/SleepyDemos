@@ -141,7 +141,7 @@
 
 项目根 `.editorconfig` 约束四空格缩进、花括号独立成行、运算符和参数标准空格。成员之间留空行；构造函数、多语句方法和 switch 分支逐行展开。简单只读属性可以使用表达式写法，控制流不能压成一行。定向格式化本次涉及的手写文件，不批量改生成组件、第三方代码或 Unity 资源。
 
-Flux Action 采用 PascalCase 公开参数字段和显式构造函数，与钓鱼项目的业务写法一致；内部来源及版本字段也使用 PascalCase。结果使用由 Handler 回填的属性。Action 只描述请求，调用方构造后通过 `GlobalData.Dispatch` 派发，不在 Action 内定义静态 `Send` 或执行副作用。
+Flux Action 采用 PascalCase 公开参数字段和显式构造函数；内部来源及版本字段也使用 PascalCase。结果使用由 Handler 回填的属性。Action 只描述请求，调用方构造后通过 `GlobalData.Dispatch` 派发，不在 Action 内定义静态 `Send` 或执行副作用。
 
 每个业务 Action、关键 Data 状态均补简短中文业务说明；带参公开构造函数遵守下文 XML 规则。Handler 分支清楚表达读取和修改 `State` 的顺序。初始化、依赖配置、采样和释放属于生命周期入口；业务操作、反馈和导航结果通过 Action 处理。规则及公共服务事件可以由 Handler 桥接发布，保持实际刷新频率。
 

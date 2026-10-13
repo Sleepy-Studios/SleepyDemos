@@ -17,7 +17,9 @@ namespace Hotfix.KagitKart
         }
 
         /// 读取下一个 [0,1) 随机数。
-        public double Next()
+        public double Next() => Next(ref state);
+
+        internal static double Next(ref uint state)
         {
             unchecked
             {

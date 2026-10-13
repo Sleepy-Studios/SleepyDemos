@@ -9,8 +9,21 @@ namespace Hotfix.KagitKart
     {
         [SerializeField] private AudioClip[] clips;
         private Dictionary<string, AudioClip> lookup;
+        internal IReadOnlyList<AudioClip> Clips => clips;
 
         private void OnValidate() => lookup = null;
+
+        internal void CopyEffectsTo(Dictionary<string, AudioClip> destination)
+        {
+            GetClip("bank_white");
+            foreach (var pair in lookup)
+            {
+                if (pair.Key.StartsWith("sfx_", StringComparison.Ordinal))
+                {
+                    destination.Add(pair.Key.Substring(4), pair.Value);
+                }
+            }
+        }
 
         /// <summary>读取原作配方名对应的音频；资产缺失直接报错，避免无声占位。</summary>
         /// <param name="name">manifest 中的完整名称，不包含扩展名。</param>

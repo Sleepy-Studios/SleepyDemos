@@ -224,7 +224,7 @@ Shader 通过既有资源服务加载，就绪前保持原生图片。已确认�
 
 共享键只包含基础材质、效果 Shader 及实际生效的圆角、羽化、描边、阴影参数；关闭效果的颜色、偏移等不拆分材质，透明轮廓模式和尺寸由顶点传递。不同基础材质（包含原生遮罩状态）保持隔离，最后一个使用者释放后转入闲置 LRU，再次命中时复用；闲置容量集中由 `ImageExtend.IdleMaterialCapacity`（64）控制，活动项不计入容量且不会被 LRU 淘汰。每次新增闲置项即按最久未使用顺序收敛容量，无需每帧扫描。`ClearUnusedMaterials()` 可主动清理闲置项而保留活动项；失效的基础材质／资源依赖在后续缓存访问或释放时移除，播放模式切换、程序集重载、Editor 退出与 SubsystemRegistration 重置全部缓存。缓存和组件共同持有 Shader 加载器，淘汰或最终清理时释放缓存的依赖引用。LRU 用于减少重复创建，不代表减少 Draw Call。Inspector 下方只读诊断显示 CanvasRenderer 当前已提交材质的名称和实例 ID，重建前可能仍是上一帧值；同 ID 表示共享材质，不保证合批，纹理、遮罩、Canvas 和层级仍会影响合批。
 
-`TMP_UGUI_Extend` 的描边应配合 `TextMeshPro/Mobile/Distance Field` 材质使用。项目版本在 Unity 6 Shader 基础上保留了钓鱼项目的外描边字面补偿；重新导入 TMP Essential Resources 后需要确认 `TMP_SDF-Mobile.shader` 没有被覆盖。项目新建 TMP 文本的默认字体由 `Assets/TextMesh Pro/Resources/TMP Settings.asset` 指向 `HarmonyOS_CN.asset`，已有 TMP 组件仍保留各自序列化字体，需要按需批量或手动替换。
+`TMP_UGUI_Extend` 的描边应配合 `TextMeshPro/Mobile/Distance Field` 材质使用。项目版本在 Unity 6 Shader 基础上增加外描边字面补偿；重新导入 TMP Essential Resources 后需要确认 `TMP_SDF-Mobile.shader` 没有被覆盖。项目新建 TMP 文本的默认字体由 `Assets/TextMesh Pro/Resources/TMP Settings.asset` 指向 `HarmonyOS_CN.asset`，已有 TMP 组件仍保留各自序列化字体，需要按需批量或手动替换。
 
 `FlowLayoutGroup` 默认按子节点 `LayoutElement` 或 Graphic/TMP 提供的 preferred size 从左到右排列，宽度不足时换行。需要从上到下排满后换列时将 `Start Axis` 改为 `Vertical`；`Spacing.x/y` 分别表示水平/垂直间距。它适合数量有限且尺寸不同的标签、按钮和筛选项；大量动态数据仍应使用带复用机制的列表，不要把全部 Item 常驻在 LayoutGroup 下。
 
@@ -237,7 +237,7 @@ Shader 通过既有资源服务加载，就绪前保持原生图片。已确认�
 - `ViewList` 仅适合有限数量的 View 项；大量同类数据条目优先复用已有 `LoopScrollView` 和宿主桥接。
 - 不要把 `CanvasGroup.SetCanvasGroupVisible` 当作 GameObject 激活切换，也不要再增加同名 `CanvasGroup.Show/Hide`。
 - 不要从 Hotfix 直接复制大型 `UIUtil` 或第三方包的内部扩展到 `Core.Runtime/Extends`。
-- `TMPAutoScrollView.cs` 属于钓鱼项目的 ItemView 适配层；当前项目使用独立组件与预制体，直接操作 TMP，不引入这层包装。
+- 当前项目使用独立组件与预制体，直接操作 TMP。
 
 ## 验证
 
@@ -256,7 +256,7 @@ UIDropdown 浮层接入的直接回归是 `UIComponentLifecyclePlayModeTests.Dro
 
 控件同一 GameObject 只挂一个 UIState，默认配置 Normal/Hover/Focused/Pressed/Disabled；同节点有 Selectable 时自动消费原生 EventSystem，无 Selectable 时由业务手动切换。业务需要的 Selected、On、Off 追加在同一状态表，由 UITab、UIBtnSwitch 等维护业务值并调用 `SetState`，不再挂独立 UIStateInteraction，也不新增状态管理器。
 
-自动控件按 Normal 基底、业务态、交互态顺序应用。Normal 配齐状态退出所需的恢复值，业务态只声明增量，交互态覆盖本次反馈；释放、失焦或解除禁用后恢复仍有效的业务态。`CurrentStateId` 表示业务态，`InteractionState` 表示自动交互态。鼠标悬停和方向导航不能修改 Tab 索引，Submit 表现不会代替 Button 再点击一次。隐藏清除瞬态，不清空 Selected/On；触屏不显示交互强调，Disabled 仍有效，禁用逻辑继续由 Selectable/CanvasGroup 控制。
+自动控件按 Normal 基底、业务态、交互态顺序应用。Normal 配齐状态退出所需的恢复值，业务态只声明增量，交互态覆盖本次反馈；释放、失焦或解除禁用后恢复仍有效的业务态。`CurrentStateId` 表示业务态，`InteractionState` 表示自动交互态。鼠标悬停和方向导航不能修改 Tab 索引，Submit 表现不会代替 Button 再点击一次。隐藏清除瞬态，不清空 Selected/On；真实指针按住可显示 Pressed，触屏仍抑制 Hover、Focused 及 Submit 瞬态，松手恢复仍有效的业务态。Disabled 仍有效，禁用逻辑继续由 Selectable/CanvasGroup 控制。
 
 独立勾选框使用原生 Toggle：业务通过 `isOn` 或 `SetIsOnWithoutNotify` 设置值，同节点 UIState 读取该值并应用已配置的 On/Off，继续叠加五态；不使用 `UIState.SetState` 代替 Toggle 值，也不添加第二套回调桥。BtnSwitch1 和 BtnSwitch2 则均复用 UIBtnSwitch 的整块 Button 点击切换，区别仅为双文字胶囊块或圆形滑块表现。
 
@@ -312,7 +312,7 @@ CommonTips Prefab 的 `ItemTemplate` 必须保持隐藏，直接保存 `UITipsPa
 
 正式资源位于 `Assets/LoadResources/UI/Common`，背景、箭头和状态图标位于公共 `Sprites/Tips`。修改绑定后通过 UIBind 重新生成，不手改 `*Component.cs`。字体使用公共 HarmonyOS_CN 及其现有回退；箭头与 Body 为同级，Pivot 位于连接边缘；定位完成后不要再次覆写主体位置。尺寸、安全边距和 gap 使用 Canvas 本地单位，不按 Screen.width 手工缩放。
 
-背景与箭头参考钓鱼项目公共资源；当前消息图标使用 `Sprites/Tips/{CircleSuccess,CircleInfo,WarningOutline}.png`，制作源在 `ArtSource/common_ui/`。圆形单色符号用 ColorUtil 或正文色着色；WarningOutline 预着色为 `#BE0423`，保留警告图标的白色 Tint。旧 WarningTriangle 和 Success 图标仍有其他使用方，不因消息图标替换删除。直接维护正式资产，临时装配、导出及预览工具不作为长期菜单保留。
+当前消息图标使用 `Sprites/Tips/{CircleSuccess,CircleInfo,WarningOutline}.png`，制作源在 `ArtSource/common_ui/`。圆形单色符号用 ColorUtil 或正文色着色；WarningOutline 预着色为 `#BE0423`，保留警告图标的白色 Tint。旧 WarningTriangle 和 Success 图标仍有其他使用方，不因消息图标替换删除。直接维护正式资产，临时装配、导出及预览工具不作为长期菜单保留。
 
 运行 `Tests.Module.CommonUtilityTests`（EditMode）、`Tests.Module.CommonTipsPlayModeTests`（PlayMode）和相关 Prefab 约定测试。实际观感还需检查安全区、屏幕比例、正文滚动、三种图标及返回焦点；相关测试不等于全量回归或 YooAsset Player 构建。
 
@@ -330,7 +330,7 @@ tab.Init(labels, isAsync: false);    // 明确需要立即初始化时使用
 
 接入 Demo 前先验收公共模板，逐项检查组件绑定、中文字体、Sprite 与 Border、布局、遮罩、射线和导航。通用按钮模板为 `Common/_TemplateInstantiatePrefab/Btns/CommonButton.prefab`；Tab、下拉和开关继续使用各自模板。
 
-`UIState` 直接消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。基础模板统一采用暖白、深墨和朱红；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深或改变装饰，Disabled 降低强调且不可操作。触屏不显示交互强调，但仍显示禁用状态。五态不缩放控件根节点，保持按下与抬手的点击矩形一致。
+`UIState` 直接消费 EventSystem 事件，表现状态为 Normal、Hover、Focused、Pressed、Disabled。基础模板统一采用暖白、深墨和朱红；Hover 提亮，Focused 使用明确焦点边框，Pressed 变深或改变装饰，Disabled 降低强调且不可操作。触屏允许真实指针按住的 Pressed，抑制 Hover、Focused 与 Submit 瞬态，仍显示禁用状态。五态不缩放控件根节点，保持按下与抬手的点击矩形一致。
 
 业务值与交互反馈职责分开，表现统一配置在同一个 UIState；不要再额外挂交互桥或用原生 Transition 修改同一颜色或缩放。Normal 必须恢复所拥有的属性，关闭、失焦及禁用不能留下按压缩放。纯背景需要状态时手动调用，不参与导航；反馈 Graphic 不拦截射线。触控命令保持与释放继续由 InputCommandButton 负责，表现状态不接管命令生命周期。
 

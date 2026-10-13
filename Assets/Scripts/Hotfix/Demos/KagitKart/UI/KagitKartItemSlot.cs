@@ -24,6 +24,7 @@ namespace Hotfix.KagitKart
         private float thudAge = 1;
         private float borderAge;
         private string shownItem;
+        private int shownCount = -1;
         private bool wasHeld;
         private bool thudClass;
         private bool lastReduced;
@@ -44,6 +45,7 @@ namespace Hotfix.KagitKart
             random = new KagitKartRandom(unchecked((uint)Environment.TickCount));
             spinning = false;
             shownItem = null;
+            shownCount = -1;
             thudAge = 1;
             borderAge = 0;
             wasHeld = false;
@@ -101,8 +103,12 @@ namespace Hotfix.KagitKart
                 }
                 else if (shownItem != player.Item) ShowItem(player.Item);
             }
-            count.transform.parent.gameObject.SetActive(player.ItemCount > 1);
-            count.text = "×" + player.ItemCount;
+            if (shownCount != player.ItemCount)
+            {
+                shownCount = player.ItemCount;
+                count.transform.parent.gameObject.SetActive(shownCount > 1);
+                count.SetText("×{0}", shownCount);
+            }
             if (player.ItemHeld && !wasHeld) borderAge = 0;
             wasHeld = player.ItemHeld;
             heldBorder.gameObject.SetActive(wasHeld);
