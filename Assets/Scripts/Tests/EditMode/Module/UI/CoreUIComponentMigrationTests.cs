@@ -193,6 +193,18 @@ namespace Tests.Module
                 Assert.That(shared.GetInt("_Stencil"), Is.EqualTo(7));
                 Object.DestroyImmediate(first);
                 Assert.That(shared != null, Is.True, "仍有使用者时不能销毁共享材质。");
+                b.EdgeFeather = 12f;
+                Rect originalRect = second.GetComponent<RectTransform>().rect;
+                using (var helper = CreateQuad(-50f, -20f, 50f, 20f))
+                {
+                    b.ModifyMesh(helper);
+                    UIVertex vertex = default;
+                    helper.PopulateUIVertex(ref vertex, 0);
+                    Assert.That(vertex.position.x, Is.EqualTo(-56f).Within(0.001f), "外侧羽化必须有绘制区域。");
+                    Assert.That(vertex.uv1.z, Is.EqualTo(100f), "轮廓尺寸保持原值，不随网格外扩。");
+                    Assert.That(second.GetComponent<RectTransform>().rect, Is.EqualTo(originalRect), "羽化不得改变布局或点击矩形。");
+                }
+                b.EdgeFeather = 0f;
                 b.EnableShadow = true;
                 using (var helper = CreateQuad(-50f, -20f, 50f, 20f))
                 {
@@ -212,6 +224,13 @@ namespace Tests.Module
                 second.GetComponent<Image>().type = Image.Type.Filled;
                 Assert.That(b.GetSupportIssue(), Is.Not.Null);
                 Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(baseMaterial));
+                b.EnableShadow = false;
+                Assert.That(b.GetSupportIssue(), Is.Null, "Filled 仍支持默认自动抗锯齿圆角。");
+                b.EdgeFeather = 12f;
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(baseMaterial), "外扩羽化不能破坏原生填充语义。");
+                second.GetComponent<Image>().type = Image.Type.Simple;
+                second.AddComponent<Mask>();
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(baseMaterial), "Mask 写入节点不能扩大遮罩范围。");
             }
             finally
             {

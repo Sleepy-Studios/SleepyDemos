@@ -187,7 +187,7 @@ namespace Core.Runtime
             ? (useUnifiedRadius ? Vector4.one * Mathf.Max(0f, unifiedRadius) : MaxZero(separateRadius))
             : Vector4.zero;
 
-        /// 圆角轮廓向内羽化的宽度，单位同半径；0 保留基础抗锯齿，关闭圆角时不生效。
+        /// 圆角轮廓内外各半的总羽化宽度，单位同半径；0 仅使用自动抗锯齿，关闭圆角时不生效。
         public float EdgeFeather
         {
             get => edgeFeather;
@@ -404,6 +404,24 @@ namespace Core.Runtime
             {
                 return english ? "Rounded corners, outlines and shadows require the default UI material." : "圆角／描边／阴影仅支持默认 UI 材质。";
             }
+            if (enableRoundedCorners && edgeFeather > 0f)
+            {
+                if ((image.type != Image.Type.Simple && image.type != Image.Type.Sliced) || image.useSpriteMesh)
+                {
+                    return english ? "Inner / outer feathering requires Simple or Sliced Image with Use Sprite Mesh disabled; native rendering is retained." : "内外羽化需要 Simple 或 Sliced Image，并关闭 Use Sprite Mesh；其他类型保留原生绘制。";
+                }
+                if (TryGetComponent<Mask>(out var featherMask) && featherMask.isActiveAndEnabled)
+                {
+                    return english ? "A Mask writer cannot expand feathering; use a separate decorative Image." : "Mask 写入节点不支持外扩羽化；请放在独立装饰图片上。";
+                }
+                Sprite featherSprite = image.overrideSprite;
+                if (featherSprite != null && (featherSprite.associatedAlphaSplitTexture != null ||
+                    (featherSprite.packed && (featherSprite.packingRotation != SpritePackingRotation.None || featherSprite.packingMode == SpritePackingMode.Tight)) ||
+                    featherSprite.texture.mipmapCount > 1))
+                {
+                    return english ? "Feathered sprites require an unrotated rectangular atlas and no mipmaps; native rendering is retained." : "羽化图片需要矩形图集、关闭 Rotation／Tight Packing／Mipmap；不支持的资源保留原生绘制。";
+                }
+            }
             if ((HasOutline || HasShadow) && (image.type == Image.Type.Filled || image.type == Image.Type.Tiled))
             {
                 return english ? "Filled / Tiled retain native rendering; expanded outlines and shadows are unsupported." : "Filled／Tiled 保留原生绘制，不支持外扩描边和阴影。";
@@ -454,17 +472,23 @@ namespace Core.Runtime
                 return;
             }
             bool shaderReady = NeedsShader && effectShader != null;
+            float featherPadding = shaderReady && enableRoundedCorners ? edgeFeather * 0.5f : 0f;
             bool expanded = shaderReady && (HasOutline || HasShadow);
             UIVertex first = default, third = default;
             helper.PopulateUIVertex(ref first, 0);
             helper.PopulateUIVertex(ref third, Mathf.Min(2, helper.currentVertCount - 1));
             Vector4 uvBounds = new(first.uv0.x, first.uv0.y, third.uv0.x, third.uv0.y);
+            var image = (Image)graphic;
+            if (featherPadding > 0f && image.overrideSprite != null)
+            {
+                uvBounds = UnityEngine.Sprites.DataUtility.GetOuterUV(image.overrideSprite);
+            }
             if (expanded)
             {
                 sourceVertices.Clear();
                 helper.GetUIVertexStream(sourceVertices);
                 helper.Clear();
-                float padding = (HasOutline ? outlineWidth : 0f) + (HasShadow ? shadowSoftness + Mathf.Max(Mathf.Abs(shadowOffset.x), Mathf.Abs(shadowOffset.y)) : 0f) + 1f;
+                float padding = (HasOutline ? outlineWidth : 0f) + (HasShadow ? shadowSoftness + Mathf.Max(Mathf.Abs(shadowOffset.x), Mathf.Abs(shadowOffset.y)) : 0f) + featherPadding + 1f;
                 AddEffectQuad(helper, bounds, uvBounds, padding, useSpriteAlpha ? 2f : 1f, first.color);
                 if (!useSpriteAlpha)
                 {
@@ -478,6 +502,10 @@ namespace Core.Runtime
                         helper.AddTriangle(start + i, start + i + 1, start + i + 2);
                     }
                 }
+            }
+            if (featherPadding > 0f && !(expanded && useSpriteAlpha))
+            {
+                ExpandFeatherMesh(helper, bounds, featherPadding);
             }
             Vector2 pivot = graphic.rectTransform.rect.center;
             float radians = Mathf.Repeat(rotationAngle, 360f) * Mathf.Deg2Rad;
@@ -805,6 +833,51 @@ namespace Core.Runtime
                 max = Vector2.Max(max, vertex.position);
             }
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        // 只扩展原网格的外沿；按同一行／列的相邻顶点外推 UV，保持九宫格内部纹理和尺寸。
+        private void ExpandFeatherMesh(VertexHelper helper, Rect bounds, float padding)
+        {
+            sourceVertices.Clear();
+            for (int i = 0; i < helper.currentVertCount; i++)
+            {
+                UIVertex vertex = default;
+                helper.PopulateUIVertex(ref vertex, i);
+                sourceVertices.Add(vertex);
+            }
+            for (int i = 0; i < sourceVertices.Count; i++)
+            {
+                UIVertex vertex = sourceVertices[i];
+                if (vertex.uv0.z != 0f)
+                {
+                    continue;
+                }
+                for (int axis = 0; axis < 2; axis++)
+                {
+                    float position = sourceVertices[i].position[axis];
+                    float shift = Mathf.Approximately(position, bounds.min[axis]) ? -padding
+                        : Mathf.Approximately(position, bounds.max[axis]) ? padding : 0f;
+                    if (shift == 0f)
+                    {
+                        continue;
+                    }
+                    float nearest = float.MaxValue;
+                    Vector2 slope = Vector2.zero;
+                    foreach (var neighbour in sourceVertices)
+                    {
+                        float delta = neighbour.position[axis] - position;
+                        if (neighbour.uv0.z == 0f && Mathf.Approximately(neighbour.position[1 - axis], sourceVertices[i].position[1 - axis]) &&
+                            Mathf.Abs(delta) > 0.0001f && Mathf.Abs(delta) < nearest)
+                        {
+                            nearest = Mathf.Abs(delta);
+                            slope = ((Vector2)neighbour.uv0 - (Vector2)sourceVertices[i].uv0) / delta;
+                        }
+                    }
+                    vertex.position[axis] += shift;
+                    vertex.uv0 += new Vector4(slope.x * shift, slope.y * shift, 0f, 0f);
+                }
+                helper.SetUIVertex(vertex, i);
+            }
         }
 
         private static void AddEffectQuad(VertexHelper helper, Rect bounds, Vector4 uvBounds, float padding, float mode, Color color)

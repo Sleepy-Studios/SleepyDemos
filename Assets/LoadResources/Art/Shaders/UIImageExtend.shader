@@ -104,12 +104,8 @@ Shader "UI/ImageExtend"
             half Coverage(float distance)
             {
                 float antialias = max(fwidth(distance), 0.0001);
-                if (_EdgeFeather <= antialias)
-                {
-                    return saturate(0.5 - distance / antialias);
-                }
-                // 羽化向内延伸，保留外侧半像素抗锯齿，不依赖外扩原图网格或跨图集采样。
-                return saturate((0.5 * antialias - distance) / _EdgeFeather);
+                // 自动抗锯齿提供最小像素宽度；手动羽化以原轮廓为中心向内外等量展开。
+                return saturate(0.5 - distance / max(antialias, _EdgeFeather));
             }
 
             half4 SampleSprite(float2 uv, float4 bounds)
@@ -117,6 +113,10 @@ Shader "UI/ImageExtend"
                 float2 halfTexel = _MainTex_TexelSize.xy * 0.5;
                 float2 safeUV = clamp(uv, bounds.xy + halfTexel, bounds.zw - halfTexel);
                 half4 color = tex2D(_MainTex, safeUV) + _TextureSampleAdd;
+                if (_EdgeFeather > 0)
+                {
+                    return color;
+                }
                 float2 coverage = saturate(min(uv - bounds.xy, bounds.zw - uv) * _MainTex_TexelSize.zw + 0.5);
                 color.a *= coverage.x * coverage.y;
                 return color;
@@ -151,7 +151,13 @@ Shader "UI/ImageExtend"
                 half4 color = 0;
                 if (input.uv.z < 0.5)
                 {
-                    half4 sprite = (tex2D(_MainTex, input.uv.xy) + _TextureSampleAdd) * input.color;
+                    float2 uv = input.uv.xy;
+                    if (_EdgeFeather > 0)
+                    {
+                        float2 halfTexel = _MainTex_TexelSize.xy * 0.5;
+                        uv = clamp(uv, input.bounds.xy + halfTexel, input.bounds.zw - halfTexel);
+                    }
+                    half4 sprite = (tex2D(_MainTex, uv) + _TextureSampleAdd) * input.color;
                     sprite.a *= panel;
                     color = half4(sprite.rgb * sprite.a, sprite.a);
                 }
@@ -199,8 +205,7 @@ Shader "UI/ImageExtend"
                         {
                             float shadowDistance = DistanceToPanel(input.local.xy - _Shadow.xy, input.local.zw);
                             shadow = _Shadow.z > 0
-                                ? (_EdgeFeather <= _Shadow.z ? saturate(0.5 - shadowDistance / _Shadow.z)
-                                    : saturate((0.5 * _Shadow.z - shadowDistance) / _EdgeFeather))
+                                ? saturate(0.5 - shadowDistance / max(_Shadow.z, max(_EdgeFeather, fwidth(shadowDistance))))
                                 : Coverage(shadowDistance);
                             shadow *= 1 - panel;
                         }

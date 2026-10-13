@@ -210,7 +210,7 @@ titleText.text = title;
 
 Inspector 顶部的「中文 | English」切换控制标签、枚举、提示和警告，首次默认中文，本机 EditorPrefs 记住选择并供所有 ImageExtend Inspector 共用；不写入 Prefab，也不跟随游戏语言。独立半径按左上、右上、右下、左下配置。
 
-「边缘羽化 / Edge Feather」仅在圆角启用时生效，运行时通过 `EdgeFeather` 修改，单位与圆角半径一样为 UI 本地单位。默认 0 保留既有 `fwidth` 抗锯齿；正值增加轮廓向内的透明过渡，低于当前像素抗锯齿宽度时仍使用基础抗锯齿。它不是整图模糊，也不是阴影柔化。羽化不扩大图片网格、点击矩形或原生 Filled 填充范围；很大的宽度会降低小图片内部的不透明度，缩放后应检查真实显示效果。描边与阴影沿同一羽化轮廓计算，外扩装饰仍遵循下述支持限制。
+「边缘羽化 / Edge Feather」仅在圆角启用时生效，运行时通过 `EdgeFeather` 修改，单位与圆角半径一样为 UI 本地单位。默认 0 仅使用 `fwidth` 自动抗锯齿，无需手工适配缩放。正值表示以原轮廓为中心的总透明过渡宽度，内外各半，例如 12 表示向内、向外各 6；有效过渡宽度不会小于当前像素抗锯齿宽度。它不是整图模糊，也不是阴影柔化。Simple／Sliced 的原图外沿随羽化扩展，边缘纹理在自身 Sprite 范围内延伸，九宫格内部保持原位；RectTransform、布局和点击矩形不变。手动羽化不支持 Filled／Tiled、Use Sprite Mesh、Mask 写入节点、旋转／紧密图集或 Mipmap，这些组合会提示并保留原生绘制；羽化为 0 时保留原有支持范围，作为遮罩子节点时仍受 Mask／RectMask2D 裁剪。很大的宽度会降低小图片内部的不透明度，缩放后应检查真实显示效果。描边与阴影沿同一羽化轮廓计算，外扩装饰仍遵循下述支持限制。
 
 Shader 位于 `Assets/LoadResources/Art/Shaders/UIImageExtend.shader`，运行时资源地址为 `LoadResources/Art/Shaders/UIImageExtend`，组件自动开启所属 Canvas 的 TexCoord1/TexCoord2。纯翻转、旋转和渐变不需要该特效材质。组件不创建或管理遮罩；需要遮罩时显式添加原生 Mask 或 RectMask2D，圆角图片效果与遮罩各自配置。
 

@@ -117,7 +117,7 @@ namespace Core.Editor
                     Draw(radius.FindPropertyRelative("z"), "右下半径", "Bottom Right Radius", "右下角半径，非负的 UI 本地单位。", "Bottom right radius in non-negative UI local units.");
                     Draw(radius.FindPropertyRelative("w"), "左下半径", "Bottom Left Radius", "左下角半径，非负的 UI 本地单位。", "Bottom left radius in non-negative UI local units.");
                 }
-                Draw("edgeFeather", "边缘羽化", "Edge Feather", "圆角轮廓向内的透明过渡宽度，单位为 UI 本地单位；0 保留基础抗锯齿。这不是整图模糊或阴影柔化。", "Width of the inward alpha transition along rounded contours in UI local units; 0 retains base antialiasing. This is not whole-image blur or shadow softness.");
+                Draw("edgeFeather", "边缘羽化", "Edge Feather", "以圆角轮廓为中心，内外各半的总透明过渡宽度，单位为 UI 本地单位；0 仅使用自动抗锯齿。这不是整图模糊或阴影柔化。", "Total alpha transition width centered on rounded contours, half inward and half outward, in UI local units; 0 uses automatic antialiasing only. This is not whole-image blur or shadow softness.");
             }
         }
 
