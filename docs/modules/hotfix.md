@@ -44,6 +44,10 @@
 
 本地 Bundle HTTP 服务通过 `HotfixBuildWindow` 的 Mock Server 区启停，底层实现为 `LocalBundleHttpServer`。
 
+“一键编译并同步”依次执行 HybridCLR 全量生成与编译、刷新 AOT/热更程序集列表、AOT 剥离，再把剥离后的 AOT DLL 与热更 DLL 同步为资源目录中的 `.dll.bytes`。单独的“同步当前 DLL 到资源目录”仍直接使用未剥离的 AOT 源目录。
+
+构建平台以 `EditorUserBuildSettings.activeBuildTarget` 为唯一来源，窗口保留 PC/Android 按钮并显示当前平台的选中状态。点击另一平台只提示先到 `File > Build Profiles` 切换，不直接切换 Unity 平台或修改路径。打开窗口、切换配置或检测到 Unity 平台变化时，自动同步 AOT、热更 DLL 源目录和当前平台最新的 Bundle 目录；手动选择的路径可在本轮操作中继续使用，再次同步平台时会恢复该平台的默认路径。新建配置也使用当前构建平台。HybridCLR 编译与 YooAsset 资源打包应使用同一平台；SSH 部署保留 Windows64 的 `/PC` 目录，Android 使用 `/Android`。
+
 ## 边界规则
 
 - Hotfix 业务代码不要直接操作 HybridCLR 或 YooAsset 的底层句柄。
@@ -74,6 +78,8 @@
 ### 接入检查
 
 - Editor 中能打开 `Tools/UI Framework/Hotfix Build`。
+- Windows64 与 Android 下，窗口平台显示和 AOT、热更 DLL、Bundle 路径均与 Unity 当前构建平台一致；重新打开窗口不会回到固定 PC 状态。
+- 点击非当前平台按钮只出现切换提示，选中状态和路径保持当前平台；在 Build Profiles 完成切换后自动更新。
 - 启动时 `HybridMetadataSystem` 和 `HotfixAssemblySystem` 不报错。
 - 热更程序集加载后，具体 View 自动按类名与 UIBind 别名进入索引，新增页面无需手写清单；未知名称只查缓存，不扫描其它程序集兜底。
 - `Tests.Module.HotfixAssemblyDefinitionFilterTests` 和 `Tests.Module.TestAssemblyBoundaryTests` 全部通过。

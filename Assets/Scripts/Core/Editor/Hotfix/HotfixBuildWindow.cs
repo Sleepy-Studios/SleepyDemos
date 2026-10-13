@@ -20,7 +20,7 @@ namespace Core.Editor.Hotfix
         private const string AotGenericReferencesPath = "Assets/HybridCLRGenerate/AOTGenericReferences.cs";
 
         private HotfixConfig config;
-        private bool isPcPlatform = true;
+        private BuildTarget buildTarget;
         private Vector2 scrollPosition;
 
         private bool showGeneralSection = true;
@@ -58,7 +58,7 @@ namespace Core.Editor.Hotfix
             }
 
             var asset = CreateInstance<HotfixConfig>();
-            ApplyPlatformDefaults(asset, true);
+            ApplyPlatformDefaults(asset);
             AssetDatabase.CreateAsset(asset, path);
             AssetDatabase.SaveAssets();
             Selection.activeObject = asset;
@@ -67,11 +67,18 @@ namespace Core.Editor.Hotfix
         private void OnEnable()
         {
             LoadOrCreateConfig();
+            SyncPlatformConfig();
+        }
+
+        private void SyncPlatformConfig()
+        {
+            buildTarget = EditorUserBuildSettings.activeBuildTarget;
+            ApplyPlatformDefaults(config);
             RefreshLocalBundlePathToLatest();
             EnsureDefaults();
-            SyncBaseServerUrlFromMode(false);
+            SyncBaseServerUrlFromMode(true);
 
-            if (config != null && config.UseLocalMockServer)
+            if (config.UseLocalMockServer)
             {
                 TryStartLocalMockServerSilently();
             }
@@ -79,6 +86,11 @@ namespace Core.Editor.Hotfix
 
         private void OnGUI()
         {
+            if (config != null && buildTarget != EditorUserBuildSettings.activeBuildTarget)
+            {
+                SyncPlatformConfig();
+            }
+
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
             DrawConfigSection();
             if (config != null)
@@ -97,6 +109,7 @@ namespace Core.Editor.Hotfix
 
         private void DrawConfigSection()
         {
+            HotfixConfig previousConfig = config;
             EditorGUILayout.LabelField("Hotfix 配置", EditorStyles.boldLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -114,6 +127,11 @@ namespace Core.Editor.Hotfix
                 return;
             }
 
+            if (config != previousConfig)
+            {
+                SyncPlatformConfig();
+            }
+
             if (GUILayout.Button(new GUIContent("保存配置", "保存当前窗口里的配置修改")))
             {
                 SaveConfig();
@@ -124,24 +142,20 @@ namespace Core.Editor.Hotfix
         {
             EditorGUILayout.Space(10);
             EditorGUILayout.LabelField("目标平台", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Unity 当前构建平台", buildTarget.ToString());
             using (new EditorGUILayout.HorizontalScope())
             {
-                bool nextPc = GUILayout.Toggle(isPcPlatform, "PC 平台", "Button", GUILayout.Width(120), GUILayout.Height(28));
-                bool nextAndroid = GUILayout.Toggle(!isPcPlatform, "Android 平台", "Button", GUILayout.Width(120), GUILayout.Height(28));
-                bool newIsPc = nextPc || !nextAndroid;
-                if (newIsPc == isPcPlatform)
+                bool isPc = buildTarget == BuildTarget.StandaloneWindows64;
+                bool isAndroid = buildTarget == BuildTarget.Android;
+                bool nextPc = GUILayout.Toggle(isPc, "PC 平台", "Button", GUILayout.Width(120), GUILayout.Height(28));
+                bool nextAndroid = GUILayout.Toggle(isAndroid, "Android 平台", "Button", GUILayout.Width(120), GUILayout.Height(28));
+                if ((nextPc && !isPc) || (nextAndroid && !isAndroid))
                 {
-                    return;
-                }
-
-                isPcPlatform = newIsPc;
-                ApplyPlatformDefaults(config, isPcPlatform);
-                RefreshLocalBundlePathToLatest();
-                EnsureDefaults();
-                SyncBaseServerUrlFromMode(true);
-                if (config.UseLocalMockServer)
-                {
-                    TryStartLocalMockServerSilently();
+                    string platform = nextAndroid && !isAndroid ? "Android" : "Windows (64-bit)";
+                    EditorUtility.DisplayDialog(
+                        "请先切换 Unity 构建平台",
+                        $"请在 File > Build Profiles 中将当前平台切换为 {platform}。\n切换完成后，此窗口会自动更新平台状态及 DLL、Bundle 路径。",
+                        "知道了");
                 }
             }
         }
@@ -332,13 +346,14 @@ namespace Core.Editor.Hotfix
 
             EditorGUILayout.HelpBox("左边: 直接同步当前编译结果，不做 AOT 剥离。右边: 先生成剥离后的 AOT 元数据资源，再同步到资源目录。", MessageType.None);
 
-            if (GUILayout.Button(new GUIContent("一键编译并同步", "执行全量编译，自动刷新 AOT/热更列表，然后直接同步当前 DLL 到资源目录。不包含 AOT 剥离步骤。")))
+            if (GUILayout.Button(new GUIContent("一键编译并同步", "执行全量编译，自动刷新 AOT/热更列表，剥离 AOT，再将剥离后的 AOT DLL 和热更 DLL 同步到资源目录。")))
             {
                 PrebuildCommand.GenerateAll();
                 AssetDatabase.Refresh();
                 AutoFillAotAssemblies();
                 AutoFillHotfixAssemblies();
-                ReplaceAssemblies(false);
+                StripAotAssemblies();
+                ReplaceAssemblies(true);
             }
 
             EditorGUI.indentLevel--;
@@ -727,15 +742,15 @@ namespace Core.Editor.Hotfix
             }
 
             config = CreateInstance<HotfixConfig>();
-            ApplyPlatformDefaults(config, isPcPlatform);
+            ApplyPlatformDefaults(config);
             AssetDatabase.CreateAsset(config, ConfigAssetPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        private static void ApplyPlatformDefaults(HotfixConfig target, bool pc)
+        private static void ApplyPlatformDefaults(HotfixConfig target)
         {
-            string platform = pc ? "StandaloneWindows64" : "Android";
+            string platform = EditorUserBuildSettings.activeBuildTarget.ToString();
             target.PackageName = string.IsNullOrWhiteSpace(target.PackageName) ? ResourceInitializeOptions.DefaultPackageName : target.PackageName;
             target.AotSourcePath = $"HybridCLRData/AssembliesPostIl2CppStrip/{platform}";
             target.AotStrippedSourcePath = $"HybridCLRData/StrippedAOTAssembly2/{platform}";
@@ -751,7 +766,7 @@ namespace Core.Editor.Hotfix
         private void RefreshLocalBundlePathToLatest()
         {
             string projectRoot = GetProjectRootPath();
-            string basePath = Path.GetFullPath(Path.Combine(projectRoot, $"Bundles/{(isPcPlatform ? "StandaloneWindows64" : "Android")}/{config.PackageName}"));
+            string basePath = Path.GetFullPath(Path.Combine(projectRoot, $"Bundles/{EditorUserBuildSettings.activeBuildTarget}/{config.PackageName}"));
             if (!Directory.Exists(basePath))
             {
                 config.LocalBundlePath = Path.GetRelativePath(projectRoot, basePath).Replace('\\', '/');
@@ -946,7 +961,8 @@ namespace Core.Editor.Hotfix
                 throw new InvalidOperationException("远程根路径必须是非根目录的绝对路径，且不能包含相对跳转或控制字符。");
             }
 
-            string platformFolder = isPcPlatform ? "PC" : "Android";
+            BuildTarget currentBuildTarget = EditorUserBuildSettings.activeBuildTarget;
+            string platformFolder = currentBuildTarget == BuildTarget.StandaloneWindows64 ? "PC" : currentBuildTarget.ToString();
             return $"{root}/{platformFolder}";
         }
 

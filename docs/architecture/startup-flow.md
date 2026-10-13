@@ -60,6 +60,10 @@
 
 ## 热更入口
 
+编辑器热更构建以 Unity 当前构建平台为准：`HotfixBuildWindow` 显示 `EditorUserBuildSettings.activeBuildTarget`，并同步对应平台的 DLL 源目录与 Bundle 路径。PC/Android 按钮反映当前平台，点击另一平台只提示到 Build Profiles 切换，不维护独立的平台选择状态。切换平台后须重新生成该平台的 DLL 和资源包，避免跨平台复用产物；运行时程序集装配顺序不变。构建入口与维护规则见 [Hotfix 热更新模块](../modules/hotfix.md)。
+
+“一键编译并同步”在全量编译和程序集列表刷新后执行 AOT 剥离，再同步剥离后的 AOT DLL 与热更 DLL 到资源目录，供后续资源打包使用。
+
 Hotfix 入口位于：
 - `Assets/Scripts/Hotfix/AppDelegate/HotfixEntry.cs`
 
