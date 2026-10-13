@@ -20,6 +20,8 @@
   - UI Transition 类型必须来自 Unity Player 脚本程序集，是顶级 `public` 非泛型 class，并提供 `public` 无参构造；Editor/Test-only 或不可直接构造的类型不会出现在列表中，手工写入非法类型时生成器会直接报错
   - 默认生成目录为 `Assets/Scripts/Hotfix/Module/{Module}/{Prefab名}/View`；勾选“自定义 Module 输出目录”后，通过文件夹选择器指定当前 Module 的目录，生成器只追加 `{Prefab名}/View`，不会重复追加 Module
   - 自定义目录只接受当前项目 `Assets` 内目录，路径只读且不持久化到 EditorPrefs；未勾选时保持原有目录规则
+  - Prefab Mode 的 Create 先保存生成脚本、更新 `ComponentItemIndex`，再保存当前 Prefab；仅保存成功才清除编辑场景的未保存状态
+  - 根节点已有 `ComponentItemIndex` 时，顶部 Save、退出确认保存及 Auto Save 共用 `prefabSaving` 回调生成脚本和绑定数据，由 Unity 随后完成一次 Prefab 保存；不在保存回调中嵌套保存。窗口未打开时从已有绑定索引恢复 Module 与自定义输出目录
   - 窗口下方的绑定索引以 `Assets/LoadResources` 中根节点带 `ComponentItemIndex` 的 Prefab 为数据源，并在 `Assets/Scripts/Hotfix` 全域匹配手写 View 与生成 Component，因此支持 Demo 自定义源码目录
   - 索引在窗口打开、生成成功后自动刷新，也可点击“刷新绑定索引”；不会监听全局 `projectChanged`，避免无关资源导入反复扫描
   - 缺少脚本、`Source` 地址不一致或绑定数组损坏的 Prefab 统一进入 `[异常绑定]`，不会与正常 Module 混排

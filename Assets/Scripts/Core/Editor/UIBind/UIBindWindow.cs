@@ -485,17 +485,6 @@ namespace Core.Editor.UIBind
             return UIBindPathUtility.TryGetPrefabAssetPath(targetPrefabRoot, out prefabPath);
         }
 
-        internal static string ResolveModuleName(string prefabPath, string address)
-        {
-            var records = UIBindIndexDiscovery.BuildViewRecords();
-            var viewName = UIBindPathUtility.ToViewClassName(prefabPath);
-            var record = records.FirstOrDefault(item =>
-                item.prefabPath == UIBindPathUtility.NormalizeAssetPath(prefabPath) ||
-                item.address == address ||
-                item.viewName == viewName);
-            return record != null ? record.moduleName : string.Empty;
-        }
-
         private void OnPrefabStageOpened(PrefabStage stage)
         {
             targetPrefabRoot = stage.prefabContentsRoot;
@@ -574,9 +563,11 @@ namespace Core.Editor.UIBind
                 : new UIBindSettings();
 
             result.ApplyPrefabPath(prefabPath);
-            result.moduleName = source != null
-                ? source.moduleName
-                : ResolveModuleName(result.prefabPath, result.address);
+            if (source == null)
+            {
+                ApplyPrefabGenerationLocation(result, UIBindIndexDiscovery.FindRecordForPrefab(result.prefabPath));
+            }
+
             result.outputFolder = UIBindPathUtility.ToOutputFolder(result);
             return result;
         }

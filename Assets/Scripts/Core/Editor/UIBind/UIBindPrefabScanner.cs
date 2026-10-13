@@ -297,10 +297,6 @@ namespace Core.Editor.UIBind
         public const string NoneChoice = "None";
         public const string MixedChoice = "Mixed";
 
-        private static bool suppressAutoGenerateOnPrefabSave;
-
-        public static bool SuppressAutoGenerateOnPrefabSave => suppressAutoGenerateOnPrefabSave;
-
         public static void Open(UIBindSettings settings)
         {
             UIBindComponentWindow.OpenWindow(settings);
@@ -332,13 +328,13 @@ namespace Core.Editor.UIBind
                     return false;
                 }
 
+                generatedPath = UIBindCodeGenerator.Generate(settings, nodes);
                 BindPrefabComponents(targetPrefabRoot, components);
                 if (savePrefabStage)
                 {
                     SavePrefabStageIfOpen(targetPrefabRoot);
                 }
 
-                generatedPath = UIBindCodeGenerator.Generate(settings, nodes);
                 UIBindWindow.RefreshActiveIndex();
                 return true;
             }
@@ -394,16 +390,13 @@ namespace Core.Editor.UIBind
                 return;
             }
 
-            try
+            PrefabUtility.SaveAsPrefabAsset(prefabStage.prefabContentsRoot, prefabStage.assetPath, out var savedSuccessfully);
+            if (!savedSuccessfully)
             {
-                suppressAutoGenerateOnPrefabSave = true;
-                PrefabUtility.SaveAsPrefabAsset(prefabStage.prefabContentsRoot, prefabStage.assetPath);
-                AssetDatabase.SaveAssets();
+                throw new InvalidDataException($"UIBind 预制体保存失败：{prefabStage.assetPath}");
             }
-            finally
-            {
-                suppressAutoGenerateOnPrefabSave = false;
-            }
+
+            prefabStage.ClearDirtiness();
         }
 
         public static string GetComponentDisplayName(Type type)

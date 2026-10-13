@@ -27,6 +27,8 @@
 10. 固定存在且由业务代码访问的 Prefab 节点必须加入 `ComponentItemIndex`；完成组件和回调绑定后生成 View 与 Component 代码。不要直接修改自动生成的 `*Component.cs`，也不要在手写 View 中用 `Transform.Find` 补漏。
 11. 生成成功后，在窗口下方确认 View 出现在对应 `[Module]` 下，并能看到手写 View、生成 ViewComponent 和 `GameObject` 三项。自定义输出目录不会影响这里的归类。
 
+在 Prefab Mode 点击 Create 会先保存绑定脚本，再自动保存当前 Prefab，无需再点 Save。根节点已有 `ComponentItemIndex` 时，也可直接点击顶部 Save，或返回时确认保存；两者会先重新生成绑定脚本，再由 Unity 保存 Prefab。Hierarchy 的组件和回调勾选也会标记为未保存，单独调整绑定后同样可以使用这些保存入口。
+
 ## 维护启动与场景加载界面
 
 两套加载界面共用视觉规范，但分别保存和绑定：

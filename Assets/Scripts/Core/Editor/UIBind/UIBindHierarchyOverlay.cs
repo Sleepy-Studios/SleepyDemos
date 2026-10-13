@@ -78,6 +78,8 @@ namespace Core.Editor.UIBind
                         : UIBindComponentWindowBridge.NoneChoice;
                     UIBindComponentWindowBridge.ApplyComponentChoice(node, defaultChoice);
                 }
+
+                MarkDirtyAndRepaint();
             }
 
             if (!nextSelected || node.componentTypes.Count == 0)
@@ -132,7 +134,7 @@ namespace Core.Editor.UIBind
             menu.AddItem(new GUIContent(UIBindComponentWindowBridge.NoneChoice), selectedMethods.Count == 0, () =>
             {
                 selectedMethods.Clear();
-                EditorApplication.RepaintHierarchyWindow();
+                MarkDirtyAndRepaint();
             });
 
             foreach (var method in UIBindCodeGenerator.GetRegisterMethods(node.selectedComponentType, node.name))
@@ -141,7 +143,7 @@ namespace Core.Editor.UIBind
                 {
                     selectedMethods.Clear();
                     selectedMethods.Add(method.registerMethodName);
-                    EditorApplication.RepaintHierarchyWindow();
+                    MarkDirtyAndRepaint();
                 });
             }
 
@@ -162,6 +164,12 @@ namespace Core.Editor.UIBind
         private static void ApplyAndRepaint(UIBindNode node, string choice)
         {
             UIBindComponentWindowBridge.ApplyComponentChoice(node, choice);
+            MarkDirtyAndRepaint();
+        }
+
+        private static void MarkDirtyAndRepaint()
+        {
+            EditorSceneManager.MarkSceneDirty(root.scene);
             EditorApplication.RepaintHierarchyWindow();
         }
 
@@ -220,8 +228,8 @@ namespace Core.Editor.UIBind
         private static void OnPrefabSaving(GameObject prefabRoot)
         {
             if (prefabRoot == null ||
-                generatingFromPrefabSave ||
-                UIBindComponentWindowBridge.SuppressAutoGenerateOnPrefabSave)
+                prefabRoot.GetComponent<ComponentItemIndex>() == null ||
+                generatingFromPrefabSave)
             {
                 return;
             }
@@ -250,7 +258,8 @@ namespace Core.Editor.UIBind
             generatingFromPrefabSave = true;
             try
             {
-                if (UIBindComponentWindowBridge.GenerateAndBind(prefabRoot, settings, targetNodes, true, out var path, out var message))
+                // Unity 会在此回调结束后保存 Prefab，这里只生成脚本并更新绑定，避免嵌套保存。
+                if (UIBindComponentWindowBridge.GenerateAndBind(prefabRoot, settings, targetNodes, false, out var path, out var message))
                 {
                     Debug.Log($"UIBind generated before prefab save: {path}");
                 }
