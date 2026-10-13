@@ -36,6 +36,11 @@ namespace Core.Runtime.Inputs
             Asset.Disable();
             try
             {
+                foreach (var map in Asset.actionMaps)
+                {
+                    map.actionTriggered += OnActionTriggered;
+                }
+                InputSystem.onAfterUpdate += OnAfterInputUpdate;
                 OnSettingsChanged(GameSettingsService.Current);
                 GameSettingsService.Changed += OnSettingsChanged;
             }
@@ -221,19 +226,22 @@ namespace Core.Runtime.Inputs
         private bool Available(string name, out InputAction action)
         {
             action = Map?.FindAction(name);
-            if (disposed || action == null || !action.enabled)
+            return !disposed && action != null && action.enabled && !awaitingRelease.Contains(action);
+        }
+
+        private void OnActionTriggered(InputAction.CallbackContext context)
+        {
+            // 输入事件到达时解除门闩，松开再按之间不要求玩法读取。
+            if (awaitingRelease.Contains(context.action) && !HasInput(context.action))
             {
-                return false;
+                awaitingRelease.Remove(context.action);
             }
-            if (!awaitingRelease.Contains(action))
-            {
-                return true;
-            }
-            if (!HasInput(action))
-            {
-                awaitingRelease.Remove(action);
-            }
-            return false;
+        }
+
+        private void OnAfterInputUpdate()
+        {
+            // 按住时重启的 Button 可能没有取消回调，仍按输入系统更新解除中立门闩。
+            awaitingRelease.RemoveWhere(action => !HasInput(action));
         }
 
         private static bool HasInput(InputAction action)
@@ -276,6 +284,11 @@ namespace Core.Runtime.Inputs
             }
             disposed = true;
             GameSettingsService.Changed -= OnSettingsChanged;
+            InputSystem.onAfterUpdate -= OnAfterInputUpdate;
+            foreach (var map in Asset.actionMaps)
+            {
+                map.actionTriggered -= OnActionTriggered;
+            }
             Asset.Disable();
             awaitingRelease.Clear();
             if (Application.isPlaying)

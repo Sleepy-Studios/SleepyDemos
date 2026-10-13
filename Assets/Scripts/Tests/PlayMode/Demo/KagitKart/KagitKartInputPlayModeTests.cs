@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections;
+using System.Linq;
 using System.Reflection;
 using Core.Runtime.Inputs;
 using Core.Runtime.Settings;
@@ -24,6 +25,27 @@ namespace Tests.Demo
         private InputActionAsset source;
         private KagitKartInput input;
         private InputDevice device;
+        private Touchscreen touchDevice;
+        private InputSettings originalSettings;
+        private InputSettings testSettings;
+        private InputDevice[] existingDevices;
+
+        [UnitySetUp]
+        public IEnumerator Setup()
+        {
+            originalSettings = InputSystem.settings;
+            testSettings = Object.Instantiate(originalSettings);
+            testSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            testSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            InputSystem.settings = testSettings;
+            // 全局设备识别也参与测试，真实鼠标和键盘不能抢占模拟设备。
+            existingDevices = InputSystem.devices.Where(value => value.enabled).ToArray();
+            foreach (var value in existingDevices)
+            {
+                InputSystem.DisableDevice(value);
+            }
+            yield return null;
+        }
 
         [UnityTearDown]
         public IEnumerator Cleanup()
@@ -33,10 +55,23 @@ namespace Tests.Demo
             {
                 InputSystem.RemoveDevice(device);
             }
+            if (touchDevice != null && touchDevice.added)
+            {
+                InputSystem.RemoveDevice(touchDevice);
+            }
             if (source != null)
             {
                 source.devices = null;
             }
+            foreach (var value in existingDevices)
+            {
+                if (value.added)
+                {
+                    InputSystem.EnableDevice(value);
+                }
+            }
+            InputSystem.settings = originalSettings;
+            Object.Destroy(testSettings);
             yield return null;
         }
 
@@ -65,6 +100,62 @@ namespace Tests.Demo
             Assert.That(input.Pressed("Pause"), Is.True);
             Assert.That(source.enabled, Is.False);
             Assert.That(input.PromptAction("Throttle").actionMap.asset, Is.SameAs(input.Asset));
+        }
+
+        [UnityTest]
+        public IEnumerator MouseActivityKeepsHeldKeyboardControlsAndPendingShortPress()
+        {
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var mouse = InputSystem.AddDevice<Mouse>();
+            touchDevice = InputSystem.AddDevice<Touchscreen>();
+            Initialize(keyboard);
+            try
+            {
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D, Key.Space, Key.E));
+                yield return null;
+                yield return null;
+                input.CaptureFrame();
+                InputDeviceState.Notify(mouse);
+                var controls = input.ReadControls(false);
+                Assert.That(controls.Throttle, Is.EqualTo(1));
+                Assert.That(controls.Steer, Is.EqualTo(1));
+                Assert.That(controls.Drift && controls.Item, Is.True);
+
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D));
+                yield return null;
+                input.CaptureFrame();
+                InputDeviceState.Notify(mouse);
+                controls = input.ReadControls(false);
+                Assert.That(controls.Throttle, Is.EqualTo(1), "鼠标返回键盘、键盘返回鼠标都不能锁住持续驾驶。");
+                Assert.That(controls.Steer, Is.EqualTo(1));
+
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D, Key.E));
+                yield return null;
+                input.CaptureFrame();
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D));
+                yield return null;
+                InputDeviceState.Notify(mouse);
+                Assert.That(input.ReadControls(false).Item, Is.True, "无模拟步时缓存的短按不能被鼠标活动清掉。");
+                Assert.That(input.ReadControls(false).Item, Is.False);
+
+                InputDeviceState.NotifyTouch();
+                InputDeviceState.Notify(keyboard);
+                controls = input.ReadControls(false);
+                Assert.That(controls.Throttle, Is.Zero, "离开键鼠上下文时，即使最后活动的是鼠标，也要锁住旧键盘保持输入。");
+                Assert.That(controls.Steer, Is.Zero);
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                yield return null;
+                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.D, Key.E));
+                yield return null;
+                controls = input.ReadControls(false);
+                Assert.That(controls.Throttle, Is.EqualTo(1));
+                Assert.That(controls.Steer, Is.EqualTo(1));
+                Assert.That(controls.Item, Is.True);
+            }
+            finally
+            {
+                InputSystem.RemoveDevice(mouse);
+            }
         }
 
         [UnityTest]
@@ -178,6 +269,7 @@ namespace Tests.Demo
         public IEnumerator GameplayReopenRequiresReleaseAndDeviceSwitchClearsOldTouch()
         {
             var keyboard = InputSystem.AddDevice<Keyboard>();
+            touchDevice = InputSystem.AddDevice<Touchscreen>();
             Initialize(keyboard);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W, Key.Space, Key.E));
             yield return null;
@@ -191,7 +283,7 @@ namespace Tests.Demo
             Assert.That(controls.Drift || controls.Item, Is.False);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             yield return null;
-            input.ReadControls(false);
+            // 松键帧没有模拟步，也必须解除门闩。
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.W));
             yield return null;
             Assert.That(input.ReadControls(false).Throttle, Is.EqualTo(1));
@@ -345,25 +437,6 @@ namespace Tests.Demo
         }
 
 
-        [Test]
-        public void ControlsReadEveryActualBindingAndItsOverrideWithoutInventingKeys()
-        {
-            using var key = new InputAction("KeyItem");
-            key.AddBinding("<Keyboard>/e");
-            key.AddBinding("<Keyboard>/x");
-            key.AddBinding("<Gamepad>/buttonWest");
-            string before = Hotfix.KagitKartControlsView.Bindings(key, false);
-            Assert.That(before, Does.Contain("E").IgnoreCase);
-            Assert.That(before, Does.Contain("X").IgnoreCase);
-            key.ApplyBindingOverride(0, "<Keyboard>/q");
-            string after = Hotfix.KagitKartControlsView.Bindings(key, false);
-            Assert.That(after, Does.Contain("Q").IgnoreCase);
-            Assert.That(after, Does.Not.Contain("E").IgnoreCase);
-            using var composite = new InputAction("Steer");
-            composite.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/a").With("Positive", "<Keyboard>/d");
-            Assert.That(Hotfix.KagitKartControlsView.Bindings(composite, false), Does.Contain("A").IgnoreCase.And.Contain("D").IgnoreCase);
-            Assert.That(Hotfix.KagitKartControlsView.Bindings(composite, true), Is.EqualTo("无此设备绑定"));
-        }
     }
 }
 #endif

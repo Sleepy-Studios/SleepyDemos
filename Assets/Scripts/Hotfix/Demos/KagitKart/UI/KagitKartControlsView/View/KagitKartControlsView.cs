@@ -122,12 +122,6 @@
             Button_Back.interactable = !world.Busy;
         }
 
-        internal static string Bindings(InputAction action, bool gamepad)
-        {
-            string text = InputBindingDisplay.Get(action, out _, gamepad ? InputDeviceKind.Gamepad : InputDeviceKind.KeyboardMouse);
-            return string.IsNullOrEmpty(text) ? "无此设备绑定" : text;
-        }
-
         private void OnActionChange(object target, InputActionChange change)
         {
             if (change == InputActionChange.BoundControlsChanged)

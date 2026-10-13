@@ -23,7 +23,7 @@
 
 `InputActionSession.ReadAxis` 与 `ReadVector` 都可在原始手柄值上只应用一次死区，避免布局处理器叠加。标量 Value 动作重新启用时也须释放旧轴；模拟扳机的中性门闩保留低于按钮按下阈值的保持值。`InputBindingDisplay` 将摇杆子轴归到父摇杆的图标路径，实际绑定仍为原始轴。
 
-需要清理设备切换前的保持输入时，调用 `InputActionSession.RequireRelease(旧设备)`，只锁住旧设备仍按住的动作，不以重新开启整张 Map 的方式吞掉新设备首次按键。
+需要清理设备切换前的保持输入时，调用 `InputActionSession.RequireRelease(旧设备)`，只锁住旧设备仍按住的动作，不以重新开启整张 Map 的方式吞掉新设备首次按键。松键门闩由动作事件及输入系统更新后的中立检查解除，不要求玩法恰好在松键帧读取；键盘和鼠标共用键鼠上下文，二者互切不清理驾驶输入。
 
 Core不处理下注、机台、牌局、角色运动约束或游戏时钟，也不创建相机和第二套EventSystem。宿主保留自己的inputactions、动作到玩法命令的映射、专属提示文案、触控布局和玩法设置。公共输入参数与绑定覆盖使用GameSettingsService，输入模块不另建PlayerPrefs键或存档格式。
 

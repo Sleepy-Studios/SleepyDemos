@@ -202,14 +202,25 @@ namespace Hotfix.KagitKart
 
         private void OnDeviceChanged()
         {
-            if (activeDevice != InputDeviceState.ActiveDevice || activeKind != InputDeviceState.ActiveKind)
+            var nextDevice = InputDeviceState.ActiveDevice;
+            var nextKind = InputDeviceState.ActiveKind;
+            // 键盘和鼠标共用驾驶上下文，互切只更新提示，不释放驾驶命令。
+            if (activeKind != nextKind || nextKind != InputDeviceKind.KeyboardMouse && activeDevice != nextDevice)
             {
-                session.RequireRelease(activeDevice);
-                activeDevice = InputDeviceState.ActiveDevice;
-                activeKind = InputDeviceState.ActiveKind;
+                if (activeKind == InputDeviceKind.KeyboardMouse)
+                {
+                    session.RequireRelease(Keyboard.current);
+                    session.RequireRelease(Mouse.current);
+                }
+                else
+                {
+                    session.RequireRelease(activeDevice);
+                }
                 ClearPending();
                 InputCleared?.Invoke();
             }
+            activeDevice = nextDevice;
+            activeKind = nextKind;
             DeviceChanged?.Invoke();
         }
 

@@ -803,10 +803,9 @@ namespace Tests.Module
                 yield return null;
                 Assert.That(session.Read<float>("Steer"), Is.Zero);
                 Assert.That(session.Read<float>("Throttle"), Is.Zero);
-                InputSystem.QueueStateEvent(pad, new GamepadState());
+                InputSystem.QueueStateEvent(pad, new GamepadState { rightTrigger = 0.005f });
                 yield return null;
-                session.Read<float>("Steer");
-                session.Read<float>("Throttle");
+                // 轴回到中立时不读会话，低于门闩阈值但非零的扳机也须解除。
                 InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = new Vector2(-0.8f, 0), rightTrigger = 0.1f });
                 yield return null;
                 Assert.That(session.Read<float>("Steer"), Is.LessThan(0));
