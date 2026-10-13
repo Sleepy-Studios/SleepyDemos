@@ -26,6 +26,7 @@
 | 公共设置、FontId、时间或电影演出 | [设置与表现模块](./modules/settings-presentation.md)、[接入公共设置与演出](./runbooks/use-settings-presentation.md) |
 | 新增 Demo | [新增 Demo](./runbooks/add-demo.md)，再按涉及的模块继续阅读 |
 | 新增或运行测试 | [测试架构](./architecture/testing.md)、[运行 Unity 自动化测试](./runbooks/run-unity-tests.md) |
+| 实际采集性能、分析 CPU/GC 或对比优化收益 | [性能工具模块](./modules/performance-tools.md)、[性能分析操作](./runbooks/profile-unity-performance.md) |
 | 其他业务或工具任务 | 从下方模块、Agent 技能和 runbook 导航定位相关内容 |
 
 大型 UI 导航或过渡改动需要同时阅读 [Core UI 渲染设计原则](./architecture/ui-rendering.md)、[Core UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md) 和 [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)，不要只修改其中一层。
@@ -51,6 +52,7 @@
   - [公共玩法输入](./modules/gameplay-input.md)
   - [公共设置与表现](./modules/settings-presentation.md)
   - [热更新模块](./modules/hotfix.md)
+  - [性能采集与分析工具](./modules/performance-tools.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
   - [Core UI 运行时](./modules/ui-runtime.md)
   - [Loop Scroll 模块与宿主桥接](./modules/loop-scroll.md)
@@ -82,6 +84,7 @@
   - [在 Unity Editor 直接运行 Demo 岛](./runbooks/run-demo-island-directly.md)
   - [使用 Luban 配置](./runbooks/use-luban-config.md)
   - [运行 Unity 自动化测试](./runbooks/run-unity-tests.md)
+  - [采集与比较 Unity 性能](./runbooks/profile-unity-performance.md)
 
 ## 按 Demo 查文档
 

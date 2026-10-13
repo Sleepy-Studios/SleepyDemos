@@ -1,0 +1,7 @@
+{
+    "name": "Core.Editor.Performance.UnitySkills",
+    "rootNamespace": "Core.Editor.PerformanceTools.Bridge",
+    "references": ["Core.Editor", "UnitySkills.Editor"],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": true
+}

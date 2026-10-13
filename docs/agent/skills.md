@@ -18,3 +18,5 @@ powershell -ExecutionPolicy Bypass -File scripts/agent/list_skills.ps1 -Filter m
 修改权威源后使用 [sync-skills](../../.agents/skills/sync-skills/SKILL.md) 预览并单向发布。脚本不会反向合并、不复制上游、不创建链接，也不写 `.codex`。新增技能元数据需新会话才能可靠发现，清单脚本即时读取磁盘。
 
 技能使用按实际工作流选择；技能不能扩大用户授权。提交默认本地 commit，只有明确要求才 push。测试保留与执行范围统一遵守 [测试架构](../architecture/testing.md)。
+
+性能任务的项目自研入口为 `unity-performance`（正式 sd_profiler_ 采集/分析）、`unity-profiler-gc`（分配归因与修复）和 `perf-optimize`（CPU 热点优化）；它们复用 [正式 Editor 工具](../modules/performance-tools.md)，区别于上游只读 Profiler 统计与一般性能建议。

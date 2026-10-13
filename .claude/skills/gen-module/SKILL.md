@@ -13,7 +13,7 @@ description: "生成或修改 SleepyDemos Hotfix Flux 三件套；覆盖本地�
 - 普通业务放 `Assets/Scripts/Hotfix/Module/<ModuleName>`。新模块可使用 `_Actions`、`_Data`、`_Reducers`；已有模块保留自己的目录。
 - Demo 放 `Assets/Scripts/Hotfix/Demos/<DemoName>`，沿用其命名空间与职责布局；不为套模板迁移目录或一律改成 `Hotfix`。
 - 底座在 `Assets/Scripts/Core/Runtime/Flux`，使用 `Core.Runtime` 的 `IAction`、`IData`、`IHandler`、`HandlerBase<TAction, TData>` 和 `GlobalData`。
-- Handler 实现 `protected override void Reduce(TAction action)`，不复制钓鱼的 `Execute`、`Game.Main` 或专属异步 API。
+- Handler 实现 `protected override void Reduce(TAction action)`，启动与异步调用使用本项目现有入口。
 
 ## Action
 
@@ -46,7 +46,7 @@ description: "生成或修改 SleepyDemos Hotfix Flux 三件套；覆盖本地�
 - 先确认真实 command、Request/Response 及 `INetworkService` 注册入口；本地模块不创建 `GetInfo`、`InfoRes` 或假请求类。
 - 命令式请求用 `SendMsg(command, request)`，真实回包用 `[MessageHandler(command, MessageHandler.State.Success/Error)]`。
 - 回包方法执行后框架自动 `ApplyState()`，方法内不重复调用。泛型异步重载遵循当前 `HandlerBase` 的返回和发布契约。
-- 注释写实际协议语义，不导入钓鱼专属网络、日志、资源或任务框架。
+- 注释写实际协议语义，网络、日志、资源和任务调用复用本项目现有框架。
 
 ## 完成自检
 

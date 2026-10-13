@@ -26,7 +26,7 @@ description: "仅在用户明确要求排查 Unity Hot Reload 时，读取 Timel
 - 机器读取：`Library/com.singularitygroup.hotreload/patches.json`。
 - 补丁临时目录：`%LOCALAPPDATA%\singularitygroup-hotreload\HotReloadServerTemp\<project-id>\MethodPatches`。
 
-`<project-id>` 由插件生成，例如 `fishinggameplay-4F48AC`。不要硬编码，按当前项目名去目录里找。
+`<project-id>` 由插件生成，按当前项目名查找对应目录，不要硬编码。
 
 ## 读取 patches.json
 
