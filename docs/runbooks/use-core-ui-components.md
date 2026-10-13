@@ -208,6 +208,10 @@ titleText.text = title;
 
 在原生 Image 同节点添加 ImageExtend，在 Inspector 按需展开图片变换、渐变、圆角、描边和阴影。翻转/旋转作用于网格，渐变按变换后坐标采样并与 Image.color 相乘；RectTransform、布局与原生点击矩形保持原有语义。只改变整组透明度时优先 CanvasGroup，不逐个改子 Image 的 alpha。
 
+Inspector 顶部的「中文 | English」切换控制标签、枚举、提示和警告，首次默认中文，本机 EditorPrefs 记住选择并供所有 ImageExtend Inspector 共用；不写入 Prefab，也不跟随游戏语言。独立半径按左上、右上、右下、左下配置。
+
+「边缘羽化 / Edge Feather」仅在圆角启用时生效，运行时通过 `EdgeFeather` 修改，单位与圆角半径一样为 UI 本地单位。默认 0 保留既有 `fwidth` 抗锯齿；正值增加轮廓向内的透明过渡，低于当前像素抗锯齿宽度时仍使用基础抗锯齿。它不是整图模糊，也不是阴影柔化。羽化不扩大图片网格、点击矩形或原生 Filled 填充范围；很大的宽度会降低小图片内部的不透明度，缩放后应检查真实显示效果。描边与阴影沿同一羽化轮廓计算，外扩装饰仍遵循下述支持限制。
+
 Shader 位于 `Assets/LoadResources/Art/Shaders/UIImageExtend.shader`，运行时资源地址为 `LoadResources/Art/Shaders/UIImageExtend`，组件自动开启所属 Canvas 的 TexCoord1/TexCoord2。纯翻转、旋转和渐变不需要该特效材质。组件不创建或管理遮罩；需要遮罩时显式添加原生 Mask 或 RectMask2D，圆角图片效果与遮罩各自配置。
 
 Shader 通过既有资源服务加载，就绪前保持原生图片。已确认的加载失败不在每次网格刷新时重复请求，重新启用组件可重试；缓存同步完成时避开当前 Canvas 图形重建再刷新。透明轮廓 Sprite 的纹理尚未绑定时也保留原生绘制，不能把尚未绑定的图集样本当作轮廓效果验收。
@@ -217,6 +221,8 @@ Shader 通过既有资源服务加载，就绪前保持原生图片。已确认�
 描边宽度为 0～8、阴影柔化为 0～16 个 UI 本地单位，仅用于细轮廓和轻阴影。面板模式按图片绘制矩形计算；需要按透明轮廓时启用 Use Sprite Alpha，使用带透明背景的 Simple Sprite、关闭 Use Sprite Mesh，图集关闭 Rotation/Tight Packing/Mipmap。外置 Alpha 纹理保留原生图片显示，Inspector 提示圆角／描边／阴影材质不支持该组合。检查图集边界与相邻图片，不把固定少量采样当作大范围高质量模糊；大阴影使用预制作图片。
 
 描边/阴影 RGB 使用独立颜色，透明度继续跟随图片渐变 alpha 和 CanvasGroup；切换参数、禁用与销毁由组件维护共享派生材质引用和资源 Loader。业务不修改 Graphic.defaultGraphicMaterial 或共享字体材质。渐变按实际网格顶点采样，中间颜色键是否能表现须看真实图片网格与截图，不能仅凭 Inspector 渐变条判断效果。
+
+共享键只包含基础材质、效果 Shader 及实际生效的圆角、羽化、描边、阴影参数；关闭效果的颜色、偏移等不拆分材质，透明轮廓模式和尺寸由顶点传递。不同基础材质（包含原生遮罩状态）保持隔离，最后一个使用者释放后转入闲置 LRU，再次命中时复用；闲置容量集中由 `ImageExtend.IdleMaterialCapacity`（64）控制，活动项不计入容量且不会被 LRU 淘汰。每次新增闲置项即按最久未使用顺序收敛容量，无需每帧扫描。`ClearUnusedMaterials()` 可主动清理闲置项而保留活动项；失效的基础材质／资源依赖在后续缓存访问或释放时移除，播放模式切换、程序集重载、Editor 退出与 SubsystemRegistration 重置全部缓存。缓存和组件共同持有 Shader 加载器，淘汰或最终清理时释放缓存的依赖引用。LRU 用于减少重复创建，不代表减少 Draw Call。Inspector 下方只读诊断显示 CanvasRenderer 当前已提交材质的名称和实例 ID，重建前可能仍是上一帧值；同 ID 表示共享材质，不保证合批，纹理、遮罩、Canvas 和层级仍会影响合批。
 
 `TMP_UGUI_Extend` 的描边应配合 `TextMeshPro/Mobile/Distance Field` 材质使用。项目版本在 Unity 6 Shader 基础上保留了钓鱼项目的外描边字面补偿；重新导入 TMP Essential Resources 后需要确认 `TMP_SDF-Mobile.shader` 没有被覆盖。项目新建 TMP 文本的默认字体由 `Assets/TextMesh Pro/Resources/TMP Settings.asset` 指向 `HarmonyOS_CN.asset`，已有 TMP 组件仍保留各自序列化字体，需要按需批量或手动替换。
 

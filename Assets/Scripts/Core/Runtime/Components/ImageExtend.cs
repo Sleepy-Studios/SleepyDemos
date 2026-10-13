@@ -22,7 +22,11 @@ namespace Core.Runtime
 
         private const string ShaderName = "UI/ImageExtend";
         private const string ShaderAddress = "LoadResources/Art/Shaders/UIImageExtend";
-        private static readonly Dictionary<(Material, Vector4, Color, Vector4, Color, Vector4), SharedMaterial> Materials = new();
+        /// 仅限制闲置材质；活动材质受引用计数保护，不计入此容量。
+        public const int IdleMaterialCapacity = 64;
+
+        private static readonly Dictionary<(Material, Shader, Vector4, float, Color, Vector4, Color, Vector4), SharedMaterial> Materials = new();
+        private static readonly LinkedList<SharedMaterial> IdleMaterials = new();
 
         [SerializeField] private bool flipHorizontal;
         [SerializeField] private bool flipVertical;
@@ -35,6 +39,7 @@ namespace Core.Runtime
         [SerializeField] private bool useUnifiedRadius = true;
         [SerializeField, Min(0f)] private float unifiedRadius = 10f;
         [SerializeField] private Vector4 separateRadius = new(10f, 10f, 10f, 10f);
+        [SerializeField, Min(0f)] private float edgeFeather;
         [SerializeField] private bool enableOutline;
         [SerializeField] private bool useSpriteAlpha;
         [SerializeField, Range(0f, 8f)] private float outlineWidth = 2f;
@@ -46,11 +51,12 @@ namespace Core.Runtime
 
         private readonly List<UIVertex> sourceVertices = new();
         private readonly List<BaseMeshEffect> meshEffects = new();
-        private (Material, Vector4, Color, Vector4, Color, Vector4) materialKey;
+        private (Material, Shader, Vector4, float, Color, Vector4, Color, Vector4) materialKey;
         private SharedMaterial sharedMaterial;
         private Shader effectShader;
-        private IResourceLoader shaderLoader;
+        private ShaderReference shaderReference;
         private bool shaderLoading;
+        private bool shaderReleasePending;
         private bool shaderLoadFailed;
         private bool destroyed;
 
@@ -58,6 +64,34 @@ namespace Core.Runtime
         {
             public Material Material;
             public int References;
+            public (Material, Shader, Vector4, float, Color, Vector4, Color, Vector4) Key;
+            public LinkedListNode<SharedMaterial> IdleNode;
+            public ShaderReference ShaderReference;
+        }
+
+        // 缓存材质与组件共同持有加载器，避免组件销毁后闲置材质失去 Shader 依赖。
+        private sealed class ShaderReference
+        {
+            public IResourceService Service;
+            public IResourceLoader Loader;
+            public int References = 1;
+
+            public void Release()
+            {
+                if (--References == 0)
+                {
+                    var loader = Loader;
+                    Loader = null;
+                    try
+                    {
+                        loader.Dispose();
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogException(exception);
+                    }
+                }
+            }
         }
 
         /// 是否水平翻转图片网格。
@@ -152,6 +186,17 @@ namespace Core.Runtime
         public Vector4 RadiusVector => enableRoundedCorners
             ? (useUnifiedRadius ? Vector4.one * Mathf.Max(0f, unifiedRadius) : MaxZero(separateRadius))
             : Vector4.zero;
+
+        /// 圆角轮廓向内羽化的宽度，单位同半径；0 保留基础抗锯齿，关闭圆角时不生效。
+        public float EdgeFeather
+        {
+            get => edgeFeather;
+            set
+            {
+                edgeFeather = Mathf.Max(0f, value);
+                Refresh();
+            }
+        }
 
         /// 是否使用图片透明轮廓；关闭时描边和阴影按面板矩形计算。
         public bool UseSpriteAlpha
@@ -269,8 +314,7 @@ namespace Core.Runtime
             ReleaseMaterial();
             if (!shaderLoading)
             {
-                shaderLoader?.Dispose();
-                shaderLoader = null;
+                ReleaseShaderReference();
             }
             base.OnDestroy();
         }
@@ -295,6 +339,7 @@ namespace Core.Runtime
             shadowSoftness = Mathf.Clamp(shadowSoftness, 0f, 16f);
             unifiedRadius = Mathf.Max(0f, unifiedRadius);
             separateRadius = MaxZero(separateRadius);
+            edgeFeather = Mathf.Max(0f, edgeFeather);
             offset = Mathf.Clamp(offset, -1f, 1f);
             // 本组件的 Shader 与 Canvas 刷新延后到 Editor 主线程。
             UnityEditor.EditorApplication.delayCall -= RefreshAfterValidate;
@@ -330,20 +375,21 @@ namespace Core.Runtime
             graphic.SetMaterialDirty();
         }
 
-        /// 返回不能安全组合的配置原因；null 表示当前组合可用。
-        public string GetSupportIssue()
+        /// <summary>返回不能安全组合的配置原因；null 表示当前组合可用。</summary>
+        /// <param name="english">为编辑器英文提示返回英文；默认保留既有中文诊断。</param>
+        public string GetSupportIssue(bool english = false)
         {
             var image = graphic as Image;
             if (image == null)
             {
-                return "仅支持原生 Image。";
+                return english ? "Only native Image is supported." : "仅支持原生 Image。";
             }
             GetComponents(meshEffects);
             foreach (var effect in meshEffects)
             {
                 if (effect != this && effect.isActiveAndEnabled)
                 {
-                    return "请将其他网格效果迁移到 ImageExtend，不要叠加 Outline、Shadow 或旧效果组件。";
+                    return english ? "Migrate other mesh effects to ImageExtend; do not stack Outline, Shadow or legacy effects." : "请将其他网格效果迁移到 ImageExtend，不要叠加 Outline、Shadow 或旧效果组件。";
                 }
             }
             if (!NeedsShader)
@@ -352,42 +398,42 @@ namespace Core.Runtime
             }
             if (image.overrideSprite != null && image.overrideSprite.associatedAlphaSplitTexture != null)
             {
-                return "外置 Alpha 纹理保留原生图片绘制，不支持圆角／描边／阴影材质。";
+                return english ? "External alpha textures retain native rendering; rounded corners, outlines and shadows are unsupported." : "外置 Alpha 纹理保留原生图片绘制，不支持圆角／描边／阴影材质。";
             }
             if (image.material.shader != Graphic.defaultGraphicMaterial.shader)
             {
-                return "圆角／描边／阴影仅支持默认 UI 材质。";
+                return english ? "Rounded corners, outlines and shadows require the default UI material." : "圆角／描边／阴影仅支持默认 UI 材质。";
             }
             if ((HasOutline || HasShadow) && (image.type == Image.Type.Filled || image.type == Image.Type.Tiled))
             {
-                return "Filled／Tiled 保留原生绘制，不支持外扩描边和阴影。";
+                return english ? "Filled / Tiled retain native rendering; expanded outlines and shadows are unsupported." : "Filled／Tiled 保留原生绘制，不支持外扩描边和阴影。";
             }
             if ((HasOutline || HasShadow) && TryGetComponent<Mask>(out var mask) && mask.isActiveAndEnabled)
             {
-                return "Mask 写入节点不支持外扩描边／阴影；请放在独立装饰图片上。";
+                return english ? "A Mask writer cannot expand outlines or shadows; use a separate decorative Image." : "Mask 写入节点不支持外扩描边／阴影；请放在独立装饰图片上。";
             }
             if (useSpriteAlpha && (HasOutline || HasShadow))
             {
                 if (image.type != Image.Type.Simple || image.useSpriteMesh)
                 {
-                    return "透明轮廓效果需要 Simple Image，并关闭 Use Sprite Mesh。";
+                    return english ? "Sprite alpha effects require Simple Image with Use Sprite Mesh disabled." : "透明轮廓效果需要 Simple Image，并关闭 Use Sprite Mesh。";
                 }
                 Sprite sprite = image.overrideSprite;
                 if (sprite == null)
                 {
-                    return "透明轮廓效果需要带透明背景的 Sprite。";
+                    return english ? "Sprite alpha effects require a Sprite with a transparent background." : "透明轮廓效果需要带透明背景的 Sprite。";
                 }
                 if (sprite.packed && (sprite.packingRotation != SpritePackingRotation.None || sprite.packingMode == SpritePackingMode.Tight))
                 {
-                    return "透明轮廓图集请关闭 Rotation 与 Tight Packing。";
+                    return english ? "Disable Rotation and Tight Packing for sprite alpha atlases." : "透明轮廓图集请关闭 Rotation 与 Tight Packing。";
                 }
                 if (sprite.texture == null)
                 {
-                    return "Sprite 纹理尚未就绪，保留原生 Image 绘制。";
+                    return english ? "The Sprite texture is not ready; native Image rendering is retained." : "Sprite 纹理尚未就绪，保留原生 Image 绘制。";
                 }
                 if (sprite.texture.mipmapCount > 1)
                 {
-                    return "透明轮廓图片或图集请关闭 Mipmap，避免相邻图片串色。";
+                    return english ? "Disable mipmaps on sprite alpha textures / atlases to prevent neighbouring sprite bleed." : "透明轮廓图片或图集请关闭 Mipmap，避免相邻图片串色。";
                 }
             }
             return null;
@@ -498,15 +544,26 @@ namespace Core.Runtime
                 ReleaseMaterial();
                 return baseMaterial;
             }
-            Vector4 outline = new(HasOutline ? outlineWidth : 0f, useSpriteAlpha ? 1f : 0f, 0f, 0f);
-            Vector4 shadow = new(shadowOffset.x, shadowOffset.y, shadowSoftness, HasShadow ? 1f : 0f);
-            var key = (baseMaterial, RadiusVector, outlineColor, outline, shadowColor, shadow);
+            Vector4 radius = RadiusVector;
+            float feather = enableRoundedCorners ? edgeFeather : 0f;
+            // 透明轮廓模式由顶点传递，不拆分材质；关闭的效果参数也不影响共享。
+            Vector4 outline = new(HasOutline ? outlineWidth : 0f, 0f, 0f, 0f);
+            Color activeOutlineColor = HasOutline ? outlineColor : Color.clear;
+            Vector4 shadow = HasShadow ? new Vector4(shadowOffset.x, shadowOffset.y, shadowSoftness, 1f) : Vector4.zero;
+            Color activeShadowColor = HasShadow ? shadowColor : Color.clear;
+            var key = (baseMaterial, effectShader, radius, feather, activeOutlineColor, outline, activeShadowColor, shadow);
             if (sharedMaterial != null && materialKey.Equals(key) && sharedMaterial.Material != null)
             {
                 return sharedMaterial.Material;
             }
-            ReleaseMaterial();
-            if (!Materials.TryGetValue(key, out sharedMaterial))
+            PruneIdleMaterials();
+            Materials.TryGetValue(key, out var next);
+            if (next != null && (next.Material == null || next.Material.shader == null))
+            {
+                RemoveCachedMaterial(next);
+                next = null;
+            }
+            if (next == null)
             {
                 var material = new Material(baseMaterial)
                 {
@@ -514,16 +571,29 @@ namespace Core.Runtime
                     name = "ImageExtend (Shared)",
                     hideFlags = HideFlags.HideAndDontSave
                 };
-                material.SetVector("_Radius", RadiusVector);
-                material.SetColor("_OutlineColor", outlineColor);
+                material.SetVector("_Radius", radius);
+                material.SetFloat("_EdgeFeather", feather);
+                material.SetColor("_OutlineColor", activeOutlineColor);
                 material.SetVector("_Outline", outline);
-                material.SetColor("_ShadowColor", shadowColor);
+                material.SetColor("_ShadowColor", activeShadowColor);
                 material.SetVector("_Shadow", shadow);
-                sharedMaterial = new SharedMaterial { Material = material };
-                Materials.Add(key, sharedMaterial);
+                next = new SharedMaterial { Material = material, Key = key, ShaderReference = shaderReference };
+                if (shaderReference != null)
+                {
+                    shaderReference.References++;
+                }
+                Materials.Add(key, next);
             }
+            if (next.IdleNode != null)
+            {
+                IdleMaterials.Remove(next.IdleNode);
+                next.IdleNode = null;
+            }
+            // 先保护命中项，再释放旧参数，避免同一次切换将目标闲置材质淘汰。
+            next.References++;
+            ReleaseMaterial();
+            sharedMaterial = next;
             materialKey = key;
-            sharedMaterial.References++;
             return sharedMaterial.Material;
         }
 
@@ -533,23 +603,130 @@ namespace Core.Runtime
             {
                 return;
             }
-            if (--sharedMaterial.References == 0)
+            var released = sharedMaterial;
+            sharedMaterial = null;
+            if (Materials.TryGetValue(released.Key, out var cached) && ReferenceEquals(cached, released) && --released.References == 0)
             {
-                Materials.Remove(materialKey);
+                released.IdleNode = IdleMaterials.AddLast(released);
+                PruneIdleMaterials();
+            }
+        }
+
+        /// 清理所有闲置派生材质及其 Shader 资源引用，保留正在使用的材质。
+        public static void ClearUnusedMaterials()
+        {
+            while (IdleMaterials.First != null)
+            {
+                RemoveCachedMaterial(IdleMaterials.First.Value);
+            }
+        }
+
+        private static void PruneIdleMaterials()
+        {
+            var node = IdleMaterials.First;
+            while (node != null)
+            {
+                var next = node.Next;
+                var entry = node.Value;
+                if (entry.Key.Item1 == null || entry.Material == null || entry.Material.shader == null ||
+                    (entry.ShaderReference != null && (entry.ShaderReference.Service != ResourceServices.Default || !entry.ShaderReference.Service.IsInitialized)))
+                {
+                    RemoveCachedMaterial(entry);
+                }
+                node = next;
+            }
+            while (IdleMaterials.Count > IdleMaterialCapacity)
+            {
+                RemoveCachedMaterial(IdleMaterials.First.Value);
+            }
+        }
+
+        private static void RemoveCachedMaterial(SharedMaterial entry)
+        {
+            Materials.Remove(entry.Key);
+            if (entry.IdleNode != null)
+            {
+                IdleMaterials.Remove(entry.IdleNode);
+                entry.IdleNode = null;
+            }
+            var material = entry.Material;
+            entry.Material = null;
+            if (material != null)
+            {
                 if (Application.isPlaying)
                 {
-                    Destroy(sharedMaterial.Material);
+                    Destroy(material);
                 }
                 else
                 {
-                    DestroyImmediate(sharedMaterial.Material);
+                    DestroyImmediate(material);
                 }
             }
-            sharedMaterial = null;
+            var reference = entry.ShaderReference;
+            entry.ShaderReference = null;
+            reference?.Release();
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetMaterialCache()
+        {
+            foreach (var component in Resources.FindObjectsOfTypeAll<ImageExtend>())
+            {
+                if (!component.gameObject.scene.IsValid())
+                {
+                    continue;
+                }
+                component.ReleaseMaterial();
+                component.effectShader = null;
+                component.shaderLoadFailed = false;
+                if (component.shaderLoading)
+                {
+                    component.shaderReleasePending = true;
+                }
+                else
+                {
+                    component.ReleaseShaderReference();
+                }
+                component.Refresh();
+            }
+            foreach (var entry in new List<SharedMaterial>(Materials.Values))
+            {
+                RemoveCachedMaterial(entry);
+            }
+        }
+
+#if UNITY_EDITOR
+        [UnityEditor.InitializeOnLoadMethod]
+        private static void RegisterEditorCleanup()
+        {
+            UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += ResetMaterialCache;
+            UnityEditor.EditorApplication.quitting += ResetMaterialCache;
+            UnityEditor.EditorApplication.playModeStateChanged += state =>
+            {
+                if (state == UnityEditor.PlayModeStateChange.ExitingPlayMode || state == UnityEditor.PlayModeStateChange.ExitingEditMode)
+                {
+                    ResetMaterialCache();
+                }
+            };
+        }
+#endif
+
+        private void ReleaseShaderReference()
+        {
+            var reference = shaderReference;
+            shaderReference = null;
+            reference?.Release();
         }
 
         private void EnsureShader()
         {
+            if (!shaderLoading && shaderReference != null && (shaderReference.Service != ResourceServices.Default || !shaderReference.Service.IsInitialized))
+            {
+                ReleaseMaterial();
+                ReleaseShaderReference();
+                effectShader = null;
+                shaderLoadFailed = false;
+            }
             if (!IsActive() || !NeedsShader || effectShader != null || destroyed)
             {
                 return;
@@ -569,9 +746,9 @@ namespace Core.Runtime
             shaderLoading = true;
             try
             {
-                shaderLoader ??= ResourceServices.CreateLoader();
-                Shader shader = await shaderLoader.LoadAssetAsync<Shader>(ShaderAddress);
-                if (!destroyed)
+                shaderReference ??= new ShaderReference { Service = ResourceServices.Default, Loader = ResourceServices.CreateLoader() };
+                Shader shader = await shaderReference.Loader.LoadAssetAsync<Shader>(ShaderAddress);
+                if (!destroyed && !shaderReleasePending)
                 {
                     effectShader = shader;
                     if (shader == null)
@@ -602,10 +779,15 @@ namespace Core.Runtime
             finally
             {
                 shaderLoading = false;
-                if (destroyed)
+                bool reloadAfterReset = shaderReleasePending && !destroyed;
+                if (destroyed || shaderReleasePending)
                 {
-                    shaderLoader?.Dispose();
-                    shaderLoader = null;
+                    ReleaseShaderReference();
+                    shaderReleasePending = false;
+                }
+                if (reloadAfterReset)
+                {
+                    Refresh();
                 }
             }
         }

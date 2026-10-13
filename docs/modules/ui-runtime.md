@@ -96,7 +96,7 @@ Loading --加载失败或取消--> Faulted
 - `TMP_UGUI_Extend`：TMP 专用渐变、描边、阴影与倾斜；拥有并释放自己的材质实例，不修改共享字体材质。
 - `TMP_UGUI_Extend` Inspector 提供中英文切换和双语浮动提示；渐变、描边、阴影、倾斜均只展开当前启用模式实际使用的参数。
 - 项目内 `TextMeshPro/Mobile/Distance Field` 保留外描边阈值补偿：`_OutlineWidth` 同时参与字面 weight 计算，避免标准 Unity 6 Mobile Shader 的描边向字面内部侵蚀；更新 TMP Essentials 时必须复核该差异。
-- `ImageExtend`：统一原生 Image 的翻转、旋转、渐变、圆角、细描边与轻阴影，不修改 RectTransform 或原生点击矩形。纯变换/渐变修改网格；圆角/描边/阴影使用公共 Shader，按基础材质和效果参数共享派生材质并维护引用计数，禁用/销毁释放使用引用，异步加载结束后处理销毁期间的资源释放。Editor 预览查询 Shader，运行资源通过 ResourceServices 按规范地址加载。
+- `ImageExtend`：统一原生 Image 的翻转、旋转、渐变、圆角、细描边与轻阴影，不修改 RectTransform 或原生点击矩形。圆角羽化默认 0 保留既有抗锯齿，正值按 UI 本地单位向轮廓内侧延伸透明过渡。纯变换/渐变修改网格；圆角/描边/阴影使用公共 Shader，按基础材质和有效效果参数共享派生材质并维护引用计数，关闭效果的参数不拆分材质，禁用/销毁释放使用引用，归零进入容量为 64 的闲置 LRU，活动项受保护；缓存继续持有 Shader 加载器引用，淘汰或生命周期重置才释放缓存依赖，异步加载结束后处理销毁期间的资源释放。Editor 预览查询 Shader，运行资源通过 ResourceServices 按规范地址加载；Inspector 语言偏好仅归 EditorPrefs，材质诊断读取 CanvasRenderer 已提交材质。
   圆角效果只影响自身图片，不自动添加、删除或配置 Mask；子内容裁剪由作者显式使用原生 Mask/RectMask2D，保留已有遮罩。
 - `ImageExtend` 首版只支持默认 UI 材质的图片特效；RawImage、TMP、第三方材质和额外网格效果不混入此组件。Filled/Tiled 的外扩描边、阴影，以及写入 Mask 的外扩效果会给出不支持原因并保留原生 Image 绘制。透明轮廓要求 Simple Sprite、关闭 Use Sprite Mesh，图集关闭 Rotation/Tight Packing/Mipmap；参数与装配见[手册](../runbooks/use-core-ui-components.md#imageextend-图片组合效果)。
 - `UIVertexRectMask2D`：不改材质的顶点矩形硬裁剪。

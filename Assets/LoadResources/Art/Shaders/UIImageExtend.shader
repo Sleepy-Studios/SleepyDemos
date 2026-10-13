@@ -12,8 +12,9 @@ Shader "UI/ImageExtend"
         _ColorMask ("Color Mask", Float) = 15
         [Toggle(UNITY_UI_ALPHACLIP)] _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
         _Radius ("Corner Radius", Vector) = (0,0,0,0)
+        _EdgeFeather ("Corner Edge Feather", Float) = 0
         _OutlineColor ("Outline Color", Color) = (0,0,0,1)
-        _Outline ("Width / Sprite Alpha", Vector) = (0,0,0,0)
+        _Outline ("Outline Width", Vector) = (0,0,0,0)
         _ShadowColor ("Shadow Color", Color) = (0,0,0,0)
         _Shadow ("Offset / Softness / Enabled", Vector) = (0,0,0,0)
     }
@@ -72,6 +73,7 @@ Shader "UI/ImageExtend"
             float4 _ClipRect, _Radius, _Outline, _Shadow;
             fixed4 _OutlineColor, _ShadowColor;
             float _UIMaskSoftnessX, _UIMaskSoftnessY;
+            float _EdgeFeather;
 
             v2f vert(appdata_t input)
             {
@@ -101,7 +103,13 @@ Shader "UI/ImageExtend"
 
             half Coverage(float distance)
             {
-                return saturate(0.5 - distance / max(fwidth(distance), 0.0001));
+                float antialias = max(fwidth(distance), 0.0001);
+                if (_EdgeFeather <= antialias)
+                {
+                    return saturate(0.5 - distance / antialias);
+                }
+                // 羽化向内延伸，保留外侧半像素抗锯齿，不依赖外扩原图网格或跨图集采样。
+                return saturate((0.5 * antialias - distance) / _EdgeFeather);
             }
 
             half4 SampleSprite(float2 uv, float4 bounds)
@@ -184,12 +192,16 @@ Shader "UI/ImageExtend"
                     {
                         if (_Outline.x > 0)
                         {
-                            outline = Coverage(distance - _Outline.x) * (1 - panel);
+                            half expanded = Coverage(distance - _Outline.x);
+                            outline = _EdgeFeather > 0 ? max(0, expanded - panel) : expanded * (1 - panel);
                         }
                         if (_Shadow.w > 0)
                         {
                             float shadowDistance = DistanceToPanel(input.local.xy - _Shadow.xy, input.local.zw);
-                            shadow = _Shadow.z > 0 ? saturate(0.5 - shadowDistance / _Shadow.z) : Coverage(shadowDistance);
+                            shadow = _Shadow.z > 0
+                                ? (_EdgeFeather <= _Shadow.z ? saturate(0.5 - shadowDistance / _Shadow.z)
+                                    : saturate((0.5 * _Shadow.z - shadowDistance) / _EdgeFeather))
+                                : Coverage(shadowDistance);
                             shadow *= 1 - panel;
                         }
                     }

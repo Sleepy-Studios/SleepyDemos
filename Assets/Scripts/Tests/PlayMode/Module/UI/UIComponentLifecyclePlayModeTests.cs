@@ -23,8 +23,9 @@ namespace Tests.Module
     public sealed class UIComponentLifecyclePlayModeTests
     {
         [UnityTest, Timeout(120000)]
-        public IEnumerator ImageExtend_SharedMaterialSurvivesOneOwnerAndReleasesAfterLastOwner()
+        public IEnumerator ImageExtend_SharedMaterialSurvivesOwnersAndReusesIdleEntry()
         {
+            ImageExtend.ClearUnusedMaterials();
             if (!ResourceServices.Default.IsInitialized)
             {
                 yield return ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default).ToCoroutine();
@@ -65,20 +66,185 @@ namespace Tests.Module
                 yield return null;
                 Assert.That(shared != null, Is.True, "仍有使用者时不得释放共享材质。");
                 Assert.That(b.GetModifiedMaterial(original), Is.SameAs(shared));
+                b.enabled = false;
+                yield return null;
+                Assert.That(shared != null, Is.True, "最后使用者禁用后应保留闲置材质。");
+                b.enabled = true;
+                Assert.That(b.GetModifiedMaterial(original), Is.SameAs(shared), "重新启用应复用闲置材质。");
+                ImageExtend.ClearUnusedMaterials();
+                yield return null;
+                Assert.That(shared != null, Is.True, "主动清闲置不得销毁重新启用的活动材质。");
                 Object.Destroy(second);
+                yield return null;
+                Assert.That(shared != null, Is.True, "最后一个使用者销毁后应保留闲置材质。");
+                ImageExtend.ClearUnusedMaterials();
                 deadline = Time.realtimeSinceStartupAsDouble + 5;
-                while (shared != null && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
-                Assert.That(shared == null, Is.True, "最后一个使用者销毁后必须释放派生材质。");
+                while (shared != null && Time.realtimeSinceStartupAsDouble < deadline)
+                {
+                    yield return null;
+                }
+                Assert.That(shared == null, Is.True, "主动清理闲置材质后必须释放派生材质。");
                 Assert.That(original != null, Is.True, "派生材质清理不能销毁调用方的原材质。");
             }
             finally
             {
-                if (first != null) Object.Destroy(first);
-                if (second != null) Object.Destroy(second);
-                Object.Destroy(canvas);
-                Object.Destroy(original);
+                if (first != null)
+                {
+                    Object.DestroyImmediate(first);
+                }
+                if (second != null)
+                {
+                    Object.DestroyImmediate(second);
+                }
+                Object.DestroyImmediate(canvas);
+                ImageExtend.ClearUnusedMaterials();
+                Object.DestroyImmediate(original);
             }
             yield return null;
+        }
+
+        [UnityTest, Timeout(120000)]
+        public IEnumerator ImageExtend_IdleMaterialRetainsShaderLoaderUntilCacheClear()
+        {
+            ImageExtend.ClearUnusedMaterials();
+            IResourceService originalService = ResourceServices.Default;
+            if (!originalService.IsInitialized)
+            {
+                yield return originalService.InitializeAsync(ResourceInitializeOptions.Default).ToCoroutine();
+            }
+            Assert.That(originalService.IsInitialized, Is.True);
+            var resources = new CountingResourceService(originalService);
+            var source = new Material(Graphic.defaultGraphicMaterial);
+            GameObject target = null;
+            ResourceServices.RegisterDefault(resources);
+            try
+            {
+                target = new GameObject("Shader Dependency Owner", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+                target.GetComponent<Image>().material = source;
+                ImageExtend effect = target.GetComponent<ImageExtend>();
+                effect.EnableRoundedCorners = true;
+                Material cached = effect.GetModifiedMaterial(source);
+                Assert.That(resources.Loaders.Count, Is.EqualTo(1), "实际 Shader 加载应使用注册服务创建的加载器。");
+                CountingResourceLoader loader = resources.Loaders[0];
+                double deadline = Time.realtimeSinceStartupAsDouble + 15;
+                while (cached.shader.name != "UI/ImageExtend" && Time.realtimeSinceStartupAsDouble < deadline)
+                {
+                    yield return null;
+                    cached = effect.GetModifiedMaterial(source);
+                }
+                Assert.That(cached.shader.name, Is.EqualTo("UI/ImageExtend"), "必须完成真实 Shader 资源加载。");
+                Object.Destroy(target);
+                yield return null;
+                Assert.That(cached != null, Is.True, "组件退出后材质进入闲置缓存。");
+                Assert.That(loader.DisposeCount, Is.Zero, "闲置材质仍依赖 Shader，不能提前释放加载器。");
+                ImageExtend.ClearUnusedMaterials();
+                yield return null;
+                Assert.That(cached == null, Is.True);
+                Assert.That(loader.DisposeCount, Is.EqualTo(1), "清除最后一个材质依赖后须恰好释放一次加载器。");
+                ImageExtend.ClearUnusedMaterials();
+                Assert.That(loader.DisposeCount, Is.EqualTo(1), "重复清理不能重复释放同一加载器。");
+
+                target = new GameObject("Old Service Owner", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+                target.GetComponent<Image>().material = source;
+                effect = target.GetComponent<ImageExtend>();
+                effect.EnableRoundedCorners = true;
+                Material stale = effect.GetModifiedMaterial(source);
+                CountingResourceLoader staleLoader = resources.Loaders[resources.Loaders.Count - 1];
+                deadline = Time.realtimeSinceStartupAsDouble + 15;
+                while (stale.shader.name != "UI/ImageExtend" && Time.realtimeSinceStartupAsDouble < deadline)
+                {
+                    yield return null;
+                    stale = effect.GetModifiedMaterial(source);
+                }
+                Assert.That(stale.shader.name, Is.EqualTo("UI/ImageExtend"));
+                Object.Destroy(target);
+                yield return null;
+                Assert.That(staleLoader.DisposeCount, Is.Zero);
+                ResourceServices.RegisterDefault(originalService);
+                target = new GameObject("New Service Owner", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+                target.GetComponent<Image>().material = source;
+                effect = target.GetComponent<ImageExtend>();
+                effect.EnableRoundedCorners = true;
+                Material replacement = effect.GetModifiedMaterial(source);
+                deadline = Time.realtimeSinceStartupAsDouble + 15;
+                while (replacement.shader.name != "UI/ImageExtend" && Time.realtimeSinceStartupAsDouble < deadline)
+                {
+                    yield return null;
+                    replacement = effect.GetModifiedMaterial(source);
+                }
+                yield return null;
+                Assert.That(replacement.shader.name, Is.EqualTo("UI/ImageExtend"));
+                Assert.That(replacement, Is.Not.SameAs(stale), "服务切换后不能复用旧服务持有的闲置材质。");
+                Assert.That(stale == null, Is.True, "下一次材质分配须清理服务已切换的闲置项。");
+                Assert.That(staleLoader.DisposeCount, Is.EqualTo(1));
+                ImageExtend.ClearUnusedMaterials();
+                yield return null;
+                Assert.That(replacement != null, Is.True, "清闲置不能销毁新服务的活动材质。");
+            }
+            finally
+            {
+                if (target != null)
+                {
+                    Object.DestroyImmediate(target);
+                }
+                ImageExtend.ClearUnusedMaterials();
+                ResourceServices.RegisterDefault(originalService);
+                Object.DestroyImmediate(source);
+            }
+        }
+
+        private sealed class CountingResourceService : IResourceService
+        {
+            private readonly IResourceService inner;
+            internal readonly List<CountingResourceLoader> Loaders = new List<CountingResourceLoader>();
+
+            internal CountingResourceService(IResourceService inner)
+            {
+                this.inner = inner;
+            }
+
+            bool IResourceService.IsInitialized => inner.IsInitialized;
+            string IResourceService.NormalizeAddress(string address) => inner.NormalizeAddress(address);
+            UniTask IResourceService.InitializeAsync(ResourceInitializeOptions options) => inner.InitializeAsync(options);
+            UniTask<DownloadReport> IResourceService.DownloadPackageAsync(int maximum, int retry, Action<DownloadProgress> progress)
+                => inner.DownloadPackageAsync(maximum, retry, progress);
+            IResourceLoader IResourceService.CreateLoader()
+            {
+                var loader = new CountingResourceLoader(inner.CreateLoader());
+                Loaders.Add(loader);
+                return loader;
+            }
+
+            IResourceSceneLoader IResourceService.CreateSceneLoader() => inner.CreateSceneLoader();
+            ResourceLoadResult<T> IResourceService.LoadAsset<T>(string address) => inner.LoadAsset<T>(address);
+            UniTask<ResourceLoadResult<T>> IResourceService.LoadAssetAsync<T>(string address) => inner.LoadAssetAsync<T>(address);
+            UniTask<ResourceLoadResult<TextAsset>> IResourceService.LoadTextAssetAsync(string address) => inner.LoadTextAssetAsync(address);
+            void IResourceService.ReleaseAsset(Object asset) => inner.ReleaseAsset(asset);
+        }
+
+        private sealed class CountingResourceLoader : IResourceLoader
+        {
+            private readonly IResourceLoader inner;
+            internal int DisposeCount { get; private set; }
+
+            internal CountingResourceLoader(IResourceLoader inner)
+            {
+                this.inner = inner;
+            }
+
+            GameObject IResourceLoader.Instantiate(string address, Transform parent) => inner.Instantiate(address, parent);
+            GameObject IResourceLoader.Instantiate(string address, Transform parent, bool stays) => inner.Instantiate(address, parent, stays);
+            UniTask<GameObject> IResourceLoader.InstantiateAsync(string address, Transform parent) => inner.InstantiateAsync(address, parent);
+            UniTask<GameObject> IResourceLoader.InstantiateAsync(string address, Transform parent, bool stays) => inner.InstantiateAsync(address, parent, stays);
+            T IResourceLoader.LoadAsset<T>(string address) => inner.LoadAsset<T>(address);
+            UniTask<T> IResourceLoader.LoadAssetAsync<T>(string address) => inner.LoadAssetAsync<T>(address);
+            void IResourceLoader.ReleaseAsset(Object asset) => inner.ReleaseAsset(asset);
+            void IResourceLoader.ReleaseInstance(GameObject instance) => inner.ReleaseInstance(instance);
+            void IDisposable.Dispose()
+            {
+                DisposeCount++;
+                inner.Dispose();
+            }
         }
 
         [UnityTest]

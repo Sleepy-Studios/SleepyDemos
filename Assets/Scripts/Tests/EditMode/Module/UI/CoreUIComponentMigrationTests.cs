@@ -222,6 +222,137 @@ namespace Tests.Module
         }
 
         [Test]
+        public void ImageExtend_SharingIgnoresInactiveSettingsAndCachesUnusedMaterials()
+        {
+            ImageExtend.ClearUnusedMaterials();
+            var first = new GameObject("Small", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var second = new GameObject("Large", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var baseMaterial = new Material(Graphic.defaultGraphicMaterial);
+            var maskMaterial = new Material(baseMaterial);
+            var texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, 2f, 2f), Vector2.one * 0.5f);
+            try
+            {
+                var a = first.GetComponent<ImageExtend>();
+                var b = second.GetComponent<ImageExtend>();
+                first.GetComponent<RectTransform>().sizeDelta = new Vector2(80f, 40f);
+                second.GetComponent<RectTransform>().sizeDelta = new Vector2(320f, 160f);
+                first.GetComponent<Image>().sprite = second.GetComponent<Image>().sprite = sprite;
+                a.EnableRoundedCorners = b.EnableRoundedCorners = true;
+                b.OutlineWidth = 7f;
+                b.OutlineColor = Color.red;
+                b.ShadowColor = Color.blue;
+                b.ShadowOffset = new Vector2(12f, 8f);
+                b.ShadowSoftness = 15f;
+                Material rounded = a.GetModifiedMaterial(baseMaterial);
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(rounded),
+                    "尺寸与关闭的描边、阴影参数不应拆分材质。");
+
+                b.EdgeFeather = 4f;
+                Material feathered = b.GetModifiedMaterial(baseMaterial);
+                Assert.That(feathered, Is.Not.SameAs(rounded), "有效羽化宽度必须隔离。");
+                Assert.That(feathered.GetFloat("_EdgeFeather"), Is.EqualTo(4f));
+                b.EdgeFeather = 0f;
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(rounded));
+                Assert.That(feathered != null, Is.True, "切换后的材质应进入闲置缓存。");
+                b.EdgeFeather = 4f;
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(feathered), "再次使用相同参数应命中闲置材质。");
+                b.EdgeFeather = 0f;
+                b.GetModifiedMaterial(baseMaterial);
+
+                a.EnableRoundedCorners = b.EnableRoundedCorners = false;
+                a.EnableOutline = b.EnableOutline = true;
+                b.OutlineWidth = a.OutlineWidth;
+                b.OutlineColor = a.OutlineColor;
+                b.EdgeFeather = 99f;
+                var serialized = new SerializedObject(b);
+                serialized.FindProperty("unifiedRadius").floatValue = 77f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                Material outlined = a.GetModifiedMaterial(baseMaterial);
+                b.UseSpriteAlpha = true;
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(outlined),
+                    "关闭圆角后的半径、羽化与顶点透明轮廓模式不应拆分材质。");
+                Assert.That(outlined.GetFloat("_EdgeFeather"), Is.Zero);
+                Assert.That(rounded != null, Is.True);
+
+                maskMaterial.SetInt("_Stencil", 3);
+                Material masked = b.GetModifiedMaterial(maskMaterial);
+                Assert.That(masked, Is.Not.SameAs(outlined), "不同上游遮罩材质必须隔离。");
+                Assert.That(masked.GetInt("_Stencil"), Is.EqualTo(3));
+                Assert.That(outlined != null, Is.True, "另一图片仍使用原材质。");
+                Object.DestroyImmediate(first);
+                Assert.That(outlined != null, Is.True);
+                Object.DestroyImmediate(second);
+                Assert.That(masked != null, Is.True, "销毁最后一个使用者后应保留闲置材质。");
+                ImageExtend.ClearUnusedMaterials();
+                Assert.That(masked == null && outlined == null && rounded == null && feathered == null,
+                    Is.True, "主动清理应释放所有闲置材质。");
+            }
+            finally
+            {
+                if (first != null)
+                {
+                    Object.DestroyImmediate(first);
+                }
+                if (second != null)
+                {
+                    Object.DestroyImmediate(second);
+                }
+                ImageExtend.ClearUnusedMaterials();
+                Object.DestroyImmediate(sprite);
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(maskMaterial);
+                Object.DestroyImmediate(baseMaterial);
+            }
+        }
+
+        [Test]
+        public void ImageExtend_IdleMaterialLruKeepsRecentAndActiveEntries()
+        {
+            ImageExtend.ClearUnusedMaterials();
+            var activeObject = new GameObject("Active", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var switchingObject = new GameObject("Switching", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var source = new Material(Graphic.defaultGraphicMaterial);
+            try
+            {
+                ImageExtend active = activeObject.GetComponent<ImageExtend>();
+                ImageExtend switching = switchingObject.GetComponent<ImageExtend>();
+                active.EnableRoundedCorners = switching.EnableRoundedCorners = true;
+                Material protectedMaterial = active.GetModifiedMaterial(source);
+                var idle = new Material[ImageExtend.IdleMaterialCapacity];
+                for (int index = 0; index < idle.Length; index++)
+                {
+                    switching.enabled = true;
+                    switching.EdgeFeather = index + 1f;
+                    idle[index] = switching.GetModifiedMaterial(source);
+                    switching.enabled = false;
+                }
+                Assert.That(idle[0] != null, Is.True, "容量内的最旧闲置项仍应保留。");
+                switching.enabled = true;
+                switching.EdgeFeather = 1f;
+                Assert.That(switching.GetModifiedMaterial(source), Is.SameAs(idle[0]));
+                switching.enabled = false;
+                switching.enabled = true;
+                switching.EdgeFeather = ImageExtend.IdleMaterialCapacity + 1f;
+                Material newest = switching.GetModifiedMaterial(source);
+                switching.enabled = false;
+                Assert.That(idle[1] == null, Is.True, "溢出容量应淘汰最久未用的闲置项。");
+                Assert.That(idle[0] != null && newest != null, Is.True, "命中刷新后的闲置项及最新项应保留。");
+                Assert.That(protectedMaterial != null, Is.True, "容量淘汰不得销毁活动材质。");
+                ImageExtend.ClearUnusedMaterials();
+                Assert.That(idle[0] == null && newest == null, Is.True);
+                Assert.That(active.GetModifiedMaterial(source), Is.SameAs(protectedMaterial), "主动清闲置也不得销毁活动项。");
+            }
+            finally
+            {
+                Object.DestroyImmediate(activeObject);
+                Object.DestroyImmediate(switchingObject);
+                ImageExtend.ClearUnusedMaterials();
+                Object.DestroyImmediate(source);
+            }
+        }
+
+        [Test]
         public void TMPUGUIExtend_AppliesGradientAndSkewToUploadedMesh()
         {
             TMP_FontAsset font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
