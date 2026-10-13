@@ -136,7 +136,7 @@ namespace Tests.Module
             var loading = UIManager.Instance.Get<CommonLoadingView>();
             Assert.That(loading.State, Is.EqualTo(ViewState.Visible));
 
-            yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+            yield return UIManager.Instance.OpenAsync<MainMenuView>(new UIOpenOptions(false)).ToCoroutine();
             yield return presenter.CompleteAsync(GameSceneId.Hub).ContinueWith(value => error = value).ToCoroutine();
             Assert.That(error, Is.Null);
             Assert.That(loading.State, Is.EqualTo(ViewState.Destroyed));
@@ -154,8 +154,7 @@ namespace Tests.Module
         private async UniTask VerifyLoadingAndFeedbackAsync()
         {
             var previous = GameSettingsService.Current;
-            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
-                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            Func<UniTask<HubSettingsView>> reopen = () => UniTask.FromResult<HubSettingsView>(null);
             try
             {
                 foreach (string language in new[] { "zh-CN", "en" })
@@ -264,8 +263,7 @@ namespace Tests.Module
             var previous = GameSettingsService.Current;
             var oldMenu = UIManager.Instance.Get<MainMenuView>();
             GlobalData.Dispatch(new MainMenuSelectAction(1));
-            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
-                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            Func<UniTask<HubSettingsView>> reopen = () => UniTask.FromResult<HubSettingsView>(null);
             try
             {
                 var next = previous.Copy();
@@ -283,7 +281,7 @@ namespace Tests.Module
                 failedCandidate.Language = previous.Language;
                 int calls = 0;
                 result = await HubLanguageFlow.ApplyAsync(failedCandidate, () => ++calls == 1
-                    ? UniTask.FromException<UIOperationResult>(new InvalidOperationException("Expected reopen failure"))
+                    ? UniTask.FromException<HubSettingsView>(new InvalidOperationException("Expected reopen failure"))
                     : reopen());
                 Assert.That(result.Succeeded, Is.False);
                 Assert.That(GameSettingsService.Current.Language, Is.EqualTo(next.Language));
@@ -315,8 +313,7 @@ namespace Tests.Module
             string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
             int originalSelection = GlobalData.Get<MainMenuData>().SelectedIndex;
             var oldMenu = UIManager.Instance.Get<MainMenuView>();
-            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
-                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            Func<UniTask<HubSettingsView>> reopen = () => UniTask.FromResult<HubSettingsView>(null);
             var next = previous.Copy();
             next.Language = previous.Language == "en" ? "zh-CN" : "en";
             next.Graphics.WindowMode = DisplaySettingsRuntime.Capture().WindowMode == (int)FullScreenMode.Windowed
@@ -389,9 +386,8 @@ namespace Tests.Module
             bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
             string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
             int originalSelection = GlobalData.Get<MainMenuData>().SelectedIndex;
-            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(
-                UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
-            var gate = new UniTaskCompletionSource<UIOperationResult>();
+            Func<UniTask<HubSettingsView>> reopen = () => UniTask.FromResult<HubSettingsView>(null);
+            var gate = new UniTaskCompletionSource<HubSettingsView>();
             UniTask<SettingsApplyResult> languageTask = default;
             UniTask<GameSceneSwitchResult> entryTask = default;
             bool languageStarted = false;
@@ -420,7 +416,7 @@ namespace Tests.Module
                 Assert.That(rejected.Succeeded, Is.False, "语言事务等待期间不能再启动另一场重建。");
                 Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(pendingPreference));
                 Assert.That(HubLanguageFlow.IsChanging, Is.True);
-                gate.TrySetResult(UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+                gate.TrySetResult(null);
                 var languageResult = await languageTask;
                 languageAwaited = true;
                 Assert.That(languageResult.Succeeded, Is.True, languageResult.Message);
@@ -453,7 +449,7 @@ namespace Tests.Module
             }
             finally
             {
-                gate.TrySetResult(UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+                gate.TrySetResult(null);
                 try
                 {
                     try
@@ -756,7 +752,7 @@ namespace Tests.Module
             ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Hall.png"); yield return null; yield return null;
             yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine();
             Assert.That(UIManager.Instance.Get<HubSettingsView>(), Is.Null, "离开大厅不出现全局悬浮按钮。");
-            yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+            yield return UIManager.Instance.OpenAsync<MainMenuView>(new UIOpenOptions(false)).ToCoroutine();
         }
 
         [UnityTest, Timeout(180000)]
@@ -1165,7 +1161,7 @@ namespace Tests.Module
             bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
             string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
             int originalSelection = GlobalData.Get<MainMenuData>().SelectedIndex;
-            Func<UniTask<UIOperationResult>> reopen = () => UniTask.FromResult(UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null));
+            Func<UniTask<HubSettingsView>> reopen = () => UniTask.FromResult<HubSettingsView>(null);
             try
             {
                 var oldMenu = UIManager.Instance.Get<MainMenuView>();
@@ -1505,7 +1501,7 @@ namespace Tests.Module
             }
             if (GameSceneNavigator.Instance?.CurrentScene == GameSceneId.Hub && UIManager.Instance?.Get<MainMenuView>() == null)
             {
-                yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+                yield return UIManager.Instance.OpenAsync<MainMenuView>(new UIOpenOptions(false)).ToCoroutine();
             }
             yield return Wait(IsStableHub, "Hub 稳定", 90);
             originalInputSettings = InputSystem.settings;
@@ -1524,12 +1520,10 @@ namespace Tests.Module
             runtime = new FailingSceneRuntime();
             SetNavigator(new GameSceneNavigator(runtime, new GameSceneLoadingPresenter()));
             // 每项测试从正常新开页面开始，不能把上一项指针清焦点后的页面当首次显示。
-            UIOperationResult closed = default;
-            yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine(result => closed = result);
-            Assert.That(closed.Status, Is.EqualTo(UIOperationStatus.Succeeded));
-            UIOperationResult shown = default;
-            yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine(result => shown = result);
-            Assert.That(shown.Status, Is.EqualTo(UIOperationStatus.Succeeded));
+            yield return UIManager.Instance.CloseAsync<MainMenuView>(animated: false).ToCoroutine();
+            MainMenuView shown = null;
+            yield return UIManager.Instance.OpenAsync<MainMenuView>(new UIOpenOptions(false)).ToCoroutine(view => shown = view);
+            Assert.That(shown.State, Is.EqualTo(ViewState.Visible));
             yield return null; yield return null;
         }
 

@@ -46,10 +46,10 @@ namespace Hotfix
         private void OnSnapshotChanged(DroneFlightUiSnapshot snapshot)
         {
             var data = snapshot.Debug;
-            TextMeshProUGUI_FrontLeft.text = $"左前 FL<pos=58%><color=#F4A23A><mspace=0.6em>{data.Motors.FrontLeft:F3}</mspace></color>";
-            TextMeshProUGUI_FrontRight.text = $"右前 FR<pos=58%><color=#F4A23A><mspace=0.6em>{data.Motors.FrontRight:F3}</mspace></color>";
-            TextMeshProUGUI_RearLeft.text = $"左后 RL<pos=58%><color=#F4A23A><mspace=0.6em>{data.Motors.RearLeft:F3}</mspace></color>";
-            TextMeshProUGUI_RearRight.text = $"右后 RR<pos=58%><color=#F4A23A><mspace=0.6em>{data.Motors.RearRight:F3}</mspace></color>";
+            TextMeshProUGUI_FrontLeft.text = $"左前 FL<pos=58%>{Number($"{data.Motors.FrontLeft:F3}")}";
+            TextMeshProUGUI_FrontRight.text = $"右前 FR<pos=58%>{Number($"{data.Motors.FrontRight:F3}")}";
+            TextMeshProUGUI_RearLeft.text = $"左后 RL<pos=58%>{Number($"{data.Motors.RearLeft:F3}")}";
+            TextMeshProUGUI_RearRight.text = $"右后 RR<pos=58%>{Number($"{data.Motors.RearRight:F3}")}";
             TextMeshProUGUI_Thrust.text = $"总升力  {Number($"{data.TotalThrust:F1} N")}<pos=53%>物理步长  {Number($"{data.FixedStep:F3} s")}";
             TextMeshProUGUI_Pid.text = "<line-height=32>轴<pos=24%>误差<pos=44%>P<pos=64%>I<pos=84%>D\n"
                 + DroneDebugFormatting.Axis("横滚", data.Roll) + "\n"
@@ -57,12 +57,12 @@ namespace Hotfix
                 + DroneDebugFormatting.Axis("偏航", data.Yaw);
             TextMeshProUGUI_Mass.text = $"<line-height=32>主刚体<pos=30%>{Number($"{data.BodyMass:F2} kg")}<pos=57%>悬停指令<pos=83%>{Number($"{data.HoverCommand:F3}")}\n"
                 + $"附加装备<pos=30%>{Number("0.00 kg")}<pos=57%>动力余量<pos=83%>{Number($"{data.PowerReserve:P0}")}\n"
-                + $"当前总承载<pos=30%>{Number($"{data.SupportedMass:F2} kg")}<pos=57%>起落架<pos=83%><color=#F4A23A>{DroneFlightUiTelemetrySource.FormatGear(data.Gear)}</color>\n"
+                + $"当前总承载<pos=30%>{Number($"{data.SupportedMass:F2} kg")}<pos=57%>起落架<pos=83%>{ColorUtil.WrapText(DroneFlightUiTelemetrySource.FormatGear(data.Gear), UIColors.DroneFlight.TelemetryAccent)}\n"
                 + $"额定载重<pos=30%>{Number($"{data.RatedPayload:F2} kg")}";
             TextMeshProUGUI_Equipment.text = DroneDebugFormatting.Equipment(snapshot.Equipment);
         }
 
-        private static string Number(string value) => $"<color=#F4A23A><mspace=0.6em>{value}</mspace></color>";
+        private static string Number(string value) => ColorUtil.WrapText($"<mspace=0.6em>{value}</mspace>", UIColors.DroneFlight.TelemetryAccent);
 
 
     }

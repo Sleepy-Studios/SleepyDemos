@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Core.Runtime.Settings;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
 namespace Core.Runtime.Inputs
 {
-    public enum GamepadStyle { Generic, Xbox, PlayStation, Switch }
+    public enum GamepadStyle { Xbox = 1, PlayStation = 2, Switch = 3 }
 
     /// 设备提示跟随实际操作；连接手柄不抢占提示或伪造输入。
     public static class InputDeviceState
@@ -25,8 +26,8 @@ namespace Core.Runtime.Inputs
         public static InputDevice PromptDevice => ActiveKind == InputDeviceKind.Gamepad ? promptGamepad : ActiveDevice;
         /// 提示设备的类别。
         public static InputDeviceKind PromptKind => ActiveKind;
-        /// 根据实际布局识别的图标风格。
-        public static GamepadStyle PromptStyle => GetStyle(PromptDevice);
+        /// 玩家已应用的图标风格；实际设备仍负责物理控件与用途解析。
+        public static GamepadStyle PromptStyle => GameSettingsService.CurrentGamepadStyle;
         /// 实际设备、提示设备或布局改变；订阅方只在此时重建表现。
         public static event Action Changed;
         /// 实际输入活动，供具有设备白名单的会话更新自己的来源。
@@ -70,19 +71,6 @@ namespace Core.Runtime.Inputs
             if (Touchscreen.current != null) { Notify(Touchscreen.current); return; }
             if (ActiveKind == InputDeviceKind.Touch) return;
             ActiveKind = InputDeviceKind.Touch; ActiveDevice = null; Changed?.Invoke();
-        }
-
-        /// <summary>仅根据 Input System 识别的布局分类，兼容设备不猜品牌。</summary>
-        /// <param name="device">待识别手柄。</param>
-        /// <returns>图标风格。</returns>
-        public static GamepadStyle GetStyle(InputDevice device)
-        {
-            if (device == null) return GamepadStyle.Generic;
-            string layout = device.layout;
-            if (InputSystem.IsFirstLayoutBasedOnSecond(layout, "SwitchProControllerHID")) return GamepadStyle.Switch;
-            if (InputSystem.IsFirstLayoutBasedOnSecond(layout, "DualShockGamepad")) return GamepadStyle.PlayStation;
-            if (InputSystem.IsFirstLayoutBasedOnSecond(layout, "XInputController")) return GamepadStyle.Xbox;
-            return GamepadStyle.Generic;
         }
 
         private static void OnTouch(InputAction.CallbackContext value)

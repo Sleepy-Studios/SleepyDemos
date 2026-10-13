@@ -117,14 +117,18 @@ namespace Core.Runtime.Inputs
                 result.Add(usagePart);
                 return;
             }
-            // 操作说明可预览未连接设备的制作绑定；未识别的手柄不猜测品牌。
+            // 操作说明可预览未连接设备的制作绑定；摇杆子轴仍共用父摇杆图标。
             if (kind == InputDeviceKind.KeyboardMouse
                 && (binding.effectivePath.StartsWith("<Keyboard>") || binding.effectivePath.StartsWith("<Mouse>"))
                 || kind == InputDeviceKind.Gamepad && binding.effectivePath.StartsWith("<Gamepad>"))
             {
+                string path = binding.effectivePath.Substring(binding.effectivePath.IndexOf('/') + 1);
+                if (kind == InputDeviceKind.Gamepad && path is "leftStick/x" or "leftStick/y" or "rightStick/x" or "rightStick/y")
+                {
+                    path = path.Substring(0, path.IndexOf('/'));
+                }
                 result.Add(new Part(InputControlPath.ToHumanReadableString(binding.effectivePath,
-                    InputControlPath.HumanReadableStringOptions.OmitDevice),
-                    binding.effectivePath.Substring(binding.effectivePath.IndexOf('/') + 1)));
+                    InputControlPath.HumanReadableStringOptions.OmitDevice), path));
             }
         }
 

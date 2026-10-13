@@ -82,7 +82,7 @@ namespace Hotfix.LoopScroll.Examples
                 var image = feedback.GetComponent<Image>();
                 image.sprite = focusBorder;
                 image.type = Image.Type.Sliced;
-                image.color = new Color(0.2f, 0.85f, 1f);
+                image.color = UIColors.Common.LoopFocus;
                 image.raycastTarget = false;
                 Color[] tint =
                 {
@@ -90,7 +90,7 @@ namespace Hotfix.LoopScroll.Examples
                     Color.Lerp(original, Color.white, 0.28f),
                     Color.Lerp(original, Color.white, 0.12f),
                     Color.Lerp(original, Color.black, 0.38f),
-                    new Color(0.42f, 0.44f, 0.47f, 0.6f)
+                    UIColors.Common.LoopDisabled
                 };
                 for (int i = 0; i < names.Length; i++)
                 {

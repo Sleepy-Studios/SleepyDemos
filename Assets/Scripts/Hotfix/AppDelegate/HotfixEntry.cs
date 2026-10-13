@@ -37,21 +37,7 @@ namespace Hotfix.AppDelegate
             }
             else
             {
-                var result = await UIManager.Instance.ShowAsync<MainMenuView>();
-                switch (result.Status)
-                {
-                    case UIOperationStatus.Succeeded:
-                    case UIOperationStatus.Ignored:
-                        break;
-                    case UIOperationStatus.Canceled:
-                        throw new OperationCanceledException("Hotfix 启动在主界面稳定进入前被中断。");
-                    case UIOperationStatus.Failed:
-                        throw new InvalidOperationException(
-                            "Hotfix 启动无法稳定进入 MainMenuView，请检查 UIBind 生成代码和预制体地址。",
-                            result.Exception);
-                    default:
-                        throw new InvalidOperationException($"Hotfix 启动收到未知 UI 导航状态: {result.Status}");
-                }
+                await UIManager.Instance.OpenAsync<MainMenuView>();
 
             }
 

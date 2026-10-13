@@ -13,11 +13,11 @@
 | 角色 | 当前字号与正式样本 |
 |---|---|
 | 控件说明／辅助文字 | `DlssControls.prefab` 的 Move/Caption、Look/Caption 为 20；DeviceHints 内部分普通提示实例 Caption 也保留 20 |
-| 动作说明 | `Parts/DlssInputPrompt.prefab` 的 Caption 为 22；触控 Sprint、Reset、Exit 由内部提示显示实际动作文案，命令按钮的基础 Label 默认隐藏 |
+| 动作说明 | `Foundation/DlssInputPrompt.prefab` 的 Caption 为 22；触控 Sprint、Reset、Exit 由内部提示显示实际动作文案，命令按钮的基础 Label 默认隐藏 |
 | 键名与组合键分隔符 | 普通提示 KeyText 为 18、分隔符为 22，字体与原图标颜色一起在提示 Variant 维护 |
 | 页面／分区标题、长正文、实验读数 | 当前正式控件页没有独立制作样本；后续增加时另出设计确认，不把公共展示板字号写成已落地样式 |
 
-采集来源为 `DlssControls.prefab`、`Parts/DlssInputPrompt.prefab` 与 `Foundation/DlssInkCommandButton_600d2e89.prefab`；动态动作文案接入见 `Assets/Scripts/Hotfix/Demos/Dlss/DlssControlsView/View/DlssControlsView.cs`。以上是 Canvas 设计单位，不代表实际屏幕像素；没有额外建立字号主题或统一缩字逻辑。
+采集来源为 `DlssControls.prefab`、`Foundation/DlssInputPrompt.prefab` 与 `Foundation/DlssTouchCommandButton.prefab`；动态动作文案接入见 `Assets/Scripts/Hotfix/Demos/Dlss/DlssControlsView/View/DlssControlsView.cs`。以上是 Canvas 设计单位，不代表实际屏幕像素；没有额外建立字号主题或统一缩字逻辑。
 
 ### 当前尺寸与图形制作样本
 
@@ -31,19 +31,25 @@
 
 新的图标比例、分区间距或阴影没有现成样本，须设计确认；普通键帽长名称扩宽遵循公共提示能力，不拉伸真实手柄/鼠标 Sprite。
 
+## 完整基础控件库与源码颜色
+
+基础控件统一从 `Assets/LoadResources/Demos/dlss/Prefabs/UI/Foundation/` 取用，文件以 `Dlss` 开头，按动作或控件用途命名；名字不编码字号或生成哈希。每一项公共基础控件均有本 Demo 的真实 Variant，尚未使用或与公共外观一致的控件同样保留入口。覆盖清单及组合内部子变体契约见[基础资源维护](../../../modules/ui-foundation-assets.md#四-demo-完整风格库)。Loading 继续使用正式全局与场景流程，不进入这套 Foundation。
+
+本 Demo 当前固定外观只在 Prefab/Variant 保存 RGBA、图片和字体，不绑定运行时色板。`Hotfix.UIColors` 保留 DLSS 区域的说明，当前没有固定运行时 UI/HUD 色字段，不保留空类或只供一次性 Builder 的色值。配置、动态颜色和 Shader 参数继续由其原契约维护。
+
 ## 控件继承与覆盖
 
-Exit / Sprint / Reset 已关联 `Prefabs/UI/Foundation/DlssInkCommandButton_600d2e89.prefab`，继承公共 CommonButton 的结构和五态行为，只集中深蓝/青色外观。它们都保留原 InputCommandButton，属于玩法命令控件；根 Button、业务组件、提示绑定及持续按压/释放契约保持原引用，不重建为普通点击回调。
+Exit / Sprint / Reset 已关联 `Prefabs/UI/Foundation/DlssTouchCommandButton.prefab`，继承公共 CommonButton 的结构和五态行为，只集中深蓝/青色外观。它们都保留原 InputCommandButton，属于玩法命令控件；根 Button、业务组件、提示绑定及持续按压/释放契约保持原引用，不重建为普通点击回调。
 
-正式提示 Variant 入口为 `Prefabs/UI/Parts/DlssInputPrompt*.prefab`。页面保留命令位置、尺寸、动作与可见性；公共输入提示源负责结构和行为，本 Demo 的提示 Variant 负责外观。当前没有普通 Toggle、Dropdown 或 Tab，不为目录齐全创建无使用方控件。
+正式提示 Variant 入口为 `Prefabs/UI/Foundation/DlssInputPrompt*.prefab`。页面保留命令位置、尺寸、动作与可见性；公共输入提示源负责结构和行为，本 Demo 的提示 Variant 负责外观。完整基础控件库同时维护 Toggle、Dropdown、Tab 等风格 Variant，即使当前页面未使用，也从 Foundation 复用；不因此增加页面入口。
 
 路径相对于 `Assets/LoadResources/Demos/dlss/Prefabs/UI/`：
 
 | 风格 Variant | 实际使用方 |
 |---|---|
-| `Foundation/DlssInkCommandButton_600d2e89.prefab` | DlssControls/TouchControls 的 Sprint、Reset、Exit；它们的命令提示仍是内部嵌套组件 |
-| `Parts/DlssInputPrompt.prefab` | DlssControls/DeviceHints 与 TouchControls 命令内的实际提示 |
-| `Parts/DlssInputPrompt2.prefab`、`Parts/DlssInputPromptButton.prefab` | 已有右对齐／可点击风格源；当前正式 UI Prefab 没有直接嵌套使用，不为使用这两个源新增入口 |
+| `Foundation/DlssTouchCommandButton.prefab` | DlssControls/TouchControls 的 Sprint、Reset、Exit；它们的命令提示仍是内部嵌套组件 |
+| `Foundation/DlssInputPrompt.prefab` | DlssControls/DeviceHints 与 TouchControls 命令内的实际提示 |
+| `Foundation/DlssInputPrompt2.prefab`、`Foundation/DlssInputPromptButton.prefab` | 已有右对齐／可点击风格源；当前正式 UI Prefab 没有直接嵌套使用，不为使用这两个源新增入口 |
 
 ## 可读性与换风格
 

@@ -4,17 +4,26 @@ using UnityEngine;
 
 namespace Core.Runtime
 {
-    /// 公共颜色语义与十六进制转换；Demo 专属色板仍归 Demo。
+    /// 公共颜色语义与十六进制转换。
     public static class ColorUtil
     {
+        // 框架自身语义色；宿主色板位于 Hotfix.UIColors，规则见 docs/architecture/ui-art-direction.md。
         public static class Colors
         {
-            public static readonly Color Success = new Color32(60, 167, 54, 255);
-            public static readonly Color Notice = new Color32(243, 130, 20, 255);
-            public static readonly Color Warning = new Color32(190, 4, 35, 255);
-            public static readonly Color TextPrimary = Color.white;
-            public static readonly Color TextSecondary = new Color32(180, 180, 190, 255);
-            public static readonly Color TipsBackground = new Color32(41, 44, 62, 250);
+            #region 公共 UI
+            public static class Common
+            {
+                public static readonly Color Success = GetColor("#3CA736");
+                public static readonly Color Notice = GetColor("#F38214");
+                public static readonly Color Warning = GetColor("#BE0423");
+                public static readonly Color TextPrimary = GetColor("#FFFFFF");
+                public static readonly Color TextSecondary = GetColor("#B4B4BE");
+                public static readonly Color TipsBackground = GetColor("#292C3E", alphaPercent: 98.0392156863f);
+                public static readonly Color ModalMask = GetColor("#000000", alphaPercent: 65);
+                public static readonly Color Transparent = GetColor("#000000", alphaPercent: 0);
+            }
+            #endregion
+
         }
 
         private static readonly Dictionary<string, Color> Cache = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
@@ -48,6 +57,13 @@ namespace Core.Runtime
         /// <param name="fallback">null 使用白色；透明色可作为显式备用值。</param>
         public static Color GetColor(string hex, Color? fallback = null)
             => TryParse(hex, out Color color) ? color : fallback ?? Color.white;
+
+        /// <summary>读取颜色并用百分比替换透明度；不与十六进制中的 Alpha 相乘。</summary>
+        /// <param name="hex">RGB/RGBA 十六进制字符串，仍支持 3/4/6/8 位。</param>
+        /// <param name="alphaPercent">透明度百分比，允许小数；限于 0 到 100，NaN 视为 0。</param>
+        /// <param name="fallback">解析失败时的备用色；null 使用白色，其 Alpha 仍由百分比覆盖。</param>
+        public static Color GetColor(string hex, float alphaPercent, Color? fallback = null)
+            => WithAlpha(GetColor(hex, fallback), alphaPercent / 100f);
 
         /// <summary>转换为带 # 的大写十六进制字符串。</summary>
         /// <param name="color">Unity 颜色；按 Color32 量化。</param>

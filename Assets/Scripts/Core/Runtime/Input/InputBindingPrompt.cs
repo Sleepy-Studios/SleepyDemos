@@ -1,5 +1,6 @@
 using System;
 using Core.Runtime.Localization;
+using Core.Runtime.Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -33,6 +34,7 @@ namespace Core.Runtime.Inputs
             public readonly float pixelsPerUnitMultiplier;
             private readonly bool fillCenter;
             private readonly bool preserveAspect;
+            private readonly float minWidth;
             private readonly float preferredWidth;
             private readonly float flexibleHeight;
             private readonly bool slotForceExpandHeight;
@@ -50,6 +52,7 @@ namespace Core.Runtime.Inputs
                 pixelsPerUnitMultiplier = value.pixelsPerUnitMultiplier;
                 fillCenter = value.fillCenter;
                 preserveAspect = value.preserveAspect;
+                minWidth = element != null ? element.minWidth : -1f;
                 preferredWidth = element != null ? element.preferredWidth : -1f;
                 flexibleHeight = element != null ? element.flexibleHeight : -1f;
                 slotForceExpandHeight = slotLayout != null && slotLayout.childForceExpandHeight;
@@ -69,6 +72,7 @@ namespace Core.Runtime.Inputs
                 image.preserveAspect = preserveAspect;
                 if (element != null)
                 {
+                    element.minWidth = minWidth;
                     element.preferredWidth = preferredWidth;
                     element.flexibleHeight = flexibleHeight;
                 }
@@ -104,6 +108,9 @@ namespace Core.Runtime.Inputs
         private int? displayBindingIndex;
         private object[] captionArguments = Array.Empty<object>();
         private GlyphLayout[] glyphLayouts;
+        private GamepadStyle? displayGamepadStyle;
+        private LayoutElement promptWidthElement;
+        private int promptLayoutPriority;
         /// 已绑定会话动作优先于 Inspector 的源资产引用。
         public InputAction Action => runtimeAction ?? action?.action;
 
@@ -132,6 +139,14 @@ namespace Core.Runtime.Inputs
         public void SetDisplayDevice(InputDeviceKind? kind)
         {
             displayDevice = kind;
+            Refresh();
+        }
+
+        /// <summary>候选页局部预览图标风格；为空使用已经应用的公共偏好。</summary>
+        /// <param name="style">候选风格，不改变真实设备或生效设置。</param>
+        public void SetDisplayGamepadStyle(GamepadStyle? style)
+        {
+            displayGamepadStyle = style;
             Refresh();
         }
 
@@ -244,12 +259,14 @@ namespace Core.Runtime.Inputs
                 runtimeAction = ResolveMenuAction();
             }
             InputDeviceState.Changed += Refresh;
+            GameSettingsService.Changed += OnSettingsChanged;
             InputSystem.onActionChange += OnActionChange;
             Refresh();
         }
         private void OnDisable()
         {
             InputDeviceState.Changed -= Refresh;
+            GameSettingsService.Changed -= OnSettingsChanged;
             InputSystem.onActionChange -= OnActionChange;
             RestoreGlyphLayouts();
             glyphLayouts = null;
@@ -261,6 +278,8 @@ namespace Core.Runtime.Inputs
                 Refresh();
             }
         }
+
+        private void OnSettingsChanged(GameSettingsSnapshot value) => Refresh();
 
         private void OnTransformParentChanged()
         {
@@ -298,7 +317,7 @@ namespace Core.Runtime.Inputs
                 currentCaption = captionArguments.Length > 0 ? LanguageService.Format(captionKey, captionArguments) : LanguageService.Get(captionKey);
             }
             var kind = displayDevice ?? InputDeviceState.PromptKind;
-            var style = InputDeviceState.GetStyle(InputBindingDisplay.ResolveDevice(kind));
+            var style = displayGamepadStyle ?? GameSettingsService.CurrentGamepadStyle;
             var parts = InputBindingDisplay.GetParts(Action, out var separator, displayDevice, compositePart, displayBindingIndex);
             if (glyphSlots.Length > 0)
             {
@@ -376,6 +395,11 @@ namespace Core.Runtime.Inputs
 
         private void RestoreGlyphLayouts()
         {
+            if (promptWidthElement != null)
+            {
+                promptWidthElement.layoutPriority = promptLayoutPriority;
+                promptWidthElement = null;
+            }
             if (glyphLayouts == null)
             {
                 return;
@@ -433,9 +457,29 @@ namespace Core.Runtime.Inputs
             float pixelsPerUnit = slot.icon.pixelsPerUnit * slot.icon.pixelsPerUnitMultiplier;
             authored.layout.padding.left = Mathf.Max(authored.layout.padding.left, Mathf.CeilToInt(sprite.border.x / pixelsPerUnit));
             authored.layout.padding.right = Mathf.Max(authored.layout.padding.right, Mathf.CeilToInt(sprite.border.z / pixelsPerUnit));
-            authored.element.preferredWidth = Mathf.Max(authored.element.minWidth, authored.element.preferredWidth,
-                slot.keyText.preferredWidth + authored.layout.padding.horizontal);
+            // 原生布局按最新TMP字形计算宽度，不能用刷新时的旧测量覆盖其preferredWidth。
+            authored.element.minWidth = Mathf.Max(authored.element.minWidth, authored.element.preferredWidth);
+            authored.element.preferredWidth = -1f;
+            AllowPromptContentWidth();
             LayoutRebuilder.MarkLayoutForRebuild(slot.icon.rectTransform);
+        }
+
+        private void AllowPromptContentWidth()
+        {
+            if (promptWidthElement != null)
+            {
+                return;
+            }
+            var element = GetComponent<LayoutElement>();
+            var layout = GetComponent<LayoutGroup>();
+            if (element == null || layout == null)
+            {
+                return;
+            }
+            promptWidthElement = element;
+            promptLayoutPriority = element.layoutPriority;
+            // 固定作者宽度仍是下限，原生内容宽度可以参与取max，避免长键帽被父层压缩。
+            element.layoutPriority = Mathf.Min(element.layoutPriority, layout.layoutPriority);
         }
 
         private string FormatBindingCaption(string binding, string currentCaption)

@@ -70,13 +70,9 @@ namespace Hotfix.WallSqueeze
                 var data = GlobalData.Add<WallSqueezeData>();
                 data.World = this;
                 BuildLevel();
-                var shown = await UIManager.Instance.ShowAsync<WallSqueezeHudView>(view => view.SetData(this), new UIShowOptions(animated: false), token);
-                if (shown.Status == UIOperationStatus.Failed)
-                {
-                    throw shown.Exception;
-                }
+                var shown = await UIManager.Instance.OpenAsync<WallSqueezeHudView>(view => view.SetData(this), new UIOpenOptions(animated: false), token);
                 ready = true;
-                hudView = shown.View as WallSqueezeHudView;
+                hudView = shown;
                 Refresh();
             }
             catch (OperationCanceledException)
@@ -215,16 +211,12 @@ namespace Hotfix.WallSqueeze
                     {
                         input.CancelHold();
                         input.Router.SetContext(GameplayInputContext.Menu);
-                        var shown = await UIManager.Instance.ShowAsync<WallSqueezeMenuView>(view => view.SetData(this), new UIShowOptions(animated: false), this.GetCancellationTokenOnDestroy());
-                        if (shown.Status == UIOperationStatus.Failed)
-                        {
-                            throw shown.Exception;
-                        }
+                        var shown = await UIManager.Instance.OpenAsync<WallSqueezeMenuView>(view => view.SetData(this), new UIOpenOptions(animated: false), this.GetCancellationTokenOnDestroy());
                         modalOpen = true;
-                        menuView = shown.View as WallSqueezeMenuView;
+                        menuView = shown as WallSqueezeMenuView;
                         menu.Dispose();
                         menu = new MenuInputScope(EventSystem.current, input.Router, menuView.transform);
-                        menu.SetContext(GameplayInputContext.Menu, shown.View?.gameObject.GetComponent<WallSqueezeMenuPanel>()?.FirstSelection);
+                        menu.SetContext(GameplayInputContext.Menu, shown?.gameObject.GetComponent<WallSqueezeMenuPanel>()?.FirstSelection);
                     }
                     else if (!desired && modalOpen)
                     {
@@ -297,7 +289,7 @@ namespace Hotfix.WallSqueeze
             ready = false;
             // 成功卸载或真实场景重载才销毁旧会话 UI；失败返回仍保留原实例。
             foreach (var view in new View[] { menuView, hudView })
-                if (view != null) UIManager.Instance.CloseAsync(view, false).Forget();
+                if (view != null) UIManager.Instance.Close(view, animation: false);
             menuView = null;
             hudView = null;
             menu?.Dispose();

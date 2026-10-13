@@ -160,7 +160,7 @@ namespace Hotfix
             {
                 TextMeshProUGUI_Status.text = entryFeedback;
             }
-            TextMeshProUGUI_Status.color = string.IsNullOrEmpty(entryFeedback) ? new Color(.39f, .43f, .42f) : new Color(.72f, .22f, .16f);
+            TextMeshProUGUI_Status.color = string.IsNullOrEmpty(entryFeedback) ? UIColors.Hub.Status : UIColors.Hub.EntryFeedback;
         }
 
         private void OnStartClick()
@@ -170,27 +170,25 @@ namespace Hotfix
             if (entry.CanEnter && entry.SceneId.HasValue && CanEnterDemo) GlobalData.Dispatch(new MainMenuEnterAction(entry.SceneId.Value));
         }
 
-        private void OnSettingsClick() => OpenSettingsAsync().Forget();
+        private void OnSettingsClick() => SettingsFlow.Show(onFailed: OnSettingsOpenFailed);
 
-        private async UniTask OpenSettingsAsync()
+        private void OnSettingsOpenFailed(Exception exception)
         {
-            var result = await SettingsFlow.OpenAsync();
-            if (result.Status == UIOperationStatus.Failed)
+            Debug.LogException(exception);
+            if (IsEnable)
             {
-                Debug.LogException(result.Exception);
-                if (IsEnable) RefreshEntryControls(LanguageService.Get("Hub.SettingsFailure"));
+                RefreshEntryControls(LanguageService.Get("Hub.SettingsFailure"));
             }
         }
 
-        private void OnEffectsClick() => OpenEffectsAsync().Forget();
+        private void OnEffectsClick() => PresentationLabFlow.Show(onFailed: OnEffectsOpenFailed);
 
-        private async UniTask OpenEffectsAsync()
+        private void OnEffectsOpenFailed(Exception exception)
         {
-            var result = await PresentationLabFlow.OpenAsync();
-            if (result.Status == UIOperationStatus.Failed)
+            Debug.LogException(exception);
+            if (IsEnable)
             {
-                Debug.LogException(result.Exception);
-                if (IsEnable) RefreshEntryControls(LanguageService.Get("Hub.EffectsFailure"));
+                RefreshEntryControls(LanguageService.Get("Hub.EffectsFailure"));
             }
         }
 

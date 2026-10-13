@@ -43,13 +43,14 @@ namespace Core.Runtime
             CancellationToken callerCancellation,
             Action<View> configure = null,
             View targetView = null,
-            bool hidePrevious = true)
+            bool hidePrevious = true,
+            bool asyncLoad = true)
         {
             QueuedUIOperation operation;
             List<QueuedUIOperation> canceledPending = null;
             CancellationTokenSource cancellationToRequest = null;
             var startPump = false;
-            var rejectDisposed = false;
+            var rejectRequest = false;
 
             lock (stateGate)
             {
@@ -61,11 +62,12 @@ namespace Core.Runtime
                     callerCancellation,
                     configure,
                     targetView,
-                    hidePrevious);
-                if (disposed)
+                    hidePrevious,
+                    asyncLoad);
+                if (disposed || callerCancellation.IsCancellationRequested && action != UINavigationAction.CloseAll)
                 {
                     operation.State = QueuedUIOperationState.Completed;
-                    rejectDisposed = true;
+                    rejectRequest = true;
                 }
                 else
                 {
@@ -91,7 +93,7 @@ namespace Core.Runtime
 
             CompleteCanceled(canceledPending);
             RequestCancellation(cancellationToRequest);
-            if (rejectDisposed)
+            if (rejectRequest)
             {
                 CompleteCanceled(operation);
             }
@@ -179,7 +181,11 @@ namespace Core.Runtime
                 try
                 {
                     await UniTask.SwitchToMainThread();
-                    operationCancellation.Token.ThrowIfCancellationRequested();
+                    if (operation.Action != UINavigationAction.CloseAll)
+                    {
+                        operationCancellation.Token.ThrowIfCancellationRequested();
+                    }
+
                     if (operation.Action != UINavigationAction.Preload && interactionGate != null)
                     {
                         interactionGate.Acquire();
@@ -237,7 +243,7 @@ namespace Core.Runtime
 
         private void RegisterPendingCancellation(QueuedUIOperation operation)
         {
-            if (!operation.CallerCancellation.CanBeCanceled)
+            if (!operation.CallerCancellation.CanBeCanceled || operation.Action == UINavigationAction.CloseAll)
             {
                 return;
             }
@@ -410,7 +416,8 @@ namespace Core.Runtime
             CancellationToken callerCancellation,
             Action<View> configure,
             View targetView,
-            bool hidePrevious)
+            bool hidePrevious,
+            bool asyncLoad = true)
         {
             OperationId = operationId;
             Action = action;
@@ -420,6 +427,7 @@ namespace Core.Runtime
             Configure = configure;
             TargetView = targetView;
             HidePrevious = hidePrevious;
+            AsyncLoad = asyncLoad;
             Completion = new UniTaskCompletionSource<UIOperationResult>();
         }
 
@@ -431,6 +439,7 @@ namespace Core.Runtime
         internal Action<View> Configure { get; }
         internal View TargetView { get; }
         internal bool HidePrevious { get; }
+        internal bool AsyncLoad { get; }
         internal UniTaskCompletionSource<UIOperationResult> Completion { get; }
         internal QueuedUIOperationState State { get; set; }
         internal CancellationTokenRegistration CancellationRegistration { get; set; }

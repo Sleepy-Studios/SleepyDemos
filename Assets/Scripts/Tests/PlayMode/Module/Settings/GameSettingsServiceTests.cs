@@ -58,6 +58,7 @@ namespace Tests.Module
             rebind.SetBinding(action.actionMap.name + "/" + action.name, bindingIndex, "<Keyboard>/f12");
             next.BindingOverrides[rebind.SourceId] = rebind.ExportOverrides();
             next.Input.GamepadDeadzone = 0.32f;
+            next.Input.GamepadStyle = GamepadStyle.PlayStation;
             SettingsApplyResult result = default;
             yield return GameSettingsService.ApplyAsync(next).ContinueWith(value => result = value).ToCoroutine();
             Assert.That(result.Succeeded, Is.True, result.Message);
@@ -66,6 +67,7 @@ namespace Tests.Module
             Assert.That(GameSettingsService.Config.GetDefaults().Audio.Master, Is.EqualTo(defaults.Audio.Master));
             Assert.That(LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey).Audio.Master, Is.EqualTo(0.37f));
             Assert.That(router.Settings.GamepadDeadzone, Is.EqualTo(0.32f));
+            Assert.That(GameSettingsService.CurrentGamepadStyle, Is.EqualTo(GamepadStyle.PlayStation));
             var effective = router.FindAction("Interaction/NextGroup");
             Assert.That(effective.bindings[bindingIndex].effectivePath, Is.EqualTo("<Keyboard>/f12"));
             Assert.That(router.FindAction("Gameplay/Move").enabled, Is.True, "统一提交不能关闭Router已启用的Map");
@@ -75,6 +77,31 @@ namespace Tests.Module
             yield return null;
             Assert.That(GameSettingsService.IsInitialized, Is.True, "旧驱动延迟销毁不能关闭新初始化");
             Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(0.37f));
+            Assert.That(GameSettingsService.CurrentGamepadStyle, Is.EqualTo(GamepadStyle.PlayStation));
+        }
+
+        [UnityTest]
+        public IEnumerator LegacyControllerIconsUseXboxWithoutDiscardingOtherPreferences()
+        {
+            yield return GameSettingsService.InitializeAsync().ToCoroutine();
+            var saved = GameSettingsService.Current;
+            saved.Audio.Master = 0.37f;
+            saved.Input.GamepadDeadzone = 0.31f;
+            saved.Input.GamepadStyle = GamepadStyle.Xbox;
+            LocalDataManager.SaveData(GameSettingsService.PreferenceKey, saved);
+            string json = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+            foreach (bool missing in new[] { true, false })
+            {
+                GameSettingsService.Shutdown();
+                string legacyJson = missing
+                    ? json.Replace("\"GamepadStyle\":1", "\"LegacyGamepadStyle\":1")
+                    : json.Replace("\"GamepadStyle\":1", "\"GamepadStyle\":0");
+                PlayerPrefs.SetString(GameSettingsService.PreferenceKey, legacyJson);
+                yield return GameSettingsService.InitializeAsync().ToCoroutine();
+                Assert.That(GameSettingsService.CurrentGamepadStyle, Is.EqualTo(GamepadStyle.Xbox));
+                Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(0.37f));
+                Assert.That(GameSettingsService.Current.Input.GamepadDeadzone, Is.EqualTo(0.31f));
+            }
         }
 
         [UnityTest]

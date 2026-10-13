@@ -55,6 +55,8 @@
 ## UI 复用与拆分
 
 - 公共 UI 基础 Prefab 共享结构与行为，Hub 使用基础外观；各 Demo 通过自己的 Prefab Variant 维护图片、字体、颜色和布局。公共接入不得覆盖 Demo 既有美术风格，纸艺卡丁车保留纸卡与墨色表现。
+- 各 Demo 在 `Prefabs/UI/Foundation/` 维护完整基础控件变体库；未使用或与 Hub 外观相同的控件也保留自己的 Variant，组合控件内部引用本 Demo 变体。名称使用语义 PascalCase，不带字号、随机哈希或下划线后缀。
+- 固定源码 UI/HUD 色值统一入口：Core 的 `ColorUtil` 保留转换工具和框架色值，Hub/Demo 色板放在 Hotfix `UIColors`，按宿主使用 `#region`。Prefab/UIState/材质/图片的颜色仍由风格资产维护。
 - Demo 接入前先验收基础 UI Prefab，优先复用已有公共组件；缺失且有稳定复用价值时再提取。选型与验证见 [基础 UI 组件](docs/runbooks/use-core-ui-components.md)。
 - 写页面或新增公共 UI 前，先按上述手册核对现有组件、Prefab 和调用方；分类子页复用 `UITab / ViewTab`，同类数据条目复用 `LoopScrollView + ItemView`，固定异构表单使用普通布局。新增或扩展公共能力时同步手册，不另造分类切换、列表复用或控件状态底座。
 - 普通进度填充使用 Filled 与正确的白色 Sprite；圆角、边框由有 Border 的 Sliced 背景或遮罩承载。特殊形状按实际填充需求配置，不机械统一 Image.Type。

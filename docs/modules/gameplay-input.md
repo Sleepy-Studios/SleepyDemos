@@ -57,13 +57,15 @@ InputDeviceState.ActiveDevice/ActiveKind 表示实际操作，决定触控区、
 
 松键门闩只覆盖按键与手柄持续轴，鼠标绝对位置不需要回屏幕原点。触控命令按钮的 InputBindingPrompt 可配置 captionOnly，仅显示动作名；独立帮助/操作面板继续按 PromptDevice 提示实际绑定。
 
-`InputBindingPrompt` 使用实际动作与设备内路径，在设备和绑定变化时刷新。默认复合提示为每个子方向选择当前设备的首个可用别名；设置绑定行使用 `BindBinding` 精确显示所选索引，W 与方向键即使属于同一动作也有各自图标。`Bind` 和 `BindPart` 清除精确索引选择；`BindPart` 保留指定复合子项。说明页可用 `SetDisplayDevice` 预览另一设备，实际输入设备与触控区域保持原状态。
+`InputBindingPrompt` 使用实际动作与设备内路径，在设备、绑定与已应用设置变化时刷新。默认复合提示为每个子方向选择当前设备的首个可用别名；设置绑定行使用 `BindBinding` 精确显示所选索引，W 与方向键即使属于同一动作也有各自图标。`Bind` 和 `BindPart` 清除精确索引选择；`BindPart` 保留指定复合子项。说明页可用 `SetDisplayDevice` 预览另一设备，实际输入设备与触控区域保持原状态；`SetDisplayGamepadStyle` 只改变该提示的候选图标，传 null 恢复已应用偏好。
 
 正式公共基底为 `Assets/LoadResources/UI/Common/Input/InputPrompt.prefab` 与 `InputPromptButton.prefab`。前者提供独立 Caption 与多个 GlyphSlot，键帽包含图标、无对应图标时的真实键名以及组合分隔符；槽不足时保留完整绑定文本。后者复用相同提示结构，增加 Button、五态交互和 InputCommandButton。点击或保持仍交付 Demo 原命令，暂停、隐藏和失焦配对释放保持操作。
 
-Drone、DLSS、Wall、KagitKart 各保存自己的真正 Prefab Variants；前三者位于各自 `Prefabs/UI/Parts/`，KagitKart 位于 `Prefabs/UI/Widgets/`。Variant 维护各 Demo 的颜色、字体样式、Sprite 与间距。纸艺赛车继续使用原纸卡和父页布局，公共提示只替换局部提示部件。`InputPromptGroup` 保存稳定行 Key、提示组件和可选区域的明确制作引用；已制作组的 View 通过正式 UIBind 生成字段持有组，运行时按 Key 取行。Drone HUD 的触控、操作面板和菜单提示也由该组保存。DLSS 控件页在初始化时一次性采集已制作的提示组件，按实际动作设置词条；不在帧循环扫描或临时生成提示。
+Drone、DLSS、Wall、KagitKart 各保存自己的真正 Prefab Variants，统一位于各自 `Prefabs/UI/Foundation/`。Variant 维护各 Demo 的颜色、字体样式、Sprite 与间距。纸艺赛车继续使用原纸卡和父页布局，公共提示只替换局部提示部件。`InputPromptGroup` 保存稳定行 Key、提示组件和可选区域的明确制作引用；已制作组的 View 通过正式 UIBind 生成字段持有组，运行时按 Key 取行。Drone HUD 的触控、操作面板和菜单提示也由该组保存。DLSS 控件页在初始化时一次性采集已制作的提示组件，按实际动作设置词条；不在帧循环扫描或临时生成提示。
 
-`InputGlyphCatalog` 及其 GUID 保持稳定，资源位于 `UI/Common/Sprites/Input/Kenney/`，目录包含随包保存的 CC0 许可。键盘实际使用 Kenney 的字母、数字、功能键、修饰键、方向键和常用特殊键图形，鼠标使用对应鼠标按钮图形；只有缺少对应图标的键才显示空键帽与实际键名。单字母键按当前键盘布局的显示名选择图形。已识别手柄布局映射 Xbox、PlayStation、Switch，未知手柄使用通用位置图标；新增手柄沿用 InputDeviceState 的布局识别和 Catalog 的设备风格映射。菜单确认／返回的用途绑定由真实布局解析，Switch 的 A/B 对应真实物理位置，图标映射与控件路径必须一致。
+`InputGlyphCatalog` 及其 GUID 保持稳定，资源位于 `UI/Common/Sprites/Input/Kenney/`，目录包含随包保存的 CC0 许可。键盘实际使用 Kenney 的字母、数字、功能键、修饰键、方向键和常用特殊键图形，鼠标使用对应鼠标按钮图形；只有缺少对应图标的键才显示空键帽与实际键名。单字母键按当前键盘布局的显示名选择图形。`GameplayInputSettings.GamepadStyle` 保存 Xbox=1、PlayStation=2、Switch=3，默认 Xbox；Hub 选项显示 Xbox／PS5／NS，连接或操作不同品牌不会自动改偏好，Generic 已移除。旧本机偏好缺字段或值为0时仅补 Xbox，其余设置保留；新候选拒绝未定义值。Prompt 直接消费公共设置 Changed，读取轻量枚举，不重复复制整份设置或建立运行时主题管理器。菜单确认／返回的用途绑定仍由真实布局解析，Switch 的 A/B 对应真实物理位置，图标风格不改变控件路径与用途。
+
+未连接手柄的 `leftStick/x`、`leftStick/y` 与右摇杆子轴同样使用父摇杆图标。Kart 操作页手柄分类收起没有绑定的 Mute／Restart；DLSS 复用实际 Move、Look 与 LookHold 动作，移动显示当前物理绑定，观察在键鼠下显示真实鼠标保持键、手柄下显示右摇杆，不新增提示专用动作。
 
 菜单提示的 `menuAction` 支持 `Navigate`、`Submit`、`Cancel`，分别绑定现有 InputSystemUIInputModule 的 move、submit、cancel。Navigate 不提交确认；绑定 Demo 会话资产也不会覆盖这些公共菜单动作。固定 UI 导航、确认和返回由原 UI Module 处理。
 

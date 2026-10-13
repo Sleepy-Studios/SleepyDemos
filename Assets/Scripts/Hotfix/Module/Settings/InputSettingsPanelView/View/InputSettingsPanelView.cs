@@ -19,6 +19,7 @@ namespace Hotfix
         protected override void OnGameObjectInitialize()
         {
             InitializeRows(
+                UISettingRow_GamepadStyle,
                 UISettingRow_MouseLookMultiplier,
                 UISettingRow_TouchLookMultiplier,
                 UISettingRow_GamepadLookMultiplier,
@@ -73,6 +74,12 @@ namespace Hotfix
             Slider(UISettingRow_RumbleStrength, ranges.RumbleStrength, value.RumbleStrength, next => value.RumbleStrength = next);
             Toggle(UISettingRow_GamepadInvertY, value.GamepadInvertY, next => value.GamepadInvertY = next);
             Toggle(UISettingRow_RumbleEnabled, value.RumbleEnabled, next => value.RumbleEnabled = next);
+            UISettingRow_GamepadStyle.SetLabel("Settings.GamepadStyle");
+            UISettingRow_GamepadStyle.SetOptions(new[] { "Xbox", "PS5", "NS" }, (int)value.GamepadStyle - 1, index =>
+            {
+                Change(() => value.GamepadStyle = (GamepadStyle)(index + 1));
+                LoopScrollView_Bindings.RefreshCells();
+            });
 
             var hosts = GameSettingsService.InputHosts;
             hostIndex = Mathf.Clamp(hostIndex, 0, hosts.Count - 1);
@@ -128,6 +135,7 @@ namespace Hotfix
             item.SetData(entry.Action, entry.Index, entry.CaptionKey, entry.Action.actionMap.name + part,
                 deviceIndex == 1 ? InputDeviceKind.Gamepad : InputDeviceKind.KeyboardMouse, editable && !IsListening,
                 () => BeginRebind(entry), () => ResetAction(entry));
+            item.SetGamepadStyle(Candidate.Input.GamepadStyle);
         }
 
         private void RefreshAvailability()
@@ -135,6 +143,7 @@ namespace Hotfix
             gameObject.GetComponentInParent<UIMenuScope>(true)?.SetNavigationEnabled(!IsListening);
             UISettingRow_Host.SetAvailable(!IsListening);
             UISettingRow_Device.SetAvailable(!IsListening);
+            UISettingRow_GamepadStyle.SetAvailable(!IsListening);
             UISettingRow_CancelRebind.gameObject.SetActive(IsListening);
             LoopScrollView_Bindings.RefreshCells();
         }

@@ -12,14 +12,12 @@ namespace Tests.Module
     public sealed class SettingsRowTests
     {
         [Test]
-        public void CancelledHubSettingsOpenReturnsCancelledBeforeNavigation()
+        public void CancelledHubSettingsOpenThrowsBeforeNavigation()
         {
             using var cancellation = new System.Threading.CancellationTokenSource();
             cancellation.Cancel();
-            var result = SettingsFlow.OpenAsync(token: cancellation.Token).GetAwaiter().GetResult();
-            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled));
-            Assert.That(result.View, Is.Null);
-            Assert.That(result.Exception, Is.Null);
+            Assert.Throws<System.OperationCanceledException>(() =>
+                SettingsFlow.OpenAsync(token: cancellation.Token).GetAwaiter().GetResult());
         }
 
         [Test]

@@ -1,4 +1,4 @@
-﻿namespace Hotfix
+namespace Hotfix
 {
     using Core.Runtime;
     using System;
@@ -100,7 +100,7 @@
                 int count = Mathf.Clamp(Mathf.FloorToInt(values[row] + 0.5f), 0, 5);
                 for (int k = 0; k < ticks[row].Length; k++)
                 {
-                    ticks[row][k].color = k < count ? new Color(0.85f, 0.28f, 0.23f) : new Color(0.2f, 0.18f, 0.2f, 0.18f);
+                    ticks[row][k].color = k < count ? UIColors.KagitKart.StatFilled : UIColors.KagitKart.StatEmpty;
                 }
             }
             foreach (var choice in choices)

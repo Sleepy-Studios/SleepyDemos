@@ -74,7 +74,7 @@ namespace Core.Runtime
             messageScroll.SetOptions(options);
             // 背景和边框由宿主 Prefab 维护；仅图标区分消息语义。
             if (icon != null) icon.color = type == CommonTipsType.Warning ? Color.white
-                : type == CommonTipsType.Success ? ColorUtil.Colors.Success : contentText.color;
+                : type == CommonTipsType.Success ? ColorUtil.Colors.Common.Success : contentText.color;
         }
 
         // 堆叠后层只保留背景，隐藏内容不改变用于展开的测量尺寸。
@@ -104,6 +104,8 @@ namespace Core.Runtime
             float textLimit = Mathf.Max(1, widthLimit - inset);
             float contentWidth = contentText.GetPreferredValues(contentText.text, Mathf.Infinity, Mathf.Infinity).x;
             float titleWidth = titleText.gameObject.activeSelf ? titleText.GetPreferredValues(titleText.text, Mathf.Infinity, Mathf.Infinity).x : 0;
+            // 自动滚动裁剪会扣除内布局 Padding；外宽计入并向上取整，避免浮点微差触发短文阅读。
+            if (messageScroll != null) contentWidth = Mathf.Ceil(contentWidth + messageScroll.HorizontalLayoutPadding);
             float textWidth = Mathf.Min(textLimit, Mathf.Max(1, Mathf.Max(contentWidth, titleWidth)));
             float width = Mathf.Min(widthLimit, textWidth + inset);
             body.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);

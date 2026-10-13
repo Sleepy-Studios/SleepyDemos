@@ -1438,3 +1438,7 @@ MonoBehaviour:
     fontId: 0
     chinese: "\u81EA\u52A8\u6CB9\u95E8\uFF1A\u5173"
     english: 'Auto throttle: Off'
+  - key: Settings.GamepadStyle
+    fontId: 0
+    chinese: "\u624B\u67C4\u56FE\u6807"
+    english: Controller icons

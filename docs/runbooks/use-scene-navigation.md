@@ -24,7 +24,7 @@ Loading 的目标标题与背景由 Presenter 在显示前配置；新增场景�
 
 全屏 Loading 期间，高于 Base 的现有层临时停止绘制和射线，高层已加载 View 暂时停止交互，成功/失败均恢复原值。不要为了盖住 Loading 提前销毁来源 Modal/Widget；场景成功卸载时由 owner 按旧 View 实例清理。独立 World 的 OnDestroy 同样覆盖公共 `ReloadCurrentAsync`，不能只在返回按钮路径关闭界面。
 
-Demo 来源的 Page 使用 `ShowAsync` 且 `hidePrevious:false` 覆盖，失败关闭 Loading 后保留同一页面及绑定；Hub 进入仍替换原主菜单。来源业务命令须拒绝正在进行的导航，返回请求的 `Busy`/`Ignored` 也须解除自身退出锁，不能当作成功销毁界面。不要在等待关闭动画后才检查导航忙碌，否则并发导航可能已开始。
+Demo 来源的 Page 使用可等待 `OpenAsync` 且 `hidePrevious:false` 覆盖，失败关闭 Loading 后保留同一页面及绑定；Hub 进入仍替换原主菜单。来源业务命令须拒绝正在进行的导航，返回请求的 `Busy`/`Ignored` 也须解除自身退出锁，不能当作成功销毁界面。不要在等待关闭动画后才检查导航忙碌，否则并发导航可能已开始。
 
 Hub 的新增入口在 `MainMenuView` 集合中增加一项 `MainMenuDemoEntry`，配置稳定 Key、预览地址、标题、描述和已登记的目标场景。预览放在 `Assets/LoadResources/UI/Hall/Art/`，由卡片的 `UIImageLoader` 加载；共用 `MainMenuDemoItemView` 模板和统一 `EnterDemoAsync(target)`，不新增固定按钮字段或 `OpenXxxAsync`。未接通入口的目标场景设为 null，保持不可用。失败时独立 Status 控件显示可重试提示，详细错误写入 Console；加载会销毁旧 Hub，异步结束后只能更新当前恢复出来的页面。页面与卡片维护入口见 [Hotfix 主入口](../modules/hotfix-main.md#主菜单卡片)。
 

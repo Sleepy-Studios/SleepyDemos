@@ -69,9 +69,9 @@ namespace Hotfix
         public void OnDeselect(BaseEventData eventData) { selected = false; if (mode == TriggerMode.Hover && !pointerInside) Hide(); }
         private void OnDisable() { pointerInside = selected = false; Hide(); }
         private void CancelPending() { var old = showing; showing = null; old?.Cancel(); old?.Dispose(); }
-        private async UniTask ObserveShowAsync(UniTask<UIOperationResult> operation)
+        private async UniTask ObserveShowAsync(UniTask<SimpleTipsView> operation)
         {
-            try { await SingleUIManager.Instance.ObserveAsync(operation); }
+            try { await SingleUIManager.Instance.ObserveAsync(operation.AsUniTask()); }
             catch (OperationCanceledException) { }
             // source 由下一次触发或禁用释放，保持悬停期间请求令牌有效。
         }

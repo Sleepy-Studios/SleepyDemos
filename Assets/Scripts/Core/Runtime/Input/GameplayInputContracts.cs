@@ -40,6 +40,7 @@ namespace Core.Runtime.Inputs
     public sealed class GameplayInputSettings
     {
         public int SchemaVersion = 1;
+        public GamepadStyle GamepadStyle = GamepadStyle.Xbox;
         public float GamepadDeadzone = 0.2f;
         public float GamepadMaximum = 1;
         public float GamepadLookDegreesPerSecond = 90;
@@ -54,7 +55,8 @@ namespace Core.Runtime.Inputs
         public GameplayInputSettings Copy() => (GameplayInputSettings)MemberwiseClone();
 
         /// 有限值和版本校验。无效配置拒绝应用，宿主加载损坏记录时使用完整默认值。
-        public bool IsValid => SchemaVersion == 1 && Range(GamepadDeadzone, 0, 0.45f)
+        public bool IsValid => SchemaVersion == 1 && GamepadStyle is GamepadStyle.Xbox or GamepadStyle.PlayStation or GamepadStyle.Switch
+            && Range(GamepadDeadzone, 0, 0.45f)
             && Range(GamepadMaximum, 0.65f, 1) && GamepadMaximum > GamepadDeadzone
             && Range(GamepadLookDegreesPerSecond, 30, 240) && Range(GamepadLookMultiplier, 0.25f, 3)
             && Range(RumbleStrength, 0, 1) && Range(MouseLookMultiplier, 0.25f, 3) && Range(TouchLookMultiplier, 0.25f, 3);

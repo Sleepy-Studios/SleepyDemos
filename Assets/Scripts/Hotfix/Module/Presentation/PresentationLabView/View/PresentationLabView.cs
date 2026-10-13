@@ -150,7 +150,7 @@ namespace Hotfix
             displayedSecond = -1;
         }
 
-        private void OnClose() => PresentationLabFlow.CloseAsync(this).Forget();
+        private void OnClose() => PresentationLabFlow.Close(this);
 
         private async UniTask PlayAsync()
         {

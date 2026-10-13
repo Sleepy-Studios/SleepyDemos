@@ -1,4 +1,5 @@
 using System;
+using Core.Runtime.Inputs;
 using Core.Runtime.Settings;
 using NUnit.Framework;
 
@@ -56,12 +57,15 @@ namespace Tests.Module
             saved.BindingOverrides.Add("demo", "original");
             var candidate = saved.Copy();
             candidate.Input.GamepadDeadzone = 0.3f;
+            candidate.Input.GamepadStyle = GamepadStyle.PlayStation;
             candidate.Graphics.Brightness = 1.5f;
             candidate.Audio.Music = 0.2f;
             candidate.Accessibility.CameraShake = false;
             candidate.BindingOverrides["demo"] = "changed";
 
             Assert.AreEqual(0.2f, saved.Input.GamepadDeadzone);
+            Assert.That(saved.Input.GamepadStyle, Is.EqualTo(GamepadStyle.Xbox));
+            Assert.That(candidate.Copy().Input.GamepadStyle, Is.EqualTo(GamepadStyle.PlayStation));
             Assert.AreEqual(1, saved.Graphics.Brightness);
             Assert.AreEqual(1, saved.Audio.Music);
             Assert.IsTrue(saved.Accessibility.CameraShake);
@@ -82,6 +86,25 @@ namespace Tests.Module
             candidate.Validate();
             candidate.Version = 2;
             Assert.Throws<ArgumentException>(candidate.Validate);
+        }
+
+        [Test]
+        public void ControllerIconPreferenceKeepsStableValuesAndRejectsUndefinedCandidates()
+        {
+            Assert.That((int)GamepadStyle.Xbox, Is.EqualTo(1));
+            Assert.That((int)GamepadStyle.PlayStation, Is.EqualTo(2));
+            Assert.That((int)GamepadStyle.Switch, Is.EqualTo(3));
+            var candidate = new GameSettingsSnapshot();
+            foreach (var style in new[] { GamepadStyle.Xbox, GamepadStyle.PlayStation, GamepadStyle.Switch })
+            {
+                candidate.Input.GamepadStyle = style;
+                Assert.DoesNotThrow(candidate.Validate);
+            }
+            foreach (int style in new[] { -1, 0, 4 })
+            {
+                candidate.Input.GamepadStyle = (GamepadStyle)style;
+                Assert.Throws<ArgumentException>(candidate.Validate);
+            }
         }
     }
 }

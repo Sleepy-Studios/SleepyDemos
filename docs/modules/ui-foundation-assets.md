@@ -6,9 +6,41 @@
 
 公共基础维护结构、行为、UIBind 引用和布局能力；四 Demo 使用各自风格 Variant 集中维护图片、颜色、主副字号、边框与阴影；页面实例只覆盖业务参数和必要布局。保留 Variant 源连接，不用控件复制品替代继承。基础改结构后逐个检查四 Demo，风格改表现后检查其全部页面使用方；清理重复覆盖、断继承和无效覆盖前确认业务字段、事件及布局用途。
 
-共享面板/焦点边已通过 Unity 原生 MoveAsset 移入 `UI/Common/Sprites/Surfaces/{Surface,FocusBorder}.png`（相对 LoadResources），保留原 GUID。夹爆它的三个 Foundation 按钮 Variant 使用同目录 `FocusBorderSquare.png`：24×24、四边 Border 3、Sliced、关闭 Fill Center 与射线，保留直角黑框风格。换风格与嵌套使用方检查见[制作步骤](../runbooks/use-core-ui-components.md#制作与更换控件风格)。
+共享面板/焦点边已通过 Unity 原生 MoveAsset 移入 `UI/Common/Sprites/Surfaces/{Surface,FocusBorder}.png`（相对 LoadResources），保留原 GUID。夹爆它的 Menu/Pause/Retry Foundation 按钮 Variant 使用同目录 `FocusBorderSquare.png`：24×24、四边 Border 3、Sliced、关闭 Fill Center 与射线，保留直角黑框风格。换风格与嵌套使用方检查见[制作步骤](../runbooks/use-core-ui-components.md#制作与更换控件风格)。
 
 四 Demo 的按钮结构现已关联公共 CommonButton → Demo Foundation Variant → 页面实例。原生收口报告 `Library/DemoFoundationMigration/linked-appearance.txt` 记录 139 处控件使用方（含嵌套部件使用方）、20 个 Selected 控件，以及各 3 张 VehicleCard、ModeCard、ClassCard。实例外观覆盖按字段归还风格源，保留业务文字、事件、UIBind、矩形和命中语义。32 个无显示用途的透明反馈 Image 已核对引用、状态、动画和材质后原生清理；CanvasGroup 与完整 FocusBorder 保留。保存与引用核对完成不代表最新正式入口交互、视觉或性能验收通过。
+
+## 四 Demo 完整风格库
+
+每个 Demo 的统一入口为 `Assets/LoadResources/Demos/<DemoId>/Prefabs/UI/Foundation/`；前缀分别为 `Drone`、`Dlss`、`Wall`、`KagitKart`。下表后缀拼接前缀即为正式控件资产名，例如 `DroneSlider.prefab`、`DlssDropdownRow.prefab`。暂未使用或目前与公共外观相同的控件也保留本 Demo Variant，方便开发时从一个目录换整套表现；不据此创建新页面、公共设置入口或运行时主题。
+
+基础源共28项，路径相对于 `Assets/LoadResources/UI/Common/`。全局 `CommonLoading.prefab` 仍由原 Loading 流程维护，排除在 Demo Foundation 库外。
+
+| 公共基础源 | Foundation 后缀 | 数量 |
+|---|---|---|
+| `_TemplateInstantiatePrefab/Btns/CommonButton` | `Button` | 1 |
+| `_TemplateInstantiatePrefab/Btns/{BtnSwitch1,BtnSwitch2,Toggle}` | `BtnSwitch1`、`BtnSwitch2`、`Toggle` | 3 |
+| `_TemplateInstantiatePrefab/Tab/{TabItem,Tab,TabHorizontal,ViewTabVertical,AccordionTab,AccordionViewTab}` | 与公共控件同名 | 6 |
+| `_TemplateInstantiatePrefab/Dropdown/Dropdown` | `Dropdown` | 1 |
+| `_TemplateInstantiatePrefab/CommonSlider`、`CommonProgressFill` | `Slider`、`ProgressFill` | 2 |
+| `_TemplateInstantiatePrefab/Bg/{BG_Gift,BG_Large,BG_Middle,BG_SideTab}` | `BgGift`、`BgLarge`、`BgMiddle`、`BgSideTab` | 4 |
+| `_TemplateInstantiatePrefab/Commom_Title` | `Title` | 1 |
+| `Settings/{DropdownRow,SliderRow,SwitchRow,ActionRow}` | 与公共控件同名 | 4 |
+| `Input/{InputPrompt,InputPrompt2,InputPromptButton}` | 与公共控件同名 | 3 |
+| `CommonTips`、`SimpleTips` | `CommonTips`、`SimpleTips` | 2 |
+| `TMPAutoScroll` | `TMPAutoScroll` | 1 |
+
+已有语义风格继续作为额外入口维护：无人机的 Debug/Back/Close/Return/Start、VehicleCard、TouchCommand/HudCommand，夹爆它的 Menu/Pause/Retry，卡丁车的 Menu/ResultsAction/Choice/ModeCard、Light/Medium/HeavyClassCard、Character/Track/ReturnToHub、HudCommand/ItemCommand。前缀加用途名，不把字号或生成哈希写入文件名。原样保存精确字号、RGBA、纸纹、硬影、专属内容与事件；不同用途不因为字号接近而合并。
+
+13个已有输入提示（含无人机装备提示）统一从 `Parts/`、`Widgets/` 移入 Foundation，原 `.meta` 与 GUID 保留；专属 OperationPanel、TelemetryRoot、TouchControls 和 ResultRow 留在各自部件目录。`DroneProgressFill` 与改名后的 `KagitKartSlider` 继续继承原公共源并保留作者风格。
+
+组合的外层和内部须同时收口：设置行引用本 Demo 的按钮/开关/滑条/下拉，面板引用本 Demo Title 与关闭按钮，Tab/Dropdown/折叠项及其动态模板引用本 Demo 子变体，CommonTips 的自动滚动也引用本 Demo TMPAutoScroll。检查实际嵌套源和序列化模板字段，不只检查外层文件的 Variant 类型。页面实例保留真实文案、动作、组件引用、值域、状态和必要布局；公共结构 → Demo 风格 → 页面实例的继承不能以裸复制控件代替。
+
+内部继承实例换源以 Variant 的移除/新增覆盖完成；原作者参数和引用按稳定层级/组件类型映射，同名兄弟按原顺序一一对应，共有 UIState 与 Graphic 样式继续继承子 Variant，不整套复制状态表或在组合内重复套色。公共源里原有的裸子控件保持原样，在 Demo Variant 中按明确角色路径切换为本 Demo 的 Button、Tab 或 TabItem 子 Variant，保留原布局、文案、事件和绑定。公共组合新增外层节点仍向 Demo 组合传播；已切换子源的分支改从对应公共 Button/Tab/TabItem 经 Demo 子 Variant 继承，不再继承原裸分支内部的结构改动。迁移不重写公共源的 local ID 或依赖资产结构记录。临时创建在独立 PreviewScene 内完成，不使用户活跃场景变脏。
+
+本轮原生迁移在 `Library/DemoFoundationLibrary/<timestamp>/` 保存受影响 Prefab/`.meta` 的备份、公共源清单以及 MOVE/CREATE/NEST/TEMPLATE/GUID/COVER 报告。临时 Builder 只用于这次迁移，资产和引用核对后删除，不作为长期编辑器入口。原生保存/引用核对与正式入口视觉、交互、真实设备及 Player 构建分别报告，不由迁移成功推断全部验收通过。
+
+2026-10-13 定向验收：四套库共 137 个正式控件 Variant，112 个默认基础源链完整；公共结构传播 20 个实际实例、Demo 样式传播 12 个实际页面实例通过。正式 AppEntrance 的四 Demo 进入／返回及图片提示已检查，临时探针与迁移脚本在交付前清理；详细结果和未验证项见[实施记录](../agent/archive/ui-maintenance-2026-10-13.md)。
 
 ## 逐项检查范围
 

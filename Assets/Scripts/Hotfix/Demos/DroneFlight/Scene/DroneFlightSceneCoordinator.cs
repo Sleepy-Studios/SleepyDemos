@@ -79,7 +79,7 @@ namespace Hotfix.DroneFlight
             data?.Handler.Dispose();
             foreach (var view in new[] { hudView, selectionView })
                 if (view != null)
-                    UIManager.Instance.CloseAsync(view, false).Forget();
+                    UIManager.Instance.Close(view, animation: false);
             data?.ClearData();
             if (ReferenceEquals(GlobalData.Get<DroneFlightData>(), data))
                 GlobalData.Remove<DroneFlightData>();
@@ -281,11 +281,10 @@ namespace Hotfix.DroneFlight
         private async UniTask<bool> ShowVehicleSelectAsync(CancellationToken token = default)
         {
             GlobalData.Dispatch(new DroneFlightShuttingDownAction(data, false));
-            var result = await UIManager.Instance.ShowAsync<DroneFlightVehicleSelectView>(new UIShowOptions(animated: true, hidePrevious: false), token);
-            if (result.Status == UIOperationStatus.Failed)
-                throw result.Exception;
-            selectionView = result.View;
-            return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
+            var result = await UIManager.Instance.OpenAsync<DroneFlightVehicleSelectView>(new UIOpenOptions(animated: true, hidePrevious: false), token);
+
+            selectionView = result;
+            return true;
         }
 
         private async UniTask CompleteVehicleSelectAsync()
@@ -299,12 +298,11 @@ namespace Hotfix.DroneFlight
         {
             viewData = new DroneFlightViewData(telemetry, id, currentInput);
             data.Handler.ConfigureViews(viewData, renderer, lifetimeCancellation.Token);
-            var result = await UIManager.Instance.ShowAsync<DroneFlightHudView, DroneFlightViewData>(viewData,
-                new UIShowOptions(animated: false, hidePrevious: false), lifetimeCancellation.Token);
-            if (result.Status == UIOperationStatus.Failed)
-                throw result.Exception;
-            hudView = result.View;
-            return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
+            var result = await UIManager.Instance.OpenAsync<DroneFlightHudView>(view => view.SetData(viewData),
+                new UIOpenOptions(animated: false, hidePrevious: false), lifetimeCancellation.Token);
+
+            hudView = result;
+            return true;
         }
 
         private async UniTask ClearFlightViewsAsync()
@@ -329,21 +327,19 @@ namespace Hotfix.DroneFlight
             if (viewData == null)
                 return hasSelection && await ShowVehicleSelectAsync(lifetimeCancellation.Token);
             GlobalData.Dispatch(new DroneFlightShuttingDownAction(data, false));
-            var result = await UIManager.Instance.ShowAsync<DroneFlightHudView, DroneFlightViewData>(viewData,
-                new UIShowOptions(animated: false, hidePrevious: false), lifetimeCancellation.Token);
-            if (result.Status == UIOperationStatus.Failed)
-                throw result.Exception;
-            hudView = result.View;
-            return result.Status is UIOperationStatus.Succeeded or UIOperationStatus.Ignored;
+            var result = await UIManager.Instance.OpenAsync<DroneFlightHudView>(view => view.SetData(viewData),
+                new UIOpenOptions(animated: false, hidePrevious: false), lifetimeCancellation.Token);
+
+            hudView = result;
+            return true;
         }
 
         private static async UniTask CloseViewAsync(View view)
         {
             if (view == null)
                 return;
-            var result = await UIManager.Instance.CloseAsync(view, false);
-            if (result.Status == UIOperationStatus.Failed)
-                throw result.Exception;
+            await UIManager.Instance.CloseAsync(view, false);
+
         }
     }
 }

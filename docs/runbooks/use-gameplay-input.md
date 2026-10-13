@@ -28,10 +28,10 @@
 
    | Demo | Assets/LoadResources 下的目录 | Prefab 名称 |
    | --- | --- | --- |
-   | DroneFlight | `Demos/drone_flight/Prefabs/UI/Parts/` | `DroneInputPrompt`、`DroneInputPromptButton` |
-   | DLSS | `Demos/dlss/Prefabs/UI/Parts/` | `DlssInputPrompt`、`DlssInputPromptButton` |
-   | WallSqueeze | `Demos/wall_squeeze/Prefabs/UI/Parts/` | `WallInputPrompt`、`WallInputPromptButton` |
-   | KagitKart | `Demos/kagit_kart/Prefabs/UI/Widgets/` | `KagitKartInputPrompt`、`KagitKartInputPromptButton` |
+   | DroneFlight | `Demos/drone_flight/Prefabs/UI/Foundation/` | `DroneInputPrompt`、`DroneInputPromptButton` |
+   | DLSS | `Demos/dlss/Prefabs/UI/Foundation/` | `DlssInputPrompt`、`DlssInputPromptButton` |
+   | WallSqueeze | `Demos/wall_squeeze/Prefabs/UI/Foundation/` | `WallInputPrompt`、`WallInputPromptButton` |
+   | KagitKart | `Demos/kagit_kart/Prefabs/UI/Foundation/` | `KagitKartInputPrompt`、`KagitKartInputPromptButton` |
 
    表中资源扩展名均为 `.prefab`。赛车只接局部提示，父页、纸卡与触控布局继续由 Demo 维护。基础部件选型见[基础 UI 组件](use-core-ui-components.md)，字体制作见[公共字体规范](../architecture/localization-fonts.md)。
 
@@ -61,6 +61,19 @@
 
 正式图标位于 `Assets/LoadResources/UI/Common/Sprites/Input/Kenney/`，随目录保存 CC0 许可。键盘使用下载包里的实际字母、数字、F 键、修饰键、方向键和常用特殊键 PNG，鼠标使用对应按钮 PNG；已有图形时不在空键帽上重新绘制同一键名。字母按真实键盘布局的显示名选择，只有没有图形的键才使用空键帽和实际文本。
 
-新增手柄先确认 Input System 的真实布局与控件路径，再扩展 InputDeviceState 风格识别及现有 InputGlyphCatalog 映射，保留正式 Catalog GUID 和地址。未知布局继续使用通用位置图标；确认／返回依据原生用途解析，Switch A 的物理位置与 Xbox A 不同，不能只替换图片文件。真机验证对应动作、用途、图标和震动支持，Editor 合成设备只覆盖已声明布局的行为。
+手柄图标由 Hub 输入设置里的 Xbox／PS5／NS 候选选择，只有应用成功才刷新全局；当前绑定列表通过 `SetDisplayGamepadStyle(candidate.Input.GamepadStyle)` 局部预览。默认 Xbox，真实硬件品牌不自动改偏好；风格值保持 Xbox=1、PlayStation=2、Switch=3，Generic 不再参与制作。取消／恢复默认沿现有设置候选流程执行，条目回收清除局部预览。
+
+新增手柄先确认 Input System 的真实布局与控件路径，再核对现有 InputGlyphCatalog 的三种风格映射，保留正式 Catalog GUID 和地址。确认／返回依据原生用途解析，Switch A 的物理位置与 Xbox A 不同，选择品牌只影响图片。未连接设备预览也把摇杆子轴归到父摇杆图标。真机验证对应动作、用途、图标和震动支持，Editor 合成设备只覆盖已声明布局的行为。
 
 直接相关回归使用 UnifiedInputPlayModeTests 的复合键帽、真实设备提示、Kenney 改键图标、精确别名行与菜单动作断言，以及 InputRebindSessionTests 的候选／冲突／固定绑定验证。接入 Demo 后再验证保存的 Variant、生成组字段、触控与物理提示切换、改键提交时的松键门闩；按[测试入口](run-unity-tests.md)选择最小相关范围。
+
+## 正式入口输入验收
+
+从 `Assets/Scenes/AppEntrance.unity` 使用 EditorSimulateMode 启动，等待正式 Hub 和资源服务完成初始化，不替换资源服务或临时实例化页面。Hub 输入页可由 `SettingsFlow.OpenAsync(SettingsCategory.Input)` 打开；等待 `ViewTab.CurrentClickView` 为已显示的 `InputSettingsPanelView`。
+
+- 将输入页设备选为手柄，再切换“手柄图标”下拉的 Xbox／PS5／NS。当前绑定列表应立即预览候选，已应用的 `GameSettingsService.CurrentGamepadStyle`、其他页面提示与保存记录应保持原值。`UIDropdown.SetSelectedIndex` 是静默回显，自动验收应点击真实选项按钮，不能用它代替用户选择。
+- 点击“应用”后等待 `SettingsFlow.IsSubmitting` 结束，核对已应用偏好、保存记录和公共提示图标一致。再次编辑后“放弃”应保留最后一次已应用的偏好；“恢复默认”先只把候选重置到 `GameSettingsService.GetDefaults().Input`，应用后才全局生效。
+- 从正式 Hub 进入纸艺卡丁车，封面“打开”进入模式页，再用其“操作说明”打开 Controls。手柄分类应显示真实当前会话绑定，Mute／Restart 的整行标题与提示收起；切回键鼠或触屏应恢复各自说明。不要为验收启动比赛或越过本场菜单命令直接装配 Controls。
+- 从正式 Hub 进入 DLSS 场景，核对保存的 `MovePrompt` 和 `LookPrompt`。键鼠分别使用当前 Move 组合绑定与 LookHold 鼠标保持键；手柄分别使用 Move 左摇杆和 Look 右摇杆，均属于当前观察会话副本。切到触屏收起这两条物理提示，保留原触控区域。
+
+没有真实手柄时，可用 Input System 合成 Gamepad 与 `InputDeviceState.Notify` 验证正式页面的设备切换；Controls 的分类预览也不要求硬件连接。自动验收只删除自己添加的合成设备。临时应用设置的验收必须在退出 Demo 后恢复原运行时设置，再恢复原始 PlayerPrefs 记录及其存在状态；原 InputSystem 设置、Game View 画幅与临时脚本一并归还。合成设备和截图不能代替品牌硬件、触屏及震动手感验收。

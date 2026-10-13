@@ -34,7 +34,7 @@ namespace Tests.Module
         public IEnumerator CloseDuringLoad_DoesNotShowGhostView()
         {
             var loader = TestViewRegistry.Register<SlowPage>(delay: true);
-            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            var showTask = UIManager.Instance.OpenAsync<SlowPage>();
             yield return null;
 
             var closeTask = UIManager.Instance.CloseAsync<SlowPage>();
@@ -59,8 +59,8 @@ namespace Tests.Module
             var firstLoader = TestViewRegistry.Register<FirstPage>(events, true);
             var secondLoader = TestViewRegistry.Register<SecondPage>(events, true);
 
-            var firstTask = UIManager.Instance.ShowAsync<FirstPage>();
-            var secondTask = UIManager.Instance.ShowAsync<SecondPage>();
+            var firstTask = UIManager.Instance.OpenAsync<FirstPage>();
+            var secondTask = UIManager.Instance.OpenAsync<SecondPage>();
             yield return null;
             Assert.That(events, Is.EqualTo(new[] { "FirstPage.load" }));
 
@@ -81,32 +81,32 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             UIOperationResult firstResult = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), result => firstResult = result);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), result => firstResult = result);
             var oldPage = UIManager.Instance.Get<FirstPage>();
 
             TestViewRegistry.Register<NullPage>(returnNull: true);
             UIOperationResult failedResult = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<NullPage>(), result => failedResult = result);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<NullPage>(), result => failedResult = result);
 
             Assert.That(firstResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(failedResult.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(oldPage));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
             Assert.That(UIManager.Instance.Get<NullPage>(), Is.Null);
         }
 
         [UnityTest]
-        public IEnumerator DuplicateShow_StableSingleInstanceReturnsIgnored()
+        public IEnumerator DuplicateOpen_ReturnsSameInstanceWithoutRepeatedOnShow()
         {
             TestViewRegistry.Register<FirstPage>();
             UIOperationResult firstResult = default;
             UIOperationResult duplicateResult = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), result => firstResult = result);
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), result => duplicateResult = result);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), result => firstResult = result);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), result => duplicateResult = result);
 
             Assert.That(firstResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
-            Assert.That(duplicateResult.Status, Is.EqualTo(UIOperationStatus.Ignored));
+            Assert.That(duplicateResult.Exception, Is.Null);
             Assert.That(firstResult.View, Is.SameAs(duplicateResult.View));
             Assert.That(TestViewRegistry.Events, Is.EqualTo(new[] { "FirstPage.load", "FirstPage.enter" }));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
@@ -117,14 +117,14 @@ namespace Tests.Module
         {
             var oldLoader = TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
 
             UIOperationResult result = default;
             yield return AwaitResult(UIManager.Instance.ReplaceAsync<SecondPage>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(UIManager.Instance.Get<FirstPage>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(result.View));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(result.View));
             Assert.That(oldLoader.ReleaseCount, Is.EqualTo(1));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
@@ -133,7 +133,7 @@ namespace Tests.Module
         public IEnumerator ReplaceFailure_RestoresOldPage()
         {
             TestViewRegistry.Register<FirstPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<FirstPage>();
             TestViewRegistry.Register<NullPage>(returnNull: true);
 
@@ -142,7 +142,7 @@ namespace Tests.Module
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(oldPage));
             Assert.That(UIManager.Instance.Get<NullPage>(), Is.Null);
         }
 
@@ -151,17 +151,17 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<TestModal>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
-            yield return AwaitResult(UIManager.Instance.ShowAsync<TestModal>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<TestModal>(), _ => { });
             var page = UIManager.Instance.Get<FirstPage>();
 
             UIOperationResult result = default;
             yield return AwaitResult(UIManager.Instance.BackAsync(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
-            Assert.That(result.View, Is.TypeOf<TestModal>());
             Assert.That(UIManager.Instance.Get<TestModal>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(page));
+            Assert.That(UIManager.Instance.Get<TestModal>(), Is.Null);
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(page));
             Assert.That(page.State, Is.EqualTo(ViewState.Visible));
         }
 
@@ -171,15 +171,15 @@ namespace Tests.Module
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<MaskedModal>();
             TestViewRegistry.Register<TestWidget>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
-            yield return AwaitResult(UIManager.Instance.ShowAsync<MaskedModal>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<MaskedModal>(), _ => { });
             var modal = UIManager.Instance.Get<MaskedModal>();
             var mask = UIRootManager.Instance.Mask;
             var expectedParent = modal.transform.parent;
             var expectedSibling = mask.transform.GetSiblingIndex();
             var expectedColor = mask.color;
 
-            yield return AwaitResult(UIManager.Instance.ShowAsync<TestWidget>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<TestWidget>(), _ => { });
 
             Assert.That(mask.transform.parent, Is.SameAs(expectedParent));
             Assert.That(mask.transform.GetSiblingIndex(), Is.EqualTo(expectedSibling));
@@ -200,7 +200,7 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<TipWidget>();
 
-            yield return AwaitResult(UIManager.Instance.ShowAsync<TipWidget>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<TipWidget>(), _ => { });
 
             var tipLayer = UIRootManager.Instance.GetRoot(UILayer.Tip);
             var content = tipLayer.Find("TipContent");
@@ -218,7 +218,7 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<DefaultFadePage>();
             yield return AwaitResult(
-                UIManager.Instance.ShowAsync<DefaultFadePage>(new UIShowOptions(false)),
+                UIManager.Instance.OpenAsync<DefaultFadePage>(new UIOpenOptions(false)),
                 _ => { });
             var view = UIManager.Instance.Get<DefaultFadePage>();
             var canvasGroup = view.transform.GetComponent<CanvasGroup>();
@@ -242,7 +242,7 @@ namespace Tests.Module
             TestViewRegistry.Register<DefaultFadePage>();
             TestViewRegistry.Register<DefaultFadeWidget>();
             yield return AwaitResult(
-                UIManager.Instance.ShowAsync<DefaultFadePage>(new UIShowOptions(false)),
+                UIManager.Instance.OpenAsync<DefaultFadePage>(new UIOpenOptions(false)),
                 _ => { });
             yield return UIManager.Instance.PreloadAsync<DefaultFadeWidget>().ToCoroutine();
             var visible = UIManager.Instance.Get<DefaultFadePage>();
@@ -252,7 +252,7 @@ namespace Tests.Module
             TestViewRegistry.Register<SecondPage>(throwEnter: true);
             UIOperationResult result = default;
             yield return AwaitResult(
-                UIManager.Instance.ShowAsync<SecondPage>(),
+                UIManager.Instance.OpenAsync<SecondPage>(),
                 value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
@@ -270,9 +270,9 @@ namespace Tests.Module
         {
             var firstLoader = TestViewRegistry.Register<FirstPage>(delay: true);
             TestViewRegistry.Register<SecondPage>();
-            var firstTask = UIManager.Instance.ShowAsync<FirstPage>();
+            var firstTask = UIManager.Instance.OpenAsync<FirstPage>();
             using var cancellation = new CancellationTokenSource();
-            var pendingTask = UIManager.Instance.ShowAsync<SecondPage>(cancellationToken: cancellation.Token);
+            var pendingTask = UIManager.Instance.OpenAsync<SecondPage>(cancellationToken: cancellation.Token);
             cancellation.Cancel();
             firstLoader.Complete(new GameObject(nameof(FirstPage)));
 
@@ -290,7 +290,7 @@ namespace Tests.Module
         {
             var loader = TestViewRegistry.Register<SlowPage>(delay: true);
             using var cancellation = new CancellationTokenSource();
-            var task = UIManager.Instance.ShowAsync<SlowPage>(cancellationToken: cancellation.Token);
+            var task = UIManager.Instance.OpenAsync<SlowPage>(cancellationToken: cancellation.Token);
             yield return null;
             cancellation.Cancel();
             loader.Complete(new GameObject(nameof(SlowPage)));
@@ -309,8 +309,8 @@ namespace Tests.Module
         {
             var loader = TestViewRegistry.Register<SlowPage>(delay: true);
             TestViewRegistry.Register<SecondPage>();
-            var currentTask = UIManager.Instance.ShowAsync<SlowPage>();
-            var pendingTask = UIManager.Instance.ShowAsync<SecondPage>();
+            var currentTask = UIManager.Instance.OpenAsync<SlowPage>();
+            var pendingTask = UIManager.Instance.OpenAsync<SecondPage>();
             yield return null;
             var closeAllTask = UIManager.Instance.CloseAllAsync();
             loader.Complete(new GameObject(nameof(SlowPage)));
@@ -324,7 +324,7 @@ namespace Tests.Module
             Assert.That(current.Status, Is.EqualTo(UIOperationStatus.Canceled));
             Assert.That(pending.Status, Is.EqualTo(UIOperationStatus.Canceled));
             Assert.That(UIManager.Instance.StackCount, Is.Zero);
-            Assert.That(UIManager.Instance.cacheStack.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.GetAllViews(), Is.Empty);
             Assert.That(loader.ReleaseCount, Is.EqualTo(1));
             Assert.That(TestViewRegistry.Events, Does.Not.Contain("SecondPage.load"));
         }
@@ -333,35 +333,35 @@ namespace Tests.Module
         public IEnumerator EnterException_RollsBackAndRemovesFaultedView()
         {
             TestViewRegistry.Register<FirstPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<FirstPage>();
             TestViewRegistry.Register<SecondPage>(throwEnter: true);
 
             UIOperationResult result = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(result.Exception, Is.TypeOf<InvalidOperationException>());
             Assert.That(UIManager.Instance.Get<SecondPage>(), Is.Null);
             Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(oldPage));
         }
 
         [UnityTest]
         public IEnumerator ExitException_RestoresOldPageAndReturnsFailed()
         {
             TestViewRegistry.Register<FirstPage>(throwExit: true);
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<FirstPage>();
             TestViewRegistry.Register<SecondPage>();
 
             UIOperationResult result = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(result.Exception, Is.TypeOf<InvalidOperationException>());
             Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(oldPage));
             Assert.That(UIManager.Instance.Get<SecondPage>(), Is.Null);
         }
 
@@ -373,7 +373,7 @@ namespace Tests.Module
             void CountBegin(View _) => beginCount++;
             UIManager.Instance.OnBeginOpen += CountBegin;
 
-            UIManager.Instance.ShowAsync<FirstPage>().Forget();
+            UIManager.Instance.OpenAsync<FirstPage>().Forget();
             for (int i = 0; i < 10 && UIManager.Instance.Get<FirstPage>()?.State != ViewState.Visible; i++)
             {
                 yield return null;
@@ -387,7 +387,7 @@ namespace Tests.Module
         public IEnumerator EnterFailure_RestoresCompletePresentationSnapshotAndNames()
         {
             TestViewRegistry.Register<SnapshotPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SnapshotPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SnapshotPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<SnapshotPage>();
             var root = UIRootManager.Instance.GetRoot(UILayer.Pop);
             var beforeSibling = new GameObject("BeforeSibling").transform;
@@ -409,7 +409,7 @@ namespace Tests.Module
             var expectedLastName = UIManager.Instance.LastCloseName;
 
             TestViewRegistry.Register<SecondPage>(throwEnter: true);
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), _ => { });
 
             Assert.That(oldPage.transform.parent, Is.SameAs(expectedViewParent));
             Assert.That(oldPage.gameObject.activeSelf, Is.EqualTo(expectedViewActive));
@@ -429,16 +429,16 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>(throwEnterOnCall: 2);
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), _ => { });
             var top = UIManager.Instance.Get<SecondPage>();
 
             UIOperationResult result = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(UIManager.Instance.Get<FirstPage>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(top));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(top));
             Assert.That(top.State, Is.EqualTo(ViewState.Visible));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
@@ -448,8 +448,8 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>(throwExitOnCall: 2);
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), _ => { });
             var nonTop = UIManager.Instance.Get<FirstPage>();
             var top = UIManager.Instance.Get<SecondPage>();
             nonTop.RestoreVisibleAfterNavigationFailure();
@@ -459,7 +459,7 @@ namespace Tests.Module
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(UIManager.Instance.Get<FirstPage>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(top));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(top));
             Assert.That(top.State, Is.EqualTo(ViewState.Visible));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
@@ -468,13 +468,13 @@ namespace Tests.Module
         public IEnumerator PrimaryEnterException_IsPreservedWhenDestroyAndRestoreAlsoThrow()
         {
             TestViewRegistry.Register<FirstPage>(throwComplete: true);
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var loader = TestViewRegistry.Register<DestroyThrowPage>(throwEnter: true);
 
             LogAssert.Expect(LogType.Exception, "InvalidOperationException: restore failed");
             LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
             UIOperationResult result = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<DestroyThrowPage>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(result.Exception, Is.SameAs(loader.Transition.EnterException));
@@ -489,7 +489,7 @@ namespace Tests.Module
             UIManager.Instance.OnOpen += ThrowOpen;
             LogAssert.Expect(LogType.Exception, "InvalidOperationException: open handler failed");
             UIOperationResult openResult = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), value => openResult = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), value => openResult = value);
             UIManager.Instance.OnOpen -= ThrowOpen;
 
             Assert.That(openResult.Status, Is.EqualTo(UIOperationStatus.Succeeded));
@@ -513,8 +513,8 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<DestroyThrowPage>();
             var laterLoader = TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), _ => { });
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<DestroyThrowPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), _ => { });
             UIRootManager.Instance.Mask.transform.localScale = Vector3.one;
 
             UIOperationResult result = default;
@@ -524,7 +524,7 @@ namespace Tests.Module
             Assert.That(result.Exception, Is.TypeOf<AggregateException>());
             Assert.That(result.Exception.InnerException.Message, Is.EqualTo("destroy failed"));
             Assert.That(laterLoader.ReleaseCount, Is.EqualTo(1));
-            Assert.That(UIManager.Instance.cacheStack.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.GetAllViews(), Is.Empty);
             Assert.That(UIManager.Instance.StackCount, Is.Zero);
             Assert.That(UIRootManager.Instance.Mask.transform.localScale, Is.EqualTo(Vector3.zero));
             Assert.That(UIManager.Instance.CurrentUIName, Is.Null);
@@ -536,7 +536,7 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<PersistentPage>();
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<PersistentPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<PersistentPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<PersistentPage>();
             Assert.That(oldPage.Reference, Is.EqualTo(1));
 
@@ -545,7 +545,7 @@ namespace Tests.Module
             Assert.That(oldPage.Reference, Is.Zero);
             Assert.That(oldPage.State, Is.EqualTo(ViewState.LoadedHidden));
             Assert.That(UIManager.Instance.Get<PersistentPage>(), Is.SameAs(oldPage));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.TypeOf<SecondPage>());
+            Assert.That(UIManager.Instance.TopView, Is.TypeOf<SecondPage>());
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
 
@@ -553,8 +553,8 @@ namespace Tests.Module
         public IEnumerator ConsecutiveLegacyDataShow_ConfiguresEachOperationInFifoOrder()
         {
             var loader = TestViewRegistry.Register<DataPage>(delay: true);
-            UIManager.Instance.ShowAsync<DataPage, string>("one").Forget();
-            UIManager.Instance.ShowAsync<DataPage, string>("two").Forget();
+            UIManager.Instance.OpenAsync<DataPage>(view => view.SetData("one")).Forget();
+            UIManager.Instance.OpenAsync<DataPage>(view => view.SetData("two")).Forget();
             yield return null;
 
             var beforeCompletion = TestViewRegistry.Events.ToArray();
@@ -574,7 +574,7 @@ namespace Tests.Module
         {
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             TestViewRegistry.Register<DataPage>();
-            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            var showTask = UIManager.Instance.OpenAsync<SlowPage>();
             var preloadTask = UIManager.Instance.PreloadAsync<DataPage>(view => view.SetData("preload"));
             yield return null;
 
@@ -598,9 +598,9 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<DestroyThrowPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<FirstPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<DestroyThrowPage>(), _ => { });
 
             LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
             UIOperationResult result = default;
@@ -608,7 +608,7 @@ namespace Tests.Module
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(UIManager.Instance.Get<DestroyThrowPage>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(oldPage));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(oldPage));
             Assert.That(oldPage.State, Is.EqualTo(ViewState.Visible));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
@@ -618,7 +618,7 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<DestroyThrowPage>();
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<DestroyThrowPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<DestroyThrowPage>(), _ => { });
 
             LogAssert.Expect(LogType.Exception, "InvalidOperationException: destroy failed");
             UIOperationResult result = default;
@@ -626,7 +626,7 @@ namespace Tests.Module
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(UIManager.Instance.Get<DestroyThrowPage>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(result.View));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(result.View));
             Assert.That(result.View.State, Is.EqualTo(ViewState.Visible));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
         }
@@ -638,7 +638,7 @@ namespace Tests.Module
 
             UIOperationResult result = default;
             yield return AwaitResult(
-                UIManager.Instance.ShowAsync<DataPage, string>("typed-data"),
+                UIManager.Instance.OpenAsync<DataPage>(view => view.SetData("typed-data")),
                 value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
@@ -649,15 +649,15 @@ namespace Tests.Module
 
             var cached = result.View;
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), _ => { });
             TestViewRegistry.Events.Clear();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<DataPage>(view => view.SetData("reopened")), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<DataPage>(view => view.SetData("reopened")), value => result = value);
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(result.View, Is.SameAs(cached));
             Assert.That(TestViewRegistry.Events, Is.EqualTo(new[] { "data:reopened", "show:reopened" }));
 
             TestViewRegistry.Register<PlainDataPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<PlainDataPage>(view => view.SetData("plain")), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<PlainDataPage>(view => view.SetData("plain")), value => result = value);
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(((PlainDataPage)result.View).Caption, Is.EqualTo("plain"));
         }
@@ -667,13 +667,13 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             UIOperationResult firstShow = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), value => firstShow = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), value => firstShow = value);
             var oldSessionView = firstShow.View;
             yield return AwaitResult(UIManager.Instance.CloseAsync(oldSessionView, false), _ => { });
 
             TestViewRegistry.Register<FirstPage>();
             UIOperationResult secondShow = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), value => secondShow = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), value => secondShow = value);
             UIOperationResult staleClose = default;
             yield return AwaitResult(
                 UIManager.Instance.CloseAsync(oldSessionView, false),
@@ -714,7 +714,7 @@ namespace Tests.Module
             yield return AwaitResult(UIManager.Instance.CloseAsync<DestroyThrowPage>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
-            Assert.That(result.View, Is.SameAs(cached));
+            Assert.That(cached.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(result.Exception.Message, Is.EqualTo("destroy failed"));
             Assert.That(UIManager.Instance.Get<DestroyThrowPage>(), Is.Null);
             Assert.That(UIManager.Instance.StackCount, Is.Zero);
@@ -724,10 +724,7 @@ namespace Tests.Module
         public IEnumerator CloseAllCallerCancellation_StillCleansEverythingAndReturnsCanceled()
         {
             var loader = TestViewRegistry.Register<SlowPage>(delay: true);
-            var view = UIManager.Instance.cacheStack.GetOrCreateView<SlowPage>();
-            var loadTask = view.LoadAsync(
-                UIRootManager.Instance.GetRoot(view.Level), CancellationToken.None)
-                .SuppressCancellationThrow();
+            var loadTask = UIManager.Instance.PreloadAsync<SlowPage>().SuppressCancellationThrow();
             yield return null;
             using var cancellation = new CancellationTokenSource();
             var closeAllTask = UIManager.Instance.CloseAllAsync(cancellation.Token);
@@ -739,7 +736,7 @@ namespace Tests.Module
             UIOperationResult result = default;
             yield return AwaitResult(closeAllTask, value => result = value);
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled));
-            Assert.That(UIManager.Instance.cacheStack.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.GetAllViews(), Is.Empty);
             Assert.That(UIManager.Instance.StackCount, Is.Zero);
             Assert.That(loader.ReleaseCount, Is.EqualTo(1));
         }
@@ -748,10 +745,7 @@ namespace Tests.Module
         public IEnumerator SecondCloseAll_CancelsFirstAfterCleanupWithoutDoubleRelease()
         {
             var loader = TestViewRegistry.Register<SlowPage>(delay: true);
-            var view = UIManager.Instance.cacheStack.GetOrCreateView<SlowPage>();
-            var loadTask = view.LoadAsync(
-                UIRootManager.Instance.GetRoot(view.Level), CancellationToken.None)
-                .SuppressCancellationThrow();
+            var loadTask = UIManager.Instance.PreloadAsync<SlowPage>().SuppressCancellationThrow();
             yield return null;
             var firstTask = UIManager.Instance.CloseAllAsync();
             yield return null;
@@ -767,7 +761,7 @@ namespace Tests.Module
             Assert.That(second.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(second.View, Is.Null);
             Assert.That(loader.ReleaseCount, Is.EqualTo(1));
-            Assert.That(UIManager.Instance.cacheStack.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.GetAllViews(), Is.Empty);
             Assert.That(UIManager.Instance.StackCount, Is.Zero);
         }
 
@@ -777,12 +771,12 @@ namespace Tests.Module
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             var firstLaterLoader = TestViewRegistry.Register<SecondPage>();
             var unusedLoader = TestViewRegistry.Register<SecondPage>();
-            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            var showTask = UIManager.Instance.OpenAsync<SlowPage>();
             yield return null;
             var closeAllTask = UIManager.Instance.CloseAllAsync();
 
             Assert.That(UIManager.Instance.HasCloseAllBarrier, Is.True);
-            var legacyReturned = UIManager.Instance.ShowAsync<SecondPage>();
+            var legacyReturned = UIManager.Instance.OpenAsync<SecondPage>();
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
             yield return AwaitResult(showTask, _ => { });
             yield return AwaitResult(closeAllTask, _ => { });
@@ -806,11 +800,11 @@ namespace Tests.Module
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             var actualLoader = TestViewRegistry.Register<DataPage>();
             var unusedLoader = TestViewRegistry.Register<DataPage>();
-            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            var showTask = UIManager.Instance.OpenAsync<SlowPage>();
             yield return null;
             var closeAllTask = UIManager.Instance.CloseAllAsync();
 
-            var returned = UIManager.Instance.ShowAsync<DataPage, string>("one");
+            var returned = UIManager.Instance.OpenAsync<DataPage>(view => view.SetData("one"));
             var configuredEarly = TestViewRegistry.Events.Contains("data:one");
             var loadedEarly = TestViewRegistry.Events.Contains("DataPage.load");
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
@@ -840,11 +834,11 @@ namespace Tests.Module
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
             var actualLoader = TestViewRegistry.Register<DoubleDataPage>();
             var unusedLoader = TestViewRegistry.Register<DoubleDataPage>();
-            var showTask = UIManager.Instance.ShowAsync<SlowPage>();
+            var showTask = UIManager.Instance.OpenAsync<SlowPage>();
             yield return null;
             var closeAllTask = UIManager.Instance.CloseAllAsync();
 
-            var returned = UIManager.Instance.ShowAsync<DoubleDataPage>(view => view.SetData("two", 2));
+            var returned = UIManager.Instance.OpenAsync<DoubleDataPage>(view => view.SetData("two", 2));
             var configuredEarly = TestViewRegistry.Events.Contains("data:two:2");
             var loadedEarly = TestViewRegistry.Events.Contains("DoubleDataPage.load");
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
@@ -873,10 +867,10 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<SecondPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var oldPage = UIManager.Instance.Get<FirstPage>();
 
-            UIManager.Instance.ShowAsync<SecondPage>(new UIShowOptions(animated: true, hidePrevious: false)).Forget();
+            UIManager.Instance.OpenAsync<SecondPage>(new UIOpenOptions(animated: true, hidePrevious: false)).Forget();
             for (int i = 0; i < 30 && UIManager.Instance.Get<SecondPage>()?.State != ViewState.Visible; i++)
             {
                 yield return null;
@@ -894,7 +888,7 @@ namespace Tests.Module
             LockProbePage.Reset();
             TestViewRegistry.Register<LockProbePage>();
 
-            UIManager.Instance.ShowAsync<LockProbePage>().Forget();
+            UIManager.Instance.OpenAsync<LockProbePage>().Forget();
             yield return null;
 
             Assert.That(LockProbePage.CoordinatorGateWasAvailable, Is.True);
@@ -907,7 +901,7 @@ namespace Tests.Module
             WorkerPage.Reset();
             TestViewRegistry.Register<WorkerPage>();
             var workerTask = System.Threading.Tasks.Task.Run(
-                () => UIManager.Instance.ShowAsync<WorkerPage>());
+                () => UIManager.Instance.OpenAsync<WorkerPage>());
             while (!workerTask.IsCompleted)
             {
                 yield return null;
@@ -929,7 +923,8 @@ namespace Tests.Module
         {
             RacePage.Reset();
             var oldLoader = TestViewRegistry.Register<RacePage>();
-            var old = UIManager.Instance.cacheStack.GetOrCreateView<RacePage>();
+            yield return UIManager.Instance.PreloadAsync<RacePage>().ToCoroutine();
+            var old = UIManager.Instance.Get<RacePage>();
             var childLoader = TestViewRegistry.Register<DelayedChildPage>(delay: true);
             var child = new DelayedChildPage();
             var childLoad = child.LoadAsync(
@@ -942,7 +937,7 @@ namespace Tests.Module
             yield return null;
             Assert.That(old.State, Is.EqualTo(ViewState.Destroying));
 
-            var returned = UIManager.Instance.ShowAsync<RacePage>();
+            var returned = UIManager.Instance.OpenAsync<RacePage>();
             childLoader.Complete(new GameObject(nameof(DelayedChildPage)));
             yield return childLoad.ToCoroutine();
             yield return AwaitResult(closeTask, _ => { });
@@ -968,14 +963,15 @@ namespace Tests.Module
         {
             RacePage.Reset();
             var oldLoader = TestViewRegistry.Register<RacePage>();
-            var old = UIManager.Instance.cacheStack.GetOrCreateView<RacePage>();
+            yield return UIManager.Instance.PreloadAsync<RacePage>().ToCoroutine();
+            var old = UIManager.Instance.Get<RacePage>();
             var slowLoader = TestViewRegistry.Register<SlowPage>(delay: true);
-            var slowShow = UIManager.Instance.ShowAsync<SlowPage>();
+            var slowShow = UIManager.Instance.OpenAsync<SlowPage>();
             yield return null;
             var closeTask = UIManager.Instance.CloseAsync<RacePage>();
             var newLoader = TestViewRegistry.Register<RacePage>();
 
-            var returned = UIManager.Instance.ShowAsync<RacePage>();
+            var returned = UIManager.Instance.OpenAsync<RacePage>();
             slowLoader.Complete(new GameObject(nameof(SlowPage)));
             yield return AwaitResult(slowShow, _ => { });
             yield return AwaitResult(closeTask, _ => { });
@@ -1004,8 +1000,8 @@ namespace Tests.Module
             TestViewRegistry.Register<SyncFailPage>();
 
             UIOperationResult result = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SyncFailPage>(), value => result = value);
-            var returned = result.View;
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SyncFailPage>(), value => result = value);
+            var returned = SyncFailPage.Instances[0];
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
 
             Assert.That(SyncFailPage.Instances.Count, Is.EqualTo(1));
@@ -1018,17 +1014,17 @@ namespace Tests.Module
         public IEnumerator ReplaceModalFailure_DestroysAndRemovesCreatedTarget()
         {
             TestViewRegistry.Register<FirstPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var old = UIManager.Instance.Get<FirstPage>();
-            TestViewRegistry.Register<TestModal>();
+            var modalLoader = TestViewRegistry.Register<TestModal>();
 
             UIOperationResult result = default;
             yield return AwaitResult(UIManager.Instance.ReplaceAsync<TestModal>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
-            Assert.That(result.View.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(modalLoader.CreatedView.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(UIManager.Instance.Get<TestModal>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(old));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(old));
         }
 
         [UnityTest]
@@ -1036,8 +1032,8 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<MaskedModal>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
-            yield return AwaitResult(UIManager.Instance.ShowAsync<MaskedModal>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<MaskedModal>(), _ => { });
             var page = UIManager.Instance.Get<FirstPage>();
             var modal = UIManager.Instance.Get<MaskedModal>();
             var pageState = page.State;
@@ -1053,10 +1049,9 @@ namespace Tests.Module
             yield return AwaitResult(UIManager.Instance.ReplaceAsync<MaskedModal>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
-            Assert.That(result.View, Is.SameAs(modal));
             Assert.That(UIManager.Instance.Get<MaskedModal>(), Is.SameAs(modal));
             Assert.That(modal.State, Is.EqualTo(ViewState.Visible));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(modal));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(modal));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(2));
             Assert.That(page.State, Is.EqualTo(pageState));
             Assert.That(UIManager.Instance.CurrentUIName, Is.EqualTo(expectedCurrentName));
@@ -1073,17 +1068,17 @@ namespace Tests.Module
         public IEnumerator ReplaceWidgetFailure_DestroysAndRemovesCreatedTarget()
         {
             TestViewRegistry.Register<FirstPage>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             var old = UIManager.Instance.Get<FirstPage>();
-            TestViewRegistry.Register<TestWidget>();
+            var widgetLoader = TestViewRegistry.Register<TestWidget>();
 
             UIOperationResult result = default;
             yield return AwaitResult(UIManager.Instance.ReplaceAsync<TestWidget>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
-            Assert.That(result.View.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(widgetLoader.CreatedView.State, Is.EqualTo(ViewState.Destroyed));
             Assert.That(UIManager.Instance.Get<TestWidget>(), Is.Null);
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(old));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(old));
         }
 
         [UnityTest]
@@ -1091,7 +1086,7 @@ namespace Tests.Module
         {
             TestViewRegistry.Register<FirstPage>();
             TestViewRegistry.Register<TestWidget>();
-            yield return AwaitResult(UIManager.Instance.ShowAsync<FirstPage>(), _ => { });
+            yield return AwaitResult(UIManager.Instance.OpenAsync<FirstPage>(), _ => { });
             yield return UIManager.Instance.PreloadAsync<TestWidget>().ToCoroutine();
             var page = UIManager.Instance.Get<FirstPage>();
             var widget = UIManager.Instance.Get<TestWidget>();
@@ -1102,10 +1097,9 @@ namespace Tests.Module
             yield return AwaitResult(UIManager.Instance.ReplaceAsync<TestWidget>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
-            Assert.That(result.View, Is.SameAs(widget));
             Assert.That(UIManager.Instance.Get<TestWidget>(), Is.SameAs(widget));
             Assert.That(widget.State, Is.EqualTo(ViewState.LoadedHidden));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(page));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(page));
             Assert.That(page.State, Is.EqualTo(ViewState.Visible));
             Assert.That(UIManager.Instance.StackCount, Is.EqualTo(1));
             Assert.That(UIManager.Instance.CurrentUIName, Is.EqualTo(expectedCurrentName));
@@ -1131,7 +1125,7 @@ namespace Tests.Module
             }
             UIManager.Instance.OnBeforeOpen += First;
             UIManager.Instance.OnBeforeOpen += Second;
-            var task = UIManager.Instance.ShowAsync<SecondPage>();
+            var task = UIManager.Instance.OpenAsync<SecondPage>();
             yield return null;
             var beforeRelease = events.ToArray();
             gate.TrySetResult();
@@ -1159,7 +1153,7 @@ namespace Tests.Module
             UIManager.Instance.OnBeforeOpen += First;
             UIManager.Instance.OnBeforeOpen += Second;
             UIOperationResult result = default;
-            yield return AwaitResult(UIManager.Instance.ShowAsync<SecondPage>(), value => result = value);
+            yield return AwaitResult(UIManager.Instance.OpenAsync<SecondPage>(), value => result = value);
             UIManager.Instance.OnBeforeOpen -= First;
             UIManager.Instance.OnBeforeOpen -= Second;
 
@@ -1187,7 +1181,7 @@ namespace Tests.Module
             }
             UIManager.Instance.OnBeforeOpen += First;
             UIManager.Instance.OnBeforeOpen += Second;
-            var task = UIManager.Instance.ShowAsync<SecondPage>(cancellationToken: cancellation.Token);
+            var task = UIManager.Instance.OpenAsync<SecondPage>(cancellationToken: cancellation.Token);
             yield return null;
             cancellation.Cancel();
             gate.TrySetResult();
@@ -1212,9 +1206,217 @@ namespace Tests.Module
             Assert.That(result.View, Is.Null);
         }
 
-        private static IEnumerator AwaitResult(UniTask<UIOperationResult> task, Action<UIOperationResult> receive)
+        [UnityTest]
+        public IEnumerator ShowCallbackFollowsCompletedEnterAndIsAbsentOnFailureOrCancellation()
         {
-            yield return task.ToCoroutine(receive);
+            var loader = TestViewRegistry.Register<FirstPage>(delay: true);
+            int opened = 0;
+            FirstPage completed = null;
+            Exception failure = null;
+            UIManager.Instance.Show<FirstPage>(onOpened: view =>
+            {
+                opened++;
+                completed = view;
+                TestViewRegistry.Events.Add("FirstPage.opened");
+            }, onFailed: exception => failure = exception);
+            yield return null;
+            Assert.That(opened, Is.Zero);
+            loader.Complete(new GameObject(nameof(FirstPage)));
+            for (int index = 0; index < 60 && opened == 0 && failure == null; index++)
+            {
+                yield return null;
+            }
+            Assert.That(failure, Is.Null);
+            Assert.That(opened, Is.EqualTo(1));
+            Assert.That(completed.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(TestViewRegistry.Events, Is.EqualTo(new[] { "FirstPage.load", "FirstPage.enter", "FirstPage.opened" }));
+
+            TestViewRegistry.Register<NullPage>(returnNull: true);
+            UIManager.Instance.Show<NullPage>(onOpened: _ => opened++, onFailed: exception => failure = exception);
+            for (int index = 0; index < 60 && failure == null; index++)
+            {
+                yield return null;
+            }
+            Assert.That(failure, Is.Not.Null);
+            Assert.That(opened, Is.EqualTo(1));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(completed));
+
+            failure = null;
+            var canceledLoader = TestViewRegistry.Register<SlowPage>(delay: true);
+            using var cancellation = new CancellationTokenSource();
+            UIManager.Instance.Show<SlowPage>(onOpened: _ => opened++, onFailed: exception => failure = exception,
+                cancellationToken: cancellation.Token);
+            yield return null;
+            cancellation.Cancel();
+            canceledLoader.Complete(new GameObject(nameof(SlowPage)));
+            for (int index = 0; index < 60 && canceledLoader.ReleaseCount == 0; index++)
+            {
+                yield return null;
+            }
+            Assert.That(canceledLoader.ReleaseCount, Is.EqualTo(1));
+            Assert.That(opened, Is.EqualTo(1));
+            Assert.That(failure, Is.Null, "正常取消不调用成功或错误回调。");
+            Assert.That(UIManager.Instance.Get<SlowPage>(), Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator ShowWithAsyncLoadFalseUsesOnlySynchronousLoader()
+        {
+            var loader = TestViewRegistry.Register<FirstPage>();
+            FirstPage opened = null;
+            UIManager.Instance.Show<FirstPage>(asyncLoad: false, animation: false, onOpened: view => opened = view);
+            for (int index = 0; index < 60 && opened == null; index++)
+            {
+                yield return null;
+            }
+            Assert.That(opened, Is.Not.Null);
+            Assert.That(opened.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(loader.SyncInstantiateCount, Is.EqualTo(1));
+            Assert.That(loader.InstantiateCount, Is.Zero, "同步分支不能先调用异步Loader再等待。");
+        }
+
+        [UnityTest]
+        public IEnumerator CloseExternalInstanceAndEmptyCloseOrBackAreIdempotent()
+        {
+            var ownerLoader = TestViewRegistry.Register<FirstPage>();
+            yield return UIManager.Instance.OpenAsync<FirstPage>().ToCoroutine();
+            var owner = UIManager.Instance.Get<FirstPage>();
+            var externalLoader = TestViewRegistry.Register<FirstPage>();
+            var external = new FirstPage();
+            yield return UIManager.Instance.CloseAsync(external, false).ToCoroutine();
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(owner));
+            Assert.That(external.State, Is.EqualTo(ViewState.Created));
+            Assert.That(ownerLoader.ReleaseCount, Is.Zero);
+            Assert.That(externalLoader.DisposeCount, Is.Zero);
+            yield return external.DestroyAsync().ToCoroutine();
+            yield return UIManager.Instance.CloseAsync(owner, false).ToCoroutine();
+            yield return UIManager.Instance.CloseAsync<FirstPage>(false).ToCoroutine();
+            yield return UIManager.Instance.CloseAsync((View)null, false).ToCoroutine();
+            yield return UIManager.Instance.BackAsync(false).ToCoroutine();
+            Assert.That(UIManager.Instance.TopView, Is.Null);
+            Assert.That(UIManager.Instance.GetAllViews(), Is.Empty);
+            Assert.That(ownerLoader.ReleaseCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator CloseExternalOrExpiredInstanceDuringLoadDoesNotCancelManagedOpen()
+        {
+            TestViewRegistry.Register<FirstPage>();
+            yield return UIManager.Instance.OpenAsync<FirstPage>().ToCoroutine();
+            var expired = UIManager.Instance.Get<FirstPage>();
+            yield return UIManager.Instance.CloseAsync(expired, false).ToCoroutine();
+
+            var loading = TestViewRegistry.Register<FirstPage>(delay: true);
+            var externalLoader = TestViewRegistry.Register<FirstPage>();
+            var open = UIManager.Instance.OpenAsync<FirstPage>().Preserve();
+            yield return null;
+            var owner = UIManager.Instance.Get<FirstPage>();
+            Assert.That(owner.State, Is.EqualTo(ViewState.Loading));
+            var external = new FirstPage();
+            var closeExternal = UIManager.Instance.CloseAsync(external, false);
+            var closeExpired = UIManager.Instance.CloseAsync(expired, false);
+            using var canceled = new CancellationTokenSource();
+            canceled.Cancel();
+            bool closeCanceled = false;
+            yield return UIManager.Instance.CloseAsync<FirstPage>(false, canceled.Token)
+                .SuppressCancellationThrow().ToCoroutine(value => closeCanceled = value);
+            Assert.That(closeCanceled, Is.True);
+            yield return null;
+            Assert.That(owner.State, Is.EqualTo(ViewState.Loading));
+            Assert.That(open.Status, Is.EqualTo(UniTaskStatus.Pending));
+            Assert.That(external.State, Is.EqualTo(ViewState.Created));
+
+            loading.Complete(new GameObject(nameof(FirstPage)));
+            FirstPage opened = null;
+            yield return open.ToCoroutine(view => opened = view);
+            yield return closeExternal.ToCoroutine();
+            yield return closeExpired.ToCoroutine();
+            Assert.That(opened, Is.SameAs(owner));
+            Assert.That(opened.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(owner));
+            Assert.That(loading.ReleaseCount, Is.Zero);
+            Assert.That(externalLoader.DisposeCount, Is.Zero);
+            yield return external.DestroyAsync().ToCoroutine();
+        }
+
+        [UnityTest]
+        public IEnumerator PreloadAlreadyStackedViewDoesNotConfigureHideOrDestroyIt()
+        {
+            var loader = TestViewRegistry.Register<FirstPage>();
+            yield return UIManager.Instance.OpenAsync<FirstPage>().ToCoroutine();
+            var owner = UIManager.Instance.Get<FirstPage>();
+            bool configured = false;
+            FirstPage prepared = null;
+            yield return UIManager.Instance.PreloadAsync<FirstPage>(_ => configured = true).ToCoroutine(view => prepared = view);
+            Assert.That(prepared, Is.SameAs(owner));
+            Assert.That(configured, Is.False);
+            Assert.That(owner.State, Is.EqualTo(ViewState.Visible));
+            Assert.That(owner.Reference, Is.EqualTo(1));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(owner));
+            Assert.That(loader.ReleaseCount, Is.Zero);
+            Assert.That(loader.DisposeCount, Is.Zero);
+            Assert.That(loader.InstantiateCount, Is.EqualTo(1));
+        }
+
+        [UnityTest]
+        public IEnumerator PreCanceledCloseAllStillReleasesEveryOwnedView()
+        {
+            var first = TestViewRegistry.Register<FirstPage>();
+            var second = TestViewRegistry.Register<SecondPage>();
+            yield return UIManager.Instance.OpenAsync<FirstPage>().ToCoroutine();
+            yield return UIManager.Instance.OpenAsync<SecondPage>().ToCoroutine();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            UIOperationResult outcome = default;
+            yield return AwaitResult(UIManager.Instance.CloseAllAsync(cancellation.Token), value => outcome = value);
+            Assert.That(outcome.Status, Is.EqualTo(UIOperationStatus.Canceled));
+            Assert.That(UIManager.Instance.GetAllViews(), Is.Empty);
+            Assert.That(UIManager.Instance.StackCount, Is.Zero);
+            Assert.That(first.ReleaseCount, Is.EqualTo(1));
+            Assert.That(second.ReleaseCount, Is.EqualTo(1));
+        }
+
+        private static IEnumerator AwaitResult<T>(UniTask<T> task, Action<UIOperationResult> receive) where T : View
+        {
+            yield return CaptureOutcome(task).ToCoroutine(receive);
+        }
+
+        private static IEnumerator AwaitResult(UniTask task, Action<UIOperationResult> receive)
+        {
+            yield return CaptureOutcome(task).ToCoroutine(receive);
+        }
+
+        private static async UniTask<UIOperationResult> CaptureOutcome<T>(UniTask<T> task) where T : View
+        {
+            try
+            {
+                return UIOperationResult.Succeeded(0, UINavigationAction.Push, await task);
+            }
+            catch (OperationCanceledException)
+            {
+                return UIOperationResult.Canceled(0, UINavigationAction.Push, null);
+            }
+            catch (Exception exception)
+            {
+                return UIOperationResult.Failed(0, UINavigationAction.Push, null, exception);
+            }
+        }
+
+        private static async UniTask<UIOperationResult> CaptureOutcome(UniTask task)
+        {
+            try
+            {
+                await task;
+                return UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null);
+            }
+            catch (OperationCanceledException)
+            {
+                return UIOperationResult.Canceled(0, UINavigationAction.CloseAll, null);
+            }
+            catch (Exception exception)
+            {
+                return UIOperationResult.Failed(0, UINavigationAction.CloseAll, null, exception);
+            }
         }
 
         private abstract class NavigationTestPage : View
@@ -1226,6 +1428,7 @@ namespace Tests.Module
             {
                 (loader, events) = TestViewRegistry.Take(GetType());
                 Loader = loader;
+                loader.CreatedView = this;
             }
 
             public override string Address => GetType().Name;
@@ -1554,11 +1757,22 @@ namespace Tests.Module
 
             internal int ReleaseCount { get; private set; }
             internal int InstantiateCount { get; private set; }
+            internal int SyncInstantiateCount { get; private set; }
             internal int DisposeCount { get; private set; }
+            internal View CreatedView { get; set; }
             internal TestTransition Transition { get; }
 
             public GameObject Instantiate(string address, Transform parent) => Instantiate(address, parent, false);
-            public GameObject Instantiate(string address, Transform parent, bool worldPositionStays) => result;
+            public GameObject Instantiate(string address, Transform parent, bool worldPositionStays)
+            {
+                SyncInstantiateCount++;
+                events.Add($"{name}.load");
+                if (result != null)
+                {
+                    result.transform.SetParent(parent, worldPositionStays);
+                }
+                return result;
+            }
 
             public UniTask<GameObject> InstantiateAsync(string address, Transform parent) =>
                 InstantiateAsync(address, parent, false);

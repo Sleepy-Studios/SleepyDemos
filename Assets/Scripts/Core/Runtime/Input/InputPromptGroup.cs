@@ -63,5 +63,26 @@ namespace Core.Runtime.Inputs
                 entry.prompt.gameObject.SetActive(visible);
             }
         }
+
+        /// <summary>单独收起没有当前设备绑定的整行，不保留空白布局。</summary>
+        /// <param name="key">正式行标识。</param>
+        /// <param name="visible">是否显示整行。</param>
+        public void SetRowVisible(string key, bool visible)
+        {
+            foreach (var entry in entries)
+            {
+                if (entry.key != key)
+                {
+                    continue;
+                }
+                if (entry.rowRoot != null)
+                {
+                    entry.rowRoot.SetActive(visible);
+                }
+                entry.prompt.gameObject.SetActive(visible);
+                return;
+            }
+            throw new InvalidOperationException("正式提示行未绑定：" + key);
+        }
     }
 }

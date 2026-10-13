@@ -98,6 +98,18 @@ namespace Core.Runtime
         /// 正在等待布局或执行本轮滚动（包括首尾停留）。
         public bool IsReading => pendingStartScroll || isScrolling;
 
+        /// 面板测量外框时复用裁剪的内边距规则，避免短文本被当成溢出内容。
+        internal float HorizontalLayoutPadding
+        {
+            get
+            {
+                TryInitializeFromGameObject();
+                // View 显示前已测量外框；父树尚未激活时仍须计入随后生效的作者布局。
+                return respectLayoutPadding && viewportLayoutGroup != null && viewportLayoutGroup.enabled
+                    ? viewportLayoutGroup.padding.horizontal : 0;
+            }
+        }
+
         /// 是否允许自动滚动。
         public bool ScrollEnabled
         {

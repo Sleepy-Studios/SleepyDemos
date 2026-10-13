@@ -66,25 +66,30 @@ namespace Hotfix
         /// <param name="type">三种状态的明确枚举。</param>
         /// <param name="duration">正文滚动完成后的停留秒数，有限且大于零，默认 2。</param>
         /// <param name="cancellationToken">预先取消不添加消息；显示后取消仅移除本条消息。</param>
-        /// <returns>UI 导航结果；加载错误通过 Failed.Exception 返回。</returns>
-        public async UniTask<UIOperationResult> ShowTipsMessageBarAsync(string content, CommonTipsType type, float duration = 2,
+        /// <returns>消息宿主；加载失败抛原异常，取消仅移除本次消息。</returns>
+        public async UniTask<CommonTipsView> ShowTipsMessageBarAsync(string content, CommonTipsType type, float duration = 2,
             CancellationToken cancellationToken = default)
         {
             if (!Enum.IsDefined(typeof(CommonTipsType), type)) throw new ArgumentOutOfRangeException(nameof(type));
             if (float.IsNaN(duration) || float.IsInfinity(duration) || duration <= 0) throw new ArgumentOutOfRangeException(nameof(duration));
-            if (cancellationToken.IsCancellationRequested) return UIOperationResult.Canceled(0, UINavigationAction.Push, null);
+            cancellationToken.ThrowIfCancellationRequested();
             using var pending = CancellationTokenSource.CreateLinkedTokenSource(messageRequests.Token, cancellationToken);
             CommonTipsView owner = null;
             int messageId = 0;
-            var result = await UIManager.Instance.ShowAsync<CommonTipsView>(view =>
+            try
             {
-                owner = view;
-                messageId = view.AddMessage(content, type, duration, cancellationToken);
-            }, new UIShowOptions(animated: false, hidePrevious: false), pending.Token);
-            // 导航被取消或失败时，只回收本次已交付的消息，不清空其他通知。
-            if (result.Status == UIOperationStatus.Canceled || result.Status == UIOperationStatus.Failed)
+                return await UIManager.Instance.OpenAsync<CommonTipsView>(view =>
+                {
+                    owner = view;
+                    messageId = view.AddMessage(content, type, duration, cancellationToken);
+                }, new UIOpenOptions(animated: false, hidePrevious: false), pending.Token);
+            }
+            catch
+            {
+                // 本次失败只移除本次消息，保留其他通知。
                 owner?.RemoveMessage(messageId);
-            return result;
+                throw;
+            }
         }
 
         /// <summary>显示跟随目标矩形的 SimpleTips，默认外部点击和返回关闭。</summary>
@@ -93,7 +98,7 @@ namespace Hotfix
         /// <param name="title">可选标题。</param>
         /// <param name="options">方向、间距、宽度和交互配置。</param>
         /// <param name="cancellationToken">本次导航取消令牌。</param>
-        public UniTask<UIOperationResult> ShowSimpleTipsAsync(RectTransform target, string content, string title = null,
+        public UniTask<SimpleTipsView> ShowSimpleTipsAsync(RectTransform target, string content, string title = null,
             SimpleTipsOptions options = default, CancellationToken cancellationToken = default)
         {
             if (target == null) throw new ArgumentNullException(nameof(target));
@@ -106,12 +111,12 @@ namespace Hotfix
         /// <param name="title">可选标题。</param>
         /// <param name="options">方向、间距、宽度和交互配置。</param>
         /// <param name="cancellationToken">本次导航取消令牌。</param>
-        public UniTask<UIOperationResult> ShowSimpleTipsAsync(Vector2 screenPosition, string content, string title = null,
+        public UniTask<SimpleTipsView> ShowSimpleTipsAsync(Vector2 screenPosition, string content, string title = null,
             SimpleTipsOptions options = default, CancellationToken cancellationToken = default)
             => ShowSimpleCoreAsync(null, screenPosition, false, content, title, options, cancellationToken);
 
         /// 关闭当前 SimpleTips，并取消尚未完成的显示请求。
-        public UniTask<UIOperationResult> HideSimpleTipsAsync()
+        public UniTask HideSimpleTipsAsync()
         {
             simpleVersion++;
             Cancel(ref simpleCancellation);
@@ -119,7 +124,7 @@ namespace Hotfix
         }
 
         /// 关闭全部顶部消息，并取消已经排队的显示请求；不影响后来提交的新请求。
-        public UniTask<UIOperationResult> HideTipsMessageBarsAsync()
+        public UniTask HideTipsMessageBarsAsync()
         {
             var previous = messageRequests;
             messageRequests = new CancellationTokenSource();
@@ -138,31 +143,48 @@ namespace Hotfix
             await ObserveAsync(UIManager.Instance.CloseAsync(view, false, token.IsCancellationRequested ? default : token));
         }
 
-        internal async UniTask ObserveAsync(UniTask<UIOperationResult> operation)
+        internal async UniTask ObserveAsync(UniTask operation)
         {
-            var result = await operation;
-            if (result.Status == UIOperationStatus.Failed) Debug.LogException(result.Exception);
+            try
+            {
+                await operation;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
         }
 
-        private UniTask<UIOperationResult> ShowSimpleCoreAsync(RectTransform target, Vector2 point, bool followsTarget,
+        private UniTask<SimpleTipsView> ShowSimpleCoreAsync(RectTransform target, Vector2 point, bool followsTarget,
             string content, string title, SimpleTipsOptions options, CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested) return UniTask.FromResult(UIOperationResult.Canceled(0, UINavigationAction.Push, null));
+            cancellationToken.ThrowIfCancellationRequested();
             int version = ++simpleVersion;
             var token = ReplaceCancellation(ref simpleCancellation, cancellationToken);
             var request = new SimpleTipsRequest(target, point, followsTarget, content, title, options, version, token);
-            return CompleteSimpleShowAsync(UIManager.Instance.ShowAsync<SimpleTipsView>(view => view.SetData(request),
-                new UIShowOptions(animated: false, hidePrevious: false), token), version);
+            return CompleteSimpleShowAsync(UIManager.Instance.OpenAsync<SimpleTipsView>(view => view.SetData(request),
+                new UIOpenOptions(animated: false, hidePrevious: false), token), version);
         }
 
-        private async UniTask<UIOperationResult> CompleteSimpleShowAsync(UniTask<UIOperationResult> operation, int version)
+        private async UniTask<SimpleTipsView> CompleteSimpleShowAsync(UniTask<SimpleTipsView> operation, int version)
         {
-            var result = await operation;
-            if (result.Status != UIOperationStatus.Canceled && result.Status != UIOperationStatus.Failed) return result;
-            // 替换请求已取消旧轮任务；如果自身也没能显示，不能留下失去所有权的旧遮挡或永久消息。
-            // 后来的请求已经接管时，旧完成不再清理它。
-            if (IsCurrentSimple(version)) await ObserveAsync(HideSimpleTipsAsync());
-            return result;
+            try
+            {
+                return await operation;
+            }
+            catch
+            {
+                // 旧请求不能清理后来已接管的遮挡。
+                if (IsCurrentSimple(version))
+                {
+                    await ObserveAsync(HideSimpleTipsAsync());
+                }
+
+                throw;
+            }
         }
 
         private static CancellationToken ReplaceCancellation(ref CancellationTokenSource source, CancellationToken external)

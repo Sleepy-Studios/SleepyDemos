@@ -180,8 +180,9 @@ namespace Core.Runtime
         /// </summary>
         /// <param name="parent">View 根对象挂载父节点。</param>
         /// <param name="cancellationToken">取消令牌；取消会继续抛给导航协调层。</param>
+        /// <param name="asyncLoad">资源使用异步实例化；false 调用真正同步资源入口，已有加载仍等待原任务。</param>
         /// <returns>成功完成初始化时返回 true；资源无效或加载失败时返回 false。</returns>
-        public async UniTask<bool> LoadAsync(Transform parent, CancellationToken cancellationToken = default)
+        public async UniTask<bool> LoadAsync(Transform parent, CancellationToken cancellationToken = default, bool asyncLoad = true)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (IsLoaded)
@@ -200,7 +201,7 @@ namespace Core.Runtime
             var waiterTask = WaitForRegisteredLoadAsync(completionSource, cancellationToken);
             if (shouldStart)
             {
-                StartLoadOperation(parent, completionSource, lifetimeCancellation);
+                StartLoadOperation(parent, completionSource, lifetimeCancellation, asyncLoad);
             }
 
             return await waiterTask;
@@ -466,7 +467,7 @@ namespace Core.Runtime
         {
         }
 
-        private async UniTask<bool> LoadCoreAsync(Transform parent, CancellationToken cancellationToken)
+        private async UniTask<bool> LoadCoreAsync(Transform parent, CancellationToken cancellationToken, bool asyncLoad)
         {
             State = ViewState.Loading;
             GameObject instance = null;
@@ -480,7 +481,7 @@ namespace Core.Runtime
                     return false;
                 }
 
-                instance = await Loader.InstantiateAsync(Address, parent);
+                instance = asyncLoad ? await Loader.InstantiateAsync(Address, parent) : Loader.Instantiate(Address, parent);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (State == ViewState.Destroying || State == ViewState.Destroyed)
                 {
@@ -768,9 +769,10 @@ namespace Core.Runtime
         private void StartLoadOperation(
             Transform parent,
             UniTaskCompletionSource<bool> completionSource,
-            CancellationTokenSource lifetimeCancellation)
+            CancellationTokenSource lifetimeCancellation,
+            bool asyncLoad)
         {
-            var task = LoadCoreAsync(parent, lifetimeCancellation.Token).Preserve();
+            var task = LoadCoreAsync(parent, lifetimeCancellation.Token, asyncLoad).Preserve();
             loadingTask = task;
             PublishLoadingResultAsync(task, completionSource, lifetimeCancellation).Forget();
         }

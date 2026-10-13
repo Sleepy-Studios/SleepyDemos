@@ -13,28 +13,60 @@ namespace Hotfix
         public static bool IsSubmitting => GameSettingsService.IsApplying || HubLanguageFlow.IsChanging
             || GlobalData.Get<SettingsData>()?.IsApplying == true;
 
-        /// <summary>仅在 Hub 打开公共设置；Demo 继续使用自己的专属界面。</summary>
-        /// <param name="category">默认显示与画质。</param>
-        /// <param name="token">只取消本次打开，不修改保存偏好。</param>
-        /// <returns>正式 UIManager 导航结果。</returns>
-        public static async UniTask<UIOperationResult> OpenAsync(SettingsCategory category = SettingsCategory.Graphics, CancellationToken token = default)
+        /// <summary>按钮调用入口；成功后通过回调取得完整可用页面。</summary>
+        /// <param name="category">默认打开显示与画质分类。</param>
+        /// <param name="onOpened">页面及其必要资源就绪后调用；可省略。</param>
+        /// <param name="onFailed">失败反馈；省略时记录 Console，正常取消不反馈错误。</param>
+        /// <param name="cancellationToken">取消本次准备或打开。</param>
+        public static void Show(SettingsCategory category = SettingsCategory.Graphics, Action<HubSettingsView> onOpened = null,
+            Action<Exception> onFailed = null, CancellationToken cancellationToken = default)
         {
+            ShowRequestAsync(category, onOpened, onFailed, cancellationToken).Forget(UnityEngine.Debug.LogException);
+        }
+
+        private static async UniTask ShowRequestAsync(SettingsCategory category, Action<HubSettingsView> onOpened,
+            Action<Exception> onFailed, CancellationToken cancellationToken)
+        {
+            HubSettingsView view;
             try
             {
-                token.ThrowIfCancellationRequested();
-                await GameSettingsService.InitializeAsync().AttachExternalCancellation(token);
+                view = await OpenAsync(category, cancellationToken);
             }
             catch (OperationCanceledException)
             {
-                return UIOperationResult.Canceled(0, UINavigationAction.Push, null);
+                return;
             }
+            catch (Exception exception)
+            {
+                if (onFailed == null)
+                {
+                    UnityEngine.Debug.LogException(exception);
+                }
+                else
+                {
+                    onFailed(exception);
+                }
+
+                return;
+            }
+
+            onOpened?.Invoke(view);
+        }
+
+        /// <summary>仅在 Hub 打开公共设置；Demo 继续使用自己的专属界面。</summary>
+        /// <param name="category">默认显示与画质。</param>
+        /// <param name="token">只取消本次打开，不修改保存偏好。</param>
+        /// <returns>已打开的设置页；失败抛原异常，取消抛取消异常。</returns>
+        public static async UniTask<HubSettingsView> OpenAsync(SettingsCategory category = SettingsCategory.Graphics, CancellationToken token = default)
+        {
+            token.ThrowIfCancellationRequested();
+            await GameSettingsService.InitializeAsync().AttachExternalCancellation(token);
             if (GameSceneNavigator.Instance?.CurrentScene != GameSceneId.Hub)
             {
-                return UIOperationResult.Failed(0, UINavigationAction.Push, null,
-                    new InvalidOperationException("公共设置仅可从 Hub 打开。"));
+                throw new InvalidOperationException("公共设置仅可从 Hub 打开。");
             }
-            return await UIManager.Instance.ShowAsync<HubSettingsView>(view => view.SetData(category),
-                new UIShowOptions(animated: false, hidePrevious: false), token);
+            return await UIManager.Instance.OpenAsync<HubSettingsView>(view => view.SetData(category),
+                new UIOpenOptions(animated: false, hidePrevious: false), token);
         }
 
         internal static async UniTask<SettingsApplyResult> ApplyAsync(GameSettingsSnapshot candidate, CancellationToken token)
@@ -66,17 +98,8 @@ namespace Hotfix
             DisplayConfirmView view = null;
             try
             {
-                var result = await UIManager.Instance.ShowAsync<DisplayConfirmView>(item => item.SetData(request),
-                    new UIShowOptions(animated: false, hidePrevious: false), token);
-                view = result.View as DisplayConfirmView;
-                if (result.Status == UIOperationStatus.Failed)
-                {
-                    throw result.Exception ?? new InvalidOperationException("显示确认窗口加载失败。");
-                }
-                if (result.Status == UIOperationStatus.Canceled)
-                {
-                    return false;
-                }
+                view = await UIManager.Instance.OpenAsync<DisplayConfirmView>(item => item.SetData(request),
+                    new UIOpenOptions(animated: false, hidePrevious: false), token);
                 return await request.Completion.Task.AttachExternalCancellation(token);
             }
             catch (OperationCanceledException)

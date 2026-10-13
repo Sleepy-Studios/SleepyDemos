@@ -166,18 +166,6 @@ MonoBehaviour:
   - style: 3
     controlPath: dpad/right
     sprite: {fileID: 21300000, guid: eb7711dc8ba56434fa1848bbe3425868, type: 3}
-  - style: 0
-    controlPath: buttonSouth
-    sprite: {fileID: 21300000, guid: 64481f0cab54a324396220dc512ecd12, type: 3}
-  - style: 0
-    controlPath: buttonEast
-    sprite: {fileID: 21300000, guid: 7f03106e4ef7b91459fae647e4dd3501, type: 3}
-  - style: 0
-    controlPath: buttonWest
-    sprite: {fileID: 21300000, guid: a77cc113a36dfd94fa0713c822e0f0ab, type: 3}
-  - style: 0
-    controlPath: buttonNorth
-    sprite: {fileID: 21300000, guid: e6697f28a6688934abaafc18dca9982e, type: 3}
   deviceEntries:
   - deviceKind: 0
     controlPath: leftButton

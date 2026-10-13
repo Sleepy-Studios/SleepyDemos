@@ -41,17 +41,25 @@
 
 样本来源为 [HUD Prefab](../../../../Assets/LoadResources/Demos/wall_squeeze/Prefabs/UI/WallSqueezeHudView.prefab)、[Menu Prefab](../../../../Assets/LoadResources/Demos/wall_squeeze/Prefabs/UI/WallSqueezeMenuView.prefab) 及下列 Variant；数值字号与菜单互斥由 [HudPanel.Render](../../../../Assets/Scripts/Hotfix/Demos/WallSqueeze/WallSqueezeHudPanel.cs)、[MenuPanel.Render](../../../../Assets/Scripts/Hotfix/Demos/WallSqueeze/WallSqueezeMenuPanel.cs) 确认。这是当前制作样本，不是新的动效或全页面固定尺寸规范。
 
+## 完整基础控件库与源码颜色
+
+基础控件统一从 `Assets/LoadResources/Demos/wall_squeeze/Prefabs/UI/Foundation/` 取用，文件以 `Wall` 开头，按动作或控件用途命名；名字不编码字号或生成哈希。每一项公共基础控件均有本 Demo 的真实 Variant，尚未使用或与公共外观一致的控件同样保留入口。覆盖清单及组合内部子变体契约见[基础资源维护](../../../modules/ui-foundation-assets.md#四-demo-完整风格库)。Loading 继续使用正式全局与场景流程，不进入这套 Foundation。
+
+新默认库的矩形表面使用现有 `Art/UI/Square.png`，Filled 填充使用公共 `White.png`，边框使用 `FocusBorderSquare.png`；不沿用带透明圆角的 `Surface.png`、`CapsuleSurface.png` 或胶囊边框。ImageExtend 的圆角、渐变及阴影同时关闭，不能只关闭组件效果却保留图片本身的圆角。已有用途 Variant 与已确认页面继续保留各自作者参数。
+
+固定 UI/HUD 源码颜色从 `UIColors.WallSqueeze` 读取；透明度和富文本复用 `WithAlpha`、`WrapText`。Prefab/Variant 的外观仍直接保存 RGBA、图片和字体，不绑定运行时色板。角色配置、动态颜色和 Shader 参数继续由其原契约维护。
+
 ## 控件继承与覆盖
 
 普通按钮已关联 `Prefabs/UI/Foundation/` 的三个风格 Variant：菜单黑底白字与 HUD 暖白黑字分别维护，继承公共 CommonButton 的结构、UIState 五态和取消转发。页面保留按钮矩形、字号层级、业务文字、点击事件和导航；根节点按下时不缩放点击区域。
 
-已关联对象为 Menu 的 Panel / Retry、Continue、Next、Hub，以及 HUD 的 Header / Pause、Footer / Retry。Label 与 InteractionFeedback 按完整层级原生匹配并保留对象引用；Header/Footer 的黑框布局保留在页面。提示 Variant 位于 `Prefabs/UI/Parts/WallInputPrompt*.prefab`，继续消费公共输入行为。当前没有普通 Toggle、Dropdown 或 Tab。
+已关联对象为 Menu 的 Panel / Retry、Continue、Next、Hub，以及 HUD 的 Header / Pause、Footer / Retry。Label 与 InteractionFeedback 按完整层级原生匹配并保留对象引用；Header/Footer 的黑框布局保留在页面。提示 Variant 位于 `Prefabs/UI/Foundation/WallInputPrompt*.prefab`，继续消费公共输入行为。Foundation 同时维护 Toggle、Dropdown、Tab 等完整基础控件风格，当前页面未使用不影响其复用入口。
 
 | Variant（位于 `Prefabs/UI/Foundation/`） | 正式使用入口 |
 |---|---|
-| `WallInkButton26_a7c9a755.prefab` | `WallSqueezeMenuView / Panel / Retry、Continue、Next、Hub`，26 / Normal、黑底白字 |
-| `WallPaperButton52_0834ebfb.prefab` | `WallSqueezeHudView / Header / Pause`，52 / Bold、暖白黑字 |
-| `WallPaperButton48_459a8e16.prefab` | `WallSqueezeHudView / Footer / Retry`，48 / Bold、暖白黑字 |
+| `WallMenuButton.prefab` | `WallSqueezeMenuView / Panel / Retry、Continue、Next、Hub`，26 / Normal、黑底白字 |
+| `WallPauseButton.prefab` | `WallSqueezeHudView / Header / Pause`，52 / Bold、暖白黑字 |
+| `WallRetryButton.prefab` | `WallSqueezeHudView / Footer / Retry`，48 / Bold、暖白黑字 |
 
 三者继承公共 `UI/Common/_TemplateInstantiatePrefab/Btns/CommonButton.prefab`。换风格沿真实 Variant→上述页面入口核对；固定文本节点的 62 / 50 等页面层级不由按钮源承担。
 

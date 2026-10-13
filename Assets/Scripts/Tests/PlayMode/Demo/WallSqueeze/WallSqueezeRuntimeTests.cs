@@ -545,7 +545,7 @@ namespace Tests.Demo
                         yield return pending.ContinueWith(value => result = value).ToCoroutine();
                         Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
                         Assert.That(source.State, Is.EqualTo(ViewState.Visible));
-                        Assert.That(UIManager.Instance.cacheStack.GetView(source.GetType()), Is.SameAs(source));
+                        Assert.That(UIManager.Instance.GetAllViews().Single(view => view.GetType() == source.GetType()), Is.SameAs(source));
                         Assert.That(UIManager.Instance.Get<CommonLoadingView>(), Is.Null);
                     }
                     // 普通退出失败也必须保留原绑定，不能用重建菜单掩盖来源销毁。
@@ -556,7 +556,7 @@ namespace Tests.Demo
                         new System.Text.RegularExpressions.Regex("导航来源保留测试失败"));
                     faults.Fail();
                     yield return Wait(() => !navigation.IsTransitioning && source.State == ViewState.Visible && (kart == null || !kart.Busy), "返回失败恢复来源");
-                    Assert.That(UIManager.Instance.cacheStack.GetView(source.GetType()), Is.SameAs(source));
+                    Assert.That(UIManager.Instance.GetAllViews().Single(view => view.GetType() == source.GetType()), Is.SameAs(source));
                     if (kart != null)
                     {
                         var open = source.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Open");

@@ -125,6 +125,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ComponentItemIndex
   components:
+  - {fileID: 9018040875519035514}
   - {fileID: 7925320673962596040}
   - {fileID: 3204867477195161481}
   - {fileID: 6117688246366489256}
@@ -151,10 +152,12 @@ MonoBehaviour:
   - Core.Runtime.UISettingRow
   - Core.Runtime.UISettingRow
   - Core.Runtime.UISettingRow
+  - Core.Runtime.UISettingRow
   - TMPro.TextMeshProUGUI
   - Core.Runtime.UISettingRow
   - SleepyStudios.LoopScroll.LoopScrollView
   bindingKeys:
+  - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadStyle|Core.Runtime.UISettingRow
   - InputSettingsPanelView/Page/Control parameters/Viewport/Content/MouseLookMultiplier|Core.Runtime.UISettingRow
   - InputSettingsPanelView/Page/Control parameters/Viewport/Content/TouchLookMultiplier|Core.Runtime.UISettingRow
   - InputSettingsPanelView/Page/Control parameters/Viewport/Content/GamepadLookMultiplier|Core.Runtime.UISettingRow
@@ -170,6 +173,7 @@ MonoBehaviour:
   - InputSettingsPanelView/Page/CancelRebind|Core.Runtime.UISettingRow
   - InputSettingsPanelView/Page/Bindings|SleepyStudios.LoopScroll.LoopScrollView
   bindingMethods:
+  - None
   - None
   - None
   - None
@@ -954,6 +958,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 5540009255483876022}
   - {fileID: 6757201167396875645}
   - {fileID: 2036746872327586876}
   - {fileID: 7267796652957888797}
@@ -1771,6 +1776,123 @@ RectTransform:
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4041564143477829815, guid: 09e1adfa93b0acc409e0d19af50c6e86, type: 3}
   m_PrefabInstance: {fileID: 1472532842118958910}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 810cc6d6c29cbf14e94d513cbb248c66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.UISettingRow
+--- !u!1001 &1590213219451634228
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4906943764326425403}
+    m_Modifications:
+    - target: {fileID: 1194843652482055016, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_Name
+      value: GamepadStyle
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 740
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 70
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7725667990557444686, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+      propertyPath: key
+      value: GamepadStyle
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+--- !u!224 &5540009255483876022 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 6553726398269595778, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+  m_PrefabInstance: {fileID: 1590213219451634228}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &9018040875519035514 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7725667990557444686, guid: 9e71cdafb53e1734e9b9d8c4be308754, type: 3}
+  m_PrefabInstance: {fileID: 1590213219451634228}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1

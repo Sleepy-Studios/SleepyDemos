@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using System.Collections.Generic;
 using TMPro;
@@ -32,11 +33,11 @@ namespace Hotfix.KagitKart
         [SerializeField] private RectTransform threatEndCap;
         [SerializeField] private KagitKartItemSlot itemSlot;
 
-        private static readonly Color Ink = Hex("#2d2a32");
-        private static readonly Color Paper = Hex("#faf4e4");
-        private static readonly Color Red = Hex("#d9483b");
-        private static readonly Color Blue = Hex("#5f7fa3");
-        private static readonly Color Mustard = Hex("#f2c14e");
+        private static readonly Color Ink = UIColors.KagitKart.Ink;
+        private static readonly Color Paper = UIColors.KagitKart.Paper;
+        private static readonly Color Red = UIColors.KagitKart.Accent;
+        private static readonly Color Blue = UIColors.KagitKart.Blue;
+        private static readonly Color Mustard = UIColors.KagitKart.Mustard;
         private readonly List<Notice> notices = new();
         private KagitKartWorld world;
         private KagitKartSession session;
@@ -365,7 +366,7 @@ namespace Hotfix.KagitKart
         {
             shownPlace = value;
             placeText.text = value + ".";
-            placeText.color = value == 1 ? Hex("#e3a623") : value == 2 ? Hex("#7d97b8") : value == 3 ? Hex("#c8693a") : Ink;
+            placeText.color = value == 1 ? UIColors.KagitKart.FirstPlace : value == 2 ? UIColors.KagitKart.SecondPlace : value == 3 ? UIColors.KagitKart.ThirdPlace : Ink;
             placeStamped = stamp && !world.ReducedMotion;
             if (stamp && !world.ReducedMotion)
             {
@@ -533,7 +534,7 @@ namespace Hotfix.KagitKart
                 nearWall = 0;
             }
             nearWall += wallDt;
-            threatDisc.color = near ? Hex("#ffd9d2") : Paper;
+            threatDisc.color = near ? UIColors.KagitKart.NearThreat : Paper;
             threat.localScale = Vector3.one * (reduced || !near ? 1 : 1 + 0.12f * Alternate(nearWall / 0.25f));
         }
 
@@ -617,12 +618,6 @@ namespace Hotfix.KagitKart
             root.localScale = Vector3.one * scale;
             CssRotation(root, angle);
             group.alpha = alpha;
-        }
-
-        private static Color Hex(string html)
-        {
-            ColorUtility.TryParseHtmlString(html, out var color);
-            return color;
         }
 
         /// 取消本场订阅并移除通知；不会清理其它HUD模块。

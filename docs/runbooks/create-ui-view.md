@@ -8,7 +8,7 @@
 
 - View 资源位于 `Assets/LoadResources/UI` 或对应 Demo 的可加载资源目录。
 - View 代码继承 `Core.Runtime.View` 或其泛型版本。
-- 新业务通过 `await UIManager.ShowAsync<T>()`、`await CloseAsync<T>()` 管理生命周期；`PreloadAsync<T>()` 也会进入同一导航队列。
+- 日常按钮使用 `UIManager.Show<T>(..., onOpened: ...)` 与 `Close`；需要等完成的流程使用 `OpenAsync<T>` / `CloseAsync`，全部共用同一导航事务。
 
 ## 制作 Prefab
 
@@ -148,7 +148,7 @@ ViewRoot
 
 ## 数据和控件刷新时序
 
-调用方提交一次打开请求：普通页面使用 `await UIManager.Instance.ShowAsync<DetailsView>(view => view.SetData(data))`；现有泛型页面继续使用 `ShowAsync<TView, TData>(data)`。请求在 FIFO 中持有数据，页面加载 → UIBind 控件绑定 → OnGameObjectInitialize 完成后才调用 SetData，随后 OnShow/显示。SetData 可直接更新控件，复杂显示再拆业务自己的 private RefreshUI(data)；不要先显示再由外部补数据。缓存页面重开只交付本次数据，不重复绑定。需要打开数据的逻辑放在 SetData，不放在一次性初始化回调。
+调用方提交一次打开请求：普通页面使用 `UIManager.Instance.Show<DetailsView>(view => view.SetData(data), onOpened: OnDetailsOpened)`；需要严格等完成时使用 `await UIManager.Instance.OpenAsync<DetailsView>(view => view.SetData(data))`。现有泛型页面沿用自己的 SetData。请求在 FIFO 中持有数据，页面加载 → UIBind 控件绑定 → OnGameObjectInitialize 完成后才调用 SetData，随后 OnShow/显示。SetData 可直接更新控件，复杂显示再拆业务自己的 private RefreshUI(data)；不要先显示再由外部补数据。缓存页面重开只交付本次数据，不重复绑定。需要打开数据的逻辑放在 SetData，不放在一次性初始化回调。
 
 列表顺序为 Item.Init → UIBind InitComponent → RectData → 具体业务 SetData(具体类型)。手动创建 Item 时调用方同样先 Init，再 SetData；不支持普通 Item 提前设置后自动补刷新。回收复用只更新当前索引和数据。没有后续读取需求就不缓存数据，控件继续由 UIBind 生成，业务不保存 Cell 上下文。
 
@@ -157,31 +157,35 @@ ViewRoot
 业务调用应检查异步导航结果：
 
 ```csharp
-var result = await UIManager.Instance.ShowAsync<ExampleView>();
-if (result.Status == UIOperationStatus.Failed)
-{
-    Debug.LogException(result.Exception);
-}
+UIManager.Instance.Show<ExampleView>(
+    asyncLoad: true,
+    animation: true,
+    onOpened: view => Debug.Log(view.Name),
+    onFailed: exception => Debug.LogException(exception));
 
-await UIManager.Instance.CloseAsync<ExampleView>();
+// 资源同步加载不等于整段导航必定同步完成，控件访问仍放完成回调。
+UIManager.Instance.Show<ExampleView>(asyncLoad: false, onOpened: OnExampleOpened);
+
+// 场景或资源流程需要完成保证时才等待。
+var view = await UIManager.Instance.OpenAsync<ExampleView>(cancellationToken: token);
+await UIManager.Instance.CloseAsync(view, cancellationToken: token);
 ```
 
 需要让同层旧 View 保持可见时，显式传入：
 
 ```csharp
-await UIManager.Instance.ShowAsync<ExampleView>(
-    new UIShowOptions(animated: true, hidePrevious: false));
+UIManager.Instance.Show<ExampleView>(animation: true, hidePrevious: false);
 ```
 
-- `Succeeded` 表示事务已提交；`Ignored` 表示同一单实例已稳定处于目标位置。
-- `Canceled` 表示调用方取消、反向操作抢占，或目标已不存在，不应当作错误日志。
-- `Failed` 表示加载、Hook 或过渡异常；框架会回滚正式栈并清理 Faulted View。
+- 打开成功通过 `onOpened` 或可等待入口取得完整可用 View；重复打开可见单实例返回同一 View，不重复 `OnShow`。
+- 可等待请求实际取消时抛 `OperationCanceledException`；日常入口不执行成功或失败回调。空关闭、过期实例关闭与空栈返回幂等完成，不能当作取消。
+- 加载、Hook 或过渡失败通过异常或 `onFailed` 反馈；框架回滚正式栈并清理 Faulted View，不再解析业务结果包装。
 - `OnBeforeOpen` 多个订阅者按注册顺序串行等待；前一个失败后不会调用后续订阅者。
 - UI / World Transition 是唯一过渡入口；不要在 `OnShow` / `OnHide` 中再次手动启动同一段动画。
 - 带数据异步入口的 `SetData` 会随导航 operation 按 FIFO 应用；不要在调用 Show/Preload 前自行修改缓存 View 的数据。
-- `CloseAllAsync()` 即使返回 Failed 也会完成全量清理；其 `Exception` 可能是包含多个 View 销毁异常的 `AggregateException`。
-- CloseAll 在执行期间收到取消也会完成全量清理，最终返回 Canceled；不要把 Canceled 理解为“没有执行清理”。
-- 空 Cache 上的 `CloseAllAsync()` 返回 `Succeeded` 且 `View == null`，调用方应按 `Status` 判断，不要把空 View 当作失败。
+- `CloseAllAsync()` 即使抛异常也会完成全量清理；未取消时可能抛包含多个 View 销毁异常的 `AggregateException`。
+- CloseAll 收到取消仍完成全量清理，最后抛 `OperationCanceledException`；这不表示“没有执行清理”。
+- 空 Cache 的 `CloseAllAsync()` 正常幂等完成，不返回 View；不需要解析 `Status` 或检查空 View。
 
 1. 运行 `Tests.Module.UIViewPrefabConventionTests`，确认 Prefab 根节点规则通过。
 2. 修改 View 生命周期时，运行 `Tests.Module.UIViewLifecyclePlayModeTests`。
@@ -194,4 +198,4 @@ await UIManager.Instance.ShowAsync<ExampleView>(
 
 ## 页面自动发现
 
-具体 View 由正式启动或 Editor 直启的一次性程序集扫描自动发现，新增页面无需登记清单。继承 View，使用公开无参构造，并保持类名及 UIBind 别名唯一；抽象类、开放泛型、ItemView 不参与页面发现。字符串入口使用已缓存的类名/UIBind 别名；泛型入口按类型创建，不依赖名称索引。首次构造使用 Activator，之后由 UICache 复用，销毁后重新创建。
+具体 View 由正式启动或 Editor 直启的一次性程序集扫描自动发现，新增页面无需登记清单。继承 View，使用公开无参构造，并保持类名及 UIBind 别名唯一；抽象类、开放泛型、ItemView 不参与页面发现。字符串查询 `Get` 使用已缓存的类名/UIBind 别名；泛型打开按类型创建，不依赖名称索引。首次构造使用 Activator，之后由 UICache 复用，销毁后重新创建。

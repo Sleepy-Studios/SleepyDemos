@@ -9,3 +9,5 @@
 - [公共设计与路线](../../architecture/streamline-integration.md)
 - [公共模块状态](../../modules/streamline.md)
 - [公共构建与验证](../../runbooks/use-streamline.md)
+
+基础 UI 风格库：`Assets/LoadResources/Demos/dlss/Prefabs/UI/Foundation/`，以 `Dlss` 前缀按用途命名，完整公共控件与本 Demo 组合子变体均从这里复用；准确字号、业务参数与页面布局保留。本 Demo 当前固定外观由 Variant 保存，源码色板保留 DLSS 区域说明，无需未使用的运行时字段；规则与清单见[界面美术维护](architecture/art-direction.md)及[基础资源维护](../../modules/ui-foundation-assets.md#四-demo-完整风格库)。

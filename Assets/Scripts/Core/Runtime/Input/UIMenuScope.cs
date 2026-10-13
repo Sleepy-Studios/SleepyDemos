@@ -58,7 +58,9 @@ namespace Core.Runtime.Inputs
 
         internal void CaptureSelection()
         {
-            var selected = EventSystem.current?.currentSelectedGameObject?.GetComponent<Selectable>();
+            var eventSystem = EventSystem.current;
+            var selectedObject = eventSystem != null ? eventSystem.currentSelectedGameObject : null;
+            var selected = selectedObject != null ? selectedObject.GetComponent<Selectable>() : null;
             if (selected != null && selected.GetComponentInParent<UIMenuScope>(true) == this)
                 previousSelection = selected;
         }

@@ -47,10 +47,16 @@ Results 复用真实 `Widgets/KagitKartResultRow.prefab`，保留以下字级，
 | 成绩表 | Results / Header 1140×36；8 个 ResultRow 为 1140×56、中心间隔 56。结果板宽 1240，普通比赛高 790、计时赛高 560；`KagitKartResultsView.Fit` 按安全区可用宽高减 72 后等比适配 |
 | 图标比例 | ResultRow / Portrait 显示矩形 57.6×52，`preserveAspect=true`；维持头像纹理比例，不按行高拉成长方形 |
 | 分隔与边框 | Settings / TitleLine 为 920×3；Results / HeaderRule 高 3.36，NewRecord 四边条厚 3.65；ResultRow / TopRule 高 3.36、BottomRule 高 1.92，玩家框四边厚 2.4 |
-| 圆角边界 | 纸边由 PaperCard 的 Sliced 图形维护，不套 Hub 几何圆角；KagitSlider 的继承手柄 ImageExtend 禁用，保留 25×48 的墨色矩形手柄 |
+| 圆角边界 | 纸边由 PaperCard 的 Sliced 图形维护，不套 Hub 几何圆角；KagitKartSlider 的继承手柄 ImageExtend 禁用，保留 25×48 的墨色矩形手柄 |
 | 硬影 | Settings 的 SheetShadow / 选择卡 Shadow、Mode 三卡 Shadow 位移均为 `(8,-10)`，墨色 alpha=1；Results 的 Restart / Next / Hub Shadow 位移 `(5.0727277,-6.2)`、墨色 alpha=0.8。均是独立纸卡 Image 层，不改成模糊阴影 |
 
 字级来源是 [Results 页面](../../../../Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/KagitKartResultsView.prefab)、[成绩行](../../../../Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Widgets/KagitKartResultRow.prefab)、Settings / Mode / HUD Prefab 及对应 Foundation Variant；运行尺寸分支见 [HudNotice](../../../../Assets/Scripts/Hotfix/Demos/KagitKart/UI/KagitKartHudNotice.cs) 与 [ResultsView](../../../../Assets/Scripts/Hotfix/Demos/KagitKart/UI/KagitKartResultsView/View/KagitKartResultsView.cs)。这些样本用于延续现有制作，不规定新的动效、时长或曲线。
+
+## 完整基础控件库与源码颜色
+
+基础控件统一从 `Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Foundation/` 取用，文件以 `KagitKart` 开头，按动作或控件用途命名；名字不编码字号或生成哈希。每一项公共基础控件均有本 Demo 的真实 Variant，尚未使用或与公共外观一致的控件同样保留入口。覆盖清单及组合内部子变体契约见[基础资源维护](../../../modules/ui-foundation-assets.md#四-demo-完整风格库)。Loading 继续使用正式全局与场景流程，不进入这套 Foundation。
+
+固定 UI/HUD 源码颜色从 `UIColors.KagitKart` 读取；透明度和富文本复用 `WithAlpha`、`WrapText`。Prefab/Variant 的外观仍直接保存 RGBA、图片和字体，不绑定运行时色板。角色配置、动态颜色和 Shader 参数继续由其原契约维护。
 
 ## 控件继承与覆盖
 
@@ -58,7 +64,7 @@ Results 复用真实 `Widgets/KagitKartResultRow.prefab`，保留以下字级，
 
 KagitKartChoiceCard 是角色/章节焦点预览桥，保留原组件与事件。已有标签如 BackLabel、Track0Label 可在原生关联前改名为 Label，保持对象与 UIBind 引用；Portrait、Tape、SelectionMark 等保留为 Demo 专属附加节点。设置页的 14 个选项仍是 Button + UIState 的业务 Selected，不擅自换成 Toggle 或滑块开关；两条音量 Slider 保留滑轨、范围和数值事件，不直接匹配按钮源。
 
-两条音量 Slider 共用 `Foundation/KagitSlider.prefab`，它继承公共 `Common/_TemplateInstantiatePrefab/CommonSlider.prefab`。Variant 集中矩形墨色轨道、填充、手柄及子节点布局，保留纸艺外观；不启用继承手柄的圆角、描边或阴影。页面维护根位置、0–10 的整数音量值和业务事件，不重复保存这些图片样式；同名 Track／Fill Area／Handle Area 子节点保留原组件引用。
+两条音量 Slider 共用 `Foundation/KagitKartSlider.prefab`，它继承公共 `Common/_TemplateInstantiatePrefab/CommonSlider.prefab`。Variant 集中矩形墨色轨道、填充、手柄及子节点布局，保留纸艺外观；不启用继承手柄的圆角、描边或阴影。页面维护根位置、0–10 的整数音量值和业务事件，不重复保存这些图片样式；同名 Track／Fill Area／Handle Area 子节点保留原组件引用。
 
 设置选择钮与设备分类选择钮在 Choice 风格 Variant 的同一 UIState 上追加 SelectionMark 的 Selected 业务态，页面保留选择值和事件；不复制另一套选中管理器。三张纸重卡通过 ClassCard Variant 继承按钮基底，保留 Grammage、PaperName、Description、Gauge 与分格线；显示内容、特有纸色和原矩形继续按纸重角色维护，不把多标签卡简化成只有一个 Label。
 
@@ -68,19 +74,19 @@ KagitKartChoiceCard 是角色/章节焦点预览桥，保留原组件与事件�
 
 | Foundation Variant | 真实使用方样本 |
 |---|---|
-| `KagitKartPaperButton31_0db8ba13.prefab` | Title / Open、Hub；Mode / Settings、Controls；Pause / Resume、Restart；Results / Hub；Settings / Back |
-| `KagitKartInkButton31_c2574bf7.prefab` | Results / Restart、Next；Standings / Next；Podium / Menu |
-| `KagitKartChoicePaperButton31_0db8ba13.prefab` | Settings 的 14 个选择项；Controls / Keyboard、Gamepad、Touch |
-| `KagitKartModeCard_aefbb962.prefab` | Mode / SingleRace、GrandPrix、TimeTrial |
-| `KagitKartClassCard_5032af98.prefab`、`KagitKartClassCard_4cdd508f.prefab`、`KagitKartClassCard_eec291ae.prefab` | Class / Class80、Class120、Class200，按此顺序对应 |
-| `KagitKartPaperButton18_d30e1c21.prefab` | Character / Character0–7 |
-| `KagitKartPaperButton28_76978498.prefab` | Track / Track0–3 |
-| `KagitKartPaperButton23_be787881.prefab` | Pause / Hub |
-| `KagitKartPaperCommandButton_0db8ba13.prefab` | HUD / Throttle、Brake、Drift、Item、LookBack |
-| `KagitKartPaperCommandButton_65be1b45.prefab` | HUD / ItemCard，保留道具槽专属内容 |
-| `KagitSlider.prefab` | Settings / Viewport / SheetGroup / Sheet / Music、Sfx；公共源为 `UI/Common/_TemplateInstantiatePrefab/CommonSlider.prefab` |
+| `KagitKartMenuButton.prefab` | Title / Open、Hub；Mode / Settings、Controls；Pause / Resume、Restart；Results / Hub；Settings / Back |
+| `KagitKartResultsActionButton.prefab` | Results / Restart、Next；Standings / Next；Podium / Menu |
+| `KagitKartChoiceButton.prefab` | Settings 的 14 个选择项；Controls / Keyboard、Gamepad、Touch |
+| `KagitKartModeCard.prefab` | Mode / SingleRace、GrandPrix、TimeTrial |
+| `KagitKartLightClassCard.prefab`、`KagitKartMediumClassCard.prefab`、`KagitKartHeavyClassCard.prefab` | Class / Class80、Class120、Class200，按此顺序对应 |
+| `KagitKartCharacterButton.prefab` | Character / Character0–7 |
+| `KagitKartTrackButton.prefab` | Track / Track0–3 |
+| `KagitKartReturnToHubButton.prefab` | Pause / Hub |
+| `KagitKartHudCommandButton.prefab` | HUD / Throttle、Brake、Drift、Item、LookBack |
+| `KagitKartItemCommandButton.prefab` | HUD / ItemCard，保留道具槽专属内容 |
+| `KagitKartSlider.prefab` | Settings / Viewport / SheetGroup / Sheet / Music、Sfx；公共源为 `UI/Common/_TemplateInstantiatePrefab/CommonSlider.prefab` |
 
-Title 的 CoverHit 保留透明全屏翻书点击区。HUD 的离散/保持命令按钮复用 CommandButton 风格 Variant，并保留原 InputCommandButton 与业务组件；转向、道具槽、倒计时和外层纸卡 Group 仍按玩法结构维护。正式提示 Variant 位于 `Prefabs/UI/Widgets/KagitKartInputPrompt*.prefab`，保持动作绑定与隐藏释放语义。
+Title 的 CoverHit 保留透明全屏翻书点击区。HUD 的离散/保持命令按钮复用 CommandButton 风格 Variant，并保留原 InputCommandButton 与业务组件；转向、道具槽、倒计时和外层纸卡 Group 仍按玩法结构维护。正式提示 Variant 位于 `Prefabs/UI/Foundation/KagitKartInputPrompt*.prefab`，保持动作绑定与隐藏释放语义。
 
 ## 可读性与换风格
 

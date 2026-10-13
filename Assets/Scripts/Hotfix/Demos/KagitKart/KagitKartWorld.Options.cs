@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Core.Runtime;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -126,15 +126,11 @@ namespace Hotfix.KagitKart
             try
             {
                 var token = lifetimeCancellation.Token;
-                var shown = controls
-                    ? await UIManager.Instance.ShowAsync<KagitKartControlsView>(view => view.SetData(this), new UIShowOptions(animated: false), token)
-                    : await UIManager.Instance.ShowAsync<KagitKartSettingsView>(view => view.SetData(this), new UIShowOptions(animated: false), token);
-                if (shown.Status == UIOperationStatus.Failed)
-                {
-                    throw shown.Exception;
-                }
+                View shown = controls
+                    ? await UIManager.Instance.OpenAsync<KagitKartControlsView>(view => view.SetData(this), new UIOpenOptions(animated: false), token)
+                    : await UIManager.Instance.OpenAsync<KagitKartSettingsView>(view => view.SetData(this), new UIOpenOptions(animated: false), token);
                 token.ThrowIfCancellationRequested();
-                optionsView = shown.View;
+                optionsView = shown;
             }
             catch (OperationCanceledException)
             {
@@ -155,11 +151,7 @@ namespace Hotfix.KagitKart
         {
             if (optionsView != null)
             {
-                var closed = await UIManager.Instance.CloseAsync(optionsView);
-                if (closed.Status == UIOperationStatus.Failed)
-                {
-                    throw closed.Exception;
-                }
+                await UIManager.Instance.CloseAsync(optionsView);
                 optionsView = null;
             }
         }

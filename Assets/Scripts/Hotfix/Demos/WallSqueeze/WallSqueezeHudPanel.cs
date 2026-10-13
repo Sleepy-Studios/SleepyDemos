@@ -1,3 +1,4 @@
+using Core.Runtime;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -75,7 +76,7 @@ namespace Hotfix.WallSqueeze
             if (world.HasTimeLimit)
             {
                 clock.text = $"倒计时 {Mathf.CeilToInt(world.Simulation.RemainingSeconds):00}";
-                clock.color = world.Simulation.RemainingSeconds <= 10 ? new Color(208f / 255, 48f / 255, 42f / 255) : Color.black;
+                clock.color = world.Simulation.RemainingSeconds <= 10 ? UIColors.WallSqueeze.ClockWarning : UIColors.WallSqueeze.Ink;
             }
             bool playing = !world.Paused && world.Simulation.Result == WallSqueezeResult.Playing;
             pause.interactable = playing;

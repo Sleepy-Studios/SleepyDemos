@@ -104,6 +104,10 @@
                 prompt.SetBindingsVisible(world.ShowInputPrompts);
             }
             InputPromptGroup_KagitKartControlsView.SetVisible(device != 2);
+            InputPromptGroup_KagitKartControlsView.SetRowVisible("Mute", device == 0);
+            InputPromptGroup_KagitKartControlsView.SetRowVisible("Restart", device == 0);
+            TextMeshProUGUI_MuteTitle.gameObject.SetActive(device != 1);
+            TextMeshProUGUI_RestartTitle.gameObject.SetActive(device != 1);
             foreach (string direction in new[] { "Left", "Right" })
             {
                 var prompt = InputPromptGroup_KagitKartControlsView.Get("Steer" + direction);

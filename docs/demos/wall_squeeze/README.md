@@ -22,3 +22,5 @@
 - 专属资源：`Assets/LoadResources/Demos/wall_squeeze/`。
 - 从 Hub 的“夹爆它”入口进入，暂停或结果菜单返回 Hub。Editor 可直接打开保存的 `Scenes/Main.unity` 后 Play。
 - 现有 [新增 Demo](../../runbooks/add-demo.md)、[公共输入](../../modules/gameplay-input.md)、[公共设置与表现](../../modules/settings-presentation.md)、[测试架构](../../architecture/testing.md) 继续作为公共真源。
+
+基础 UI 风格库：`Assets/LoadResources/Demos/wall_squeeze/Prefabs/UI/Foundation/`，以 `Wall` 前缀按用途命名，完整公共控件与本 Demo 组合子变体均从这里复用；准确字号、业务参数与页面布局保留。固定 UI/HUD 源码颜色在 `UIColors.WallSqueeze`，规则与清单见[界面美术维护](architecture/art-direction.md)及[基础资源维护](../../modules/ui-foundation-assets.md#四-demo-完整风格库)。

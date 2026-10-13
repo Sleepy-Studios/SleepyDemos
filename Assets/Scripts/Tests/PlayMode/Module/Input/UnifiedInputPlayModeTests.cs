@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Core.Runtime;
 using Core.Runtime.Inputs;
+using Core.Runtime.Settings;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
@@ -18,6 +19,61 @@ namespace Tests.Module
 {
     public sealed class UnifiedInputPlayModeTests
     {
+        [Test]
+        public void UnconnectedStickAxisPreviewUsesParentGlyphAndCandidateBrandStaysLocal()
+        {
+            var asset = ScriptableObject.CreateInstance<InputActionAsset>();
+            var map = new InputActionMap("Preview");
+            asset.AddActionMap(map);
+            asset.devices = new InputDevice[0];
+            var action = map.AddAction("Steer", InputActionType.Value, "<Gamepad>/leftStick/x");
+            var reference = InputActionReference.Create(action);
+            var catalog = ScriptableObject.CreateInstance<InputGlyphCatalog>();
+            var sprites = new List<Sprite>();
+            var entries = new List<InputGlyphCatalog.Entry>();
+            foreach (GamepadStyle style in System.Enum.GetValues(typeof(GamepadStyle)))
+            {
+                var sprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0, 0, 1, 1), Vector2.one * 0.5f);
+                sprites.Add(sprite);
+                entries.Add(new InputGlyphCatalog.Entry { style = style, controlPath = "leftStick", sprite = sprite });
+            }
+            catalog.Configure(entries.ToArray(), null, null);
+            var root = new GameObject("CandidatePrompt", typeof(RectTransform), typeof(InputBindingPrompt));
+            var glyph = new GameObject("Glyph", typeof(RectTransform), typeof(Image));
+            glyph.transform.SetParent(root.transform);
+            try
+            {
+                var parts = InputBindingDisplay.GetParts(action, out _, InputDeviceKind.Gamepad);
+                Assert.That(parts.Count, Is.EqualTo(1));
+                Assert.That(parts[0].ControlPath, Is.EqualTo("leftStick"));
+                var prompt = root.GetComponent<InputBindingPrompt>();
+                var image = glyph.GetComponent<Image>();
+                prompt.Configure(reference, catalog, null, new[] { new InputBindingPrompt.GlyphSlot { root = glyph, icon = image } }, null);
+                prompt.SetDisplayDevice(InputDeviceKind.Gamepad);
+                var applied = GameSettingsService.CurrentGamepadStyle;
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(applied, "leftStick")));
+                foreach (GamepadStyle style in System.Enum.GetValues(typeof(GamepadStyle)))
+                {
+                    prompt.SetDisplayGamepadStyle(style);
+                    Assert.That(image.sprite, Is.SameAs(catalog.Get(style, "leftStick")));
+                    Assert.That(GameSettingsService.CurrentGamepadStyle, Is.EqualTo(applied), "候选预览不能提前修改全局品牌。");
+                }
+                prompt.SetDisplayGamepadStyle(null);
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(applied, "leftStick")));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+                Object.DestroyImmediate(reference);
+                Object.DestroyImmediate(asset);
+                Object.DestroyImmediate(catalog);
+                foreach (var sprite in sprites)
+                {
+                    Object.DestroyImmediate(sprite);
+                }
+            }
+        }
+
         [UnityTest]
         public IEnumerator CompoundKeycapsAndPlayStationPromptsResolveActualBindings()
         {
@@ -41,7 +97,7 @@ namespace Tests.Module
                 parts = InputBindingDisplay.GetParts(action, out _);
                 Assert.That(parts.Count, Is.EqualTo(1));
                 Assert.That(parts[0].ControlPath, Is.EqualTo("buttonNorth"));
-                Assert.That(InputDeviceState.PromptStyle, Is.EqualTo(GamepadStyle.PlayStation));
+                Assert.That(InputDeviceState.PromptStyle, Is.EqualTo(GameSettingsService.CurrentGamepadStyle), "真实设备不自动切换玩家图标偏好。");
                 InputDeviceState.Notify(keyboard);
                 action.ApplyBindingOverride(2, "<Keyboard>/t");
                 parts = InputBindingDisplay.GetParts(action, out _);
@@ -138,7 +194,7 @@ namespace Tests.Module
                 Assert.That(InputDeviceState.PromptDevice, Is.SameAs(keyboard));
                 Assert.That(InputDeviceState.ActiveDevice, Is.SameAs(keyboard));
                 InputDeviceState.Notify(pad);
-                Assert.That(InputDeviceState.PromptStyle, Is.EqualTo(GamepadStyle.Switch));
+                Assert.That(InputDeviceState.PromptStyle, Is.EqualTo(GameSettingsService.CurrentGamepadStyle), "Switch用途仍读物理布局，图标风格保持玩家偏好。");
                 action.Enable(); cancel.Enable();
                 Assert.That(action.controls.Contains(pad.buttonEast), Is.True);
                 Assert.That(action.controls.Contains(pad.buttonSouth), Is.False);
@@ -487,13 +543,13 @@ namespace Tests.Module
                 Assert.That(originalCatalog.KeyboardBlank.border, Is.EqualTo(new Vector4(32f, 32f, 32f, 32f)),
                     "正式空帽必须提供可横向扩展的九宫格边界。");
                 using var gamepadAction = new InputAction("LongFallback", InputActionType.Button);
-                gamepadAction.AddBinding("<Gamepad>/leftShoulder");
+                gamepadAction.AddBinding("<Gamepad>/unmappedLongControlName");
                 gamepadAction.AddBinding("<Gamepad>/buttonSouth");
                 foreach (bool equipment in new[] { false, true })
                 {
                     InputDeviceState.Notify(keyboard);
-                    string path = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/Parts/"
-                        + (equipment ? "TelemetryRoot.prefab" : "DroneInputPrompt.prefab");
+                    string path = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/"
+                        + (equipment ? "Parts/TelemetryRoot.prefab" : "Foundation/DroneInputPrompt.prefab");
                     var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
                     Assert.That(prefab, Is.Not.Null);
                     var root = Object.Instantiate(prefab, parent.transform);
@@ -518,6 +574,8 @@ namespace Tests.Module
                         var element = image.GetComponent<LayoutElement>();
                         var layout = image.GetComponent<HorizontalLayoutGroup>();
                         var slotLayout = image.transform.parent.GetComponent<HorizontalLayoutGroup>();
+                        var promptElement = prompt.GetComponent<LayoutElement>();
+                        int authoredPromptPriority = promptElement != null ? promptElement.layoutPriority : 0;
                         float authoredWidth = element.preferredWidth;
                         float authoredHeight = element.preferredHeight;
                         float authoredMultiplier = image.pixelsPerUnitMultiplier;
@@ -529,12 +587,16 @@ namespace Tests.Module
                         prompt.enabled = true;
                         InputDeviceState.Notify(gamepad);
                         prompt.SetDisplayDevice(InputDeviceKind.Gamepad);
+                        prompt.SetDisplayGamepadStyle(GamepadStyle.Xbox);
                         prompt.BindBinding(gamepadAction, 0);
-                        LayoutRebuilder.ForceRebuildLayoutImmediate(prompt.GetComponent<RectTransform>());
+                        // Equipment 的父布局拥有提示宽度；必须完成整个正式宿主布局周期再验收键帽。
+                        yield return null;
+                        Canvas.ForceUpdateCanvases();
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(root.GetComponent<RectTransform>());
                         var parts = InputBindingDisplay.GetParts(gamepadAction, out _, InputDeviceKind.Gamepad, bindingIndex: 0);
                         Assert.That(parts.Count, Is.EqualTo(1));
-                        Assert.That(originalCatalog.Get(InputDeviceKind.Gamepad, GamepadStyle.Generic, parts[0].ControlPath), Is.Null);
-                        Assert.That(keyText.text, Is.EqualTo(parts[0].Text), "未知品牌显示真实长控制名称。");
+                        Assert.That(originalCatalog.Get(InputDeviceKind.Gamepad, GamepadStyle.Xbox, parts[0].ControlPath), Is.Null);
+                        Assert.That(keyText.text, Is.EqualTo(parts[0].Text), "缺失图标仍显示真实长控制名称。");
                         Assert.That(keyText.preferredWidth, Is.GreaterThan(authoredHeight), "夹具必须覆盖方形短帽放不下的真实名称。");
                         Assert.That(image.sprite, Is.SameAs(originalCatalog.KeyboardBlank));
                         Assert.That(image.type, Is.EqualTo(Image.Type.Sliced));
@@ -546,14 +608,22 @@ namespace Tests.Module
                         Assert.That(layout.padding.left, Is.GreaterThan(0));
                         Assert.That(layout.padding.right, Is.GreaterThan(0));
                         Assert.That(image.rectTransform.rect.width + 0.1f,
-                            Is.GreaterThanOrEqualTo(keyText.preferredWidth + layout.padding.horizontal));
+                            Is.GreaterThanOrEqualTo(keyText.preferredWidth + layout.padding.horizontal),
+                            $"equipment={equipment}; icon={image.rectTransform.rect.width}; text={keyText.preferredWidth}; padding={layout.padding.horizontal}; "
+                            + $"layoutPreferred={layout.preferredWidth}; elementMin={element.minWidth}; elementPreferred={element.preferredWidth}; "
+                            + $"slotWidth={image.transform.parent.GetComponent<RectTransform>().rect.width}; promptWidth={prompt.GetComponent<RectTransform>().rect.width}; "
+                            + $"glyphWidth={image.transform.parent.parent.GetComponent<RectTransform>().rect.width}");
                         float longWidth = image.rectTransform.rect.width;
                         prompt.Refresh();
-                        LayoutRebuilder.ForceRebuildLayoutImmediate(prompt.GetComponent<RectTransform>());
+                        yield return null;
+                        Canvas.ForceUpdateCanvases();
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(root.GetComponent<RectTransform>());
                         Assert.That(image.rectTransform.rect.width, Is.EqualTo(longWidth).Within(0.1f), "反复刷新不能累积内边距。");
                         prompt.BindBinding(gamepadAction, 1);
-                        LayoutRebuilder.ForceRebuildLayoutImmediate(prompt.GetComponent<RectTransform>());
-                        Assert.That(image.sprite, Is.SameAs(originalCatalog.Get(InputDeviceKind.Gamepad, GamepadStyle.Generic, "buttonSouth")));
+                        yield return null;
+                        Canvas.ForceUpdateCanvases();
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(root.GetComponent<RectTransform>());
+                        Assert.That(image.sprite, Is.SameAs(originalCatalog.Get(InputDeviceKind.Gamepad, GamepadStyle.Xbox, "buttonSouth")));
                         Assert.That(image.type, Is.EqualTo(Image.Type.Simple));
                         Assert.That(image.preserveAspect, Is.True);
                         Assert.That(keyText.gameObject.activeSelf, Is.False);
@@ -562,6 +632,10 @@ namespace Tests.Module
                         Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(authoredMultiplier));
                         Assert.That(element.flexibleHeight, Is.EqualTo(authoredFlexibleHeight));
                         Assert.That(slotLayout.childForceExpandHeight, Is.EqualTo(authoredForceExpandHeight));
+                        if (promptElement != null)
+                        {
+                            Assert.That(promptElement.layoutPriority, Is.EqualTo(authoredPromptPriority), "切回图标应恢复作者容器的布局优先级。");
+                        }
                         Assert.That(image.color, Is.EqualTo(authoredColor), "回退不能更改 Demo 的作者颜色。");
                     }
                     finally
@@ -584,7 +658,7 @@ namespace Tests.Module
         public IEnumerator SavedKartBindingRowsShowSelectedAliasAndClearSelectionWhenReused()
         {
             var source = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/LoadResources/Demos/kagit_kart/Data/PlayerInput.asset");
-            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Widgets/KagitKartInputPrompt.prefab");
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Foundation/KagitKartInputPrompt.prefab");
             var catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<InputGlyphCatalog>("Assets/LoadResources/UI/Common/Input/InputGlyphCatalog.asset");
             Assert.That(source, Is.Not.Null);
             Assert.That(prefab, Is.Not.Null);
@@ -609,17 +683,17 @@ namespace Tests.Module
                 var image = root.transform.Find("Glyphs/Glyph0/Icon0").GetComponent<Image>();
                 prompt.SetDisplayDevice(InputDeviceKind.KeyboardMouse);
                 prompt.BindBinding(throttle, arrow);
-                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "upArrow")));
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Xbox, "upArrow")));
                 throttle.ApplyBindingOverride(arrow, "<Keyboard>/t");
                 prompt.Refresh();
-                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "t")));
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Xbox, "t")));
                 prompt.Bind(throttle);
-                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "w")), "复用为完整动作时清除精确绑定选择。");
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Xbox, "w")), "复用为完整动作时清除精确绑定选择。");
                 int right = Enumerable.Range(0, steer.bindings.Count).Single(index => steer.bindings[index].path == "<Keyboard>/rightArrow");
                 prompt.BindBinding(steer, right);
-                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "rightArrow")));
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Xbox, "rightArrow")));
                 prompt.BindPart(steer, "Positive");
-                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, "d")), "复合分组预览也应清除精确绑定选择。");
+                Assert.That(image.sprite, Is.SameAs(catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Xbox, "d")), "复合分组预览也应清除精确绑定选择。");
                 Assert.That(source.SaveBindingOverridesAsJson(), Is.EqualTo(original));
             }
             finally
@@ -661,7 +735,7 @@ namespace Tests.Module
                 {
                     action.ApplyBindingOverride(0, "<Keyboard>/" + key);
                     prompt.Refresh();
-                    var sprite = catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Generic, key);
+                    var sprite = catalog.Get(InputDeviceKind.KeyboardMouse, GamepadStyle.Xbox, key);
                     Assert.That(sprite, Is.Not.Null, "正式键盘图标缺失：" + key);
                     Assert.That(sprite, Is.Not.SameAs(catalog.KeyboardBlank));
                     Assert.That(image.sprite, Is.SameAs(sprite), "提示应使用真实 Kenney 键图形：" + key);

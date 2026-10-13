@@ -34,9 +34,9 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 
 ## View 生命周期
 
-页面顺序为导航请求排队持有数据 → 实例化 → UIBind 的 InitComponent → 一次性 OnGameObjectInitialize → 业务 SetData → OnShow/显示。加载失败或取消不交付数据；缓存页面再次打开不重复初始化，但交付本次请求的数据。已经可见的单实例收到新的数据请求时只交付一次 SetData，保持现有 Ignored 结果、不重复 OnShow。FIFO、取消和事务回滚仍由原导航协调器负责。
+页面顺序为导航请求排队持有数据 → 实例化 → UIBind 的 InitComponent → 一次性 OnGameObjectInitialize → 业务 SetData → OnShow/显示。加载失败或取消不交付数据；缓存页面再次打开不重复初始化，但交付本次请求的数据。已经可见的单实例收到新的数据请求时只交付一次 SetData，返回原 View、不重复 OnShow。FIFO、取消和事务回滚仍由原导航协调器负责。
 
-业务在具体类中声明具体类型 SetData，并在其中直接更新控件；显示复杂或需要复用时再拆自己的 private RefreshUI(data)。仅点击、语言切换等后续行为需要时缓存数据。普通页面可用 ShowAsync<TView>(view => view.SetData(data))；现有 View<T> 仍服务实际使用它的页面，但不强制普通业务继承。一次性初始化回调只做绑定和初始化，不读取尚未交付的打开数据。本次受影响页面没有依赖数据决定资源地址的调用方；未来确有需求时单独定义加载参数，不恢复普通 SetData 的加载前交付。
+业务在具体类中声明具体类型 SetData，并在其中直接更新控件；显示复杂或需要复用时再拆自己的 private RefreshUI(data)。仅点击、语言切换等后续行为需要时缓存数据。普通页面可用 Show<TView>(view => view.SetData(data))，严格等待的流程使用 OpenAsync<TView>；现有 View<T> 仍服务实际使用它的页面，但不强制普通业务继承。一次性初始化回调只做绑定和初始化，不读取尚未交付的打开数据。本次受影响页面没有依赖数据决定资源地址的调用方；未来确有需求时单独定义加载参数，不恢复普通 SetData 的加载前交付。
 
 普通列表由桥接创建一次 ItemView，先 Init/InitComponent，再 RectData → 业务 SetData；复用只更新索引和当前数据。Item 自己声明 SetData(具体类型)，不依赖父类 params1、待刷新标记或初始化后补刷新。物理 Cell 的激活、测量由包管理，绑定与数据回调在同一次同步 reconcile 中完成，随后 Canvas 显示本帧数据；不能在物理 Cell 的 OnEnable 中读取业务打开数据。UIBind 负责控件引用与一次性事件绑定，Core/包保留回收身份校验。
 
@@ -69,9 +69,9 @@ Loading --加载失败或取消--> Faulted
 - Mask 在 Show、Replace、Close、Back、回滚和清栈边界统一从 `UIStack.TopModal` 刷新；Widget 与 Page 的进入、退出或失败不得覆盖现有 Modal Mask。刷新只调整层级、缩放、位置和 Button 交互，不修改 Mask 颜色或 alpha。
 - `UICache` 只会为 `Destroyed` 的旧实例创建替代实例。`Faulted` View 必须由 `UIManager` 事务先移栈、等待 `DestroyAsync`，再从 Cache 移除；Cache 不持有 Stack，也不自行等待销毁。
 - Coordinator 使用单一状态锁保护 queue、current、current CTS、Pump 与 Dispose 状态；锁内只操作队列状态，不调用 Cache、View 构造或任何外部委托。取消、TCS 完成、registration 释放和异步执行也都在锁外，executor 总是在 Unity 主线程串行运行。
-- Coordinator 保证不同目标操作严格 FIFO；同类型 Show/Replace 与 Close 反向操作会取消 current，但反向操作仍按队列顺序执行。pending 调用方取消会立即返回 Canceled，不等待队首，也不产生 View 副作用。
-- `CloseAllAsync` 会原子取消 current 和调用时的 pending，再作为后续唯一清理操作执行。单个 View 销毁异常不会中断其它 View，最终仍清空 Cache、Stack、Mask 和名称，并通过 Failed + `AggregateException` 返回清理异常。CloseAll 在执行中被调用方或后一个 CloseAll 取消时仍完成全量收口，但结果优先返回 Canceled。
-- 没有 View 可清理的 `CloseAllAsync` 是幂等成功，返回 `Succeeded` 且 `View == null`；这是成功结果允许空 View 的唯一 action。
+- Coordinator 保证不同目标操作严格 FIFO；同类型打开/替换与关闭反向操作会取消 current，但反向操作仍按队列顺序执行。pending 调用方取消会立即结束等待，不等待队首，也不产生 View 副作用。预先取消的普通请求不会抢占正在进行的反向请求；空、外部或过期实例关闭也不会取消当前打开。
+- `CloseAllAsync` 会原子取消 current 和调用时的 pending，再作为唯一清理操作执行。单个 View 销毁异常不会中断其它 View，最终仍清空 Cache、Stack、Mask 和名称；未取消时抛 `AggregateException` 报告清理错误。清理期间或预先取消仍完成全量收口，然后抛 `OperationCanceledException`；同时发生的清理错误记录 Console。
+- 没有 View 可清理的 `CloseAllAsync` 是幂等完成；正常调用没有返回 View，预先取消仍在收口后报告取消。
 - 加载成功前不修改正式栈。Show/Replace/Close/Back 同时捕获 `UIStackSnapshot` 与表现快照；取消或异常时精确恢复 View parent、sibling、active、稳定状态、Reference、Mask 字段及名称。事务中进入 Faulted 的目标即使原本在栈内也会移栈、销毁并移出 Cache。
 - 栈提交、目标 Enter、露出 View 与表现调整属于可逆事务；这些步骤成功后即越过 commit point。随后旧 View/关闭 View 的 Destroy 是 post-commit best-effort cleanup：异常统一记录并始终按实例移出 Cache，不回滚或复活 Destroyed View，核心导航结果保持 Succeeded。
 - `OnBehind`、`OnOpen`、`OnClose` 只在核心事务步骤全部成功后发布；单个订阅者异常会统一记录，但不回滚已提交导航，也不阻止其它订阅者。
@@ -122,23 +122,25 @@ Loading --加载失败或取消--> Faulted
 
 ## UIManager 使用规则
 
-正式入口统一为可等待的 Async 方法，返回 `UIOperationResult`；旧 Show/Close/Back/CloseAll 包装已移除。无等待需求的事件入口应在异步处理方法中检查 Failed 后再 `.Forget()`，单独 `.Forget()` 不会自动记录结果对象中的 Exception。导航不提供同步 bool；动画由现有选项控制。
+日常按钮使用 `UIManager.Show<T>(setData, asyncLoad, animation, hidePrevious, onOpened, onFailed)` 与 `Close<T>() / Close(view)`。Show 不返回未初始化的对象；`onOpened` 收到初始化、数据交付和进入都完成的实例，失败或取消不调用。短逻辑直接写回调，较长逻辑传命名方法，普通按钮不必使用 await 或 Forget。
 
-组件持有的 View 使用 `LoadAsync`、`ShowAsync`、`HideAsync`、`DestroyAsync`；同步 `Init` 仅供基础组件同步资源分支，`InitWithGameObject` 用于已有实例。UIBind 不再提供未生效的 IsAsync 配置，导航统一异步加载。
+`asyncLoad` 默认 true；false 在同一 View 加载生命周期内调用资源服务的真实同步 `Instantiate`。它只改变资源加载方式，导航排队、Root 初始化和过渡仍可能跨帧，不用 Wait/Result 阻塞异步任务。`animation` 与 `hidePrevious` 分别控制过渡和上一页面显示。
 
-- 新业务优先等待 `ShowAsync<T>()`、`ReplaceAsync<T>()`、`CloseAsync<T>()`、`BackAsync()`、`CloseAllAsync()`，并检查 `UIOperationResult.Status`；Failed 时读取 `Exception`。
-- 跨场景或跨会话持有 View 时使用 `CloseAsync(View expectedView, ...)`。它只关闭调用方保存的具体实例；即使同类型新 View 已由下一场景显示，旧会话清理也不会误关新实例。按类型 `CloseAsync<T>()` 只用于当前所有者明确唯一的普通界面。
-- 强类型页面数据使用 `ShowAsync<TView, TData>(data, options, cancellationToken)`，普通页面使用 `ShowAsync<TView>(view => view.SetData(data), options, cancellationToken)`。同一个导航 operation 持有交付回调，加载初始化完成后、OnShow 前调用一次；不得先显示再通过外部补数据。
-- 带数据异步 Show 与普通 Show 共用 FIFO、取消、Ignored、失败回滚和缓存语义。后一次调用的数据不会提前覆盖仍在加载的前一次 View。
-- Push Page 会在新页面加载完成后退出旧 Page 并入栈；Replace 首版只支持 Page，成功后移除并按 `DestroyOnHide` 清理旧 Page。
-- Push / Replace / Close / Back 都按各自 entering / exiting 语义解析 World Transition；Preload 不改变表现，CloseAll 当前直接完成全量销毁，因此两者都不虚构世界过渡。业务需要相机或场景联动时在 Hotfix Provider 注册真实实现。
-- `ShowAsync<T>(new UIShowOptions(animated, hidePrevious: false))` 会保留同层上一 View 的 Visible 状态；关闭新 View 时不会再次 Enter 已经 Visible 的旧 View。默认 `HidePrevious` 为 true。
-- 进入和退出只编排当前 View 的 `IUITransition` 与由 Provider 解析的 `IUIWorldTransition`；同阶段并行等待，阶段之间严格顺序执行。失败或取消时先恢复栈和 View 表现快照，再把已尝试的世界过渡同步到事务前方向。
-- Back 优先关闭 TopModal，再关闭 CurrentPage；露出的旧 Modal/Page 会恢复 Visible。
-- 重复显示已经稳定处于顶部且 Visible 的同一单实例返回 Ignored，不重复 Hook、Transition 或引用计数。
-- 数据泛型 Show/Preload 把 SetData 作为 operation 载荷，在轮到该 operation 且控件初始化完成后交付，避免后一次请求覆盖仍在加载的前一次数据。Preload 交付后仍保持隐藏，不进入正式栈。
-- `PreloadAsync<T>()` 也进入同一 FIFO 队列，不与导航事务并发修改 View 状态；成功后保持 `LoadedHidden` 且不修改正式栈。
-- Replace 收到 Modal 或 Widget 时返回 Failed；只有本次 operation 新建的目标才会销毁并移出 Cache，已显示或已预加载的既有实例、栈、Mask 和名称保持不变。
+显式同步资源请求如果本次操作已同步完成，错误通过 `onFailed` 反馈，未提供时直接抛出；稍后完成的错误调用 `onFailed` 或记录 Console。正常取消不调用成功或失败回调。完成回调属于已提交导航之后的业务逻辑，回调自身异常不会回滚已提交页面。
+
+Loading、场景切换、语言重建与必须完成资源释放的流程使用可等待入口：`OpenAsync<T>`、`ReplaceAsync<T>`、`PreloadAsync<T>` 返回具体 View；`CloseAsync`、`BackAsync`、`CloseAllAsync` 返回 UniTask。失败抛原异常并保留堆栈，实际取消抛 OperationCanceledException。内部结果只服务协调器和诊断，不在 Hotfix 业务中传播。
+
+- 日常入口与可等待入口共用一条 FIFO 和同一套资源、缓存、交互锁、栈快照、回滚、Mask、焦点和过渡，不建立平行管理器。
+- 数据通过 `view => view.SetData(data)` 交付：初始化后、OnShow 前调用一次；可见单实例重复打开仍交付本次数据，不重复 OnShow。现有 View<TData> 页面继续使用自己的 SetData，不保留公开双泛型包装。
+- Replace 仅替换 Page，参数是 animated 和 cancellationToken，不接受没有意义的 HidePrevious。
+- 跨场景持有的 View 使用实例关闭。缓存不再提供业务修改权限；外部实例、过期实例、空关闭和空栈 Back 幂等完成，不误关随后创建的同类型页面。
+- Preload 隐藏准备且不入栈；目标已经在栈时只返回同一实例，不配置、不隐藏。准备失败不销毁此前已经准备的实例。
+- Close 按 DestroyOnHide 清理；组件持有的子 View 继续使用自身 ShowAsync / HideAsync 生命周期，不新增全局 Hide 入口。
+- CloseAll 取消旧请求并完整清理所有资源；即使令牌预先取消，也在清理结束后报告取消。
+- Get<T>() 只查缓存，可返回隐藏实例；TopView 查询已提交顶层 Modal / Page；GetAllViews() 返回只读快照。不通过查询创建、加载或显示页面。
+- UIOpenOptions 默认播放过渡、隐藏同层上一页并异步加载资源；hidePrevious:false 保留上一页，关闭新页时不重复进入已经可见的旧页。
+
+组件 View 继续使用 LoadAsync / ShowAsync / HideAsync / DestroyAsync。同步 Init 和 InitWithGameObject 服务组件作者入口；UIBind 不重新引入隐式 IsAsync 开关，导航加载方式由本次请求明确选择。
 
 ## 渲染结构与生命周期
 

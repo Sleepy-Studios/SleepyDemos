@@ -31,7 +31,7 @@ namespace Core.Runtime.Inputs
         public Sprite KeyboardBlank => keyboardBlank;
 
         /// <summary>正式制作工具配置手柄和键鼠图标；保留已用资源，不扫描目录。</summary>
-        /// <param name="gamepadEntries">真实布局风格和控制路径的图标。</param>
+        /// <param name="gamepadEntries">玩家可选风格和实际控制路径的图标。</param>
         /// <param name="otherEntries">键鼠与触屏专用路径图标。</param>
         /// <param name="blankKeycap">无法预制键名时显示文字的空白键帽。</param>
         public void Configure(Entry[] gamepadEntries, DeviceEntry[] otherEntries, Sprite blankKeycap)
@@ -43,7 +43,7 @@ namespace Core.Runtime.Inputs
 
         /// <summary>按实际设备和控件路径取得图标。</summary>
         /// <param name="kind">真实提示设备类别。</param>
-        /// <param name="style">已识别手柄品牌。</param>
+        /// <param name="style">已应用或局部预览的图标风格。</param>
         /// <param name="path">实际设备内控件路径。</param>
         /// <returns>专用图标；没有资源时由键帽文字展示真实绑定。</returns>
         public Sprite Get(InputDeviceKind kind, GamepadStyle style, string path)
@@ -62,8 +62,8 @@ namespace Core.Runtime.Inputs
             return null;
         }
 
-        /// <summary>查找已确认品牌对应的图标；未知设备不冒用品牌。</summary>
-        /// <param name="style">真实设备图标风格。</param>
+        /// <summary>按玩家所选品牌显示实际物理控件的图标。</summary>
+        /// <param name="style">已应用或局部预览的图标风格。</param>
         /// <param name="path">设备内部控制路径。</param>
         /// <returns>图标或 null，调用方可显示绑定文字。</returns>
         public Sprite Get(GamepadStyle style, string path)

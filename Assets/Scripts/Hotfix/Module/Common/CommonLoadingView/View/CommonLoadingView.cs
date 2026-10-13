@@ -41,7 +41,7 @@ namespace Hotfix
                 return;
             }
             Image_Background.sprite = null;
-            Image_Background.color = new Color(0.06f, 0.07f, 0.08f, 1);
+            Image_Background.color = UIColors.Common.LoadingBackground;
             if (string.IsNullOrWhiteSpace(address))
             {
                 return;

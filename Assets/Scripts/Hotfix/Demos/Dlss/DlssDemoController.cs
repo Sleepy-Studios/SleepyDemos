@@ -55,11 +55,10 @@ namespace Hotfix.Dlss
             input = new InputActionSession(actions);
             input.SetMap("Observe");
             data = GlobalData.Add(new DlssData(this));
-            var opened = await UIManager.Instance.ShowAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIShowOptions(false), lifetime.Token);
-            if (opened.Status == UIOperationStatus.Failed)
-                throw opened.Exception;
+            var opened = await UIManager.Instance.OpenAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIOpenOptions(false), lifetime.Token);
+
             if (IsCurrent)
-                controls = opened.View as DlssControlsView;
+                controls = opened;
         }
 
         private void Update()
@@ -104,11 +103,9 @@ namespace Hotfix.Dlss
             if (!IsCurrent)
                 return;
             input?.SetMap("Observe");
-            var opened = await UIManager.Instance.ShowAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIShowOptions(false), lifetime.Token);
-            if (IsCurrent && opened.Status == UIOperationStatus.Failed)
-                Debug.LogException(opened.Exception, this);
+            var opened = await UIManager.Instance.OpenAsync<DlssControlsView>(view => view.SetData(input.Asset), new UIOpenOptions(false), lifetime.Token);
             if (IsCurrent)
-                controls = opened.View as DlssControlsView;
+                controls = opened;
         }
 
         private void OnDestroy()
@@ -126,8 +123,6 @@ namespace Hotfix.Dlss
         private static async UniTask DisposeControlsAsync(DlssControlsView view)
         {
             await UIManager.Instance.CloseAsync(view, false);
-            UIManager.Instance.cacheStack.Remove(view);
-            await view.DestroyAsync();
         }
 
         /// 恢复初始视角并重置时域历史。

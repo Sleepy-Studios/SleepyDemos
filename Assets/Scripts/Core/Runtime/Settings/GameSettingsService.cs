@@ -25,6 +25,8 @@ namespace Core.Runtime.Settings
 
         /// 返回独立候选；需要逐帧消费的宿主应在 Changed 时更新自己的快照。
         public static GameSettingsSnapshot Current => current.Copy();
+        /// 提示只读取一个枚举，不为每次显示复制整份设置。
+        public static GamepadStyle CurrentGamepadStyle => current.Input.GamepadStyle;
         /// 配置与偏好均已完成初始化。
         public static bool IsInitialized { get; private set; }
         /// 正在提交，界面不能再次提交。
@@ -87,7 +89,7 @@ namespace Core.Runtime.Settings
 
                 config.Validate();
                 var defaults = config.GetDefaults();
-                current = LocalDataManager.LoadData(PreferenceKey, defaults, Validate);
+                current = LocalDataManager.LoadData(PreferenceKey, defaults, ValidateLoaded);
                 Feedback = null;
 
                 LanguageService.Initialize(config.Language, config.Fonts, current.Language);
@@ -201,6 +203,16 @@ namespace Core.Runtime.Settings
             {
                 applying = false;
             }
+        }
+
+        private static void ValidateLoaded(GameSettingsSnapshot value)
+        {
+            // 旧偏好缺少图标字段或保存为0时，仅补Xbox，不丢弃其余玩家设置。
+            if (value?.Input != null && (int)value.Input.GamepadStyle == 0)
+            {
+                value.Input.GamepadStyle = GamepadStyle.Xbox;
+            }
+            Validate(value);
         }
 
         private static void Validate(GameSettingsSnapshot value)

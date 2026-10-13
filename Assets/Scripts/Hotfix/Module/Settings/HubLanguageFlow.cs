@@ -22,7 +22,7 @@ namespace Hotfix
         /// <param name="cancellationToken">只用于开始前取消，页面销毁后事务自行完成或回滚。</param>
         /// <returns>应用和重建的实际结果。</returns>
         public static async UniTask<SettingsApplyResult> ApplyAsync(GameSettingsSnapshot candidate,
-            Func<UniTask<UIOperationResult>> reopenSettings,
+            Func<UniTask<HubSettingsView>> reopenSettings,
             Func<CancellationToken, UniTask<bool>> confirmDisplay = null, CancellationToken cancellationToken = default)
         {
             var navigator = GameSceneNavigator.Instance;
@@ -47,8 +47,7 @@ namespace Hotfix
             IsChanging = true;
             try
             {
-                var closed = await UIManager.Instance.CloseAllAsync();
-                ThrowIfFailed(closed);
+                await UIManager.Instance.CloseAllAsync();
                 var applied = await GameSettingsService.ApplyAsync(candidate, confirmDisplay, allowLanguageChange: true);
                 if (!applied.Succeeded)
                 {
@@ -65,7 +64,7 @@ namespace Hotfix
                 string recoveryFeedback = restored.Succeeded ? "已恢复旧语言" : "旧语言恢复失败：" + restored.Message;
                 try
                 {
-                    ThrowIfFailed(await UIManager.Instance.CloseAllAsync());
+                    await UIManager.Instance.CloseAllAsync();
                     await RebuildAsync(selectedIndex, reopenSettings);
                 }
                 catch (Exception recoveryError)
@@ -82,26 +81,14 @@ namespace Hotfix
             }
         }
 
-        private static async UniTask RebuildAsync(int selectedIndex, Func<UniTask<UIOperationResult>> reopenSettings)
+        private static async UniTask RebuildAsync(int selectedIndex, Func<UniTask<HubSettingsView>> reopenSettings)
         {
             GlobalData.Remove<MainMenuData>();
             GlobalData.Add<MainMenuData>();
             GlobalData.Dispatch(new MainMenuSelectAction(selectedIndex));
-            ThrowIfFailed(await UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(animated: false)));
-            ThrowIfFailed(await reopenSettings());
+            await UIManager.Instance.OpenAsync<MainMenuView>(new UIOpenOptions(animated: false));
+            await reopenSettings();
         }
 
-        private static void ThrowIfFailed(UIOperationResult result)
-        {
-            if (result.Status == UIOperationStatus.Failed)
-            {
-                throw result.Exception ?? new InvalidOperationException("Hub 页面导航失败。");
-            }
-
-            if (result.Status == UIOperationStatus.Canceled)
-            {
-                throw new OperationCanceledException("Hub 页面导航取消。");
-            }
-        }
     }
 }

@@ -17,7 +17,7 @@ namespace Hotfix
         public override UIViewMode ViewMode => UIViewMode.Widget;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
-        public override bool DestroyOnHide => false;
+        public override bool DestroyOnHide => true;
         protected override IUITransition CreateUITransition()
         {
             return new Core.Runtime.EmptyUITransition();
@@ -32,6 +32,8 @@ namespace Hotfix
         private InputBindingPrompt InputBindingPrompt_Prompt_重置视角;
         private InputCommandButton InputCommandButton_Exit;
         private InputBindingPrompt InputBindingPrompt_Prompt_返回_Hub;
+        private InputBindingPrompt InputBindingPrompt_MovePrompt;
+        private InputBindingPrompt InputBindingPrompt_LookPrompt;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -52,6 +54,8 @@ namespace Hotfix
             InputBindingPrompt_Prompt_重置视角 = componentItemIndex.Get<InputBindingPrompt>(6);
             InputCommandButton_Exit = componentItemIndex.Get<InputCommandButton>(7);
             InputBindingPrompt_Prompt_返回_Hub = componentItemIndex.Get<InputBindingPrompt>(8);
+            InputBindingPrompt_MovePrompt = componentItemIndex.Get<InputBindingPrompt>(9);
+            InputBindingPrompt_LookPrompt = componentItemIndex.Get<InputBindingPrompt>(10);
         }
     }
 }

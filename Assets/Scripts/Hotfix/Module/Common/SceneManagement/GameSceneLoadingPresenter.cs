@@ -26,37 +26,24 @@ namespace Hotfix.SceneManagement
         {
             bool preserveSource = GameSceneNavigator.Instance != null && GameSceneNavigator.Instance.CurrentScene != GameSceneId.Hub;
             // Demo Page 的 OnHide 可能释放业务绑定，失败前不能退出或销毁来源实例。
-            var options = new UIShowOptions(animated: false, hidePrevious: !preserveSource);
-            var prepared = await UIManager.Instance.PreloadAsync<CommonLoadingView>();
-            if (prepared.Status != UIOperationStatus.Succeeded && prepared.Status != UIOperationStatus.Ignored)
+            var options = new UIOpenOptions(animated: false, hidePrevious: !preserveSource);
+            try
             {
-                return prepared.Exception?.Message ?? $"无法准备通用 Loading: {prepared.Status}";
+                loadingView = await UIManager.Instance.PreloadAsync<CommonLoadingView>();
+                loadingView.ResetProgress();
+                loadingView.SetTitle(target.DisplayName, target.DisplayNameKey);
+                await loadingView.SetBackgroundAsync(BackgroundAddress(target.Id));
+                loadingView = target.IsHub || preserveSource
+                    ? await UIManager.Instance.OpenAsync<CommonLoadingView>(options)
+                    : await UIManager.Instance.ReplaceAsync<CommonLoadingView>(animated: false);
             }
-            loadingView = prepared.View as CommonLoadingView;
-            if (loadingView == null)
+            catch (Exception exception)
             {
-                return "通用 Loading 预加载未返回 View 实例。";
-            }
-            loadingView.ResetProgress();
-            loadingView.SetTitle(target.DisplayName, target.DisplayNameKey);
-            await loadingView.SetBackgroundAsync(BackgroundAddress(target.Id));
-            var result = target.IsHub || preserveSource
-                ? await UIManager.Instance.ShowAsync<CommonLoadingView>(options)
-                : await UIManager.Instance.ReplaceAsync<CommonLoadingView>(options);
-            if (result.Status != UIOperationStatus.Succeeded &&
-                result.Status != UIOperationStatus.Ignored)
-            {
-                return result.Exception?.Message ?? $"无法打开通用 Loading: {result.Status}";
-            }
-
-            loadingView = result.View as CommonLoadingView;
-            if (loadingView == null)
-            {
-                return "通用 Loading 已打开，但无法取得 CommonLoadingView 实例。";
+                return exception.Message;
             }
 
             // Loading 保持 Base Page；只遮蔽现有高层绘制，不退出来源页面或目标控件生命周期。
-            foreach (var view in UIManager.Instance.cacheStack.GetAllViews())
+            foreach (var view in UIManager.Instance.GetAllViews())
             {
                 if (!view.IsLoaded || view.Level <= UILayer.Base) continue;
                 var group = view.gameObject.GetComponent<CanvasGroup>();
@@ -124,25 +111,21 @@ namespace Hotfix.SceneManagement
             {
                 if (scene == GameSceneId.Hub)
                 {
-                    var result = await UIManager.Instance.ReplaceAsync<MainMenuView>(new UIShowOptions(false));
-                    if (result.Status != UIOperationStatus.Succeeded && result.Status != UIOperationStatus.Ignored)
-                    {
-                        return result.Exception?.Message ?? $"场景 UI 收口失败: {result.Status}";
-                    }
+                    await UIManager.Instance.ReplaceAsync<MainMenuView>(animated: false);
                 }
 
                 // Editor 正式启动可能已显示 Hub，仍须清理本事务留下的 Loading 实例。
                 if (loadingView != null && loadingView.State != ViewState.Destroyed)
                 {
-                    var result = await UIManager.Instance.CloseAsync(loadingView, false);
-                    if (result.Status != UIOperationStatus.Succeeded && result.Status != UIOperationStatus.Ignored)
-                    {
-                        return result.Exception?.Message ?? $"Loading 收口失败: {result.Status}";
-                    }
+                    await UIManager.Instance.CloseAsync(loadingView, false);
                 }
 
                 loadingView = null;
                 return null;
+            }
+            catch (Exception exception)
+            {
+                return exception.Message;
             }
             finally
             {

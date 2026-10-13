@@ -19,7 +19,7 @@
 - 扫描 Hotfix 程序集中的 View 类型
 - 运行 Hotfix 启动系统，当前会通过 `FluxService` 注册 `UserData` 与 `MainMenuData`
 - 注册首版空配置的 `HotfixWorldTransitionProvider`，为后续 Demo 的真实相机或场景过渡保留 Hotfix 扩展点
-- 等待 `MainMenuView` 的 `ShowAsync` 导航结果稳定完成；Failed 保留原异常中断启动，Canceled 作为启动取消传播
+- 等待 `UIManager.OpenAsync<MainMenuView>()` 稳定完成；失败保留原异常中断启动，实际取消按异步取消约定传播
 - `MainMenuView` 订阅 `UserData`，打印启动时记录的本机硬件配置
 - 在启动完成后销毁加载界面
 

@@ -82,7 +82,7 @@ Assets/LoadResources/Demos/drone_flight/
 ## 进入和 UI 生命周期
 
 1. 正式入口为 `AppEntrance → Hub → DroneFlight`；Editor 也可直接打开 `Main.unity` 后 Play。
-2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.ShowAsync<DroneFlightVehicleSelectView>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
+2. 场景协调器等待运行时与导航器稳定，通过 `UIManager.OpenAsync<DroneFlightVehicleSelectView>()` 打开 `Pop/Modal` 机型选择，提供纯无人机、四爪抓斗无人机和渔叉无人机三个选项。
 3. 指针/触屏点击卡片只切换模型预览，点击开始飞行才确认；方向导航选择预览，确认键提交当前机型。准备期间保留选择页并禁用重复开始与返回，通过资源 Loader 实例化 `DronePrototype`、`DroneGrappleVariant` 或 `DroneHarpoonVariant`。实例先进入失活的临时父节点以完成安全出生定位和运行时引用配置，不在此阶段拼装装备。`SpawnPoint` 只提供地面 XZ 与朝向，根节点高度由四个起落架 `Foot` Collider 的最低点计算并保留 `0.01 m` 净空。
 4. `DroneFlightVehicleAssembler` 在失活状态完成 Context、装备、Camera 和输入装配；抓斗先放置底座与四爪、连接 HingeJoint，最后才开放重力。它只依赖 Unity 与 DroneFlight 组件，不知道 UIManager、资源 Loader 或场景导航。激活后经过首个物理步清零速度、保持电机锁定，并直接进入第三人称 `Active`。
 5. HUD 准备成功后关闭选择页，再开放第三人称控制；失败释放部分机体、恢复等待相机和选择输入，保留所选机型并显示重试。返回大厅失败也重开同一选择会话并恢复机型。HUD 以 `Decorate/Widget` 打开；F3 调试 View 以 `Tip/Widget` 打开。两者通过 BindData 读取 DroneFlightData 的同一遥测快照；DroneFlightViewData 仅交付当前输入绑定参数；F2 只控制无 Rigidbody/Collider 的世界空间箭头和 3D 数值标签，Game 与 Scene 视图读取同一组对象。

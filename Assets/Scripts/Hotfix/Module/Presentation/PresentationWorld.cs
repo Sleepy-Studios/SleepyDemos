@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.ExceptionServices;
 using Core.Runtime;
 using Core.Runtime.TimeControls;
 using UnityEngine;
@@ -167,21 +168,29 @@ namespace Hotfix
             {
                 return;
             }
+            var released = loader;
+            var ownedInstance = instance;
+            loader = null;
+            Exception failure = null;
+            try { Deactivate(); }
+            catch (Exception exception) { failure = exception; }
+            instance = null;
             try
             {
-                Deactivate();
+                if (ownedInstance != null) released.ReleaseInstance(ownedInstance);
             }
-            finally
+            catch (Exception exception)
             {
-                var released = loader;
-                loader = null;
-                if (instance != null)
-                {
-                    released.ReleaseInstance(instance);
-                    instance = null;
-                }
-                released.Dispose();
+                if (failure == null) failure = exception;
+                else Debug.LogException(exception);
             }
+            try { released.Dispose(); }
+            catch (Exception exception)
+            {
+                if (failure == null) failure = exception;
+                else Debug.LogException(exception);
+            }
+            if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
         }
     }
 }

@@ -113,7 +113,7 @@ namespace Tests.Module
             Assert.That(stack.Count, Is.EqualTo(1));
             Assert.That(view.State, Is.EqualTo(ViewState.Visible));
             Assert.That(view.gameObject.GetComponentsInChildren<TMP_Text>()[0].text, Is.EqualTo("新提示"));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.Null, "Widget 不进入 Page/Modal 返回栈");
+            Assert.That(UIManager.Instance.TopView, Is.Null, "Widget 不进入 Page/Modal 返回栈");
             yield return UIManager.Instance.BackAsync(false).ToCoroutine();
             Assert.That(view.State, Is.EqualTo(ViewState.Visible));
             yield return new WaitForSecondsRealtime(.4f);
@@ -225,10 +225,17 @@ namespace Tests.Module
             var blocking = SingleUIManager.Instance.ShowSimpleTipsAsync(Anchor().transform as RectTransform, "阻塞其他导航");
             yield return null;
             var next = SingleUIManager.Instance.ShowTipsMessageBarAsync("不能被旧关闭清掉", CommonTipsType.Notice, 5);
-            yield return new WaitForSecondsRealtime(.25f);
-            Assert.That(UIManager.Instance.Get<CommonTipsView>().transform.Find("MessageRegion").gameObject.activeSelf,
-                Is.False, "空列表等待导航关闭期间不留下透明挡区");
-            gate.TrySetResult();
+            try
+            {
+                var current = UIManager.Instance.Get<CommonTipsView>();
+                var stack = current.gameObject.GetComponent<UITipsStack>();
+                float deadline = Time.realtimeSinceStartup + 3;
+                while (stack.Count > 0 && Time.realtimeSinceStartup < deadline) yield return null;
+                Assert.That(stack.Count, Is.Zero, "先等待真实阅读完成和到期，保持其他导航被门闩阻塞。");
+                Assert.That(current.transform.Find("MessageRegion").gameObject.activeSelf,
+                    Is.False, "空列表等待导航关闭期间不留下透明挡区");
+            }
+            finally { gate.TrySetResult(); }
             yield return Show(blocking);
             yield return Show(next);
             yield return null; yield return null;
@@ -249,7 +256,7 @@ namespace Tests.Module
             var later = SingleUIManager.Instance.ShowTipsMessageBarAsync("后来请求", CommonTipsType.Success, 5);
             gate.TrySetResult();
             yield return Show(blocking);
-            yield return canceled.ToCoroutine(result => Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled)));
+            yield return AwaitError(() => canceled, exception => Assert.That(exception, Is.InstanceOf<OperationCanceledException>()));
             yield return hide.ToCoroutine();
             yield return Show(later);
             var view = UIManager.Instance.Get<CommonTipsView>();
@@ -387,11 +394,14 @@ namespace Tests.Module
             options.StartDelay = .05f; options.EndStayTime = .05f;
             options.PixelsPerSecond = 600; options.Loop = false; options.UseUnscaledTime = true;
             autoScroll.SetOptions(options);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(view.transform as RectTransform);
+            Canvas.ForceUpdateCanvases();
+            float startX = text.rectTransform.anchoredPosition.x;
             var stack = view.gameObject.GetComponent<UITipsStack>();
             stack.OnPointerEnter(new PointerEventData(EventSystem.current));
             Time.timeScale = 0;
             yield return new WaitForSecondsRealtime(.3f);
-            Assert.That(text.rectTransform.anchoredPosition.x, Is.LessThan(0), "悬停和暂停游戏时文字仍滚动");
+            Assert.That(text.rectTransform.anchoredPosition.x, Is.LessThan(startX), "悬停和暂停游戏时文字必须相对原生布局起点向左滚动");
             Assert.That(view.State, Is.EqualTo(ViewState.Visible));
             float deadline = Time.realtimeSinceStartup + 8;
             while (autoScroll.IsReading && Time.realtimeSinceStartup < deadline) yield return null;
@@ -441,11 +451,10 @@ namespace Tests.Module
             using (var source = new CancellationTokenSource())
             {
                 source.Cancel();
-                UIOperationResult canceled = default;
-                yield return SingleUIManager.Instance.ShowSimpleTipsAsync(target, "已取消", cancellationToken: source.Token).ToCoroutine(value => canceled = value);
-                Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
-                yield return SingleUIManager.Instance.ShowTipsMessageBarAsync("已取消", CommonTipsType.Warning, cancellationToken: source.Token).ToCoroutine(value => canceled = value);
-                Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
+                yield return AwaitError(() => SingleUIManager.Instance.ShowSimpleTipsAsync(target, "已取消", cancellationToken: source.Token),
+                    exception => Assert.That(exception, Is.InstanceOf<OperationCanceledException>()));
+                yield return AwaitError(() => SingleUIManager.Instance.ShowTipsMessageBarAsync("已取消", CommonTipsType.Warning, cancellationToken: source.Token),
+                    exception => Assert.That(exception, Is.InstanceOf<OperationCanceledException>()));
                 Assert.That(UIManager.Instance.Get<CommonTipsView>().State, Is.EqualTo(ViewState.Visible));
                 var simple = UIManager.Instance.Get<SimpleTipsView>();
                 simple.gameObject.GetComponentInChildren<Button>().onClick.Invoke();
@@ -469,9 +478,7 @@ namespace Tests.Module
                 source.Cancel();
                 gate.TrySetResult();
                 yield return Show(blockingOperation);
-                UIOperationResult canceled = default;
-                yield return replacement.ToCoroutine(value => canceled = value);
-                Assert.That(canceled.Status, Is.EqualTo(UIOperationStatus.Canceled));
+                yield return AwaitError(() => replacement, exception => Assert.That(exception, Is.InstanceOf<OperationCanceledException>()));
                 Assert.That(UIManager.Instance.Get<SimpleTipsView>().State, Is.EqualTo(ViewState.LoadedHidden));
             }
         }
@@ -491,14 +498,13 @@ namespace Tests.Module
             }
         }
 
-        [UnityTest] public IEnumerator MessageLoadFailureReturnsFailedWithoutLeavingAnUnboundView()
+        [UnityTest] public IEnumerator MessageLoadFailureThrowsWithoutLeavingAnUnboundView()
         {
             ResourceServices.RegisterDefault(new EditorPrefabService(missingMessagePrefab: true));
-            UIOperationResult result = default;
-            yield return SingleUIManager.Instance.ShowTipsMessageBarAsync("加载失败", CommonTipsType.Warning)
-                .ToCoroutine(value => result = value);
-            Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
-            Assert.That(result.Exception, Is.Not.Null);
+            Exception failure = null;
+            yield return AwaitError(() => SingleUIManager.Instance.ShowTipsMessageBarAsync("加载失败", CommonTipsType.Warning),
+                exception => failure = exception);
+            Assert.That(failure, Is.Not.Null);
             Assert.That(UIManager.Instance.Get<CommonTipsView>(), Is.Null);
         }
 
@@ -517,8 +523,24 @@ namespace Tests.Module
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f); rect.sizeDelta = new Vector2(120, 60);
             return root.GetComponent<Button>();
         }
-        private static IEnumerator Show(UniTask<UIOperationResult> operation)
-            => operation.ToCoroutine(result => Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded).Or.EqualTo(UIOperationStatus.Ignored), result.Exception?.ToString()));
+        private static IEnumerator Show<T>(UniTask<T> operation) where T : View
+            => operation.ToCoroutine(view => Assert.That(view, Is.Not.Null));
+
+        private static IEnumerator AwaitError<T>(Func<UniTask<T>> operation, Action<Exception> receive) where T : View
+            => CaptureError(operation).ToCoroutine(receive);
+
+        private static async UniTask<Exception> CaptureError<T>(Func<UniTask<T>> operation) where T : View
+        {
+            try
+            {
+                await operation();
+                return null;
+            }
+            catch (Exception exception)
+            {
+                return exception;
+            }
+        }
 
         // 只替换资源加载边界；使用正式 Prefab、真实 UIManager、Canvas 和 EventSystem。
         private sealed class EditorPrefabService : IResourceService

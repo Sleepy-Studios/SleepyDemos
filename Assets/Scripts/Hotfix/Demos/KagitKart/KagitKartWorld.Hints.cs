@@ -41,14 +41,10 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            var result = await UIManager.Instance.ShowAsync<KagitKartHintsView>(view => view.SetData(this),
-                new UIShowOptions(animated: false), token);
-            if (result.Status == UIOperationStatus.Failed)
-            {
-                throw result.Exception;
-            }
+            var result = await UIManager.Instance.OpenAsync<KagitKartHintsView>(view => view.SetData(this),
+                new UIOpenOptions(animated: false), token);
             token.ThrowIfCancellationRequested();
-            hintsView = result.View as KagitKartHintsView;
+            hintsView = result;
         }
 
         private async UniTask CloseHintsViewAsync()
@@ -57,11 +53,7 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            var result = await UIManager.Instance.CloseAsync(hintsView);
-            if (result.Status == UIOperationStatus.Failed)
-            {
-                throw result.Exception;
-            }
+            await UIManager.Instance.CloseAsync(hintsView);
             hintsView = null;
         }
 

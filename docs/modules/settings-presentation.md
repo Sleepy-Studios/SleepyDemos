@@ -43,7 +43,7 @@ FXAA/SMAA/TAA 必须启用实际后处理路径；仅为抗锯齿开启时，不
 
 ## 输入、音频与时间
 
-现有 InputActionSession / GameplayInputRouter 复用公共参数和有效绑定。InputSettingsCatalog.Entry.Actions 明确保存实际动作 GUID 与文案键，设置页按宿主／设备生成稳定绑定条目；每行用 BindBinding 显示精确索引，别名、复合子项和不同 Map 的同名动作保持独立身份。InputRebindSession 只改未启用候选副本，按稳定源动作 ID 和绑定 ID 导出；CanRebind 保留确认、返回和 UI 导航安全入口。公共 InputPrompt／InputPromptButton 与各 Demo Variant 提供图标及动作说明，InputPromptGroup 保存明确制作引用。最近实际使用的设备决定提示，漂移和连接本身不提交动作。完整接入见[公共输入](gameplay-input.md)。
+现有 InputActionSession / GameplayInputRouter 复用公共参数和有效绑定。InputSettingsCatalog.Entry.Actions 明确保存实际动作 GUID 与文案键，设置页按宿主／设备生成稳定绑定条目；每行用 BindBinding 显示精确索引，别名、复合子项和不同 Map 的同名动作保持独立身份。InputRebindSession 只改未启用候选副本，按稳定源动作 ID 和绑定 ID 导出；CanRebind 保留确认、返回和 UI 导航安全入口。公共 InputPrompt／InputPromptButton 与各 Demo Variant 提供图标及动作说明，InputPromptGroup 保存明确制作引用。最近实际使用的设备决定提示类别与物理用途，漂移和连接本身不提交动作。输入页的“手柄图标”下拉选择 Xbox／PS5／NS，当前绑定列表局部预览候选，成功应用后由 GameSettingsService.Changed 刷新其他提示；默认 Xbox，不按硬件品牌自动切换。旧记录缺字段或0仅补 Xbox，不丢弃其余设置。完整接入见[公共输入](gameplay-input.md)。
 
 普通音源使用 AudioBusSource；音乐、音效和 UI 分类增益与音源自己的音量相乘。KagitKart 的 DSP 在分类混音处乘公共增益，不调整 DSP 时钟，不用 Stop 实现静音。辅助偏好约束 Demo 表现，专属开关继续可进一步限制。
 

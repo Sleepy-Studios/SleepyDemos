@@ -2116,7 +2116,9 @@ MonoBehaviour:
   - {fileID: 8886614328120943822}
   - {fileID: 8344710449630551224}
   - {fileID: 1755866396189961069}
+  - {fileID: 4214115983701434461}
   - {fileID: 1389626390020716221}
+  - {fileID: 8355512815053654784}
   - {fileID: 972387072422605902}
   - {fileID: 9117421653483151679}
   componentTypes:
@@ -2128,6 +2130,8 @@ MonoBehaviour:
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
   - UnityEngine.UI.Button
+  - TMPro.TextMeshProUGUI
+  - TMPro.TextMeshProUGUI
   - TMPro.TextMeshProUGUI
   - TMPro.TextMeshProUGUI
   - TMPro.TextMeshProUGUI
@@ -2154,10 +2158,14 @@ MonoBehaviour:
   - KagitKartControlsView/Viewport/SheetGroup/Sheet/Item|TMPro.TextMeshProUGUI
   - KagitKartControlsView/Viewport/SheetGroup/Sheet/LookBack|TMPro.TextMeshProUGUI
   - KagitKartControlsView/Viewport/SheetGroup/Sheet/Pause|TMPro.TextMeshProUGUI
+  - KagitKartControlsView/Viewport/SheetGroup/Sheet/MuteTitle|TMPro.TextMeshProUGUI
   - KagitKartControlsView/Viewport/SheetGroup/Sheet/Mute|TMPro.TextMeshProUGUI
+  - KagitKartControlsView/Viewport/SheetGroup/Sheet/RestartTitle|TMPro.TextMeshProUGUI
   - KagitKartControlsView/Viewport/SheetGroup/Sheet/Restart|TMPro.TextMeshProUGUI
   - KagitKartControlsView/Viewport/SheetGroup/Sheet/Current|Core.Runtime.Inputs.InputBindingPrompt
   bindingMethods:
+  - None
+  - None
   - None
   - None
   - None
@@ -3742,8 +3750,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 183, y: 205}
-  m_SizeDelta: {x: 650, y: 53}
+  m_AnchoredPosition: {x: 200.5, y: 205}
+  m_SizeDelta: {x: 685, y: 53}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &4936605811362127970
 MonoBehaviour:
@@ -5379,10 +5387,6 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
-      propertyPath: m_TextWrappingMode
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
       propertyPath: m_VerticalAlignment
       value: 512
       objectReference: {fileID: 0}
@@ -5470,6 +5474,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8134448767510058331, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
+      propertyPath: m_PreferredWidth
+      value: 103
+      objectReference: {fileID: 0}
     - target: {fileID: 8332397688220813685, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
       propertyPath: caption
       value: 
@@ -5509,10 +5517,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
       propertyPath: m_fontStyle
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
-      propertyPath: m_TextWrappingMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
@@ -5645,10 +5649,6 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
-      propertyPath: m_TextWrappingMode
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 888355618944399797, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
       propertyPath: m_VerticalAlignment
       value: 512
       objectReference: {fileID: 0}
@@ -5735,6 +5735,10 @@ PrefabInstance:
     - target: {fileID: 6084998580865909068, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8134448767510058331, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
+      propertyPath: m_PreferredWidth
+      value: 102
       objectReference: {fileID: 0}
     - target: {fileID: 8332397688220813685, guid: 9adabc2855d31934e8839e927e5640e4, type: 3}
       propertyPath: caption

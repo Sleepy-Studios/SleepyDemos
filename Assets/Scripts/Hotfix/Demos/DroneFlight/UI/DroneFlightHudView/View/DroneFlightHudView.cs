@@ -62,7 +62,7 @@ namespace Hotfix
             TextMeshProUGUI_DistanceText.text = $"{hud.Distance:F1} <size=65%>m</size>";
             TextMeshProUGUI_HorizontalText.text = $"{hud.HorizontalSpeed:F1} <size=65%>m/s</size>";
             TextMeshProUGUI_VerticalText.text = $"{hud.VerticalSpeed:+0.0;-0.0;0.0} <size=65%>m/s</size>";
-            TextMeshProUGUI_GearText.text = $"起落架  <color=#F4A23A>{DroneHudPresentation.Gear(hud.LandingGearState)}</color>";
+            TextMeshProUGUI_GearText.text = $"起落架  {ColorUtil.WrapText(DroneHudPresentation.Gear(hud.LandingGearState), UIColors.DroneFlight.TelemetryAccent)}";
             bool equipped = snapshot.Equipment.Kind != DroneEquipmentKind.None;
             RectTransform_EquipmentPanel.gameObject.SetActive(equipped);
             TextMeshProUGUI_EquipmentText.text = snapshot.EquipmentText;

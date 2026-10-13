@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
@@ -255,7 +256,7 @@ namespace Core.Runtime
             rect.offsetMax = Vector2.zero;
 
             var image = maskGo.AddComponent<Image>();
-            image.color = new Color(0f, 0f, 0f, 0.65f);
+            image.color = ColorUtil.Colors.Common.ModalMask;
             image.raycastTarget = true;
             var button = maskGo.AddComponent<Button>();
             button.targetGraphic = image;
@@ -291,7 +292,7 @@ namespace Core.Runtime
             rect.offsetMax = Vector2.zero;
 
             var image = gateGo.GetComponent<Image>();
-            image.color = Color.clear;
+            image.color = ColorUtil.Colors.Common.Transparent;
             image.raycastTarget = false;
             InteractionGate.Initialize(image);
             InteractionGate.EnsureOnTop();

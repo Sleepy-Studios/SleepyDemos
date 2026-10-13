@@ -11,8 +11,8 @@ namespace Hotfix.KagitKart
         [SerializeField] private Image backgroundImage;
         [SerializeField] private Sprite[] routeSprites = new Sprite[4];
 
-        private static readonly Color32 Outline = new(45, 42, 50, 255);
-        private static readonly Color32 PlayerColor = new(217, 72, 59, 255);
+        private static readonly Color32 Outline = UIColors.KagitKart.Ink;
+        private static readonly Color32 PlayerColor = UIColors.KagitKart.Accent;
         private static readonly Vector2[] Arrow = { new(4.6f, 0), new(-3, 3.6f), new(-1.6f, 0), new(-3, -3.6f) };
         private readonly Vector2[] arrowPoints = new Vector2[4];
         private KagitKartSession session;
@@ -52,8 +52,9 @@ namespace Hotfix.KagitKart
                 for (int i = 0; i < kartColors.Length; i++)
                 {
                     var colors = value.Karts[i].Character.colors;
-                    string html = !string.IsNullOrEmpty(colors.kart) ? colors.kart : !string.IsNullOrEmpty(colors.body) ? colors.body : "#8a8490";
-                    ColorUtility.TryParseHtmlString(html, out kartColors[i]);
+                    string html = !string.IsNullOrEmpty(colors.kart) ? colors.kart : colors.body;
+                    if (string.IsNullOrEmpty(html)) kartColors[i] = UIColors.KagitKart.MinimapFallback;
+                    else ColorUtility.TryParseHtmlString(html, out kartColors[i]);
                 }
             }
             SetVerticesDirty();

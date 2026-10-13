@@ -14,14 +14,10 @@ namespace Hotfix
         protected override void OnGameObjectInitialize()
         {
             Button_Menu.onClick.AddListener(Menu);
-            ColorUtility.TryParseHtmlString("#d9483b", out var red);
-            TextMeshProUGUI_Title.color = red;
-            ColorUtility.TryParseHtmlString("#e3a623", out var gold);
-            TextMeshProUGUI_PlaceNumber1.color = gold;
-            ColorUtility.TryParseHtmlString("#7d97b8", out var blue);
-            TextMeshProUGUI_PlaceNumber2.color = blue;
-            ColorUtility.TryParseHtmlString("#c8693a", out var copper);
-            TextMeshProUGUI_PlaceNumber3.color = copper;
+            TextMeshProUGUI_Title.color = UIColors.KagitKart.Accent;
+            TextMeshProUGUI_PlaceNumber1.color = UIColors.KagitKart.FirstPlace;
+            TextMeshProUGUI_PlaceNumber2.color = UIColors.KagitKart.SecondPlace;
+            TextMeshProUGUI_PlaceNumber3.color = UIColors.KagitKart.ThirdPlace;
             UIMenuScope_Viewport.Canceled += Menu;
             BindData<KagitKartData>(_ => Button_Menu.interactable = world != null && !world.Busy);
         }

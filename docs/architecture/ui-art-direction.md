@@ -11,12 +11,20 @@ Hub 使用公共基础外观；Demo 按自己的宿主风格覆盖表现。纸�
 | 层级 | 维护内容 | 修改位置 |
 |---|---|---|
 | 公共基础 Prefab | 结构、组件、强类型绑定、交互状态、布局行为与生命周期 | `Assets/LoadResources/UI/Common/`；公共行为在 Core.Runtime |
-| Demo 风格 Variant | 同类控件共享的图片、颜色、主副字号、边框与阴影 | `Assets/LoadResources/Demos/<DemoId>/`；继承对应公共基础 Prefab |
+| Demo 风格 Variant | 同类控件共享的图片、颜色、主副字号、边框与阴影 | `Assets/LoadResources/Demos/<DemoId>/Prefabs/UI/Foundation/`；继承对应公共基础 Prefab |
 | 页面实例 | 业务文案/动作/数据、可见性、位置及宿主必需的尺寸布局 | 该页面 Prefab 与 Hotfix View |
 
 样式调整集中在风格 Variant，避免在每个页面实例重复覆盖同一颜色、字体和图片。Variant 保留基础源连接；页面嵌套 Variant。基础源改结构后检查四 Demo 的继承结果；风格源改外观后检查所有实际使用方。清理断继承的复制控件与无效覆盖时，先保护业务参数、绑定和必要布局，不能整树 Revert 或 Unpack 后重建。
 
 开发时换一整套风格，修改或替换 Demo 的风格 Variant，再检查使用方的遗留样式覆盖。不建立运行时主题切换、字号主题系统或第二套样式管理器。具体制作步骤见[基础 UI 手册](../runbooks/use-core-ui-components.md#制作与更换控件风格)。
+
+## 完整风格库与源码色板
+
+每个 Demo 在 `Prefabs/UI/Foundation/` 维护完整公共基础控件的真实 Variant，包含当前未使用及暂时与 Hub 同风格的控件。统一前缀为 `Drone`、`Dlss`、`Wall`、`KagitKart`，后续按动作或控件用途命名；文件名不编码字号和生成哈希。同用途复用源，调试、返回、关闭、开始、不同纸重等真实差异各自保留；保存的精确字号不因统一命名而合并。
+
+组合控件内部的标题、关闭按钮、页签、开关、滑条及动态项模板继续引用本 Demo Foundation 子变体，不能只给外层改颜色而把内部留在公共外观。具体28项覆盖清单、已有语义资产和维护边界见[基础资源维护](../modules/ui-foundation-assets.md#四-demo-完整风格库)。全局 Loading 与 Hub 设置页面沿现有流程维护，不作为本轮 Demo 风格库的复制源。
+
+框架自身的少量语义色保留在 `Core.Runtime.ColorUtil.Colors.Common`；Hub 与四 Demo 的固定 UI/HUD 源码色板维护在 `Assets/Scripts/Hotfix/Module/Common/UIColors.cs` 的 `UIColors.{Common,Hub,DroneFlight,WallSqueeze,KagitKart}` 分组，其中 Hotfix 的 `Common` 维护共享业务 View 的固定颜色（例如 Loading 备用底色与循环列表示例），与 Core 的框架语义色分开。字段使用语义名，声明统一六位大写 HEX，可选 `alphaPercent:`（0～100、支持小数）；原浮点 RGB 按最接近的八位值量化，不借格式统一重新配色，非整数 Alpha 保留足够精度。已有颜色替换透明度复用 `WithAlpha`（0～1），富文本复用 `WrapText`/`ToHex`；动态角色/配置色值、场景 Shader 打包参数及可配置组件默认值保留原职责。色板为源码常量入口，Prefab/Variant 继续保存图片、颜色、字体和状态表现，不建立绑定、自动应用或运行时换肤系统。DLSS 当前没有固定运行时 UI/HUD 色值，其外观只由 Variant 保存；源码保留该区域的说明，不维护空类或只供临时 Builder 的字段。
 
 ## 公共颜色起点
 

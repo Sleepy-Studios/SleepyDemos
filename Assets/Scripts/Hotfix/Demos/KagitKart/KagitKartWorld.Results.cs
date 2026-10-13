@@ -44,15 +44,15 @@ namespace Hotfix.KagitKart
             {
                 while (uiBusy) await UniTask.Yield();
                 var token = lifetimeCancellation.Token;
-                var closed = await UIManager.Instance.CloseAsync(modal, animated: false, cancellationToken: token);
-                if (closed.Status == UIOperationStatus.Failed) throw closed.Exception;
+                await UIManager.Instance.CloseAsync(modal, animated: false, cancellationToken: token);
+
                 token.ThrowIfCancellationRequested();
                 modal = null;
-                var shown = await UIManager.Instance.ShowAsync<KagitKartStandingsView>(view => view.SetData(this),
-                    new UIShowOptions(animated: false), token);
-                if (shown.Status == UIOperationStatus.Failed) throw shown.Exception;
+                var shown = await UIManager.Instance.OpenAsync<KagitKartStandingsView>(view => view.SetData(this),
+                    new UIOpenOptions(animated: false), token);
+
                 token.ThrowIfCancellationRequested();
-                modal = shown.View;
+                modal = shown;
             }
             catch (OperationCanceledException) { }
             catch (Exception exception)

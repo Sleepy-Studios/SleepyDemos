@@ -44,20 +44,20 @@ namespace Tests.Module
         [Test]
         public void DefaultShowOptions_EnablesAnimation()
         {
-            Assert.That(default(UIShowOptions).Animated, Is.True);
-            Assert.That(default(UIShowOptions).HidePrevious, Is.True);
+            Assert.That(default(UIOpenOptions).Animated, Is.True);
+            Assert.That(default(UIOpenOptions).HidePrevious, Is.True);
         }
 
         [Test]
         public void ExplicitFalseShowOptions_DisablesAnimation()
         {
-            Assert.That(new UIShowOptions(false).Animated, Is.False);
+            Assert.That(new UIOpenOptions(false).Animated, Is.False);
         }
 
         [Test]
         public void ExplicitHidePreviousFalse_PreservesAnimatedValue()
         {
-            var options = new UIShowOptions(animated: true, hidePrevious: false);
+            var options = new UIOpenOptions(animated: true, hidePrevious: false);
 
             Assert.That(options.Animated, Is.True);
             Assert.That(options.HidePrevious, Is.False);

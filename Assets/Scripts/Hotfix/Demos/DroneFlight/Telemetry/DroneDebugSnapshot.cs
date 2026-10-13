@@ -1,3 +1,4 @@
+using Core.Runtime;
 using UnityEngine;
 
 namespace Hotfix.DroneFlight
@@ -38,7 +39,10 @@ namespace Hotfix.DroneFlight
     internal static class DroneDebugFormatting
     {
         internal static string Axis(string name, DronePidTelemetry value) =>
-            $"{name}<pos=24%><color=#F4A23A><mspace=0.6em>{value.Error:F3}</mspace></color><pos=44%><color=#F4A23A><mspace=0.6em>{value.Proportional:F3}</mspace></color><pos=64%><color=#F4A23A><mspace=0.6em>{value.Integral:F3}</mspace></color><pos=84%><color=#F4A23A><mspace=0.6em>{value.Derivative:F3}</mspace></color>";
+            $"{name}<pos=24%>{Number(value.Error)}<pos=44%>{Number(value.Proportional)}<pos=64%>{Number(value.Integral)}<pos=84%>{Number(value.Derivative)}";
+
+        private static string Number(float value) =>
+            ColorUtil.WrapText($"<mspace=0.6em>{value:F3}</mspace>", UIColors.DroneFlight.TelemetryAccent);
 
         internal static string Equipment(DroneEquipmentSnapshot value) => value.Kind switch
         {
@@ -50,7 +54,7 @@ namespace Hotfix.DroneFlight
                 $"渔叉状态  {DroneFlightUiTelemetrySource.FormatEquipmentState(value.State)}<pos=56%>可发射  {(value.CanUsePrimary ? "是" : "否")}\n"
                 + $"绳长  {value.TravelMeters:F2} m<pos=56%>张力  {value.TensionNewtons:F1} N\n"
                 + $"命中数  {value.ContactCount}<pos=36%>瞄准方向  ({value.AimDirection.x:F2}, {value.AimDirection.y:F2}, {value.AimDirection.z:F2})",
-            _ => "纯无人机\n<color=#9BA5AA>无附加模块</color>"
+            _ => "纯无人机\n" + ColorUtil.WrapText("无附加模块", UIColors.DroneFlight.EquipmentSecondary)
         };
     }
 }

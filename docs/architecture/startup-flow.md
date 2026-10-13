@@ -67,7 +67,7 @@ Hotfix 入口位于：
 - 补充扫描当前 Hotfix 程序集的具体 View；Core 在装配阶段已经扫描的程序集直接跳过，每轮只发现一次，名称查找不再遍历 AppDomain
 - 运行 `HotfixBootService.RunBootSystems`
 - 先通过 `LubanConfigSystem` 完整加载业务配置，再通过 `GlobalDataSystem` / `FluxService` 注册 Hotfix 全局 Flux Data
-- 注册 Hotfix World Transition Provider，并等待 `MainMenuView.ShowAsync` 稳定进入
+- 注册 Hotfix World Transition Provider，并通过 `UIManager.OpenAsync<MainMenuView>()` 等待首页稳定进入
 - 仅在主界面导航成功或已稳定存在后销毁启动加载界面；Failed 保留原异常，Canceled 中断启动
 
 当前 Hotfix 启动系统说明见 [Hotfix 启动系统](../modules/hotfix-boot-systems.md)。

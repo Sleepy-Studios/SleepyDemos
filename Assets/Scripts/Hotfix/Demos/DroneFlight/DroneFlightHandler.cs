@@ -279,44 +279,57 @@ namespace Hotfix.DroneFlight
 
         private async UniTask ChangeOverlayAsync(bool help, bool show, CancellationToken token)
         {
+            View current = help ? helpView : debugView;
             try
             {
-                View current = help ? helpView : debugView;
-                var options = new UIShowOptions(animated: false, hidePrevious: false);
-                UIOperationResult result;
+                View opened = null;
+                var options = new UIOpenOptions(animated: false, hidePrevious: false);
                 if (show)
-                    result = help
-                        ? await UIManager.Instance.ShowAsync<DroneFlightHelpView, DroneFlightViewData>(viewData, options, token)
-                        : await UIManager.Instance.ShowAsync<DroneFlightDebugView, DroneFlightViewData>(viewData, options, token);
-                else
-                    result = await UIManager.Instance.CloseAsync(current, false, token);
-                if (token.IsCancellationRequested || !ReferenceEquals(GlobalData.Get<DroneFlightData>(), State) || State.ShuttingDown)
-                    return;
-                if (result.Status == UIOperationStatus.Failed)
                 {
-                    SetFeedback("页面操作失败：" + result.Exception?.Message);
-                    if (help)
-                        SetHelpRequested(current != null);
-                    else
-                        SetDebugVisible(current != null);
+                    opened = help
+                        ? await UIManager.Instance.OpenAsync<DroneFlightHelpView>(view => view.SetData(viewData), options, token)
+                        : await UIManager.Instance.OpenAsync<DroneFlightDebugView>(view => view.SetData(viewData), options, token);
+                }
+                else
+                {
+                    await UIManager.Instance.CloseAsync(current, false, token);
+                }
+
+                if (token.IsCancellationRequested || !ReferenceEquals(GlobalData.Get<DroneFlightData>(), State) || State.ShuttingDown)
+                {
                     return;
                 }
 
-                if (result.Status == UIOperationStatus.Canceled && show)
-                    return;
                 if (help)
                 {
-                    helpView = show ? result.View : null;
+                    helpView = opened;
                     SetHelpRequested(helpView != null);
                 }
                 else
                 {
-                    debugView = show ? result.View : null;
+                    debugView = opened;
                     SetDebugVisible(debugView != null);
                 }
             }
             catch (OperationCanceledException)
             {
+            }
+            catch (Exception exception)
+            {
+                if (!ReferenceEquals(GlobalData.Get<DroneFlightData>(), State) || State.ShuttingDown)
+                {
+                    return;
+                }
+
+                SetFeedback("页面操作失败：" + exception.Message);
+                if (help)
+                {
+                    SetHelpRequested(current?.IsEnable == true);
+                }
+                else
+                {
+                    SetDebugVisible(current?.IsEnable == true);
+                }
             }
         }
 
@@ -336,9 +349,8 @@ namespace Hotfix.DroneFlight
             {
                 if (view == null)
                     continue;
-                var result = await UIManager.Instance.CloseAsync(view, false);
-                if (result.Status == UIOperationStatus.Failed)
-                    throw result.Exception;
+                await UIManager.Instance.CloseAsync(view, false);
+
             }
 
             helpView = debugView = null;
@@ -371,7 +383,7 @@ namespace Hotfix.DroneFlight
 
             )
                 if (view != null)
-                    UIManager.Instance.CloseAsync(view, false).Forget();
+                    UIManager.Instance.Close(view, animation: false);
             helpView = debugView = null;
             viewData = null;
             if (debugRenderer != null)

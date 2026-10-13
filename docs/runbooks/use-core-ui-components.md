@@ -65,13 +65,19 @@
 
 ## 制作与更换控件风格
 
+四 Demo 的完整风格入口统一为 `Demos/<DemoId>/Prefabs/UI/Foundation/`。使用 `Drone`、`Dlss`、`Wall`、`KagitKart` 前缀及用途名，不按字号或哈希找资源；尚未使用及与公共外观相同的控件也有本 Demo Variant。28项公共基础源的映射见[完整风格库](../modules/ui-foundation-assets.md#四-demo-完整风格库)。
+
+组合 Variant 内部也须选择本 Demo 子变体：例如设置 SliderRow 的 Slider、BG 的 Title/关闭按钮、Tab 的 TabItem，以及 Dropdown/折叠页签引用的动态模板。查真实嵌套源与序列化模板引用，保留根矩形、事件、UIBind、InputCommandButton 和 GlyphSlot，不以另造同名对象修补引用。原先 `Parts/` 或 `Widgets/` 的基础输入提示已统一到 Foundation，专属 HUD 部件与成绩行仍保留原职责。
+
 1. 读[公共 UI 美术规范](../architecture/ui-art-direction.md)和该 Demo 的美术规范，确认当前宿主、主要/辅助信息、最长文案和支持画幅；在本手册、基础资源与调用方中查找已有控件。
 2. 在 [Game UI Database](https://www.gameuidatabase.com/) 查看对应游戏场景的实际截图，记录参考页面与借鉴结构；用效果图确认本次外观。Loading 启动 v3 与运行期 v2 已确认并装配；启动 v2 仅布局获认可，海岛背景不实施，v1 均已否决。新页面仍须逐项确认外观，不能把未确认的效果图当作批准结果。
-3. 在 Project 找到正式公共基础 Prefab，使用 Unity 的 Create → Prefab Variant，在 Demo 自有目录保存风格资产；进入 Prefab Mode 修改图片、颜色、主副字号、边框和阴影。保留公共结构、组件与布局行为，UIState 五态的表现引用继续指向对应装饰。
+3. 在 Project 找到正式公共基础 Prefab，使用 Unity 的 Create → Prefab Variant，在 `Demos/<DemoId>/Prefabs/UI/Foundation/` 保存风格资产；进入 Prefab Mode 修改图片、颜色、主副字号、边框和阴影。保留公共结构、组件与布局行为，UIState 五态的表现引用继续指向对应装饰。
 4. 把 Demo Variant 嵌入页面；实例只设置文案/动作/数据、可见性、位置与必要布局。检查 Overrides，逐属性 Revert 重复样式覆盖，让实例继承风格源；先确认业务绑定及布局用途，禁止整树 Revert、Unpack 或删除原节点后创建同名替代。
 5. 对已断继承的控件，在页面 Prefab Mode 中先核对其业务字段、事件、UIBind、嵌套引用和必要矩形，再替换为正式 Variant并重绑。通过正式 UIBind 更新受影响的引用，核对没有缺失脚本或外部节点；保留原页面 GUID，不能只复制图片使断继承看起来一致。
 6. 开发时更换整套风格，在该 Demo 的 Variant 集中修改外观，或将页面使用源改为同一基础结构的新风格 Variant；检查所有调用方是否仍有旧图片、色值、字号、边框和阴影覆盖。基础源的结构/行为变化则检查四 Demo 及其页面是否继承，不能靠每页补丁修传播。
 7. 通过正式 AppEntrance 查看实际页面和真实 Canvas 截图；检查中英长文案、安全区、正常/悬停/聚焦/按下/禁用、开关业务态及启停恢复。编译、测试与视觉结果分开记录，按[测试架构](../architecture/testing.md)选最小相关验证，不因普通样式制作新增永久测试。
+
+继承中的内部 Prefab 实例不能直接按外层实例的方式换源。确需切换子风格时，在 Demo Variant 内保存“移除旧继承实例 + 新增本 Demo 子 Variant”的覆盖，按稳定层级、组件类型和同类型索引映射作者参数及全部业务引用；保留准确字号、布局、文案、事件与附加内容，不 Unpack。不能把原共有 UIState/Graphic 样式整套拷贝到组合内，不能对嵌套源重复套色；共有结构和样式由子 Variant 继续维护，有实际用途的差异按属性保留。替换后通过正式绑定流程核对引用，并临时修改子风格源验证组合中的继承，结束或失败都恢复完整字节与 GUID。页面已使用本 Demo 风格时不重复迁移。
 
 共享面板/焦点边统一维护在 `Assets/LoadResources/UI/Common/Sprites/Surfaces/Surface.png` 和 `FocusBorder.png`，原 Hub 图片已原生移动并保留 GUID。直角宿主使用同目录 `FocusBorderSquare.png`（24×24、Border 3），夹爆它三个按钮风格 Variant 已接入。普通圆角/边框优先使用带 Border 的 Sliced Sprite；特殊需求再使用 ImageExtend。
 
@@ -87,7 +93,7 @@
 
 提示2只交换 Caption 与 Glyphs 组的阅读顺序，槽内 Ctrl + K 等实际组合顺序不反转。复用 InputBindingPrompt、GlyphSlot、InputBindingDisplay 与公共字体，绑定有效会话动作并使用 SetCaptionKey/SetCaption；不复制解析代码或固定键名。缺正式图标时有 KeyboardBlank 则显示键帽和键名；缺全部可显示图形或槽不足时显示完整真实绑定文本，提示1为“绑定 文案”，提示2为“文案 绑定”。触控命令的保持/释放仍由 InputCommandButton 负责。
 
-四 Demo 的对应风格资产为 `DlssInputPrompt2`、`DroneInputPrompt2`、`WallInputPrompt2`（各自 `Prefabs/UI/Parts/`）及 `KagitKartInputPrompt2`（`Prefabs/UI/Widgets/`），与各自提示1共同维护同一宿主外观。新增页面选择对应 Demo Variant，避免实例再覆盖同一字体、色值和图片。
+四 Demo 的对应风格资产为 `DlssInputPrompt2`、`DroneInputPrompt2`、`WallInputPrompt2` 及 `KagitKartInputPrompt2`（统一在各自 `Prefabs/UI/Foundation/`），与各自提示1共同维护同一宿主外观。新增页面选择对应 Demo Variant，避免实例再覆盖同一字体、色值和图片。
 
 Hub 使用 `UI/Common/Input/HubInputGlyphCatalog.asset`，键盘名配合公共 FocusBorder 九宫格薄帽；四 Demo 使用原 `InputGlyphCatalog.asset` 与 Kenney 资源，保留宿主配色和原图标。原目录和 Generic 四个箭头仍有有效引用，不能作为废弃资源删除。缺品牌图标的长键名使用带 Border 的空帽横向扩展，保留作者36或24高度；真实图标仍保留比例。组件在切换回真实图标时恢复作者宽度、边距及布局参数，不修改点击矩形或反转组合键。
 
@@ -261,17 +267,19 @@ string savedUtc = TimeUtil.ToIso8601(); // 与现有存档一致的 UTC round-tr
 string duration = TimeUtil.FormatSeconds(90061, TimeDisplayFormat.HoursMinutesSeconds); // 25:01:01
 long nextRefresh = TimeUtil.GetNextDailyRefreshTime(4); // 刷新小时由业务提供
 Color textColor = ColorUtil.GetColor("#FF000080", Color.white);
-string highlighted = ColorUtil.WrapText("警告", ColorUtil.Colors.Warning);
+Color maskColor = ColorUtil.GetColor("#000000", alphaPercent: 65);
+string highlighted = ColorUtil.WrapText("警告", ColorUtil.Colors.Common.Warning);
 countdown.StartCountdown(nextRefresh, TimeDisplayFormat.AutoWithUnits); // UICountdown 的 TMP 引用在 Prefab 绑定
 ```
+
+固定宿主源码颜色使用 `Hotfix.UIColors.{Common,Hub,DroneFlight,WallSqueeze,KagitKart}` 的语义字段；框架自身语义色保留 `ColorUtil.Colors.Common`。DLSS 当前固定外观仅由 Variant 保存，不声明未使用的运行时色字段。色板声明统一使用六位大写 HEX，可选 `alphaPercent:`（0～100，支持小数）。显式百分比覆盖 HEX 自带 Alpha；旧调用仍支持 3/4/6/8 位，八位 HEX 保留 Alpha。已确认原浮点 RGB 按最接近的八位量化，不同时重新配色；字节 Alpha 使用足够小数保留精度。已有颜色仅替换透明度仍用 `WithAlpha`（0～1），富文本用 `WrapText`/`ToHex`。Prefab 与 Variant 色值继续在 Inspector 维护，不自动应用源码色板；角色/配置动态颜色和 Shader 打包参数不迁入固定 UI 色板。
 
 时间戳必须使用名字所标注的单位。`FromUnixSeconds` 与 `FromUnixMilliseconds` 不根据数值猜测；`ToDateTime`/`FormatTimestamp` 可以传 `TimeZoneInfo`。墙钟默认系统 UTC，服务器接入可以实现 `ITimeSource` 并调用 `SetTimeSource`，本模块不发起网络校时。测试结束必须恢复 `SetTimeSource(null)`。倒计时完成事件只在正常到期触发，`StopCountdown`、禁用和销毁不会触发；完成回调可以同步重启下一轮。
 
 ## 两类 Tips
 
 ```csharp
-var result = await SingleUIManager.Instance.ShowTipsMessageBarAsync("保存成功", CommonTipsType.Success);
-if (result.Status == UIOperationStatus.Failed) Debug.LogException(result.Exception);
+await SingleUIManager.Instance.ShowTipsMessageBarAsync("保存成功", CommonTipsType.Success);
 await SingleUIManager.Instance.ShowTipsMessageBarAsync("请检查输入", CommonTipsType.Notice, duration: 3);
 await SingleUIManager.Instance.ShowTipsMessageBarAsync("操作失败", CommonTipsType.Warning);
 // 三次调用生成三条独立通知；需要清空时调用：

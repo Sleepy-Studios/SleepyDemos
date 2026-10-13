@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,8 +11,8 @@ namespace Hotfix.KagitKart
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class KagitKartHudInk : MaskableGraphic
     {
-        private static readonly Color Ink = new Color32(28, 33, 64, 255);
-        private static readonly Color Highlight = new Color(143f / 255, 155f / 255, 208f / 255, 0.3f);
+        private static readonly Color Ink = UIColors.KagitKart.ScreenInk;
+        private static readonly Color Highlight = UIColors.KagitKart.ScreenInkHighlight;
         private readonly List<Part> parts = new();
         private readonly Drip[] drips = new Drip[6];
         private float duration;
@@ -418,7 +419,7 @@ namespace Hotfix.KagitKart
                 return;
             }
             Rect rect = rectTransform.rect;
-            var tint = new Color(1, 1, 1, Opacity);
+            var tint = ColorUtil.WithAlpha(Color.white, Opacity);
             helper.AddVert(new Vector2(rect.xMin, rect.yMin), tint, new Vector2(0, 0));
             helper.AddVert(new Vector2(rect.xMin, rect.yMax), tint, new Vector2(0, 1));
             helper.AddVert(new Vector2(rect.xMax, rect.yMax), tint, new Vector2(1, 1));

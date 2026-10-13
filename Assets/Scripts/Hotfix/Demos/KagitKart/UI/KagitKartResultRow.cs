@@ -1,3 +1,4 @@
+using Core.Runtime;
 using System;
 using TMPro;
 using UnityEngine;
@@ -23,7 +24,7 @@ namespace Hotfix.KagitKart
         [SerializeField] private KagitKartResultShape pointsBar;
         [SerializeField] private Sprite[] portraits;
         [SerializeField] private string[] portraitIds;
-        private static readonly Color Ink = new Color32(45, 42, 50, 255);
+        private static readonly Color Ink = UIColors.KagitKart.Ink;
         private CanvasGroup group;
         private RectTransform rect;
         private Vector2 position;
@@ -51,7 +52,7 @@ namespace Hotfix.KagitKart
             nameText.text = KagitKartCatalog.CharacterName(result.CharacterId);
             ShowPortrait(result.CharacterId);
             timeText.text = (result.Estimated ? "≈ " : "") + KagitKartHudMotion.TimeText(result.Time);
-            timeText.color = new Color(45 / 255f, 42 / 255f, 50 / 255f, result.Estimated ? 0.72f : 1);
+            timeText.color = ColorUtil.WithAlpha(Ink, result.Estimated ? 0.72f : 1);
             bestLapText.text = result.BestLap.HasValue ? KagitKartHudMotion.TimeText(result.BestLap.Value) : "—";
             pointsText.text = grandPrix ? result.TotalPoints.ToString() : "";
             bonusText.text = grandPrix && result.Points != 0 ? "+" + result.Points : "";
@@ -100,7 +101,7 @@ namespace Hotfix.KagitKart
             pointsBar.SetFill((float)standing.Points / maximum, bodyColor);
             int change = previousPlace > 0 ? previousPlace - place : 0;
             movementText.text = change > 0 ? "▲" + change : change < 0 ? "▼" + -change : "";
-            movementText.color = change > 0 ? Hex("#6f9a58") : Hex("#d9483b");
+            movementText.color = change > 0 ? UIColors.KagitKart.Rising : UIColors.KagitKart.Accent;
             movementText.gameObject.SetActive(change != 0);
             playerHighlight.gameObject.SetActive(isPlayer);
         }
@@ -140,11 +141,6 @@ namespace Hotfix.KagitKart
             portrait.gameObject.SetActive(true);
         }
 
-        private static Color PlaceInk(int value) => value == 1 ? Hex("#e3a623") : value == 2 ? Hex("#7d97b8") : value == 3 ? Hex("#c8693a") : Ink;
-        private static Color Hex(string value)
-        {
-            ColorUtility.TryParseHtmlString(value, out var result);
-            return result;
-        }
-    }
+        private static Color PlaceInk(int value) => value == 1 ? UIColors.KagitKart.FirstPlace : value == 2 ? UIColors.KagitKart.SecondPlace : value == 3 ? UIColors.KagitKart.ThirdPlace : Ink;
+}
 }

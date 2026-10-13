@@ -19,7 +19,7 @@ namespace Core.Runtime
         CloseAll
     }
 
-    public enum UIOperationStatus
+    internal enum UIOperationStatus
     {
         Succeeded = 1,
         Canceled = 2,
@@ -73,40 +73,29 @@ namespace Core.Runtime
         public bool Animated { get; }
     }
 
-    public readonly struct UIShowOptions
+    public readonly struct UIOpenOptions
     {
         private readonly bool? animated;
         private readonly bool? hidePrevious;
+        private readonly bool? asyncLoad;
 
-        /// <summary>
-        /// 创建 View 显示选项。
-        /// </summary>
-        /// <param name="animated">是否播放显示动画。</param>
-        public UIShowOptions(bool animated)
-        {
-            this.animated = animated;
-            hidePrevious = null;
-        }
-
-        /// <summary>
-        /// 创建 View 显示选项。
-        /// </summary>
-        /// <param name="animated">是否播放显示动画。</param>
-        /// <param name="hidePrevious">是否隐藏同层级的上一 View。</param>
-        public UIShowOptions(bool animated, bool hidePrevious)
+        /// <summary>分别配置资源加载、过渡和上一页面显示，不混用异步与动效。</summary>
+        /// <param name="animated">默认播放 UI 和世界过渡。</param>
+        /// <param name="hidePrevious">默认隐藏同层上一页面。</param>
+        /// <param name="asyncLoad">默认异步加载资源；false 使用资源服务的真实同步实例化。</param>
+        public UIOpenOptions(bool animated = true, bool hidePrevious = true, bool asyncLoad = true)
         {
             this.animated = animated;
             this.hidePrevious = hidePrevious;
+            this.asyncLoad = asyncLoad;
         }
 
-        /// 是否播放显示动画；默认值为 true。
         public bool Animated => animated ?? true;
-
-        /// 是否隐藏同层级的上一 View；默认值为 true。
         public bool HidePrevious => hidePrevious ?? true;
+        public bool AsyncLoad => asyncLoad ?? true;
     }
 
-    public readonly struct UIOperationResult
+    internal readonly struct UIOperationResult
     {
         private UIOperationResult(
             long operationId,
@@ -176,7 +165,8 @@ namespace Core.Runtime
                 id,
                 action,
                 UIOperationStatus.Ignored,
-                view ?? throw new ArgumentNullException(nameof(view)),
+                view ?? (action is UINavigationAction.Close or UINavigationAction.Back
+                    ? null : throw new ArgumentNullException(nameof(view))),
                 null);
         }
 

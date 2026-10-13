@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Threading;
@@ -250,14 +250,10 @@ namespace Hotfix.KagitKart
                 Session.Collisions.Bumped += OnBumped;
                 presentationTime = refreshTime = 0;
                 cameraTrackHint = -1;
-                var result = await UIManager.Instance.ShowAsync<KagitKartHudView>(view => view.SetData(this),
-                    new UIShowOptions(animated: false), token);
-                if (result.Status == UIOperationStatus.Failed)
-                {
-                    throw result.Exception;
-                }
+                var result = await UIManager.Instance.OpenAsync<KagitKartHudView>(view => view.SetData(this),
+                    new UIOpenOptions(animated: false), token);
                 token.ThrowIfCancellationRequested();
-                hud = result.View as KagitKartHudView;
+                hud = result;
                 busy = false;
                 Input.SetDriving(false);
                 Dispatch(KagitKartCommand.Refresh);
@@ -533,32 +529,28 @@ namespace Hotfix.KagitKart
                     GrandPrix = null;
                 }
                 var token = lifetimeCancellation.Token;
-                var options = new UIShowOptions(animated: false);
-                UIOperationResult shown;
+                var options = new UIOpenOptions(animated: false);
+                View shown;
                 switch (page)
                 {
                     case KagitKartCommand.Title:
-                        shown = await UIManager.Instance.ShowAsync<KagitKartTitleView>(view => view.SetData(this), options, token);
+                        shown = await UIManager.Instance.OpenAsync<KagitKartTitleView>(view => view.SetData(this), options, token);
                         break;
                     case KagitKartCommand.Modes:
-                        shown = await UIManager.Instance.ShowAsync<KagitKartModeView>(view => view.SetData(this), options, token);
+                        shown = await UIManager.Instance.OpenAsync<KagitKartModeView>(view => view.SetData(this), options, token);
                         break;
                     case KagitKartCommand.Classes:
-                        shown = await UIManager.Instance.ShowAsync<KagitKartClassView>(view => view.SetData(this), options, token);
+                        shown = await UIManager.Instance.OpenAsync<KagitKartClassView>(view => view.SetData(this), options, token);
                         break;
                     case KagitKartCommand.Characters:
-                        shown = await UIManager.Instance.ShowAsync<KagitKartCharacterView>(view => view.SetData(this), options, token);
+                        shown = await UIManager.Instance.OpenAsync<KagitKartCharacterView>(view => view.SetData(this), options, token);
                         break;
                     default:
-                        shown = await UIManager.Instance.ShowAsync<KagitKartTrackView>(view => view.SetData(this), options, token);
+                        shown = await UIManager.Instance.OpenAsync<KagitKartTrackView>(view => view.SetData(this), options, token);
                         break;
                 }
-                if (shown.Status == UIOperationStatus.Failed)
-                {
-                    throw shown.Exception;
-                }
                 token.ThrowIfCancellationRequested();
-                menu = shown.View;
+                menu = shown;
             }
             catch (OperationCanceledException)
             {
@@ -625,10 +617,10 @@ namespace Hotfix.KagitKart
             busy = true;
             try
             {
-                var shown = await UIManager.Instance.ShowAsync<KagitKartPodiumView>(view => view.SetData(this),
-                    new UIShowOptions(animated: false), lifetimeCancellation.Token);
-                if (shown.Status == UIOperationStatus.Failed) throw shown.Exception;
-                menu = shown.View;
+                var shown = await UIManager.Instance.OpenAsync<KagitKartPodiumView>(view => view.SetData(this),
+                    new UIOpenOptions(animated: false), lifetimeCancellation.Token);
+
+                menu = shown;
             }
             catch (OperationCanceledException)
             {
@@ -760,14 +752,10 @@ namespace Hotfix.KagitKart
                     if (desired && modal == null)
                     {
                         var token = lifetimeCancellation.Token;
-                        var shown = results
-                            ? await UIManager.Instance.ShowAsync<KagitKartResultsView>(view => view.SetData(this), new UIShowOptions(animated: false), token)
-                            : await UIManager.Instance.ShowAsync<KagitKartPauseView>(view => view.SetData(this), new UIShowOptions(animated: false), token);
-                        if (shown.Status == UIOperationStatus.Failed)
-                        {
-                            throw shown.Exception;
-                        }
-                        modal = shown.View;
+                        View shown = results
+                            ? await UIManager.Instance.OpenAsync<KagitKartResultsView>(view => view.SetData(this), new UIOpenOptions(animated: false), token)
+                            : await UIManager.Instance.OpenAsync<KagitKartPauseView>(view => view.SetData(this), new UIOpenOptions(animated: false), token);
+                        modal = shown;
                     }
                     else if (!desired && modal != null)
                     {
@@ -795,29 +783,17 @@ namespace Hotfix.KagitKart
             await CloseOptionsAsync();
             if (menu != null)
             {
-                var result = await UIManager.Instance.CloseAsync(menu);
-                if (result.Status == UIOperationStatus.Failed)
-                {
-                    throw result.Exception;
-                }
+                await UIManager.Instance.CloseAsync(menu);
                 menu = null;
             }
             if (modal != null)
             {
-                var result = await UIManager.Instance.CloseAsync(modal);
-                if (result.Status == UIOperationStatus.Failed)
-                {
-                    throw result.Exception;
-                }
+                await UIManager.Instance.CloseAsync(modal);
                 modal = null;
             }
             if (hud != null)
             {
-                var result = await UIManager.Instance.CloseAsync(hud);
-                if (result.Status == UIOperationStatus.Failed)
-                {
-                    throw result.Exception;
-                }
+                await UIManager.Instance.CloseAsync(hud);
                 hud = null;
             }
         }

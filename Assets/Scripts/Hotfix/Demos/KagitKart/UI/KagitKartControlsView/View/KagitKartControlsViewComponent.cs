@@ -40,7 +40,9 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Item;
         private TextMeshProUGUI TextMeshProUGUI_LookBack;
         private TextMeshProUGUI TextMeshProUGUI_Pause;
+        private TextMeshProUGUI TextMeshProUGUI_MuteTitle;
         private TextMeshProUGUI TextMeshProUGUI_Mute;
+        private TextMeshProUGUI TextMeshProUGUI_RestartTitle;
         private TextMeshProUGUI TextMeshProUGUI_Restart;
         private InputBindingPrompt InputBindingPrompt_Current;
 
@@ -69,9 +71,11 @@ namespace Hotfix
             TextMeshProUGUI_Item = componentItemIndex.Get<TextMeshProUGUI>(12);
             TextMeshProUGUI_LookBack = componentItemIndex.Get<TextMeshProUGUI>(13);
             TextMeshProUGUI_Pause = componentItemIndex.Get<TextMeshProUGUI>(14);
-            TextMeshProUGUI_Mute = componentItemIndex.Get<TextMeshProUGUI>(15);
-            TextMeshProUGUI_Restart = componentItemIndex.Get<TextMeshProUGUI>(16);
-            InputBindingPrompt_Current = componentItemIndex.Get<InputBindingPrompt>(17);
+            TextMeshProUGUI_MuteTitle = componentItemIndex.Get<TextMeshProUGUI>(15);
+            TextMeshProUGUI_Mute = componentItemIndex.Get<TextMeshProUGUI>(16);
+            TextMeshProUGUI_RestartTitle = componentItemIndex.Get<TextMeshProUGUI>(17);
+            TextMeshProUGUI_Restart = componentItemIndex.Get<TextMeshProUGUI>(18);
+            InputBindingPrompt_Current = componentItemIndex.Get<InputBindingPrompt>(19);
         }
     }
 }

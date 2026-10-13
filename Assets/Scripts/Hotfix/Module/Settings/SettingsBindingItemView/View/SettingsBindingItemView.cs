@@ -15,5 +15,7 @@ namespace Hotfix
             => InputSettingsBindingRow_Row.Bind(action, bindingIndex, captionKey, context, device, editable, rebind, reset);
 
         public void Clear() => InputSettingsBindingRow_Row.Clear();
+
+        public void SetGamepadStyle(GamepadStyle style) => InputSettingsBindingRow_Row.SetGamepadStyle(style);
     }
 }

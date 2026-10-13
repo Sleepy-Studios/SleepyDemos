@@ -47,7 +47,11 @@ namespace Hotfix
         {
             rebindAction = resetAction = null;
             prompt.Bind(null);
+            prompt.SetDisplayGamepadStyle(null);
         }
+
+        /// <summary>当前候选的图标预览只作用于这一物理条目。</summary>
+        public void SetGamepadStyle(GamepadStyle style) => prompt.SetDisplayGamepadStyle(style);
 
         private void OnRebind() => rebindAction?.Invoke();
         private void OnReset() => resetAction?.Invoke();

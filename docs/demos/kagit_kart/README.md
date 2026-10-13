@@ -19,3 +19,5 @@
 场景入口：`Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity`，登记为 `GameSceneId.KagitKart`。Hub 显示“纸艺卡丁车”，Editor 直启复用公共 Bootstrap。进入后先选择模式、80g／120g／200g 与八名车手；大奖赛从首章开始，单场与计时赛继续选择四条赛道。角色和章节焦点按原作同步当前选择与 3D 预览，确认才推进页面或开赛。
 
 公共输入、资源加载、UI、导航与测试继续以项目公共文档为真源，不建立第二套框架。
+
+基础 UI 风格库：`Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Foundation/`，以 `KagitKart` 前缀按用途命名，完整公共控件与本 Demo 组合子变体均从这里复用；准确字号、业务参数与页面布局保留。固定 UI/HUD 源码颜色在 `UIColors.KagitKart`，规则与清单见[界面美术维护](architecture/art-direction.md)及[基础资源维护](../../modules/ui-foundation-assets.md#四-demo-完整风格库)。

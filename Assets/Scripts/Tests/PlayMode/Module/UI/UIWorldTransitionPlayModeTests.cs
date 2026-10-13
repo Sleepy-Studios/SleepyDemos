@@ -45,7 +45,7 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
@@ -67,23 +67,23 @@ namespace Tests.Module
             };
             UIManager.Instance.OnOpen += onOpenHandler;
 
-            var showTask = UIManager.Instance.ShowAsync<WorldPageB>().Preserve();
+            var showTask = UIManager.Instance.OpenAsync<WorldPageB>().Preserve();
             yield return null;
 
             Assert.That(Scenario.Events[0], Is.EqualTo("WorldPageB.load"));
             Assert.That(Scenario.Events, Does.Contain("WorldPageA.ui.exit.start"));
             Assert.That(Scenario.Events, Does.Contain("WorldPageA.world.exit.start"));
             Assert.That(Scenario.Events, Does.Not.Contain("WorldPageB.ui.enter.start"));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(pageA));
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(pageA));
 
             pageATransition.CompleteExit();
             yield return null;
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.SameAs(pageA),
+            Assert.That(UIManager.Instance.TopView, Is.SameAs(pageA),
                 "World Exit 未完成时不得提交新栈。");
 
             provider.GetResolved<WorldPageA>().CompleteExit();
             yield return null;
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.TypeOf<WorldPageB>());
+            Assert.That(UIManager.Instance.TopView, Is.TypeOf<WorldPageB>());
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.ui.enter.start"));
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.enter.start"));
 
@@ -113,14 +113,14 @@ namespace Tests.Module
             Assert.That(ReadProvider(), Is.Null);
 
             UIOperationResult first = default;
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), value => first = value);
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), value => first = value);
             Assert.That(first.Status, Is.EqualTo(UIOperationStatus.Succeeded));
 
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider { ReturnNull = true };
             RegisterProvider(provider);
             UIOperationResult second = default;
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageB>(), value => second = value);
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageB>(), value => second = value);
 
             Assert.That(second.Status, Is.EqualTo(UIOperationStatus.Succeeded));
             Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.EqualTo(1));
@@ -136,7 +136,7 @@ namespace Tests.Module
             RegisterProvider(provider);
 
             yield return Await(
-                UIManager.Instance.ShowAsync<WorldPageA>(new UIShowOptions(false)),
+                UIManager.Instance.OpenAsync<WorldPageA>(new UIOpenOptions(false)),
                 _ => { });
             Assert.That(Scenario.Events, Does.Contain("WorldPageA.ui.complete.Enter"));
             Assert.That(Scenario.Events, Does.Contain("WorldPageA.world.complete.Enter"));
@@ -157,17 +157,17 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
             provider.ThrowEnterFor = typeof(WorldPageB);
             UIOperationResult result = default;
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageB>(), value => result = value);
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageB>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(result.Exception, Is.SameAs(provider.EnterException));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.TypeOf<WorldPageA>());
+            Assert.That(UIManager.Instance.TopView, Is.TypeOf<WorldPageA>());
             Assert.That(UIManager.Instance.Get<WorldPageA>().State, Is.EqualTo(ViewState.Visible));
             Assert.That(Scenario.Events, Does.Contain("WorldPageA.world.complete.Enter"));
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.complete.Exit"));
@@ -182,13 +182,13 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
             provider.BlockEnterFor = typeof(WorldPageB);
             using var cancellation = new CancellationTokenSource();
-            var task = UIManager.Instance.ShowAsync<WorldPageB>(default, cancellation.Token).Preserve();
+            var task = UIManager.Instance.OpenAsync<WorldPageB>(default, cancellation.Token).Preserve();
             yield return null;
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.enter.start"));
 
@@ -196,7 +196,7 @@ namespace Tests.Module
             UIOperationResult result = default;
             yield return Await(task, value => result = value);
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Canceled));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.TypeOf<WorldPageA>());
+            Assert.That(UIManager.Instance.TopView, Is.TypeOf<WorldPageA>());
             Assert.That(Scenario.Events, Does.Contain("WorldPageA.world.complete.Enter"));
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.complete.Exit"));
             Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.EqualTo(1));
@@ -210,8 +210,8 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageB>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageB>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
@@ -232,17 +232,17 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
 
             provider.ResetObservations();
             provider.ThrowResolveFor = typeof(WorldPageB);
             UIOperationResult result = default;
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageB>(), value => result = value);
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageB>(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Failed));
             Assert.That(result.Exception, Is.SameAs(provider.ResolveException));
             Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
-            Assert.That(UIManager.Instance.GetStackTopView(), Is.TypeOf<WorldPageA>());
+            Assert.That(UIManager.Instance.TopView, Is.TypeOf<WorldPageA>());
         }
 
         [UnityTest]
@@ -252,7 +252,7 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
@@ -273,8 +273,8 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageB>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageB>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
@@ -282,7 +282,7 @@ namespace Tests.Module
             yield return Await(UIManager.Instance.BackAsync(), value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
-            Assert.That(result.Action, Is.EqualTo(UINavigationAction.Back));
+            Assert.That(UIManager.Instance.TopView, Is.TypeOf<WorldPageA>(), "公开返回接口完成后应恢复前一页面。");
             Assert.That(provider.ResolveCount(typeof(WorldPageB)), Is.EqualTo(1));
             Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.EqualTo(1));
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.exit.start"));
@@ -296,14 +296,14 @@ namespace Tests.Module
             Scenario.Register<WorldPageB>();
             var provider = new FakeWorldTransitionProvider();
             RegisterProvider(provider);
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
 
             Scenario.Events.Clear();
             provider.ResetObservations();
             UIOperationResult result = default;
             yield return Await(
-                UIManager.Instance.ShowAsync<WorldPageB>(
-                    new UIShowOptions(animated: true, hidePrevious: false)),
+                UIManager.Instance.OpenAsync<WorldPageB>(
+                    new UIOpenOptions(animated: true, hidePrevious: false)),
                 value => result = value);
 
             Assert.That(result.Status, Is.EqualTo(UIOperationStatus.Succeeded));
@@ -327,7 +327,7 @@ namespace Tests.Module
             Assert.That(provider.ResolveCount(typeof(WorldPageA)), Is.Zero,
                 "Preload 不改变正式表现，不应解析 World Transition。");
 
-            yield return Await(UIManager.Instance.ShowAsync<WorldPageA>(), _ => { });
+            yield return Await(UIManager.Instance.OpenAsync<WorldPageA>(), _ => { });
             provider.ResetObservations();
             UIOperationResult closeAllResult = default;
             yield return Await(UIManager.Instance.CloseAllAsync(), value => closeAllResult = value);
@@ -349,7 +349,7 @@ namespace Tests.Module
             };
             RegisterProvider(provider);
 
-            var task = UIManager.Instance.ShowAsync<WorldPageB>().Preserve();
+            var task = UIManager.Instance.OpenAsync<WorldPageB>().Preserve();
             yield return null;
 
             var cleanupStartedBeforeRelease = uiTransition.EnterCleanupStarted;
@@ -386,7 +386,7 @@ namespace Tests.Module
             };
             RegisterProvider(provider);
 
-            var task = UIManager.Instance.ShowAsync<WorldPageB>().Preserve();
+            var task = UIManager.Instance.OpenAsync<WorldPageB>().Preserve();
             yield return null;
             var worldTransition = provider.GetResolved<WorldPageB>();
             Assert.That(Scenario.Events, Does.Contain("WorldPageB.world.enter.start"));
@@ -423,9 +423,47 @@ namespace Tests.Module
             return Math.Max(Scenario.Events.IndexOf(first), Scenario.Events.IndexOf(second));
         }
 
-        private static IEnumerator Await(UniTask<UIOperationResult> task, Action<UIOperationResult> receive)
+        private static IEnumerator Await<T>(UniTask<T> task, Action<UIOperationResult> receive) where T : View
         {
-            yield return task.ToCoroutine(receive);
+            yield return CaptureOutcome(task).ToCoroutine(receive);
+        }
+
+        private static IEnumerator Await(UniTask task, Action<UIOperationResult> receive)
+        {
+            yield return CaptureOutcome(task).ToCoroutine(receive);
+        }
+
+        private static async UniTask<UIOperationResult> CaptureOutcome<T>(UniTask<T> task) where T : View
+        {
+            try
+            {
+                return UIOperationResult.Succeeded(0, UINavigationAction.Push, await task);
+            }
+            catch (OperationCanceledException)
+            {
+                return UIOperationResult.Canceled(0, UINavigationAction.Push, null);
+            }
+            catch (Exception exception)
+            {
+                return UIOperationResult.Failed(0, UINavigationAction.Push, null, exception);
+            }
+        }
+
+        private static async UniTask<UIOperationResult> CaptureOutcome(UniTask task)
+        {
+            try
+            {
+                await task;
+                return UIOperationResult.Succeeded(0, UINavigationAction.CloseAll, null);
+            }
+            catch (OperationCanceledException)
+            {
+                return UIOperationResult.Canceled(0, UINavigationAction.CloseAll, null);
+            }
+            catch (Exception exception)
+            {
+                return UIOperationResult.Failed(0, UINavigationAction.CloseAll, null, exception);
+            }
         }
 
         private static void RegisterProvider(IUIWorldTransitionProvider provider)

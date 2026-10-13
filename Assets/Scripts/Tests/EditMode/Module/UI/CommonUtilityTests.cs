@@ -90,6 +90,44 @@ namespace Tests.Module
             Assert.That(ColorUtil.WrapText("内容", Color.red), Is.EqualTo("<color=#FF0000FF>内容</color>"));
         }
 
+        [TestCase("F00")]
+        [TestCase("#F008")]
+        [TestCase("ff0000")]
+        [TestCase("#FF000080")]
+        public void PercentAlphaOverridesParsedAlphaForEveryHexLength(string hex)
+        {
+            var color = ColorUtil.GetColor(hex, alphaPercent: 37.125f);
+            Assert.That(ColorUtil.ToHex(color, includeAlpha: false), Is.EqualTo("#FF0000"));
+            Assert.That(color.a, Is.EqualTo(.37125f).Within(.0000001f), "显式百分比替换 Alpha，不能与原 RGBA 透明度相乘。");
+        }
+
+        [TestCase(-1f, 0f)]
+        [TestCase(0f, 0f)]
+        [TestCase(100f, 1f)]
+        [TestCase(120f, 1f)]
+        [TestCase(float.NaN, 0f)]
+        [TestCase(float.NegativeInfinity, 0f)]
+        [TestCase(float.PositiveInfinity, 1f)]
+        public void PercentAlphaKeepsWithAlphaLimits(float percent, float expected)
+        {
+            var color = ColorUtil.GetColor("#123456", alphaPercent: percent);
+            Assert.That(color.a, Is.EqualTo(expected));
+            Assert.That(ColorUtil.ToHex(color, includeAlpha: false), Is.EqualTo("#123456"));
+        }
+
+        [Test]
+        public void PercentAlphaPreservesFallbackRgbAndByteAlphaPrecision()
+        {
+            var fallback = new Color(.12345f, .45678f, .98765f, .2f);
+            var color = ColorUtil.GetColor("invalid", alphaPercent: 62.5f, fallback: fallback);
+            Assert.That(color.r, Is.EqualTo(fallback.r));
+            Assert.That(color.g, Is.EqualTo(fallback.g));
+            Assert.That(color.b, Is.EqualTo(fallback.b));
+            Assert.That(color.a, Is.EqualTo(.625f));
+            Assert.That(ColorUtil.GetColor(null, alphaPercent: 62.5f), Is.EqualTo(new Color(1, 1, 1, .625f)));
+            Assert.That(ColorUtil.GetColor("#123456", alphaPercent: 98.0392156863f).a, Is.EqualTo(250f / 255f));
+        }
+
         [TestCase(-380, -250)]
         [TestCase(-380, 250)]
         [TestCase(380, -250)]

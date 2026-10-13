@@ -1,3 +1,4 @@
+using Core.Runtime;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -31,7 +32,7 @@ namespace Hotfix.KagitKart
             {
                 float width = Mathf.Max(4.8f, rect.width * fillAmount);
                 // CSS skewX(-14deg) 的 Y 向下，转换到 UGUI 后取反。
-                Bar(vh, rect.xMin, rect.yMin, width, rect.height, new Color32(45, 42, 50, 255));
+                Bar(vh, rect.xMin, rect.yMin, width, rect.height, UIColors.KagitKart.Ink);
                 if (width > 5.76f && rect.height > 5.76f)
                 {
                     Bar(vh, rect.xMin + 2.88f, rect.yMin + 2.88f, width - 5.76f, rect.height - 5.76f, fillColor);
