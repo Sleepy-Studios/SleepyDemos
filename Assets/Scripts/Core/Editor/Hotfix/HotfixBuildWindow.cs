@@ -32,6 +32,23 @@ namespace Core.Editor.Hotfix
         private bool showAdvancedPaths;
         private bool showManualAssemblyEdit;
 
+        private enum UploadMethod
+        {
+            Ssh,
+            GitHubPages
+        }
+
+        private static readonly string[] UploadMethodNames = { "SSH", "GitHub Pages" };
+        private UploadMethod uploadMethod;
+        private string pagesRepositoryPath;
+        private string pagesSiteUrl;
+        private string pagesProjectName;
+        private string sshServerUrl;
+        private static bool isDeploying;
+        private static string deploymentStatus;
+
+        private string DeploymentSettingsKey => $"HotfixBuildWindow.{Application.dataPath}.{AssetDatabase.GetAssetPath(config)}.";
+
         [MenuItem("Tools/UI Framework/Hotfix Build")]
         public static void Open()
         {
@@ -67,6 +84,7 @@ namespace Core.Editor.Hotfix
         private void OnEnable()
         {
             LoadOrCreateConfig();
+            LoadDeploymentSettings();
             SyncPlatformConfig();
         }
 
@@ -86,25 +104,28 @@ namespace Core.Editor.Hotfix
 
         private void OnGUI()
         {
-            if (config != null && buildTarget != EditorUserBuildSettings.activeBuildTarget)
+            if (config != null && !isDeploying && buildTarget != EditorUserBuildSettings.activeBuildTarget)
             {
                 SyncPlatformConfig();
             }
 
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
-            DrawConfigSection();
-            if (config != null)
+            using (new EditorGUI.DisabledScope(isDeploying))
             {
-                DrawGlobalPlatformSection();
-                DrawGeneralSection();
-                DrawHybridClrSection();
-                DrawBuildSection();
-                DrawMockServerSection();
-                DrawRemoteSection();
-                DrawDeploymentSection();
-            }
+                scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+                DrawConfigSection();
+                if (config != null)
+                {
+                    DrawGlobalPlatformSection();
+                    DrawGeneralSection();
+                    DrawHybridClrSection();
+                    DrawBuildSection();
+                    DrawMockServerSection();
+                    DrawRemoteSection();
+                    DrawDeploymentSection();
+                }
 
-            EditorGUILayout.EndScrollView();
+                EditorGUILayout.EndScrollView();
+            }
         }
 
         private void DrawConfigSection()
@@ -129,6 +150,7 @@ namespace Core.Editor.Hotfix
 
             if (config != previousConfig)
             {
+                LoadDeploymentSettings();
                 SyncPlatformConfig();
             }
 
@@ -379,7 +401,7 @@ namespace Core.Editor.Hotfix
 
             if (!config.UseLocalMockServer)
             {
-                EditorGUILayout.HelpBox("开启后才会显示本地模拟服务器配置。关闭后恢复真实远端 URL 与 SSH 上传流程。", MessageType.None);
+                EditorGUILayout.HelpBox("开启后才会显示本地模拟服务器配置。关闭后恢复所选上传方式的真实远端 URL。", MessageType.None);
                 EditorGUI.indentLevel--;
                 return;
             }
@@ -446,24 +468,78 @@ namespace Core.Editor.Hotfix
 
         private void DrawRemoteSection()
         {
-            showRemoteSection = EditorGUILayout.Foldout(showRemoteSection, "真实远端服务器 / SSH", true);
+            showRemoteSection = EditorGUILayout.Foldout(showRemoteSection, "真实远端服务器 / 上传方式", true);
             if (!showRemoteSection)
             {
                 return;
             }
 
             EditorGUI.indentLevel++;
-            if (config.UseLocalMockServer)
+            EditorGUI.BeginChangeCheck();
+            var nextMethod = (UploadMethod)EditorGUILayout.Popup("上传方式", (int)uploadMethod, UploadMethodNames);
+            if (nextMethod != uploadMethod)
             {
-                EditorGUILayout.HelpBox("当前启用了本地模拟模式，本分组仅作配置保存展示，SSH 上传与测试不会生效。", MessageType.None);
+                if (uploadMethod == UploadMethod.Ssh)
+                {
+                    sshServerUrl = config.RemoteBaseServerURL;
+                }
+
+                uploadMethod = nextMethod;
+                if (uploadMethod == UploadMethod.Ssh)
+                {
+                    config.RemoteBaseServerURL = sshServerUrl;
+                }
             }
 
-            config.RemoteBaseServerURL = EditorGUILayout.TextField(
-                new GUIContent("真实远端 URL", "关闭本地模拟后，运行时会使用这个地址拉取版本与资源。"),
-                config.RemoteBaseServerURL);
+            if (config.UseLocalMockServer)
+            {
+                EditorGUILayout.HelpBox("当前启用了本地模拟模式，真实远端部署按钮不可用。", MessageType.None);
+            }
+
+            if (uploadMethod == UploadMethod.GitHubPages)
+            {
+                DrawFolderPathSelector(
+                    new GUIContent("Pages 本地仓库", "网站仓库的本地检出目录，必须位于 Unity 工程之外。"),
+                    pagesRepositoryPath,
+                    ResolvePath(pagesRepositoryPath),
+                    () => BrowseFolderPath(value => pagesRepositoryPath = value, ResolvePath(pagesRepositoryPath), "选择 Pages 仓库"));
+                pagesSiteUrl = EditorGUILayout.TextField(new GUIContent("网站根 URL", "例如 https://h-bole.github.io/H-Bole.io，勿追加资源目录。"), pagesSiteUrl);
+                pagesProjectName = EditorGUILayout.TextField(new GUIContent("Unity 项目目录", "只使用字母、数字、短横线或下划线；自动追加 hotupdate 和当前平台。"), pagesProjectName);
+                if (!TryGetPagesRemoteUrl(out _))
+                {
+                    EditorGUILayout.HelpBox("请填写有效的 HTTPS 网站根 URL 和 Unity 项目目录名。", MessageType.Warning);
+                }
+
+                EditorGUILayout.HelpBox("资源目录：unity/<项目>/hotupdate/<平台>。PC 对应 Windows64，其他平台使用 Unity 构建平台名。需要 git、gh，并已通过 gh auth login 登录。", MessageType.None);
+            }
+            else
+            {
+                config.RemoteBaseServerURL = EditorGUILayout.TextField(
+                    new GUIContent("真实远端 URL", "关闭本地模拟后，运行时会使用这个地址拉取版本与资源。"),
+                    config.RemoteBaseServerURL);
+                sshServerUrl = config.RemoteBaseServerURL;
+            }
+
             if (!config.UseLocalMockServer)
             {
                 SyncBaseServerUrlFromMode(true);
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                SaveDeploymentSettings();
+                EditorUtility.SetDirty(config);
+            }
+
+            if (uploadMethod == UploadMethod.GitHubPages)
+            {
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.TextField("真实远端 URL", config.RemoteBaseServerURL);
+                }
+
+                EditorGUI.indentLevel--;
+                return;
             }
 
             config.SshHost = EditorGUILayout.TextField(new GUIContent("服务器地址", "SSH 服务器主机名或 IP。"), config.SshHost);
@@ -504,14 +580,148 @@ namespace Core.Editor.Hotfix
             EditorGUI.indentLevel++;
             if (config.UseLocalMockServer)
             {
-                EditorGUILayout.HelpBox("当前为本地模拟模式，不需要 SSH 上传。模拟服务会直接读取你配置的模拟服务器目录。", MessageType.Info);
+                EditorGUILayout.HelpBox("当前为本地模拟模式，不需要远端上传。模拟服务会直接读取你配置的模拟服务器目录。", MessageType.Info);
+            }
+            else if (uploadMethod == UploadMethod.GitHubPages)
+            {
+                EditorGUILayout.HelpBox("增量上传保留旧包，只同步当前构建的版本、清单、hash 和 Bundle。操作会提交并推送 main，Pages 部署完成后才可下载。请先核对当前 Bundle 路径是否为本轮最新构建。", MessageType.Info);
+                using (new EditorGUI.DisabledScope(!TryGetPagesRemoteUrl(out _) || string.IsNullOrWhiteSpace(pagesRepositoryPath)))
+                {
+                    if (GUILayout.Button("增量上传到 GitHub Pages"))
+                    {
+                        DeployPagesAsync(false);
+                    }
+
+                    if (GUILayout.Button("清空当前平台目录"))
+                    {
+                        DeployPagesAsync(true);
+                    }
+                }
             }
             else if (GUILayout.Button(new GUIContent("开始上传到 SSH 服务器", "将当前 Bundle 目录下的所有文件上传到远端服务器")))
             {
                 UploadToServer();
             }
 
+            if (!string.IsNullOrEmpty(deploymentStatus))
+            {
+                EditorGUILayout.HelpBox(deploymentStatus, MessageType.Info);
+            }
+
             EditorGUI.indentLevel--;
+        }
+
+        private async void DeployPagesAsync(bool clearDirectory)
+        {
+            if (isDeploying)
+            {
+                return;
+            }
+
+            bool reloadLocked = false;
+            try
+            {
+                string resourcePath = GitHubPagesDeployment.GetResourcePath(pagesProjectName, GetPlatformFolder());
+                string repositoryPath = ResolvePath(pagesRepositoryPath);
+                if (clearDirectory && !EditorUtility.DisplayDialog(
+                        "清空当前平台资源",
+                        $"将清空并提交、推送以下目录中的文件：\n{Path.Combine(repositoryPath, resourcePath)}\n\n旧客户端可能仍依赖这些资源，请确认后再清空。其他项目和平台不受影响。",
+                        "清空并发布", "取消"))
+                {
+                    return;
+                }
+
+                SaveConfig();
+                EditorApplication.LockReloadAssemblies();
+                reloadLocked = true;
+                isDeploying = true;
+                deploymentStatus = clearDirectory ? "正在清空并发布当前平台目录…" : "正在增量上传…";
+                Repaint();
+                deploymentStatus = clearDirectory
+                    ? await GitHubPagesDeployment.ClearAsync(repositoryPath, resourcePath)
+                    : await GitHubPagesDeployment.UploadAsync(repositoryPath, resourcePath, GetLocalBundleAbsolutePath(), config.PackageName);
+                Debug.Log($"[GitHub Pages] {deploymentStatus}");
+            }
+            catch (Exception exception)
+            {
+                deploymentStatus = $"部署失败：{exception.Message}";
+                Debug.LogError($"[GitHub Pages] {deploymentStatus}");
+            }
+            finally
+            {
+                if (reloadLocked)
+                {
+                    EditorApplication.UnlockReloadAssemblies();
+                }
+
+                isDeploying = false;
+                if (this != null)
+                {
+                    Repaint();
+                }
+            }
+        }
+
+        private static string GetPlatformFolder()
+        {
+            BuildTarget target = EditorUserBuildSettings.activeBuildTarget;
+            return target == BuildTarget.StandaloneWindows64 ? "PC" : target.ToString();
+        }
+
+        private void LoadDeploymentSettings()
+        {
+            string key = DeploymentSettingsKey;
+            string projectName = new DirectoryInfo(GetProjectRootPath()).Name;
+            string pagesMarker = $"/unity/{projectName}/hotupdate/";
+            int markerIndex = config.RemoteBaseServerURL?.IndexOf(pagesMarker, StringComparison.Ordinal) ?? -1;
+            string configuredSiteUrl = markerIndex > 0 ? config.RemoteBaseServerURL.Substring(0, markerIndex) : string.Empty;
+            string repositoryName = Uri.TryCreate(configuredSiteUrl, UriKind.Absolute, out Uri siteUri)
+                ? siteUri.AbsolutePath.Trim('/').Split('/').LastOrDefault()
+                : string.Empty;
+            string repositoryDefault = string.IsNullOrEmpty(repositoryName)
+                ? string.Empty
+                : Path.GetFullPath(Path.Combine(GetProjectRootPath(), "..", repositoryName));
+
+            uploadMethod = (UploadMethod)EditorPrefs.GetInt(key + "UploadMethod", markerIndex > 0 ? (int)UploadMethod.GitHubPages : (int)UploadMethod.Ssh);
+            pagesRepositoryPath = EditorPrefs.GetString(key + "PagesRepositoryPath", repositoryDefault);
+            pagesSiteUrl = EditorPrefs.GetString(key + "PagesSiteUrl", configuredSiteUrl);
+            pagesProjectName = EditorPrefs.GetString(key + "PagesProjectName", projectName);
+            sshServerUrl = EditorPrefs.GetString(key + "SshServerUrl", markerIndex > 0 ? string.Empty : config.RemoteBaseServerURL);
+            if (uploadMethod == UploadMethod.Ssh)
+            {
+                config.RemoteBaseServerURL = sshServerUrl;
+            }
+        }
+
+        private void SaveDeploymentSettings()
+        {
+            string key = DeploymentSettingsKey;
+            EditorPrefs.SetInt(key + "UploadMethod", (int)uploadMethod);
+            EditorPrefs.SetString(key + "PagesRepositoryPath", pagesRepositoryPath);
+            EditorPrefs.SetString(key + "PagesSiteUrl", pagesSiteUrl);
+            EditorPrefs.SetString(key + "PagesProjectName", pagesProjectName);
+            EditorPrefs.SetString(key + "SshServerUrl", sshServerUrl);
+        }
+
+        private bool TryGetPagesRemoteUrl(out string remoteUrl)
+        {
+            remoteUrl = string.Empty;
+            if (!Uri.TryCreate(pagesSiteUrl?.Trim().TrimEnd('/'), UriKind.Absolute, out Uri siteUri) ||
+                siteUri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(siteUri.Query) ||
+                !string.IsNullOrEmpty(siteUri.Fragment) || !string.IsNullOrEmpty(siteUri.UserInfo))
+            {
+                return false;
+            }
+
+            try
+            {
+                remoteUrl = $"{siteUri.AbsoluteUri.TrimEnd('/')}/{GitHubPagesDeployment.GetResourcePath(pagesProjectName, GetPlatformFolder())}";
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
         }
 
         private void DrawFolderPathSelector(
@@ -783,6 +993,7 @@ namespace Core.Editor.Hotfix
         {
             EnsureDefaults();
             SyncBaseServerUrlFromMode(false);
+            SaveDeploymentSettings();
             EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssets();
         }
@@ -961,9 +1172,7 @@ namespace Core.Editor.Hotfix
                 throw new InvalidOperationException("远程根路径必须是非根目录的绝对路径，且不能包含相对跳转或控制字符。");
             }
 
-            BuildTarget currentBuildTarget = EditorUserBuildSettings.activeBuildTarget;
-            string platformFolder = currentBuildTarget == BuildTarget.StandaloneWindows64 ? "PC" : currentBuildTarget.ToString();
-            return $"{root}/{platformFolder}";
+            return $"{root}/{GetPlatformFolder()}";
         }
 
         private static string QuoteForShell(string path)
@@ -1070,6 +1279,11 @@ namespace Core.Editor.Hotfix
 
         private void SyncBaseServerUrlFromMode(bool markDirty)
         {
+            if (uploadMethod == UploadMethod.GitHubPages && TryGetPagesRemoteUrl(out string pagesUrl))
+            {
+                config.RemoteBaseServerURL = pagesUrl;
+            }
+
             config.BaseServerURL = config.UseLocalMockServer
                 ? BuildBaseServerUrl(config.LocalServerHost, config.LocalServerPort)
                 : config.RemoteBaseServerURL;

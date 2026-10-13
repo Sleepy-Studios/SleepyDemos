@@ -15,8 +15,8 @@ MonoBehaviour:
   StartupScene: 
   PlayMode: 0
   PackageName: DefaultPackage
-  BaseServerURL: 
-  RemoteBaseServerURL: 
+  BaseServerURL: https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC
+  RemoteBaseServerURL: https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC
   LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-10-12-165911
   AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/StandaloneWindows64
   AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/StandaloneWindows64

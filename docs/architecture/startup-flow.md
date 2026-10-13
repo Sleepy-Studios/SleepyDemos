@@ -64,6 +64,8 @@
 
 “一键编译并同步”在全量编译和程序集列表刷新后执行 AOT 剥离，再同步剥离后的 AOT DLL 与热更 DLL 到资源目录，供后续资源打包使用。
 
+同一构建窗口可切换 SSH 与 GitHub Pages 部署。Pages 设置保存在编辑器偏好中，运行时仍只读取 `HotfixConfig.BaseServerURL`；窗口按当前 Unity 平台生成 `unity/<项目>/hotupdate/<平台>` 下载地址，日常 EditorSimulateMode 不变。增量上传与单平台清空的操作见 [Pages 发布流程](../runbooks/deploy-github-pages-hotupdate.md)，不改变启动状态与程序集装配顺序。
+
 Hotfix 入口位于：
 - `Assets/Scripts/Hotfix/AppDelegate/HotfixEntry.cs`
 

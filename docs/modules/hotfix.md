@@ -19,6 +19,7 @@
 - `Assets/Scripts/Core/Editor/Hotfix/HotfixBuildWindow.cs`
 - `Assets/Scripts/Core/Editor/Hotfix/HotfixAssemblyDefinitionFilter.cs`
 - `Assets/Scripts/Core/Editor/Hotfix/LocalBundleHttpServer.cs`
+- `Assets/Scripts/Core/Editor/Hotfix/GitHubPagesDeployment.cs`
 
 配置与资源：
 
@@ -47,6 +48,16 @@
 “一键编译并同步”依次执行 HybridCLR 全量生成与编译、刷新 AOT/热更程序集列表、AOT 剥离，再把剥离后的 AOT DLL 与热更 DLL 同步为资源目录中的 `.dll.bytes`。单独的“同步当前 DLL 到资源目录”仍直接使用未剥离的 AOT 源目录。
 
 构建平台以 `EditorUserBuildSettings.activeBuildTarget` 为唯一来源，窗口保留 PC/Android 按钮并显示当前平台的选中状态。点击另一平台只提示先到 `File > Build Profiles` 切换，不直接切换 Unity 平台或修改路径。打开窗口、切换配置或检测到 Unity 平台变化时，自动同步 AOT、热更 DLL 源目录和当前平台最新的 Bundle 目录；手动选择的路径可在本轮操作中继续使用，再次同步平台时会恢复该平台的默认路径。新建配置也使用当前构建平台。HybridCLR 编译与 YooAsset 资源打包应使用同一平台；SSH 部署保留 Windows64 的 `/PC` 目录，Android 使用 `/Android`。
+
+### GitHub Pages 资源环境
+
+`HotfixBuildWindow` 提供 `SSH` / `GitHub Pages` 上传方式。Pages 的本地仓库路径、网站根 URL、Unity 项目目录名由 Core.Editor 使用 `EditorPrefs` 按 Unity 项目和配置保存；`HotfixConfig` 不增加部署字段，只保留运行时资源地址等现有配置。窗口负责设置、当前平台展示、URL 同步、按钮与清空确认；`GitHubPagesDeployment` 负责目标路径和发布白名单、仓库与登录校验、增量复制、当前平台清理，以及异步 Git 提交和推送，不参与运行时资源加载。
+
+固定目标为 `unity/<项目>/hotupdate/<当前平台>/`：`StandaloneWindows64` 映射 `PC`，`Android` 映射 `Android`，其他平台沿用 `BuildTarget` 名称。Pages 模式从网站根 URL、项目和平台自动生成 `RemoteBaseServerURL`；关闭本地模拟后 `BaseServerURL` 使用该地址，SSH 模式仍保留手工 URL。当前 PC 地址为 `https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC`，日常 `EditorSimulateMode` 不变。
+
+Pages 默认只复制变更的下载文件并保留旧包；独立的“清空当前平台目录”操作经确认后删除目标文件并保留 `.gitkeep`。两种操作均会提交、推送，只作用于当前项目和平台；含子目录或链接的目标拒绝操作。本地仓库须为干净的 `main`，远端不能领先或分歧；仅允许当前平台资源与本轮站点骨架存在未推送提交，其他本地待发布文件会被拒绝，工具不自动合并。
+
+公开仓库 `H-Bole/H-Bole.io` 已开启 `main` 根目录 Pages；本轮只准备本地环境与 PC / Android 目录骨架，未上传资源、不实际推送。其他 Unity 项目并列放在 `unity/` 下，网站根目录可容纳其他用途，不预建未知用途目录。后续使用最新构建并完成部署后再做 HostPlayMode 验收，窗口步骤、清理边界与下载核对见 [用 GitHub Pages 发布热更资源](../runbooks/deploy-github-pages-hotupdate.md)。
 
 ## 边界规则
 
