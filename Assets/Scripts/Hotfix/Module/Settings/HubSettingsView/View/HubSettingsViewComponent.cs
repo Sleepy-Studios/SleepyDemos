@@ -15,22 +15,14 @@ namespace Hotfix
     {
         public override string Address => "LoadResources/UI/Settings/HubSettingsView";
         public override UILayer Level => UILayer.Pop;
-        public override UIViewMode ViewMode => UIViewMode.Modal;
-        public override MaskType Mask => MaskType.CloseRaycast;
+        public override UIViewMode ViewMode => UIViewMode.Page;
+        public override MaskType Mask => MaskType.ShowOnly;
         public override bool EnableOnInit => true;
         public override bool DestroyOnHide => true;
-        protected override IUITransition CreateUITransition()
-        {
-            return new Core.Runtime.EmptyUITransition();
-        }
 
         private RectTransform RectTransform_Design;
         private UIMenuScope UIMenuScope_Design;
-        private CanvasGroup CanvasGroup_Editor_controls;
-        private ViewTab ViewTab_Editor_controls;
-        private TextMeshProUGUI TextMeshProUGUI_Desc;
         private TextMeshProUGUI TextMeshProUGUI_Title;
-        private Button Button_Close;
         private TextMeshProUGUI TextMeshProUGUI_Category_title;
         private TextMeshProUGUI TextMeshProUGUI_Actual_state;
         private TextMeshProUGUI TextMeshProUGUI_Help;
@@ -41,6 +33,10 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Label1;
         private Button Button_Cancel;
         private TextMeshProUGUI TextMeshProUGUI_Label2;
+        private CanvasGroup CanvasGroup_Editor_controls;
+        private ViewTab ViewTab_Editor_controls;
+        private TextMeshProUGUI TextMeshProUGUI_Desc;
+        private Button Button_Close;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -54,21 +50,21 @@ namespace Hotfix
 
             RectTransform_Design = componentItemIndex.Get<RectTransform>(0);
             UIMenuScope_Design = componentItemIndex.Get<UIMenuScope>(1);
-            CanvasGroup_Editor_controls = componentItemIndex.Get<CanvasGroup>(2);
-            ViewTab_Editor_controls = componentItemIndex.Get<ViewTab>(3);
-            TextMeshProUGUI_Desc = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(5);
-            Button_Close = componentItemIndex.Get<Button>(6);
-            TextMeshProUGUI_Category_title = componentItemIndex.Get<TextMeshProUGUI>(7);
-            TextMeshProUGUI_Actual_state = componentItemIndex.Get<TextMeshProUGUI>(8);
-            TextMeshProUGUI_Help = componentItemIndex.Get<TextMeshProUGUI>(9);
-            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(10);
-            Button_Reset = componentItemIndex.Get<Button>(11);
-            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(12);
-            Button_Apply = componentItemIndex.Get<Button>(13);
-            TextMeshProUGUI_Label1 = componentItemIndex.Get<TextMeshProUGUI>(14);
-            Button_Cancel = componentItemIndex.Get<Button>(15);
-            TextMeshProUGUI_Label2 = componentItemIndex.Get<TextMeshProUGUI>(16);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(2);
+            TextMeshProUGUI_Category_title = componentItemIndex.Get<TextMeshProUGUI>(3);
+            TextMeshProUGUI_Actual_state = componentItemIndex.Get<TextMeshProUGUI>(4);
+            TextMeshProUGUI_Help = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(6);
+            Button_Reset = componentItemIndex.Get<Button>(7);
+            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(8);
+            Button_Apply = componentItemIndex.Get<Button>(9);
+            TextMeshProUGUI_Label1 = componentItemIndex.Get<TextMeshProUGUI>(10);
+            Button_Cancel = componentItemIndex.Get<Button>(11);
+            TextMeshProUGUI_Label2 = componentItemIndex.Get<TextMeshProUGUI>(12);
+            CanvasGroup_Editor_controls = componentItemIndex.Get<CanvasGroup>(13);
+            ViewTab_Editor_controls = componentItemIndex.Get<ViewTab>(14);
+            TextMeshProUGUI_Desc = componentItemIndex.Get<TextMeshProUGUI>(15);
+            Button_Close = componentItemIndex.Get<Button>(16);
         }
     }
 }

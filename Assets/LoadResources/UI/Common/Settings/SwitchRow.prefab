@@ -162,7 +162,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -515,11 +515,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2451237448286500146, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 24
+      value: 44
       objectReference: {fileID: 0}
     - target: {fileID: 2451237448286500146, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 24
+      value: 44
       objectReference: {fileID: 0}
     - target: {fileID: 3663456138215513417, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_Pivot.x
@@ -551,7 +551,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3663456138215513417, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 40
+      value: 48
       objectReference: {fileID: 0}
     - target: {fileID: 3663456138215513417, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_LocalPosition.x
@@ -603,11 +603,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5738381549640874982, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 24
+      value: 44
       objectReference: {fileID: 0}
     - target: {fileID: 5738381549640874982, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 24
+      value: 44
       objectReference: {fileID: 0}
     - target: {fileID: 7028456007734795074, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_Pivot.x
@@ -668,6 +668,10 @@ PrefabInstance:
     - target: {fileID: 8857661340388690971, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_fontSizeBase
       value: 24
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857661340388690971, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4281018651
       objectReference: {fileID: 0}
     - target: {fileID: 8857661340388690971, guid: dfb2dd04814853043ba0c9829be00b7b, type: 3}
       propertyPath: m_VerticalAlignment
