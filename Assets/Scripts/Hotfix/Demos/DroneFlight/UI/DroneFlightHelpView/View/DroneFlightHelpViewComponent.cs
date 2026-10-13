@@ -35,7 +35,7 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Equipment;
         private TextMeshProUGUI TextMeshProUGUI_Reset;
         private Button Button_Return;
-        private TextMeshProUGUI TextMeshProUGUI_ReturnLabel;
+        private TextMeshProUGUI TextMeshProUGUI_Label;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -58,7 +58,7 @@ namespace Hotfix
             TextMeshProUGUI_Equipment = componentItemIndex.Get<TextMeshProUGUI>(8);
             TextMeshProUGUI_Reset = componentItemIndex.Get<TextMeshProUGUI>(9);
             Button_Return = componentItemIndex.Get<Button>(10);
-            TextMeshProUGUI_ReturnLabel = componentItemIndex.Get<TextMeshProUGUI>(11);
+            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(11);
         }
     }
 }

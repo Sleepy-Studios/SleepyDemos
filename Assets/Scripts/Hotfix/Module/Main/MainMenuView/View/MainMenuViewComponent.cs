@@ -32,7 +32,7 @@ namespace Hotfix
         private TextMeshProUGUI TextMeshProUGUI_Subtitle;
         private TextMeshProUGUI TextMeshProUGUI_Description;
         private Button Button_Start;
-        private TextMeshProUGUI TextMeshProUGUI_StartLabel;
+        private TextMeshProUGUI TextMeshProUGUI_Label;
         private Button Button_Settings;
         private LoopScrollView LoopScrollView_DemoList;
         private TextMeshProUGUI TextMeshProUGUI_Status;
@@ -55,7 +55,7 @@ namespace Hotfix
             TextMeshProUGUI_Subtitle = componentItemIndex.Get<TextMeshProUGUI>(4);
             TextMeshProUGUI_Description = componentItemIndex.Get<TextMeshProUGUI>(5);
             Button_Start = componentItemIndex.Get<Button>(6);
-            TextMeshProUGUI_StartLabel = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(7);
             Button_Settings = componentItemIndex.Get<Button>(8);
             LoopScrollView_DemoList = componentItemIndex.Get<LoopScrollView>(9);
             TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(10);

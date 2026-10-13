@@ -164,7 +164,7 @@ namespace Hotfix.WallSqueeze
 
         internal void ApplyCommand(WallSqueezeCommand command)
         {
-            if (!ready || exiting)
+            if (!ready || exiting || GameSceneNavigator.Instance?.IsTransitioning == true)
             {
                 return;
             }
@@ -251,6 +251,7 @@ namespace Hotfix.WallSqueeze
 
         private async UniTaskVoid ReturnHubAsync()
         {
+            if (GameSceneNavigator.Instance.IsTransitioning) return;
             exiting = true;
             input.CancelHold();
             input.Router.SetContext(GameplayInputContext.Menu);
@@ -258,24 +259,12 @@ namespace Hotfix.WallSqueeze
             {
                 await UniTask.Yield();
             }
-            if (menuView != null)
-            {
-                await UIManager.Instance.CloseAsync(menuView);
-                menuView = null;
-                modalOpen = false;
-            }
-            if (hudView != null)
-            {
-                await UIManager.Instance.CloseAsync(hudView);
-                hudView = null;
-            }
+            if (this == null || !ready) return;
             var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
-            if (result.Status == GameSceneSwitchStatus.Failed)
+            if (result.Status != GameSceneSwitchStatus.Succeeded && this != null && ready)
             {
                 exiting = false;
-                Debug.LogError(result.Error, this);
-                var shown = await UIManager.Instance.ShowAsync<WallSqueezeHudView>(view => view.SetData(this), new UIShowOptions(animated: false), this.GetCancellationTokenOnDestroy());
-                hudView = shown.View as WallSqueezeHudView;
+                if (result.Status == GameSceneSwitchStatus.Failed) Debug.LogError(result.Error, this);
                 if (!Paused && Simulation.Result == WallSqueezeResult.Playing)
                 {
                     input.Router.SetContext(GameplayInputContext.Interaction);
@@ -306,6 +295,11 @@ namespace Hotfix.WallSqueeze
         private void OnDestroy()
         {
             ready = false;
+            // 成功卸载或真实场景重载才销毁旧会话 UI；失败返回仍保留原实例。
+            foreach (var view in new View[] { menuView, hudView })
+                if (view != null) UIManager.Instance.CloseAsync(view, false).Forget();
+            menuView = null;
+            hudView = null;
             menu?.Dispose();
             menu = null;
             if (input != null)

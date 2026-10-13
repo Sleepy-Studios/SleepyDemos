@@ -110,14 +110,13 @@ namespace Hotfix.SceneManagement
                 return GameSceneSwitchResult.Ignored(target);
             }
 
-            var source = CurrentScene;
             isTransitioning = true;
             try
             {
                 var uiError = await loadingPresenter.BeginAsync(definition);
                 if (!string.IsNullOrEmpty(uiError))
                 {
-                    return GameSceneSwitchResult.Failed(target, uiError);
+                    return await RestoreFailedAsync(target, uiError);
                 }
 
                 string name = LanguageService.IsInitialized ? LanguageService.Get(definition.DisplayNameKey) : definition.DisplayName;
@@ -144,8 +143,7 @@ namespace Hotfix.SceneManagement
                             $"正在加载{definition.DisplayName}", "Loading.LoadScene", "Loading.LoadingScene", name));
                 if (!runtimeResult.Succeeded)
                 {
-                    await loadingPresenter.RestoreAsync(source);
-                    return GameSceneSwitchResult.Failed(target, runtimeResult.Error);
+                    return await RestoreFailedAsync(target, runtimeResult.Error);
                 }
 
                 CurrentScene = target;
@@ -153,16 +151,15 @@ namespace Hotfix.SceneManagement
                 uiError = await loadingPresenter.CompleteAsync(target);
                 if (!string.IsNullOrEmpty(uiError))
                 {
-                    return GameSceneSwitchResult.Failed(target, uiError);
+                    return await RestoreFailedAsync(target, uiError);
                 }
 
                 return GameSceneSwitchResult.Succeeded(target);
             }
             catch (Exception exception)
             {
-                await loadingPresenter.RestoreAsync(source);
                 Debug.LogException(exception);
-                return GameSceneSwitchResult.Failed(target, exception.Message);
+                return await RestoreFailedAsync(target, exception.Message);
             }
             finally
             {
@@ -177,6 +174,11 @@ namespace Hotfix.SceneManagement
         public async UniTask<GameSceneSwitchResult> ReloadCurrentAsync()
         {
             var target = CurrentScene;
+            if (isTransitioning)
+            {
+                return GameSceneSwitchResult.Busy(target);
+            }
+
             if (target == GameSceneId.Hub)
             {
                 return GameSceneSwitchResult.Ignored(target);
@@ -187,18 +189,13 @@ namespace Hotfix.SceneManagement
                 return GameSceneSwitchResult.Failed(target, $"未登记的业务场景: {target}");
             }
 
-            if (isTransitioning)
-            {
-                return GameSceneSwitchResult.Busy(target);
-            }
-
             isTransitioning = true;
             try
             {
                 var uiError = await loadingPresenter.BeginAsync(definition);
                 if (!string.IsNullOrEmpty(uiError))
                 {
-                    return GameSceneSwitchResult.Failed(target, uiError);
+                    return await RestoreFailedAsync(target, uiError);
                 }
 
                 var displayedProgress = 0.1f;
@@ -219,8 +216,7 @@ namespace Hotfix.SceneManagement
                         ReportProgress(progress, 0.1f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name));
                     if (!directResult.Succeeded)
                     {
-                        await loadingPresenter.RestoreAsync(target);
-                        return GameSceneSwitchResult.Failed(target, directResult.Error);
+                        return await RestoreFailedAsync(target, directResult.Error);
                     }
                 }
                 else
@@ -229,8 +225,7 @@ namespace Hotfix.SceneManagement
                         ReportProgress(progress, 0.1f, 0.45f, "重新运行场景", $"正在卸载{definition.DisplayName}", "Loading.ReloadScene", "Loading.UnloadingScene", name));
                     if (!unloadResult.Succeeded)
                     {
-                        await loadingPresenter.RestoreAsync(target);
-                        return GameSceneSwitchResult.Failed(target, unloadResult.Error);
+                        return await RestoreFailedAsync(target, unloadResult.Error);
                     }
 
                     CurrentScene = GameSceneId.Hub;
@@ -239,8 +234,7 @@ namespace Hotfix.SceneManagement
                         ReportProgress(progress, 0.45f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name));
                     if (!loadResult.Succeeded)
                     {
-                        await loadingPresenter.RestoreAsync(GameSceneId.Hub);
-                        return GameSceneSwitchResult.Failed(target, loadResult.Error);
+                        return await RestoreFailedAsync(target, loadResult.Error);
                     }
                 }
 
@@ -249,18 +243,32 @@ namespace Hotfix.SceneManagement
                 uiError = await loadingPresenter.CompleteAsync(target);
                 return string.IsNullOrEmpty(uiError)
                     ? GameSceneSwitchResult.Succeeded(target)
-                    : GameSceneSwitchResult.Failed(target, uiError);
+                    : await RestoreFailedAsync(target, uiError);
             }
             catch (Exception exception)
             {
-                await loadingPresenter.RestoreAsync(CurrentScene);
                 Debug.LogException(exception);
-                return GameSceneSwitchResult.Failed(target, exception.Message);
+                return await RestoreFailedAsync(target, exception.Message);
             }
             finally
             {
                 isTransitioning = false;
             }
+        }
+
+        private async UniTask<GameSceneSwitchResult> RestoreFailedAsync(GameSceneId target, string error)
+        {
+            try
+            {
+                // 场景提交后只恢复当前 UI，不能把已卸载的来源当作回滚目标。
+                await loadingPresenter.RestoreAsync(CurrentScene);
+            }
+            catch (Exception exception)
+            {
+                error = $"{error}; Loading 恢复失败: {exception.Message}";
+            }
+
+            return GameSceneSwitchResult.Failed(target, error);
         }
     }
 }

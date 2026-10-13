@@ -22,6 +22,7 @@
 - 涉及启动、热更、资源、公共 UI 或 Demo 接入时，按文档导航读取对应架构、模块和 runbook；大型 UI 导航或过渡改动遵循导航中的跨层阅读要求。
 - 新增、替换或生成正式音频时，遵守[音频资源与导入规范](docs/architecture/audio-assets.md)：WAV 超过 2 MiB 必须从无损原稿导出 OGG，按用途手动选择平台导入 Preset；专用 DSP 按模块采样契约配置。
 - 修改玩家可见文案、多语言或字体时，遵守[多语言与公共字体规范](docs/architecture/localization-fonts.md)：文案按 Key + FontId 配置，复用公共字体组；语言仅在 Hub 切换并重建页面，不维护全局文本监听。缺字更新原公共资产，不新增 Demo 专属或补字字体。
+- 制作或调整 UI 外观、公共基础 Prefab 与 Demo 风格时，先读[公共 UI 美术与复用规范](docs/architecture/ui-art-direction.md)及宿主规范，再按[基础 UI 手册](docs/runbooks/use-core-ui-components.md#制作与更换控件风格)查组件、研究 Game UI Database 的真实截图、确认效果图并验收实际页面；基础结构行为、风格 Variant 与页面业务分别维护。
 - 同一任务已读且未变化的内容不重复加载；纯文字、格式修正不触发整套架构或模块阅读。
 
 ## 项目边界

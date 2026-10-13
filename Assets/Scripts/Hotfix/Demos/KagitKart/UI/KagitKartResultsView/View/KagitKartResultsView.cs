@@ -68,8 +68,8 @@ namespace Hotfix
             stampElapsed = 0;
             Button_Next.transform.parent.gameObject.SetActive(owner.Mode == KagitKartRaceMode.GrandPrix);
             Button_Restart.transform.parent.gameObject.SetActive(owner.Mode != KagitKartRaceMode.GrandPrix);
-            TextMeshProUGUI_Next.text = "总积分榜";
-            TextMeshProUGUI_Restart.text = timeTrial ? "再试一次" : "再赛一场";
+            TextMeshProUGUI_Label.text = "总积分榜";
+            TextMeshProUGUI_Label1.text = timeTrial ? "再试一次" : "再赛一场";
             Fit();
             KagitKartMenuPaperMotion_BoardFrame.Play(0, owner.ReducedMotion);
             Render();

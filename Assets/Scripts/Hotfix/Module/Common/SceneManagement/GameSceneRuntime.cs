@@ -74,10 +74,16 @@ namespace Hotfix.SceneManagement
             bool sourceListenerEnabled = sourceAudioListener.enabled;
             sourceAudioListener.enabled = false;
 
-            var loadResult = await sceneLoader.LoadSceneAsync(
-                address,
-                LoadSceneMode.Additive,
-                onProgress);
+            ResourceSceneLoadResult loadResult;
+            try
+            {
+                loadResult = await sceneLoader.LoadSceneAsync(address, LoadSceneMode.Additive, onProgress);
+            }
+            catch (Exception exception)
+            {
+                sourceAudioListener.enabled = sourceListenerEnabled;
+                return GameSceneRuntimeResult.Failure($"场景加载异常: {exception.Message}");
+            }
             if (!loadResult.Succeeded)
             {
                 sourceAudioListener.enabled = sourceListenerEnabled;
@@ -275,7 +281,16 @@ namespace Hotfix.SceneManagement
             bool sourceListenerEnabled = sourceListener.enabled;
             var sourceHandle = currentHandle;
             sourceListener.enabled = false;
-            var result = await sceneLoader.LoadSceneAsync(address, LoadSceneMode.Additive, onProgress);
+            ResourceSceneLoadResult result;
+            try
+            {
+                result = await sceneLoader.LoadSceneAsync(address, LoadSceneMode.Additive, onProgress);
+            }
+            catch (Exception exception)
+            {
+                sourceListener.enabled = sourceListenerEnabled;
+                return GameSceneRuntimeResult.Failure($"Editor 直启场景加载异常: {exception.Message}");
+            }
             if (!result.Succeeded)
             {
                 sourceListener.enabled = sourceListenerEnabled;
@@ -332,9 +347,14 @@ namespace Hotfix.SceneManagement
         {
             try
             {
+                var operation = SceneManager.LoadSceneAsync("Assets/Scenes/AppEntrance.unity", LoadSceneMode.Single);
+                if (operation == null)
+                {
+                    return GameSceneRuntimeResult.Failure("Editor 直启返回 AppEntrance 未创建加载操作。");
+                }
+
                 GameSceneNavigator.ReleaseEditorDirect();
                 DemoIslandEditorBootstrap.ReleaseForOfficialStartup();
-                var operation = SceneManager.LoadSceneAsync("Assets/Scenes/AppEntrance.unity", LoadSceneMode.Single);
                 while (operation is { isDone: false })
                 {
                     onProgress?.Invoke(operation.progress);

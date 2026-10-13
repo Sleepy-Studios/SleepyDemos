@@ -506,7 +506,11 @@ MonoBehaviour:
   icon: {fileID: 2054914733}
   label: {fileID: 369575250}
   caption: "\u8FD4\u56DE"
+  captionKey: 
+  compositePart: 
+  glyphSlots: []
   uiAction: Cancel
+  captionFirst: 0
   captionOnly: 0
 --- !u!1 &1655221697
 GameObject:
@@ -563,7 +567,11 @@ MonoBehaviour:
   icon: {fileID: 1155531054}
   label: {fileID: 1751246007}
   caption: "\u786E\u8BA4"
+  captionKey: 
+  compositePart: 
+  glyphSlots: []
   uiAction: Submit
+  captionFirst: 0
   captionOnly: 0
 --- !u!1 &1751246005
 GameObject:
@@ -768,6 +776,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Hotfix::Hotfix.LoopScroll.Examples.LoopScrollInputHost
   page: {fileID: 1987664203}
   isMainMenu: 0
+  focusBorder: {fileID: 21300000, guid: b0233318883837a47bffed9eba127712, type: 3}
+  returnLoadingPrefab: {fileID: 200005, guid: 9c31cf9d6b0d4e1c8b9f9baf55e2d741, type: 3}
 --- !u!1 &2054914731
 GameObject:
   m_ObjectHideFlags: 0

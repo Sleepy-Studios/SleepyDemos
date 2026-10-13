@@ -52,6 +52,10 @@ Loop Scroll 属于公共 UI 模块，不登记为玩法 Demo。宿主示例代�
 
 已导入的包 Showcase 位于 `Assets/Samples/SleepyLoopScroll/Showcase/`；宿主 UIBind 场景位于 `Assets/Samples/SleepyLoopScroll/Host/Scenes/LoopScrollUIBindExample.unity`。Catalog 追加宿主页面，仍由 Showcase 主页进入，不加入正式 Hub、YooAsset 启动链路或 Build Settings。包源码、Core 桥接和注册 API 不随目录整理改变。
 
-宿主场景通过 LoopScrollInputHost 接入公共菜单作用域与按钮五态；非交互装饰不拦截射线，Slider 不缩放几何。页面销毁解除返回订阅并释放仅由本页面创建的 EventSystem。Showcase 测试归 `Assets/Scripts/Tests/PlayMode/Module/UI/` 与 `Tests.Module`，继续使用已有 Tests.PlayMode。
+宿主场景通过 LoopScrollInputHost 接入公共菜单作用域与按钮五态；FocusBorder 为一张正式序列化 Sprite 的 Sliced Image，装饰不拦截射线，五态保留控件原制作 scale 与点击矩形。六个项目宿主场景绑定公共 FocusBorder 和 StartupLoading Prefab，不从独立包或未初始化的 ResourceServices 获取这些资源。
+
+子例返回仍由 LoopSamplePage 导航至 menu，不强制显示全屏 Loading。Showcase menu 返回 AppEntrance 时由宿主实例化已绑定的 StartupLoadingView，先跨过实际呈现帧，再启动原生异步入口加载；显示 AsyncOperation 的真实进度，不用时间或进度/0.9 推造百分比。完成加载后释放激活闸，正式 AppEntrance 自己接管启动 Loading 生命周期。宿主返回门闩与页面交互保护防止重复提交，失败清理本次 Loading 并恢复原交互；销毁终止呈现等待并释放已开始操作的激活闸，避免挂住原生场景队列。
+
+页面销毁解除返回订阅并释放本页面创建的 EventSystem 及 Loading，不保存跨会话对象。Showcase 测试归 `Assets/Scripts/Tests/PlayMode/Module/UI/` 与 `Tests.Module`，继续使用已有 Tests.PlayMode。
 
 2026-10-11 目录整理验证：UIBind 3/3、ItemView 桥接 7/7、Showcase 8/8、程序集边界 5/5 通过；六个示例场景完成类型标识与缺失脚本检查，两个脚本、宿主场景和测试文件的 GUID 保持不变。迁移使用 Unity AssetDatabase 与序列化 API，临时迁移工具在验证后清理。未执行项目全量测试、独立包回归或 Player 构建。

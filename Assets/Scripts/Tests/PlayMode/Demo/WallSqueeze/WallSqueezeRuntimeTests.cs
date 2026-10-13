@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Core.Runtime;
 using Core.Runtime.Inputs;
 using Core.Runtime.Localization;
@@ -445,6 +446,156 @@ namespace Tests.Demo
         }
 
         private void Read() => input.Read(simulation, .016f, 4, out _, out _);
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator PublicSceneReloadAndSwitchReleaseOwnedWidgetsAndModals()
+        {
+            input.Dispose();
+            input = null;
+            if (GameSceneNavigator.Instance == null)
+                yield return SceneManager.LoadSceneAsync("Assets/Scenes/AppEntrance.unity", LoadSceneMode.Single);
+            yield return Wait(() => GameSceneNavigator.Instance != null && !GameSceneNavigator.Instance.IsTransitioning, "正式导航稳定");
+            if (GameSceneNavigator.Instance.CurrentScene != GameSceneId.Hub)
+                yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub).ToCoroutine();
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.WallSqueeze).ToCoroutine();
+            yield return Wait(() => (world = Object.FindAnyObjectByType<WallSqueezeWorld>()) != null &&
+                UIManager.Instance.Get<WallSqueezeHudView>()?.State == ViewState.Visible, "旧 Wall HUD");
+            var oldWorld = world;
+            var oldHud = UIManager.Instance.Get<WallSqueezeHudView>();
+            world.Dispatch(WallSqueezeCommand.Pause);
+            yield return Wait(() => UIManager.Instance.Get<WallSqueezeMenuView>()?.State == ViewState.Visible, "旧 Wall Modal");
+            var oldModal = UIManager.Instance.Get<WallSqueezeMenuView>();
+            GameSceneSwitchResult result = default;
+            yield return GameSceneNavigator.Instance.ReloadCurrentAsync().ContinueWith(value => result = value).ToCoroutine();
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded), result.Error);
+            yield return Wait(() => (world = Object.FindAnyObjectByType<WallSqueezeWorld>()) != null && world != oldWorld &&
+                UIManager.Instance.Get<WallSqueezeHudView>()?.State == ViewState.Visible, "新 Wall HUD");
+            Assert.That(oldHud.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(oldModal.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(UIManager.Instance.Get<WallSqueezeHudView>(), Is.Not.SameAs(oldHud));
+            Assert.That(UIManager.Instance.Get<WallSqueezeMenuView>(), Is.Null);
+
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.KagitKart).ContinueWith(value => result = value).ToCoroutine();
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded), result.Error);
+            yield return Wait(() => UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "纸艺封面");
+            Assert.That(UIManager.Instance.Get<WallSqueezeHudView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<WallSqueezeMenuView>(), Is.Null);
+            var kart = Object.FindAnyObjectByType<Hotfix.KagitKart.KagitKartWorld>();
+            kart.Dispatch(Hotfix.KagitKart.KagitKartCommand.Settings);
+            yield return Wait(() => UIManager.Instance.Get<KagitKartSettingsView>()?.State == ViewState.Visible, "纸艺 owned Modal");
+            var kartModal = UIManager.Instance.Get<KagitKartSettingsView>();
+            yield return GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub).ContinueWith(value => result = value).ToCoroutine();
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded), result.Error);
+            yield return Wait(() => UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "Hub 页面");
+            Assert.That(kartModal.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(UIManager.Instance.Get<KagitKartSettingsView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<KagitKartTitleView>(), Is.Null);
+        }
+
+        [UnityTest, Timeout(240000)]
+        public IEnumerator DemoNavigationFailureAndBusyPreserveSourceViewsAndCommands()
+        {
+            input.Dispose();
+            input = null;
+            if (GameSceneNavigator.Instance == null)
+                yield return SceneManager.LoadSceneAsync("Assets/Scenes/AppEntrance.unity", LoadSceneMode.Single);
+            yield return Wait(() => GameSceneNavigator.Instance != null && !GameSceneNavigator.Instance.IsTransitioning, "正式启动稳定");
+            var official = GameSceneNavigator.Instance;
+            if (official.CurrentScene != GameSceneId.Hub) yield return official.SwitchAsync(GameSceneId.Hub).ToCoroutine();
+            foreach (var scene in new[] { GameSceneId.WallSqueeze, GameSceneId.KagitKart })
+            {
+                yield return official.SwitchAsync(scene).ToCoroutine();
+                Hotfix.KagitKart.KagitKartWorld kart = null;
+                View source;
+                if (scene == GameSceneId.WallSqueeze)
+                {
+                    yield return Wait(() => (world = Object.FindAnyObjectByType<WallSqueezeWorld>()) != null &&
+                        UIManager.Instance.Get<WallSqueezeHudView>()?.State == ViewState.Visible, "Wall 来源 HUD");
+                    world.Dispatch(WallSqueezeCommand.Pause);
+                    yield return Wait(() => UIManager.Instance.Get<WallSqueezeMenuView>()?.State == ViewState.Visible, "Wall 来源 Modal");
+                    source = UIManager.Instance.Get<WallSqueezeMenuView>();
+                }
+                else
+                {
+                    yield return Wait(() => (kart = Object.FindAnyObjectByType<Hotfix.KagitKart.KagitKartWorld>()) != null &&
+                        !kart.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "Kart 来源 Page");
+                    source = UIManager.Instance.Get<KagitKartTitleView>();
+                }
+                var faults = new PendingFailureSceneRuntime();
+                var navigation = new GameSceneNavigator(faults, new GameSceneLoadingPresenter());
+                // 故障注入沿用已经真实进入的来源标识，断言只检查公共 View/玩法契约。
+                typeof(GameSceneNavigator).GetProperty(nameof(GameSceneNavigator.CurrentScene)).SetValue(navigation, scene);
+                typeof(GameSceneNavigator).GetProperty(nameof(GameSceneNavigator.Instance)).SetValue(null, navigation);
+                try
+                {
+                    foreach (bool reload in new[] { true, false })
+                    {
+                        var pending = (reload ? navigation.ReloadCurrentAsync() : navigation.SwitchAsync(GameSceneId.Dlss)).Preserve();
+                        yield return Wait(() => faults.Pending, "真实 Loading 后进入可控资源故障点");
+                        Assert.That(UIManager.Instance.Get<CommonLoadingView>().State, Is.EqualTo(ViewState.Visible));
+                        Assert.That(source.State, Is.EqualTo(ViewState.Visible), "Loading 不触发来源 OnHide/Destroy。");
+                        if (kart != null)
+                        {
+                            kart.Dispatch(Hotfix.KagitKart.KagitKartCommand.Hub);
+                            Assert.That(kart.Busy, Is.False, "忙碌导航拒绝返回命令，不能留下 exiting。");
+                        }
+                        else world.Dispatch(WallSqueezeCommand.Hub);
+                        faults.Fail();
+                        GameSceneSwitchResult result = default;
+                        yield return pending.ContinueWith(value => result = value).ToCoroutine();
+                        Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+                        Assert.That(source.State, Is.EqualTo(ViewState.Visible));
+                        Assert.That(UIManager.Instance.cacheStack.GetView(source.GetType()), Is.SameAs(source));
+                        Assert.That(UIManager.Instance.Get<CommonLoadingView>(), Is.Null);
+                    }
+                    // 普通退出失败也必须保留原绑定，不能用重建菜单掩盖来源销毁。
+                    if (kart != null) kart.Dispatch(Hotfix.KagitKart.KagitKartCommand.Hub);
+                    else world.Dispatch(WallSqueezeCommand.Hub);
+                    yield return Wait(() => faults.Pending, "返回 Hub 故障点");
+                    LogAssert.Expect(kart != null ? LogType.Exception : LogType.Error,
+                        new System.Text.RegularExpressions.Regex("导航来源保留测试失败"));
+                    faults.Fail();
+                    yield return Wait(() => !navigation.IsTransitioning && source.State == ViewState.Visible && (kart == null || !kart.Busy), "返回失败恢复来源");
+                    Assert.That(UIManager.Instance.cacheStack.GetView(source.GetType()), Is.SameAs(source));
+                    if (kart != null)
+                    {
+                        var open = source.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Open");
+                        open.onClick.Invoke();
+                        yield return Wait(() => !kart.Busy && UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible, "失败后原 Page 仍绑定 World");
+                    }
+                    else
+                    {
+                        world.Dispatch(WallSqueezeCommand.Continue);
+                        yield return Wait(() => !world.Paused && UIManager.Instance.Get<WallSqueezeMenuView>() == null, "失败后恢复 Wall 命令");
+                    }
+                }
+                finally
+                {
+                    if (faults.Pending) faults.Fail();
+                    typeof(GameSceneNavigator).GetProperty(nameof(GameSceneNavigator.Instance)).SetValue(null, official);
+                }
+                yield return official.SwitchAsync(GameSceneId.Hub).ToCoroutine();
+            }
+        }
+
+        private sealed class PendingFailureSceneRuntime : IGameSceneRuntime
+        {
+            private UniTaskCompletionSource<GameSceneRuntimeResult> pending;
+            public bool Pending => pending != null;
+            public UniTask<GameSceneRuntimeResult> LoadAsync(string address, Action<float> onProgress) => Begin();
+            public UniTask<GameSceneRuntimeResult> ReturnToHubAsync(Action<float> onProgress) => Begin();
+            private UniTask<GameSceneRuntimeResult> Begin()
+            {
+                pending = new UniTaskCompletionSource<GameSceneRuntimeResult>();
+                return pending.Task;
+            }
+            public void Fail()
+            {
+                var completion = pending;
+                pending = null;
+                completion.TrySetResult(GameSceneRuntimeResult.Failure("导航来源保留测试失败"));
+            }
+        }
 
         private static IEnumerator Wait(Func<bool> condition, string description)
         {

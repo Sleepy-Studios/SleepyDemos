@@ -3,6 +3,7 @@
 `KagitKart` / `kagit_kart` 是 Kâğıt Kart 的中文 Unity 单人 Demo，包含四条原版赛道、八角色、三种模式与键盘/手柄/多指触屏操作。保留源码规则、3D立体书、纸景动画、文具道具、纸鹤救援、章节音乐和纸印效果，已完成定向规则对照、原生场景流程、关键画面及四章长圈性能验收。实际证据和未验证项见[验收对照](runbooks/acceptance.md)；不声明像素完全一致、Player构建或Android真机通过。
 
 - [模块与当前能力](module.md)
+- [界面美术与控件外观](architecture/art-direction.md)
 - [原作对应与源码维护](runbooks/source-migration.md)
 - [音频维护与保真边界](runbooks/audio.md)
 - [完整需求与实际验收对照](runbooks/acceptance.md)

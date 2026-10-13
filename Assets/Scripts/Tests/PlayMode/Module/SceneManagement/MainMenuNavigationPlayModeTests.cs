@@ -42,6 +42,109 @@ namespace Tests.Module
         private Tests.Demo.GameViewResolution resolution;
 
         [UnityTest, Timeout(180000)]
+        public IEnumerator LoadingOccludesUpperLayersAndRestoresTheirAuthoredState()
+        {
+            yield return PrepareHub();
+            var layers = new[] { UILayer.Foreground, UILayer.Pop, UILayer.Decorate, UILayer.Tip }
+                .Select(layer => UIRootManager.Instance.GetRoot(layer)).ToArray();
+            var original = layers.Select(root => (Canvas: root.GetComponent<Canvas>(), Enabled: root.GetComponent<Canvas>().enabled,
+                Raycaster: root.GetComponent<GraphicRaycaster>(), RaycasterEnabled: root.GetComponent<GraphicRaycaster>().enabled)).ToArray();
+            var source = new GameObject("Loading Source Modal Witness", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+            source.layer = layers[1].gameObject.layer;
+            source.transform.SetParent(layers[1], false);
+            source.GetComponent<CanvasGroup>().alpha = 0.37f;
+            GameObject target = null;
+            var presenter = new GameSceneLoadingPresenter();
+            CommonTipsView sourceTip = null;
+            try
+            {
+                yield return UIManager.Instance.PreloadAsync<CommonTipsView>().ToCoroutine();
+                sourceTip = UIManager.Instance.Get<CommonTipsView>();
+                var sourceGroup = sourceTip.gameObject.GetComponent<CanvasGroup>();
+                sourceGroup.alpha = 0.37f;
+                sourceGroup.interactable = true;
+                sourceGroup.blocksRaycasts = false;
+                // 作者关闭的层与射线不能被 Loading 收口强行打开。
+                layers[0].GetComponent<Canvas>().enabled = false;
+                layers[3].GetComponent<GraphicRaycaster>().enabled = false;
+                var authored = layers.Select(root => (Canvas: root.GetComponent<Canvas>(), Enabled: root.GetComponent<Canvas>().enabled,
+                    Raycaster: root.GetComponent<GraphicRaycaster>(), RaycasterEnabled: root.GetComponent<GraphicRaycaster>().enabled)).ToArray();
+                Assert.That(GameSceneCatalog.TryGet(GameSceneId.Hub, out var hub), Is.True);
+                foreach (bool restoreFailure in new[] { true, false })
+                {
+                    string error = null;
+                    yield return presenter.BeginAsync(hub).ContinueWith(value => error = value).ToCoroutine();
+                    Assert.That(error, Is.Null);
+                    Assert.That(UIManager.Instance.Get<CommonLoadingView>().State, Is.EqualTo(ViewState.Visible));
+                    Assert.That(UIRootManager.Instance.GetRoot(UILayer.Base).GetComponent<Canvas>().enabled, Is.True);
+                    foreach (var layer in authored)
+                    {
+                        Assert.That(layer.Canvas.enabled, Is.False);
+                        Assert.That(layer.Raycaster.enabled, Is.False);
+                    }
+                    Assert.That(source.activeInHierarchy, Is.True, "遮蔽不能退出来源 UI 激活生命周期。");
+                    Assert.That(source.GetComponent<CanvasGroup>().alpha, Is.EqualTo(0.37f));
+                    Assert.That(sourceGroup.interactable, Is.False);
+                    Assert.That(sourceGroup.blocksRaycasts, Is.False);
+                    Assert.That(sourceGroup.alpha, Is.EqualTo(0.37f));
+                    if (!restoreFailure)
+                    {
+                        target = new GameObject("Loading Target Widget Witness", typeof(RectTransform), typeof(Image));
+                        target.layer = layers[2].gameObject.layer;
+                        target.transform.SetParent(layers[2], false);
+                        Assert.That(target.activeInHierarchy, Is.True, "加载期间目标控件仍可初始化。");
+                    }
+                    if (restoreFailure) yield return presenter.RestoreAsync(GameSceneId.Hub).ToCoroutine();
+                    else yield return presenter.CompleteAsync(GameSceneId.Hub).ContinueWith(value => error = value).ToCoroutine();
+                    Assert.That(error, Is.Null);
+                    Assert.That(source, Is.Not.Null, "失败恢复保留原实例。");
+                    Assert.That(UIManager.Instance.Get<CommonTipsView>(), Is.SameAs(sourceTip));
+                    Assert.That(sourceGroup.interactable, Is.True);
+                    Assert.That(sourceGroup.blocksRaycasts, Is.False);
+                    foreach (var layer in authored)
+                    {
+                        Assert.That(layer.Canvas.enabled, Is.EqualTo(layer.Enabled));
+                        Assert.That(layer.Raycaster.enabled, Is.EqualTo(layer.RaycasterEnabled));
+                    }
+                }
+                Assert.That(target.activeInHierarchy, Is.True);
+            }
+            finally
+            {
+                foreach (var layer in original)
+                {
+                    layer.Canvas.enabled = layer.Enabled;
+                    layer.Raycaster.enabled = layer.RaycasterEnabled;
+                }
+                Object.Destroy(source);
+                if (target != null) Object.Destroy(target);
+                if (sourceTip != null) UIManager.Instance.CloseAsync(sourceTip, false).Forget();
+            }
+        }
+
+        [UnityTest, Timeout(180000)]
+        public IEnumerator LoadingCleanupAfterOfficialHubStartupRemovesOwnedInstance()
+        {
+            yield return PrepareHub();
+            Assert.That(GameSceneCatalog.TryGet(GameSceneId.Hub, out var hub), Is.True);
+            var presenter = new GameSceneLoadingPresenter();
+            string error = null;
+            int startedFrame = Time.frameCount;
+            yield return presenter.BeginAsync(hub).ContinueWith(value => error = value).ToCoroutine();
+            Assert.That(error, Is.Null);
+            Assert.That(Time.frameCount, Is.GreaterThan(startedFrame));
+            var loading = UIManager.Instance.Get<CommonLoadingView>();
+            Assert.That(loading.State, Is.EqualTo(ViewState.Visible));
+
+            yield return UIManager.Instance.ShowAsync<MainMenuView>(new UIShowOptions(false)).ToCoroutine();
+            yield return presenter.CompleteAsync(GameSceneId.Hub).ContinueWith(value => error = value).ToCoroutine();
+            Assert.That(error, Is.Null);
+            Assert.That(loading.State, Is.EqualTo(ViewState.Destroyed));
+            Assert.That(UIManager.Instance.Get<CommonLoadingView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<MainMenuView>().State, Is.EqualTo(ViewState.Visible));
+        }
+
+        [UnityTest, Timeout(180000)]
         public IEnumerator CommonLoadingAndFeedbackFollowHubLanguageAndPreserveDiagnostics()
         {
             yield return PrepareHub();
@@ -80,7 +183,7 @@ namespace Tests.Module
                     await UniTask.WaitUntil(() => runtime.HasPendingEntry).Timeout(TimeSpan.FromSeconds(15));
                     var loading = UIManager.Instance.Get<CommonLoadingView>();
                     Assert.That(loading, Is.Not.Null);
-                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Title"), "Loading.Title");
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Title"), "Hub.dlss.Title");
                     AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Step"), "Loading.LoadScene");
                     AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.LoadingScene", LanguageService.Get("Hub.dlss.Title"));
                     AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_ProgressText"), "Loading.Progress", 10);
@@ -585,7 +688,7 @@ namespace Tests.Module
             yield return Click(ButtonPosition(unavailable));
             Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("UI 交互展台"));
             Assert.That(Field<Button>(menu, "Button_Start").interactable, Is.False);
-            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_StartLabel").text, Is.EqualTo("未开放"));
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Label").text, Is.EqualTo("未开放"));
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter)); yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
             Assert.That(runtime.LoadCount, Is.Zero, "未开放项目允许浏览，但提交不能进入。");

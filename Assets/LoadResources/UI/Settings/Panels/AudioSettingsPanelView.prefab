@@ -941,6 +941,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Muted
       objectReference: {fileID: 0}
+    - target: {fileID: 7033460654024285161, guid: 48974c3e911701744a28ba01d7cbf7db, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 12.000015
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

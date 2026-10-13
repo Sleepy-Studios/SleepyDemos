@@ -55,13 +55,8 @@ namespace Hotfix
             {
                 var modes = new[] { -1, (int)FullScreenMode.Windowed, (int)FullScreenMode.FullScreenWindow, (int)FullScreenMode.ExclusiveFullScreen };
                 Select(UISettingRow_WindowMode, "Settings.DisplayMode", modes, graphics.WindowMode,
-                    value => graphics.WindowMode = value, value => value switch
-                    {
-                        -1 => LanguageService.Get("Graphics.Current"),
-                        (int)FullScreenMode.Windowed => LanguageService.Get("Graphics.Windowed"),
-                        (int)FullScreenMode.FullScreenWindow => LanguageService.Get("Graphics.Borderless"),
-                        _ => LanguageService.Get("Graphics.Fullscreen")
-                    });
+                    value => graphics.WindowMode = value,
+                    value => WindowModeLabel(value < 0 ? Screen.fullScreenMode : (FullScreenMode)value));
                 var resolutions = new List<Vector2Int> { Vector2Int.zero, new(Screen.width, Screen.height) };
                 foreach (var resolution in DisplaySettingsRuntime.AvailableResolutions)
                 {
@@ -72,18 +67,22 @@ namespace Hotfix
                 if (!resolutions.Contains(requested)) resolutions.Add(requested);
                 Select(UISettingRow_Resolution, "Settings.Resolution", resolutions, requested,
                     value => { graphics.Width = value.x; graphics.Height = value.y; },
-                    value => value == Vector2Int.zero ? LanguageService.Get("Graphics.Current") : $"{value.x} × {value.y}");
+                    value => value == Vector2Int.zero ? $"{Screen.width} × {Screen.height}" : $"{value.x} × {value.y}");
             }
             Select(UISettingRow_Quality, "Settings.Quality", new[] { GraphicsQualityLevel.Current, GraphicsQualityLevel.Low, GraphicsQualityLevel.Medium, GraphicsQualityLevel.High },
-                graphics.Quality, value => graphics.Quality = value, value => LanguageService.Get("Graphics." + value));
+                graphics.Quality, value => graphics.Quality = value, value => value == GraphicsQualityLevel.Current
+                    ? QualitySettings.names[QualitySettings.GetQualityLevel()] : LanguageService.Get("Graphics." + value));
             UISettingRow_VSync.SetLabel("Settings.VSync");
             UISettingRow_VSync.SetToggle(graphics.VSync < 0 ? QualitySettings.vSyncCount > 0 : graphics.VSync > 0,
                 value => ChangeAndRefresh(() => graphics.VSync = value ? 1 : 0));
             var frameLimits = new List<int> { -1 };
             frameLimits.AddRange(GameSettingsService.Options.FrameLimits);
-            Select(UISettingRow_FrameLimit, "Settings.FrameLimit", frameLimits, graphics.FrameLimit, value => graphics.FrameLimit = value,
-                value => value < 0 ? LanguageService.Get("Graphics.Current") : value == 0 ? LanguageService.Get("Graphics.Unlimited") : value + " FPS");
             bool vSync = graphics.VSync < 0 ? QualitySettings.vSyncCount > 0 : graphics.VSync > 0;
+            int authoredFrameLimit = DisplaySettingsRuntime.AuthoredFrameLimit;
+            string defaultFrameLimit = authoredFrameLimit > 0 ? authoredFrameLimit + " FPS"
+                : LanguageService.Get(DisplaySettingsRuntime.SupportsDesktopDisplay && !vSync ? "Graphics.Unlimited" : "Common.Auto");
+            Select(UISettingRow_FrameLimit, "Settings.FrameLimit", frameLimits, graphics.FrameLimit, value => graphics.FrameLimit = value,
+                value => value < 0 ? defaultFrameLimit : value == 0 ? LanguageService.Get("Graphics.Unlimited") : value + " FPS");
             UISettingRow_FrameLimit.SetAvailable(!DisplaySettingsRuntime.SupportsDesktopDisplay || !vSync,
                 DisplaySettingsRuntime.SupportsDesktopDisplay && vSync ? LanguageService.Get("Settings.FrameLimitVSync") : null);
 
@@ -153,6 +152,13 @@ namespace Hotfix
 
         public static string AaLabel(GraphicsAaMode value) => value == GraphicsAaMode.CameraDefault ? LanguageService.Get("Graphics.CameraDefault")
             : value == GraphicsAaMode.Off ? LanguageService.Get("Common.Off") : value.ToString().ToUpperInvariant();
+
+        private static string WindowModeLabel(FullScreenMode value) => LanguageService.Get(value switch
+        {
+            FullScreenMode.Windowed or FullScreenMode.MaximizedWindow => "Graphics.Windowed",
+            FullScreenMode.FullScreenWindow => "Graphics.Borderless",
+            _ => "Graphics.Fullscreen"
+        });
 
         // 同一请求已经回退时允许编辑原生 AA；明确的新候选/重试仍预告接管，未保存不改运行时。
         internal static bool ManagesNativeAntialiasing(int candidateMode, int runtimeRequest, bool canEnable,

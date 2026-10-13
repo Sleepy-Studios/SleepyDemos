@@ -201,7 +201,7 @@ namespace Hotfix
             Button_Start.interactable = entry.CanEnter && CanEnterDemo;
             Button_Settings.interactable = CanEnterDemo;
             Button_Effects.interactable = CanEnterDemo;
-            LanguageService.SetText(TextMeshProUGUI_StartLabel, !entry.SceneId.HasValue ? "Hub.Unavailable" :
+            LanguageService.SetText(TextMeshProUGUI_Label, !entry.SceneId.HasValue ? "Hub.Unavailable" :
                 !CanEnterDemo ? "Common.Loading" : string.IsNullOrEmpty(entryFeedback) ? "Hub.Start" : "Common.Retry");
         }
 

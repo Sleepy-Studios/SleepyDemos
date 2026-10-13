@@ -9,6 +9,7 @@
         "UniTask",
         "UnityEngine.UI",
         "Unity.TextMeshPro",
+        "Unity.VectorGraphics",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.Collections",

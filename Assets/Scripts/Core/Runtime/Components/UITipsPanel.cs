@@ -24,8 +24,6 @@ namespace Core.Runtime
         [SerializeField] private float iconSpace = 48;
         [SerializeField] private CanvasGroup messageDetails;
         [SerializeField] private Button closeButton;
-        [SerializeField] private Image messageBackground;
-        [SerializeField] private Outline messageOutline;
         [SerializeField] private TMPAutoScrollEnableBehaviour messageScroll;
         private float maximumWidth = 600;
         private int baseLeftPadding = -1;
@@ -57,7 +55,7 @@ namespace Core.Runtime
 
         /// <summary>更新三种状态的消息，图标来自正式 Prefab 的直接引用。</summary>
         /// <param name="content">提示正文。</param>
-        /// <param name="type">红色警告、绿色成功或橙色提醒。</param>
+        /// <param name="type">警告、成功或普通说明。</param>
         /// <param name="maxWidth">最大主体宽度，Canvas 单位。</param>
         public void SetMessage(string content, CommonTipsType type, float maxWidth = 1300)
         {
@@ -74,16 +72,9 @@ namespace Core.Runtime
             options.Loop = false;
             options.UseUnscaledTime = true;
             messageScroll.SetOptions(options);
-            // 复用单色符号，着色使用统一语义色；警告三角本身已带红色与白色叹号。
+            // 背景和边框由宿主 Prefab 维护；仅图标区分消息语义。
             if (icon != null) icon.color = type == CommonTipsType.Warning ? Color.white
-                : type == CommonTipsType.Success ? ColorUtil.Colors.Success : ColorUtil.Colors.Notice;
-            if (messageBackground != null)
-            {
-                Color accent = type == CommonTipsType.Warning ? ColorUtil.Colors.Warning
-                    : type == CommonTipsType.Success ? ColorUtil.Colors.Success : ColorUtil.Colors.Notice;
-                messageBackground.color = Color.Lerp(new Color(0.035f, 0.045f, 0.055f), accent, .13f);
-                if (messageOutline != null) messageOutline.effectColor = Color.Lerp(messageBackground.color, accent, .5f);
-            }
+                : type == CommonTipsType.Success ? ColorUtil.Colors.Success : contentText.color;
         }
 
         // 堆叠后层只保留背景，隐藏内容不改变用于展开的测量尺寸。

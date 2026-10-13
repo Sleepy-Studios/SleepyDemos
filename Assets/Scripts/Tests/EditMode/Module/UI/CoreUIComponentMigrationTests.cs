@@ -43,14 +43,15 @@ namespace Tests.Module
         }
 
         [Test]
-        public void FlipImage_HorizontalFlipMirrorsVerticesAroundRectCenter()
+        public void ImageExtend_HorizontalFlipMirrorsVerticesAroundRectCenter()
         {
-            GameObject target = new GameObject("FlipTarget", typeof(RectTransform), typeof(Image), typeof(FlipImage));
+            GameObject target = new GameObject("FlipTarget", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
             try
             {
                 RectTransform rect = target.GetComponent<RectTransform>();
                 rect.SetSize(new Vector2(100f, 40f));
-                FlipImage effect = target.GetComponent<FlipImage>();
+                ImageExtend effect = target.GetComponent<ImageExtend>();
+                effect.FlipHorizontal = true;
                 using VertexHelper helper = CreateQuad(-50f, -20f, 50f, 20f);
                 effect.ModifyMesh(helper);
 
@@ -115,17 +116,19 @@ namespace Tests.Module
         }
 
         [Test]
-        public void RoundedCorners_UsesMigratedShaderAndCreatesModifiedMaterial()
+        public void ImageExtend_UsesPublicShaderAndCreatesModifiedMaterial()
         {
-            Shader shader = Shader.Find("UI/RoundedCorners");
-            Assert.That(shader, Is.Not.Null, "迁移后的 UIRoundedCorners.shader 必须已被 Unity 导入。");
-            Assert.That(shader.isSupported, Is.True, "UIRoundedCorners.shader 必须能在当前图形 API 下完成编译。");
+            Shader shader = Shader.Find("UI/ImageExtend");
+            Assert.That(shader, Is.Not.Null, "公共 UIImageExtend.shader 必须已被 Unity 导入。");
+            Assert.That(shader.isSupported, Is.True, "图片效果 Shader 必须能在当前图形 API 下完成编译。");
 
-            GameObject target = new GameObject("Rounded", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(RoundedCorners));
+            GameObject target = new GameObject("Rounded", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(ImageExtend));
             Material baseMaterial = new Material(Shader.Find("UI/Default"));
             try
             {
-                RoundedCorners rounded = target.GetComponent<RoundedCorners>();
+                ImageExtend rounded = target.GetComponent<ImageExtend>();
+                rounded.EnableRoundedCorners = true;
+                Assert.That(target.GetComponent<Mask>(), Is.Null, "图片圆角不得自动改变子节点的遮罩契约。");
                 Material modified = rounded.GetModifiedMaterial(baseMaterial);
                 Assert.That(modified, Is.Not.Null);
                 Assert.That(modified.shader, Is.EqualTo(shader));
@@ -135,6 +138,86 @@ namespace Tests.Module
             {
                 Object.DestroyImmediate(baseMaterial);
                 Object.DestroyImmediate(target);
+            }
+        }
+
+        [Test]
+        public void ImageExtend_GradientPreservesTintAndOpacityWithoutChangingLayout()
+        {
+            GameObject target = new GameObject("TintedImage", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            try
+            {
+                var effect = target.GetComponent<ImageExtend>();
+                target.GetComponent<RectTransform>().sizeDelta = new Vector2(100f, 40f);
+                effect.EnableGradient = true;
+                effect.Gradient = new Gradient
+                {
+                    colorKeys = new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                    alphaKeys = new[] { new GradientAlphaKey(0.5f, 0f), new GradientAlphaKey(0.5f, 1f) }
+                };
+                using VertexHelper helper = CreateQuad(-50f, -20f, 50f, 20f);
+                UIVertex vertex = default;
+                for (int i = 0; i < helper.currentVertCount; i++)
+                {
+                    helper.PopulateUIVertex(ref vertex, i);
+                    vertex.color = new Color(0.4f, 0.6f, 0.8f, 0.5f);
+                    helper.SetUIVertex(vertex, i);
+                }
+                effect.ModifyMesh(helper);
+                helper.PopulateUIVertex(ref vertex, 0);
+                Assert.That(((Color)vertex.color).a, Is.EqualTo(0.25f).Within(0.01f));
+                Assert.That(((Color)vertex.color).r, Is.EqualTo(0.4f).Within(0.01f));
+                Assert.That(vertex.position, Is.EqualTo(new Vector3(-50f, -20f, 0f)));
+                Assert.That(effect.GetModifiedMaterial(Graphic.defaultGraphicMaterial), Is.SameAs(Graphic.defaultGraphicMaterial));
+            }
+            finally
+            {
+                Object.DestroyImmediate(target);
+            }
+        }
+
+        [Test]
+        public void ImageExtend_SharedMaterialsKeepMaskAndFilledContracts()
+        {
+            var first = new GameObject("First", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var second = new GameObject("Second", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var baseMaterial = new Material(Graphic.defaultGraphicMaterial);
+            try
+            {
+                var a = first.GetComponent<ImageExtend>();
+                var b = second.GetComponent<ImageExtend>();
+                a.EnableRoundedCorners = b.EnableRoundedCorners = true;
+                baseMaterial.SetInt("_Stencil", 7);
+                Material shared = a.GetModifiedMaterial(baseMaterial);
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(shared));
+                Assert.That(shared.GetInt("_Stencil"), Is.EqualTo(7));
+                Object.DestroyImmediate(first);
+                Assert.That(shared != null, Is.True, "仍有使用者时不能销毁共享材质。");
+                b.EnableShadow = true;
+                using (var helper = CreateQuad(-50f, -20f, 50f, 20f))
+                {
+                    b.ModifyMesh(helper);
+                    var mesh = new Mesh();
+                    try
+                    {
+                        helper.FillMesh(mesh);
+                        Assert.That(mesh.bounds.min.y, Is.LessThan(-20f), "偏移阴影须保留原图范围之外的绘制区域。");
+                        Assert.That(mesh.bounds.max.x, Is.GreaterThanOrEqualTo(50f), "不能截去原图的右侧范围。");
+                    }
+                    finally
+                    {
+                        Object.DestroyImmediate(mesh);
+                    }
+                }
+                second.GetComponent<Image>().type = Image.Type.Filled;
+                Assert.That(b.GetSupportIssue(), Is.Not.Null);
+                Assert.That(b.GetModifiedMaterial(baseMaterial), Is.SameAs(baseMaterial));
+            }
+            finally
+            {
+                if (first != null) Object.DestroyImmediate(first);
+                Object.DestroyImmediate(second);
+                Object.DestroyImmediate(baseMaterial);
             }
         }
 

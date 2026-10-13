@@ -76,9 +76,11 @@ list.CancelAnimation();
 ## 运行模块示例
 
 1. 打开 `Assets/Samples/SleepyLoopScroll/Showcase/Main.unity`，或使用 `Tools/Sleepy Loop Scroll/Open Showcase`。本项目已经维护一份导入内容，不重复导入。
-2. 主页可进入基础、多类型、聊天、轮播分页与宿主 UIBind 页面；子页面通过返回按钮回主页。首次中文，主页可切换中文／English 并保存选择。
+2. 主页可进入基础、多类型、聊天、轮播分页与宿主 UIBind 页面；子页面通过返回按钮或公共 Cancel 回主页，沿用轻量场景导航。主页的公共 Cancel 返回 AppEntrance，先显示正式 StartupLoading Prefab，再报告真实场景加载进度。首次中文，主页可切换中文／English 并保存选择。
 3. UIBind 页面展示中心定位、±60 Canvas UI 像素偏移、完成／取消结果；手动取消和拖动均可中断定位，操作按钮保持可用。
-4. 宿主场景保存在 `Assets/Samples/SleepyLoopScroll/Host/Scenes/LoopScrollUIBindExample.unity`；重导包示例时保留该场景、Catalog 的 uibind 项和 LoopScrollInputHost 接线。不重跑已删除的一次性生成工具。
-5. Editor 导航不修改 Build Settings；独立 Player 演示需要显式包含 Showcase 五个场景及宿主 UIBind 场景，构建仍按既有工具和包发布流程执行。
+4. 宿主场景保存在 `Assets/Samples/SleepyLoopScroll/Host/Scenes/LoopScrollUIBindExample.unity`；重导包示例时保留该场景、Catalog 的 uibind 项和六个场景的 LoopScrollInputHost 接线。Host 的 Focus Border 绑定 `Assets/LoadResources/UI/Common/Sprites/Surfaces/FocusBorder.png`，Return Loading Prefab 绑定 `Assets/Scenes/StartupLoading.prefab` 的 StartupLoadingView；两者使用正式序列化引用，独立运行不要求资源服务已初始化。不重跑已删除的一次性生成工具。
+5. Editor 导航不修改 Build Settings；独立 Player 演示需要显式包含 Showcase 五个场景、宿主 UIBind 场景与返回所需的 AppEntrance，构建仍按既有工具和包发布流程执行。
+
+检查动态控件的 Focused 连续九宫格边框、Hover/Pressed/Disabled及启停恢复，确认点击矩形未改变。返回入口前应能看到完整 Loading 帧，数字来自实际 AsyncOperation；加载失败或重复 Cancel 不得创建多个 Loading。仅子例退回 menu 时不显示全屏 Loading。场景保存与源码编译不代表上述运行/视觉验收已通过。
 
 定向验证使用 `Tests.Module.LoopScrollUIBindGenerationTests`（EditMode）、`Tests.Module.LoopScrollItemViewBridgeTests` 与 `Tests.Module.LoopScrollShowcaseTests`（PlayMode），并检查 TestAssemblyBoundaryTests。包测试在独立包维护，不因宿主目录调整默认执行包全量回归。

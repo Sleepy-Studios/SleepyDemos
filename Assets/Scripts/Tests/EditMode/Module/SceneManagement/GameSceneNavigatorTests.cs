@@ -122,14 +122,15 @@ namespace Tests.Module
             Assert.That(presenter.BeginCount, Is.Zero);
         }
 
-        [Test]
-        public async Task SwitchAsync_RuntimeFailure_RestoresSourceAndReturnsFailed()
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task SwitchAsync_RuntimeFailure_RestoresSourceAndReturnsFailed(bool restoreFails)
         {
             var runtime = new FakeSceneRuntime
             {
                 NextResult = GameSceneRuntimeResult.Failure("测试加载失败")
             };
-            var presenter = new FakeLoadingPresenter();
+            var presenter = new FakeLoadingPresenter { RestoreError = restoreFails ? "测试恢复失败" : null };
             var navigator = new GameSceneNavigator(runtime, presenter);
 
             var result = await navigator.SwitchAsync(GameSceneId.DroneFlight);
@@ -138,6 +139,37 @@ namespace Tests.Module
             Assert.That(result.Error, Does.Contain("测试加载失败"));
             Assert.That(presenter.RestoredScene, Is.EqualTo(GameSceneId.Hub));
             Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.Hub));
+            Assert.That(navigator.IsTransitioning, Is.False);
+            if (restoreFails)
+            {
+                Assert.That(result.Error, Does.Contain("测试恢复失败"));
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task CompletedScene_UiFailure_RestoresCommittedSceneAndAllowsRetry(bool reload)
+        {
+            var runtime = new FakeSceneRuntime();
+            var presenter = new FakeLoadingPresenter();
+            var navigator = new GameSceneNavigator(runtime, presenter);
+            if (reload)
+            {
+                await navigator.SwitchAsync(GameSceneId.DroneFlight);
+            }
+
+            presenter.CompleteError = "测试收口失败";
+            var result = reload
+                ? await navigator.ReloadCurrentAsync()
+                : await navigator.SwitchAsync(GameSceneId.DroneFlight);
+
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            Assert.That(result.Error, Does.Contain("测试收口失败"));
+            Assert.That(presenter.RestoredScene, Is.EqualTo(GameSceneId.DroneFlight));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.DroneFlight));
+            Assert.That(navigator.IsTransitioning, Is.False);
+            presenter.CompleteError = null;
+            Assert.That((await navigator.SwitchAsync(GameSceneId.Hub)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
         }
 
         [Test]
@@ -177,10 +209,12 @@ namespace Tests.Module
             var first = navigator.SwitchAsync(GameSceneId.DroneFlight);
             await UniTask.Yield();
             var busy = await navigator.SwitchAsync(GameSceneId.DroneFlight);
+            var reloadBusy = await navigator.ReloadCurrentAsync();
             completion.TrySetResult(GameSceneRuntimeResult.Success());
             var completed = await first;
 
             Assert.That(busy.Status, Is.EqualTo(GameSceneSwitchStatus.Busy));
+            Assert.That(reloadBusy.Status, Is.EqualTo(GameSceneSwitchStatus.Busy));
             Assert.That(completed.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
         }
 
@@ -257,6 +291,8 @@ namespace Tests.Module
         private sealed class FakeLoadingPresenter : IGameSceneLoadingPresenter
         {
             internal int BeginCount { get; private set; }
+            internal string CompleteError { get; set; }
+            internal string RestoreError { get; set; }
             internal GameSceneId? RestoredScene { get; private set; }
             internal List<float> ProgressValues { get; } = new List<float>();
             internal List<string> StepKeys { get; } = new();
@@ -280,12 +316,16 @@ namespace Tests.Module
             public UniTask<string> CompleteAsync(GameSceneId target)
             {
                 ProgressValues.Add(1f);
-                return UniTask.FromResult<string>(null);
+                return UniTask.FromResult(CompleteError);
             }
 
             public UniTask RestoreAsync(GameSceneId source)
             {
                 RestoredScene = source;
+                if (RestoreError != null)
+                {
+                    throw new InvalidOperationException(RestoreError);
+                }
                 return UniTask.CompletedTask;
             }
         }

@@ -131,7 +131,7 @@ namespace Hotfix
             TextMeshProUGUI_Reset.gameObject.SetActive(touch);
             LanguageService.SetText(TextMeshProUGUI_Reset, "Input.Drone.TouchResetHoldDuration", args: new object[] { seconds });
             BindPrompt("ResetHold", "ArmOrReset", "Input.Drone.ResetHoldDuration", showBindings, seconds);
-            LanguageService.SetText(TextMeshProUGUI_ReturnLabel,
+            LanguageService.SetText(TextMeshProUGUI_Label,
                 params1?.Input?.IsPanelOpen == true ? "Input.Drone.ReturnPanel" : "Input.Drone.ReturnFlight");
         }
     }

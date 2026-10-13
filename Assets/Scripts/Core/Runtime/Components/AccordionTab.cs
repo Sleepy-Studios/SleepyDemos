@@ -29,6 +29,8 @@ namespace Core.Runtime
         [SerializeField] private GameObject secondLevelPrefab;
         [SerializeField] private Transform parent;
         [SerializeField] private bool isNotRemoveBeforeListen;
+        [SerializeField, Tooltip("一级模板中可选箭头的相对路径；为空时保留没有箭头的模板。")]
+        private string firstLevelArrowPath;
 
         private readonly List<TabGroup> groups = new List<TabGroup>();
         private readonly List<LeafInfo> leafInfos = new List<LeafInfo>();
@@ -196,8 +198,10 @@ namespace Core.Runtime
                 Data = data,
                 Root = groupRoot,
                 FirstItem = firstItem,
-                SubRoot = subRoot
+                SubRoot = subRoot,
+                Arrow = string.IsNullOrEmpty(firstLevelArrowPath) ? null : firstItem.transform.Find(firstLevelArrowPath)
             };
+            group.CollapsedArrowRotation = group.Arrow == null ? Quaternion.identity : group.Arrow.localRotation;
             groups.Add(group);
 
             if (data.Children != null && data.Children.Count > 0)
@@ -205,7 +209,7 @@ namespace Core.Runtime
                 if (secondLevelPrefab == null)
                 {
                     Debug.LogError($"[AccordionTab] {name} 缺少二级 Tab 模板。");
-                    subRoot.SetActive(false);
+                    SetGroupExpanded(group, false);
                     return;
                 }
 
@@ -266,7 +270,7 @@ namespace Core.Runtime
                 RegisterClick(firstItem, () => SelectLeaf(leafIndex, true));
             }
 
-            subRoot.SetActive(false);
+            SetGroupExpanded(group, false);
         }
 
         private bool SelectLeaf(int leafIndex, bool notify)
@@ -288,7 +292,7 @@ namespace Core.Runtime
             {
                 var group = groups[i];
                 var expanded = group == expandedGroup && group.HasChildren;
-                group.SubRoot.SetActive(expanded);
+                SetGroupExpanded(group, expanded);
                 SetItemSelected(group.FirstItem, group == selected.Group && group.HasChildren);
                 for (int j = 0; j < group.SecondItems.Count; j++)
                 {
@@ -322,7 +326,7 @@ namespace Core.Runtime
             {
                 var item = groups[i];
                 var expanded = item == group && item.HasChildren;
-                item.SubRoot.SetActive(expanded);
+                SetGroupExpanded(item, expanded);
                 SetItemSelected(item.FirstItem, item == group);
                 for (int j = 0; j < item.SecondItems.Count; j++)
                 {
@@ -341,7 +345,7 @@ namespace Core.Runtime
             }
 
             expandedGroup = null;
-            group.SubRoot.SetActive(false);
+            SetGroupExpanded(group, false);
             if (currentIndex >= 0 && currentIndex < leafInfos.Count)
             {
                 SetItemSelected(group.FirstItem, leafInfos[currentIndex].Group == group);
@@ -356,9 +360,22 @@ namespace Core.Runtime
             layout.childForceExpandHeight = false;
         }
 
+        private static void SetGroupExpanded(TabGroup group, bool expanded)
+        {
+            bool showChildren = expanded && group.HasChildren;
+            group.SubRoot.SetActive(showChildren);
+            if (group.Arrow != null)
+            {
+                group.Arrow.gameObject.SetActive(group.HasChildren);
+                group.Arrow.localRotation = group.CollapsedArrowRotation
+                    * Quaternion.Euler(0f, 0f, showChildren ? 180f : 0f);
+            }
+        }
+
         private static void ConfigureContentSizeFitter(ContentSizeFitter fitter)
         {
-            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            // 宽度由父级布局分配；自身只计算内容高度，避免再次缩回模板的 preferred width。
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         }
 
@@ -475,13 +492,13 @@ namespace Core.Runtime
             leafInfos.Clear();
             for (int i = 0; i < groups.Count; i++)
             {
-                DestroyObject(groups[i].Root);
+                DestroyGroupRoot(groups[i].Root);
             }
 
             groups.Clear();
         }
 
-        private static void DestroyObject(Object target)
+        private static void DestroyGroupRoot(Object target)
         {
             if (target == null)
             {
@@ -498,7 +515,10 @@ namespace Core.Runtime
             }
         }
 
-        private void OnDisable() { initializationGeneration++;  }
+        private void OnDisable()
+        {
+            initializationGeneration++;
+        }
 
         private void OnDestroy()
         {
@@ -515,6 +535,8 @@ namespace Core.Runtime
             public GameObject Root;
             public GameObject FirstItem;
             public GameObject SubRoot;
+            public Transform Arrow;
+            public Quaternion CollapsedArrowRotation;
             public readonly List<GameObject> SecondItems = new List<GameObject>();
             public readonly List<int> LeafIndices = new List<int>();
 

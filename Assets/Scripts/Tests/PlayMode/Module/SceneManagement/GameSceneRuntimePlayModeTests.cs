@@ -100,6 +100,24 @@ namespace Tests.Module
         }
 
         [UnityTest]
+        public IEnumerator LoaderExceptionRestoresSourceAudioAndAllowsRetry()
+        {
+            var loader = new FakeSceneLoader { ThrowNextLoad = true };
+            var runtime = new GameSceneRuntime(loader);
+            GameSceneRuntimeResult result = default;
+            yield return runtime.LoadAsync("TestContent", null).ContinueWith(value => result = value).ToCoroutine();
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Error, Does.Contain("模拟加载异常"));
+            Assert.That(hubCamera.GetComponent<AudioListener>().enabled, Is.True);
+            Assert.That(SceneManager.GetActiveScene(), Is.EqualTo(hubScene));
+            Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(hubCamera));
+
+            yield return runtime.LoadAsync("TestContent", null).ContinueWith(value => result = value).ToCoroutine();
+            Assert.That(result.Succeeded, Is.True, result.Error);
+            yield return runtime.ReturnToHubAsync(null).ToCoroutine();
+        }
+
+        [UnityTest]
         [Category("RequiresGPU"), Category("RequiresStreamlineSDK")]
         public IEnumerator FailedUnloadRestoresDlssCameraAndPreference()
         {
@@ -151,6 +169,7 @@ namespace Tests.Module
         private sealed class FakeSceneLoader : IResourceSceneLoader
         {
             internal bool FailNextUnload;
+            internal bool ThrowNextLoad;
             internal Scene ContentScene { get; private set; }
             internal Camera ContentCamera { get; private set; }
 
@@ -159,6 +178,12 @@ namespace Tests.Module
                 LoadSceneMode loadMode = LoadSceneMode.Additive,
                 Action<float> onProgress = null)
             {
+                if (ThrowNextLoad)
+                {
+                    ThrowNextLoad = false;
+                    throw new InvalidOperationException("模拟加载异常");
+                }
+
                 onProgress?.Invoke(0f);
                 ContentScene = SceneManager.CreateScene("GameSceneRuntimeContentTest");
                 ContentCamera = CreatePresentationCamera(ContentScene, "Content Camera");

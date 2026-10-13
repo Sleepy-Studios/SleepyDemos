@@ -306,10 +306,6 @@ MonoBehaviour:
     fontId: 0
     chinese: "{0} \u79D2\u540E\u6062\u590D\u539F\u8BBE\u7F6E"
     english: Restoring previous settings in {0} seconds
-  - key: Graphics.Current
-    fontId: 0
-    chinese: "\u5F53\u524D\u914D\u7F6E"
-    english: Current configuration
   - key: Graphics.Low
     fontId: 0
     chinese: "\u4F4E"

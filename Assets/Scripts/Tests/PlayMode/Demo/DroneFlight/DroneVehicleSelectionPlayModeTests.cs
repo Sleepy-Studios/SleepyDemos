@@ -44,7 +44,7 @@ namespace Tests.Demo
             SetField(coordinator, "resourceLoader", delayed);
             yield return Click(Bound<Button>(view, "HarpoonButton"));
             Assert.That(delayed.Requests, Is.Zero, "指针选择只预览，不生成机体。");
-            Assert.That(Bound<Image>(view, "Hero").sprite, Is.SameAs(Bound<Image>(view, "HarpoonPreview").sprite));
+            Assert.That(Bound<Image>(view, "Hero").sprite, Is.SameAs(Bound<Image>(view, "Content/HarpoonButton/Preview").sprite));
             yield return Click(Bound<Button>(view, "StartButton"));
             Assert.That(delayed.Requests, Is.EqualTo(1));
             Assert.That(Bound<Button>(view, "BackButton").interactable, Is.False);
@@ -59,7 +59,7 @@ namespace Tests.Demo
             Assert.That(delayed.ReleasedInvalidModel, Is.True, "部分生成失败必须释放实例。");
             Assert.That(Field<GameObject>(coordinator, "currentDrone"), Is.Null);
             Assert.That(Bound<TMPro.TextMeshProUGUI>(view, "Status").text, Does.Contain("准备失败"));
-            Assert.That(Bound<Image>(view, "Hero").sprite, Is.SameAs(Bound<Image>(view, "HarpoonPreview").sprite));
+            Assert.That(Bound<Image>(view, "Hero").sprite, Is.SameAs(Bound<Image>(view, "Content/HarpoonButton/Preview").sprite));
             yield return Click(Bound<Button>(view, "StartButton"));
             yield return Wait(() => UIManager.Instance.Get<DroneFlightHudView>()?.State == ViewState.Visible &&
                 view.State == ViewState.Destroyed, "重试进入真实渔叉机型");
@@ -226,7 +226,9 @@ namespace Tests.Demo
         private static T Bound<T>(View view,string name) where T:Component
         {
             foreach(var component in view.gameObject.GetComponent<ComponentItemIndex>().Components)
-                if(component is T typed&&typed.name==name)return typed;
+                if(component is T typed && (name.Contains("/")
+                    ? UnityEditor.AnimationUtility.CalculateTransformPath(typed.transform, view.gameObject.transform) == name
+                    : typed.name == name)) return typed;
             throw new InvalidOperationException("Missing binding: "+name);
         }
         private static T Field<T>(object owner,string name)=>(T)owner.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(owner);

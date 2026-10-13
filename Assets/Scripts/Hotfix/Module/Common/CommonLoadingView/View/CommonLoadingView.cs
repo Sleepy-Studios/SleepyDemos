@@ -2,6 +2,7 @@ namespace Hotfix
 {
     using Core.Runtime;
     using Core.Runtime.Localization;
+    using Cysharp.Threading.Tasks;
     using TMPro;
     using UnityEngine;
 
@@ -28,6 +29,48 @@ namespace Hotfix
             if (TextMeshProUGUI_Title != null)
             {
                 SetLoadingText(TextMeshProUGUI_Title, title, titleKey);
+            }
+        }
+
+        /// <summary>异步设置本次场景的背景，资源随现有 View.Loader 生命周期释放。</summary>
+        /// <param name="address">实际场景背景的资源地址；空值或加载失败时使用中性全屏底色。</param>
+        public async UniTask SetBackgroundAsync(string address)
+        {
+            if (Image_Background == null)
+            {
+                return;
+            }
+            Image_Background.sprite = null;
+            Image_Background.color = new Color(0.06f, 0.07f, 0.08f, 1);
+            if (string.IsNullOrWhiteSpace(address))
+            {
+                return;
+            }
+
+            try
+            {
+                var sprite = await Loader.LoadAssetAsync<Sprite>(address);
+                if (Image_Background == null || !IsLoaded)
+                {
+                    return;
+                }
+                if (sprite == null)
+                {
+                    Debug.LogWarning($"[CommonLoading] 场景背景不可用：{address}");
+                    return;
+                }
+
+                Image_Background.sprite = sprite;
+                Image_Background.color = Color.white;
+                var aspect = Image_Background.GetComponent<UnityEngine.UI.AspectRatioFitter>();
+                if (aspect != null)
+                {
+                    aspect.aspectRatio = sprite.rect.width / Mathf.Max(1, sprite.rect.height);
+                }
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning($"[CommonLoading] 场景背景加载失败：{address}, {exception.Message}");
             }
         }
 
@@ -59,11 +102,13 @@ namespace Hotfix
             if (TextMeshProUGUI_Step != null)
             {
                 SetLoadingText(TextMeshProUGUI_Step, step, stepKey);
+                TextMeshProUGUI_Step.gameObject.SetActive(!string.IsNullOrWhiteSpace(TextMeshProUGUI_Step.text));
             }
 
             if (TextMeshProUGUI_Description != null)
             {
                 SetLoadingText(TextMeshProUGUI_Description, description, descriptionKey, args);
+                TextMeshProUGUI_Description.gameObject.SetActive(!string.IsNullOrWhiteSpace(TextMeshProUGUI_Description.text));
             }
 
             if (TextMeshProUGUI_SizeText != null)

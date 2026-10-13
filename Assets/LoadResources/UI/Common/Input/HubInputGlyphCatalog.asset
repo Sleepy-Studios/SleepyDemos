@@ -1,0 +1,191 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8390f7ab072383459de32c84ca04da6, type: 3}
+  m_Name: HubInputGlyphCatalog
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.Inputs.InputGlyphCatalog
+  entries:
+  - style: 1
+    controlPath: buttonSouth
+    sprite: {fileID: 21300000, guid: 47389e9cda0197c45b2d05bae7a1d414, type: 3}
+  - style: 1
+    controlPath: buttonEast
+    sprite: {fileID: 21300000, guid: 520b61de449c19a42a8caf21297184c9, type: 3}
+  - style: 1
+    controlPath: buttonWest
+    sprite: {fileID: 21300000, guid: 3783b4f9513fc6c4a8a661bc56434ac3, type: 3}
+  - style: 1
+    controlPath: buttonNorth
+    sprite: {fileID: 21300000, guid: 731c5482e0def4e4ea789d8cd045ab4e, type: 3}
+  - style: 1
+    controlPath: leftShoulder
+    sprite: {fileID: 21300000, guid: 5bf2db17a511d0f44b7257b40faaa07d, type: 3}
+  - style: 1
+    controlPath: rightShoulder
+    sprite: {fileID: 21300000, guid: 2e71a1d07f2383a4a8bf114c36586b51, type: 3}
+  - style: 1
+    controlPath: leftTrigger
+    sprite: {fileID: 21300000, guid: 1122a2ef4e7b34643b00720e6b28fe36, type: 3}
+  - style: 1
+    controlPath: rightTrigger
+    sprite: {fileID: 21300000, guid: 7ce7eaf478a00b1468b6dc2539af0414, type: 3}
+  - style: 1
+    controlPath: leftStick
+    sprite: {fileID: 21300000, guid: 3453f0529428766438f7cc60f75385f8, type: 3}
+  - style: 1
+    controlPath: rightStick
+    sprite: {fileID: 21300000, guid: f5a278968a0510e4693b3e5c2589d62c, type: 3}
+  - style: 1
+    controlPath: leftStickPress
+    sprite: {fileID: 21300000, guid: cd45b08c5152cdb458d50de36d1497be, type: 3}
+  - style: 1
+    controlPath: rightStickPress
+    sprite: {fileID: 21300000, guid: 24119136acdcd364ea3a942d88875df5, type: 3}
+  - style: 1
+    controlPath: start
+    sprite: {fileID: 21300000, guid: 5b8f16f1c13c91743bdafecaf6d108da, type: 3}
+  - style: 1
+    controlPath: dpad/up
+    sprite: {fileID: 21300000, guid: c06d9974019172e4198c6efd3b6007a8, type: 3}
+  - style: 1
+    controlPath: dpad/down
+    sprite: {fileID: 21300000, guid: 2340907c03fb9d2429dc18bc3b84a086, type: 3}
+  - style: 1
+    controlPath: dpad/left
+    sprite: {fileID: 21300000, guid: 913b52f6c819b654aa522682d66674b8, type: 3}
+  - style: 1
+    controlPath: dpad/right
+    sprite: {fileID: 21300000, guid: 510e479401a08e84c8b7abc2cef1e5eb, type: 3}
+  - style: 2
+    controlPath: buttonSouth
+    sprite: {fileID: 21300000, guid: 2e5b3b2588d824247a92f5ff0c189ebf, type: 3}
+  - style: 2
+    controlPath: buttonEast
+    sprite: {fileID: 21300000, guid: f1ac3ba3355e57d43a8ff44c80d1c7b5, type: 3}
+  - style: 2
+    controlPath: buttonWest
+    sprite: {fileID: 21300000, guid: 667516b3477a1ef4aa836f3ea23b7525, type: 3}
+  - style: 2
+    controlPath: buttonNorth
+    sprite: {fileID: 21300000, guid: af10ed97acf85284e9a739f5f9f4f729, type: 3}
+  - style: 2
+    controlPath: leftShoulder
+    sprite: {fileID: 21300000, guid: 3ca4aa32b53e91a4fa3d15c8253bc997, type: 3}
+  - style: 2
+    controlPath: rightShoulder
+    sprite: {fileID: 21300000, guid: 1862a19e0711f5a46b765a0ab1572dc7, type: 3}
+  - style: 2
+    controlPath: leftTrigger
+    sprite: {fileID: 21300000, guid: 210333f4fd109c94aa8fcaa1d554604f, type: 3}
+  - style: 2
+    controlPath: rightTrigger
+    sprite: {fileID: 21300000, guid: 94c539433897233418aaea0f7d350b16, type: 3}
+  - style: 2
+    controlPath: leftStick
+    sprite: {fileID: 21300000, guid: 723fb9a3efa0bfd40aef3a5839a50d55, type: 3}
+  - style: 2
+    controlPath: rightStick
+    sprite: {fileID: 21300000, guid: 89a9184e25fca194a8e935ac01afed8a, type: 3}
+  - style: 2
+    controlPath: leftStickPress
+    sprite: {fileID: 21300000, guid: 6a663dc7479d08345a0b60fd6d44bf57, type: 3}
+  - style: 2
+    controlPath: rightStickPress
+    sprite: {fileID: 21300000, guid: d0b87c0781aa14441b8b0c3e88db3fa3, type: 3}
+  - style: 2
+    controlPath: start
+    sprite: {fileID: 21300000, guid: 1f4110167d2fb244ca2ccbfba8ed3b99, type: 3}
+  - style: 2
+    controlPath: dpad/up
+    sprite: {fileID: 21300000, guid: c304791729e72fc4595df2c3ae4c297d, type: 3}
+  - style: 2
+    controlPath: dpad/down
+    sprite: {fileID: 21300000, guid: 556aa8a5d57fb30408116cf4a3858a39, type: 3}
+  - style: 2
+    controlPath: dpad/left
+    sprite: {fileID: 21300000, guid: a86176fbb10d4d245883feb5b1769212, type: 3}
+  - style: 2
+    controlPath: dpad/right
+    sprite: {fileID: 21300000, guid: 03a40669623d95b46a3bb83b9bd46281, type: 3}
+  - style: 3
+    controlPath: buttonSouth
+    sprite: {fileID: 21300000, guid: 84692f7d49fb46d49a972e3f88704f53, type: 3}
+  - style: 3
+    controlPath: buttonEast
+    sprite: {fileID: 21300000, guid: 4d8ab7b1ecc68cc42be563c1eef501af, type: 3}
+  - style: 3
+    controlPath: buttonWest
+    sprite: {fileID: 21300000, guid: be39ef051d348c04c9491d2e1a729473, type: 3}
+  - style: 3
+    controlPath: buttonNorth
+    sprite: {fileID: 21300000, guid: 4d236909d6a2c8a4f8f75ea3df73f2f1, type: 3}
+  - style: 3
+    controlPath: leftShoulder
+    sprite: {fileID: 21300000, guid: 385ebc1628d16aa45b17deccc9aaedac, type: 3}
+  - style: 3
+    controlPath: rightShoulder
+    sprite: {fileID: 21300000, guid: f0d1bf553ec6af24fa85cedb09bdc4d1, type: 3}
+  - style: 3
+    controlPath: leftTrigger
+    sprite: {fileID: 21300000, guid: 89bc758255d2e764c9ba614df7086a59, type: 3}
+  - style: 3
+    controlPath: rightTrigger
+    sprite: {fileID: 21300000, guid: cca79de35f29c0e4eb0e71b5878447a2, type: 3}
+  - style: 3
+    controlPath: leftStick
+    sprite: {fileID: 21300000, guid: 982d09d5748685d4ba60536e5154799e, type: 3}
+  - style: 3
+    controlPath: rightStick
+    sprite: {fileID: 21300000, guid: ba5654a85942fed4dbb41760220888ce, type: 3}
+  - style: 3
+    controlPath: leftStickPress
+    sprite: {fileID: 21300000, guid: e8c8897bed0000d4e9d71a90ad050aba, type: 3}
+  - style: 3
+    controlPath: rightStickPress
+    sprite: {fileID: 21300000, guid: 13865277e446aae469f09cabf4dd8c1d, type: 3}
+  - style: 3
+    controlPath: start
+    sprite: {fileID: 21300000, guid: 61a3b298cccf9b54a81a9e75c15f70db, type: 3}
+  - style: 3
+    controlPath: dpad/up
+    sprite: {fileID: 21300000, guid: dc275725e276acd46a339be6b0f7c79e, type: 3}
+  - style: 3
+    controlPath: dpad/down
+    sprite: {fileID: 21300000, guid: d68d5065d53c4cf408e4145aef6b6a83, type: 3}
+  - style: 3
+    controlPath: dpad/left
+    sprite: {fileID: 21300000, guid: f8a2be407d3a76d42aa74193c50f0d75, type: 3}
+  - style: 3
+    controlPath: dpad/right
+    sprite: {fileID: 21300000, guid: eb7711dc8ba56434fa1848bbe3425868, type: 3}
+  - style: 0
+    controlPath: buttonSouth
+    sprite: {fileID: 21300000, guid: 64481f0cab54a324396220dc512ecd12, type: 3}
+  - style: 0
+    controlPath: buttonEast
+    sprite: {fileID: 21300000, guid: 7f03106e4ef7b91459fae647e4dd3501, type: 3}
+  - style: 0
+    controlPath: buttonWest
+    sprite: {fileID: 21300000, guid: a77cc113a36dfd94fa0713c822e0f0ab, type: 3}
+  - style: 0
+    controlPath: buttonNorth
+    sprite: {fileID: 21300000, guid: e6697f28a6688934abaafc18dca9982e, type: 3}
+  deviceEntries:
+  - deviceKind: 0
+    controlPath: leftButton
+    sprite: {fileID: 21300000, guid: f059afcb77dccbc4fb317da92b385d00, type: 3}
+  - deviceKind: 0
+    controlPath: rightButton
+    sprite: {fileID: 21300000, guid: b8e5dd25c10a2d8469246c869adbd4bc, type: 3}
+  - deviceKind: 0
+    controlPath: scroll
+    sprite: {fileID: 21300000, guid: 18ca2182a4f30e5418096e8d01dfa87e, type: 3}
+  keyboardBlank: {fileID: 21300000, guid: b0233318883837a47bffed9eba127712, type: 3}

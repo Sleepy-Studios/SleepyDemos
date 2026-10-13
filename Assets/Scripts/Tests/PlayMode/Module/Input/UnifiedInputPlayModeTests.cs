@@ -368,10 +368,223 @@ namespace Tests.Module
 
 #if UNITY_EDITOR
         [UnityTest]
+        public IEnumerator PromptVariantsKeepBindingOrderDuringFallbackAndShareWidthOwnership()
+        {
+            var keyboard = InputSystem.AddDevice<Keyboard>();
+            var gamepad = InputSystem.AddDevice<Gamepad>();
+            var action = new InputAction("Prompt", InputActionType.Button);
+            action.AddCompositeBinding("ButtonWithOneModifier")
+                .With("Modifier", "<Keyboard>/leftCtrl")
+                .With("Button", "<Keyboard>/k");
+            var parent = new GameObject("PromptParent", typeof(RectTransform));
+            parent.GetComponent<RectTransform>().sizeDelta = new Vector2(1200, 80);
+            try
+            {
+                InputDeviceState.Notify(keyboard);
+                foreach (string name in new[] { "InputPrompt", "InputPrompt2" })
+                {
+                    var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/UI/Common/Input/" + name + ".prefab");
+                    Assert.That(prefab, Is.Not.Null);
+                    var root = Object.Instantiate(prefab, parent.transform);
+                    try
+                    {
+                        var prompt = root.GetComponent<InputBindingPrompt>();
+                        var caption = root.transform.Find("Caption").GetComponent<TMP_Text>();
+                        var rect = root.GetComponent<RectTransform>();
+                        var fitter = root.GetComponent<ContentSizeFitter>();
+                        var serialized = new UnityEditor.SerializedObject(prompt);
+                        var authoredSlots = serialized.FindProperty("glyphSlots");
+                        var realSlots = new InputBindingPrompt.GlyphSlot[authoredSlots.arraySize];
+                        for (int index = 0; index < realSlots.Length; index++)
+                        {
+                            var authored = authoredSlots.GetArrayElementAtIndex(index);
+                            realSlots[index] = new InputBindingPrompt.GlyphSlot
+                            {
+                                root = authored.FindPropertyRelative("root").objectReferenceValue as GameObject,
+                                icon = authored.FindPropertyRelative("icon").objectReferenceValue as Image,
+                                keyText = authored.FindPropertyRelative("keyText").objectReferenceValue as TMP_Text,
+                                separator = authored.FindPropertyRelative("separator").objectReferenceValue as TMP_Text
+                            };
+                        }
+                        var slot = root.transform.Find("Glyphs/Glyph0");
+                        prompt.Configure(null, null, caption, new[]
+                        {
+                            new InputBindingPrompt.GlyphSlot
+                            {
+                                root = slot.gameObject,
+                                icon = slot.Find("Icon0").GetComponent<Image>()
+                            }
+                        }, null, authorCaption: "执行");
+                        prompt.SetDisplayDevice(InputDeviceKind.KeyboardMouse);
+                        prompt.Bind(action);
+                        string binding = InputBindingDisplay.Get(action, out _, InputDeviceKind.KeyboardMouse);
+                        bool captionFirst = name == "InputPrompt2";
+                        Assert.That(caption.text, Is.EqualTo(captionFirst ? "执行 " + binding : binding + " 执行"));
+                        Assert.That(root.transform.Find("Glyphs").gameObject.activeSelf, Is.False);
+                        prompt.BindBinding(action, 2);
+                        string singleBinding = InputBindingDisplay.Get(action, out _, InputDeviceKind.KeyboardMouse, bindingIndex: 2);
+                        Assert.That(caption.text, Is.EqualTo(captionFirst ? "执行 " + singleBinding : singleBinding + " 执行"), "缺图标及空白键帽时仍完整显示键名。");
+                        prompt.Bind(action);
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+                        float shortWidth = rect.rect.width;
+                        float originalRight = rect.offsetMax.x;
+                        prompt.SetCaption("执行一段更长的操作说明，保留完整真实组合键");
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+                        Assert.That(rect.rect.width, Is.GreaterThan(shortWidth));
+                        if (captionFirst)
+                        {
+                            Assert.That(rect.offsetMax.x, Is.EqualTo(originalRight).Within(0.1f), "文案变长仍保持右边界。");
+                        }
+                        var layout = parent.AddComponent<HorizontalLayoutGroup>();
+                        layout.childControlWidth = true;
+                        layout.childForceExpandWidth = false;
+                        prompt.Refresh();
+                        Assert.That(fitter.horizontalFit, Is.EqualTo(ContentSizeFitter.FitMode.Unconstrained));
+                        Object.DestroyImmediate(layout);
+                        prompt.Refresh();
+                        Assert.That(fitter.horizontalFit, Is.EqualTo(ContentSizeFitter.FitMode.PreferredSize));
+                        var hubCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<InputGlyphCatalog>(
+                            "Assets/LoadResources/UI/Common/Input/HubInputGlyphCatalog.asset");
+                        Assert.That(hubCatalog, Is.Not.Null);
+                        Assert.That(hubCatalog.KeyboardBlank, Is.Not.Null);
+                        prompt.Configure(null, hubCatalog, caption, realSlots, null, authorCaption: "执行");
+                        prompt.Bind(action);
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+                        var parts = InputBindingDisplay.GetParts(action, out _, InputDeviceKind.KeyboardMouse);
+                        Assert.That(parts.Count, Is.EqualTo(2));
+                        for (int index = 0; index < parts.Count; index++)
+                        {
+                            Assert.That(realSlots[index].icon.sprite, Is.SameAs(hubCatalog.KeyboardBlank));
+                            Assert.That(realSlots[index].keyText.gameObject.activeSelf, Is.True);
+                            Assert.That(realSlots[index].keyText.text, Is.EqualTo(parts[index].Text), "Hub 空键帽必须显示真实组合子键，顺序不反转。");
+                        }
+                        Assert.That(realSlots[0].root.transform.localPosition.x, Is.LessThan(realSlots[1].root.transform.localPosition.x),
+                            "文案在前的提示也不能反转键帽组内的真实阅读顺序。");
+                        float shortKeyWidth = realSlots[1].icon.rectTransform.rect.width;
+                        float rightBeforeLongKey = rect.offsetMax.x;
+                        action.ApplyBindingOverride(2, "<Keyboard>/backspace");
+                        prompt.Refresh();
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+                        var longParts = InputBindingDisplay.GetParts(action, out _, InputDeviceKind.KeyboardMouse);
+                        Assert.That(realSlots[1].keyText.text, Is.EqualTo(longParts[1].Text));
+                        Assert.That(realSlots[1].icon.rectTransform.rect.width, Is.GreaterThan(shortKeyWidth), "长键名应扩展键帽宽度。");
+                        Assert.That(realSlots[1].icon.rectTransform.rect.width + 0.1f, Is.GreaterThanOrEqualTo(realSlots[1].keyText.preferredWidth),
+                            "键帽不能裁掉实际显示键名。");
+                        if (captionFirst)
+                        {
+                            Assert.That(rect.offsetMax.x, Is.EqualTo(rightBeforeLongKey).Within(0.1f));
+                        }
+                        action.RemoveBindingOverride(2);
+                    }
+                    finally
+                    {
+                        Object.DestroyImmediate(root);
+                    }
+                }
+                var originalCatalog = UnityEditor.AssetDatabase.LoadAssetAtPath<InputGlyphCatalog>(
+                    "Assets/LoadResources/UI/Common/Input/InputGlyphCatalog.asset");
+                Assert.That(originalCatalog, Is.Not.Null);
+                Assert.That(originalCatalog.KeyboardBlank.border, Is.EqualTo(new Vector4(32f, 32f, 32f, 32f)),
+                    "正式空帽必须提供可横向扩展的九宫格边界。");
+                using var gamepadAction = new InputAction("LongFallback", InputActionType.Button);
+                gamepadAction.AddBinding("<Gamepad>/leftShoulder");
+                gamepadAction.AddBinding("<Gamepad>/buttonSouth");
+                foreach (bool equipment in new[] { false, true })
+                {
+                    InputDeviceState.Notify(keyboard);
+                    string path = "Assets/LoadResources/Demos/drone_flight/Prefabs/UI/Parts/"
+                        + (equipment ? "TelemetryRoot.prefab" : "DroneInputPrompt.prefab");
+                    var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                    Assert.That(prefab, Is.Not.Null);
+                    var root = Object.Instantiate(prefab, parent.transform);
+                    try
+                    {
+                        if (equipment)
+                        {
+                            // 正式页面按装备状态显示此区域；TMP 和原生布局须在真实显示生命周期中验收。
+                            root.transform.Find("EquipmentPanel").gameObject.SetActive(true);
+                        }
+                        var prompt = equipment
+                            ? root.transform.Find("EquipmentPanel/EquipmentOperationPrompts/EquipmentAimPrompt").GetComponent<InputBindingPrompt>()
+                            : root.GetComponent<InputBindingPrompt>();
+                        if (equipment)
+                        {
+                            prompt.gameObject.SetActive(true);
+                        }
+                        Assert.That(prompt.gameObject.activeInHierarchy, Is.True);
+                        prompt.enabled = false;
+                        var image = prompt.transform.Find("Glyphs/Glyph0/Icon0").GetComponent<Image>();
+                        var keyText = image.GetComponentInChildren<TMP_Text>(true);
+                        var element = image.GetComponent<LayoutElement>();
+                        var layout = image.GetComponent<HorizontalLayoutGroup>();
+                        var slotLayout = image.transform.parent.GetComponent<HorizontalLayoutGroup>();
+                        float authoredWidth = element.preferredWidth;
+                        float authoredHeight = element.preferredHeight;
+                        float authoredMultiplier = image.pixelsPerUnitMultiplier;
+                        float authoredFlexibleHeight = element.flexibleHeight;
+                        bool authoredForceExpandHeight = slotLayout.childForceExpandHeight;
+                        int authoredPadding = layout.padding.horizontal;
+                        Color authoredColor = image.color;
+                        Assert.That(authoredHeight, Is.EqualTo(equipment ? 24f : 36f));
+                        prompt.enabled = true;
+                        InputDeviceState.Notify(gamepad);
+                        prompt.SetDisplayDevice(InputDeviceKind.Gamepad);
+                        prompt.BindBinding(gamepadAction, 0);
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(prompt.GetComponent<RectTransform>());
+                        var parts = InputBindingDisplay.GetParts(gamepadAction, out _, InputDeviceKind.Gamepad, bindingIndex: 0);
+                        Assert.That(parts.Count, Is.EqualTo(1));
+                        Assert.That(originalCatalog.Get(InputDeviceKind.Gamepad, GamepadStyle.Generic, parts[0].ControlPath), Is.Null);
+                        Assert.That(keyText.text, Is.EqualTo(parts[0].Text), "未知品牌显示真实长控制名称。");
+                        Assert.That(keyText.preferredWidth, Is.GreaterThan(authoredHeight), "夹具必须覆盖方形短帽放不下的真实名称。");
+                        Assert.That(image.sprite, Is.SameAs(originalCatalog.KeyboardBlank));
+                        Assert.That(image.type, Is.EqualTo(Image.Type.Sliced));
+                        Assert.That(image.preserveAspect, Is.False, "空帽应包住长名称，不能仍绘制成方形。");
+                        Assert.That(image.fillCenter, Is.False);
+                        Assert.That(image.rectTransform.rect.height, Is.EqualTo(authoredHeight).Within(0.1f));
+                        Assert.That(image.pixelsPerUnitMultiplier * image.pixelsPerUnit * authoredHeight,
+                            Is.EqualTo(image.sprite.rect.height).Within(0.1f), "短帽仍保持原整张图的显示比例。");
+                        Assert.That(layout.padding.left, Is.GreaterThan(0));
+                        Assert.That(layout.padding.right, Is.GreaterThan(0));
+                        Assert.That(image.rectTransform.rect.width + 0.1f,
+                            Is.GreaterThanOrEqualTo(keyText.preferredWidth + layout.padding.horizontal));
+                        float longWidth = image.rectTransform.rect.width;
+                        prompt.Refresh();
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(prompt.GetComponent<RectTransform>());
+                        Assert.That(image.rectTransform.rect.width, Is.EqualTo(longWidth).Within(0.1f), "反复刷新不能累积内边距。");
+                        prompt.BindBinding(gamepadAction, 1);
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(prompt.GetComponent<RectTransform>());
+                        Assert.That(image.sprite, Is.SameAs(originalCatalog.Get(InputDeviceKind.Gamepad, GamepadStyle.Generic, "buttonSouth")));
+                        Assert.That(image.type, Is.EqualTo(Image.Type.Simple));
+                        Assert.That(image.preserveAspect, Is.True);
+                        Assert.That(keyText.gameObject.activeSelf, Is.False);
+                        Assert.That(element.preferredWidth, Is.EqualTo(authoredWidth));
+                        Assert.That(layout.padding.horizontal, Is.EqualTo(authoredPadding));
+                        Assert.That(image.pixelsPerUnitMultiplier, Is.EqualTo(authoredMultiplier));
+                        Assert.That(element.flexibleHeight, Is.EqualTo(authoredFlexibleHeight));
+                        Assert.That(slotLayout.childForceExpandHeight, Is.EqualTo(authoredForceExpandHeight));
+                        Assert.That(image.color, Is.EqualTo(authoredColor), "回退不能更改 Demo 的作者颜色。");
+                    }
+                    finally
+                    {
+                        Object.DestroyImmediate(root);
+                    }
+                }
+            }
+            finally
+            {
+                Object.Destroy(parent);
+                action.Dispose();
+                InputSystem.RemoveDevice(keyboard);
+                InputSystem.RemoveDevice(gamepad);
+            }
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator SavedKartBindingRowsShowSelectedAliasAndClearSelectionWhenReused()
         {
             var source = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/LoadResources/Demos/kagit_kart/Data/PlayerInput.asset");
-            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/UI/Common/Input/InputPrompt.prefab");
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Widgets/KagitKartInputPrompt.prefab");
             var catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<InputGlyphCatalog>("Assets/LoadResources/UI/Common/Input/InputGlyphCatalog.asset");
             Assert.That(source, Is.Not.Null);
             Assert.That(prefab, Is.Not.Null);

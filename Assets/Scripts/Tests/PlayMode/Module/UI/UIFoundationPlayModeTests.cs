@@ -18,6 +18,49 @@ namespace Tests.Module
 {
     public sealed class UIFoundationPlayModeTests
     {
+        [UnityTest]
+        public IEnumerator NativeToggleValueDrivesBusinessStateWithoutDuplicateCallbacks()
+        {
+            var obj = new GameObject("NativeToggle", typeof(RectTransform), typeof(Image), typeof(Toggle), typeof(UIState));
+            var toggle = obj.GetComponent<Toggle>();
+            var state = obj.GetComponent<UIState>();
+            var definitions = new System.Collections.Generic.List<UIStateInfo>(state.States)
+            {
+                new UIStateInfo { stateName = "On" },
+                new UIStateInfo { stateName = "Off" }
+            };
+            state.ConfigureStates(definitions);
+            int callbacks = 0;
+            toggle.onValueChanged.AddListener(_ => callbacks++);
+            try
+            {
+                toggle.SetIsOnWithoutNotify(false);
+                yield return null;
+                Assert.That(state.CurrentStateId, Is.EqualTo("Off"));
+                Assert.That(callbacks, Is.Zero);
+                toggle.isOn = true;
+                yield return null;
+                Assert.That(state.CurrentStateId, Is.EqualTo("On"));
+                Assert.That(callbacks, Is.EqualTo(1));
+                toggle.interactable = false;
+                yield return null;
+                Assert.That(state.InteractionState, Is.EqualTo("Disabled"));
+                Assert.That(state.CurrentStateId, Is.EqualTo("On"));
+                obj.SetActive(false);
+                toggle.SetIsOnWithoutNotify(false);
+                obj.SetActive(true);
+                toggle.interactable = true;
+                yield return null;
+                Assert.That(state.CurrentStateId, Is.EqualTo("Off"));
+                Assert.That(state.InteractionState, Is.Not.EqualTo("Disabled"));
+                Assert.That(callbacks, Is.EqualTo(1), "UIState 消费原生值，不再次提交 Toggle 回调。");
+            }
+            finally
+            {
+                Object.Destroy(obj);
+            }
+        }
+
         [UnityTest, Timeout(120000)]
         public IEnumerator CommonButton_RealPointerKeyboardGamepadAndDisableRestoreDistinctVisuals()
         {

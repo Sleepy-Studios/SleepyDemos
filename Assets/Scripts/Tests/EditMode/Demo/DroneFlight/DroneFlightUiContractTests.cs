@@ -83,15 +83,16 @@ namespace Tests.Demo
             Assert.That(select.GetComponent<Canvas>(), Is.Null);
             foreach (string name in new[]
             {
-                "PlainPreview",
-                "GrapplePreview",
-                "HarpoonPreview",
+                "PlainButton",
+                "GrappleButton",
+                "HarpoonButton",
                 "Hero"
             }
 
             )
             {
-                var image = selectIndex.Components.OfType<UnityEngine.UI.Image>().Single(value => value.name == name);
+                var image = selectIndex.Components.OfType<UnityEngine.UI.Image>().Single(value => name == "Hero"
+                    ? value.name == name : value.name == "Preview" && value.transform.parent.name == name);
                 Assert.That(image.sprite, Is.Not.Null, name);
                 Assert.That(image.preserveAspect, Is.True, name + " 不得拉伸实际模型");
             }

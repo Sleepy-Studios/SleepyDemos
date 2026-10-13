@@ -22,6 +22,69 @@ namespace Core.Runtime.Inputs
             public TMP_Text separator;
         }
 
+        // 回退键帽临时接管宽度；切回真实图标或重新配置时恢复每个槽的作者值。
+        private sealed class GlyphLayout
+        {
+            public readonly Image image;
+            public readonly HorizontalLayoutGroup layout;
+            public readonly HorizontalLayoutGroup slotLayout;
+            public readonly LayoutElement element;
+            public readonly Image.Type imageType;
+            public readonly float pixelsPerUnitMultiplier;
+            private readonly bool fillCenter;
+            private readonly bool preserveAspect;
+            private readonly float preferredWidth;
+            private readonly float flexibleHeight;
+            private readonly bool slotForceExpandHeight;
+            private readonly int paddingLeft;
+            private readonly int paddingRight;
+
+            public GlyphLayout(Image value, GameObject root)
+            {
+                image = value;
+                layout = value.GetComponent<HorizontalLayoutGroup>();
+                slotLayout = root != null && value.transform.parent == root.transform
+                    ? root.GetComponent<HorizontalLayoutGroup>() : null;
+                element = value.GetComponent<LayoutElement>();
+                imageType = value.type;
+                pixelsPerUnitMultiplier = value.pixelsPerUnitMultiplier;
+                fillCenter = value.fillCenter;
+                preserveAspect = value.preserveAspect;
+                preferredWidth = element != null ? element.preferredWidth : -1f;
+                flexibleHeight = element != null ? element.flexibleHeight : -1f;
+                slotForceExpandHeight = slotLayout != null && slotLayout.childForceExpandHeight;
+                paddingLeft = layout != null ? layout.padding.left : 0;
+                paddingRight = layout != null ? layout.padding.right : 0;
+            }
+
+            public void Restore()
+            {
+                if (image == null)
+                {
+                    return;
+                }
+                image.type = imageType;
+                image.pixelsPerUnitMultiplier = pixelsPerUnitMultiplier;
+                image.fillCenter = fillCenter;
+                image.preserveAspect = preserveAspect;
+                if (element != null)
+                {
+                    element.preferredWidth = preferredWidth;
+                    element.flexibleHeight = flexibleHeight;
+                }
+                if (slotLayout != null)
+                {
+                    slotLayout.childForceExpandHeight = slotForceExpandHeight;
+                }
+                if (layout != null)
+                {
+                    layout.padding.left = paddingLeft;
+                    layout.padding.right = paddingRight;
+                    LayoutRebuilder.MarkLayoutForRebuild(image.rectTransform);
+                }
+            }
+        }
+
         [SerializeField] private InputActionReference action;
         [SerializeField] private InputGlyphCatalog catalog;
         [SerializeField] private Image icon;
@@ -31,6 +94,8 @@ namespace Core.Runtime.Inputs
         [SerializeField] private string compositePart;
         [SerializeField] private GlyphSlot[] glyphSlots = Array.Empty<GlyphSlot>();
         [SerializeField] private string uiAction;
+        [SerializeField, Tooltip("文案在前的提示；纯文本回退也保持相同阅读顺序。")]
+        private bool captionFirst;
         [SerializeField, Tooltip("触控操作按钮只显示动作名，设备按键由独立提示区提供。")]
         private bool captionOnly;
         private InputAction runtimeAction;
@@ -38,6 +103,7 @@ namespace Core.Runtime.Inputs
         private InputDeviceKind? displayDevice;
         private int? displayBindingIndex;
         private object[] captionArguments = Array.Empty<object>();
+        private GlyphLayout[] glyphLayouts;
         /// 已绑定会话动作优先于 Inspector 的源资产引用。
         public InputAction Action => runtimeAction ?? action?.action;
 
@@ -91,6 +157,8 @@ namespace Core.Runtime.Inputs
             GlyphSlot[] slots, string key, bool onlyCaption = false, string menuAction = null,
             string part = null, string authorCaption = null)
         {
+            RestoreGlyphLayouts();
+            glyphLayouts = null;
             action = sourceAction;
             catalog = glyphCatalog;
             label = captionLabel;
@@ -183,6 +251,8 @@ namespace Core.Runtime.Inputs
         {
             InputDeviceState.Changed -= Refresh;
             InputSystem.onActionChange -= OnActionChange;
+            RestoreGlyphLayouts();
+            glyphLayouts = null;
         }
         private void OnActionChange(object target, InputActionChange change)
         {
@@ -191,9 +261,33 @@ namespace Core.Runtime.Inputs
                 Refresh();
             }
         }
+
+        private void OnTransformParentChanged()
+        {
+            UpdateWidthLayout();
+        }
+
+        private void UpdateWidthLayout()
+        {
+            var fitter = GetComponent<ContentSizeFitter>();
+            if (fitter == null || GetComponent<Selectable>() != null)
+            {
+                return;
+            }
+            var parentLayout = transform.parent != null ? transform.parent.GetComponent<LayoutGroup>() : null;
+            var element = GetComponent<LayoutElement>();
+            bool parentControlsWidth = parentLayout != null && parentLayout.isActiveAndEnabled
+                && (element == null || !element.ignoreLayout)
+                && (parentLayout is not HorizontalOrVerticalLayoutGroup row || row.childControlWidth);
+            // 父布局接管宽度时由本组件的 LayoutGroup 提供 preferredWidth，避免两处驱动同一尺寸。
+            fitter.horizontalFit = parentControlsWidth ? ContentSizeFitter.FitMode.Unconstrained : ContentSizeFitter.FitMode.PreferredSize;
+        }
+
         /// 按当前实际动作刷新提示；语言只在显示或重新配置时读取。
         public void Refresh()
         {
+            RestoreGlyphLayouts();
+            UpdateWidthLayout();
             string currentCaption = caption;
             if (!string.IsNullOrEmpty(captionKey) && LanguageService.IsInitialized)
             {
@@ -208,10 +302,28 @@ namespace Core.Runtime.Inputs
             var parts = InputBindingDisplay.GetParts(Action, out var separator, displayDevice, compositePart, displayBindingIndex);
             if (glyphSlots.Length > 0)
             {
+                bool showGlyphs = bindingsVisible && !captionOnly && parts.Count > 0 && parts.Count <= glyphSlots.Length;
+                if (showGlyphs)
+                {
+                    foreach (var part in parts)
+                    {
+                        if (FindGlyph(kind, style, part.ControlPath, part.Text) == null && (catalog == null || catalog.KeyboardBlank == null))
+                        {
+                            showGlyphs = false;
+                            break;
+                        }
+                    }
+                }
+                // 无图标和空白键帽或槽不足时改用完整文本，避免截断组合键。
+                if (glyphSlots[0].root != null && glyphSlots[0].root.transform.parent != null
+                    && glyphSlots[0].root.transform.parent != transform)
+                {
+                    glyphSlots[0].root.transform.parent.gameObject.SetActive(showGlyphs);
+                }
                 for (int i = 0; i < glyphSlots.Length; i++)
                 {
                     var slot = glyphSlots[i];
-                    bool visible = bindingsVisible && !captionOnly && parts.Count <= glyphSlots.Length && i < parts.Count;
+                    bool visible = showGlyphs && i < parts.Count;
                     if (slot.root != null)
                     {
                         slot.root.SetActive(visible);
@@ -232,6 +344,7 @@ namespace Core.Runtime.Inputs
                         slot.keyText.text = glyph == null ? part.Text : string.Empty;
                         slot.keyText.gameObject.SetActive(glyph == null);
                     }
+                    UpdateGlyphLayout(i, slot, glyph == null);
                     if (slot.separator != null)
                     {
                         slot.separator.text = i == 0 ? string.Empty : separator;
@@ -240,9 +353,9 @@ namespace Core.Runtime.Inputs
                 }
                 if (label != null)
                 {
-                    // 槽数量不足时完整显示实际绑定，不截掉组合键。
-                    label.text = bindingsVisible && !captionOnly && parts.Count > glyphSlots.Length
-                        ? InputBindingDisplay.Get(Action, out _, displayDevice, compositePart, displayBindingIndex) + " " + currentCaption : currentCaption;
+                    label.text = bindingsVisible && !captionOnly && !showGlyphs
+                        ? FormatBindingCaption(InputBindingDisplay.Get(Action, out _, displayDevice, compositePart, displayBindingIndex), currentCaption)
+                        : currentCaption;
                 }
                 return;
             }
@@ -257,8 +370,85 @@ namespace Core.Runtime.Inputs
             }
             if (label != null)
             {
-                label.text = sprite != null || string.IsNullOrEmpty(key) ? currentCaption : key + " " + currentCaption;
+                label.text = sprite != null || string.IsNullOrEmpty(key) ? currentCaption : FormatBindingCaption(key, currentCaption);
             }
+        }
+
+        private void RestoreGlyphLayouts()
+        {
+            if (glyphLayouts == null)
+            {
+                return;
+            }
+            foreach (var layout in glyphLayouts)
+            {
+                layout?.Restore();
+            }
+        }
+
+        private void UpdateGlyphLayout(int index, GlyphSlot slot, bool blank)
+        {
+            if (slot.icon == null)
+            {
+                return;
+            }
+            glyphLayouts ??= new GlyphLayout[glyphSlots.Length];
+            var authored = glyphLayouts[index] ??= new GlyphLayout(slot.icon, slot.root);
+            if (!blank)
+            {
+                slot.icon.type = Image.Type.Simple;
+                slot.icon.preserveAspect = true;
+                return;
+            }
+            var sprite = slot.icon.sprite;
+            if (sprite == null || sprite.border == Vector4.zero)
+            {
+                return;
+            }
+            slot.icon.type = Image.Type.Sliced;
+            slot.icon.fillCenter = false;
+            slot.icon.preserveAspect = false;
+            // Icon 的内部键名布局也会贡献 flexibleHeight；空帽只使用作者的固定槽高。
+            if (authored.element != null)
+            {
+                authored.element.flexibleHeight = 0f;
+            }
+            if (authored.slotLayout != null)
+            {
+                authored.slotLayout.childForceExpandHeight = false;
+            }
+            // 原方形图标风格保持整张空帽的显示高度；已制作的九宫格风格保留原边线粗细。
+            float height = authored.element != null && authored.element.preferredHeight > 0f
+                ? Mathf.Max(authored.element.minHeight, authored.element.preferredHeight)
+                : authored.element != null && authored.element.minHeight > 0f
+                    ? authored.element.minHeight : slot.icon.rectTransform.rect.height;
+            if (authored.imageType != Image.Type.Sliced && height > 0f)
+            {
+                slot.icon.pixelsPerUnitMultiplier = sprite.rect.height / height / slot.icon.pixelsPerUnit;
+            }
+            if (slot.keyText == null || authored.layout == null || authored.element == null)
+            {
+                return;
+            }
+            float pixelsPerUnit = slot.icon.pixelsPerUnit * slot.icon.pixelsPerUnitMultiplier;
+            authored.layout.padding.left = Mathf.Max(authored.layout.padding.left, Mathf.CeilToInt(sprite.border.x / pixelsPerUnit));
+            authored.layout.padding.right = Mathf.Max(authored.layout.padding.right, Mathf.CeilToInt(sprite.border.z / pixelsPerUnit));
+            authored.element.preferredWidth = Mathf.Max(authored.element.minWidth, authored.element.preferredWidth,
+                slot.keyText.preferredWidth + authored.layout.padding.horizontal);
+            LayoutRebuilder.MarkLayoutForRebuild(slot.icon.rectTransform);
+        }
+
+        private string FormatBindingCaption(string binding, string currentCaption)
+        {
+            if (string.IsNullOrEmpty(binding))
+            {
+                return currentCaption;
+            }
+            if (string.IsNullOrEmpty(currentCaption))
+            {
+                return binding;
+            }
+            return captionFirst ? currentCaption + " " + binding : binding + " " + currentCaption;
         }
 
         private Sprite FindGlyph(InputDeviceKind kind, GamepadStyle style, string path, string text)

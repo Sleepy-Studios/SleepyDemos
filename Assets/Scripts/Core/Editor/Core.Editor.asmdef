@@ -8,6 +8,8 @@
         "UnityEngine.UI",
         "UnityEditor.UI",
         "Unity.TextMeshPro",
+        "Unity.VectorGraphics",
+        "Unity.VectorGraphics.Editor",
         "YooAsset",
         "YooAsset.Editor",
         "HybridCLR.Editor",

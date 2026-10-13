@@ -16,6 +16,7 @@
 | 新增模块，调整职责、依赖或目录 | [代码与资源布局](./architecture/code-layout.md)、[Core / Hotfix 边界](./architecture/hotfix-boundary.md) |
 | 修改 C# 命名、注释或维护文档 | [文档维护与 C# 规范](./architecture/documentation-rules.md) |
 | 编写页面、选控件、拆分类子页或数据列表 | 先查 [基础 UI 选型与资源入口](./runbooks/use-core-ui-components.md#从需求找到资源和示例)，再查 [基础 Prefab](./modules/ui-foundation-assets.md)；独立分类用 ViewTab，数据复用用 [Loop Scroll](./runbooks/use-loop-scroll.md) |
+| 制作 UI 外观、公共控件、Demo 风格 Variant 或整套换风格 | [公共 UI 美术与复用规范](./architecture/ui-art-direction.md)、宿主 Demo 的美术规范、[制作与换风格步骤](./runbooks/use-core-ui-components.md#制作与更换控件风格)、[基础 Prefab](./modules/ui-foundation-assets.md) |
 | 调用异步 UI 导航或配置组件初始化方式 | [UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 使用时间、颜色、倒计时或通用 Tips | [Core.Runtime](./modules/core-runtime.md)、[UI 运行时](./modules/ui-runtime.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 修改启动或热更流程 | [启动与热更流程](./architecture/startup-flow.md)、[热更新模块](./modules/hotfix.md) |
@@ -41,6 +42,7 @@
   - [资源系统设计原则](./architecture/resource-system.md)
   - [配置系统设计](./architecture/config-system.md)
   - [Core UI 渲染设计原则](./architecture/ui-rendering.md)
+  - [公共 UI 美术与复用规范](./architecture/ui-art-direction.md)
   - [Unity 自动化测试架构](./architecture/testing.md)
   - [文档维护与 C# 规范](./architecture/documentation-rules.md)
 - `modules/`

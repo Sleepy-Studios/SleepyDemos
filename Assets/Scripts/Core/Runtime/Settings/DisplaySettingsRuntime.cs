@@ -70,6 +70,9 @@ namespace Core.Runtime.Settings
         /// 当前显示器提供的原生模式；页面合并相同尺寸，保留当前窗口尺寸作为当前项。
         public static Resolution[] AvailableResolutions => Screen.resolutions;
 
+        /// 读取平台作者帧率默认值；初始化前读取引擎当前值，不初始化或应用设置。
+        public static int AuthoredFrameLimit => initialized ? authoredFrameLimit : Application.targetFrameRate;
+
         /// 显示设置或相机实际状态已更新。
         public static event Action Changed;
 

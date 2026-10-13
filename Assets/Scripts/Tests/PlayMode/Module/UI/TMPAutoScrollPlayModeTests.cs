@@ -52,7 +52,7 @@ namespace Tests.Module
             AssertClipped();
             text.text = "短";
             yield return null; yield return null;
-            Assert.That(text.rectTransform.anchoredPosition.x, Is.EqualTo(0).Within(.01f));
+            AssertAtLayoutStart();
             Assert.That(scroll.IsReading, Is.False);
             Assert.That(text.textInfo.characterCount, Is.EqualTo(1));
         }
@@ -76,7 +76,7 @@ namespace Tests.Module
             viewport.sizeDelta = new Vector2(3000, 42);
             yield return null; yield return null;
             Assert.That(scroll.IsReading, Is.False);
-            Assert.That(text.rectTransform.anchoredPosition.x, Is.EqualTo(0).Within(.01f));
+            AssertAtLayoutStart();
         }
 
         [UnityTest] public IEnumerator DisableResetsAndCompletionFiresOncePerRoundDuringPause()
@@ -88,7 +88,7 @@ namespace Tests.Module
             yield return new WaitForSecondsRealtime(.12f);
             Assert.That(text.rectTransform.anchoredPosition.x, Is.LessThan(0));
             scroll.enabled = false;
-            Assert.That(text.rectTransform.anchoredPosition.x, Is.EqualTo(0).Within(.01f));
+            AssertAtLayoutStart();
             Assert.That(completed, Is.Zero);
             scroll.enabled = true;
             yield return WaitForCompletion();
@@ -110,6 +110,9 @@ namespace Tests.Module
 
         private void AssertClipped()
         {
+            var padding = viewport.GetComponent<LayoutGroup>()?.padding;
+            float clipMin = viewport.rect.xMin + (padding?.left ?? 0);
+            float clipMax = viewport.rect.xMax - (padding?.right ?? 0);
             int visibleQuads = 0;
             foreach (var mesh in text.textInfo.meshInfo)
             {
@@ -120,12 +123,20 @@ namespace Tests.Module
                     for (int j = 0; j < 4; j++)
                     {
                         var point = viewport.InverseTransformPoint(text.transform.TransformPoint(mesh.vertices[i + j]));
-                        Assert.That(point.x, Is.InRange(viewport.rect.xMin - .1f, viewport.rect.xMax + .1f));
+                        Assert.That(point.x, Is.InRange(clipMin - .1f, clipMax + .1f));
                         Assert.That(float.IsNaN(mesh.uvs0[i + j].x), Is.False);
                     }
                 }
             }
             Assert.That(visibleQuads, Is.GreaterThan(0), "不能用全部隐藏来通过裁剪检查");
+        }
+
+        private void AssertAtLayoutStart()
+        {
+            var rectangle = text.rectTransform;
+            float left = viewport.InverseTransformPoint(rectangle.TransformPoint(new Vector3(rectangle.rect.xMin, 0, 0))).x;
+            float padding = viewport.GetComponent<LayoutGroup>()?.padding.left ?? 0;
+            Assert.That(left, Is.EqualTo(viewport.rect.xMin + padding).Within(.01f), "复位应恢复布局内边距处的起点。");
         }
     }
 }

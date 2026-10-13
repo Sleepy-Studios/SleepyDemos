@@ -5,6 +5,7 @@
 - [模块职责与生命周期](module.md)
 - [公共设置与表现](../../modules/settings-presentation.md)、[公共玩法输入](../../modules/gameplay-input.md)
 - [实现原理与架构](architecture/design.md)
+- [界面美术与控件外观](architecture/art-direction.md)
 - [正式模型契约](model-contract.md)
 - [设计演进与决策记录](../../agent/archive/drone-flight-history.md)
 - [调试与整定](runbooks/tune.md)

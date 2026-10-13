@@ -22,6 +22,65 @@ namespace Tests.Module
 {
     public sealed class UIComponentLifecyclePlayModeTests
     {
+        [UnityTest, Timeout(120000)]
+        public IEnumerator ImageExtend_SharedMaterialSurvivesOneOwnerAndReleasesAfterLastOwner()
+        {
+            if (!ResourceServices.Default.IsInitialized)
+            {
+                yield return ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default).ToCoroutine();
+            }
+            Assert.That(ResourceServices.Default.IsInitialized, Is.True, "真实 Shader 资源服务必须已就绪。");
+            var canvas = new GameObject("ImageExtend Lifecycle Canvas", typeof(RectTransform), typeof(Canvas));
+            canvas.GetComponent<Canvas>().renderMode = RenderMode.ScreenSpaceOverlay;
+            var first = new GameObject("First ImageExtend Owner", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var second = new GameObject("Last ImageExtend Owner", typeof(RectTransform), typeof(Image), typeof(ImageExtend));
+            var original = new Material(Graphic.defaultGraphicMaterial);
+            try
+            {
+                first.transform.SetParent(canvas.transform, false);
+                second.transform.SetParent(canvas.transform, false);
+                // 帧末 Graphic 重建也使用同一上游材质，不能让夹具的手动调用与实际 Image 所有权分叉。
+                first.GetComponent<Image>().material = original;
+                second.GetComponent<Image>().material = original;
+                var a = first.GetComponent<ImageExtend>();
+                var b = second.GetComponent<ImageExtend>();
+                a.EnableRoundedCorners = b.EnableRoundedCorners = true;
+                Canvas.ForceUpdateCanvases();
+                Material shared = null;
+                double deadline = Time.realtimeSinceStartupAsDouble + 15;
+                while (Time.realtimeSinceStartupAsDouble < deadline)
+                {
+                    var firstMaterial = a.GetModifiedMaterial(original);
+                    var secondMaterial = b.GetModifiedMaterial(original);
+                    if (firstMaterial.shader.name == "UI/ImageExtend" && firstMaterial == secondMaterial)
+                    {
+                        shared = firstMaterial;
+                        break;
+                    }
+                    yield return null;
+                }
+                Assert.That(shared != null, Is.True, "真实资源加载后，相同参数与上游材质必须共享派生材质。");
+                Assert.That(shared, Is.Not.SameAs(original));
+                Object.Destroy(first);
+                yield return null;
+                Assert.That(shared != null, Is.True, "仍有使用者时不得释放共享材质。");
+                Assert.That(b.GetModifiedMaterial(original), Is.SameAs(shared));
+                Object.Destroy(second);
+                deadline = Time.realtimeSinceStartupAsDouble + 5;
+                while (shared != null && Time.realtimeSinceStartupAsDouble < deadline) yield return null;
+                Assert.That(shared == null, Is.True, "最后一个使用者销毁后必须释放派生材质。");
+                Assert.That(original != null, Is.True, "派生材质清理不能销毁调用方的原材质。");
+            }
+            finally
+            {
+                if (first != null) Object.Destroy(first);
+                if (second != null) Object.Destroy(second);
+                Object.Destroy(canvas);
+                Object.Destroy(original);
+            }
+            yield return null;
+        }
+
         [UnityTest]
         public IEnumerator DefaultAsyncTab_ReinitializeOnlyCompletesLatestRequest()
         {
@@ -92,6 +151,50 @@ namespace Tests.Module
                 root.SetActive(true);
                 tab.Init(data, action: () => latestCount++, isAsync: false);
                 Assert.That(latestCount, Is.EqualTo(2));
+
+                var firstTemplate = (GameObject)typeof(AccordionTab).GetField("firstLevelPrefab", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(tab);
+                Transform templateArrow = firstTemplate.transform.Find("Arrow");
+                if (templateArrow == null)
+                {
+                    templateArrow = new GameObject("Arrow", typeof(RectTransform)).transform;
+                    templateArrow.SetParent(firstTemplate.transform, false);
+                }
+                templateArrow.localRotation = Quaternion.Euler(0f, 0f, 15f);
+                typeof(AccordionTab).GetField("firstLevelArrowPath", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(tab, "Arrow");
+                tab.Init(new[]
+                {
+                    new AccordionTabData { Desc = "Group", Children = new List<AccordionTabData> { new AccordionTabData { Desc = "Leaf" } } },
+                    new AccordionTabData { Desc = "Standalone" }
+                }, canCollapseFirstLevel: true, isAsync: false);
+                yield return null;
+                Transform group = root.transform.Find("AccordionGroup1");
+                Transform firstItem = group.Find("FirstLevelTab1");
+                Transform liveArrow = firstItem.Find("Arrow");
+                var rootRect = root.GetComponent<RectTransform>();
+                var rootLayout = root.GetComponent<VerticalLayoutGroup>();
+                rootLayout.padding = new RectOffset(12, 20, 4, 4);
+                rootRect.sizeDelta = new Vector2(586f, 600f);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+                float innerWidth = rootRect.rect.width - rootLayout.padding.horizontal;
+                Assert.That(((RectTransform)group).rect.width, Is.EqualTo(innerWidth).Within(0.1f));
+                Assert.That(((RectTransform)group.Find("SubRoot")).rect.width, Is.EqualTo(innerWidth).Within(0.1f));
+                Assert.That(((RectTransform)firstItem).rect.width, Is.EqualTo(innerWidth).Within(0.1f));
+                Assert.That(((RectTransform)group.Find("SubRoot/SecondLevelTab1")).rect.width, Is.EqualTo(innerWidth).Within(0.1f));
+                rootRect.sizeDelta = new Vector2(742f, 600f);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+                innerWidth = rootRect.rect.width - rootLayout.padding.horizontal;
+                Assert.That(((RectTransform)group).rect.width, Is.EqualTo(innerWidth).Within(0.1f), "容器变宽时组不应缩回模板设计宽度。");
+                Assert.That(((RectTransform)group.Find("SubRoot/SecondLevelTab1")).rect.width, Is.EqualTo(innerWidth).Within(0.1f));
+                Assert.That(Mathf.DeltaAngle(liveArrow.localEulerAngles.z, 195f), Is.EqualTo(0f).Within(0.01f));
+                Assert.That(root.transform.Find("AccordionGroup2/FirstLevelTab2/Arrow").gameObject.activeSelf, Is.False);
+                firstItem.GetComponent<Button>().onClick.Invoke();
+                Assert.That(group.Find("SubRoot").gameObject.activeSelf, Is.False);
+                Assert.That(Mathf.DeltaAngle(liveArrow.localEulerAngles.z, 15f), Is.EqualTo(0f).Within(0.01f));
+                Assert.That(tab.Index, Is.Zero, "收起不取消叶子的业务选择。");
+                Assert.That(firstItem.GetComponent<UIState>().CurrentStateId, Is.EqualTo("Selected"), "箭头不能以业务 Selected 推断展开状态。");
+                firstItem.GetComponent<Button>().onClick.Invoke();
+                Assert.That(group.Find("SubRoot").gameObject.activeSelf, Is.True);
+                Assert.That(Mathf.DeltaAngle(liveArrow.localEulerAngles.z, 195f), Is.EqualTo(0f).Within(0.01f));
             }
             finally { Object.Destroy(root); }
         }
@@ -193,14 +296,43 @@ namespace Tests.Module
             try
             {
                 var dropdown = root.GetComponent<UIDropdown>();
-                dropdown.SetData(new[] { "A", "B", "C" }, _ => { }, selectedIndex: 2);
+                var selections = new List<int>();
+                var shown = new List<bool>();
+                dropdown.SetData(new[] { "A", "B", "C" }, index => selections.Add(index), selectedIndex: 2,
+                    showStateChanged: expanded => shown.Add(expanded));
                 for (int i = 0; i < 6; i++) yield return null;
                 var tab = root.GetComponentInChildren<UITab>(true);
                 Assert.That(tab.Index, Is.EqualTo(2));
                 Assert.That(tab.Items[2].activeSelf, Is.True);
                 Assert.That(root.transform.Find("DefaultText").GetComponent<TMP_Text>().text, Is.EqualTo("C"));
+                Assert.That(dropdown.IsExpanded, Is.False, "异步初始化完成不能自行展开列表。");
+                Assert.That(tab.gameObject.activeSelf, Is.False);
+                Assert.That(shown, Is.Empty);
+                var popup = (RectTransform)tab.transform;
+                root.GetComponent<Button>().onClick.Invoke();
+                Canvas.ForceUpdateCanvases();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(popup);
+                Assert.That(dropdown.IsExpanded, Is.True);
+                Assert.That(popup.rect.height, Is.GreaterThan(0f));
+                Assert.That(popup.rect.height, Is.EqualTo(LayoutUtility.GetPreferredHeight(popup)).Within(0.1f),
+                    "打开后的自动高度应遵循实际选项布局，而不是初始隐藏矩形。");
+                root.GetComponent<Button>().onClick.Invoke();
+                Assert.That(dropdown.IsExpanded, Is.False);
+                Assert.That(tab.gameObject.activeSelf, Is.False);
+                Assert.That(shown, Is.EqualTo(new[] { true, false }));
+                int previousSelections = selections.Count;
                 dropdown.SetSelectedIndex(1);
                 Assert.That(root.transform.Find("DefaultText").GetComponent<TMP_Text>().text, Is.EqualTo("B"));
+                Assert.That(selections.Count, Is.EqualTo(previousSelections), "静默选择不通知业务回调。");
+                root.GetComponent<Button>().onClick.Invoke();
+                tab.Items[0].GetComponent<Button>().onClick.Invoke();
+                Assert.That(dropdown.CurrentIndex, Is.Zero);
+                Assert.That(root.transform.Find("DefaultText").GetComponent<TMP_Text>().text, Is.EqualTo("A"));
+                Assert.That(selections.Count, Is.EqualTo(previousSelections + 1));
+                Assert.That(selections[selections.Count - 1], Is.Zero);
+                Assert.That(dropdown.IsExpanded, Is.False);
+                Assert.That(tab.gameObject.activeSelf, Is.False);
+                Assert.That(shown, Is.EqualTo(new[] { true, false, true, false }));
             }
             finally { Object.Destroy(root); }
         }
@@ -213,7 +345,7 @@ namespace Tests.Module
             var ownEvents = EventSystem.current == null ? new GameObject("DropdownEvents", typeof(EventSystem)) : null;
             var eventSystem = EventSystem.current;
             var previousSelection = eventSystem.currentSelectedGameObject;
-            var controls = Rect("Controls", canvasObject.transform, new Vector2(640, 480));
+            var controls = Rect("Controls", canvasObject.transform, new Vector2(640, 640));
             var group = controls.gameObject.AddComponent<CanvasGroup>();
             var viewport = Rect("ScrollViewport", controls, new Vector2(320, 44));
             viewport.gameObject.AddComponent<RectMask2D>();
@@ -237,6 +369,11 @@ namespace Tests.Module
                 // 验证拉伸锚点也保持世界矩形，归还时制作数据完整恢复。
                 popup.anchorMin = new Vector2(0, 0.5f);
                 popup.anchorMax = new Vector2(1, 0.5f);
+                // 本夹具保护固定作者矩形的借出/归还，自动高度由上面的异步用例验证。
+                var popupFitter = popup.GetComponent<ContentSizeFitter>();
+                Assert.That(popupFitter, Is.Not.Null);
+                popupFitter.enabled = false;
+                popup.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 256f);
                 var anchorMin = popup.anchorMin;
                 var anchorMax = popup.anchorMax;
                 var pivot = popup.pivot;
@@ -246,6 +383,11 @@ namespace Tests.Module
                 var scale = popup.localScale;
                 var corners = new Vector3[4];
                 popup.GetWorldCorners(corners);
+                foreach (Vector3 corner in corners)
+                {
+                    Assert.That(controls.rect.Contains(controls.InverseTransformPoint(corner)), Is.True,
+                        "不触边的作者矩形须完整位于宿主内；底边回夹由后面的独立步骤验证。");
+                }
                 var choice = tab.Items[3].GetComponent<Button>();
                 var laterRow = Rect("FollowingControl", controls, new Vector2(300, 50));
                 laterRow.gameObject.AddComponent<Image>();

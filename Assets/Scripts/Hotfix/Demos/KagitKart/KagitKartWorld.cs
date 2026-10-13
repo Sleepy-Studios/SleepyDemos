@@ -387,7 +387,7 @@ namespace Hotfix.KagitKart
 
         internal void ApplyCommand(KagitKartAction action)
         {
-            if (!ready || Busy)
+            if (!ready || Busy || GameSceneNavigator.Instance?.IsTransitioning == true)
             {
                 return;
             }
@@ -824,6 +824,7 @@ namespace Hotfix.KagitKart
 
         private async UniTaskVoid ReturnHubAsync()
         {
+            if (GameSceneNavigator.Instance.IsTransitioning) return;
             exiting = true;
             Input.SetDriving(false);
             try
@@ -832,38 +833,27 @@ namespace Hotfix.KagitKart
                 {
                     await UniTask.Yield();
                 }
-                await CloseViewsAsync();
-                await CloseHintsViewAsync();
+                if (this == null || !ready) return;
+                // 来源界面保留到场景成功卸载；公共 Loading 覆盖它，失败仍可使用原实例。
                 var result = await GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Hub);
                 if (result.Status == GameSceneSwitchStatus.Failed)
                 {
                     throw new InvalidOperationException(result.Error);
                 }
-            }
-            catch (OperationCanceledException)
-            {
+                if (result.Status != GameSceneSwitchStatus.Succeeded && this != null && ready)
+                {
+                    exiting = false;
+                    if (Session != null) OnPauseChanged();
+                    else Dispatch(KagitKartCommand.Refresh);
+                }
             }
             catch (Exception exception)
             {
+                if (this == null || !ready) return;
                 exiting = false;
-                try
-                {
-                    await ShowHintsViewAsync();
-                }
-                catch (Exception hintException)
-                {
-                    Debug.LogException(hintException, this);
-                }
-                Session?.Pause.RequestPause(LocalPauseReason.User);
                 Debug.LogException(exception, this);
-                if (Session == null)
-                {
-                    await OpenMenuAsync(KagitKartCommand.Modes);
-                    return;
-                }
-                var shown = await UIManager.Instance.ShowAsync<KagitKartHudView>(view => view.SetData(this), new UIShowOptions(animated: false));
-                hud = shown.View as KagitKartHudView;
-                SynchronizeModalAsync().Forget();
+                if (Session != null) OnPauseChanged();
+                else Dispatch(KagitKartCommand.Refresh);
             }
         }
 
@@ -941,6 +931,12 @@ namespace Hotfix.KagitKart
         private void OnDestroy()
         {
             exiting = true;
+            // 公共 Navigator 重载可能绕过 ReturnHub；捕获旧实例，不能按类型误关新会话。
+            foreach (var view in new View[] { optionsView, menu, modal, hud, hintsView })
+                if (view != null) UIManager.Instance.CloseAsync(view, false).Forget();
+            optionsView = menu = modal = null;
+            hud = null;
+            hintsView = null;
             lifetimeCancellation.Cancel();
             Core.Runtime.Settings.GameSettingsService.Changed -= OnPublicSettingsChanged;
             ready = false;

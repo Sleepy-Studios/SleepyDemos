@@ -162,6 +162,14 @@ namespace Core.Runtime
 
         private void Refresh(bool force = false)
         {
+            if (selectable is Toggle toggle)
+            {
+                var state = GetState(toggle.isOn ? "On" : "Off");
+                if (state != null)
+                {
+                    currentStateId = state.stateName;
+                }
+            }
             string interaction = "Normal";
             if (selectable != null && isActiveAndEnabled)
             {

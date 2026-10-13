@@ -100,6 +100,7 @@ namespace Tests.Module
                 var button = Button("language"); var interaction = button.GetComponent<Core.Runtime.UIState>();
                 Assert.That(interaction, Is.Not.Null);
                 var rect = (RectTransform)button.transform;
+                var originalScale = rect.localScale;
                 Vector2 point = RectTransformUtility.WorldToScreenPoint(button.GetComponentInParent<Canvas>().worldCamera, rect.TransformPoint(rect.rect.center));
                 Core.Runtime.Inputs.InputDeviceState.Notify(mouse);
                 UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point });
@@ -107,7 +108,7 @@ namespace Tests.Module
                 Assert.That(interaction.InteractionState, Is.EqualTo("Hover"));
                 UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point }.WithButton(UnityEngine.InputSystem.LowLevel.MouseButton.Left));
                 yield return null; yield return null;
-                Assert.That(interaction.InteractionState, Is.EqualTo("Pressed")); Assert.That(rect.localScale.x, Is.EqualTo(.96f).Within(.001f));
+                Assert.That(interaction.InteractionState, Is.EqualTo("Pressed")); Assert.That(rect.localScale, Is.EqualTo(originalScale), "按下反馈不能改变制作点击矩形。");
                 UnityEngine.InputSystem.InputSystem.QueueStateEvent(mouse, new UnityEngine.InputSystem.LowLevel.MouseState { position = point });
                 yield return null; yield return null;
                 Assert.That(LoopSampleLanguage.IsEnglish, Is.True);
@@ -125,7 +126,7 @@ namespace Tests.Module
                 Assert.That(button.transform.Find("InteractionFeedback").GetComponent<CanvasGroup>().alpha, Is.Zero);
                 button.gameObject.SetActive(false); button.gameObject.SetActive(true); button.interactable = true;
                 yield return null; yield return null;
-                Assert.That(rect.localScale, Is.EqualTo(Vector3.one));
+                Assert.That(rect.localScale, Is.EqualTo(originalScale));
                 yield return Capture("shared-ui-states");
             }
             finally

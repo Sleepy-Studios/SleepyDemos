@@ -551,8 +551,13 @@ namespace Tests.Module
             }
             public UniTask<GameObject> InstantiateAsync(string address, Transform parent) => UniTask.FromResult(Instantiate(address, parent));
             public UniTask<GameObject> InstantiateAsync(string address, Transform parent, bool stays) => UniTask.FromResult(Instantiate(address, parent, stays));
-            public T LoadAsset<T>(string address) where T : Object => throw new NotSupportedException();
-            public UniTask<T> LoadAssetAsync<T>(string address) where T : Object => throw new NotSupportedException();
+            public T LoadAsset<T>(string address) where T : Object
+            {
+                // 正式 Tips 的 ImageExtend 通过同一资源边界加载 Shader，不绕过运行时契约。
+                if (typeof(T) != typeof(Shader)) throw new NotSupportedException();
+                return AssetDatabase.LoadAssetAtPath<T>("Assets/" + address + ".shader");
+            }
+            public UniTask<T> LoadAssetAsync<T>(string address) where T : Object => UniTask.FromResult(LoadAsset<T>(address));
             public void ReleaseAsset(Object asset) { }
             public void ReleaseInstance(GameObject instance) { instances.Remove(instance); if (instance != null) Object.Destroy(instance); }
             public void Dispose() { foreach (var instance in instances) if (instance != null) Object.Destroy(instance); instances.Clear(); }

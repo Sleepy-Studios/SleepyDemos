@@ -10,6 +10,8 @@
 
 ## Hub 设置界面
 
+五个分类图标使用 `UI/Common/Sprites/Settings/*.svg` 的同一套 SVGImage，样式与缩放约定见[公共美术规范](../architecture/ui-art-direction.md)。画质页的默认继承选项显示具体窗口模式、当前窗口像素、平台画质名称和作者帧率上限，不显示泛泛的“当前配置”；候选仍保留原 `-1`、零尺寸与 `Current`，刷新标签不写偏好。帧率默认必须读 `DisplaySettingsRuntime.AuthoredFrameLimit`，不能用已经被玩家上限覆盖的 `Application.targetFrameRate` 假装作者默认；桌面VSync开启时继续显示原有不可用原因，不把刷新率当实测FPS。
+
 `SettingsFlow.OpenAsync(category, token)` 仅在 Hub 通过 UIManager 按需打开 `HubSettingsView`；资源为 `UI/Settings/HubSettingsView.prefab`。Demo 没有公共设置按钮、快捷入口或专属公共设置弹窗，继续使用自己的玩法设置，并通过公共 API 消费 Hub 中保存的全局偏好。
 
 Main View 直接持有 UITab／ViewTab、候选和提交生命周期。Graphics、Audio、Input、Language、Accessibility 各自是独立 `*SettingsPanelView`，直接使用 UIBind 生成的基础控件引用。主页面只创建 View 对象并交付候选，先登记 ViewTab，再同步绑定五个 UITab 分类；ViewTab 在选中时异步加载对应 Prefab，避免逐帧分类初始化覆盖早点击。不内嵌五页，也不保留 SettingsScreen／SettingsPage 包装层或多宿主根基类。五页共享一份独立候选，显示时回显、隐藏时释放编辑会话；AddSubView 持有销毁所有权。

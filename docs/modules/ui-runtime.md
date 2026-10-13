@@ -18,7 +18,7 @@ Core UI 运行时提供业务界面前置的公共 UI 能力，包括 View 生�
 - `Components/`：公共基础组件及无业务依赖的 UGUI/TMP 表现组件。
 - `Extends/`：低依赖全局扩展；只承载激活状态、组件访问、RectTransform 尺寸和 Transform 层级等稳定语义。
 - `Assets/Scripts/Core/Editor/Components/`：公共组件的自定义 Inspector，不与运行时代码混编。
-- `Assets/LoadResources/Art/Shaders/UIRoundedCorners.shader`：`RoundedCorners` 使用的公共圆角 Shader，运行时地址为 `LoadResources/Art/Shaders/UIRoundedCorners`。
+- `Assets/LoadResources/Art/Shaders/UIImageExtend.shader`：`ImageExtend` 使用的公共图片效果 Shader，运行时地址为 `LoadResources/Art/Shaders/UIImageExtend`。
 
 ## Transition 契约边界
 
@@ -93,11 +93,14 @@ Loading --加载失败或取消--> Faulted
 - `UIState`：单组件表现状态，默认提供 `Normal/Hover/Focused/Pressed/Disabled`。同一 GameObject 有 `Selectable` 时自动消费原生 EventSystem；没有时由业务手动切换。`Selected/On/Off` 按需追加在同一状态表，状态属性使用固定枚举和强类型引用，不使用反射属性名或字符串解析。
 - `TMPAutoFitLayoutElement`：根据 TMP 自然尺寸在 `LayoutElement` 与 `ContentSizeFitter` 之间选择布局驱动，并处理最大宽高、换行和自动字号。
 - `TMPAutoScrollEnableBehaviour`：超宽 TMP 文本横向滚动；监听 TMP 顶点脏回调，兼容业务直接给 `.text` 赋值；使用顶点和四维 UV 裁剪，不添加独立 `RectMask2D`。宽度或字体网格变化会重测，支持非缩放时间与非循环完成事件。
-- `TMP_UGUI_Extend` / `GradientUI`：分别提供 TMP 专用复合效果与任意 Graphic 的简单渐变。TMP 复合效果拥有并释放自己的材质实例，不修改共享字体材质。
+- `TMP_UGUI_Extend`：TMP 专用渐变、描边、阴影与倾斜；拥有并释放自己的材质实例，不修改共享字体材质。
 - `TMP_UGUI_Extend` Inspector 提供中英文切换和双语浮动提示；渐变、描边、阴影、倾斜均只展开当前启用模式实际使用的参数。
 - 项目内 `TextMeshPro/Mobile/Distance Field` 保留外描边阈值补偿：`_OutlineWidth` 同时参与字面 weight 计算，避免标准 Unity 6 Mobile Shader 的描边向字面内部侵蚀；更新 TMP Essentials 时必须复核该差异。
-- `FlipImage` / `UIVertexRectMask2D`：在顶点层处理翻转旋转与矩形硬裁剪，不引入业务材质依赖。
-- `RoundedCorners`：使用公共 Shader 和按基础材质、半径缓存的派生材质实现圆角；运行期优先 `Shader.Find`，必要时通过 `ResourceServices` 加载规范地址。
+- `ImageExtend`：统一原生 Image 的翻转、旋转、渐变、圆角、细描边与轻阴影，不修改 RectTransform 或原生点击矩形。纯变换/渐变修改网格；圆角/描边/阴影使用公共 Shader，按基础材质和效果参数共享派生材质并维护引用计数，禁用/销毁释放使用引用，异步加载结束后处理销毁期间的资源释放。Editor 预览查询 Shader，运行资源通过 ResourceServices 按规范地址加载。
+  圆角效果只影响自身图片，不自动添加、删除或配置 Mask；子内容裁剪由作者显式使用原生 Mask/RectMask2D，保留已有遮罩。
+- `ImageExtend` 首版只支持默认 UI 材质的图片特效；RawImage、TMP、第三方材质和额外网格效果不混入此组件。Filled/Tiled 的外扩描边、阴影，以及写入 Mask 的外扩效果会给出不支持原因并保留原生 Image 绘制。透明轮廓要求 Simple Sprite、关闭 Use Sprite Mesh，图集关闭 Rotation/Tight Packing/Mipmap；参数与装配见[手册](../runbooks/use-core-ui-components.md#imageextend-图片组合效果)。
+- `UIVertexRectMask2D`：不改材质的顶点矩形硬裁剪。
+- `InputBindingPrompt`：复用真实会话绑定与 GlyphSlot；提示1图标在前靠左，提示2文字在前靠右，组合槽内部顺序一致。HorizontalLayoutGroup 提供首选宽度，独立放置时 Fitter 计算总宽，父布局接管时停止自身水平尺寸驱动；可点击提示维持制作矩形与 InputCommandButton 的保持/释放契约。
 - `PyramidLayoutGroup`：固定尺寸的品字或三角形布局；Inspector 位于 `Core.Editor`。
 - `FlowLayoutGroup`：按子节点 preferred size 横向换行或纵向换列，支持双轴间距、反向顺序、九宫格对齐和按行/列填充剩余空间。
 - `TMPLinkHandler`：将 TMP `<link>` 点击转换为 linkId 事件。
@@ -107,12 +110,15 @@ Loading --加载失败或取消--> Faulted
 - `GameObject.Show()` / `Hide()` 只改变 `activeSelf`；`Component` 重载操作所在 GameObject。
 - `GetOrAddComponent<T>()` 只检查同一个 GameObject，不搜索父子层级。
 - `CanvasGroup.SetCanvasGroupVisible()` 只统一 alpha、interactable、blocksRaycasts，不改变激活状态。
+- 纯透明度变化优先使用 CanvasGroup.alpha；它与子元素 alpha 及祖先组 alpha 相乘。不得通过给每个子 Graphic 同时改 alpha 造成重复衰减。
 - `RectTransform.SetWidth/SetHeight/SetSize/SetAnchoredPositionX/SetAnchoredPositionY` 保留当前锚点语义。
 - 不复制业务型 `UIUtil`，也不把协议、配置、资源、音频、语言或第三方内部扩展带入 Core。
 
 明确不在这里混入：
 - 业务图片加载器或图集拆分规则
 - 具体 Demo 或页面业务状态
+
+公共基础 Prefab 持有结构、行为、绑定和布局能力；Demo 风格 Variant 集中维护图片、颜色、主副字号、边框与阴影；页面实例维护业务参数和必要布局。该继承关系与制作默认值由[公共美术规范](../architecture/ui-art-direction.md)约束，开发期整套换风格通过 Variant 与使用方覆盖整理完成，不新增运行时主题或字号系统。
 
 ## UIManager 使用规则
 
@@ -164,7 +170,7 @@ Loading --加载失败或取消--> Faulted
 
 `ViewTab` 模板遵循 `UITab + ViewRoot/Parent` 结构：`UITab` 只负责选择，`ViewRoot/Parent` 只负责承载打开出来的 View 或本地 View 节点。`UIDropdown` 的可滚动版本使用外层 `ScrollRect / Viewport / Content` 承载选项，滚动不通过 `UIDropdown.Update()` 或循环轮询实现。
 
-基础模板使用暖白、深墨、朱红的瑞士风表现，交互五态不缩放控件根节点。Dropdown 的 Arrow 使用 Image，Sprite 为 `Assets/LoadResources/UI/Common/Sprites/Tips/Arrow.png`；保留 UIDropdown 展开时旋转 180° 的制作引用和行为。公共 SwitchRow 保留行根与 UISettingRow 引用，内部 Control 使用 BtnSwitch2；Hub 的 13 个偏好开关与体验页的 11 个开关共用该行，不复制开关逻辑。三态减少动态和语言选项继续使用原下拉或 Tab。
+基础模板使用暖白、深墨、朱红的瑞士风表现，交互五态不缩放控件根节点。Dropdown 的 Arrow 使用 Image，Sprite 为 `Assets/LoadResources/UI/Common/Sprites/Controls/ChevronDown.png`；保留 UIDropdown 展开时旋转 180° 的制作引用和行为。定位说明继续使用Tips/Arrow。公共 SwitchRow 保留行根与 UISettingRow 引用，内部 Control 使用 BtnSwitch2；Hub 的 13 个偏好开关与体验页的 11 个开关共用该行，不复制开关逻辑。三态减少动态和语言选项继续使用原下拉或 Tab。
 
 普通有限分类使用 `ViewTab` 异步加载各自独立的 View 和 Prefab，页面持有子 View 的生命周期；固定异构表单使用 `UISettingRow` 与原生布局，改键等同类数据列表使用 `LoopScrollView + ItemView`。设置宿主与独立分页的实际入口见[基础组件手册](../runbooks/use-core-ui-components.md#正式调用示例与维护入口)。
 

@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 67946367906255957, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
       propertyPath: m_Padding.m_Top
-      value: 6
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 67946367906255957, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
       propertyPath: m_Padding.m_Left
@@ -22,7 +22,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 67946367906255957, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
       propertyPath: m_Padding.m_Bottom
-      value: 6
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3391393679916533295, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
+      propertyPath: m_HorizontalFit
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3802521406085650240, guid: 48973c87c536562439e4bbe2bd4f9185, type: 3}
       propertyPath: m_Name
@@ -154,23 +158,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.96, g: 0.94, b: 0.9, a: 1}
+  m_Color: {r: 0.7254902, g: 0.72156864, b: 0.6862745, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
-  m_Type: 0
+  m_Sprite: {fileID: 21300000, guid: b0233318883837a47bffed9eba127712, type: 3}
+  m_Type: 1
   m_PreserveAspect: 0
-  m_FillCenter: 1
+  m_FillCenter: 0
   m_FillMethod: 4
   m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 3
 --- !u!114 &4114820575891780754
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249,7 +253,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.96, g: 0.94, b: 0.9, a: 1}
+      colorValue: {r: 0.7254902, g: 0.72156864, b: 0.6862745, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   - stateName: Hover
@@ -259,7 +263,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.8976, g: 0.8784, b: 0.8408, a: 1}
+      colorValue: {r: 0.105882354, g: 0.16078432, b: 0.16862746, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   - stateName: Focused
@@ -269,7 +273,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.8352, g: 0.8168, b: 0.7816, a: 1}
+      colorValue: {r: 0.9490196, g: 0.24313726, b: 0.16078432, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   - stateName: Pressed
@@ -279,7 +283,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.7416, g: 0.7244, b: 0.6928, a: 1}
+      colorValue: {r: 0.6539216, g: 0.21431373, b: 0.16352941, a: 1}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   - stateName: Disabled
@@ -289,7 +293,7 @@ MonoBehaviour:
       boolValue: 0
       floatValue: 0
       stringValue: 
-      colorValue: {r: 0.68399996, g: 0.676, b: 0.65999997, a: 1}
+      colorValue: {r: 0.7254902, g: 0.72156864, b: 0.6862745, a: 0.45}
       vector2Value: {x: 0, y: 0}
       vector3Value: {x: 1, y: 1, z: 1}
   currentStateId: Normal

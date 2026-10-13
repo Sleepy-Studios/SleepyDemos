@@ -35,8 +35,8 @@ namespace Hotfix
             BindData<DroneFlightData>(OnData);
             cardStates = new[] { UIState_PlainButton, UIState_GrappleButton, UIState_HarpoonButton };
             cards = new[] { Button_PlainButton, Button_GrappleButton, Button_HarpoonButton };
-            previews = new[] { Image_PlainPreview, Image_GrapplePreview, Image_HarpoonPreview };
-            badges = new[] { RectTransform_PlainSelected, RectTransform_GrappleSelected, RectTransform_HarpoonSelected };
+            previews = new[] { Image_Preview, Image_Preview1, Image_Preview2 };
+            badges = new[] { RectTransform_SelectionLabel, RectTransform_SelectionLabel1, RectTransform_SelectionLabel2 };
             UIMenuScope_DroneFlightVehicleSelectView.Canceled += OnBackButtonClick;
             GameSettingsService.Changed += OnSettingsChanged;
             AddBinding(() => GameSettingsService.Changed -= OnSettingsChanged);
@@ -132,7 +132,7 @@ namespace Hotfix
         {
             foreach (var card in cards) card.interactable = !busy;
             Button_StartButton.interactable = Button_BackButton.interactable = !busy;
-            TextMeshProUGUI_StartLabel.text = busy ? "准备中…" : "开始飞行  »";
+            TextMeshProUGUI_Label.text = busy ? "准备中…" : "开始飞行  »";
             TextMeshProUGUI_Status.text = message ?? string.Empty;
             if (!busy && !string.IsNullOrEmpty(message) && IsEnable && InputDeviceState.ActiveKind != InputDeviceKind.Touch)
                 EventSystem.current?.SetSelectedGameObject(Button_StartButton.gameObject);

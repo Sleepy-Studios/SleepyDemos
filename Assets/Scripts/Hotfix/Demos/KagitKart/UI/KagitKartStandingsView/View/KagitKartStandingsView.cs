@@ -41,7 +41,7 @@ namespace Hotfix
             }
             TextMeshProUGUI_Kicker.text = "大奖赛 · 第 " + (owner.GrandPrix.Index + 1) + "/4 章结束后";
             TextMeshProUGUI_Title.text = "总积分榜";
-            TextMeshProUGUI_Next.text = owner.GrandPrix.Completed ? "颁奖典礼" : "下一章：" + KagitKartCatalog.TrackName(KagitKartCatalog.Tracks[owner.GrandPrix.Index + 1]);
+            TextMeshProUGUI_Label.text = owner.GrandPrix.Completed ? "颁奖典礼" : "下一章：" + KagitKartCatalog.TrackName(KagitKartCatalog.Tracks[owner.GrandPrix.Index + 1]);
             Fit();
             KagitKartMenuPaperMotion_BoardFrame.Play(0, owner.ReducedMotion);
             Render();

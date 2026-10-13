@@ -10,6 +10,7 @@
 
 - [最小 MVP 验证案](architecture/mvp-validation.md)：当前规则、参数、地图与验收标准。
 - [模块维护](module.md)：规则、输入、表现、Flux 与 UI 生命周期。
+- [界面美术与控件外观](architecture/art-direction.md)：纯色直角、控件继承与页面覆盖边界。
 - [验证历史](../../agent/archive/wall-squeeze-validation.md)：已记录的测试结果、截图及当时未验证项，不代表最新代码已重验。
 - [开发与验证](runbooks/start-mvp.md)：新对话启动提示词、开发入口和操作说明。
 - [已确认的美术概念图](art/gameplay-concept.png)：HUD 分格、方向箭头和怪物识别的视觉依据。顶墙怪用侧面护甲提示只能上下夹；钻缝怪用薄体与双横纹提示快速穿缝。

@@ -27,6 +27,7 @@ namespace Hotfix
 
         private RectTransform RectTransform_Viewport;
         private RectTransform RectTransform_BoardFrame;
+        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_BoardFrame;
         private RectTransform RectTransform_SheetGroup;
         private UIMenuScope UIMenuScope_Sheet;
         private TextMeshProUGUI TextMeshProUGUI_Kicker;
@@ -47,13 +48,12 @@ namespace Hotfix
         private KagitKartResultRow KagitKartResultRow_Row7;
         private TextMeshProUGUI TextMeshProUGUI_Feedback;
         private Button Button_Next;
-        private TextMeshProUGUI TextMeshProUGUI_Next;
+        private TextMeshProUGUI TextMeshProUGUI_Label;
         private Button Button_Restart;
-        private TextMeshProUGUI TextMeshProUGUI_Restart;
+        private TextMeshProUGUI TextMeshProUGUI_Label1;
         private Button Button_Hub;
-        private TextMeshProUGUI TextMeshProUGUI_Hub;
+        private TextMeshProUGUI TextMeshProUGUI_Label2;
         private RectTransform RectTransform_NewRecord;
-        private KagitKartMenuPaperMotion KagitKartMenuPaperMotion_BoardFrame;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -67,33 +67,33 @@ namespace Hotfix
 
             RectTransform_Viewport = componentItemIndex.Get<RectTransform>(0);
             RectTransform_BoardFrame = componentItemIndex.Get<RectTransform>(1);
-            RectTransform_SheetGroup = componentItemIndex.Get<RectTransform>(2);
-            UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(3);
-            TextMeshProUGUI_Kicker = componentItemIndex.Get<TextMeshProUGUI>(4);
-            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(5);
-            TextMeshProUGUI_HeadingPlace = componentItemIndex.Get<TextMeshProUGUI>(6);
-            TextMeshProUGUI_HeadingPortrait = componentItemIndex.Get<TextMeshProUGUI>(7);
-            TextMeshProUGUI_HeadingDriver = componentItemIndex.Get<TextMeshProUGUI>(8);
-            TextMeshProUGUI_HeadingTime = componentItemIndex.Get<TextMeshProUGUI>(9);
-            TextMeshProUGUI_HeadingBest = componentItemIndex.Get<TextMeshProUGUI>(10);
-            TextMeshProUGUI_HeadingPoints = componentItemIndex.Get<TextMeshProUGUI>(11);
-            KagitKartResultRow_Row0 = componentItemIndex.Get<KagitKartResultRow>(12);
-            KagitKartResultRow_Row1 = componentItemIndex.Get<KagitKartResultRow>(13);
-            KagitKartResultRow_Row2 = componentItemIndex.Get<KagitKartResultRow>(14);
-            KagitKartResultRow_Row3 = componentItemIndex.Get<KagitKartResultRow>(15);
-            KagitKartResultRow_Row4 = componentItemIndex.Get<KagitKartResultRow>(16);
-            KagitKartResultRow_Row5 = componentItemIndex.Get<KagitKartResultRow>(17);
-            KagitKartResultRow_Row6 = componentItemIndex.Get<KagitKartResultRow>(18);
-            KagitKartResultRow_Row7 = componentItemIndex.Get<KagitKartResultRow>(19);
-            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(20);
-            Button_Next = componentItemIndex.Get<Button>(21);
-            TextMeshProUGUI_Next = componentItemIndex.Get<TextMeshProUGUI>(22);
-            Button_Restart = componentItemIndex.Get<Button>(23);
-            TextMeshProUGUI_Restart = componentItemIndex.Get<TextMeshProUGUI>(24);
-            Button_Hub = componentItemIndex.Get<Button>(25);
-            TextMeshProUGUI_Hub = componentItemIndex.Get<TextMeshProUGUI>(26);
-            RectTransform_NewRecord = componentItemIndex.Get<RectTransform>(27);
-            KagitKartMenuPaperMotion_BoardFrame = componentItemIndex.Get<KagitKartMenuPaperMotion>(28);
+            KagitKartMenuPaperMotion_BoardFrame = componentItemIndex.Get<KagitKartMenuPaperMotion>(2);
+            RectTransform_SheetGroup = componentItemIndex.Get<RectTransform>(3);
+            UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(4);
+            TextMeshProUGUI_Kicker = componentItemIndex.Get<TextMeshProUGUI>(5);
+            TextMeshProUGUI_Title = componentItemIndex.Get<TextMeshProUGUI>(6);
+            TextMeshProUGUI_HeadingPlace = componentItemIndex.Get<TextMeshProUGUI>(7);
+            TextMeshProUGUI_HeadingPortrait = componentItemIndex.Get<TextMeshProUGUI>(8);
+            TextMeshProUGUI_HeadingDriver = componentItemIndex.Get<TextMeshProUGUI>(9);
+            TextMeshProUGUI_HeadingTime = componentItemIndex.Get<TextMeshProUGUI>(10);
+            TextMeshProUGUI_HeadingBest = componentItemIndex.Get<TextMeshProUGUI>(11);
+            TextMeshProUGUI_HeadingPoints = componentItemIndex.Get<TextMeshProUGUI>(12);
+            KagitKartResultRow_Row0 = componentItemIndex.Get<KagitKartResultRow>(13);
+            KagitKartResultRow_Row1 = componentItemIndex.Get<KagitKartResultRow>(14);
+            KagitKartResultRow_Row2 = componentItemIndex.Get<KagitKartResultRow>(15);
+            KagitKartResultRow_Row3 = componentItemIndex.Get<KagitKartResultRow>(16);
+            KagitKartResultRow_Row4 = componentItemIndex.Get<KagitKartResultRow>(17);
+            KagitKartResultRow_Row5 = componentItemIndex.Get<KagitKartResultRow>(18);
+            KagitKartResultRow_Row6 = componentItemIndex.Get<KagitKartResultRow>(19);
+            KagitKartResultRow_Row7 = componentItemIndex.Get<KagitKartResultRow>(20);
+            TextMeshProUGUI_Feedback = componentItemIndex.Get<TextMeshProUGUI>(21);
+            Button_Next = componentItemIndex.Get<Button>(22);
+            TextMeshProUGUI_Label = componentItemIndex.Get<TextMeshProUGUI>(23);
+            Button_Restart = componentItemIndex.Get<Button>(24);
+            TextMeshProUGUI_Label1 = componentItemIndex.Get<TextMeshProUGUI>(25);
+            Button_Hub = componentItemIndex.Get<Button>(26);
+            TextMeshProUGUI_Label2 = componentItemIndex.Get<TextMeshProUGUI>(27);
+            RectTransform_NewRecord = componentItemIndex.Get<RectTransform>(28);
         }
     }
 }
