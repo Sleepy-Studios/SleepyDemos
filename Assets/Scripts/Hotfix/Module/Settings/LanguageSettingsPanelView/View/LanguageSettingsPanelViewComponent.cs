@@ -14,14 +14,10 @@ namespace Hotfix
     {
         public override string Address => "LoadResources/UI/Settings/Panels/LanguageSettingsPanelView";
         public override UILayer Level => UILayer.Base;
-        public override UIViewMode ViewMode => UIViewMode.Widget;
+        public override UIViewMode ViewMode => UIViewMode.Page;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
-        public override bool DestroyOnHide => false;
-        protected override IUITransition CreateUITransition()
-        {
-            return new Core.Runtime.EmptyUITransition();
-        }
+        public override bool DestroyOnHide => true;
 
         private UITab UITab_Language_choices;
         private TextMeshProUGUI TextMeshProUGUI_Language_help;

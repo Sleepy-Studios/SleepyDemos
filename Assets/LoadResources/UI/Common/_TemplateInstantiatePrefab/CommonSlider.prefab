@@ -191,7 +191,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -24, y: 12}
+  m_SizeDelta: {x: -1, y: 11}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1289805900331910349
 GameObject:
@@ -321,6 +321,7 @@ MonoBehaviour:
   useUnifiedRadius: 1
   unifiedRadius: 14
   separateRadius: {x: 10, y: 10, z: 10, w: 10}
+  edgeFeather: 0.05
   enableOutline: 1
   useSpriteAlpha: 0
   outlineWidth: 1.5
@@ -490,6 +491,7 @@ GameObject:
   - component: {fileID: 6182237943747465327}
   - component: {fileID: 5351721565892205022}
   - component: {fileID: 6866807460623183790}
+  - component: {fileID: 1281605949425011718}
   m_Layer: 5
   m_Name: Track
   m_TagString: Untagged
@@ -544,8 +546,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 867ee3b7ddf87fb4589aa40e21800319, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -554,6 +556,67 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 4
+--- !u!114 &1281605949425011718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6622393750417948425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb88a1cf1076a8439d409446d71319a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ImageExtend
+  flipHorizontal: 0
+  flipVertical: 0
+  rotationAngle: 0
+  enableGradient: 0
+  direction: 0
+  offset: 0
+  gradient:
+    serializedVersion: 2
+    key0: {r: 1, g: 1, b: 1, a: 1}
+    key1: {r: 1, g: 1, b: 1, a: 1}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65535
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
+  enableRoundedCorners: 1
+  useUnifiedRadius: 1
+  unifiedRadius: 12
+  separateRadius: {x: 10, y: 10, z: 10, w: 10}
+  edgeFeather: 0.05
+  enableOutline: 1
+  useSpriteAlpha: 0
+  outlineWidth: 0.3
+  outlineColor: {r: 0, g: 0, b: 0, a: 1}
+  enableShadow: 0
+  shadowColor: {r: 0, g: 0, b: 0, a: 0.15}
+  shadowOffset: {x: 0, y: -4}
+  shadowSoftness: 4
 --- !u!1 &8278706987483606808
 GameObject:
   m_ObjectHideFlags: 0
@@ -565,6 +628,7 @@ GameObject:
   - component: {fileID: 7212773064590471782}
   - component: {fileID: 5000285928910003156}
   - component: {fileID: 7745117991434541132}
+  - component: {fileID: 8235114346642079066}
   m_Layer: 5
   m_Name: Fill
   m_TagString: Untagged
@@ -582,7 +646,7 @@ RectTransform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4060861787604521981}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -619,8 +683,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 867ee3b7ddf87fb4589aa40e21800319, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: dc6b9b0acf4bf864a899df171f9d0045, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 0
@@ -629,6 +693,67 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 4
+--- !u!114 &8235114346642079066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8278706987483606808}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcb88a1cf1076a8439d409446d71319a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Core.Runtime::Core.Runtime.ImageExtend
+  flipHorizontal: 0
+  flipVertical: 0
+  rotationAngle: 0
+  enableGradient: 0
+  direction: 0
+  offset: 0
+  gradient:
+    serializedVersion: 2
+    key0: {r: 1, g: 1, b: 1, a: 1}
+    key1: {r: 1, g: 1, b: 1, a: 1}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65535
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
+  enableRoundedCorners: 1
+  useUnifiedRadius: 1
+  unifiedRadius: 12
+  separateRadius: {x: 10, y: 10, z: 10, w: 10}
+  edgeFeather: 0.1
+  enableOutline: 0
+  useSpriteAlpha: 0
+  outlineWidth: 2
+  outlineColor: {r: 0, g: 0, b: 0, a: 1}
+  enableShadow: 0
+  shadowColor: {r: 0, g: 0, b: 0, a: 0.15}
+  shadowOffset: {x: 0, y: -4}
+  shadowSoftness: 4
 --- !u!1 &9212252607913563364
 GameObject:
   m_ObjectHideFlags: 0
