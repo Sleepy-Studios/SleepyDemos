@@ -11,6 +11,10 @@ namespace Core.Runtime.Networking
     /// 创建房间的稳定输入。
     public sealed class NetworkCreateOptions
     {
+        /// Host 对外公布的地址；传输默认监听本机可用接口。
+        public string Address { get; set; } = "127.0.0.1";
+        /// 直连 UDP 端口。
+        public ushort Port { get; set; } = 7777;
         /// 目标区域。
         public string Region { get; set; }
         /// 网络协议版本，零无效。
@@ -26,6 +30,12 @@ namespace Core.Runtime.Networking
     /// 加入房间的稳定输入。
     public sealed class NetworkJoinOptions
     {
+        /// Host 的 IP 或域名，不依赖房间码服务。
+        public string Address { get; set; }
+        /// Host 的 UDP 端口。
+        public ushort Port { get; set; } = 7777;
+        /// 协议版本必须与 Host 完全一致。
+        public ushort ProtocolVersion { get; set; } = 1;
         /// 包含协议和区域的房间码。
         public string Code { get; set; }
         /// 当前规则与资源内容版本。
@@ -37,6 +47,24 @@ namespace Core.Runtime.Networking
     /// 成功加入后的不可变会话信息。
     public sealed class NetworkSessionInfo
     {
+        /// <summary>记录实际直连会话；不生成需要外部目录服务的随机码。</summary>
+        /// <param name="address">连接地址。</param>
+        /// <param name="port">UDP 端口。</param>
+        /// <param name="contentVersion">共享内容版本。</param>
+        /// <param name="maxPlayers">实际容量。</param>
+        public NetworkSessionInfo(string address, ushort port, string contentVersion, int maxPlayers)
+        {
+            if (string.IsNullOrWhiteSpace(address)) throw new ArgumentException("地址不能为空。", nameof(address));
+            if (port == 0) throw new ArgumentOutOfRangeException(nameof(port));
+            if (string.IsNullOrWhiteSpace(contentVersion)) throw new ArgumentException("内容版本不能为空。", nameof(contentVersion));
+            if (maxPlayers < 1) throw new ArgumentOutOfRangeException(nameof(maxPlayers));
+            Address = address;
+            Port = port;
+            ContentVersion = contentVersion;
+            MaxPlayers = maxPlayers;
+            TransportKind = NetworkTransportKind.Internet;
+        }
+
         /// <summary>记录实际加入的会话信息。</summary>
         /// <param name="code">有效规范房间码。</param>
         /// <param name="contentVersion">非空的规则与资源内容版本。</param>
@@ -56,6 +84,10 @@ namespace Core.Runtime.Networking
 
         /// 房间码。
         public NetworkRoomCode Code { get; }
+        /// 直连地址；旧离线验证没有网络地址。
+        public string Address { get; }
+        /// 直连端口；离线验证为零。
+        public ushort Port { get; }
         /// 规则与资源内容版本。
         public string ContentVersion { get; }
         /// 容量上限。

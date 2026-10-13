@@ -18,6 +18,8 @@ namespace Core.Runtime.Networking
         IReadOnlyList<NetworkMemberInfo> Members { get; }
         /// 本地成员身份；未加入时为空。
         string LocalMemberId { get; }
+        /// 当前进程是否执行服务器权威规则；Host 不再同时执行客户端预测。
+        bool IsAuthority { get; }
         /// 当前权威成员身份；无权威时为空。
         string AuthorityMemberId { get; }
         /// 同一会话内递增的权威代次。
@@ -40,14 +42,22 @@ namespace Core.Runtime.Networking
         /// 最新角色姿态；允许丢帧，不承担业务结算可靠性。
         event Action<NetworkAvatarPoseEvent> AvatarPoseReceived;
 
+        /// <summary>绑定当前业务固定步规则；null 解除，业务仍负责规则状态的生命周期。</summary>
+        /// <param name="simulation">主线程规则回调，不持有 SDK 类型。</param>
+        void RegisterSimulation(INetworkSimulation simulation);
+
+        /// <summary>设置服务器握手时的业务准入条件，尚未通过时不加入成员或创建预测载体。</summary>
+        /// <param name="canJoin">主线程即时判断；null 表示仅使用公共协议和八人上限。</param>
+        void SetAdmissionRule(Func<bool> canJoin);
+
         /// <summary>创建并加入房间；失败或取消后不得遗留 SDK 会话。</summary>
         /// <param name="options">区域、协议、内容版本、容量与本地显示名。</param>
         /// <param name="cancellationToken">取消本次连接；实现仍须等待底层清理完成。</param>
         /// <returns>实际加入的房间信息，离线实现必须标示 Offline。</returns>
         UniTask<NetworkSessionInfo> CreateAsync(NetworkCreateOptions options, CancellationToken cancellationToken = default);
 
-        /// <summary>按房间码加入，拒绝不兼容的协议或内容版本，不按平台隔离房间。</summary>
-        /// <param name="options">房间码、内容版本与显示名。</param>
+        /// <summary>按地址加入，拒绝不兼容的协议或内容版本，不按平台隔离房间。</summary>
+        /// <param name="options">地址、端口、内容版本与显示名。</param>
         /// <param name="cancellationToken">取消连接；底层会话必须完成清理。</param>
         /// <returns>实际加入的房间信息。</returns>
         UniTask<NetworkSessionInfo> JoinAsync(NetworkJoinOptions options, CancellationToken cancellationToken = default);

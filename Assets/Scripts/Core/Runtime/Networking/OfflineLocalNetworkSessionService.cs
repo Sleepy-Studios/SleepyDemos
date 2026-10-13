@@ -29,6 +29,8 @@ namespace Core.Runtime.Networking
         public IReadOnlyList<NetworkMemberInfo> Members => members;
         /// 当前本地成员标识。
         public string LocalMemberId { get; private set; }
+        /// 离线单人规则由本地权威执行。
+        public bool IsAuthority => State == NetworkSessionState.Joined;
         /// 单人会话的权威即本地成员。
         public string AuthorityMemberId => LocalMemberId;
         /// 单人会话没有交接；创建时为一，离房时为零。
@@ -50,6 +52,21 @@ namespace Core.Runtime.Networking
         public event Action<NetworkSnapshotEvent> SnapshotReceived;
         /// 本地姿态更新。
         public event Action<NetworkAvatarPoseEvent> AvatarPoseReceived;
+
+        /// <summary>离线工具不提供网络 tick 或预测；null 解除调用保持幂等。</summary>
+        /// <param name="simulation">仅互联网适配支持非空模拟。</param>
+        public void RegisterSimulation(INetworkSimulation simulation)
+        {
+            EnsureNotDisposed();
+            if (simulation != null) throw new NotSupportedException("离线会话不提供 FishNet 预测，单人规则仍由原宿主推进。");
+        }
+
+        /// <summary>离线验证仍仅允许一人，不执行互联网房间的准入回调。</summary>
+        /// <param name="canJoin">仅联网适配消费；离线忽略。</param>
+        public void SetAdmissionRule(Func<bool> canJoin)
+        {
+            EnsureNotDisposed();
+        }
 
         /// <summary>创建仅含本地成员的离线会话，不验证区域网络可达性。</summary>
         /// <param name="options">MaxPlayers 必须为一；其它字段保留上层正式接口。</param>

@@ -5,6 +5,7 @@
     "com.code-philosophy.luban": "https://github.com/focus-creative-games/luban_unity.git#v1.2.0",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.cysharp.zstring": "https://github.com/Cysharp/ZString.git?path=src/ZString.Unity/Assets/Scripts/ZString",
+    "com.firstgeargames.fishnet": "https://github.com/FirstGearGames/FishNet.git?path=Assets/FishNet#73f30cf2425dc808a4f463f0a233d386010810b3",
     "com.singularitygroup.hotreload": "git+https://gitlab.hotreload.net/root/hot-reload-releases.git#1.13.23",
     "com.sleepystudios.loop-scroll": "https://github.com/Sleepy-Studios/SleepyLoopScroll.git#v0.1.0",
     "com.tuyoogame.yooasset": "3.0.6",

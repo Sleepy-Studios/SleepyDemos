@@ -59,18 +59,22 @@ namespace Core.Runtime.Networking
         /// <param name="channel">业务状态通道。</param>
         /// <param name="sequence">非零序号，交接后继续在最新值上递增。</param>
         /// <param name="payload">该通道的完整状态，不能只包含增量。</param>
-        public NetworkSnapshot(ushort channel, ulong sequence, byte[] payload)
+        /// <param name="reliable">房间、准备、开始和最终结果等关键完整状态使用可靠发送。</param>
+        public NetworkSnapshot(ushort channel, ulong sequence, byte[] payload, bool reliable = false)
         {
             if (sequence == 0) throw new ArgumentOutOfRangeException(nameof(sequence));
             if (payload == null) throw new ArgumentNullException(nameof(payload));
             Channel = channel;
             Sequence = sequence;
+            Reliable = reliable;
             this.payload = (byte[])payload.Clone();
         }
         /// 业务快照通道。
         public ushort Channel { get; }
         /// 当前通道序号，权威交接后也必须在原最新值上继续递增。
         public ulong Sequence { get; }
+        /// 是否请求可靠发送；超 MTU 消息仍由 SDK 改用可靠分片。
+        public bool Reliable { get; }
         /// 独立的完整状态载荷副本。
         public byte[] Payload => (byte[])payload.Clone();
     }

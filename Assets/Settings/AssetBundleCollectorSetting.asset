@@ -142,3 +142,16 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
+    - GroupName: Networking
+      GroupDesc: "\u516C\u5171\u7F51\u7EDC\u5BBF\u4E3B\u4E0E\u9884\u6D4B\u8F7D\u4F53"
+      AssetTags: 
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Prefabs/Networking
+        CollectorGUID: 5312ebc3af19555479507963cd7089e6
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags: 
+        UserData: 

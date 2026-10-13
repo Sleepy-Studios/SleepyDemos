@@ -21,6 +21,7 @@ namespace Core.Editor.AssetNaming
             new CollectorEntry("VFX", "Assets/LoadResources/VFX", "特效"),
             new CollectorEntry("Scenes", "Assets/LoadResources/Scenes", "可加载场景"),
             new CollectorEntry("Config", "Assets/LoadResources/Config", "配置"),
+            new CollectorEntry("Networking", "Assets/LoadResources/Prefabs/Networking", "公共网络宿主与预测载体"),
             new CollectorEntry("Fonts", "Assets/LoadResources/Fonts", "字体")
         };
 
@@ -29,7 +30,7 @@ namespace Core.Editor.AssetNaming
         {
             EnsureCollectors();
             UnityEngine.Debug.Log(
-                "[AssetNaming] 已写入/校正 YooAsset 采集配置：Demos、Art、Audio、VFX、Scenes、Config、Fonts（地址为 LoadResources 全路径）。配置已保存到 BundleCollectorSetting。");
+                "[AssetNaming] 已写入/校正 YooAsset 采集配置：Demos、Art、Audio、VFX、Scenes、Config、Networking、Fonts（地址为 LoadResources 全路径）。配置已保存到 BundleCollectorSetting。");
         }
 
         public static void EnsureCollectors()
