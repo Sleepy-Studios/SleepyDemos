@@ -55,9 +55,9 @@
 
 固定目标为 `unity/<项目>/hotupdate/<当前平台>/`：`StandaloneWindows64` 映射 `PC`，`Android` 映射 `Android`，其他平台沿用 `BuildTarget` 名称。Pages 模式从网站根 URL、项目和平台自动生成 `RemoteBaseServerURL`；关闭本地模拟后 `BaseServerURL` 使用该地址，SSH 模式仍保留手工 URL。当前 PC 地址为 `https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC`，日常 `EditorSimulateMode` 不变。
 
-Pages 默认只复制变更的下载文件并保留旧包；独立的“清空当前平台目录”操作经确认后删除目标文件并保留 `.gitkeep`。两种操作均会提交、推送，只作用于当前项目和平台；含子目录或链接的目标拒绝操作。本地仓库须为干净的 `main`，远端不能领先或分歧；仅允许当前平台资源与本轮站点骨架存在未推送提交，其他本地待发布文件会被拒绝，工具不自动合并。
+Pages 默认只复制变更的下载文件并保留旧包；独立的“清空当前平台目录”操作经确认后删除目标文件并保留 `.gitkeep`。两种操作均执行提交、推送流程，只作用于当前项目和平台；含子目录或链接的目标拒绝操作。本地仓库须为干净的 `main`，远端不能领先或分歧；仅允许当前平台资源与站点骨架存在未推送提交，其他本地待发布文件会被拒绝，工具不自动合并。
 
-公开仓库 `H-Bole/H-Bole.io` 已开启 `main` 根目录 Pages；本轮只准备本地环境与 PC / Android 目录骨架，未上传资源、不实际推送。其他 Unity 项目并列放在 `unity/` 下，网站根目录可容纳其他用途，不预建未知用途目录。后续使用最新构建并完成部署后再做 HostPlayMode 验收，窗口步骤、清理边界与下载核对见 [用 GitHub Pages 发布热更资源](../runbooks/deploy-github-pages-hotupdate.md)。
+公开仓库 `H-Bole/H-Bole.io` 已开启 `main` 根目录 Pages。2026-10-14 首次发布 Android 版本 `2026-10-14-86`，Pages 部署成功，全部 129 个下载文件的 SHA256 与源文件一致；同包再次增量上传未产生新提交。PC 仍只有 `.gitkeep`，此次未清空目录。首次发布核对时 Android 源配置为 HostPlayMode、两个远端 URL 为空；随后已修正源工作树 Pages 设置，两个 URL 均指向 `https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/Android`，保留 HostPlayMode 与已有构建。APK 未重建、设备实际热更未验证，尚未核查 APK 内配置；源配置修正和上传成功不代表已安装包连接 Pages。发布记录、窗口步骤及验证边界见 [用 GitHub Pages 发布热更资源](../runbooks/deploy-github-pages-hotupdate.md)。其他 Unity 项目并列放在 `unity/` 下，网站根目录可容纳其他用途，不预建未知用途目录。
 
 ## 边界规则
 

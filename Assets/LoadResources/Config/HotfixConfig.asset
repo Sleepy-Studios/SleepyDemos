@@ -15,11 +15,11 @@ MonoBehaviour:
   StartupScene: 
   PlayMode: 0
   PackageName: DefaultPackage
-  BaseServerURL: https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC
-  RemoteBaseServerURL: https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC
-  LocalBundlePath: Bundles/StandaloneWindows64/DefaultPackage/2026-10-12-165911
-  AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/StandaloneWindows64
-  AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/StandaloneWindows64
+  BaseServerURL: https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/Android
+  RemoteBaseServerURL: https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/Android
+  LocalBundlePath: Bundles/Android/DefaultPackage/2026-10-14-86
+  AotSourcePath: HybridCLRData/AssembliesPostIl2CppStrip/Android
+  AotStrippedSourcePath: HybridCLRData/StrippedAOTAssembly2/Android
   AotTargetPath: Assets/LoadResources/Codes/Aot
   AotAssemblies:
   - Core.Runtime.dll
@@ -32,7 +32,7 @@ MonoBehaviour:
   - UnityEngine.CoreModule.dll
   - UnityEngine.JSONSerializeModule.dll
   - mscorlib.dll
-  HotfixSourcePath: HybridCLRData/HotUpdateDlls/StandaloneWindows64
+  HotfixSourcePath: HybridCLRData/HotUpdateDlls/Android
   HotfixTargetPath: Assets/LoadResources/Codes/Hotfix
   HotfixAssemblies:
   - Hotfix.dll

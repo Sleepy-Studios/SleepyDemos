@@ -2,7 +2,7 @@
 
 ## 当前环境与目录约定
 
-公开仓库 [H-Bole/H-Bole.io](https://github.com/H-Bole/H-Bole.io) 已开启 Pages，发布源为 `main` 根目录。当前只准备本地环境与目录骨架，**未上传热更资源，本轮不推送**；不能据此进行远端资源验收。
+公开仓库 [H-Bole/H-Bole.io](https://github.com/H-Bole/H-Bole.io) 已开启 Pages，发布源为 `main` 根目录。Android 已完成首次发布与文件下载校验；PC 仍只有 `.gitkeep`。
 
 | 窗口配置 | 值 |
 |---|---|
@@ -12,22 +12,26 @@
 | PC 资源 URL | `https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/PC` |
 | Android 资源 URL | `https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/Android` |
 
-固定目录约定为 `unity/<项目>/hotupdate/<平台>/`：Unity 的 `StandaloneWindows64` 使用 `PC`，`Android` 使用 `Android`，其他平台使用 `BuildTarget` 名称。当前本地骨架为：
+固定目录约定为 `unity/<项目>/hotupdate/<平台>/`：Unity 的 `StandaloneWindows64` 使用 `PC`，`Android` 使用 `Android`，其他平台使用 `BuildTarget` 名称。当前目录为：
 
 ```text
 unity/SleepyDemos/hotupdate/
 ├── PC/.gitkeep
-└── Android/.gitkeep
+└── Android/（.gitkeep 与已发布资源）
 ```
 
 空目录用 `.gitkeep` 保留，不代表其中已有资源。其他 Unity 项目并列放在 `unity/` 下；站点根目录可容纳其他用途，但不为未知用途提前建目录。网站根目录保留 `.nojekyll` 和 `index.html`。
 
+2026-10-14 首次 Android 发布测试使用 `E:/Project/SleepyDemos-Andriod_Bulid/Bundles/Android/DefaultPackage/2026-10-14-86`，资源版本为 `2026-10-14-86`，清单 hash 为 `2a7e1ce5`；包含 126 个 Bundle 与 3 个版本 / 清单 / hash 文件，共 129 个下载文件、118,122,677 字节。站点提交为 [8a1cd59](https://github.com/H-Bole/H-Bole.io/commit/8a1cd59f44632209e1bce26946a4c67208d3fe1f)，此前的目录骨架一并发布，[Pages 部署工作流](https://github.com/H-Bole/H-Bole.io/actions/runs/38440318335)成功。从表中的 Android URL 下载全部 129 个文件，SHA256 全部与源文件一致；用当前部署 helper 再次上传同包，HEAD 不变、未产生新提交。此次未清空任何目录。
+
+首次发布核对时，Android 源工作树为 `HostPlayMode`，但 `BaseServerURL` / `RemoteBaseServerURL` 为空。随后已修正源工作树的 Pages 设置：网站根为 `https://h-bole.github.io/H-Bole.io`，发布项目名为 `SleepyDemos`，两个运行时 URL 均为 `https://h-bole.github.io/H-Bole.io/unity/SleepyDemos/hotupdate/Android`；保留 `HostPlayMode` 与已有 `2026-10-14-86` 构建。APK 未重建、设备实际热更未验证，也尚未比较源配置与已安装 APK 内配置；不能由源配置修正或上传成功断言已安装 APK 已连接 Pages。
+
 ## 窗口发布步骤
 
-以下是后续发布操作，本轮不执行上传或清空按钮。**点击上传或确认清空即会提交并推送到公开仓库**；须获得发布授权后再执行。
+**点击上传或确认清空会执行 Git 提交、推送流程，将内容发布到公开仓库**；相同包无内容变化时不会新建提交。
 
-1. 安装 `git`、`gh` 并完成 GitHub CLI 登录。确认发布仓库为 `main`、工作区干净且远端没有领先或分歧；工具不自动合并。本轮准备的本地目录骨架提交会在首次获授权的 Pages 上传时一并发布；若另有未推送文件，工具会拒绝。仓库 `Settings > Pages` 核对 `Deploy from a branch`、`main`、`/(root)`，见 [GitHub 官方发布源说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)。
-2. 打开 `Tools/UI Framework/Hotfix Build`，选择 `GitHub Pages` 上传方式，填写表中的仓库、网站根 URL 和项目目录名，关闭本地模拟。窗口按 Unity 当前构建平台显示目标目录，并自动生成 `RemoteBaseServerURL`；关闭本地模拟时 `BaseServerURL` 使用同一地址。Pages 参数由 Core.Editor 通过 `EditorPrefs` 按 Unity 项目和配置保存，不是运行时部署配置。切回 `SSH` 时保留其手工远端 URL 与既有连接设置。
+1. 安装 `git`、`gh` 并完成 GitHub CLI 登录。确认发布仓库为 `main`、工作区干净且远端没有领先或分歧；工具不自动合并。若存在发布范围外的未推送文件，工具会拒绝。仓库 `Settings > Pages` 核对 `Deploy from a branch`、`main`、`/(root)`，见 [GitHub 官方发布源说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)。
+2. 打开 `Tools/UI Framework/Hotfix Build`，选择 `GitHub Pages` 上传方式，填写表中的仓库、网站根 URL 和项目目录名，关闭本地模拟。网站根 URL 不包含 `unity/<项目>/hotupdate/<平台>`；项目目录名使用发布逻辑名 `SleepyDemos`，而非工作树文件夹名 `SleepyDemos-Andriod_Bulid`，避免自动拼接出重复路径或错误项目目录。窗口按 Unity 当前构建平台显示目标目录，并自动生成 `RemoteBaseServerURL`；关闭本地模拟时 `BaseServerURL` 使用同一地址。Pages 参数由 Core.Editor 通过 `EditorPrefs` 按 Unity 项目和配置保存，不是运行时部署配置。切回 `SSH` 时保留其手工远端 URL 与既有连接设置。
 3. 用最新源码与资源生成当前平台构建，核对窗口的当前 Bundle 路径，如 PC 的 `Bundles/StandaloneWindows64/DefaultPackage/<版本号>` 或 Android 的 `Bundles/Android/DefaultPackage/<版本号>`，再执行 Pages 上传。工具读取版本文件，只复制本包的 `.version`、版本对应 `.bytes` / `.hash` 及全部 `.bundle`，只更新内容有变化的文件，保留旧包；不复制源码、SSH 私钥、`.report`、日志和 `link.xml`。Git 操作通过异步进程执行；窗口会防止重复部署，Unity 脚本重载会延后到传输结束。等待窗口完成结果，再到仓库 `Actions` 查看 Pages 部署。
 
 日常 `PlayMode` 仍保持 `EditorSimulateMode`；它不会证明远端下载可用。发布成功后如需实际远端验收，临时切换 `HostPlayMode`，从正式 `Assets/Scenes/AppEntrance.unity` 启动，结束或失败后恢复原模式；边界见 [热更新模块](../modules/hotfix.md#验证重点)。
