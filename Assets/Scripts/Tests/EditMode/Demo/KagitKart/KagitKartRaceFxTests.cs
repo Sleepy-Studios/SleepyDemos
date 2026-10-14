@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Hotfix.KagitKart;
 using NUnit.Framework;
@@ -22,7 +22,6 @@ namespace Tests.Demo
         [TestCase("sand")]
         [TestCase("draft")]
         [TestCase("scrape")]
-        [TestCase("hop")]
         [TestCase("land")]
         [TestCase("wall")]
         [TestCase("hit")]
@@ -30,7 +29,6 @@ namespace Tests.Demo
         [TestCase("finish")]
         [TestCase("boost")]
         [TestCase("rescue")]
-        [TestCase("queue-limit")]
         [TestCase("reduced")]
         public void EmissionsAndRescueMatchOriginalFxJavaScript(string scenario)
         {
@@ -108,10 +106,6 @@ namespace Tests.Demo
                     Set(kart, "DriftTier", scenario[^1] - '0');
                     signaled(kart, KagitKartVehicleSignal.DriftTier);
                 }
-                if (scenario == "hop")
-                {
-                    signaled(kart, KagitKartVehicleSignal.Hop);
-                }
                 if (scenario == "land")
                 {
                     Field(kart, "airTime", 0.7f);
@@ -139,13 +133,6 @@ namespace Tests.Demo
                 if (scenario == "rescue")
                 {
                     signaled(kart, KagitKartVehicleSignal.RescueLift);
-                }
-                if (scenario == "queue-limit")
-                {
-                    for (int i = 0; i < 70; i++)
-                    {
-                        signaled(kart, KagitKartVehicleSignal.Hop);
-                    }
                 }
                 var fixtures = JsonUtility.FromJson<Fixtures>(AssetDatabase.LoadAssetAtPath<TextAsset>(
                     "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures/OriginalRaceFx.json").text);

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Core.Runtime.Settings;
 
@@ -46,6 +48,11 @@ namespace Hotfix.KagitKart
         private Camera listener;
         private string chapter;
         private string musicKey;
+        private string preparedChapter;
+        private string preparingChapter;
+        private int preparationGeneration;
+        private UniTask preparationTask;
+        private readonly SemaphoreSlim preparationGate = new(1, 1);
         private double musicStart;
         private float musicVolume = 0.7f;
         private float sfxVolume = 0.9f;
@@ -63,6 +70,9 @@ namespace Hotfix.KagitKart
         private int popupCount;
         private float popupSize;
         private double nextPopup;
+
+        /// 当前场已预备的托管 PCM 字节数；不包含短音效、噪声与加速缓冲。
+        public long PreparedPcmBytes => dsp != null ? dsp.PreparedPcmBytes : 0;
 
         private void OnEnable()
         {
@@ -185,7 +195,107 @@ namespace Hotfix.KagitKart
 
         /// <summary>播放原作标题八音盒或大奖赛领奖音乐，重复调用不会重新起曲。</summary>
         /// <param name="podium">true 为大奖赛领奖；默认 false 为标题及选择页面。</param>
-        public void PlayMenu(bool podium = false) => PlayMusic(podium ? "podium" : "title", podium ? 0 : 0.4f, podium ? AudioSettings.dspTime + 0.1 : 0);
+        public void PlayMenu(bool podium = false)
+        {
+            PlayMusic(podium ? "podium" : "title", podium ? 0 : 0.4f, podium ? AudioSettings.dspTime + 0.1 : 0);
+        }
+
+        /// <summary>逐帧准备当前章节及结算 PCM；同章共用缓存，换章保留公共曲并解除旧章预留。</summary>
+        /// <param name="chapterId">meadow、bosphorus、glacier 或 desk；应在 Bind 和 PlayIntro 前调用。</param>
+        /// <param name="cancellationToken">场景生命周期令牌；取消解除当前准备的 PCM 预留，已有播放继续持有其样本。</param>
+        /// <returns>当前章节开场、比赛、末圈、完赛短曲、结算与领奖音乐全部可播放后完成；被换章替代的等待取消。</returns>
+        public UniTask PrepareRaceAudioAsync(string chapterId, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!initialized)
+            {
+                throw new InvalidOperationException("音频尚未初始化。");
+            }
+            KagitKartCatalog.TrackName(chapterId);
+            if (preparedChapter == chapterId && preparingChapter == null)
+            {
+                return UniTask.CompletedTask;
+            }
+            if (preparingChapter == chapterId)
+            {
+                return preparationTask.AttachExternalCancellation(cancellationToken);
+            }
+            int generation = ++preparationGeneration;
+            preparingChapter = chapterId;
+            preparationTask = PrepareChapterAudioAsync(chapterId, generation, cancellationToken).ToAsyncLazy().Task;
+            return preparationTask;
+        }
+
+        private async UniTask PrepareChapterAudioAsync(string chapterId, int generation, CancellationToken cancellationToken)
+        {
+            bool acquired = false;
+            try
+            {
+                await preparationGate.WaitAsync(cancellationToken);
+                acquired = true;
+                if (generation != preparationGeneration)
+                {
+                    throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
+                }
+                preparedChapter = null;
+                var clips = new[]
+                {
+                    bank.GetClip("music_intro_" + chapterId + "_start"),
+                    bank.GetClip("music_intro_" + chapterId + "_loop"),
+                    bank.GetClip("music_" + chapterId + "_start"),
+                    bank.GetClip("music_" + chapterId + "_loop"),
+                    bank.GetClip("music_final_" + chapterId + "_start"),
+                    bank.GetClip("music_final_" + chapterId + "_loop"),
+                    bank.GetClip("sting_finalLap_" + chapterId),
+                    bank.GetClip("sting_finishWin"),
+                    bank.GetClip("sting_finishGood"),
+                    bank.GetClip("sting_finishOk"),
+                    bank.GetClip("music_results_start"),
+                    bank.GetClip("music_results_loop"),
+                    bank.GetClip("music_podium_start"),
+                    bank.GetClip("music_podium_loop")
+                };
+                dsp.ClearPreparedClips(clips);
+                Func<bool> isCurrent = () => generation == preparationGeneration;
+                foreach (var clip in clips)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (generation != preparationGeneration)
+                    {
+                        throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
+                    }
+                    await dsp.PrepareRaceClipAsync(clip, cancellationToken, isCurrent);
+                    await UniTask.NextFrame(PlayerLoopTiming.Update, cancellationToken);
+                }
+                if (generation == preparationGeneration)
+                {
+                    preparedChapter = chapterId;
+                }
+                else
+                {
+                    throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
+                }
+            }
+            catch
+            {
+                if (acquired)
+                {
+                    dsp.ClearPreparedClips();
+                }
+                throw;
+            }
+            finally
+            {
+                if (generation == preparationGeneration)
+                {
+                    preparingChapter = null;
+                }
+                if (acquired)
+                {
+                    preparationGate.Release();
+                }
+            }
+        }
 
         /// <summary>播放对应章节的原作开场段落。</summary>
         /// <param name="chapterId">meadow、bosphorus、glacier 或 desk。</param>
@@ -260,6 +370,7 @@ namespace Hotfix.KagitKart
             }
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             double now = AudioSettings.dspTime;
+            dsp.ReleaseFinishedVoices();
             duck = Mathf.Lerp(duck, paused ? 0.28f : 1, 1 - Mathf.Exp(-dt / 0.12f));
             float musicGain = muted ? 0 : musicVolume * musicVolume * duck * globalMusic;
             engine.SetVolume(sfxVolume * sfxVolume * globalEffects, muted);
@@ -602,9 +713,6 @@ namespace Hotfix.KagitKart
                     {
                         Play("ink", important: true);
                     }
-                    break;
-                case KagitKartVehicleSignal.Hop:
-                    Play("hop", kart, gain: kart.IsPlayer ? 1 : 0.4f, gap: 0.02f);
                     break;
                 case KagitKartVehicleSignal.DriftTier:
                     Play(kart.DriftTier <= 1 ? "tier_0" : kart.DriftTier == 2 ? "tier_1" : "tier_2",

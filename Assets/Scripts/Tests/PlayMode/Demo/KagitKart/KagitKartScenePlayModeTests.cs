@@ -3,6 +3,9 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Threading;
+using UnityEditor;
 using Core.Runtime;
 using Core.Runtime.Localization;
 using Core.Runtime.TimeControls;
@@ -47,6 +50,139 @@ namespace Tests.Demo
                 && UIManager.Instance.Get<MainMenuView>()?.State == ViewState.Visible, "大厅启动");
         }
 
+        [Serializable]
+        private sealed class PlaybackManifest
+        {
+            public int sampleRate;
+            public string sourceRevision;
+            public PlaybackClipInfo[] clips;
+        }
+
+        [Serializable]
+        private sealed class PlaybackClipInfo
+        {
+            public string name;
+            public double duration;
+            public int channels;
+            public float rms;
+        }
+
+        [UnityTest]
+        public IEnumerator PagedMusicPreservesStereoInterpolationAcrossPagesAndLoopEnds()
+        {
+            const int pageFrames = 1024 * 1024 / sizeof(float) / 2;
+            const int frames = pageFrames + 3;
+            var pcm = new float[frames * 2];
+            for (int i = 0; i < frames; i++)
+            {
+                pcm[i * 2] = i % 97 / 96f - 0.5f;
+                pcm[i * 2 + 1] = 0.5f - i % 89 / 88f;
+            }
+            var clip = AudioClip.Create("Music_PagingTone", frames, 2, 44100, false);
+            var flatClip = AudioClip.Create("Music_Title_PagingReference", frames, 2, 44100, false);
+            var host = new GameObject("音乐页边界音色测试");
+            try
+            {
+                Assert.That(clip.SetData(pcm, 0), Is.True);
+                Assert.That(flatClip.SetData(pcm, 0), Is.True);
+                var dsp = host.AddComponent<KagitKartAudioDsp>();
+                typeof(KagitKartAudioDsp).GetField("sampleRate", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(dsp, 44100);
+                yield return dsp.PrepareRaceClipAsync(clip, CancellationToken.None).ToCoroutine();
+                dsp.PrepareRaceClip(flatClip);
+                Assert.That(dsp.PreparedPcmBytes, Is.EqualTo((long)pcm.Length * sizeof(float) * 2), "分页仍保留完整PCM预算");
+                var actual = dsp.CreateVoice();
+                var reference = dsp.CreateVoice();
+                actual.Clip = clip;
+                reference.Clip = flatClip;
+                actual.Volume = reference.Volume = 1;
+                foreach (bool loop in new[] { false, true })
+                {
+                    foreach (double startFrame in new[] { pageFrames - 1.25, frames - 1.25 })
+                    {
+                        actual.Loop = reference.Loop = loop;
+                        actual.PlayScheduled(-startFrame / 44100);
+                        reference.PlayScheduled(-startFrame / 44100);
+                        actual.Capture();
+                        reference.Capture();
+                        actual.Prepare();
+                        reference.Prepare();
+                        for (int i = 0; i < 8; i++)
+                        {
+                            float left = 0, right = 0, expectedLeft = 0, expectedRight = 0;
+                            actual.Mix((double)i / 44100, ref left, ref right);
+                            reference.Mix((double)i / 44100, ref expectedLeft, ref expectedRight);
+                            Assert.That(left, Is.EqualTo(expectedLeft).Within(0.000001f), "跨页、循环接头和非循环结尾的左声道插值");
+                            Assert.That(right, Is.EqualTo(expectedRight).Within(0.000001f), "立体声右声道不能串页或串声道");
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+                UnityEngine.Object.DestroyImmediate(clip);
+                UnityEngine.Object.DestroyImmediate(flatClip);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator OriginalAudioManifestResolvesCompletePlayableBank()
+        {
+            const string root = "Assets/LoadResources/Demos/kagit_kart/Data/";
+            var manifest = JsonUtility.FromJson<PlaybackManifest>(File.ReadAllText(root + "AudioManifest.json"));
+            Assert.That(manifest.sourceRevision, Is.EqualTo("da100b21ae1c5332d2843d21a9bb7b68b97e9c2a"));
+            var bank = AssetDatabase.LoadAssetAtPath<KagitKartAudioBank>(root + "AudioBank.asset");
+            Assert.That(bank, Is.Not.Null);
+            foreach (var item in manifest.clips)
+            {
+                string name = item.name;
+                var clip = bank.GetClip(name);
+                Assert.That(clip.length, Is.EqualTo(item.duration).Within(0.01f), name);
+                Assert.That(clip.channels, Is.EqualTo(item.channels), name);
+                Assert.That(item.rms, Is.GreaterThan(0.00001f), name);
+                if (name.StartsWith("music_", StringComparison.Ordinal))
+                {
+                    string path = AssetDatabase.GetAssetPath(clip);
+                    Assert.That(Path.GetExtension(path), Is.EqualTo(".ogg"), name);
+                    Assert.That(clip.frequency, Is.EqualTo(manifest.sampleRate), name);
+                    // Unity 导入 WAV/OGG 均可能有一个采样的长度舍入，不能容忍编码器整块补帧。
+                    Assert.That(clip.samples, Is.EqualTo((int)Math.Round(item.duration * manifest.sampleRate)).Within(1), name);
+                    var importer = (AudioImporter)AssetImporter.GetAtPath(path);
+                    Assert.That(importer.defaultSampleSettings.loadType, Is.EqualTo(AudioClipLoadType.DecompressOnLoad), name);
+                    try
+                    {
+                        Assert.That(clip.LoadAudioData(), Is.True, name);
+                        while (clip.loadState == AudioDataLoadState.Loading)
+                        {
+                            yield return null;
+                        }
+                        Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Loaded), name);
+                        Assert.That(clip.GetData(new float[4096 * clip.channels], clip.samples / 2), Is.True, name);
+                    }
+                    finally
+                    {
+                        clip.UnloadAudioData();
+                    }
+                }
+            }
+            foreach (string chapter in new[] { "meadow", "bosphorus", "glacier", "desk" })
+            {
+                foreach (string prefix in new[] { "music_", "music_intro_", "music_final_" })
+                {
+                    Assert.That(bank.GetClip(prefix + chapter + "_start"), Is.Not.Null);
+                    Assert.That(bank.GetClip(prefix + chapter + "_loop"), Is.Not.Null);
+                }
+                Assert.That(bank.GetClip("sting_finalLap_" + chapter), Is.Not.Null);
+            }
+            foreach (string cue in new[] { "title", "results", "podium" })
+            {
+                Assert.That(bank.GetClip("music_" + cue + "_start"), Is.Not.Null);
+                Assert.That(bank.GetClip("music_" + cue + "_loop"), Is.Not.Null);
+            }
+            Assert.That(() => bank.GetClip("missing_original_recipe"), Throws.ArgumentException);
+        }
+
         [UnityTest, Timeout(180000)]
         public IEnumerator HubRaceKeyboardPauseRestartAndReturn()
         {
@@ -56,6 +192,9 @@ namespace Tests.Demo
                 && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "立体书封面");
             var book = Object.FindFirstObjectByType<KagitKartBookStage>();
             Assert.That(book.ClosedFraction, Is.EqualTo(1));
+            yield return WaitForPresentation();
+            yield return KeyPress(Key.Enter);
+            yield return Wait(() => UIManager.Instance.Get<KagitKartPlayModeView>()?.State == ViewState.Visible && !world.Busy, "游玩方式选择");
             yield return WaitForPresentation();
             yield return KeyPress(Key.Enter);
             yield return Wait(() => UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible && !world.Busy, "模式选择");
@@ -167,6 +306,9 @@ namespace Tests.Demo
             KagitKartWorld world = null;
             yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
                 && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "手柄开书入口");
+            yield return PadPress(GamepadButton.South);
+            yield return Wait(() => UIManager.Instance.Get<KagitKartPlayModeView>()?.State == ViewState.Visible && !world.Busy, "手柄游玩方式选择");
+            yield return WaitForPresentation();
             yield return PadPress(GamepadButton.South);
             yield return Wait(() => UIManager.Instance.Get<KagitKartModeView>()?.State == ViewState.Visible && !world.Busy, "手柄模式选择");
             yield return PadPress(GamepadButton.DpadRight);
@@ -312,6 +454,8 @@ namespace Tests.Demo
                 && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "封面就绪");
             yield return world.StartRaceAsync(KagitKartRaceMode.GrandPrix, "meadow", "tilki", 120).ToCoroutine();
             string[] firstCupOrder = null;
+            KagitKartResultsView cachedResults = null;
+            KagitKartStandingsView cachedStandings = null;
             for (int round = 0; round < 4; round++)
             {
                 yield return Wait(() => world.Session != null && !world.Busy && world.IntroPlaying, "第 " + (round + 1) + " 章开场");
@@ -331,6 +475,8 @@ namespace Tests.Demo
                 Assert.That(world.GrandPrix.SortedStandings().Sum(row => row.Points), Is.EqualTo(58 * (round + 1)));
                 yield return Wait(() => UIManager.Instance.Get<KagitKartResultsView>()?.State == ViewState.Visible, "本场结算");
                 var resultsView = UIManager.Instance.Get<KagitKartResultsView>();
+                cachedResults ??= resultsView;
+                Assert.That(resultsView, Is.SameAs(cachedResults), "成绩页跨章复用预备实例。");
                 var resultRows = resultsView.gameObject.GetComponentsInChildren<KagitKartResultRow>()
                     .OrderBy(row => row.name).ToArray();
                 Assert.That(resultRows.Length, Is.EqualTo(session.Race.Results.Count));
@@ -355,10 +501,14 @@ namespace Tests.Demo
                 EventSystem.current.SetSelectedGameObject(next.gameObject);
                 yield return KeyPress(Key.Enter);
                 yield return Wait(() => !world.Busy && UIManager.Instance.Get<KagitKartStandingsView>()?.State == ViewState.Visible, "独立总积分榜");
-                Assert.That(UIManager.Instance.Get<KagitKartResultsView>(), Is.Null, "旧成绩页明确关闭，不留隐藏返回层");
+                Assert.That(UIManager.Instance.Get<KagitKartResultsView>(), Is.SameAs(resultsView), "成绩页保留本 Demo 缓存。");
+                Assert.That(resultsView.State, Is.EqualTo(ViewState.LoadedHidden), "隐藏成绩页退出正式 Modal 导航。");
+                Assert.That(resultsView.gameObject.activeSelf, Is.False);
                 Assert.That(world.Session, Is.SameAs(session), "积分榜不启动下一场");
                 Assert.That(world.GrandPrix.Index, Is.EqualTo(round), "本场结果先进入榜，点击榜的Next后才推进");
                 var standingsView = UIManager.Instance.Get<KagitKartStandingsView>();
+                cachedStandings ??= standingsView;
+                Assert.That(standingsView, Is.SameAs(cachedStandings), "积分榜跨章复用预备实例。");
                 var standingRows = standingsView.gameObject.GetComponentsInChildren<KagitKartResultRow>().OrderBy(row => row.name).ToArray();
                 yield return Wait(() => standingRows.All(row => row.GetComponent<CanvasGroup>().alpha > 0.999f), "源积分行入场结束");
                 Canvas.ForceUpdateCanvases();
@@ -416,12 +566,20 @@ namespace Tests.Demo
             yield return WaitForPresentation();
             var podium = Object.FindFirstObjectByType<KagitKartPodiumStage>();
             Assert.That(podium.IsComplete, Is.True);
-            EventSystem.current.SetSelectedGameObject(Button(UIManager.Instance.Get<KagitKartPodiumView>(), "Menu").gameObject);
+            var podiumView = UIManager.Instance.Get<KagitKartPodiumView>();
+            EventSystem.current.SetSelectedGameObject(Button(podiumView, "Menu").gameObject);
             yield return KeyPress(Key.Enter);
             yield return Wait(() => UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible && !world.Busy, "领奖后返回封面");
             Assert.That(world.PodiumPlaying, Is.False);
             Assert.That(podium.IsComplete, Is.False);
-            Assert.That(UIManager.Instance.Get<KagitKartPodiumView>(), Is.Null);
+            Assert.That(UIManager.Instance.Get<KagitKartPodiumView>(), Is.SameAs(podiumView));
+            Assert.That(podiumView.State, Is.EqualTo(ViewState.LoadedHidden));
+            Assert.That(podiumView.gameObject.activeSelf, Is.False);
+            world.Dispatch(KagitKartCommand.Hub);
+            yield return Wait(() => Object.FindFirstObjectByType<KagitKartWorld>() == null
+                && UIManager.Instance.Get<KagitKartHudView>() == null && UIManager.Instance.Get<KagitKartResultsView>() == null
+                && UIManager.Instance.Get<KagitKartStandingsView>() == null && UIManager.Instance.Get<KagitKartPodiumView>() == null,
+                "退出 Demo 清理全部预备比赛页面");
         }
 
         [UnityTest, Timeout(240000)]
@@ -573,6 +731,13 @@ namespace Tests.Demo
                 yield return Wait(() => (world = Object.FindFirstObjectByType<KagitKartWorld>()) != null
                     && !world.Busy && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "计时回归封面");
                 originalStore = (KagitKartRecordStore)storeField.GetValue(world);
+                var resources = (KagitKartRaceResources)typeof(KagitKartWorld).GetField("raceResources", flags).GetValue(world);
+                var firstPreparation = resources.PrepareGhostAsync(character);
+                var secondPreparation = resources.PrepareGhostAsync(character);
+                Transform firstGhost = null, secondGhost = null;
+                yield return firstPreparation.ToCoroutine(value => firstGhost = value);
+                yield return secondPreparation.ToCoroutine(value => secondGhost = value);
+                Assert.That(secondGhost, Is.SameAs(firstGhost), "菜单预热与正式开赛共用同一幽灵实例。");
                 // 只注入已有存储入口的独立目录；实际 raceEnd/SaveBest/重开加载仍走正式场景代码。
                 storeField.SetValue(world, store);
                 for (int run = 0; run < 2; run++)

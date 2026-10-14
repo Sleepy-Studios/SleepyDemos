@@ -27,11 +27,23 @@ namespace Hotfix.KagitKart
         ChangeSetting,
         CloseOptions = 22,
         MarkTutorialSeen,
-        ShowStandings
+        ShowStandings,
+        PlayModes,
+        SinglePlayer,
+        Online,
+        CreateRoom,
+        JoinRoom,
+        Room,
+        LeaveRoom,
+        Ready,
+        StartOnlineRace,
+        ChooseOnlineCharacter,
+        CopyAddress,
+        ReturnRoom
     }
 
     /// 页面与输入提交的本场流程请求。
-    public sealed class KagitKartAction : IAction
+    public class KagitKartAction : IAction
     {
         public KagitKartWorld Owner;
         public KagitKartCommand Command;
@@ -53,6 +65,58 @@ namespace Hotfix.KagitKart
             Number = number;
             Id = id;
             PlayClick = playClick;
+        }
+    }
+
+    /// 创建或修改房间表单的完整候选。
+    public sealed class KagitKartRoomConfigurationAction : KagitKartAction
+    {
+        public string Name;
+        public int Capacity;
+        public KagitKartRaceMode Mode;
+        public int SpeedClass;
+        public string TrackId;
+        public bool UpdateExistingRoom;
+
+        /// <summary>提交房间候选，不在构造时创建连接。</summary>
+        /// <param name="world">当前场景宿主。</param>
+        /// <param name="name">非空房间名称，最多32字符。</param>
+        /// <param name="capacity">2、4或8。</param>
+        /// <param name="mode">单场或大奖赛。</param>
+        /// <param name="speedClass">80、120或200。</param>
+        /// <param name="trackId">原作赛道。</param>
+        /// <param name="updateExistingRoom">是否修改已加入的大厅。</param>
+        public KagitKartRoomConfigurationAction(KagitKartWorld world, string name, int capacity,
+            KagitKartRaceMode mode, int speedClass, string trackId, bool updateExistingRoom)
+            : base(world, KagitKartCommand.CreateRoom)
+        {
+            Name = name;
+            Capacity = capacity;
+            Mode = mode;
+            SpeedClass = speedClass;
+            TrackId = trackId;
+            UpdateExistingRoom = updateExistingRoom;
+        }
+    }
+
+    /// 连接玩家房主的地址表单。
+    public sealed class KagitKartJoinRoomAction : KagitKartAction
+    {
+        public string Address;
+        public ushort Port;
+        public string DisplayName;
+
+        /// <summary>提交加入请求，身份由网络层分配。</summary>
+        /// <param name="world">当前场景宿主。</param>
+        /// <param name="address">房主IP或域名。</param>
+        /// <param name="port">有效端口，默认表单为7777。</param>
+        /// <param name="displayName">仅用于显示。</param>
+        public KagitKartJoinRoomAction(KagitKartWorld world, string address, ushort port, string displayName)
+            : base(world, KagitKartCommand.JoinRoom)
+        {
+            Address = address;
+            Port = port;
+            DisplayName = displayName;
         }
     }
 }

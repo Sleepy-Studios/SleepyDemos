@@ -6,7 +6,7 @@ namespace Hotfix.KagitKart
     /// ai.js 的实时车手；路线规划由原版生成资产提供，随机流按车手隔离。
     public sealed class KagitKartAi : IDisposable
     {
-        private const int DriveMode = 0, HopMode = 1, DriftMode = 2, ShortcutMode = 3;
+        private const int DriveMode = 0, DriftMode = 1, ShortcutMode = 2;
         private const double EntryYaw = 0.85, ReleaseYaw = 0.8;
         private readonly KagitKartConfiguration configuration;
         private readonly KagitKartKartTuning tuning;
@@ -22,7 +22,7 @@ namespace Hotfix.KagitKart
         private readonly float[] hazardDistance = new float[48], hazardLateral = new float[48], hazardRadius = new float[48];
         private readonly int[] hazardHints = new int[48];
         private readonly float[] boxDistance = new float[64], boxLateral = new float[64];
-        private readonly double hopTime, yawHigh, rubberK, spacing, length;
+        private readonly double yawHigh, rubberK, spacing, length;
         private readonly int sampleCount;
         private int hazardCount, boxCount, stepCount;
         private double now;
@@ -38,7 +38,7 @@ namespace Hotfix.KagitKart
             public double Skill, Sn, Handling, LineQ, StartAt, Offset, SteerMin, YawMin, DriftMin, TierHold;
             public double MistakeProbability, Reaction, LaunchProbability, TrickProbability;
             public double Dynamic, DriftTime, DriftTurn, LastHeading, DriftSteer, EarlyAt = 0.5, ReleaseAt = -9;
-            public int Mode, Corner = -1, Mistake, HopDirection, Phase;
+            public int Mode, Corner = -1, Mistake, Phase;
             public double StuckTime, ReverseTime, ReverseSteer, InkNoise, InkTarget, InkTime;
             public int RespawnRoll = -1;
             public string ItemPlan;
@@ -81,7 +81,6 @@ namespace Hotfix.KagitKart
             sampleCount = plan.sampleCount;
             spacing = track.Track.data.spacing;
             length = track.Track.data.length;
-            hopTime = 2 * tuning.hopVy / tuning.gravity;
             yawHigh = cls.yawHigh > 0 ? cls.yawHigh : tuning.yawHigh;
             rubberK = cls.rubberK;
             int cpuCount = 0;
@@ -136,7 +135,7 @@ namespace Hotfix.KagitKart
             foreach (var driver in drivers)
             {
                 var kart = driver.Kart;
-                if (kart.IsPlayer && !kart.Autopilot)
+                if (kart.IsHuman && !kart.Autopilot)
                 {
                     continue;
                 }
@@ -458,7 +457,7 @@ namespace Hotfix.KagitKart
                         break;
                     }
                 }
-                if (nearShortcut >= 0 && (driver.Mode == HopMode || driver.Mode == DriftMode))
+                if (nearShortcut >= 0 && driver.Mode == DriftMode)
                 {
                     EndDrift(driver);
                 }
@@ -546,7 +545,7 @@ namespace Hotfix.KagitKart
             var ramp = info.RampId >= 0 ? track.Track.data.ramps[info.RampId] : null;
             bool onTrick = ramp != null && ramp.trick;
             int lipRamp = plan.trickLip[i0];
-            if ((driver.Mode == HopMode || driver.Mode == DriftMode) && plan.noDrift[i0] != 0)
+            if (driver.Mode == DriftMode && plan.noDrift[i0] != 0)
             {
                 EndDrift(driver);
             }
@@ -565,24 +564,7 @@ namespace Hotfix.KagitKart
             {
                 drift = true;
             }
-            if (driver.Mode == HopMode)
-            {
-                drift = true;
-                steer = -driver.HopDirection * 0.19;
-                throttle = pace;
-                brake = 0;
-                if (kart.Drifting)
-                {
-                    driver.Mode = DriftMode;
-                    driver.DriftTime = driver.DriftTurn = 0;
-                    driver.LastHeading = kart.Heading;
-                }
-                else if (kart.Grounded && !kart.HopActive)
-                {
-                    driver.Mode = DriveMode;
-                }
-            }
-            else if (driver.Mode == DriftMode)
+            if (driver.Mode == DriftMode)
             {
                 if (!kart.Drifting || DriftStep(driver, dt))
                 {
@@ -595,14 +577,15 @@ namespace Hotfix.KagitKart
                 }
             }
             else if (driver.Mode == DriveMode && nearShortcut < 0 && plan.noDrift[i0] == 0 && lipRamp < 0 && !onTrick &&
-                driver.Mistake != 4 && info.OnRoad && kart.Grounded && !kart.HopActive && speed > Math.Max(12, tuning.driftMinStart + 2) &&
+                driver.Mistake != 4 && info.OnRoad && kart.Grounded && speed > Math.Max(12, tuning.driftMinStart + 2) &&
                 now - driver.ReleaseAt > 0.35 && !controls.Drift && kart.SpinTime <= 0 && driver.ReverseTime <= 0 && ((stepCount + driver.Phase) & 1) == 0)
             {
                 int direction = DriftStart(driver, speed);
                 if (direction != 0)
                 {
-                    driver.Mode = HopMode;
-                    driver.HopDirection = direction;
+                    driver.Mode = DriftMode;
+                    driver.DriftTime = driver.DriftTurn = 0;
+                    driver.LastHeading = kart.Heading;
                     drift = true;
                     steer = direction * 0.25;
                     if (driver.Mistake == 3)
@@ -618,7 +601,7 @@ namespace Hotfix.KagitKart
                 brake = 1;
                 steer = driver.ReverseSteer;
                 drift = false;
-                if (driver.Mode == HopMode || driver.Mode == DriftMode)
+                if (driver.Mode == DriftMode)
                 {
                     EndDrift(driver);
                 }
@@ -663,7 +646,7 @@ namespace Hotfix.KagitKart
             {
                 steer = error > 0 ? -1 : 1;
                 drift = false;
-                if (driver.Mode == HopMode || driver.Mode == DriftMode)
+                if (driver.Mode == DriftMode)
                 {
                     EndDrift(driver);
                 }
@@ -715,7 +698,7 @@ namespace Hotfix.KagitKart
 
         private int DriftStart(Driver driver, double speed)
         {
-            int landing = driver.Kart.TrackInfo.Index + Round(speed * hopTime / spacing);
+            int landing = driver.Kart.TrackInfo.Index;
             int direction = plan.lineK[Index(landing)] > 0 ? -1 : 1;
             double needed = driver.YawMin * EntryYaw / speed;
             int window = Math.Max(3, Round(speed * 0.4 / spacing));
@@ -872,7 +855,7 @@ namespace Hotfix.KagitKart
                         Press(driver, ref controls);
                         return;
                     }
-                    if (driver.Mode == HopMode || driver.Mode == DriftMode || kart.BoostTime > 0 ||
+                    if (driver.Mode == DriftMode || kart.BoostTime > 0 ||
                         (kart.Item == "rocket" || kart.ItemCount <= 1) && ShortcutAhead(kart, 400))
                     {
                         return;

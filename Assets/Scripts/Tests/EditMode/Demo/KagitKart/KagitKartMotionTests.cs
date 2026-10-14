@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.IO;
 using Hotfix.KagitKart;
 using NUnit.Framework;
 using UnityEditor;
@@ -8,6 +9,140 @@ namespace Tests.Demo
 {
     public sealed class KagitKartMotionTests
     {
+        [Test]
+        public void DriftStartsOnGroundAndReleaseKeepsBoost()
+        {
+            var source = ReadSource();
+            var track = ReadTrack("meadow", source);
+            var kart = new KagitKartVehicle(source.config, track, source.roster[0], 120, true);
+            var start = track.PointAt(.0237f, 0);
+            kart.PlaceAt(start.Position, start.Heading);
+            kart.Controls = new KagitKartControls { Throttle = 1 };
+            for (int i = 0; i < 180; i++)
+            {
+                kart.Advance((float)KagitKartSimulationClock.Step);
+            }
+            kart.Controls = new KagitKartControls { Throttle = 1, Steer = .65f, Drift = true };
+            kart.Advance((float)KagitKartSimulationClock.Step);
+            Assert.That(kart.Drifting, Is.True);
+            Assert.That(kart.Grounded, Is.True);
+            Assert.That(kart.DriftDirection, Is.EqualTo(1));
+            typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.DriftTier)).SetValue(kart, 1);
+            kart.Controls = new KagitKartControls { Throttle = 1 };
+            kart.Advance((float)KagitKartSimulationClock.Step);
+            Assert.That(kart.Drifting, Is.False);
+            Assert.That(kart.BoostTime, Is.GreaterThan(0));
+        }
+
+        [Test]
+        public void ReconcileRestoresDriftAndReplaysWithoutRepeatingEffects()
+        {
+            var source = ReadSource();
+            var track = ReadTrack("meadow", source);
+            var expected = new KagitKartVehicle(source.config, track, source.roster[0], 120, true);
+            var replay = new KagitKartVehicle(source.config, track, source.roster[0], 120, true);
+            var point = track.PointAt(.0237f, 0);
+            expected.PlaceAt(point.Position, point.Heading);
+            expected.Controls = new KagitKartControls { Throttle = 1 };
+            for (int i = 0; i < 180; i++) expected.Advance((float)KagitKartSimulationClock.Step);
+            expected.Controls = new KagitKartControls { Throttle = 1, Steer = .65f, Drift = true };
+            for (int i = 0; i < 15; i++) expected.Advance((float)KagitKartSimulationClock.Step);
+            using var saved = new MemoryStream();
+            using var writer = new BinaryWriter(saved);
+            expected.WriteNetworkState(writer);
+            saved.Position = 0;
+            using var reader = new BinaryReader(saved);
+            replay.ReadNetworkState(reader, new[] { replay }, false);
+            int effects = 0;
+            replay.Signaled += (_, _) => effects++;
+            replay.SuppressSignals = true;
+            for (int i = 0; i < 120; i++)
+            {
+                var controls = new KagitKartControls { Throttle = 1, Steer = i < 60 ? .65f : 0, Drift = i < 60 };
+                expected.Controls = replay.Controls = controls;
+                expected.Advance((float)KagitKartSimulationClock.Step);
+                replay.Advance((float)KagitKartSimulationClock.Step);
+            }
+            Assert.That(replay.Position, Is.EqualTo(expected.Position));
+            Assert.That(replay.Velocity, Is.EqualTo(expected.Velocity));
+            Assert.That(replay.DriftCharge, Is.EqualTo(expected.DriftCharge));
+            Assert.That(replay.BoostTime, Is.EqualTo(expected.BoostTime));
+            Assert.That(effects, Is.Zero);
+        }
+
+        [Test]
+        public void NetworkSnapshotsAndPredictionDoNotRepeatDelayedBoostCue()
+        {
+            var source = ReadSource();
+            var track = ReadTrack("meadow", source);
+            var server = new KagitKartVehicle(source.config, track, source.roster[0], 120, true);
+            var remote = new KagitKartVehicle(source.config, track, source.roster[0], 120, true);
+            var attacker = new KagitKartVehicle(source.config, track, source.roster[1], 120, false);
+            var remoteAttacker = new KagitKartVehicle(source.config, track, source.roster[1], 120, false);
+            var start = track.PointAt(.0237f, 0);
+            server.PlaceAt(start.Position, start.Heading);
+            server.Controls = new KagitKartControls { Throttle = 1 };
+            for (int i = 0; i < 120; i++) server.Advance((float)KagitKartSimulationClock.Step);
+            server.ApplyBoost(1.7f, 1.15f, "rocket");
+            var originalCue = server.CaptureSignalContext();
+            Assert.That(server.SpinOut("plane", attacker), Is.True);
+            server.ApplyBoost(.9f, 1, "pad");
+            server.ApplyInk(6);
+            server.SetInvincible(7);
+            server.SetGrace(1.5f);
+            server.Controls = new KagitKartControls { Throttle = .6f, Steer = .25f };
+            for (int i = 0; i < 30; i++) server.Advance((float)KagitKartSimulationClock.Step);
+
+            int cues = 0;
+            float cueDuration = 0;
+            string cueSource = null;
+            remote.Signaled += (kart, signal) =>
+            {
+                cues++;
+                Assert.That(signal, Is.EqualTo(KagitKartVehicleSignal.Boost));
+                cueDuration = kart.LastBoostDuration;
+                cueSource = kart.BoostSource;
+            };
+            using var packet = new MemoryStream();
+            using var writer = new BinaryWriter(packet);
+            server.WriteNetworkState(writer);
+            originalCue.Write(writer);
+            packet.Position = 0;
+            using var reader = new BinaryReader(packet);
+            remote.ReadNetworkState(reader, new[] { remote, remoteAttacker }, false);
+            var receivedCue = KagitKartVehicle.SignalContext.Read(reader);
+            Assert.That(packet.Position, Is.EqualTo(packet.Length), "完整状态与可靠事件上下文均已消费");
+            Assert.That(remote.LastHitBy, Is.SameAs(remoteAttacker), "攻击来源映射到客户端车对象");
+            Assert.That(remote.SpinCause, Is.EqualTo("plane"));
+            Assert.That(remote.SpinTime, Is.EqualTo(server.SpinTime));
+            Assert.That(remote.InkTime, Is.EqualTo(server.InkTime));
+            Assert.That(remote.InvincibleTime, Is.EqualTo(server.InvincibleTime));
+            Assert.That(remote.GraceTime, Is.EqualTo(server.GraceTime));
+            Assert.That(cues, Is.Zero, "接收状态快照不重复播放业务信号");
+
+            remote.SuppressSignals = true;
+            for (int i = 0; i < 60; i++)
+            {
+                server.Advance((float)KagitKartSimulationClock.Step);
+                remote.Advance((float)KagitKartSimulationClock.Step);
+            }
+            remote.SuppressSignals = false;
+            Assert.That(cues, Is.Zero, "协调重放不重复播放业务信号");
+            Assert.That(remote.Position, Is.EqualTo(server.Position));
+            Assert.That(remote.Velocity, Is.EqualTo(server.Velocity));
+            Assert.That(remote.BoostTime, Is.EqualTo(server.BoostTime));
+            float latestBoostTime = remote.BoostTime;
+            remote.NotifyNetworkSignal(KagitKartVehicleSignal.Boost, receivedCue);
+            Assert.That(cues, Is.EqualTo(1));
+            Assert.That(cueDuration, Is.EqualTo(1.7f), "迟到的可靠通知仍使用原事件时长");
+            Assert.That(cueSource, Is.EqualTo("rocket"));
+            Assert.That(remote.LastBoostDuration, Is.EqualTo(.9f), "通知后恢复较新权威事件状态");
+            Assert.That(remote.BoostSource, Is.EqualTo(server.BoostSource));
+            Assert.That(remote.SpinCause, Is.EqualTo("plane"));
+            Assert.That(remote.BoostTime, Is.EqualTo(latestBoostTime), "音画通知不重新应用玩法加速");
+            Assert.That(remote.Controls, Is.EqualTo(server.Controls));
+        }
+
         private const string DataRoot = "Assets/LoadResources/Demos/kagit_kart/Data/";
 
         [Test]
@@ -49,7 +184,6 @@ namespace Tests.Demo
         [TestCase("straight-120")]
         [TestCase("straight-200")]
         [TestCase("brake-reverse")]
-        [TestCase("drift")]
         [TestCase("rocket")]
         [TestCase("rescue")]
         public void VehicleMotionMatchesOriginalFixedSteps(string name)
@@ -69,8 +203,8 @@ namespace Tests.Demo
                 {
                     Throttle = name == "brake-reverse" && i >= 360 ? 0 : 1,
                     Brake = name == "brake-reverse" && i >= 360 ? 1 : 0,
-                    Steer = name == "drift" && i >= 240 && i < 660 ? 0.65f : 0,
-                    Drift = name == "drift" && i >= 240 && i < 660
+                    Steer = 0,
+                    Drift = false
                 };
                 if (name == "rocket" && i == 240)
                 {

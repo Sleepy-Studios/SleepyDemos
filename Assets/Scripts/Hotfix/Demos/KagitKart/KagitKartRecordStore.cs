@@ -65,15 +65,17 @@ namespace Hotfix.KagitKart
         /// <param name="speedClass">当前速度组别。</param>
         /// <param name="character">玩家角色标识。</param>
         /// <param name="run">本次实际三圈完赛幽灵快照，不能传估算结果。</param>
+        /// <param name="previous">本场同赛道、组别与车手的合法记录；为空时从文件读取。</param>
         /// <returns>保存后的记录；校验或 IO 失败抛出，原有文件由公共层保护。</returns>
-        public KagitKartTimeTrialRecord SaveBest(string track, int speedClass, string character, KagitKartGhostData run)
+        public KagitKartTimeTrialRecord SaveBest(string track, int speedClass, string character, KagitKartGhostData run,
+            KagitKartTimeTrialRecord previous = null)
         {
             string path = LocalDataKeys.KagitKartRecord(track, speedClass, character);
             if (!ValidGhost(run))
             {
                 throw new ArgumentException("计时比赛记录不完整，不能保存。", nameof(run));
             }
-            var previous = Load(track, speedClass, character);
+            previous ??= Load(track, speedClass, character);
             double lap = Math.Min(run.lapTimes[0], Math.Min(run.lapTimes[1], run.lapTimes[2]));
             var next = new KagitKartTimeTrialRecord
             {

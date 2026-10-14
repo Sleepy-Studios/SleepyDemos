@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace Hotfix.KagitKart
@@ -8,23 +11,48 @@ namespace Hotfix.KagitKart
     [RequireComponent(typeof(AudioSource))]
     public sealed class KagitKartAudioDsp : MonoBehaviour
     {
+        private const int PcmPageBits = 18;
+        private const int PcmPageLength = 1 << PcmPageBits;
+        private const int PcmPageMask = PcmPageLength - 1;
         private readonly object gate = new();
         private readonly List<Voice> voices = new();
         private readonly Dictionary<AudioClip, Samples> loaded = new();
+        private static readonly ProfilerMarker BlockSync = new("KagitKart.Audio.BlockSync");
+        private static readonly ProfilerMarker AudioBlock = new("KagitKart.Audio.AudioBlock");
+        private static readonly ProfilerMarker PreparePcm = new("KagitKart.Audio.PreparePcm");
+        private Voice[] blockVoices = Array.Empty<Voice>();
         private Compressor glue;
         private Compressor limiter;
         private AudioClip carrier;
         private int sampleRate;
         internal volatile KagitKartEngineSynth Engine;
 
+        internal long PreparedPcmBytes
+        {
+            get
+            {
+                long bytes = 0;
+                foreach (var samples in loaded.Values)
+                {
+                    if (samples.IsPrepared)
+                    {
+                        bytes += (long)samples.Frames * samples.Channels * sizeof(float);
+                    }
+                }
+                return bytes;
+            }
+        }
+
         internal sealed class Samples
         {
             internal AudioClip Asset;
             internal float[] Data;
+            internal float[][] Pages;
             internal int Channels;
             internal int Rate;
             internal int References;
             internal bool IsEffect;
+            internal bool IsPrepared;
             internal int Frames;
         }
 
@@ -38,11 +66,19 @@ namespace Hotfix.KagitKart
             private bool active;
             private int revision;
             private int readRevision;
+            private volatile int completedRevision = -1;
+            private Samples blockSamples;
+            private double blockStart, blockEnd;
+            private int blockRevision;
+            private bool blockActive, blockLoop, blockFilter;
+            private float blockVolume, blockPitch, blockCutoff, blockResonance, blockPan;
+            private float leftGain, rightGain, crossLeftGain, crossRightGain;
             private readonly Biquad left = new();
             private readonly Biquad right = new();
             private readonly Biquad boostFilter = new();
             private readonly Samples waveA = new() { Channels = 1, Rate = 44100, IsEffect = true };
             private readonly Samples waveB = new() { Channels = 1, Rate = 44100, IsEffect = true };
+            private readonly Samples waveC = new() { Channels = 1, Rate = 44100, IsEffect = true };
             internal volatile float Volume;
             internal volatile float Pitch = 1;
             internal volatile float Pan;
@@ -65,20 +101,24 @@ namespace Hotfix.KagitKart
                 int frames = KagitKartBoostSynth.FrameCount("start", 1.5f, 44100);
                 waveA.Data = new float[frames];
                 waveB.Data = new float[frames];
+                waveC.Data = new float[frames];
             }
 
             internal void SetBoost(string source, float duration, float[] white, float[] crackle, int seed)
             {
-                // 仅写未播放的缓冲，音频块结束后持锁交换；不覆盖音频线程正在读取的数据。
-                var next = ReferenceEquals(samples, waveA) ? waveB : waveA;
-                next.Frames = KagitKartBoostSynth.RenderInto(source, duration, white, crackle, 44100, seed, next.Data, boostFilter);
-                AudioClip release;
+                Samples next;
                 lock (owner.gate)
                 {
-                    release = owner.Release(samples);
+                    // 块内在读和下一块待播可能不同；第三份缓冲避免连续事件覆盖其中任意一份。
+                    next = samples != waveA && blockSamples != waveA ? waveA
+                        : samples != waveB && blockSamples != waveB ? waveB : waveC;
+                }
+                next.Frames = KagitKartBoostSynth.RenderInto(source, duration, white, crackle, 44100, seed, next.Data, boostFilter);
+                lock (owner.gate)
+                {
+                    owner.Release(samples);
                     samples = next;
                 }
-                release?.UnloadAudioData();
             }
 
             internal void Play() => PlayScheduled(AudioSettings.dspTime);
@@ -99,6 +139,7 @@ namespace Hotfix.KagitKart
                 lock (owner.gate)
                 {
                     active = false;
+                    revision++;
                 }
             }
 
@@ -110,80 +151,135 @@ namespace Hotfix.KagitKart
                 }
             }
 
+            internal void Capture()
+            {
+                blockSamples = samples;
+                blockStart = start;
+                blockEnd = end;
+                blockRevision = revision;
+                blockLoop = Loop;
+                blockFilter = FilterEnabled;
+                blockVolume = Volume;
+                blockPitch = Pitch;
+                blockCutoff = Cutoff;
+                blockResonance = Resonance;
+                blockPan = Pan;
+                if (readRevision != revision)
+                {
+                    blockActive = active;
+                }
+            }
+
             internal void Prepare()
             {
-                if (FilterEnabled)
+                if (!blockActive)
                 {
-                    left.Set("lowpass", Cutoff, Resonance, owner.sampleRate);
-                    right.Set("lowpass", Cutoff, Resonance, owner.sampleRate);
+                    completedRevision = blockRevision;
+                }
+                if (blockFilter)
+                {
+                    left.Set("lowpass", blockCutoff, blockResonance, owner.sampleRate);
+                    right.Set("lowpass", blockCutoff, blockResonance, owner.sampleRate);
+                }
+                leftGain = rightGain = 1;
+                crossLeftGain = crossRightGain = 0;
+                if (blockSamples == null || blockSamples.IsEffect && blockPan == 0)
+                {
+                    return;
+                }
+                float panning = blockPan;
+                if (blockSamples.IsEffect || blockSamples.Channels == 1)
+                {
+                    double angle = (panning + 1) * Math.PI / 4;
+                    leftGain = (float)Math.Cos(angle);
+                    rightGain = (float)Math.Sin(angle);
+                }
+                else if (panning <= 0)
+                {
+                    double angle = (panning + 1) * Math.PI / 2;
+                    crossLeftGain = (float)Math.Cos(angle);
+                    rightGain = (float)Math.Sin(angle);
+                }
+                else
+                {
+                    double angle = panning * Math.PI / 2;
+                    leftGain = (float)Math.Cos(angle);
+                    crossRightGain = (float)Math.Sin(angle);
+                }
+            }
+
+            internal void ReleaseFinishedSamples()
+            {
+                if (samples != null && completedRevision == revision)
+                {
+                    owner.Release(samples);
+                    samples = null;
                 }
             }
 
             internal void Mix(double now, ref float l, ref float r)
             {
-                if (!active || samples == null || now < start || now >= end)
+                if (!blockActive || blockSamples == null || now < blockStart)
                 {
                     return;
                 }
-                if (readRevision != revision)
+                if (now >= blockEnd)
                 {
-                    readRevision = revision;
-                    cursor = Math.Max(0, now - start) * samples.Rate * Pitch;
+                    blockActive = false;
+                    completedRevision = blockRevision;
+                    return;
+                }
+                if (readRevision != blockRevision)
+                {
+                    readRevision = blockRevision;
+                    cursor = Math.Max(0, now - blockStart) * blockSamples.Rate * blockPitch;
                     left.Reset();
                     right.Reset();
                 }
-                if (cursor >= samples.Frames)
+                if (cursor >= blockSamples.Frames)
                 {
-                    if (!Loop)
+                    if (!blockLoop)
                     {
-                        active = false;
+                        blockActive = false;
+                        completedRevision = blockRevision;
                         return;
                     }
-                    cursor %= samples.Frames;
+                    cursor %= blockSamples.Frames;
                 }
                 int frame = (int)cursor;
-                int next = frame + 1 < samples.Frames ? frame + 1 : Loop ? 0 : frame;
+                int next = frame + 1 < blockSamples.Frames ? frame + 1 : blockLoop ? 0 : frame;
                 float fraction = (float)(cursor - frame);
-                float a = samples.Data[frame * samples.Channels];
-                float b = samples.Data[next * samples.Channels];
+                int aIndex = frame * blockSamples.Channels;
+                int bIndex = next * blockSamples.Channels;
+                float[] aData = blockSamples.Data;
+                float[] bData = aData;
+                var pages = blockSamples.Pages;
+                if (pages != null)
+                {
+                    aData = pages[aIndex >> PcmPageBits];
+                    bData = pages[bIndex >> PcmPageBits];
+                    aIndex &= PcmPageMask;
+                    bIndex &= PcmPageMask;
+                }
+                float a = aData[aIndex];
+                float b = bData[bIndex];
                 float sl = a + (b - a) * fraction;
                 float sr = sl;
-                if (samples.Channels > 1)
+                if (blockSamples.Channels > 1)
                 {
-                    a = samples.Data[frame * samples.Channels + 1];
-                    b = samples.Data[next * samples.Channels + 1];
+                    a = aData[aIndex + 1];
+                    b = bData[bIndex + 1];
                     sr = a + (b - a) * fraction;
                 }
-                if (FilterEnabled)
+                if (blockFilter)
                 {
                     sl = left.Tick(sl);
                     sr = right.Tick(sr);
                 }
-                // StereoPanner 的等功率声像；单声道不被中心声像额外放大。
-                if (samples.IsEffect && Pan == 0)
-                {
-                    l += sl * Volume;
-                    r += sr * Volume;
-                }
-                else if (samples.IsEffect || samples.Channels == 1)
-                {
-                    double angle = (Pan + 1) * Math.PI / 4;
-                    l += sl * Volume * (float)Math.Cos(angle);
-                    r += sr * Volume * (float)Math.Sin(angle);
-                }
-                else if (Pan <= 0)
-                {
-                    double angle = (Pan + 1) * Math.PI / 2;
-                    l += (sl + sr * (float)Math.Cos(angle)) * Volume;
-                    r += sr * (float)Math.Sin(angle) * Volume;
-                }
-                else
-                {
-                    double angle = Pan * Math.PI / 2;
-                    l += sl * (float)Math.Cos(angle) * Volume;
-                    r += (sr + sl * (float)Math.Sin(angle)) * Volume;
-                }
-                cursor += (double)samples.Rate / owner.sampleRate * Pitch;
+                // 声像在块内不变；只缓存系数，保留原作等功率与立体声交叉混音。
+                l += (sl * leftGain + sr * crossLeftGain) * blockVolume;
+                r += (sr * rightGain + sl * crossRightGain) * blockVolume;
+                cursor += (double)blockSamples.Rate / owner.sampleRate * blockPitch;
             }
         }
 
@@ -209,6 +305,7 @@ namespace Hotfix.KagitKart
             lock (gate)
             {
                 voices.Add(voice);
+                blockVoices = voices.ToArray();
             }
             return voice;
         }
@@ -224,17 +321,145 @@ namespace Hotfix.KagitKart
             {
                 next = PrepareClip(clip);
             }
-            AudioClip release;
             lock (gate)
             {
-                release = Release(voice.samples);
+                Release(voice.samples);
                 voice.samples = next;
                 if (next != null)
                 {
                     next.References++;
                 }
             }
-            release?.UnloadAudioData();
+        }
+
+        internal void PrepareRaceClip(AudioClip clip)
+        {
+            PrepareClip(clip).IsPrepared = true;
+        }
+
+        internal async UniTask PrepareRaceClipAsync(AudioClip clip, CancellationToken cancellationToken, Func<bool> isCurrent = null)
+        {
+            RequireCurrentPreparation(cancellationToken, isCurrent);
+            if (loaded.TryGetValue(clip, out var cached))
+            {
+                cached.IsPrepared = true;
+                return;
+            }
+            bool copyOwnsUnload = false;
+            try
+            {
+                if (!clip.LoadAudioData() && clip.loadState != AudioDataLoadState.Loading)
+                {
+                    throw new InvalidOperationException("原作音频加载失败：" + clip.name);
+                }
+                // Native 请求不能中途取消；串行准备仍占有门，等待完成后才卸载或交给下一首。
+                while (clip != null && clip.loadState == AudioDataLoadState.Loading)
+                {
+                    await UniTask.NextFrame(PlayerLoopTiming.Update);
+                }
+                RequireCurrentPreparation(cancellationToken, isCurrent);
+                if (clip == null || clip.loadState != AudioDataLoadState.Loaded)
+                {
+                    throw new InvalidOperationException("原作音频未完成解码。");
+                }
+                if (clip.name.StartsWith("Music_", StringComparison.Ordinal)
+                    && !clip.name.StartsWith("Music_Title_", StringComparison.Ordinal))
+                {
+                    int length = clip.samples * clip.channels;
+                    var next = new Samples
+                    {
+                        Asset = clip,
+                        Rate = clip.frequency,
+                        Channels = clip.channels,
+                        Frames = clip.samples,
+                        Pages = new float[(length + PcmPageLength - 1) / PcmPageLength][]
+                    };
+                    for (int i = 0; i < next.Pages.Length; i++)
+                    {
+                        RequireCurrentPreparation(cancellationToken, isCurrent);
+                        using (PreparePcm.Auto())
+                        {
+                            int offset = i * PcmPageLength;
+                            var page = new float[Math.Min(PcmPageLength, length - offset)];
+                            // GetData 的偏移单位是帧；原作立体声页按完整左右声道对齐。
+                            if (!clip.GetData(page, offset / next.Channels))
+                            {
+                                throw new InvalidOperationException("原作音乐 PCM 分页读取失败：" + clip.name);
+                            }
+                            next.Pages[i] = page;
+                        }
+                        await UniTask.NextFrame(PlayerLoopTiming.Update, cancellationToken);
+                    }
+                    RequireCurrentPreparation(cancellationToken, isCurrent);
+                    next.IsPrepared = true;
+                    loaded.Add(clip, next);
+                }
+                else
+                {
+                    PrepareRaceClip(clip);
+                    copyOwnsUnload = true;
+                }
+            }
+            finally
+            {
+                if (!copyOwnsUnload && clip != null)
+                {
+                    clip.UnloadAudioData();
+                }
+            }
+        }
+
+        private static void RequireCurrentPreparation(CancellationToken cancellationToken, Func<bool> isCurrent)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (isCurrent != null && !isCurrent())
+            {
+                throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
+            }
+        }
+
+        internal void ClearPreparedClips(IReadOnlyList<AudioClip> keep = null)
+        {
+            var unused = new List<AudioClip>();
+            foreach (var pair in loaded)
+            {
+                bool retained = false;
+                if (keep != null)
+                {
+                    for (int i = 0; i < keep.Count; i++)
+                    {
+                        if (keep[i] == pair.Key)
+                        {
+                            retained = true;
+                            break;
+                        }
+                    }
+                }
+                if (retained)
+                {
+                    continue;
+                }
+                pair.Value.IsPrepared = false;
+                if (!pair.Value.IsEffect && pair.Value.References == 0)
+                {
+                    unused.Add(pair.Key);
+                }
+            }
+            foreach (var clip in unused)
+            {
+                loaded.Remove(clip);
+            }
+        }
+
+        internal void ReleaseFinishedVoices()
+        {
+            lock (gate)
+            {
+                foreach (var voice in voices)
+                {
+                    voice.ReleaseFinishedSamples();
+                }
+            }
         }
 
         internal void PrepareEffects(IReadOnlyList<AudioClip> clips)
@@ -252,26 +477,39 @@ namespace Hotfix.KagitKart
         {
             if (!loaded.TryGetValue(clip, out var next))
             {
-                next = new Samples { Asset = clip, Rate = clip.frequency, Channels = clip.channels,
-                    Frames = clip.samples, Data = new float[clip.samples * clip.channels],
-                    IsEffect = clip.name.StartsWith("Sfx_", StringComparison.Ordinal) };
-                if (!clip.LoadAudioData() || !clip.GetData(next.Data, 0))
+                using var sample = PreparePcm.Auto();
+                next = new Samples
                 {
-                    throw new InvalidOperationException("原作音频必须使用 DecompressOnLoad：" + clip.name);
+                    Asset = clip,
+                    Rate = clip.frequency,
+                    Channels = clip.channels,
+                    Frames = clip.samples,
+                    Data = new float[clip.samples * clip.channels],
+                    IsEffect = clip.name.StartsWith("Sfx_", StringComparison.Ordinal)
+                };
+                try
+                {
+                    if (!clip.LoadAudioData() || !clip.GetData(next.Data, 0))
+                    {
+                        throw new InvalidOperationException("原作音频必须使用 DecompressOnLoad：" + clip.name);
+                    }
+                    loaded.Add(clip, next);
                 }
-                loaded.Add(clip, next);
+                finally
+                {
+                    // DSP 只读自己的 PCM；复制完成即释放 Unity 解码副本，不保留两份长期缓存。
+                    clip.UnloadAudioData();
+                }
             }
             return next;
         }
 
-        private AudioClip Release(Samples samples)
+        private void Release(Samples samples)
         {
-            if (samples?.Asset != null && --samples.References == 0 && !samples.IsEffect)
+            if (samples?.Asset != null && --samples.References == 0 && !samples.IsEffect && !samples.IsPrepared)
             {
                 loaded.Remove(samples.Asset);
-                return samples.Asset;
             }
-            return null;
         }
 
         private void OnAudioFilterRead(float[] data, int channels)
@@ -282,9 +520,21 @@ namespace Hotfix.KagitKart
                 return;
             }
             double now = AudioSettings.dspTime;
-            lock (gate)
+            Voice[] current;
+            using (BlockSync.Auto())
             {
-                foreach (var voice in voices)
+                lock (gate)
+                {
+                    current = blockVoices;
+                    foreach (var voice in current)
+                    {
+                        voice.Capture();
+                    }
+                }
+            }
+            using (AudioBlock.Auto())
+            {
+                foreach (var voice in current)
                 {
                     voice.Prepare();
                 }
@@ -296,7 +546,7 @@ namespace Hotfix.KagitKart
                     {
                         float l = 0, r = 0;
                         double at = now + (double)frame / sampleRate;
-                        foreach (var voice in voices)
+                        foreach (var voice in current)
                         {
                             voice.Mix(at, ref l, ref r);
                         }
@@ -328,13 +578,7 @@ namespace Hotfix.KagitKart
             lock (gate)
             {
                 voices.Clear();
-            }
-            foreach (var clip in loaded.Keys)
-            {
-                if (clip != null)
-                {
-                    clip.UnloadAudioData();
-                }
+                blockVoices = Array.Empty<Voice>();
             }
             loaded.Clear();
             if (carrier != null)

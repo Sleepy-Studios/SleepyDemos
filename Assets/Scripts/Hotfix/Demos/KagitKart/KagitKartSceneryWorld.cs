@@ -44,6 +44,28 @@ namespace Hotfix.KagitKart
             Initialize();
         }
 
+        /// 重赛时恢复纸景弹出与坡道状态，保留解析数据和网格。
+        public void ResetPresentation()
+        {
+            Initialize();
+            dynamicsTime = 0;
+            emitTimer = pendingSize = 0;
+            for (int g = 0; g < states.Length; g++)
+            {
+                for (int i = 0; i < states[g].Length; i++)
+                {
+                    bool up = asset.popups[g].items[i].alwaysUp;
+                    states[g][i] = new PopupState { target = up, angle = up ? 1 : 0 };
+                    WritePose(asset.popups[g], i, up ? 1 : 0, 0);
+                }
+            }
+            Array.Clear(rampStates, 0, rampStates.Length);
+            for (int i = 0; i < rampStates.Length; i++)
+            {
+                rampTransforms[i].localRotation = rampRotations[i] * Quaternion.AngleAxis(asset.ramps[i].theta * Mathf.Rad2Deg, Vector3.right);
+            }
+        }
+
         private void Initialize()
         {
             if (poses != null || asset == null)

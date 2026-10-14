@@ -75,8 +75,10 @@ namespace Hotfix
             Button_Resume.interactable = !world.Busy && world.Session.Pause.CanResume;
             Button_Restart.interactable = Button_Title.interactable = Button_Hub.interactable
                 = Button_Settings.interactable = Button_Controls.interactable = !world.Busy;
+            if (world.Network?.Connected == true) Button_Restart.interactable = false;
             TextMeshProUGUI_Detail.text = quitArmed ? "杯赛进度将丢失。确定退出吗？再次选择“返回菜单”确认。"
                 : !world.Session.Pause.CanResume ? "请先返回游戏窗口或连接操作设备。"
+                : world.Network?.Connected == true ? "已停止本机操作，联机比赛仍在继续。"
                 : world.GrandPrix != null ? "大奖赛：重新开始后，本场不计入杯赛积分。" : "纸景和比赛已暂停。";
         }
 

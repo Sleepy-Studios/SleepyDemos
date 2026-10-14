@@ -2,12 +2,12 @@
 
 ## 当前职责
 
-独立规则归 `Hotfix.KagitKart`，不依赖场景、UI、全局 Time 设置或浏览器运行环境。不新增程序集，不修改其他 Demo 业务。标量轴读取与门闩、摇杆轴图标及触控保持组件复用 Core.Runtime，Demo 只转换驾驶命令。
+独立规则归 `Hotfix.KagitKart`，不依赖场景、UI、全局 Time 设置或浏览器运行环境。Demo 规则与页面仍在 Hotfix；通用联网与官方预测载体在独立 AOT 程序集 `Core.Networking.FishNet`，Core 不反向依赖 Hotfix。标量轴读取与门闩、摇杆轴图标及触控保持组件复用 Core.Runtime，Demo 只转换驾驶命令。
 
 | 类型 | 当前职责 |
 |---|---|
 | `KagitKartRandom` | 原作 Mulberry32 与 UTF-16 FNV-1a 命名分流，避免表现消耗 AI、道具、网格的随机序列。 |
-| `KagitKartSimulationClock` | 1/120 秒模拟、单帧 0.1 秒钳制、最多八步与丢弃积压；暂停不追赶。 |
+| `KagitKartSimulationClock` | 单人模式1/120秒模拟、单帧0.1秒钳制、最多八步与丢弃积压；暂停不追赶。联机使用FishNet固定步。 |
 | `KagitKartCountdown` | 360 个整数步倒计时与最后油门按下时机判定，只触发一次起跑。 |
 | `KagitKartRaceProgress` | 相对起跑线距离、顺序检查点、最大进度限速、正反圈线穿越、圈速及逆行显示门闩。 |
 | `KagitKartGhostRecorder` / `GhostPlayback` | 20 Hz 规则位置记录、保存量化、快照校验与最短角度插值；不参与碰撞。 |
@@ -22,19 +22,45 @@
 | `KagitKartRecordStore` | 原作按赛道、组别、角色保存独立计时记录，单圈和全程独立更新，只有更快全程替换幽灵。 |
 | `KagitKartAiPlan` / `Ai` | 原版静态线路、弯道、捷径探测与实时车手决策；技能和性格、漂移、道具、追赶、避障与救援均保留。 |
 | `KagitKartSession` | 网格、独立随机流、完整固定步模拟顺序、公共暂停门闩及本场实例释放。 |
+| `KagitKartNetworkRoom` | Host房间准入、成员/角色映射、准备与资源门闩、轮次版本、权威输入/结果和大奖赛章间衔接。只调用公共网络接口。 |
+| `KagitKartRaceResources` | Demo 内共享赛车、道具和效果实例；缓存当前赛道与大奖赛下一章，统一准备、切换、重置与退出释放。 |
 | `KagitKartInput` | 正式动作资产副本、原作按键和单轴死区、触控命令、自动油门、短按锁存和设备切换清理。 |
 | `KagitKartSceneryAsset` / `SceneryWorld` | 四章原生场景数据、实例纸景、折起弹簧与跳台姿态；印刷动画使用宿主的表现时间。 |
-| `KagitKartWorld` | 等待公共启动与场景导航稳定，持有本场 Loader、Session、赛车、幽灵和页面，返回前关闭具体 View。 |
+| `KagitKartWorld` | 等待公共启动与场景导航稳定，持有 Demo Loader、准备缓存和当前 Session，返回前关闭具体 View并释放共享实例。 |
 | `KagitKartData` / `Action` / `Handler` | 核对页面来源，提交暂停、重赛、下一章和返回；UI 读取唯一 Session。 |
 | `KagitKartCameraRig` | 原作镜头半衰期跟随、加速视野、回头和撞击震动，随本场解除规则订阅。 |
 | `KagitKartMinimap` | HUD 铅笔路线与本场车辆位置，不复制规则。 |
 | `KagitKartPostProcess` | 克隆本场纸印材质，临时安装官方全屏 Pass；世界 Base 相机单独描边与错版，切换管线或退出时恢复 Renderer。 |
 
+## 比赛准备与复用
+
+场景固定宿主保留正式场景预置；进入封面和更换选择时，`KagitKartRaceResources` 使用正式 Loader 提前解析数据、构造赛道查询及 AI 计划、实例化赛道、八角色、道具和效果。大奖赛准备当前章与下一章，不让四章全部常驻；正在使用的旧章在新章激活后清理。共享实例随 Demo 复用，重赛解除旧规则订阅并重置动画、纸景、道具与效果，再绑定新 Session。幽灵独立缓存，准备入口串行处理菜单预热与正式开赛请求，避免异步实例化重复创建；角色改变后替换该缓存。
+
+相同准备请求共用 UniTask `AsyncLazy`，选择版本和退出令牌阻止过期任务激活比赛。失败释放局部资源并允许下次准备重试。HUD、成绩、总榜和领奖页面通过 `UIManager.PreloadAsync` 准备并在关闭后隐藏缓存，退出 Demo 才关闭具体实例；领奖舞台也共用一次准备任务。菜单准备与正式开赛共用页面准备入口，快速开始时也会等待这四页和 GP 领奖舞台完成，避免旧选择任务提前退出后漏掉页面预热。章节音频准备与缓存见[音频维护](runbooks/audio.md)，实测范围见[本轮性能记录](runbooks/performance-2026-10-14.md)。
+
+`LoadRoundAsync` 在主线程读取赛道与AI路线 `TextAsset.text`，随后使用现有 `UniTask.RunOnThreadPool` 执行纯字符串反序列化与数据校验，完成后回到主线程、检查退出令牌，再发布结果和实例化场景。工作线程不访问Unity资产或修改准备缓存；异常和取消统一回主线程释放Loader。解析本身不接受中断令牌，已开始的解析会完成，但取消后的结果不能激活比赛。正式Profiler标记 `KagitKart.Resources.ParseTrack` 与 `KagitKart.Resources.ParseAiPlan` 用于核对工作线程耗时与分配；此调整转移主线程解析峰值，不能等同于消除总GC，需同条件复测结算/下一章准备阶段。
+
+漂移在地面、速度和转向条件满足后直接开始，取消启动弹跳与等待落地。AI 同样直接漂移，动画与声效不再订阅启动 Hop；蓄力、松开加速、取消条件和跳台独立特技仍保留。归档原作数据里的 hopVy 仅用于来源追溯，当前规则不读取它。
+
 ## 公共时间与模拟上限
 
-`World.Update` 将公共 `GameTimeService.DeltaTime` 交给本场固定步时钟，规则不再重复乘倍率。公共作用域与冻结生命周期见[设置与表现模块](../../modules/settings-presentation.md)，不另建 Demo 时间服务。
+单人模式的 `World.Update` 将公共 `GameTimeService.DeltaTime` 交给本场固定步时钟，规则不再重复乘倍率。公共作用域与冻结生命周期见[设置与表现模块](../../modules/settings-presentation.md)，不另建 Demo 时间服务。
 
 作者的单帧最多八步与丢弃积压仍保留，实际快进受帧率限制：理论最大比赛推进为实际 FPS × 8 / 120。不能保证低帧率下任意请求倍率完整兑现；比赛、圈时和 Ghost 共用模拟时钟，不为快进绕过八步保护。
+
+联机规则由 FishNet 的120Hz网络tick唯一推进，Host不同时执行客户端预测或单人时钟。客户端预测自己的赛车，远端赛车/道具由30Hz共享快照呈现；本地暂停、失焦和UI过渡提交中性输入，服务器比赛继续。Host打开/关闭暂停子页时，UI的Busy状态不阻止权威规则步，也不通过断供输入保留上一油门。联机维护边界见下节，操作见[联机手册](runbooks/multiplayer.md)。
+
+## 联机房间与状态同步
+
+`KagitKartWorld.Network.cs` 负责页面与比赛资源生命周期，`KagitKartNetworkRoom.cs` 实现公共 `INetworkSimulation` 并解释房间命令。`KagitKartSession.NetworkState.cs`、`KagitKartVehicle.NetworkState.cs`、`KagitKartItems.NetworkState.cs`、`KagitKartRace.NetworkState.cs` 与 `KagitKartRaceProgress.NetworkState.cs` 维护当前二进制比赛协议；SDK、连接身份、可靠传输、载体Spawn和官方预测历史归[通用网络会话](../../modules/network-session.md)。
+
+房间状态为 `Lobby → Preparing → Racing → Results`。Host只允许大厅准入，角色不能重复，动态容量2/4/8与传输八连接上限分开。成员行使用公共 `AuthorityMemberId` 标识房主，不依赖显示名或成员顺序。开始需要至少两名连接中的真人且全员Ready；每次开始递增RoundVersion、设定种子/网格、清理旧输入和瞬时事件。各端通过真实World准备资源后发送Loaded，全部连接成员Loaded才统一倒计时；60秒准备超时或真人不足回大厅，取消旧轮次任务并清理断线名额。比赛中断线车由Host启用AI托管，Host退出结束整个房间；本版不做权威迁移、观战或比赛中重新加入。
+
+服务器Replicate只更新真实连接对应的输入，AuthorityTick推进AI、全部赛车、碰撞、道具和比赛规则一次；输入超过120个服务器tick未更新时归零。客户端只预测Vehicle，不独立决定道具命中、圈数、名次或积分。官方Reconcile包含车辆隐藏计时、上一输入、运动/漂移/救援/道具状态及道路查询Index；共享快照保留当前本地拥有者状态，避免覆盖较新的预测，比赛条目的权威Place单独交付排名及冲线事件。预测过程抑制表现信号，权威事件携带发生时的Tier、AirTime、Impact及加速/受击上下文，分发后恢复当前状态。
+
+房间准备/开始与最终赛果使用可靠快照，普通共享比赛状态请求不可靠通道。八车完整快照通常4～8KiB，超过MTU后官方会转为可靠分片并重组，丢片会带来重传与队头等待；约400B的拥有者校正可低于MTU。当前保持完整状态正确性，弱网实测后再决定是否精简呈现快照。不能通过声明不可靠或提高延迟参数忽略这个边界。
+
+联机大奖赛仍按四章积分规则运行，章间返回原房间重新准备，未完成杯赛保持Results阶段，禁止新成员加入或修改选赛。后续章节由Host选择并按积分倒序排网格；后续章准备超时后重试保留当前章节与已提交积分，按同一积分重建逆序网格，不因 `RoundComplete` 已清除而退回默认角色顺序。四章结束后可重开大厅，新杯赛从草原和新积分状态开始。退出网络时先取消准备任务、退订规则事件并解除Simulation，再等待公共LeaveAsync收口后Dispose；资源与View仍由World正常释放。
 
 ## 纸印后处理
 
@@ -64,6 +90,8 @@
 
 `KagitKartRecordStore` 复用 [公共本地存储](../../modules/local-data.md)，文件为 persistentDataPath/KagitKart/Records/<赛道>-<组别>-<角色>.json，路径集中在 Hotfix 的 `LocalDataKeys`。读取失败或完整记录校验失败统一返回空记录，不局部修补成绩或幽灵，不自动写默认值。保存先校验真实三圈快照，最好单圈独立更新，只有更快全程替换幽灵；写入成功后才返回候选。保存失败交给场景宿主提示，不提交内存中的保存成功状态。
 
+计时赛本场加载一次记录，幽灵与结算复用同一记录；完赛将本场记录传给 `SaveBest`，保存成功后复用返回值显示成绩，避免完赛后再次读盘与解析。写盘仍保留公共存储的文件保护和失败反馈。
+
 幽灵分段保存按原作毫秒量化，完整快照校验允许半毫秒量化误差，同时拒绝明显越界分段；不能把不合法幽灵从记录中剥离后保留成绩。
 
 ## 本场模拟与 AI
@@ -72,7 +100,7 @@
 
 正式资产为 `Data/PlayerInput.asset`，比赛使用 Drive，全局快捷键使用 Global；键盘、标准手柄和触屏最终都输出 `KagitKartControls`。菜单确认和返回使用 Core 的 `UIMenuScope`，不新增菜单输入底座。操作提示绑定同一会话动作副本，手柄单轴复用公共会话的死区参数，方向键覆盖摇杆。
 
-宿主每帧先 `CaptureFrame`，然后用缓存的读取委托调用 `Session.AdvanceInputFrame`，在每个固定步 `ReadControls(是否倒计时)`。零步帧不丢短按，追赶步不重复消费短按；按住泡泡糖与漂移保留持续状态。触控通过公共 `InputCommandButton.HoldChanged` 接入，转向由 Left / Right 两个保持命令交付，不再使用横向滑条。自动油门默认关闭，倒计时始终手动油门，主动刹车优先。
+宿主每帧先 `CaptureFrame`；单人模式用缓存的读取委托调用 `Session.AdvanceInputFrame`，联机模式由拥有者网络tick读取同一 `ReadControls(是否倒计时)`。零步帧不丢短按，追赶步不重复消费短按；按住泡泡糖与漂移保留持续状态，漂移直接进入地面漂移，起漂不再额外起跳，真实跳台与特技保留。触控通过公共 `InputCommandButton.HoldChanged` 接入，转向由 Left / Right 两个保持命令交付，不再使用横向滑条。自动油门默认关闭，倒计时始终手动油门，主动刹车优先。
 
 输入类别切换或更换手柄时清空旧触控与锁存命令；键盘和鼠标互切只更新设备提示，保留持续驾驶和已缓存短按。交付的触控命令按原作与当前物理命令合并，转向取绝对值较大者、油门和刹车取较大者、按钮取或。显式开启触控不伪造设备识别，鼠标也可操作保存的触控组件。隐藏触控区会释放保持按钮与转向值。`InputCleared` 由宿主连接本场命令和触控组件清理；失焦、后台、手柄断连同时调用 `ResetInput` 和公共暂停门闩。退出释放输入副本和设备订阅。
 
@@ -110,7 +138,7 @@ Paper / Items 的屏幕 halftone 将输出像素间距按实际渲染目标高�
 
 ## 场景与页面生命周期
 
-`World` 等待 `DemoIslandEditorBootstrap.EnsureReadyAsync` 和 `GameSceneNavigator.WaitUntilStableAsync`，通过公共 Loader 加载原作配置、赛道、AI 路线和角色资产。比赛 Loader 每场独立释放，退出同时解除输入、暂停与镜头订阅；不在 MonoBehaviour 字段初始化中读取本地存储路径。大奖赛下一章使用现有积分状态，重赛调用原作回滚；计时赛读取最佳幽灵，并在实际完赛后按当前完整记录契约保存。
+`World` 等待 `DemoIslandEditorBootstrap.EnsureReadyAsync` 和 `GameSceneNavigator.WaitUntilStableAsync`，通过公共 Loader 加载原作配置、赛道、AI 路线和角色资产。比赛共享实例与章节 Loader 由 `KagitKartRaceResources` 持有，按当前章、下一章和使用中章节裁剪，退出 Demo 时统一释放；本场重开解除旧输入、暂停与镜头订阅并重新绑定。不在 MonoBehaviour 字段初始化中读取本地存储路径。大奖赛下一章使用现有积分状态，重赛调用原作回滚；计时赛读取最佳幽灵，并在实际完赛后按当前完整记录契约保存。
 
 HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建全局 Canvas/EventSystem，触控按钮复用 `InputCommandButton`，左右转向按钮从本 Demo Foundation 嵌套并通过正式 UIBind 生成引用；提示绑定实际动作并复用 `InputBindingPrompt` 和项目图标目录。驾驶使用公共 `MenuInputScope.Interaction` 关闭菜单 Submit，暂停和结算通过 `UIMenuScope` 接管焦点，避免漂移 Space 同时确认 HUD 按钮。
 
@@ -202,6 +230,7 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 
 ## 验证与维护边界
 
+- 玩家Host操作与联机验收边界见[联机手册](runbooks/multiplayer.md#2026-10-14-联机验收)。2026-10-14 同进程真实UDP公共契约、两个独立Editor完整World、四组UDP抖动/丢包、四章联机大奖赛、失败恢复及GP后续章真实60秒准备超时重试已通过定向验证；超时重试 `a2afea3b` 为1/1，确认同章、积分不变及实际逆序网格。每章八车赛果/积分及后续逆序网格两端一致，包含领奖、新杯清零与Host退出；实测使用原生NetPeer RTT，不把FishNet RTT零值或目标延迟当成真实延迟。独立Player/IL2CPP与真实双机尚未验证。
 - 当前玩法、源算法、坐标转换、资源地址和生命周期以上述正文与 [源码维护](runbooks/source-migration.md) 为准。存档只遵守“计时记录”中的当前完整记录契约，不恢复旧部分修补行为。
 - 定向验收覆盖与尚未验证范围见 [验收对照](runbooks/acceptance.md)；设备模拟、合成轨迹、自动驾驶、GPU样本和人工驾驶分别记录，不相互替代。
 - 2026-10-10/11阶段数量、job、早期结构与“未完成”原文保存在 [验证历史](../../agent/archive/kagit-validation-history.md)；旧结果不能证明本次治理后的代码已重新验证。

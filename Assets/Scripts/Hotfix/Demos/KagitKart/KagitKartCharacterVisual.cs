@@ -128,7 +128,7 @@ namespace Hotfix.KagitKart
             }
             if (ghost)
             {
-                ghostMaterial = new Material(skin.sharedMaterial);
+                ghostMaterial ??= new Material(skin.sharedMaterial);
                 ghostMaterial.SetVector("_BaseColor", new Color(213 / 255f, 228 / 255f, 1, 0.42f).linear);
                 ghostMaterial.SetFloat("_UseHalftone", 0);
                 ghostMaterial.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
@@ -577,12 +577,30 @@ namespace Hotfix.KagitKart
 
         private static float EaseOut(float p) => 1 - (1 - p) * (1 - p) * (1 - p);
 
-        private void OnDestroy()
+        /// 退订旧赛车并复位动画状态，不重新创建角色资源。
+        public void Unbind()
         {
             if (kart != null)
             {
                 kart.Signaled -= OnSignal;
             }
+            kart = null;
+            forced = spinCause = null;
+            t = angF = angR = propAng = 0;
+            steer = drift = tier = boost = lookBack = ink = hang = speedN = throttle = 0;
+            sq = sqV = air = flat = flatV = wobble = 0;
+            cheer = sad = dizzy = idle = flashT = flashDur = 0;
+            spinning = havePrevious = false;
+            wasGrounded = true;
+            trickT = -1;
+            spins = 0;
+            spinP = 0;
+            spinTotal = spinDir = trickDir = 1;
+        }
+
+        private void OnDestroy()
+        {
+            Unbind();
             if (ghostMaterial != null)
             {
                 Destroy(ghostMaterial);

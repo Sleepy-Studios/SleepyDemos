@@ -20,7 +20,6 @@ namespace Hotfix.KagitKart
         Boost,
         Hit,
         Inked,
-        Hop,
         DriftStart,
         DriftTier,
         DriftRelease,
@@ -35,7 +34,7 @@ namespace Hotfix.KagitKart
     }
 
     /// 迁移 kart.js 的运动真源；位置保留原作坐标，禁止直接赋给场景 Transform。
-    public sealed class KagitKartVehicle
+    public sealed partial class KagitKartVehicle
     {
         private readonly KagitKartConfiguration configuration;
         private readonly KagitKartKartTuning tuning;
@@ -53,8 +52,6 @@ namespace Hotfix.KagitKart
         private bool onPad;
         private bool wallContact;
         private float lastWallImpact = -9;
-        private bool hopActive;
-        private int hopDirection;
         private float trickArmedAt = -9;
         private float trickLeftGroundAt = -9;
         private int trickFromRamp = -1;
@@ -75,10 +72,11 @@ namespace Hotfix.KagitKart
 
         public string Id { get; }
         public bool IsPlayer { get; }
+        /// 是否由真人控制；本地玩家标识只用于本机表现。
+        public bool IsHuman { get; }
         public KagitKartCharacter Character { get; }
         public KagitKartControls Controls { get; set; }
         internal KagitKartControls PreviousControls => previousControls;
-        internal bool HopActive => hopActive;
         internal bool WallContact => wallContact;
         public int Place { get; internal set; } = 1;
         public double Progress { get; internal set; }
@@ -119,7 +117,6 @@ namespace Hotfix.KagitKart
         public float AirTime => airTime;
         public float VerticalSpeed => verticalSpeed;
         public float OutTime => outTime;
-        public int HopDirection => hopDirection;
         public Vector3 RescueFrom => rescueFrom;
         public Vector3 RescueTo => rescueTo;
         public float RescueHeading => rescueHeading;
@@ -146,7 +143,7 @@ namespace Hotfix.KagitKart
         /// <param name="speedClass">80、120 或 200。</param>
         /// <param name="isPlayer">玩家使用原作更高的加速上限。</param>
         public KagitKartVehicle(KagitKartConfiguration configuration, KagitKartTrackQuery track,
-            KagitKartCharacter character, int speedClass, bool isPlayer)
+            KagitKartCharacter character, int speedClass, bool isPlayer, bool isHuman = false)
         {
             this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             this.track = track ?? throw new ArgumentNullException(nameof(track));
@@ -155,6 +152,7 @@ namespace Hotfix.KagitKart
             tuning = configuration.kart;
             Id = character.id;
             IsPlayer = isPlayer;
+            IsHuman = isPlayer || isHuman;
             Mass = 1 + tuning.statWeight * (stats.weight - 3);
             SetClass(speedClass);
         }
@@ -184,7 +182,6 @@ namespace Hotfix.KagitKart
             SpinCause = null;
             steerLock = 0;
             launchWindow = false;
-            hopActive = false;
             trickFromRamp = -1;
             trickPending = false;
             wallContact = false;
@@ -289,7 +286,6 @@ namespace Hotfix.KagitKart
             CancelDrift();
             BoostTime = 0;
             SpinTime = 0;
-            hopActive = false;
             RescueStage = 1;
             rescueTime = 0;
             rescueFrom = Position;
@@ -389,7 +385,7 @@ namespace Hotfix.KagitKart
             bool growing = Mathf.Abs(target) > Mathf.Abs(SteerInput) && Sign(target) != -Sign(SteerInput);
             SteerInput = Mathf.MoveTowards(SteerInput, target, dt / (growing ? tuning.steerRampIn : tuning.steerRampOut));
             TopSpeed = BaseTop * RubberBand * (InvincibleTime > 0 ? 1 + tuning.invincibleTopGain : 1);
-            float boostGain = IsPlayer ? tuning.playerBoostTopGain : tuning.boostTopGain;
+            float boostGain = IsHuman ? tuning.playerBoostTopGain : tuning.boostTopGain;
             float cap = TopSpeed;
             if (boosting)
             {
@@ -460,22 +456,17 @@ namespace Hotfix.KagitKart
             {
                 trickArmedAt = clock;
             }
-            else if (driftPressed && Grounded && !Drifting && f > tuning.driftMinStart)
+            else if (driftPressed && Grounded && !Drifting && f > tuning.driftMinStart && Mathf.Abs(Controls.Steer) > tuning.driftSteerDeadzone)
             {
-                verticalSpeed = tuning.hopVy;
-                Grounded = false;
-                airTime = 0;
-                hopActive = true;
-                hopDirection = Mathf.Abs(Controls.Steer) > tuning.driftSteerDeadzone ? Sign(Controls.Steer) : 0;
-                Emit(KagitKartVehicleSignal.Hop);
+                Drifting = true;
+                DriftDirection = Sign(Controls.Steer);
+                DriftCharge = 0;
+                DriftTier = 0;
+                Emit(KagitKartVehicleSignal.DriftStart);
             }
             else if (driftPressed && !Grounded && trickFromRamp >= 0 && !trickDone && clock - trickLeftGroundAt <= tuning.trickAfter)
             {
                 DoTrick();
-            }
-            if (hopActive && !Grounded && Mathf.Abs(Controls.Steer) > tuning.driftSteerDeadzone)
-            {
-                hopDirection = Sign(Controls.Steer);
             }
             UpdateDrift(f, spinning, dt);
             float handling = 1 + tuning.statHandling * (stats.handling - 3);
@@ -760,19 +751,6 @@ namespace Hotfix.KagitKart
                 Boost("trick", "trick");
             }
             trickFromRamp = -1;
-            if (!hopActive)
-            {
-                return;
-            }
-            hopActive = false;
-            if (hopDirection != 0 && Controls.Drift && Vector3.Dot(Velocity, Forward(Heading)) > tuning.driftMinHold && SpinTime <= 0)
-            {
-                Drifting = true;
-                DriftDirection = hopDirection;
-                DriftCharge = 0;
-                DriftTier = 0;
-                Emit(KagitKartVehicleSignal.DriftStart);
-            }
         }
 
         private void AdvanceRescue(double dt)
@@ -879,7 +857,10 @@ namespace Hotfix.KagitKart
             ApplyBoost(boost[0], boost[1], source);
         }
 
-        private void Emit(KagitKartVehicleSignal signal) => Signaled?.Invoke(this, signal);
+        private void Emit(KagitKartVehicleSignal signal)
+        {
+            if (!SuppressSignals) Signaled?.Invoke(this, signal);
+        }
         private static int Sign(float value) => value > 0 ? 1 : value < 0 ? -1 : 0;
         private static double OriginalStep(float seconds) =>
             seconds == (float)KagitKartSimulationClock.Step ? KagitKartSimulationClock.Step : seconds;

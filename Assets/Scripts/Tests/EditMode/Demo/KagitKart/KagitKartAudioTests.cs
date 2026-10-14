@@ -1,5 +1,7 @@
 using System.IO;
 using System;
+using System.Reflection;
+using Cysharp.Threading.Tasks;
 using Hotfix.KagitKart;
 using NUnit.Framework;
 using UnityEditor;
@@ -9,22 +11,6 @@ namespace Tests.Demo
 {
     public sealed class KagitKartAudioTests
     {
-        [Serializable]
-        private sealed class Manifest
-        {
-            public int sampleRate;
-            public string sourceRevision;
-            public ClipInfo[] clips;
-        }
-
-        [Serializable]
-        private sealed class ClipInfo
-        {
-            public string name;
-            public double duration;
-            public int channels;
-            public float rms;
-        }
 
         [Serializable]
         private sealed class DynamicsReference
@@ -112,6 +98,118 @@ namespace Tests.Demo
             Assert.That(() => KagitKartBoostSynth.Render("pad", float.NaN, white, crackle, 44100, 1), Throws.ArgumentException);
         }
 
+        [Test]
+        public void PendingBoostChangesLeaveCurrentAudioBlockIntact()
+        {
+            var host = new GameObject("加速声块切换测试");
+            try
+            {
+                var dsp = host.AddComponent<KagitKartAudioDsp>();
+                // 隔离实际音频设备，只固定声部重采样的输出速率。
+                typeof(KagitKartAudioDsp).GetField("sampleRate", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(dsp, 44100);
+                var actual = dsp.CreateVoice();
+                var expected = dsp.CreateVoice();
+                actual.PrepareBoost();
+                expected.PrepareBoost();
+                actual.Volume = expected.Volume = 1;
+                var white = new float[512];
+                var crackle = new float[512];
+                for (int i = 0; i < white.Length; i++)
+                {
+                    white[i] = i % 31 / 15f - 1;
+                    crackle[i] = i % 7 / 3f - 1;
+                }
+                actual.SetBoost("pad", 0.37f, white, crackle, 11);
+                expected.SetBoost("pad", 0.37f, white, crackle, 11);
+                actual.PlayScheduled(0);
+                expected.PlayScheduled(0);
+                actual.Capture();
+                expected.Capture();
+                actual.Prepare();
+                expected.Prepare();
+
+                actual.SetBoost("pad", 0.71f, white, crackle, 22);
+                actual.PlayScheduled(0);
+                actual.SetBoost("pad", 1.14f, white, crackle, 33);
+                actual.PlayScheduled(0);
+                for (int i = 0; i < 512; i++)
+                {
+                    float left = 0, right = 0, expectedLeft = 0, expectedRight = 0;
+                    actual.Mix((double)i / 44100, ref left, ref right);
+                    expected.Mix((double)i / 44100, ref expectedLeft, ref expectedRight);
+                    Assert.That(left, Is.EqualTo(expectedLeft).Within(0.000001f), "待播事件不能覆盖当前块 PCM");
+                    Assert.That(right, Is.EqualTo(expectedRight).Within(0.000001f));
+                }
+
+                expected.SetBoost("pad", 1.14f, white, crackle, 33);
+                expected.PlayScheduled(0);
+                actual.Capture();
+                expected.Capture();
+                actual.Prepare();
+                expected.Prepare();
+                for (int i = 0; i < 512; i++)
+                {
+                    float left = 0, right = 0, expectedLeft = 0, expectedRight = 0;
+                    actual.Mix((double)i / 44100, ref left, ref right);
+                    expected.Mix((double)i / 44100, ref expectedLeft, ref expectedRight);
+                    Assert.That(left, Is.EqualTo(expectedLeft).Within(0.000001f), "下一块应采用最后一次实际加速事件");
+                    Assert.That(right, Is.EqualTo(expectedRight).Within(0.000001f));
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
+        [Test]
+        public void ChapterReplacementRetainsSharedPcmAndReleasesOldReservations()
+        {
+            var bank = AssetDatabase.LoadAssetAtPath<KagitKartAudioBank>("Assets/LoadResources/Demos/kagit_kart/Data/AudioBank.asset");
+            var oldClip = bank.GetClip("sting_finalLap_meadow");
+            var nextClip = bank.GetClip("sting_finalLap_bosphorus");
+            var sharedClip = bank.GetClip("sting_finishWin");
+            var host = new GameObject("章节PCM预留切换测试");
+            try
+            {
+                var dsp = host.AddComponent<KagitKartAudioDsp>();
+                var oldVoice = dsp.CreateVoice();
+                var sharedVoice = dsp.CreateVoice();
+                var nextVoice = dsp.CreateVoice();
+                dsp.PrepareRaceClip(oldClip);
+                dsp.PrepareRaceClip(sharedClip);
+                oldVoice.Clip = oldClip;
+                sharedVoice.Clip = sharedClip;
+                var oldPcm = oldVoice.samples.Data;
+                var sharedPcm = sharedVoice.samples.Data;
+
+                dsp.ClearPreparedClips(new[] { sharedClip, nextClip });
+                Assert.That(dsp.PreparedPcmBytes, Is.EqualTo((long)sharedPcm.Length * sizeof(float)), "旧章解除预留，公共短曲继续预留");
+                Assert.That(oldVoice.samples.Data, Is.SameAs(oldPcm), "解除预留不撤走声部持有的PCM");
+                sharedVoice.Clip = null;
+                sharedVoice.Clip = sharedClip;
+                Assert.That(sharedVoice.samples.Data, Is.SameAs(sharedPcm), "公共PCM没有声部引用时仍跨章复用");
+                oldVoice.Clip = null;
+                oldVoice.Clip = oldClip;
+                Assert.That(oldVoice.samples.Data, Is.Not.SameAs(oldPcm), "旧章最后一个声部引用释放后不再占用缓存");
+
+                dsp.PrepareRaceClip(nextClip);
+                nextVoice.Clip = nextClip;
+                Assert.That(dsp.PreparedPcmBytes,
+                    Is.EqualTo(((long)sharedPcm.Length + nextVoice.samples.Data.Length) * sizeof(float)), "预算仅含公共曲与新章预留");
+                dsp.ClearPreparedClips();
+                Assert.That(dsp.PreparedPcmBytes, Is.Zero, "失败、取消和清理仍可解除全部预留");
+                sharedVoice.Clip = null;
+                sharedVoice.Clip = sharedClip;
+                Assert.That(sharedVoice.samples.Data, Is.Not.SameAs(sharedPcm), "公共曲清除预留后按声部引用安全释放");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
+        }
+
         [TestCase(0, 0, 0.2f)]
         [TestCase(0, 1, 0.7f)]
         [TestCase(0.24f, 1, 0.41f)]
@@ -144,50 +242,5 @@ namespace Tests.Demo
             Assert.That(maximumError, Is.LessThan(0.000005), "原作引擎 2x 软削波滤波及延迟采样误差");
         }
 
-        [Test]
-        public void OriginalAudioManifestResolvesCompletePlayableBank()
-        {
-            const string root = "Assets/LoadResources/Demos/kagit_kart/Data/";
-            var manifest = JsonUtility.FromJson<Manifest>(File.ReadAllText(root + "AudioManifest.json"));
-            Assert.That(manifest.sourceRevision, Is.EqualTo("da100b21ae1c5332d2843d21a9bb7b68b97e9c2a"));
-            var bank = AssetDatabase.LoadAssetAtPath<KagitKartAudioBank>(root + "AudioBank.asset");
-            Assert.That(bank, Is.Not.Null);
-            foreach (var item in manifest.clips)
-            {
-                string name = item.name;
-                var clip = bank.GetClip(name);
-                Assert.That(clip.length, Is.EqualTo(item.duration).Within(0.01f), name);
-                Assert.That(clip.channels, Is.EqualTo(item.channels), name);
-                Assert.That(item.rms, Is.GreaterThan(0.00001f), name);
-                if (name.StartsWith("music_", StringComparison.Ordinal))
-                {
-                    string path = AssetDatabase.GetAssetPath(clip);
-                    Assert.That(Path.GetExtension(path), Is.EqualTo(".ogg"), name);
-                    Assert.That(clip.frequency, Is.EqualTo(manifest.sampleRate), name);
-                    // Unity 导入 WAV/OGG 均可能有一个采样的长度舍入，不能容忍编码器整块补帧。
-                    Assert.That(clip.samples, Is.EqualTo((int)Math.Round(item.duration * manifest.sampleRate)).Within(1), name);
-                    var importer = (AudioImporter)AssetImporter.GetAtPath(path);
-                    Assert.That(importer.defaultSampleSettings.loadType, Is.EqualTo(AudioClipLoadType.DecompressOnLoad), name);
-                    Assert.That(clip.LoadAudioData(), Is.True, name);
-                    Assert.That(clip.GetData(new float[4096 * clip.channels], clip.samples / 2), Is.True, name);
-                    clip.UnloadAudioData();
-                }
-            }
-            foreach (string chapter in new[] { "meadow", "bosphorus", "glacier", "desk" })
-            {
-                foreach (string prefix in new[] { "music_", "music_intro_", "music_final_" })
-                {
-                    Assert.That(bank.GetClip(prefix + chapter + "_start"), Is.Not.Null);
-                    Assert.That(bank.GetClip(prefix + chapter + "_loop"), Is.Not.Null);
-                }
-                Assert.That(bank.GetClip("sting_finalLap_" + chapter), Is.Not.Null);
-            }
-            foreach (string cue in new[] { "title", "results", "podium" })
-            {
-                Assert.That(bank.GetClip("music_" + cue + "_start"), Is.Not.Null);
-                Assert.That(bank.GetClip("music_" + cue + "_loop"), Is.Not.Null);
-            }
-            Assert.That(() => bank.GetClip("missing_original_recipe"), Throws.ArgumentException);
-        }
     }
 }

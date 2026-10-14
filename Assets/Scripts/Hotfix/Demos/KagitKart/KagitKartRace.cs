@@ -106,7 +106,7 @@ namespace Hotfix.KagitKart
     }
 
     /// race.js 的排名、完赛等待与结算；宿主按原作在道具之后更新比赛规则。
-    public sealed class KagitKartRace : IDisposable
+    public sealed partial class KagitKartRace : IDisposable
     {
         private readonly KagitKartConfiguration configuration;
         private readonly KagitKartTrackQuery track;
@@ -121,6 +121,7 @@ namespace Hotfix.KagitKart
         private readonly Action<int, int, double>[] checkpointHandlers;
         private double lastTime;
         private bool disposed;
+        private readonly bool multiplayer;
 
         public KagitKartRaceMode Mode { get; }
         public KagitKartRaceState State { get; private set; } = KagitKartRaceState.Countdown;
@@ -144,7 +145,7 @@ namespace Hotfix.KagitKart
         /// <param name="previousGhost">本赛道及组别经过校验的最佳幽灵，可为空。</param>
         public KagitKartRace(KagitKartConfiguration configuration, KagitKartTrackQuery track,
             IReadOnlyList<KagitKartVehicle> karts, KagitKartRaceMode mode, KagitKartGrandPrix grandPrix = null,
-            KagitKartGhostData previousGhost = null)
+            KagitKartGhostData previousGhost = null, bool multiplayer = false)
         {
             this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             this.track = track ?? throw new ArgumentNullException(nameof(track));
@@ -163,6 +164,7 @@ namespace Hotfix.KagitKart
                 throw new ArgumentException("最佳幽灵记录损坏。", nameof(previousGhost));
             }
             this.grandPrix = grandPrix;
+            this.multiplayer = multiplayer;
             this.previousGhost = previousGhost;
             Mode = mode;
             Laps = track.Track.definition.laps;
@@ -395,7 +397,7 @@ namespace Hotfix.KagitKart
             finishOrder.Add(entry);
             UpdatePlaces();
             Emit("finish", entry.Vehicle, entry.Vehicle.Place, time);
-            if (entry.Vehicle.IsPlayer)
+            if (multiplayer ? entry.Vehicle.IsHuman : entry.Vehicle.IsPlayer)
             {
                 entry.Vehicle.Autopilot = true;
                 if (State == KagitKartRaceState.Running)

@@ -5,7 +5,7 @@ using Core.Runtime.Inputs;
 namespace Hotfix.KagitKart
 {
     /// 本场完整模拟链路；场景宿主负责公共资源、页面、输入和表现生命周期。
-    public sealed class KagitKartSession : IDisposable
+    public sealed partial class KagitKartSession : IDisposable
     {
         private readonly KagitKartSimulationClock clock = new();
         private readonly KagitKartVehicle[] karts;
@@ -13,6 +13,8 @@ namespace Hotfix.KagitKart
         private KagitKartControls playerControls;
         private Func<KagitKartControls> readPlayerInput;
         private bool disposed;
+        private float lastNetworkSnapshot;
+        internal bool Networked { get; private set; }
 
         public KagitKartTrackQuery Track { get; }
         public KagitKartRace Race { get; }
@@ -24,7 +26,8 @@ namespace Hotfix.KagitKart
         public LocalPauseState Pause { get; } = new();
         public double RaceTime { get; private set; }
         public float BumpImpulse { get; }
-        public double Interpolation => Pause.IsPaused || Race.State == KagitKartRaceState.Done ? 1 : clock.Alpha;
+        public double Interpolation => Networked ? UnityEngine.Mathf.Clamp01((UnityEngine.Time.unscaledTime - lastNetworkSnapshot) * 30)
+            : Pause.IsPaused || Race.State == KagitKartRaceState.Done ? 1 : clock.Alpha;
 
         /// <summary>组装本场规则，原作随机网格与大奖赛逆积分网格均在这里生成。</summary>
         /// <param name="source">已校验的源码配置及八角色。</param>
@@ -38,7 +41,7 @@ namespace Hotfix.KagitKart
         /// <param name="ghost">计时赛最佳幽灵，可为空。</param>
         public KagitKartSession(KagitKartSourceCatalog source, KagitKartTrackData data, KagitKartAiPlan plan,
             KagitKartRaceMode mode, string characterId, int speedClass, uint seed,
-            KagitKartGrandPrix grandPrix = null, KagitKartGhostData ghost = null)
+            KagitKartGrandPrix grandPrix = null, KagitKartGhostData ghost = null, string[] grid = null, string[] humanIds = null)
         {
             if (source == null || data == null || plan == null)
             {
@@ -82,11 +85,23 @@ namespace Hotfix.KagitKart
                     others.Add(Array.Find(source.roster, value => value.id == id));
                 }
             }
+            if (grid != null)
+            {
+                others.Clear();
+                foreach (string id in grid)
+                {
+                    var entry = Array.Find(source.roster, value => value.id == id);
+                    if (entry == null || others.Contains(entry)) throw new ArgumentException("联机网格角色缺失或重复。", nameof(grid));
+                    others.Add(entry);
+                }
+            }
+            Networked = humanIds != null;
             var slots = Track.GridSlots(others.Count);
             karts = new KagitKartVehicle[slots.Length];
             for (int i = 0; i < karts.Length; i++)
             {
-                var kart = new KagitKartVehicle(source.config, Track, others[i], speedClass, others[i] == character);
+                var kart = new KagitKartVehicle(source.config, Track, others[i], speedClass, others[i] == character,
+                    humanIds != null && Array.IndexOf(humanIds, others[i].id) >= 0);
                 kart.PlaceAt(slots[i].Position, slots[i].Heading);
                 karts[i] = kart;
                 if (kart.IsPlayer)
@@ -96,7 +111,7 @@ namespace Hotfix.KagitKart
             }
             try
             {
-                Race = new KagitKartRace(source.config, Track, karts, mode, grandPrix, ghost);
+                Race = new KagitKartRace(source.config, Track, karts, mode, grandPrix, ghost, Networked);
                 Items = new KagitKartItems(source.config, Track, karts, random.Fork("items"), speedClass, mode == KagitKartRaceMode.TimeTrial);
                 Collisions = new KagitKartCollisions(karts, source.config.kart);
                 Ai = new KagitKartAi(source.config, Track, plan, Race, Items, karts, random.Fork("ai"), speedClass);
@@ -186,6 +201,11 @@ namespace Hotfix.KagitKart
             {
                 Player.Controls = readPlayerInput != null ? readPlayerInput() : playerControls;
             }
+            AdvanceRules(seconds);
+        }
+
+        private void AdvanceRules(double seconds)
+        {
             Ai.Advance(seconds, RaceTime);
             foreach (var kart in karts)
             {
@@ -194,6 +214,39 @@ namespace Hotfix.KagitKart
             Collisions.Advance((float)seconds);
             Items.Advance(seconds, RaceTime, Race.State != KagitKartRaceState.Countdown);
             Race.Advance(seconds, RaceTime);
+        }
+
+        /// <summary>由网络服务器唯一固定步推进，不使用本机积压丢步时钟。</summary>
+        /// <param name="seconds">网络固定步长。</param>
+        /// <param name="inputs">以角色 ID 映射的可信输入。</param>
+        public void AdvanceNetwork(float seconds, IReadOnlyDictionary<string, KagitKartControls> inputs)
+        {
+            if (disposed || Race.State == KagitKartRaceState.Done) return;
+            if (Race.State != KagitKartRaceState.Countdown) RaceTime += seconds;
+            foreach (var kart in karts)
+            {
+                if (kart.IsHuman && !kart.Autopilot)
+                {
+                    kart.Controls = inputs.TryGetValue(kart.Id, out var controls) ? controls : default;
+                }
+            }
+            AdvanceRules(seconds);
+        }
+
+        internal void Predict(float seconds, KagitKartControls controls, bool replay)
+        {
+            if (disposed || Player.Autopilot || Race.State == KagitKartRaceState.Done) return;
+            // 单次表现由权威事件确认；预测和重放只改变可回滚的运动状态。
+            Player.SuppressSignals = true;
+            try
+            {
+                Player.Controls = controls;
+                Player.Advance(seconds);
+            }
+            finally
+            {
+                Player.SuppressSignals = false;
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-#if UNITY_EDITOR
+﻿#if UNITY_EDITOR
 using System.Collections;
 using System.Linq;
 using Core.Runtime;
@@ -59,7 +59,7 @@ namespace Tests.Demo
                 Assert.That(hud.gameObject.GetComponentInChildren<KagitKartHudInk>(true).gameObject.activeInHierarchy, Is.False, "结束隐藏 Ink 独立层");
                 Assert.That(results.gameObject.GetComponentsInChildren<Button>(true).Single(button => button.name == "Next").gameObject.activeInHierarchy,
                     Is.False, "单场不出现总榜或下一章入口");
-                Assert.That(UIManager.Instance.Get<KagitKartStandingsView>(), Is.Null);
+                Assert.That(UIManager.Instance.Get<KagitKartStandingsView>()?.State, Is.Not.EqualTo(ViewState.Visible));
                 var restart = Button(results, "Restart");
                 Assert.That(restart.IsInteractable(), Is.True);
                 Assert.That(restart.GetComponentInChildren<TMPro.TMP_Text>().text, Is.EqualTo("再赛一场"));
@@ -89,8 +89,8 @@ namespace Tests.Demo
                     Assert.That(world.CharacterId, Is.EqualTo("tilki"));
                     Assert.That(world.SpeedClass, Is.EqualTo(120));
                     Assert.That(world.GrandPrix, Is.Null);
-                    Assert.That(UIManager.Instance.Get<KagitKartResultsView>(), Is.Null, "重赛释放旧成绩 Modal");
-                    Assert.That(UIManager.Instance.Get<KagitKartHudView>(), Is.Not.SameAs(hud), "重赛绑定新 HUD 和新会话");
+                    Assert.That(UIManager.Instance.Get<KagitKartResultsView>()?.State, Is.Not.EqualTo(ViewState.Visible), "重赛隐藏并复用成绩 Modal");
+                    Assert.That(UIManager.Instance.Get<KagitKartHudView>(), Is.SameAs(hud), "重赛复用 HUD 并绑定新会话");
                 }
                 else
                 {
@@ -102,10 +102,10 @@ namespace Tests.Demo
             }
             yield return Wait(() => !world.Busy && world.Session == null
                 && UIManager.Instance.Get<KagitKartTitleView>()?.State == ViewState.Visible, "第二场结束后实际按钮返回封面");
-            Assert.That(UIManager.Instance.Get<KagitKartResultsView>(), Is.Null);
-            Assert.That(UIManager.Instance.Get<KagitKartHudView>(), Is.Null);
-            Assert.That(UIManager.Instance.Get<KagitKartStandingsView>(), Is.Null);
-            Assert.That(Object.FindObjectsByType<KagitKartSceneryWorld>(FindObjectsSortMode.None), Is.Empty);
+            Assert.That(UIManager.Instance.Get<KagitKartResultsView>()?.State, Is.Not.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.Get<KagitKartHudView>()?.State, Is.Not.EqualTo(ViewState.Visible));
+            Assert.That(UIManager.Instance.Get<KagitKartStandingsView>()?.State, Is.Not.EqualTo(ViewState.Visible));
+            Assert.That(Object.FindObjectsByType<KagitKartSceneryWorld>(FindObjectsSortMode.None).All(track => !track.gameObject.activeInHierarchy), Is.True);
         }
     }
 }

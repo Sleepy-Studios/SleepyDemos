@@ -42,7 +42,7 @@ namespace Hotfix
             }
         }
 
-        private void Open() => world?.Dispatch(KagitKartCommand.Modes);
+        private void Open() => world?.Dispatch(KagitKartCommand.PlayModes);
         private void Back() => world?.Dispatch(KagitKartCommand.Hub);
 
         protected override void OnHide() => world = null;

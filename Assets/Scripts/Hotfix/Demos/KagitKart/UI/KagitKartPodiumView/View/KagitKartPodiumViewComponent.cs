@@ -19,7 +19,7 @@ namespace Hotfix
         public override UIViewMode ViewMode => UIViewMode.Page;
         public override MaskType Mask => MaskType.None;
         public override bool EnableOnInit => true;
-        public override bool DestroyOnHide => true;
+        public override bool DestroyOnHide => false;
         protected override IUITransition CreateUITransition()
         {
             return new Core.Runtime.EmptyUITransition();

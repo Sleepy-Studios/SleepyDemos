@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 using Core.Runtime;
@@ -20,7 +21,10 @@ namespace Hotfix.KagitKart
         [SerializeField] private Light sun;
         [SerializeField] private InputActionAsset inputTemplate;
         private IResourceLoader loader;
-        private IResourceLoader raceLoader;
+        private KagitKartRaceResources raceResources;
+        private KagitKartTimeTrialRecord currentRecord;
+        private int prepareVersion;
+        private readonly HashSet<View> preparedViews = new();
         private readonly CancellationTokenSource lifetimeCancellation = new CancellationTokenSource();
         private KagitKartSourceCatalog source;
         private KagitKartRecordStore records;
@@ -40,6 +44,7 @@ namespace Hotfix.KagitKart
         private View menu;
         private KagitKartBookStage bookStage;
         private KagitKartPodiumStage podium;
+        private AsyncLazy<KagitKartPodiumStage> preparedPodium;
         private KagitKartAudio audio;
         private KagitKartPostProcess postProcess;
         private Color bookInk;
@@ -116,8 +121,10 @@ namespace Hotfix.KagitKart
                 ApplySettings();
                 await InitializeHintsAsync(token);
                 bookStage.PageTurnStarted += audio.PageTurn;
+                raceResources = new KagitKartRaceResources(transform, source, sun, token);
                 ready = true;
                 await OpenMenuAsync(KagitKartCommand.Title);
+                PrepareSelectedRaceAsync().Forget();
             }
             catch (OperationCanceledException)
             {
@@ -155,39 +162,42 @@ namespace Hotfix.KagitKart
             await StartRoundAsync();
         }
 
-        private async UniTask StartRoundAsync()
+        private async UniTask StartRoundAsync(CancellationToken preparationToken = default)
         {
+            ++prepareVersion;
             busy = true;
             Input.SetDriving(false);
             Dispatch(KagitKartCommand.Refresh);
             try
             {
+                var token = preparationToken.CanBeCanceled ? preparationToken : lifetimeCancellation.Token;
+                Feedback = "正在准备比赛资源……";
+                var prepared = await raceResources.PrepareAsync(TrackId, NextPreparedTrack(TrackId)).AttachExternalCancellation(token);
+                await PrepareRaceViewsAsync(token);
+                await audio.PrepareRaceAudioAsync(TrackId, token);
                 while (uiBusy)
                 {
-                    await UniTask.Yield();
+                    await UniTask.Yield(token);
                 }
                 await CloseViewsAsync();
+                token.ThrowIfCancellationRequested();
                 bookStage.gameObject.SetActive(false);
                 StopRound();
                 CapturePreviousStandings();
-                var token = lifetimeCancellation.Token;
-                var owned = ResourceServices.CreateLoader();
-                raceLoader = owned;
-                string name = KagitKartCatalog.TrackAssetName(TrackId);
-                var trackAsset = await owned.LoadAssetAsync<TextAsset>(Root + "Data/Tracks/" + name);
-                var planAsset = await owned.LoadAssetAsync<TextAsset>(Root + "Data/AiPlans/" + name);
-                token.ThrowIfCancellationRequested();
-                var data = KagitKartTrackData.Parse(trackAsset.text);
-                var plan = KagitKartAiPlan.Parse(planAsset.text, data);
+                var data = prepared.Data;
+                var plan = prepared.Plan;
                 Feedback = null;
                 ghost = null;
+                currentRecord = null;
                 if (Mode == KagitKartRaceMode.TimeTrial)
                 {
-                    ghost = records.Load(TrackId, SpeedClass, CharacterId).ghost;
+                    currentRecord = records.Load(TrackId, SpeedClass, CharacterId);
+                    ghost = currentRecord.ghost;
                 }
-                uint seed = unchecked((uint)DateTime.UtcNow.Ticks);
+                uint seed = Network?.Connected == true ? Network.Room.Seed : unchecked((uint)DateTime.UtcNow.Ticks);
                 Session = new KagitKartSession(source, data, plan, Mode, CharacterId, SpeedClass,
-                    seed, GrandPrix, ghost);
+                    seed, GrandPrix, ghost, Network?.Connected == true ? Network.Room.Grid : null,
+                    Network?.Connected == true ? Network.Room.Players.Where(p => p.Connected).Select(p => p.CharacterId).ToArray() : null);
                 foreach (var entry in Session.Race.Entries)
                 {
                     if (entry.Vehicle.IsPlayer)
@@ -195,9 +205,8 @@ namespace Hotfix.KagitKart
                         PlayerEntry = entry;
                     }
                 }
-                var world = await owned.InstantiateAsync(Root + "Prefabs/Tracks/" + name, transform);
-                token.ThrowIfCancellationRequested();
-                scenery = world.GetComponent<KagitKartSceneryWorld>();
+                scenery = prepared.Scenery;
+                actors = raceResources.Activate(prepared, Session, sun, seed);
                 scenery.Popup += audio.Popup;
                 postProcess.SetInk(scenery.Asset.batches[0].materials[0].GetVector("uInk"));
                 worldCamera.clearFlags = CameraClearFlags.Skybox;
@@ -205,25 +214,11 @@ namespace Hotfix.KagitKart
                 sun.color = scenery.Asset.SunColor;
                 sun.intensity = scenery.Asset.SunIntensity;
                 sun.transform.rotation = Quaternion.LookRotation(-scenery.Asset.SunDirection);
-                actors = new Transform[Session.Karts.Count];
                 actorVisuals = new KagitKartCharacterVisual[actors.Length];
-                for (int i = 0; i < actors.Length; i++)
-                {
-                    var actor = await owned.InstantiateAsync(CharacterAddress(Session.Karts[i].Character.id), transform);
-                    token.ThrowIfCancellationRequested();
-                    if (actor == null)
-                    {
-                        throw new InvalidOperationException("赛车角色资源加载失败。");
-                    }
-                    actors[i] = actor.transform;
-                    actors[i].GetComponent<SkinnedMeshRenderer>().updateWhenOffscreen = true;
-                    actorVisuals[i] = actor.GetComponent<KagitKartCharacterVisual>();
-                    actorVisuals[i].Bind(Session.Karts[i], source.config.kart, i * 0.37f);
-                    actorVisuals[i].SetEnvironment(scenery.Asset.batches[0].materials[0]);
-                }
+                for (int i = 0; i < actors.Length; i++) actorVisuals[i] = actors[i].GetComponent<KagitKartCharacterVisual>();
                 if (ghost != null)
                 {
-                    ghostActor = (await owned.InstantiateAsync(CharacterAddress(Session.Player.Character.id), transform)).transform;
+                    ghostActor = await raceResources.PrepareGhostAsync(Session.Player.Character.id);
                     token.ThrowIfCancellationRequested();
                     ghostVisual = ghostActor.GetComponent<KagitKartCharacterVisual>();
                     ghostVisual.Bind(null, source.config.kart, isGhost: true);
@@ -232,14 +227,8 @@ namespace Hotfix.KagitKart
                 }
                 cameraRig = new KagitKartCameraRig(worldCamera, source.config.camera, Session.Player, Session.Track.PageY);
                 ApplySettings();
-                var items = await owned.InstantiateAsync(Root + "Prefabs/ItemVisuals", transform);
-                token.ThrowIfCancellationRequested();
-                itemVisuals = items.GetComponent<KagitKartItemVisuals>();
-                itemVisuals.Bind(Session, actors, scenery.Asset.batches[0].materials[0]);
-                var fx = await owned.InstantiateAsync(Root + "Prefabs/RaceFx", transform);
-                token.ThrowIfCancellationRequested();
-                raceFx = fx.GetComponent<KagitKartRaceFx>();
-                raceFx.Bind(Session, actors, scenery.Asset.batches[0].materials[0], sun, seed, source.config.kart);
+                itemVisuals = raceResources.Items;
+                raceFx = raceResources.Effects;
                 cinematics = new KagitKartRaceCinematics(introPaths.text, worldCamera, Session, source.config.camera, ReducedMotion);
                 audio.Bind(Session);
                 audio.PlayIntro(TrackId);
@@ -267,7 +256,80 @@ namespace Hotfix.KagitKart
             }
         }
 
-        private static string CharacterAddress(string id) => Root + "Prefabs/Characters/" + KagitKartCatalog.CharacterAssetName(id);
+        private async UniTask PrepareSelectedRaceAsync()
+        {
+            if (Session != null && GrandPrix?.Completed == true) return;
+            int version = ++prepareVersion;
+            string track = Mode == KagitKartRaceMode.GrandPrix && GrandPrix?.RoundComplete == true
+                ? GrandPrix.Completed ? "meadow" : new[] { "meadow", "bosphorus", "glacier", "desk" }[GrandPrix.Index + 1]
+                : TrackId;
+            try
+            {
+                var token = lifetimeCancellation.Token;
+                await raceResources.PrepareAsync(track, NextPreparedTrack(track));
+                if (version != prepareVersion || Session != null && Session.Race.State != KagitKartRaceState.Done) return;
+                await audio.PrepareRaceAudioAsync(track, token);
+                if (version != prepareVersion) return;
+                if (Mode == KagitKartRaceMode.TimeTrial) await raceResources.PrepareGhostAsync(CharacterId);
+                await PrepareRaceViewsAsync(token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                if (!exiting && version == prepareVersion)
+                {
+                    Feedback = "赛前准备失败，开始比赛时将重试。";
+                    Debug.LogWarning(exception.Message, this);
+                    Dispatch(KagitKartCommand.Refresh);
+                }
+            }
+        }
+
+        private async UniTask PrepareRaceViewsAsync(CancellationToken token)
+        {
+            preparedViews.Add(await UIManager.Instance.PreloadAsync<KagitKartHudView>(cancellationToken: token));
+            preparedViews.Add(await UIManager.Instance.PreloadAsync<KagitKartResultsView>(cancellationToken: token));
+            preparedViews.Add(await UIManager.Instance.PreloadAsync<KagitKartStandingsView>(cancellationToken: token));
+            preparedViews.Add(await UIManager.Instance.PreloadAsync<KagitKartPodiumView>(cancellationToken: token));
+            if (Mode == KagitKartRaceMode.GrandPrix) await PreparePodiumAsync();
+        }
+
+        private string NextPreparedTrack(string track)
+        {
+            if (Mode != KagitKartRaceMode.GrandPrix) return null;
+            for (int i = 0; i < KagitKartCatalog.Tracks.Count - 1; i++)
+            {
+                if (KagitKartCatalog.Tracks[i] == track) return KagitKartCatalog.Tracks[i + 1];
+            }
+            return null;
+        }
+
+        private UniTask<KagitKartPodiumStage> PreparePodiumAsync()
+        {
+            preparedPodium ??= new AsyncLazy<KagitKartPodiumStage>(CreatePodiumAsync);
+            return preparedPodium.Task;
+        }
+
+        private async UniTask<KagitKartPodiumStage> CreatePodiumAsync()
+        {
+            try
+            {
+                var instance = await loader.InstantiateAsync(Root + "Prefabs/PodiumStage", transform);
+                lifetimeCancellation.Token.ThrowIfCancellationRequested();
+                podium = instance.GetComponent<KagitKartPodiumStage>();
+                podium.Initialize(worldCamera);
+                podium.Completed += OnPodiumCompleted;
+                podium.Hide();
+                return podium;
+            }
+            catch
+            {
+                preparedPodium = null;
+                throw;
+            }
+        }
 
         private void Update()
         {
@@ -298,7 +360,10 @@ namespace Hotfix.KagitKart
                 Input.ResetInput();
                 return;
             }
-            Session.AdvanceInputFrame(Core.Runtime.TimeControls.GameTimeService.DeltaTime, readControls);
+            if (!Session.Networked)
+            {
+                Session.AdvanceInputFrame(Core.Runtime.TimeControls.GameTimeService.DeltaTime, readControls);
+            }
             refreshTime += Time.unscaledDeltaTime;
             if (refreshTime >= 0.1f)
             {
@@ -324,13 +389,14 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            float alpha = (float)Session.Interpolation;
-            float dt = Session.Pause.IsPaused ? 0 : Mathf.Min(Core.Runtime.TimeControls.GameTimeService.DeltaTime, 0.1f);
+            float alpha = Network?.IsHost == true ? 1 : (float)Session.Interpolation;
+            float dt = Session.Pause.IsPaused && Network?.Connected != true ? 0 : Mathf.Min(Core.Runtime.TimeControls.GameTimeService.DeltaTime, 0.1f);
             for (int i = 0; i < actors.Length; i++)
             {
                 var kart = Session.Karts[i];
-                actors[i].position = KagitKartVehicle.ToUnity(Vector3.LerpUnclamped(kart.PreviousPosition, kart.Position, alpha));
-                actors[i].rotation = Quaternion.SlerpUnclamped(kart.PreviousRotation, kart.Rotation, alpha);
+                float kartAlpha = Network?.Connected == true && kart.IsPlayer && !kart.Autopilot ? 1 : alpha;
+                actors[i].position = KagitKartVehicle.ToUnity(Vector3.LerpUnclamped(kart.PreviousPosition, kart.Position, kartAlpha));
+                actors[i].rotation = Quaternion.SlerpUnclamped(kart.PreviousRotation, kart.Rotation, kartAlpha);
                 actorVisuals[i].Advance(dt, ReducedMotion);
             }
             if (ghostActor != null)
@@ -397,6 +463,7 @@ namespace Hotfix.KagitKart
                 ReturnHubAsync().Forget();
                 return;
             }
+            if (ApplyOnlineCommand(action)) return;
             switch (command)
             {
                 case KagitKartCommand.MarkTutorialSeen:
@@ -425,11 +492,13 @@ namespace Hotfix.KagitKart
                     KagitKartCatalog.CharacterName(action.Id);
                     CharacterId = action.Id;
                     bookStage.PreviewCharacter(action.Id);
+                    PrepareSelectedRaceAsync().Forget();
                     return;
                 case KagitKartCommand.PreviewTrack:
                     KagitKartCatalog.TrackName(action.Id);
                     TrackId = action.Id;
                     bookStage.ShowChapter(action.Id);
+                    PrepareSelectedRaceAsync().Forget();
                     return;
                 case KagitKartCommand.ChooseMode:
                     if (!Enum.IsDefined(typeof(KagitKartRaceMode), action.Number))
@@ -437,6 +506,7 @@ namespace Hotfix.KagitKart
                         return;
                     }
                     Mode = (KagitKartRaceMode)action.Number;
+                    PrepareSelectedRaceAsync().Forget();
                     Feedback = null;
                     OpenMenuAsync(KagitKartCommand.Classes).Forget();
                     return;
@@ -446,6 +516,7 @@ namespace Hotfix.KagitKart
                         return;
                     }
                     SpeedClass = action.Number;
+                    PrepareSelectedRaceAsync().Forget();
                     OpenMenuAsync(KagitKartCommand.Characters).Forget();
                     return;
                 case KagitKartCommand.ChooseCharacter:
@@ -510,7 +581,7 @@ namespace Hotfix.KagitKart
         private async UniTask OpenMenuAsync(KagitKartCommand page)
         {
             busy = true;
-            MenuEntranceDelay = menu is KagitKartTitleView && page == KagitKartCommand.Modes ? 0.8f : 0;
+            MenuEntranceDelay = menu is KagitKartTitleView && page == KagitKartCommand.PlayModes ? 0.8f : 0;
             Input.SetDriving(false);
             Dispatch(KagitKartCommand.Refresh);
             try
@@ -528,11 +599,27 @@ namespace Hotfix.KagitKart
                 {
                     GrandPrix = null;
                 }
+                PrepareSelectedRaceAsync().Forget();
                 var token = lifetimeCancellation.Token;
                 var options = new UIOpenOptions(animated: false);
                 View shown;
                 switch (page)
                 {
+                    case KagitKartCommand.PlayModes:
+                        shown = await UIManager.Instance.OpenAsync<KagitKartPlayModeView>(view => view.SetData(this), options, token);
+                        break;
+                    case KagitKartCommand.Online:
+                        shown = await UIManager.Instance.OpenAsync<KagitKartOnlineView>(view => view.SetData(this), options, token);
+                        break;
+                    case KagitKartCommand.CreateRoom:
+                        shown = await UIManager.Instance.OpenAsync<KagitKartCreateRoomView>(view => view.SetData(this), options, token);
+                        break;
+                    case KagitKartCommand.JoinRoom:
+                        shown = await UIManager.Instance.OpenAsync<KagitKartJoinRoomView>(view => view.SetData(this), options, token);
+                        break;
+                    case KagitKartCommand.Room:
+                        shown = await UIManager.Instance.OpenAsync<KagitKartRoomView>(view => view.SetData(this), options, token);
+                        break;
                     case KagitKartCommand.Title:
                         shown = await UIManager.Instance.OpenAsync<KagitKartTitleView>(view => view.SetData(this), options, token);
                         break;
@@ -577,15 +664,7 @@ namespace Hotfix.KagitKart
                 while (uiBusy) await UniTask.Yield();
                 await CloseViewsAsync();
                 StopRound();
-                var token = lifetimeCancellation.Token;
-                if (podium == null)
-                {
-                    var instance = await loader.InstantiateAsync(Root + "Prefabs/PodiumStage", transform);
-                    token.ThrowIfCancellationRequested();
-                    podium = instance.GetComponent<KagitKartPodiumStage>();
-                    podium.Initialize(worldCamera);
-                    podium.Completed += OnPodiumCompleted;
-                }
+                await PreparePodiumAsync();
                 postProcess.SetInk(bookInk);
                 var standings = GrandPrix.SortedStandings();
                 bookStage.SetPodium(ReducedMotion);
@@ -658,7 +737,7 @@ namespace Hotfix.KagitKart
         /// <param name="trackId">原作章节标识。</param>
         public KagitKartTimeTrialRecord LoadRecord(string trackId)
         {
-            return records.Load(trackId, SpeedClass, CharacterId);
+            return Session != null && trackId == TrackId && currentRecord != null ? currentRecord : records.Load(trackId, SpeedClass, CharacterId);
         }
 
         private async UniTaskVoid ChangeRoundAsync()
@@ -688,12 +767,16 @@ namespace Hotfix.KagitKart
             {
                 Input.SetDriving(false);
                 RememberCupResultOrder();
+                if (GrandPrix != null && !GrandPrix.Completed)
+                {
+                    PrepareSelectedRaceAsync().Forget();
+                }
                 if (Mode == KagitKartRaceMode.TimeTrial)
                 {
                     try
                     {
                         var snapshot = Session.Race.GhostRecorder.Snapshot(PlayerEntry.FinishTime, PlayerEntry.Progress.LapTimes);
-                        records.SaveBest(TrackId, SpeedClass, CharacterId, snapshot);
+                        currentRecord = records.SaveBest(TrackId, SpeedClass, CharacterId, snapshot, currentRecord);
                         Feedback = "计时成绩与最佳幽灵已保存。";
                     }
                     catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is ArgumentException)
@@ -805,6 +888,8 @@ namespace Hotfix.KagitKart
             Input.SetDriving(false);
             try
             {
+                if (Network != null) await Network.LeaveAsync();
+                Network = null;
                 while (uiBusy)
                 {
                     await UniTask.Yield();
@@ -819,7 +904,8 @@ namespace Hotfix.KagitKart
                 if (result.Status != GameSceneSwitchStatus.Succeeded && this != null && ready)
                 {
                     exiting = false;
-                    if (Session != null) OnPauseChanged();
+                    if (Session?.Networked == true) await OpenMenuAsync(KagitKartCommand.Online);
+                    else if (Session != null) OnPauseChanged();
                     else Dispatch(KagitKartCommand.Refresh);
                 }
             }
@@ -828,7 +914,8 @@ namespace Hotfix.KagitKart
                 if (this == null || !ready) return;
                 exiting = false;
                 Debug.LogException(exception, this);
-                if (Session != null) OnPauseChanged();
+                if (Session?.Networked == true) await OpenMenuAsync(KagitKartCommand.Online);
+                else if (Session != null) OnPauseChanged();
                 else Dispatch(KagitKartCommand.Refresh);
             }
         }
@@ -906,20 +993,26 @@ namespace Hotfix.KagitKart
             raceFx = null;
             ghostActor = null;
             ghostVisual = null;
-            raceLoader?.Dispose();
-            raceLoader = null;
+            raceResources?.Hide();
         }
 
         private void OnDestroy()
         {
             exiting = true;
+            lifetimeCancellation.Cancel();
+            Network?.Dispose();
+            Network = null;
+            foreach (var view in preparedViews)
+            {
+                if (view != null) UIManager.Instance.CloseAsync(view, false).Forget();
+            }
+            preparedViews.Clear();
             // 公共 Navigator 重载可能绕过 ReturnHub；捕获旧实例，不能按类型误关新会话。
             foreach (var view in new View[] { optionsView, menu, modal, hud, hintsView })
                 if (view != null) UIManager.Instance.CloseAsync(view, false).Forget();
             optionsView = menu = modal = null;
             hud = null;
             hintsView = null;
-            lifetimeCancellation.Cancel();
             Core.Runtime.Settings.GameSettingsService.Changed -= OnPublicSettingsChanged;
             ready = false;
             DisposeHints();
@@ -939,6 +1032,8 @@ namespace Hotfix.KagitKart
                 bookStage.PageTurnStarted -= audio.PageTurn;
             }
             if (postProcess != null) postProcess.enabled = false;
+            raceResources?.Dispose();
+            raceResources = null;
             loader?.Dispose();
             loader = null;
             lifetimeCancellation.Dispose();

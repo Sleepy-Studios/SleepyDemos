@@ -73,7 +73,6 @@ namespace Hotfix.KagitKart
         public float grip;
         public float driftGrip;
         public float iceGrip;
-        public float hopVy;
         public float driftMinStart;
         public float driftMinHold;
         public float driftYawNeutral;

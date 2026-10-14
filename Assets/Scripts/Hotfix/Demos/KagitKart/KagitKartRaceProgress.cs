@@ -13,7 +13,7 @@ namespace Hotfix.KagitKart
     }
 
     /// 用整数模拟步计数，避免浮点残差重复起跑。
-    public sealed class KagitKartCountdown
+    public sealed partial class KagitKartCountdown
     {
         private int remaining = 360;
         private bool wasThrottleHeld;
@@ -56,7 +56,7 @@ namespace Hotfix.KagitKart
     }
 
     /// 原作检查点与圈线规则；位置来自赛道查询，不由 UI 或碰撞触发器计圈。
-    public sealed class KagitKartRaceProgress
+    public sealed partial class KagitKartRaceProgress
     {
         private static readonly double[] Checkpoints = { 0.25, 0.5, 0.75 };
         private readonly double length;

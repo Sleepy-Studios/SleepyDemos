@@ -156,8 +156,8 @@ namespace Hotfix.KagitKart
                 bitStates[i].P0.w = 1e4f;
                 bitStates[i].V0.w = 1;
             }
-            bitBuffer = new ComputeBuffer(Capacity, Marshal.SizeOf<BitGpu>());
-            cardBuffer = new ComputeBuffer(96, Marshal.SizeOf<CardGpu>());
+            bitBuffer ??= new ComputeBuffer(Capacity, Marshal.SizeOf<BitGpu>());
+            cardBuffer ??= new ComputeBuffer(96, Marshal.SizeOf<CardGpu>());
             bitBuffer.SetData(bitStates);
             bitsBlock.SetBuffer("_Fx", bitBuffer);
             cardsBlock.SetBuffer("_Fx", cardBuffer);
@@ -194,9 +194,6 @@ namespace Hotfix.KagitKart
                     {
                         Push("draftBoost", kart);
                     }
-                    break;
-                case KagitKartVehicleSignal.Hop:
-                    Push("hop", kart);
                     break;
                 case KagitKartVehicleSignal.Land:
                     Push("land", kart, kart.AirTime);
@@ -350,7 +347,7 @@ namespace Hotfix.KagitKart
 
         private void Spark(KagitKartVehicle kart, Vector3 wheel, int tier, bool big, float grow = 1)
         {
-            int dir = kart.DriftDirection != 0 ? kart.DriftDirection : kart.HopDirection != 0 ? kart.HopDirection : 1;
+            int dir = kart.DriftDirection != 0 ? kart.DriftDirection : 1;
             var s = Base(wheel + new Vector3(R(-0.05f, 0.05f), R(0, 0.06f), R(-0.05f, 0.05f)), kart, big ? 0.72f : 0.62f);
             float back = big ? R(3, 7) : R(2, 5), outward = big ? R(-1.5f, 4.5f) : R(1.5f, 4.2f), up = big ? R(2.5f, 5.5f) : R(2, 4.4f);
             s.vx += -headingForward.x * back - headingRight.x * dir * outward;
@@ -558,23 +555,6 @@ namespace Hotfix.KagitKart
             Emit(s);
         }
 
-        private void HopDust(KagitKartVehicle kart)
-        {
-            Color color = kart.Surface is "offroad" or "out" ? offroad[2] : puff;
-            for (int wheel = 0; wheel < 2; wheel++)
-            {
-                Vector3 p = Anchor(wheel);
-                int outward = wheel == 0 ? 1 : -1;
-                for (int i = 0; i < 2; i++)
-                {
-                    PuffAt(kart, p + Vector3.up * 0.05f,
-                        -headingForward.x * R(0.5f, 1.5f) + left.x * outward * R(0.3f, 1),
-                        -headingForward.z * R(0.5f, 1.5f) + left.z * outward * R(0.3f, 1),
-                        R(0.3f, 0.8f), R(0.16f, 0.24f), R(0.32f, 0.45f), color);
-                }
-            }
-        }
-
         private void LandPuff(KagitKartVehicle kart, float air)
         {
             if (air < 0.22f)
@@ -755,9 +735,6 @@ namespace Hotfix.KagitKart
                         {
                             Streak(kart, true);
                         }
-                        break;
-                    case "hop":
-                        HopDust(kart);
                         break;
                     case "land":
                         LandPuff(kart, cue.value);
@@ -1031,7 +1008,8 @@ namespace Hotfix.KagitKart
             return color.linear;
         }
 
-        private void OnDestroy()
+        /// 退订并清空本场效果，GPU 缓冲由共享实例保留。
+        public void Unbind()
         {
             if (session != null)
             {
@@ -1041,6 +1019,19 @@ namespace Hotfix.KagitKart
                 }
                 session.Race.Signaled -= OnRaceSignal;
             }
+            session = null;
+            time = 0;
+            lastDeath = -1;
+            lineIntensity = 0;
+            qn = current = head = highest = spawned = cardCount = 0;
+            wrapped = false;
+            dirtyLo = Capacity;
+            dirtyHi = -1;
+        }
+
+        private void OnDestroy()
+        {
+            Unbind();
             bitBuffer?.Dispose();
             cardBuffer?.Dispose();
         }

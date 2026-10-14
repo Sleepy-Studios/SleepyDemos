@@ -99,7 +99,7 @@ namespace Hotfix.KagitKart
     }
 
     /// items.js 的固定步道具模拟，场景表现通过只读列表及事件接入。
-    public sealed class KagitKartItems : IDisposable
+    public sealed partial class KagitKartItems : IDisposable
     {
         private readonly KagitKartTrackQuery track;
         private readonly KagitKartKartTuning tuning;

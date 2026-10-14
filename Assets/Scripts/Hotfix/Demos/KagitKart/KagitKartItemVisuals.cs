@@ -912,12 +912,20 @@ namespace Hotfix.KagitKart
             return color.linear;
         }
 
-        private void OnDestroy()
+        /// 解除本场订阅，允许共享实例用于重赛。
+        public void Unbind()
         {
             if (session != null)
             {
                 session.Items.Signaled -= QueueCue;
             }
+            session = null;
+            cues.Clear();
+            inkTrail.Clear();
+            staleInkTrails.Clear();
+            time = 0;
         }
+
+        private void OnDestroy() => Unbind();
     }
 }

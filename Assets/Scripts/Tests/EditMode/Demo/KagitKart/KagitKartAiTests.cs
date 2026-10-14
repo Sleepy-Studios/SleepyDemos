@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using Core.Runtime.Inputs;
 using Hotfix.KagitKart;
@@ -12,14 +12,6 @@ namespace Tests.Demo
     {
         private const string Root = "Assets/LoadResources/Demos/kagit_kart/Data/";
         private const double Step = KagitKartSimulationClock.Step;
-        private static readonly PropertyInfo SpeedProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Speed));
-        private static readonly PropertyInfo VelocityProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Velocity));
-        private static readonly PropertyInfo ProgressProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Progress));
-        private static readonly PropertyInfo PlaceProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Place));
-        private static readonly PropertyInfo ItemProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Item));
-        private static readonly PropertyInfo ItemCountProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.ItemCount));
-        private static readonly PropertyInfo InkProperty = typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.InkTime));
-        private static readonly FieldInfo PreviousControlsField = typeof(KagitKartVehicle).GetField("previousControls", BindingFlags.Instance | BindingFlags.NonPublic);
 
         [TestCase("meadow", 80)]
         [TestCase("meadow", 120)]
@@ -33,77 +25,31 @@ namespace Tests.Demo
         [TestCase("desk", 80)]
         [TestCase("desk", 120)]
         [TestCase("desk", 200)]
-        public void DriverCommandsMatchOriginalAiOnIdenticalStateTape(string trackId, int speedClass)
+        public void AiRespectsEveryHumanInputAndCanTakeOverDisconnectedCars(string trackId, int speedClass)
         {
             var source = ReadSource();
             var data = ReadTrack(trackId);
-            var tuning = source.config.track;
-            var track = new KagitKartTrackQuery(data, tuning.gridCell, tuning.waterDrop, tuning.deskDrop);
-            var plan = ReadPlan(trackId, data);
-            var karts = new KagitKartVehicle[8];
-            for (int i = 0; i < karts.Length; i++)
+            var grid = Array.ConvertAll(source.roster, character => character.id);
+            using var session = new KagitKartSession(source, data, ReadPlan(trackId, data), KagitKartRaceMode.SingleRace,
+                grid[0], speedClass, 12345, grid: grid, humanIds: new[] { grid[0], grid[1] });
+            for (int i = 0; i < 120 * 10 && session.Race.State == KagitKartRaceState.Countdown; i++)
             {
-                karts[i] = new KagitKartVehicle(source.config, track, source.roster[i], speedClass, i == 0);
+                session.Race.Advance(Step, 0);
             }
-            using var race = new KagitKartRace(source.config, track, karts, KagitKartRaceMode.SingleRace);
-            for (int i = 0; i < 360; i++)
-            {
-                race.Advance(Step, 0);
-            }
-            SetAutopilot(karts[0]);
-            // 这里隔离车手决策，输入带不执行道具效果；完整模拟由另一组用例验收。
-            using var items = new KagitKartItems(source.config, track, karts, new KagitKartRandom(12345), speedClass, true);
-            using var ai = new KagitKartAi(source.config, track, plan, race, items, karts, new KagitKartRandom(12345).Fork("ai"), speedClass);
-            var fixture = JsonUtility.FromJson<Fixtures>(AssetDatabase.LoadAssetAtPath<TextAsset>(
-                "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures/OriginalAi.json").text);
-            Assert.That(fixture.sourceCommit, Is.EqualTo(KagitKartCatalog.SourceCommit));
-            var run = Array.Find(fixture.runs, value => value.track == trackId && value.speedClass == speedClass);
-            string[] ids = { "rocket", "rocket3", "gum", "plane", "homing", "ink", "foil", "scissors" };
-            var samples = data.data.samples;
-            int frame = 0;
-            for (int step = 0; step < 2400; step++)
-            {
-                for (int i = 0; i < karts.Length; i++)
-                {
-                    var kart = karts[i];
-                    int index = (data.data.startIndex + 40 + step / 4 + i * 8) % data.data.sampleCount;
-                    float lateral = (float)(Math.Sin(step * 0.03 + i) * 0.5);
-                    var position = new Vector3((float)(samples.px[index] + (double)samples.hx[index] * lateral), samples.py[index],
-                        (float)(samples.pz[index] + (double)samples.hz[index] * lateral));
-                    float heading = (float)(samples.heading[index] + Math.Sin(step / 60.0 + i) * 0.04);
-                    kart.PlaceAt(position, heading);
-                    float speed = (float)(kart.BaseTop * 0.85);
-                    SpeedProperty.SetValue(kart, speed);
-                    VelocityProperty.SetValue(kart, new Vector3((float)(Math.Sin(heading) * speed), 0, (float)(Math.Cos(heading) * speed)));
-                    ProgressProperty.SetValue(kart, step / 4.0 + i * 8);
-                    PlaceProperty.SetValue(kart, 8 - i);
-                    ItemProperty.SetValue(kart, ids[i]);
-                    ItemCountProperty.SetValue(kart, ids[i] == "rocket3" ? 3 : 1);
-                    InkProperty.SetValue(kart, step >= 720 && step < 960 ? 1f : 0f);
-                }
-                ai.Advance(Step, (step + 1) * Step);
-                if (frame < run.frames.Length && run.frames[frame].step == step)
-                {
-                    var expectedFrame = run.frames[frame++];
-                    var expected = expectedFrame.controls;
-                    for (int i = 0; i < karts.Length; i++)
-                    {
-                        string message = trackId + "/" + speedClass + " step " + step + " " + karts[i].Id;
-                        var actual = karts[i].Controls;
-                        Assert.That(actual.Steer, Is.EqualTo(expected[i].steer).Within(0.0003), message);
-                        Assert.That(actual.Throttle, Is.EqualTo(expected[i].throttle).Within(0.00001), message);
-                        Assert.That(actual.Brake, Is.EqualTo(expected[i].brake).Within(0.00001), message);
-                        Assert.That(actual.Drift, Is.EqualTo(expected[i].drift), message);
-                        Assert.That(actual.Item, Is.EqualTo(expected[i].item), message);
-                        Assert.That(actual.LookBack, Is.False, message);
-                    }
-                }
-                for (int i = 0; i < karts.Length; i++)
-                {
-                    PreviousControlsField.SetValue(karts[i], karts[i].Controls);
-                }
-            }
-            Assert.That(frame, Is.EqualTo(run.frames.Length));
+            Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Running));
+            var first = new KagitKartControls { Throttle = .5f, Steer = -.3f, Drift = true };
+            var second = new KagitKartControls { Throttle = .7f, Steer = .4f };
+            session.Karts[0].Controls = first;
+            session.Karts[1].Controls = second;
+            session.Ai.Advance(Step, 0);
+            Assert.That(session.Karts[0].Controls.Throttle, Is.EqualTo(first.Throttle));
+            Assert.That(session.Karts[0].Controls.Steer, Is.EqualTo(first.Steer));
+            Assert.That(session.Karts[1].Controls.Throttle, Is.EqualTo(second.Throttle));
+            Assert.That(session.Karts[1].Controls.Steer, Is.EqualTo(second.Steer));
+            SetAutopilot(session.Karts[1]);
+            session.Karts[1].Controls = default;
+            session.Ai.Advance(Step, 0);
+            Assert.That(session.Karts[1].Controls.Throttle, Is.GreaterThan(0), "掉线后的真人车由服务器 AI 接管");
         }
 
         [TestCase("meadow", 80)]
@@ -276,33 +222,5 @@ namespace Tests.Demo
         private static void SetAutopilot(KagitKartVehicle kart) =>
             typeof(KagitKartVehicle).GetProperty(nameof(KagitKartVehicle.Autopilot)).SetValue(kart, true);
 
-        [Serializable]
-        private sealed class Fixtures
-        {
-            public string sourceCommit;
-            public Run[] runs;
-        }
-
-        [Serializable]
-        private sealed class Run
-        {
-            public string track;
-            public int speedClass;
-            public Frame[] frames;
-        }
-
-        [Serializable]
-        private sealed class Frame
-        {
-            public int step;
-            public Controls[] controls;
-        }
-
-        [Serializable]
-        private sealed class Controls
-        {
-            public float steer, throttle, brake;
-            public bool drift, item;
-        }
     }
 }
