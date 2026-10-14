@@ -1,18 +1,16 @@
 using System;
-using System.Threading;
 using Core.Runtime;
 using Core.Runtime.Localization;
 using Core.Runtime.Presentation;
-using Cysharp.Threading.Tasks;
+using Core.Runtime.Settings;
+using DG.Tweening;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Hotfix
 {
-    /// 电影演出体验使用公共设置行，正式预设只读，参数只写本次运行时副本。
+    /// 电影演出体验使用公共设置行，直接向本页表现 View 交付参数。
     public sealed class PresentationCinematicPanel : MonoBehaviour
     {
-        [SerializeField] private CinematicPreset[] presets;
         [SerializeField] private UISettingRow styleRow;
         [SerializeField] private UISettingRow directionRow;
         [SerializeField] private UISettingRow aspectRow;
@@ -22,8 +20,13 @@ namespace Hotfix
         [SerializeField] private UISettingRow hudRow;
         [SerializeField] private UISettingRow chapterRow;
         [SerializeField] private UISettingRow locationRow;
-        private CinematicPresenter.LetterboxHandle bars;
-        private CinematicPreset runtimePreset;
+        private CinematicOverlayView overlay;
+        private CanvasGroup hud;
+        private Tween hudTween;
+        private float hudAlpha;
+        private bool hudInteractable;
+        private bool hudBlocksRaycasts;
+        private int operationVersion;
         private int style = 1;
         private int direction;
         private int aspect;
@@ -34,7 +37,7 @@ namespace Hotfix
         private bool chapter = true;
         private bool location = true;
 
-        /// 使用已制作的七种预设与四方向选项。
+        /// 使用七种样式与四方向选项。
         public void Initialize()
         {
             styleRow.SetLabel("Presentation.TransitionStyle");
@@ -49,95 +52,152 @@ namespace Hotfix
             ResetControls();
         }
 
-        /// <summary>播放遮幕并在开幕后显示字幕，HUD 引用由当前体验页明确交付。</summary>
+        /// <summary>播放本页遮幕与字幕；结束后黑边和 HUD 隐藏保持到停止。</summary>
         /// <param name="world">本页制作世界，中点只重置其运动。</param>
         /// <param name="hud">可随黑边淡出的局部 HUD。</param>
-        /// <param name="token">停止或退出时取消，不强行停止其它业务事务。</param>
-        /// <returns>遮幕与字幕结束，黑边保持到正常退出或释放。</returns>
-        public async UniTask PlayAsync(PresentationWorld world, CanvasGroup hud, CancellationToken token)
+        /// <param name="overlay">本次 UIManager 打开的表现 View。</param>
+        /// <param name="onComplete">遮幕和字幕正常结束时调用；停止不调用。</param>
+        /// <param name="onFailed">播放失败时调用；省略时记录 Console。</param>
+        public void Play(PresentationWorld world, CanvasGroup hud, CinematicOverlayView overlay,
+            Action onComplete = null, Action<Exception> onFailed = null)
         {
-            if (!CinematicRuntime.IsRegistered)
-            {
-                throw new InvalidOperationException("公共电影表现 View 尚未就绪。");
-            }
             Stop();
-            var preset = Object.Instantiate(presets[style]);
-            runtimePreset = preset;
+            int version = operationVersion;
             try
             {
-                preset.ConfigureTransition(preset.TransitionStyle, (CinematicWipeDirection)direction,
-                    closeDuration, 0, openDuration, preset.CurtainColor, preset.BlindCount, preset.PixelColumns);
-                var hudRect = ((RectTransform)hud.transform).rect;
-                float contentAspect = letterbox ? aspect == 1 ? 2.39f : aspect == 2 ? 2.76f : 2.35f
-                    : Mathf.Clamp(hudRect.width / Mathf.Max(1, hudRect.height), 1, 4);
-                preset.ConfigureLetterbox(contentAspect, 0.3f);
-                if (letterbox || hideHud)
+                if (world == null || hud == null || overlay == null || !overlay.IsEnable)
                 {
-                    bars = CinematicRuntime.PushLetterbox(preset, hideHud ? new[] { hud } : null);
+                    throw new InvalidOperationException("公共电影表现 View 或体验世界尚未就绪。");
                 }
-                await CinematicRuntime.PlayTransitionAsync(preset, _ =>
+                this.overlay = overlay;
+                if (hideHud)
                 {
-                    world.ResetMotion();
-                    return UniTask.CompletedTask;
-                }, token);
-                if (chapter || location)
-                {
-                    await CinematicRuntime.ShowTitleAsync(chapter ? "Presentation.Chapter" : "Presentation.Location",
-                        chapter && location ? "Presentation.Location" : null,
-                        preset.TitleFadeIn, preset.TitleHold, preset.TitleFadeOut, token);
+                    this.hud = hud;
+                    hudAlpha = hud.alpha;
+                    hudInteractable = hud.interactable;
+                    hudBlocksRaycasts = hud.blocksRaycasts;
+                    hud.interactable = false;
+                    hud.blocksRaycasts = false;
+                    hudTween = DOTween.To(() => hud.alpha, value => hud.alpha = value, 0, HudDuration)
+                        .SetEase(Ease.InOutSine).SetUpdate(true);
                 }
+                if (letterbox)
+                {
+                    overlay.ShowLetterboxForAspect(aspect == 1 ? 2.39f : aspect == 2 ? 2.76f : 2.35f);
+                }
+                overlay.StartTransition(onCovered: () =>
+                {
+                    if (version == operationVersion)
+                    {
+                        world.ResetMotion();
+                    }
+                }, onComplete: () =>
+                {
+                    if (version != operationVersion)
+                    {
+                        return;
+                    }
+                    try
+                    {
+                        if (chapter || location)
+                        {
+                            overlay.ShowTitle(chapter ? "Presentation.Chapter" : "Presentation.Location",
+                                chapter && location ? "Presentation.Location" : null,
+                                onComplete: () => Complete(version, onComplete));
+                        }
+                        else
+                        {
+                            Complete(version, onComplete);
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        Fail(version, exception, onFailed);
+                    }
+                }, style: (CinematicTransitionStyle)style, closeDuration: closeDuration,
+                    openDuration: openDuration, direction: (CinematicWipeDirection)direction,
+                    onFailed: exception => Fail(version, exception, onFailed));
             }
-            catch
+            catch (Exception exception)
             {
-                if (ReferenceEquals(runtimePreset, preset))
-                {
-                    Stop();
-                }
-                throw;
-            }
-            finally
-            {
-                if (bars == null && ReferenceEquals(runtimePreset, preset))
-                {
-                    runtimePreset = null;
-                    Object.Destroy(preset);
-                }
+                Fail(version, exception, onFailed);
             }
         }
 
-        /// <summary>正常缩回黑边并淡入本页 HUD；异常或退出直接 Stop。</summary>
-        /// <param name="token">取消时立即恢复，正常结束沿用制作时长。</param>
-        /// <returns>黑边退出任务。</returns>
-        public async UniTask ExitLetterboxAsync(CancellationToken token)
+        private static float HudDuration => GameSettingsService.Current.Accessibility.IsReducedMotion ? 0 : 0.3f;
+
+        private void Complete(int version, Action onComplete)
         {
-            var previous = bars;
-            if (previous == null)
+            if (version == operationVersion)
+            {
+                onComplete?.Invoke();
+            }
+        }
+
+        private void Fail(int version, Exception exception, Action<Exception> onFailed)
+        {
+            if (version != operationVersion)
             {
                 return;
             }
-            try
+            Stop();
+            if (onFailed == null)
             {
-                await previous.ExitAsync(cancellationToken: token);
+                Debug.LogException(exception);
             }
-            finally
+            else
             {
-                if (ReferenceEquals(bars, previous))
-                {
-                    Stop();
-                }
+                onFailed(exception);
             }
         }
 
-        /// 异常或卸载时立即归还黑边，制作副本保留到句柄退出后才销毁。
+        /// <summary>演出结束后缩回黑边并淡入 HUD，完成后清理本页表现。</summary>
+        /// <param name="onComplete">正常退出完成时调用；Stop 会使旧回调失效。</param>
+        public void ExitLetterbox(Action onComplete = null)
+        {
+            int version = ++operationVersion;
+            hudTween?.Kill();
+            hudTween = null;
+            if (overlay == null || !overlay.IsLoaded)
+            {
+                Stop();
+                onComplete?.Invoke();
+                return;
+            }
+            if (hud != null)
+            {
+                hudTween = DOTween.To(() => hud.alpha, value => hud.alpha = value, hudAlpha, HudDuration)
+                    .SetEase(Ease.InOutSine).SetUpdate(true);
+            }
+            overlay.HideLetterbox(onComplete: () =>
+            {
+                if (version != operationVersion)
+                {
+                    return;
+                }
+                Stop();
+                onComplete?.Invoke();
+            });
+        }
+
+        /// 异常或卸载时立即恢复本页 HUD 与表现，不触发旧完成回调。
         public void Stop()
         {
-            bars?.Dispose();
-            bars = null;
-            if (runtimePreset != null)
+            operationVersion++;
+            hudTween?.Kill();
+            hudTween = null;
+            if (hud != null)
             {
-                Object.Destroy(runtimePreset);
-                runtimePreset = null;
+                hud.alpha = hudAlpha;
+                hud.interactable = hudInteractable;
+                hud.blocksRaycasts = hudBlocksRaycasts;
+                hud = null;
             }
+            if (overlay != null && overlay.IsLoaded)
+            {
+                overlay.ResetEffects();
+            }
+            overlay = null;
         }
 
         /// 恢复已确认美术图的初始选择。

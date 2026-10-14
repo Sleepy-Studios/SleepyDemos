@@ -46,16 +46,28 @@ SetBasePreset 指定当前相机基底，null清除；切镜时清理。Push 返
 
 从稳定 Hub 体验公共能力时调用 `PresentationLabFlow.OpenAsync(token)`；该入口加载正式世界租约和 PresentationLabView，再打开 CinematicOverlayView 并交付预览容器。关闭使用 Flow 持有的具体实例，先停止／恢复本次效果，再归还表现 View 与世界资源并返回 Hub。体验页的后处理、时间和电影操作使用同一套正式公共 API。
 
-其他调用方按需使用 UIManager 显示 `CinematicOverlayView`，可用 SetData(viewport) 指定画面容器，null 为全屏。正式资源为 `UI/Presentation/CinematicOverlayView.prefab`；View 通过 CinematicOverlayBindings 初始化，在 OnShow Register、OnHide/OnDestroy Unregister，并由 UIManager／Loader 负责释放。若调整制作资源，保留三个独立通道：遮幕 Image/CanvasGroup、顶部/底部黑边、Title/SubTitle TMP/CanvasGroup。遮幕使用白 Sprite 和 UI/CinematicCurtain 材质，黑边位于目标容器内，固定引用通过正式 UIBind 维护。
+其他调用方按需使用 UIManager 显示 `CinematicOverlayView`，可用 SetData(viewport) 指定画面容器，null 为全屏。正式资源为 `UI/Presentation/CinematicOverlayView.prefab`；View 持有 Core 的 CinematicPresenter，隐藏或销毁时立即 ResetEffects，由 UIManager／Loader 负责释放。固定引用通过正式 UIBind 维护，不经过静态注册。制作资源保留遮幕 Image/CanvasGroup、顶部/底部黑边、Title/SubTitle TMP/CanvasGroup；遮幕使用白 Sprite 和 UI/CinematicCurtain 材质，黑边位于目标容器内。
 
-PlayTransitionAsync 的中点接收取消令牌。正常流程等待中点完成再开幕；取消会解除视觉等待、清幕并释放队列，即使中点没有响应令牌。已启动的导航或加载不会被强制终止，中点业务必须自行完成事务或处理取消、回滚；调用方不能把视觉任务已取消当成业务已经停止。中点不能等待同一黑幕通道的另一场转场。
+直接在取得的 View 实例上调用普通 void 方法，视觉完成使用回调，不包装成 UniTask：
 
-PushLetterbox 返回 CinematicPresenter.LetterboxHandle，仍可作为 IDisposable 持有。调用时明确传入需要隐藏的 HUD。正常结束等待 handle.ExitAsync()，默认沿用预设黑边时长，也可指定退出时长；它停止自身进入动画，再缩回到下层有效黑边并淡入允许恢复的 HUD。重复调用可同时等待同一退出任务，沿用首次参数与取消令牌；下层 owner 仍隐藏同一 HUD 时不会提前显现。finally、异常或场景卸载时 Dispose 立即恢复，无需等待动画。Exit 的主线程取消也立即清理，其它线程取消在主线程循环清理，取消异常仍传给等待者。
+```csharp
+overlay.StartTransition(onCovered: world.ResetMotion,
+    style: CinematicTransitionStyle.Wipe,
+    closeDuration: 0.4f, openDuration: 0.4f,
+    direction: CinematicWipeDirection.LeftToRight);
+overlay.ShowLetterboxForAspect(2.39f, duration: 0.3f);
+overlay.ShowTitle("Presentation.Chapter", "Presentation.Location");
+overlay.HideLetterbox(onComplete: overlay.ResetEffects);
+```
 
-标题调用 CinematicRuntime.ShowTitleAsync，使用稳定语言键；遮幕使用 PlayTransitionAsync，黑边与 HUD 淡出使用 PushLetterbox 的句柄。黑边进入和退出均使用未缩放时间，减少动态时动画时长为零，时间冻结仍可执行这些 API。切换或销毁表现根会取消排队和正在执行的视觉任务并立即恢复 HUD，已启动中点业务仍按自己的事务收口。
+StartTransition 的 onCovered 是闭幕后执行的同步操作，closedHold 是该回调完成后的保持秒数。异步导航或加载拆成 CloseCurtain → 闭幕完成回调发起既有业务事务 → 业务结束后 OpenCurtain；错误处理、取消及回滚仍由业务负责。IsTransitioning 为 true 时不要再次发起遮幕；普通完成回调只在动画正常完成时调用，ResetEffects 停止时不调用，页面退出时也应使旧业务回调失效。
+
+ShowLetterbox(heightRatio) 按目标容器高度比例显示黑边；ShowLetterboxForAspect(targetAspect) 按内容宽高比计算，HideLetterbox 缩回。标题使用稳定语言键，ShowTitle 可传 fadeIn、hold、fadeOut；缓动参数使用 DOTween Ease。动画采用未缩放时间，减少动态时进入和退出时长为零，时间冻结仍可执行。
+
+公共 Presenter 不控制 HUD。页面保存明确传入的 CanvasGroup 原 alpha、interactable 和 blocksRaycasts，再管理自己的淡出 Tween；停止或卸载必须恢复这三个原值。体验页已由 PresentationCinematicPanel 完成这项工作。它保留七种样式、四方向、开闭时长、宽高比、HUD 和标题选项；播放中停止立即 ResetEffects，播放完成只剩黑边时以 HideLetterbox 回调收尾。页面同时只执行一个操作，重新播放先清理上次体验，所有完成和失败回调核对操作版本。关闭不等待视觉退出，先立即恢复，再沿用 UIManager 导航事务。
 
 ## 排障
 
-初始化失败先查 ConfigAddress、YooAsset Config 采集和 SO 引用；字体失败查 FontId 双语言映射及材质 atlas。设置保存失败查 SettingsApplyResult、Feedback 与实际 IO/领域校验异常，页面提示一次，不把保存失败写成成功；读取失败统一回默认且不自动写回，不区分读取故障。画质降级查 DisplaySettingsRuntime.Status 与 StreamlineRuntime.Status。演出缺根先完成正式 View 注册，禁止用临时 Canvas 兜底。
+初始化失败先查 ConfigAddress、YooAsset Config 采集和 SO 引用；字体失败查 FontId 双语言映射及材质 atlas。设置保存失败查 SettingsApplyResult、Feedback 与实际 IO/领域校验异常，页面提示一次，不把保存失败写成成功；读取失败统一回默认且不自动写回，不区分读取故障。画质降级查 DisplaySettingsRuntime.Status 与 StreamlineRuntime.Status。演出缺根先通过 UIManager 打开正式 View 并交付具体实例，禁止用临时 Canvas 兜底。
 
 电脑端最低验收尺寸为 1920×1080，低于此范围不支持；不要按 Editor 面板的实际窗口尺寸启动 Hub 交互验收。现有 MainMenuNavigationPlayModeTests 复用 GameViewResolution 临时固定最低尺寸，结束后恢复用户选择。按直接受影响范围验证 Hub 设置打开和返回、各 Demo 公共入口已移除、分页候选保留与释放、绑定列表回收、显示确认恢复、Hub 语言重建以及演出停止／退出；实际交付结果和未验证项统一维护在 [模块状态](../modules/settings-presentation.md#交付状态与验证边界)。持续接入使用上述公共入口与正式资源，不依赖一次性制作菜单。

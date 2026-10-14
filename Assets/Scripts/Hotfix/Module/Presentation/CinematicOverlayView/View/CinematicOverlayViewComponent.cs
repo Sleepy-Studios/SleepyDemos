@@ -7,7 +7,7 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using Hotfix;
+    using Core.Runtime.Presentation;
 
     [Source("LoadResources/UI/Presentation/CinematicOverlayView")]
     public partial class CinematicOverlayView
@@ -23,7 +23,7 @@ namespace Hotfix
             return new Core.Runtime.EmptyUITransition();
         }
 
-        private CinematicOverlayBindings CinematicOverlayBindings_Overlay;
+        private CinematicPresenter CinematicPresenter_Overlay;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -35,7 +35,7 @@ namespace Hotfix
                 return;
             }
 
-            CinematicOverlayBindings_Overlay = componentItemIndex.Get<CinematicOverlayBindings>(0);
+            CinematicPresenter_Overlay = componentItemIndex.Get<CinematicPresenter>(0);
         }
     }
 }

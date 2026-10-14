@@ -4,7 +4,7 @@
 
 `Core.Runtime/Settings` 是本机公共设置的唯一保存者；`Localization`、`Input`、`Rendering`、`TimeControl`、`Presentation` 分别落实语言字体、输入、渲染、玩法时间和电影演出。Core 不引用 Hotfix。`Hotfix/Module/Settings` 提供设置 Flux 状态及 Hub 语言重建协调；专属飞控、赛车和触控布局仍由 Demo 维护。
 
-制作配置位于 `Assets/LoadResources/Config/Settings`，电影预设位于 `Config/Presentation`。SO 只保存制作数据。`GameSettingsService.Current` 和 `GetDefaults()` 返回独立快照，玩家候选写入 `LocalDataManager` 的 `SleepyDemos.Settings`，不修改 SO。当前没有 Luban 双来源。
+制作配置位于 `Assets/LoadResources/Config/Settings`；电影演出直接使用方法参数，不再维护预设 SO。设置 SO 只保存制作数据。`GameSettingsService.Current` 和 `GetDefaults()` 返回独立快照，玩家候选写入 `LocalDataManager` 的 `SleepyDemos.Settings`，不修改 SO。当前没有 Luban 双来源。
 
 制作允许范围和帧率选项由 SettingsOptions 配置，服务 Options 返回副本；候选仍通过公共安全边界校验，制作数据只能收紧范围。InputHosts 给控制页面提供宿主身份与源动作，页面先克隆再编辑；语言名称和格式文化来自 LanguageService.Languages。
 
@@ -53,21 +53,24 @@ GameTimeService 是 timeScale 的唯一公共演出入口，手动玩法使用 D
 
 PostProcessRuntime 使用原生 URP Volume，按参数覆盖场景效果；预设和临时 Scope 克隆 Profile，最近有效作用域只覆盖勾选参数。玩家效果允许开关、亮度及减少动态最后约束输出，公共 UI 不参与世界后处理。相机解绑恢复并清理临时作用域，赛车纸印 Feature 保留自身生命周期。
 
-CinematicRuntime 要求 UIManager 托管的正式 View 显式初始化并 Register CinematicPresenter；不创建替代 Canvas。正式 `CinematicOverlayView` 通过 CinematicOverlayBindings 完成初始化，在显示时注册、隐藏时解除、销毁时释放；默认全屏，也可以 SetData 传入目标画面容器。黑幕和 Title 各自串行。闭幕后等待中点任务，正常完成再开幕；失败或取消清掉本次遮幕并释放黑幕队列。中点不响应令牌时，取消只解除视觉等待，已启动业务仍继续，由业务自己的事务负责完成、取消或回滚。
+CinematicPresenter 在 Core 维护三个独立表现通道：遮幕、黑边与标题，动画直接使用 DOTween。正式 `CinematicOverlayView` 由 UIManager 托管并持有 Presenter，默认全屏，也可用 SetData 传入目标画面容器；隐藏和销毁立即 ResetEffects。调用方持有具体 View，不使用静态注册、预设 SO、队列或嵌套句柄，也不创建替代 Canvas。
 
-黑边/HUD 使用可释放嵌套 LetterboxHandle，HUD 只控制明确传入的 CanvasGroup。正常 ExitAsync 停止自身进入动画，按未缩放时间将黑边过渡回下层有效状态，同时把自身 HUD 隐藏贡献降为零；其它 owner 仍隐藏的 HUD 不提前显现。重复 Exit 共用完成源，支持同时等待；减少动态时退出时长为零。Dispose、表现根解绑及主线程取消 Exit 立即移除覆盖并恢复有效状态；其它线程取消在主线程循环清理。最后释放恢复原透明度与交互。
+公开演出接口为普通 void 方法与完成回调。StartTransition 在闭幕完成时调用同步 onCovered，随后按 closedHold 保持并开幕；耗时场景加载或导航应使用 CloseCurtain 的完成回调启动业务，业务完成后再 OpenCurtain。视觉回调不转换成 UniTask，不把画面完成误当业务事务完成。转场忙碌时拒绝重复请求；黑边和标题各自维护当前动画，ResetEffects 停止动画且不触发旧完成回调。字幕在显示时解析语言和 FontId。
 
-中点可等待场景加载、切镜、字幕和黑边，**不能等待同一个黑幕通道的另一场转场**，否则队列会等待自身。字幕在显示时解析语言/FontId。未注册表现根时明确报错。
+黑边通过 ShowLetterbox／ShowLetterboxForAspect／HideLetterbox 控制，不管理 HUD。HUD 淡出由明确持有其 CanvasGroup 的页面或 Panel 负责，停止或退出恢复原 alpha、interactable 和 blocksRaycasts。各通道使用未缩放时间，减少动态时动画时长为零，时间冻结仍能执行。
 
-同一个表现根注销后可以重新注册并立即开始新演出。注销先同步清理旧表现；旧异步任务随后观察取消时，不得再清除新注册的遮幕或字幕。各注册仍拥有独立队列，普通用户取消继续清理本次演出。
-
-Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 PresentationWorld 世界租约、PresentationLabView 与 CinematicOverlayView；体验页分别调用公共后处理、时间和电影 API。退出通过 UIManager.ReplaceAsync 返回 Hub，成功后销毁体验页并归还世界资源；失败或取消且体验页仍可见时恢复表现根。停止和退出只释放本次作用域，不解除其它调用方的冻结。该体验页不会把暂时的速度、黑边或后处理预览写成玩家设置。正式 UI 位于 `UI/Presentation/`，世界资源位于 `Art/Presentation/PresentationWorld.prefab`。
+Hub 的公共效果入口调用 `PresentationLabFlow.OpenAsync`，加载正式 PresentationWorld 世界租约、PresentationLabView 与 CinematicOverlayView；体验页分别调用公共后处理、时间和电影 API。同一时间只播放一个操作，重新播放前清理本页上次体验，不排队或叠加；保留七种遮幕、方向、开闭时长、宽高比、HUD 和标题选项。PresentationCinematicPanel 自管 HUD 淡出与恢复，演出完成保留黑边，正常停止通过 HideLetterbox 完成回调恢复；播放中停止、异常或关闭立即复位。页面操作版本阻止旧回调改写新操作。退出仍通过 UIManager.ReplaceAsync 返回 Hub，成功后销毁体验页并归还世界资源；失败且体验页仍可见时恢复表现根。停止和退出只释放本次时间和后处理作用域，不解除其它调用方的冻结。该体验页不会把暂时的速度、黑边或后处理预览写成玩家设置。正式 UI 位于 `UI/Presentation/`，世界资源位于 `Art/Presentation/PresentationWorld.prefab`。
 
 ## 交付状态与验证边界
 
 按 2026-10-12 最终授权范围，G0–G11 的电脑端交付已完成：公共设置仅在 Hub 打开，五个独立分页与效果体验复用现有基础 UI；Demo 保留自己的玩法设置、公共 API 接入和美术 Variant。七张效果图已确认并装配，Hub 风格不覆盖 Demo。详细 API 与生命周期以上述正文为准，不再维护并行进度清单。
 
-本节汇总已记录的结果，本次文档治理没有重新运行 Unity 或核验历史机器配置：
+本节区分本次定向验证与历史交付记录，不由历史结果推断最新代码已生效：
+
+- 2026-10-14 电影演出重构已通过 Unity Editor 编译；`CinematicGeometryTests` 2/2、`CinematicRuntimeTests` 4/4、`TestAssemblyBoundaryTests` 5/5。七种图案及四向擦幕取得 Direct3D12 像素验证，标题保留中英 FontId 与冻结时间验证，停止、忙碌拒绝、完成重入和黑边替换均通过。
+- 正式 AppEntrance 的效果体验入口 1/1，覆盖 1920×1080、1920×1200、3440×1440 三画幅的正常播放后收回黑边、冻结中停止、HUD 原透明度及交互恢复、退出归还世界并返回 Hub；已查看三画幅运行截图。UnitySkills 回调恢复曾发生文件占用，最终通过结果以原生 Test Runner XML 为证据。没有执行全量回归或 Player 构建。
+
+以下为重构前的历史记录：
 
 - Hub、五分类与体验三分类，中英两语言、1920×1080 / 2560×1440 / 3440×1440 共 54 张运行截图；实际切页、取消、Esc 返回与三画幅关闭按钮均有定向通过记录。最低支持尺寸为 1920×1080，旧窄屏试验不作为验收要求。
 - 正式 AppEntrance / Editor Offline 实际首包 `2026-10-12-165911` 的五分页、候选保存、语言重建、显示确认、冻结及四 Demo 往返为 1/1（`70d5d059`）；128 项包文件与 StreamingAssets 哈希一致，原配置已恢复。Editor 复用已加载 Hotfix 程序集，不能据此证明首包 DLL 独立加载。

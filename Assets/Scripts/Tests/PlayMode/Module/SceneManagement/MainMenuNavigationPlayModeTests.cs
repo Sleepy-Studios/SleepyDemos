@@ -1331,11 +1331,16 @@ namespace Tests.Module
             }
         }
 
-        [UnityTest, Timeout(180000)]
+        [UnityTest, Timeout(300000)]
         public IEnumerator PresentationEntryUsesRealControlsAndRestoresWorldAfterFrozenCancellation()
         {
             yield return PrepareHub();
-            yield return VerifyPresentationEntryAsync().ToCoroutine();
+            foreach (var size in new[] { new Vector2Int(1920, 1080), new Vector2Int(1920, 1200), new Vector2Int(3440, 1440) })
+            {
+                using var viewport = new Tests.Demo.GameViewResolution(size.x, size.y);
+                yield return Wait(() => Screen.width == size.x && Screen.height == size.y, "电影演出目标画幅", 5);
+                yield return VerifyPresentationEntryAsync().ToCoroutine();
+            }
         }
 
         private async UniTask VerifyPresentationEntryAsync()
@@ -1354,7 +1359,8 @@ namespace Tests.Module
                 var options = previous.Copy();
                 options.Accessibility.ReducedMotion = ReducedMotionMode.Off;
                 options.Graphics.AllowedEffects = PostProcessEffects.All;
-                Assert.That((await GameSettingsService.ApplyAsync(options)).Succeeded, Is.True);
+                var applied = await GameSettingsService.ApplyAsync(options, confirmDisplay: _ => UniTask.FromResult(true));
+                Assert.That(applied.Succeeded, Is.True, applied.Message);
                 var menu = UIManager.Instance.Get<MainMenuView>();
                 await Wait(() => Field<Button>(menu, "Button_Effects").interactable, "设置事务结束后恢复体验入口", 5);
                 await Click(ButtonPosition(Field<Button>(menu, "Button_Effects")));
@@ -1363,8 +1369,8 @@ namespace Tests.Module
                 var bindings = Field<PresentationLabBindings>(lab, "PresentationLabBindings_Lab");
                 var world = Object.FindFirstObjectByType<PresentationWorld>();
                 var overlay = UIManager.Instance.Get<CinematicOverlayView>();
-                var channels = Field<CinematicOverlayBindings>(overlay, "CinematicOverlayBindings_Overlay");
-                Assert.That(CinematicRuntime.IsRegistered, Is.True);
+                var presenter = Field<CinematicPresenter>(overlay, "CinematicPresenter_Overlay");
+                Assert.That(presenter.IsInitialized, Is.True);
                 Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(world.WorldCamera));
                 Assert.That(hubCamera.enabled, Is.False);
                 if (listener != null) Assert.That(listener.enabled, Is.False);
@@ -1416,6 +1422,25 @@ namespace Tests.Module
                 await Click(ButtonPosition(bindings.Stop));
                 await Wait(() => Mathf.Approximately(GameTimeService.Scale, originalScale) && bindings.Play.interactable, "停止时间体验作用域", 5);
 
+                await Click(ButtonPosition(bindings.Tabs.UiTab.Items[2].GetComponent<Button>()));
+                float originalHudAlpha = bindings.PreviewHud.alpha;
+                bool originalHudInteractable = bindings.PreviewHud.interactable;
+                bool originalHudRaycasts = bindings.PreviewHud.blocksRaycasts;
+                await Click(ButtonPosition(bindings.Play));
+                await Wait(() => !presenter.IsTransitioning && !presenter.IsTitlePlaying && bindings.Play.interactable,
+                    "电影演出正常完成并保持黑边", 8);
+                Assert.That(presenter.IsLetterboxVisible, Is.True);
+                Assert.That(bindings.PreviewHud.alpha, Is.Zero.Within(0.001f));
+                Assert.That(bindings.PreviewHud.interactable, Is.False);
+                Assert.That(bindings.PreviewHud.blocksRaycasts, Is.False);
+                ScreenCapture.CaptureScreenshot($"Library/GraphicsSettings/Lab-Letterbox-{Screen.width}x{Screen.height}.png");
+                await UniTask.Yield();
+                await Click(ButtonPosition(bindings.Stop));
+                await Wait(() => !presenter.IsLetterboxVisible && bindings.Play.interactable, "正常收回黑边", 5);
+                Assert.That(bindings.PreviewHud.alpha, Is.EqualTo(originalHudAlpha).Within(0.001f));
+                Assert.That(bindings.PreviewHud.interactable, Is.EqualTo(originalHudInteractable));
+                Assert.That(bindings.PreviewHud.blocksRaycasts, Is.EqualTo(originalHudRaycasts));
+
                 using (var clock = GameTimeService.Push(originalScale))
                 using (clock.Freeze())
                 {
@@ -1426,22 +1451,24 @@ namespace Tests.Module
                     Assert.That(Field<float>(world, "elapsed"), Is.EqualTo(worldTime));
                     await Click(ButtonPosition(bindings.Tabs.UiTab.Items[2].GetComponent<Button>()));
                     await Click(ButtonPosition(bindings.Play));
-                    var curtain = Field<Image>(channels, "curtain");
-                    await Wait(() => channels.Presenter.LetterboxScopeCount > 0 && curtain.material.GetFloat("_Progress") > 0.1f,
+                    var curtain = Field<Image>(presenter, "curtain");
+                    await Wait(() => presenter.IsLetterboxVisible && presenter.IsTransitioning
+                        && Field<CanvasGroup>(presenter, "transitionGroup").blocksRaycasts
+                        && curtain.fillAmount > 0.1f,
                         "冻结中播放正式黑幕与黑边", 5);
                     ScreenCapture.CaptureScreenshot("Library/GraphicsSettings/Lab-Cinematic.png");
                     await UniTask.Yield();
                     await Click(ButtonPosition(bindings.Stop));
-                    await Wait(() => channels.Presenter.LetterboxScopeCount == 0 && bindings.Play.interactable, "取消并恢复电影通道", 5);
+                    await Wait(() => !presenter.IsLetterboxVisible && !presenter.IsTransitioning
+                        && !presenter.IsTitlePlaying && bindings.Play.interactable, "取消并恢复电影通道", 5);
                     Assert.That(bindings.PreviewHud.alpha, Is.EqualTo(1).Within(0.001f));
-                    Assert.That(Field<CanvasGroup>(channels, "curtainGroup").alpha, Is.Zero);
-                    Assert.That(Field<CanvasGroup>(channels, "titleGroup").alpha, Is.Zero);
+                    Assert.That(Field<CanvasGroup>(presenter, "transitionGroup").alpha, Is.Zero);
+                    Assert.That(Field<CanvasGroup>(presenter, "titleGroup").alpha, Is.Zero);
                     await Click(ButtonPosition(bindings.Close));
                     await Wait(() => lab.State == ViewState.Destroyed && UIManager.Instance.Get<MainMenuView>()?.IsEnable == true,
                         "关闭冻结体验并恢复Hub", 10);
                     Assert.That(GameTimeService.Scale, Is.Zero, "退出只能释放体验页自己的时间租约。");
                 }
-                Assert.That(CinematicRuntime.IsRegistered, Is.False);
                 Assert.That(UIManager.Instance.Get<CinematicOverlayView>(), Is.Null);
                 Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(hubCamera));
                 Assert.That(hubCamera.enabled, Is.EqualTo(cameraEnabled));
@@ -1453,7 +1480,11 @@ namespace Tests.Module
             finally
             {
                 if (lab != null && lab.IsLoaded) await PresentationLabFlow.CloseAsync(lab);
-                try { Assert.That((await GameSettingsService.ApplyAsync(previous)).Succeeded, Is.True); }
+                try
+                {
+                    var restored = await GameSettingsService.ApplyAsync(previous, confirmDisplay: _ => UniTask.FromResult(true));
+                    Assert.That(restored.Succeeded, Is.True, restored.Message);
+                }
                 finally { RestoreSettingsPreference(hadPreference, preference); }
             }
         }

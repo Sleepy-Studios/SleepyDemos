@@ -282,6 +282,14 @@ countdown.StartCountdown(nextRefresh, TimeDisplayFormat.AutoWithUnits); // UICou
 
 时间戳必须使用名字所标注的单位。`FromUnixSeconds` 与 `FromUnixMilliseconds` 不根据数值猜测；`ToDateTime`/`FormatTimestamp` 可以传 `TimeZoneInfo`。墙钟默认系统 UTC，服务器接入可以实现 `ITimeSource` 并调用 `SetTimeSource`，本模块不发起网络校时。测试结束必须恢复 `SetTimeSource(null)`。倒计时完成事件只在正常到期触发，`StopCountdown`、禁用和销毁不会触发；完成回调可以同步重启下一轮。
 
+## 黑幕、黑边与标题
+
+正式表现资源是 `UI/Presentation/CinematicOverlayView.prefab`。Hotfix 通过 UIManager 打开具体 `CinematicOverlayView`，Core 使用方持有已制作的 `CinematicPresenter`；固定遮幕、黑边和字幕引用由正式 Prefab/UIBind 维护。`SetData(viewport)` 指定画面容器，null 使用全屏，不额外创建 Canvas。
+
+遮幕使用 `StartTransition` 或独立的 `CloseCurtain`／`OpenCurtain`，黑边使用 `ShowLetterbox`／`ShowLetterboxForAspect`／`HideLetterbox`，标题使用 `ShowTitle`。这些方法直接使用参数、DOTween Ease 和完成回调，不需要预设 SO、静态注册、队列或句柄。异步导航仍由原业务流程持有，按闭幕回调开始业务、业务结束后开幕；不把视觉回调转换成 UniTask。
+
+`ResetEffects()` 立即停止本实例动画、清理表现且不触发旧完成回调；隐藏和销毁表现 View 时执行。HUD 不归 Presenter 管理，由持有其 CanvasGroup 的页面保存并恢复原 alpha、interactable、blocksRaycasts。体验页的 `PresentationCinematicPanel` 已负责这项生命周期；公共表现完整接入见[公共设置与演出接入](./use-settings-presentation.md#电影演出)。
+
 ## 两类 Tips
 
 ```csharp

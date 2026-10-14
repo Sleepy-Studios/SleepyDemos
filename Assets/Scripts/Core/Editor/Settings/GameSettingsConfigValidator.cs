@@ -87,9 +87,6 @@ namespace Core.Editor.Settings
                         case PostProcessPreset post:
                             Check(post, post.Validate, issues);
                             break;
-                        case CinematicPreset cinematic:
-                            Check(cinematic, cinematic.Validate, issues);
-                            break;
                         case GameTimePreset time:
                             Check(time, time.Validate, issues);
                             break;

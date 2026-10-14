@@ -3184,14 +3184,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d083ed9a69456f4bbc98283cf3858c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Hotfix::Hotfix.PresentationCinematicPanel
-  presets:
-  - {fileID: 11400000, guid: d21eb44295a4bb14c9aaaa4fb2c9ca7c, type: 2}
-  - {fileID: 11400000, guid: 3587c0c32c180444ab0a149ef28eeca3, type: 2}
-  - {fileID: 11400000, guid: 182a3fafcba78014eb65f3d5c79cd9a3, type: 2}
-  - {fileID: 11400000, guid: 293b64d06f90b1d44acc5cf54f61684b, type: 2}
-  - {fileID: 11400000, guid: 4d8c1cde335e67948b7b8b344f94ea39, type: 2}
-  - {fileID: 11400000, guid: 8dc7e6a7e08375041ad02686ef8da93d, type: 2}
-  - {fileID: 11400000, guid: 49165b4cb6852674ea778585e3aa42fc, type: 2}
   styleRow: {fileID: 5847660290058899256}
   directionRow: {fileID: 5389375833332397386}
   aspectRow: {fileID: 4157285384971896837}

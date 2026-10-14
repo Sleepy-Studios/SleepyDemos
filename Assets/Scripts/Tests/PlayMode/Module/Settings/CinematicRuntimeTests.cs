@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Threading;
 using Core.Runtime.Localization;
 using Core.Runtime.Presentation;
 using Core.Runtime.Settings;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
@@ -23,7 +23,7 @@ namespace Tests.Module
     {
 #if UNITY_EDITOR
         [UnityTest]
-        public IEnumerator FrozenTitleUsesLocalizedFontIdsAndClearsAfterCompletionCancellationAndFailure()
+        public IEnumerator FrozenTitleUsesLocalizedFontIdsAndClearsAfterCompletionAndReset()
         {
             yield return RunTitleCaseAsync().ToCoroutine();
         }
@@ -32,7 +32,6 @@ namespace Tests.Module
         {
             var config = UnityEditor.AssetDatabase.LoadAssetAtPath<GameSettingsConfig>("Assets/" + GameSettingsService.ConfigAddress + ".asset");
             Assert.That(config, Is.Not.Null);
-            // 仅保存测试触及的语言服务状态，避免独立运行此用例后改变启动初始化条件。
             var state = new[] { "texts", "fonts", "languages", "<CurrentLanguage>k__BackingField" };
             var fields = new FieldInfo[state.Length];
             var values = new object[state.Length];
@@ -51,66 +50,32 @@ namespace Tests.Module
                 foreach (string language in new[] { "zh-CN", "en" })
                 {
                     LanguageService.Initialize(config.Language, config.Fonts, language);
-                    var completed = CinematicRuntime.ShowTitleAsync("Presentation.Chapter", "Presentation.Location", 0, 0.04f, 0.01f);
+                    bool completed = false;
+                    fixture.Presenter.ShowTitle("Presentation.Chapter", "Presentation.Location", 0, 0.1f, 0.01f, () => completed = true);
                     AssertTitleMapping(fixture.Title, config, "Presentation.Chapter");
                     AssertTitleMapping(fixture.Subtitle, config, "Presentation.Location");
-                    Assert.That(fixture.TitleGroup.alpha, Is.EqualTo(1));
-                    await completed.Timeout(TimeSpan.FromSeconds(3));
+                    await WaitAsync(() => fixture.TitleGroup.alpha >= 1);
+                    await WaitAsync(() => completed);
                     AssertTitleCleared(fixture);
                 }
 
-                using var cancellation = new CancellationTokenSource();
-                var canceled = CinematicRuntime.ShowTitleAsync("Presentation.Chapter", "Presentation.Location", 0, 10, 0, cancellation.Token);
-                Assert.That(fixture.TitleGroup.alpha, Is.EqualTo(1));
-                cancellation.Cancel();
-                bool wasCanceled = false;
-                try
-                {
-                    await canceled;
-                }
-                catch (OperationCanceledException)
-                {
-                    wasCanceled = true;
-                }
-                Assert.That(wasCanceled, Is.True);
+                bool stoppedCompletion = false;
+                fixture.Presenter.ShowTitle("Presentation.Chapter", "Presentation.Location", 0, 10, 0, () => stoppedCompletion = true);
+                Assert.Throws<InvalidOperationException>(() => fixture.Presenter.ShowTitle("Presentation.Location"));
+                AssertTitleMapping(fixture.Title, config, "Presentation.Chapter");
+                fixture.Presenter.ResetEffects();
+                AssertTitleCleared(fixture);
+                Assert.That(stoppedCompletion, Is.False, "停止字幕不能伪造播放完成。");
+                Assert.Throws<ArgumentException>(() => fixture.Presenter.ShowTitle(string.Empty));
                 AssertTitleCleared(fixture);
 
-                // 空键是真实非法调用；缺失词条会返回键本身，不能用它伪造失败路径。
-                fixture.Title.text = "Existing title";
-                fixture.Subtitle.text = "Existing subtitle";
-                fixture.TitleGroup.alpha = 1;
-                bool failed = false;
-                try
-                {
-                    await CinematicRuntime.ShowTitleAsync(string.Empty, "Presentation.Location", 0, 0, 0);
-                }
-                catch (ArgumentException)
-                {
-                    failed = true;
-                }
-                Assert.That(failed, Is.True);
+                fixture.Presenter.ShowTitle("Presentation.Chapter", fadeIn: 0, hold: 0, fadeOut: 0,
+                    onComplete: () => fixture.Presenter.ShowTitle("Presentation.Location", fadeIn: 0, hold: 10, fadeOut: 0));
+                AssertTitleMapping(fixture.Title, config, "Presentation.Location");
+                Assert.That(fixture.Presenter.IsTitlePlaying, Is.True, "旧字幕完成清理不能擦掉回调中新开始的字幕。");
+                fixture.Presenter.Release();
                 AssertTitleCleared(fixture);
-
-                // 同一正式根可在取消旧注册后立即复用，旧字幕清理不能擦掉新字幕。
-                var displacedTitle = CinematicRuntime.ShowTitleAsync("Presentation.Chapter", null, 0, 10, 0);
-                CinematicRuntime.Unregister(fixture.Presenter);
-                AssertTitleCleared(fixture);
-                CinematicRuntime.Register(fixture.Presenter);
-                using var replacementCancellation = new CancellationTokenSource();
-                var replacementTitle = CinematicRuntime.ShowTitleAsync("Presentation.Location", null, 0, 10, 0, replacementCancellation.Token);
-                try
-                {
-                    Assert.That(await displacedTitle.SuppressCancellationThrow(), Is.True, "旧注册的字幕必须取消。");
-                    AssertTitleMapping(fixture.Title, config, "Presentation.Location");
-                    Assert.That(fixture.TitleGroup.alpha, Is.EqualTo(1), "旧任务的 finally 不能隐藏新注册的字幕。");
-                    Assert.That(replacementTitle.Status, Is.EqualTo(UniTaskStatus.Pending));
-                }
-                finally
-                {
-                    replacementCancellation.Cancel();
-                    Assert.That(await replacementTitle.SuppressCancellationThrow(), Is.True);
-                }
-                AssertTitleCleared(fixture);
+                Assert.That(fixture.Presenter.IsInitialized, Is.False);
             }
             finally
             {
@@ -149,6 +114,7 @@ namespace Tests.Module
 
         private static void AssertTitleCleared(PresentationFixture fixture)
         {
+            Assert.That(fixture.Presenter.IsTitlePlaying, Is.False);
             Assert.That(fixture.Title.text, Is.Empty);
             Assert.That(fixture.Subtitle.text, Is.Empty);
             Assert.That(fixture.TitleGroup.alpha, Is.Zero);
@@ -157,9 +123,8 @@ namespace Tests.Module
         }
 #endif
 
-        [UnityTest]
-        [Category("RequiresGPU")]
-        public IEnumerator CurtainShaderRendersAllPatternsAndCoverageBoundaries()
+        [UnityTest, Category("RequiresGPU")]
+        public IEnumerator CurtainRendersAllPatternsAndCoverageBoundaries()
         {
             yield return RunCurtainImageCaseAsync().ToCoroutine();
         }
@@ -175,7 +140,6 @@ namespace Tests.Module
             var cameraObject = new GameObject("Cinematic image test camera", typeof(Camera));
             var output = new RenderTexture(256, 128, 24, RenderTextureFormat.ARGB32);
             var readback = new Texture2D(256, 128, TextureFormat.RGBA32, false, true);
-            var preset = ScriptableObject.CreateInstance<CinematicPreset>();
             var previousTarget = RenderTexture.active;
             string evidence = Path.Combine(Application.dataPath, "../Library/Settings/evidence/cinematic", SystemInfo.graphicsDeviceType.ToString());
             try
@@ -198,19 +162,17 @@ namespace Tests.Module
                 canvas.renderMode = RenderMode.ScreenSpaceCamera;
                 canvas.worldCamera = camera;
                 canvas.planeDistance = 1;
+                fixture.Frame.anchorMin = Vector2.zero;
+                fixture.Frame.anchorMax = Vector2.one;
+                fixture.Frame.offsetMin = fixture.Frame.offsetMax = Vector2.zero;
                 foreach (var item in fixture.Root.GetComponentsInChildren<Transform>(true))
                 {
                     item.gameObject.layer = 31;
                 }
-                fixture.TopBar.transform.parent.gameObject.SetActive(false);
                 fixture.TitleGroup.gameObject.SetActive(false);
-                var rect = fixture.Curtain.rectTransform;
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = rect.offsetMax = Vector2.zero;
                 Canvas.ForceUpdateCanvases();
+                fixture.Presenter.RefreshViewport();
                 Directory.CreateDirectory(evidence);
-
                 foreach (CinematicTransitionStyle style in Enum.GetValues(typeof(CinematicTransitionStyle)))
                 {
                     var directions = style == CinematicTransitionStyle.Wipe
@@ -218,38 +180,31 @@ namespace Tests.Module
                         : new[] { CinematicWipeDirection.LeftToRight };
                     foreach (var direction in directions)
                     {
-                        preset.ConfigureTransition(style, direction, 0, 0, 0, Color.black, 4, 16);
-                        var midpoint = new UniTaskCompletionSource();
-                        var transition = CinematicRuntime.PlayTransitionAsync(preset, _ => midpoint.Task);
-                        try
+                        foreach (float progress in new[] { 0f, style == CinematicTransitionStyle.Iris ? 0.65f : 0.5f, 1f })
                         {
-                            foreach (float progress in new[] { 0f, 1f, style == CinematicTransitionStyle.Iris ? 0.65f : 0.5f })
+                            fixture.Presenter.ResetEffects();
+                            fixture.Presenter.CloseCurtain(style, 1, ease: Ease.Linear, direction: direction,
+                                color: Color.black, blindCount: 4, pixelColumns: 16);
+                            // 定位实际 UI 动画，不写 Shader 属性，覆盖完整表现路径。
+                            Assert.That(DOTween.Goto(fixture.Presenter, progress, false), Is.GreaterThan(0));
+                            Canvas.ForceUpdateCanvases();
+                            await UniTask.WaitForEndOfFrame();
+                            RenderTexture.active = output;
+                            readback.ReadPixels(new Rect(0, 0, output.width, output.height), 0, 0);
+                            readback.Apply();
+                            RenderTexture.active = previousTarget;
+                            if (progress == 0 || progress == 1)
                             {
-                                // 在真实公共转场中点固定时间采样材质，避免测试依赖帧速率和缓动时间。
-                                fixture.Curtain.material.SetFloat("_Progress", progress);
-                                await UniTask.WaitForEndOfFrame();
-                                RenderTexture.active = output;
-                                readback.ReadPixels(new Rect(0, 0, output.width, output.height), 0, 0);
-                                readback.Apply();
-                                RenderTexture.active = previousTarget;
-                                if (progress == 0 || progress == 1)
+                                foreach (var pixel in readback.GetPixels())
                                 {
-                                    foreach (var pixel in readback.GetPixels())
-                                    {
-                                        Assert.That(pixel.r, Is.EqualTo(1 - progress).Within(0.1f), style + "覆盖端点");
-                                    }
-                                }
-                                else
-                                {
-                                    AssertCurtainShape(readback, style, direction);
-                                    File.WriteAllBytes(Path.Combine(evidence, style + "-" + direction + ".png"), readback.EncodeToPNG());
+                                    Assert.That(pixel.r, Is.EqualTo(1 - progress).Within(0.1f), style + "覆盖端点");
                                 }
                             }
-                        }
-                        finally
-                        {
-                            midpoint.TrySetResult();
-                            await transition;
+                            else
+                            {
+                                AssertCurtainShape(readback, style, direction);
+                                File.WriteAllBytes(Path.Combine(evidence, style + "-" + direction + ".png"), readback.EncodeToPNG());
+                            }
                         }
                     }
                 }
@@ -262,7 +217,6 @@ namespace Tests.Module
                 output.Release();
                 Object.Destroy(output);
                 Object.Destroy(readback);
-                Object.Destroy(preset);
             }
         }
 
@@ -300,20 +254,29 @@ namespace Tests.Module
                     }
                     break;
                 case CinematicTransitionStyle.DoorsHorizontal:
-                    Covered(0.1f, 0.5f); Covered(0.9f, 0.5f); Open(0.5f, 0.1f);
+                    Covered(0.1f, 0.5f);
+                    Covered(0.9f, 0.5f);
+                    Open(0.5f, 0.1f);
                     break;
                 case CinematicTransitionStyle.DoorsVertical:
-                    Covered(0.5f, 0.1f); Covered(0.5f, 0.9f); Open(0.1f, 0.5f);
+                    Covered(0.5f, 0.1f);
+                    Covered(0.5f, 0.9f);
+                    Open(0.1f, 0.5f);
                     break;
                 case CinematicTransitionStyle.Iris:
                     // 长方形画面上相同像素半径应有相同覆盖，不应变成按 UV 拉伸的椭圆。
-                    Open(0.5f, 0.5f); Covered(0.05f, 0.05f);
-                    Open(0.65625f, 0.5f); Open(0.5f, 0.8125f);
-                    Covered(0.7265625f, 0.5f); Covered(0.5f, 0.953125f);
+                    Open(0.5f, 0.5f);
+                    Covered(0.05f, 0.05f);
+                    Open(0.65625f, 0.5f);
+                    Open(0.5f, 0.8125f);
+                    Covered(0.7265625f, 0.5f);
+                    Covered(0.5f, 0.953125f);
                     break;
                 case CinematicTransitionStyle.Blinds:
-                    Covered(0.05f, 0.5f); Open(0.18f, 0.5f);
-                    Covered(0.3f, 0.5f); Open(0.43f, 0.5f);
+                    Covered(0.05f, 0.5f);
+                    Open(0.18f, 0.5f);
+                    Covered(0.3f, 0.5f);
+                    Open(0.43f, 0.5f);
                     break;
                 case CinematicTransitionStyle.Pixel:
                     int covered = 0;
@@ -335,327 +298,256 @@ namespace Tests.Module
         }
 
         [UnityTest]
-        public IEnumerator TransitionQueueCancellationAndFailureRestoreCurtain()
+        public IEnumerator TransitionCallbacksRejectBusyAndRecoverFromResetAndMidpointFailure()
         {
-            yield return RunQueueCaseAsync().ToCoroutine();
+            yield return RunTransitionCaseAsync().ToCoroutine();
         }
 
-        private static async UniTask RunQueueCaseAsync()
+        private static async UniTask RunTransitionCaseAsync()
         {
             using var fixture = new PresentationFixture();
-            var preset = ScriptableObject.CreateInstance<CinematicPreset>();
             float previousScale = Time.timeScale;
-            using var cancellation = new CancellationTokenSource();
             try
             {
                 Time.timeScale = 0;
-                preset.ConfigureTransition(CinematicTransitionStyle.Fade, CinematicWipeDirection.LeftToRight, 0, 0.02f, 0, Color.black);
+                Assert.Throws<ArgumentException>(() => fixture.Presenter.CloseCurtain(color: new Color(0, 0, 0, 0.5f)));
+                Assert.Throws<ArgumentOutOfRangeException>(() => fixture.Presenter.CloseCurtain(duration: float.NaN));
+                Assert.Throws<ArgumentOutOfRangeException>(() => fixture.Presenter.ShowLetterbox(float.PositiveInfinity));
+                Assert.Throws<ArgumentOutOfRangeException>(() => fixture.Presenter.ShowTitle("Presentation.Chapter", hold: float.NaN));
                 var order = new List<int>();
-                bool finishFirst = false;
-                var first = CinematicRuntime.PlayTransitionAsync(preset, async token =>
+                fixture.Presenter.StartTransition(() =>
                 {
                     order.Add(1);
-                    await UniTask.WaitUntil(() => finishFirst, cancellationToken: token);
-                    order.Add(2);
-                }).Preserve();
-                var second = CinematicRuntime.PlayTransitionAsync(preset, _ =>
-                {
-                    order.Add(3);
-                    return UniTask.CompletedTask;
-                }).Preserve();
-                var canceled = CinematicRuntime.PlayTransitionAsync(preset, _ =>
-                {
-                    order.Add(99);
-                    return UniTask.CompletedTask;
-                }, cancellation.Token).Preserve();
-                await UniTask.Yield();
+                    Assert.That(fixture.TransitionGroup.alpha, Is.EqualTo(1));
+                    Assert.That(fixture.TransitionGroup.blocksRaycasts, Is.True);
+                }, 0.15f, () => order.Add(2), closeDuration: 0, openDuration: 0);
+                await WaitAsync(() => order.Count == 1);
+                Assert.Throws<InvalidOperationException>(() => fixture.Presenter.StartTransition());
+                Assert.Throws<InvalidOperationException>(() => fixture.Presenter.CloseCurtain());
+                Assert.Throws<InvalidOperationException>(() => fixture.Presenter.OpenCurtain());
                 Assert.That(order, Is.EqualTo(new[] { 1 }));
-                cancellation.Cancel();
-                bool wasCanceled = false;
-                try
-                {
-                    await canceled;
-                }
-                catch (OperationCanceledException)
-                {
-                    wasCanceled = true;
-                }
+                await WaitAsync(() => order.Count == 2);
+                Assert.That(order, Is.EqualTo(new[] { 1, 2 }));
+                AssertCurtainCleared(fixture);
 
-                Assert.That(wasCanceled, Is.True);
-                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.True, "取消排队不能清除其它正在演出的遮幕");
-                finishFirst = true;
-                await first;
-                await second;
-                Assert.That(order, Is.EqualTo(new[] { 1, 2, 3 }));
-                Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
-                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
+                bool closed = false;
+                fixture.Presenter.CloseCurtain(duration: 0, onComplete: () => closed = true);
+                Assert.That(closed, Is.True);
+                Assert.That(fixture.Presenter.IsTransitioning, Is.False, "闭幕完成后允许业务显式开幕。");
+                Assert.That(fixture.TransitionGroup.alpha, Is.EqualTo(1));
+                Assert.That(fixture.TransitionGroup.blocksRaycasts, Is.True);
+                fixture.Presenter.OpenCurtain(0);
+                AssertCurtainCleared(fixture);
 
-                bool failed = false;
-                try
-                {
-                    await CinematicRuntime.PlayTransitionAsync(preset, _ => throw new InvalidOperationException("Expected midpoint failure"));
-                }
-                catch (InvalidOperationException exception)
-                {
-                    failed = exception.Message == "Expected midpoint failure";
-                }
+                fixture.Presenter.StartTransition(closeDuration: 0, openDuration: 0,
+                    onComplete: () => fixture.Presenter.StartTransition(closedHold: 10, closeDuration: 0, openDuration: 0));
+                Assert.That(fixture.Presenter.IsTransitioning, Is.True, "完成回调中的新演出不能被旧动画清理。");
+                Assert.That(fixture.TransitionGroup.blocksRaycasts, Is.True);
+                fixture.Presenter.ResetEffects();
 
-                Assert.That(failed, Is.True);
-                Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
-                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
+                bool stoppedCompletion = false;
+                fixture.Presenter.StartTransition(closedHold: 10, closeDuration: 0, openDuration: 0,
+                    onComplete: () => stoppedCompletion = true);
+                fixture.Presenter.ResetEffects();
+                await UniTask.Yield();
+                AssertCurtainCleared(fixture);
+                Assert.That(stoppedCompletion, Is.False);
 
-                using var midpointCancellation = new CancellationTokenSource();
-                var nonCooperativeMidpoint = new UniTaskCompletionSource();
-                try
+                fixture.Presenter.StartTransition(() =>
                 {
-                    var interrupted = CinematicRuntime.PlayTransitionAsync(preset,
-                        _ => nonCooperativeMidpoint.Task, midpointCancellation.Token);
-                    Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.True);
-                    midpointCancellation.Cancel();
-                    bool midpointWasCanceled = false;
-                    try
+                    fixture.Presenter.ResetEffects();
+                    fixture.Presenter.StartTransition(closedHold: 10, closeDuration: 0, openDuration: 0);
+                }, onComplete: () => stoppedCompletion = true, closeDuration: 0, openDuration: 0);
+                Assert.That(fixture.Presenter.IsTransitioning, Is.True, "中点停止后重入不能被旧演出清理。");
+                Assert.That(fixture.TransitionGroup.blocksRaycasts, Is.True);
+                Assert.That(stoppedCompletion, Is.False);
+                fixture.Presenter.ResetEffects();
+
+                Exception failure = null;
+                fixture.Presenter.StartTransition(() => throw new InvalidOperationException("Expected midpoint failure"),
+                    onComplete: () => stoppedCompletion = true, closeDuration: 0, openDuration: 0,
+                    onFailed: exception =>
                     {
-                        await interrupted;
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        midpointWasCanceled = true;
-                    }
-
-                    Assert.That(midpointWasCanceled, Is.True, "中点不处理令牌也不能阻塞视觉取消");
-                    Assert.That(nonCooperativeMidpoint.Task.Status, Is.EqualTo(UniTaskStatus.Pending), "取消视觉等待不会强杀业务事务");
-                    Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
-                    Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
-                }
-                finally
-                {
-                    nonCooperativeMidpoint.TrySetResult();
-                }
-
-                // 旧动画在下一 Update 才观察注册取消，新注册拥有自己的队列。
-                var displacedTransition = CinematicRuntime.PlayTransitionAsync(preset);
-                CinematicRuntime.Unregister(fixture.Presenter);
-                Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
-                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
-                CinematicRuntime.Register(fixture.Presenter);
-                var replacementMidpoint = new UniTaskCompletionSource();
-                var replacementTransition = CinematicRuntime.PlayTransitionAsync(preset, _ => replacementMidpoint.Task);
-                try
-                {
-                    Assert.That(await displacedTransition.SuppressCancellationThrow(), Is.True, "旧注册的转场必须取消。");
-                    Assert.That(replacementTransition.Status, Is.EqualTo(UniTaskStatus.Pending));
-                    Assert.That(fixture.CurtainGroup.alpha, Is.EqualTo(1), "旧任务的 finally 不能清理新注册的遮幕。");
-                    Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.True);
-                }
-                finally
-                {
-                    replacementMidpoint.TrySetResult();
-                    await replacementTransition;
-                }
-                Assert.That(fixture.CurtainGroup.alpha, Is.Zero);
-                Assert.That(fixture.CurtainGroup.blocksRaycasts, Is.False);
+                        failure = exception;
+                        AssertCurtainCleared(fixture);
+                        fixture.Presenter.StartTransition(closedHold: 10, closeDuration: 0, openDuration: 0);
+                    });
+                Assert.That(failure, Is.TypeOf<InvalidOperationException>());
+                Assert.That(failure.Message, Is.EqualTo("Expected midpoint failure"));
+                Assert.That(fixture.Presenter.IsTransitioning, Is.True, "失败回调中新演出不能被旧流程清理。");
+                Assert.That(stoppedCompletion, Is.False);
+                fixture.Presenter.Release();
+                AssertCurtainCleared(fixture);
+                Assert.That(fixture.Presenter.IsInitialized, Is.False);
             }
             finally
             {
                 Time.timeScale = previousScale;
-                Object.Destroy(preset);
             }
         }
 
         [UnityTest]
-        public IEnumerator NestedLetterboxRestoresHudAfterOutOfOrderReleaseAndRootShutdown()
+        public IEnumerator LetterboxReplacementAndHideTrackTheCurrentViewport()
         {
-            using var fixture = new PresentationFixture();
-            var preset = ScriptableObject.CreateInstance<CinematicPreset>();
-            var hudObject = new GameObject("Explicit test HUD", typeof(CanvasGroup));
-            var hud = hudObject.GetComponent<CanvasGroup>();
-            hud.alpha = 0.65f;
-            hud.interactable = true;
-            hud.blocksRaycasts = true;
-            try
-            {
-                preset.ConfigureLetterbox(2.4f, 0);
-                var first = CinematicRuntime.PushLetterbox(preset, new[] { hud });
-                var second = CinematicRuntime.PushLetterbox(preset, new[] { hud });
-                Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(140).Within(0.001f));
-                Assert.That(hud.alpha, Is.Zero);
-                first.Dispose();
-                Assert.That(hud.alpha, Is.Zero);
-                second.Dispose();
-                second.Dispose();
-                Assert.That(hud.alpha, Is.EqualTo(0.65f).Within(0.00001f));
-                Assert.That(hud.interactable, Is.True);
-                Assert.That(hud.blocksRaycasts, Is.True);
-                Assert.That(fixture.TopBar.enabled, Is.False);
-
-                using var cancellation = new CancellationTokenSource();
-                var canceledScope = CinematicRuntime.PushLetterbox(preset, new[] { hud }, cancellation.Token);
-                cancellation.Cancel();
-                yield return null;
-                Assert.That(hud.alpha, Is.EqualTo(0.65f).Within(0.00001f));
-                canceledScope.Dispose();
-                var remaining = CinematicRuntime.PushLetterbox(preset, new[] { hud });
-                CinematicRuntime.Unregister(fixture.Presenter);
-                Assert.That(hud.alpha, Is.EqualTo(0.65f).Within(0.00001f));
-                Assert.That(CinematicRuntime.IsRegistered, Is.False);
-                remaining.Dispose();
-                Assert.Throws<InvalidOperationException>(() => CinematicRuntime.PushLetterbox(preset));
-            }
-            finally
-            {
-                Object.Destroy(preset);
-                Object.Destroy(hudObject);
-            }
+            yield return RunLetterboxCaseAsync().ToCoroutine();
         }
 
-        [UnityTest]
-        public IEnumerator LetterboxExitRestoresLowerOwnerAndSharesConcurrentWaiters()
-        {
-            yield return RunLetterboxExitAsync().ToCoroutine();
-        }
-
-        private static async UniTask RunLetterboxExitAsync()
+        private static async UniTask RunLetterboxCaseAsync()
         {
             using var fixture = new PresentationFixture();
-            var lowerPreset = ScriptableObject.CreateInstance<CinematicPreset>();
-            var upperPreset = ScriptableObject.CreateInstance<CinematicPreset>();
-            var hudObject = new GameObject("Letterbox exit HUD", typeof(CanvasGroup));
-            var hud = hudObject.GetComponent<CanvasGroup>();
-            hud.alpha = 0.65f;
-            hud.interactable = true;
-            hud.blocksRaycasts = true;
-            float previousScale = Time.timeScale;
-            try
-            {
-                Time.timeScale = 0;
-                lowerPreset.ConfigureLetterbox(2.4f, 0);
-                upperPreset.ConfigureLetterbox(3, 0);
-                var lower = CinematicRuntime.PushLetterbox(lowerPreset, new[] { hud });
-                var upper = CinematicRuntime.PushLetterbox(upperPreset, new[] { hud });
-                Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(220).Within(0.001f));
-                var firstWaiter = upper.ExitAsync(0.2f);
-                var secondWaiter = upper.ExitAsync(1);
-                var bothWaiters = UniTask.WhenAll(firstWaiter, secondWaiter);
-                if (!GameSettingsService.Current.Accessibility.IsReducedMotion)
-                {
-                    Assert.That(bothWaiters.Status, Is.EqualTo(UniTaskStatus.Pending), "非零退出时长必须可等待");
-                    Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(220).Within(0.001f));
-                }
+            fixture.Presenter.ShowLetterbox(0.1f, 0);
+            Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(108).Within(0.001f));
+            Assert.That(fixture.Presenter.IsLetterboxVisible, Is.True);
+            Assert.That(fixture.TopBar.raycastTarget, Is.False);
+            Assert.That(fixture.BottomBar.raycastTarget, Is.False);
+            bool replacedCompletion = false;
+            fixture.Presenter.ShowLetterbox(0.2f, 1, () => replacedCompletion = true);
+            bool hidden = false;
+            fixture.Presenter.HideLetterbox(0, () => hidden = true);
+            Assert.That(hidden, Is.True, "零时长完成回调可以同步执行。");
+            Assert.That(DOTween.IsTweening(fixture.Presenter), Is.False);
+            Assert.That(replacedCompletion, Is.False);
+            Assert.That(fixture.Presenter.IsLetterboxVisible, Is.False);
+            Assert.That(fixture.TopBar.enabled, Is.False);
+            Assert.That(fixture.BottomBar.enabled, Is.False);
 
-                await UniTask.Yield();
-                Assert.That(hud.alpha, Is.Zero, "下层仍隐藏同一 HUD 时，退出上层不能提前显现");
-                if (!GameSettingsService.Current.Accessibility.IsReducedMotion && bothWaiters.Status == UniTaskStatus.Pending)
-                {
-                    Assert.That(fixture.TopBar.rectTransform.rect.height, Is.InRange(140, 220));
-                    Assert.That(fixture.Presenter.LetterboxScopeCount, Is.EqualTo(2), "正常退出应保持句柄直到动画结束");
-                }
+            var viewport = fixture.CreateViewport(new Vector2(1080, 1920));
+            fixture.Presenter.SetViewport(viewport);
+            fixture.Presenter.ShowLetterboxForAspect(2.4f, 0);
+            Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(735).Within(0.001f));
+            viewport.sizeDelta = new Vector2(1920, 1080);
+            fixture.Presenter.RefreshViewport();
+            Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(140).Within(0.001f));
+            fixture.Presenter.ShowLetterbox(0.1f, 0);
+            viewport.sizeDelta = new Vector2(1000, 1000);
+            fixture.Presenter.RefreshViewport();
+            Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(100).Within(0.001f));
+            Assert.That(fixture.BottomBar.rectTransform.rect.height, Is.EqualTo(100).Within(0.001f));
+            fixture.Presenter.HideLetterbox(0.04f);
+            await WaitAsync(() => !fixture.Presenter.IsLetterboxVisible);
+            Assert.That(fixture.TopBar.enabled, Is.False);
+            Assert.That(fixture.BottomBar.enabled, Is.False);
+        }
 
-                await bothWaiters;
-                Assert.That(fixture.Presenter.LetterboxScopeCount, Is.EqualTo(1));
-                Assert.That(fixture.TopBar.rectTransform.rect.height, Is.EqualTo(140).Within(0.001f));
-                Assert.That(hud.alpha, Is.Zero);
-                upper.Dispose();
-                var hudFadeIn = lower.ExitAsync(0.15f);
-                if (!GameSettingsService.Current.Accessibility.IsReducedMotion)
-                {
-                    Assert.That(hudFadeIn.Status, Is.EqualTo(UniTaskStatus.Pending));
-                    Assert.That(hud.alpha, Is.Zero, "正常退出从当前隐藏状态开始淡入");
-                }
+        private static void AssertCurtainCleared(PresentationFixture fixture)
+        {
+            Assert.That(fixture.Presenter.IsTransitioning, Is.False);
+            Assert.That(fixture.TransitionGroup.alpha, Is.Zero);
+            Assert.That(fixture.TransitionGroup.blocksRaycasts, Is.False);
+            Assert.That(fixture.Curtain.raycastTarget, Is.False);
+        }
 
-                await UniTask.Yield();
-                Assert.That(hud.alpha, Is.InRange(0, 0.65f));
-                await hudFadeIn;
-                Assert.That(fixture.Presenter.LetterboxScopeCount, Is.Zero);
-                Assert.That(fixture.TopBar.enabled, Is.False);
-                Assert.That(hud.alpha, Is.EqualTo(0.65f).Within(0.00001f));
-                Assert.That(hud.interactable, Is.True);
-                Assert.That(hud.blocksRaycasts, Is.True);
-
-                // 进入尚未结束就退出，不允许旧进入动画再次写回黑边或 HUD。
-                upperPreset.ConfigureLetterbox(3, 0.1f);
-                var interruptedEnter = CinematicRuntime.PushLetterbox(upperPreset, new[] { hud });
-                await interruptedEnter.ExitAsync();
-                await UniTask.Delay(TimeSpan.FromSeconds(0.12f), ignoreTimeScale: true);
-                Assert.That(fixture.TopBar.enabled, Is.False);
-                Assert.That(hud.alpha, Is.EqualTo(0.65f).Within(0.00001f));
-
-                using var cancellation = new CancellationTokenSource();
-                lower = CinematicRuntime.PushLetterbox(lowerPreset, new[] { hud });
-                var canceledExit = lower.ExitAsync(1, cancellation.Token);
-                cancellation.Cancel();
-                Assert.That(hud.alpha, Is.EqualTo(0.65f).Within(0.00001f), "主线程取消退出立即恢复 HUD");
-                bool wasCanceled = false;
-                try
-                {
-                    await canceledExit;
-                }
-                catch (OperationCanceledException)
-                {
-                    wasCanceled = true;
-                }
-
-                Assert.That(wasCanceled || GameSettingsService.Current.Accessibility.IsReducedMotion, Is.True);
-                Assert.That(fixture.Presenter.LetterboxScopeCount, Is.Zero);
-            }
-            finally
-            {
-                Time.timeScale = previousScale;
-                Object.Destroy(lowerPreset);
-                Object.Destroy(upperPreset);
-                Object.Destroy(hudObject);
-            }
+        private static async UniTask WaitAsync(Func<bool> predicate)
+        {
+            await UniTask.WaitUntil(predicate).Timeout(TimeSpan.FromSeconds(3));
         }
 
         private sealed class PresentationFixture : IDisposable
         {
-            private readonly GameObject root;
             private readonly Material material;
-            internal GameObject Root => root;
+            private readonly Sprite whiteSprite;
+            private readonly FieldInfo settingsField;
+            private readonly GameSettingsSnapshot previousSettings;
+            internal readonly GameObject Root;
+            internal readonly RectTransform Frame;
             internal readonly CinematicPresenter Presenter;
-            internal readonly CanvasGroup CurtainGroup;
+            internal readonly CanvasGroup TransitionGroup;
             internal readonly Image Curtain;
             internal readonly Image TopBar;
+            internal readonly Image BottomBar;
             internal readonly CanvasGroup TitleGroup;
             internal readonly TMP_Text Title;
             internal readonly TMP_Text Subtitle;
 
             internal PresentationFixture()
             {
-                CinematicRuntime.Shutdown();
-                root = new GameObject("Cinematic runtime test", typeof(RectTransform));
-                root.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 1080);
-                Presenter = root.AddComponent<CinematicPresenter>();
-                var curtainRoot = Child("Curtain");
-                CurtainGroup = curtainRoot.gameObject.AddComponent<CanvasGroup>();
-                Curtain = curtainRoot.gameObject.AddComponent<Image>();
-                var barContainer = Child("Bars");
-                TopBar = Child("Top bar", barContainer).gameObject.AddComponent<Image>();
-                var bottom = Child("Bottom bar", barContainer).gameObject.AddComponent<Image>();
-                var titleRoot = Child("Title card");
+                settingsField = typeof(GameSettingsService).GetField("current", BindingFlags.Static | BindingFlags.NonPublic);
+                Assert.That(settingsField, Is.Not.Null);
+                previousSettings = (GameSettingsSnapshot)settingsField.GetValue(null);
+                var settings = previousSettings.Copy();
+                settings.Accessibility.ReducedMotion = ReducedMotionMode.Off;
+                settingsField.SetValue(null, settings);
+                Root = new GameObject("Cinematic presenter test", typeof(RectTransform));
+                Root.GetComponent<RectTransform>().sizeDelta = new Vector2(1920, 1080);
+                Frame = Child("Frame");
+                Presenter = Root.AddComponent<CinematicPresenter>();
+                var transitionRoot = Child("Transition", Frame);
+                Stretch(transitionRoot);
+                TransitionGroup = transitionRoot.gameObject.AddComponent<CanvasGroup>();
+                Curtain = Child("Curtain", transitionRoot).gameObject.AddComponent<Image>();
+                whiteSprite = Sprite.Create(Texture2D.whiteTexture,
+                    new Rect(0, 0, Texture2D.whiteTexture.width, Texture2D.whiteTexture.height), Vector2.one * 0.5f);
+                Curtain.sprite = whiteSprite;
+                Stretch(Curtain.rectTransform);
+                var first = Child("First door", transitionRoot).gameObject.AddComponent<Image>();
+                var second = Child("Second door", transitionRoot).gameObject.AddComponent<Image>();
+                first.raycastTarget = second.raycastTarget = false;
+                TopBar = Child("Top bar", Frame).gameObject.AddComponent<Image>();
+                BottomBar = Child("Bottom bar", Frame).gameObject.AddComponent<Image>();
+                TopBar.rectTransform.anchorMin = new Vector2(0, 1);
+                TopBar.rectTransform.anchorMax = Vector2.one;
+                TopBar.rectTransform.pivot = new Vector2(0.5f, 1);
+                BottomBar.rectTransform.anchorMin = Vector2.zero;
+                BottomBar.rectTransform.anchorMax = new Vector2(1, 0);
+                BottomBar.rectTransform.pivot = new Vector2(0.5f, 0);
+                var titleRoot = Child("Title card", Frame);
                 TitleGroup = titleRoot.gameObject.AddComponent<CanvasGroup>();
                 Title = Child("Title", titleRoot).gameObject.AddComponent<TextMeshProUGUI>();
                 Subtitle = Child("Subtitle", titleRoot).gameObject.AddComponent<TextMeshProUGUI>();
                 var shader = Shader.Find("UI/CinematicCurtain");
                 Assert.That(shader, Is.Not.Null, "需要导入正式遮幕 Shader");
                 material = new Material(shader);
-                Presenter.Initialize(CurtainGroup, Curtain, barContainer, TopBar, bottom, TitleGroup, Title, Subtitle, material);
-                CinematicRuntime.Register(Presenter);
+                SetField("frame", Frame);
+                SetField("transitionGroup", TransitionGroup);
+                SetField("curtain", Curtain);
+                SetField("doorFirst", first);
+                SetField("doorSecond", second);
+                SetField("topBar", TopBar);
+                SetField("bottomBar", BottomBar);
+                SetField("titleGroup", TitleGroup);
+                SetField("title", Title);
+                SetField("subtitle", Subtitle);
+                SetField("maskTemplate", material);
+                Presenter.Initialize();
+            }
+
+            internal RectTransform CreateViewport(Vector2 size)
+            {
+                var viewport = Child("Viewport");
+                viewport.sizeDelta = size;
+                return viewport;
+            }
+
+            private void SetField(string name, object value)
+            {
+                var field = typeof(CinematicPresenter).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(field, Is.Not.Null, "缺少制作字段：" + name);
+                field.SetValue(Presenter, value);
             }
 
             private RectTransform Child(string name, Transform parent = null)
             {
                 var item = new GameObject(name, typeof(RectTransform));
                 var rect = item.GetComponent<RectTransform>();
-                rect.SetParent(parent == null ? root.transform : parent, false);
+                rect.SetParent(parent == null ? Root.transform : parent, false);
                 rect.sizeDelta = new Vector2(1920, 1080);
                 return rect;
+            }
+
+            private static void Stretch(RectTransform rect)
+            {
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
             }
 
             public void Dispose()
             {
                 Presenter.Release();
-                Object.Destroy(root);
+                settingsField.SetValue(null, previousSettings);
+                Object.Destroy(Root);
                 Object.Destroy(material);
+                Object.Destroy(whiteSprite);
             }
         }
     }

@@ -1,56 +1,99 @@
+using System;
 using Core.Runtime;
 using Core.Runtime.Presentation;
+using DG.Tweening;
 using UnityEngine;
 
 namespace Hotfix
 {
-    /// UIManager 托管的公共电影表现根，默认全屏；体验页可指定局部画面容器。
+    /// UIManager 托管的综合电影表现 View，默认全屏，也可指定局部画面。
     [Module("Presentation")]
     [UIBind("CinematicOverlayView")]
     public partial class CinematicOverlayView : View
     {
-        protected override void OnGameObjectInitialize()
+        public bool IsTransitioning => CinematicPresenter_Overlay.IsTransitioning;
+        public bool IsTitlePlaying => CinematicPresenter_Overlay.IsTitlePlaying;
+        public bool IsLetterboxVisible => CinematicPresenter_Overlay.IsLetterboxVisible;
+
+        protected override void OnGameObjectInitialize() => CinematicPresenter_Overlay.Initialize();
+
+        /// <summary>指定目标画面，null 使用全屏；切换目标会停止当前演出。</summary>
+        /// <param name="viewport">当前页面的画面容器，不改变其层级和布局。</param>
+        public void SetData(RectTransform viewport) => CinematicPresenter_Overlay.SetViewport(viewport);
+
+        /// <inheritdoc cref="CinematicPresenter.StartTransition"/>
+        public void StartTransition(Action onCovered = null, float closedHold = 0, Action onComplete = null,
+            CinematicTransitionStyle style = CinematicTransitionStyle.Fade, float closeDuration = 0.35f,
+            float openDuration = 0.35f, Ease ease = Ease.InOutSine,
+            CinematicWipeDirection direction = CinematicWipeDirection.LeftToRight, Color? color = null,
+            int blindCount = 12, int pixelColumns = 48, Action<Exception> onFailed = null)
         {
-            CinematicOverlayBindings_Overlay.Initialize();
-            BindUpdate(CinematicOverlayBindings_Overlay.RefreshViewport);
+            CinematicPresenter_Overlay.StartTransition(onCovered, closedHold, onComplete, style,
+                closeDuration, openDuration, ease, direction, color, blindCount, pixelColumns, onFailed);
         }
 
-        /// <summary>在显示前交付目标容器，null 使用全屏；不持有调用方 HUD。</summary>
-        /// <param name="viewport">本次演出画面所在的 RectTransform，关闭 View 时解除引用。</param>
-        public void SetData(RectTransform viewport)
+        /// <inheritdoc cref="CinematicPresenter.CloseCurtain"/>
+        public void CloseCurtain(CinematicTransitionStyle style = CinematicTransitionStyle.Fade, float duration = 0.35f,
+            Action onComplete = null, Ease ease = Ease.InOutSine,
+            CinematicWipeDirection direction = CinematicWipeDirection.LeftToRight, Color? color = null,
+            int blindCount = 12, int pixelColumns = 48)
         {
-            CinematicOverlayBindings_Overlay.SetViewport(viewport);
-            if (IsEnable)
-            {
-                CinematicRuntime.Register(CinematicOverlayBindings_Overlay.Presenter);
-            }
+            CinematicPresenter_Overlay.CloseCurtain(style, duration, onComplete, ease, direction, color, blindCount, pixelColumns);
         }
+
+        /// <inheritdoc cref="CinematicPresenter.OpenCurtain"/>
+        public void OpenCurtain(float duration = 0.35f, Action onComplete = null, Ease ease = Ease.InOutSine)
+        {
+            CinematicPresenter_Overlay.OpenCurtain(duration, onComplete, ease);
+        }
+
+        /// <inheritdoc cref="CinematicPresenter.ShowLetterbox"/>
+        public void ShowLetterbox(float heightRatio = 0.12f, float duration = 0.3f, Action onComplete = null, Ease ease = Ease.InOutSine)
+        {
+            CinematicPresenter_Overlay.ShowLetterbox(heightRatio, duration, onComplete, ease);
+        }
+
+        /// <inheritdoc cref="CinematicPresenter.ShowLetterboxForAspect"/>
+        public void ShowLetterboxForAspect(float targetAspect = 2.39f, float duration = 0.3f, Action onComplete = null, Ease ease = Ease.InOutSine)
+        {
+            CinematicPresenter_Overlay.ShowLetterboxForAspect(targetAspect, duration, onComplete, ease);
+        }
+
+        /// <inheritdoc cref="CinematicPresenter.HideLetterbox"/>
+        public void HideLetterbox(float duration = 0.3f, Action onComplete = null, Ease ease = Ease.InOutSine)
+        {
+            CinematicPresenter_Overlay.HideLetterbox(duration, onComplete, ease);
+        }
+
+        /// <inheritdoc cref="CinematicPresenter.ShowTitle"/>
+        public void ShowTitle(string titleKey, string subtitleKey = null, float fadeIn = 0.3f, float hold = 2,
+            float fadeOut = 0.3f, Action onComplete = null)
+        {
+            CinematicPresenter_Overlay.ShowTitle(titleKey, subtitleKey, fadeIn, hold, fadeOut, onComplete);
+        }
+
+        /// 停止三个通道并清空表现，不触发完成回调。
+        public void ResetEffects() => CinematicPresenter_Overlay.ResetEffects();
 
         protected override void OnShow()
         {
-            CinematicOverlayBindings_Overlay.RefreshViewport();
-            CinematicRuntime.Register(CinematicOverlayBindings_Overlay.Presenter);
+            CinematicPresenter_Overlay.RefreshViewport();
             base.OnShow();
         }
 
         protected override void OnHide()
         {
-            CinematicRuntime.Unregister(CinematicOverlayBindings_Overlay.Presenter);
+            ResetEffects();
             base.OnHide();
         }
 
         protected override void OnDestroy()
         {
-            if (CinematicOverlayBindings_Overlay != null)
+            if (CinematicPresenter_Overlay != null)
             {
-                CinematicRuntime.Unregister(CinematicOverlayBindings_Overlay.Presenter);
-                CinematicOverlayBindings_Overlay.SetViewport(null);
-                CinematicOverlayBindings_Overlay.Presenter.Release();
+                CinematicPresenter_Overlay.Release();
             }
             base.OnDestroy();
         }
-
-        /// 取消令牌由调用者负责；停止后立即清理本 View 的三个表现通道。
-        public void ResetEffects() => CinematicOverlayBindings_Overlay.Presenter.ResetEffects();
     }
 }

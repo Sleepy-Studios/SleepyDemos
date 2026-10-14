@@ -160,8 +160,8 @@ namespace Hotfix
             closing = true;
             try
             {
+                expected.StopImmediately();
                 expected.SetOverlay(null);
-                await expected.StopAndRestoreAsync();
                 var overlay = UIManager.Instance.Get<CinematicOverlayView>();
                 if (overlay != null)
                 {

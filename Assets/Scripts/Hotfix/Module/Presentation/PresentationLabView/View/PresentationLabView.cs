@@ -133,8 +133,45 @@ namespace Hotfix
             PresentationLabBindings_Lab.Reset.interactable = !busy;
         }
 
-        private void OnPlay() => PlayAsync().Forget();
-        private void OnStop() => StopAndRestoreAsync().Forget();
+        private void OnPlay()
+        {
+            if (!ready || busy || lifetime == null)
+            {
+                return;
+            }
+            StopImmediately();
+            int version = ++operationVersion;
+            busy = true;
+            RefreshButtons();
+            try
+            {
+                if (selectedTab == 0)
+                {
+                    foreach (var row in PresentationLabBindings_Lab.Effects)
+                    {
+                        row.Play();
+                    }
+                    CompleteOperation(version);
+                }
+                else if (selectedTab == 1)
+                {
+                    PlayTimeAsync(version).Forget(Debug.LogException);
+                }
+                else
+                {
+                    PresentationLabBindings_Lab.CinematicPanel.Play(world.World,
+                        PresentationLabBindings_Lab.PreviewHud, overlay,
+                        () => CompleteOperation(version), exception => FailOperation(version, exception));
+                }
+            }
+            catch (Exception exception)
+            {
+                FailOperation(version, exception);
+            }
+        }
+
+        private void OnStop() => StopAndRestore();
+
         private void OnReset()
         {
             StopImmediately();
@@ -152,35 +189,13 @@ namespace Hotfix
 
         private void OnClose() => PresentationLabFlow.Close(this);
 
-        private async UniTask PlayAsync()
+        private async UniTask PlayTimeAsync(int version)
         {
-            if (!ready || busy || lifetime == null)
-            {
-                return;
-            }
             var operation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-            int version = ++operationVersion;
             playback = operation;
-            busy = true;
-            RefreshButtons();
             try
             {
-                if (selectedTab == 0)
-                {
-                    foreach (var row in PresentationLabBindings_Lab.Effects)
-                    {
-                        row.Play();
-                    }
-                }
-                else if (selectedTab == 1)
-                {
-                    await PresentationLabBindings_Lab.TimePanel.PlayAsync(operation.Token);
-                }
-                else
-                {
-                    await PresentationLabBindings_Lab.CinematicPanel.PlayAsync(world.World,
-                        PresentationLabBindings_Lab.PreviewHud, operation.Token);
-                }
+                await PresentationLabBindings_Lab.TimePanel.PlayAsync(operation.Token);
             }
             catch (OperationCanceledException)
             {
@@ -188,72 +203,77 @@ namespace Hotfix
             }
             catch (Exception exception)
             {
-                if (version == operationVersion)
-                {
-                    StopImmediately();
-                    if (IsEnable)
-                    {
-                        LanguageService.SetText(PresentationLabBindings_Lab.Status, "Presentation.Failed");
-                        Debug.LogException(exception);
-                    }
-                }
+                FailOperation(version, exception);
             }
             finally
             {
                 if (ReferenceEquals(playback, operation))
                 {
                     playback = null;
-                    if (version == operationVersion)
-                    {
-                        busy = false;
-                        if (IsLoaded)
-                        {
-                            RefreshButtons();
-                        }
-                    }
                 }
                 operation.Dispose();
+                CompleteOperation(version);
             }
         }
 
-        /// 正常停止：播放中立即取消，已完成演出的黑边通过公共 ExitAsync 缩回。
-        public async UniTask StopAndRestoreAsync()
+        private void CompleteOperation(int version)
         {
+            if (version != operationVersion)
+            {
+                return;
+            }
+            busy = false;
+            if (IsLoaded)
+            {
+                RefreshButtons();
+            }
+        }
+
+        private void FailOperation(int version, Exception exception)
+        {
+            if (version != operationVersion)
+            {
+                return;
+            }
+            StopImmediately();
+            if (IsEnable)
+            {
+                LanguageService.SetText(PresentationLabBindings_Lab.Status, "Presentation.Failed");
+                Debug.LogException(exception);
+            }
+        }
+
+        /// 播放中立即停止；已完成的演出缩回黑边并恢复原 HUD。
+        public void StopAndRestore()
+        {
+            if (busy || overlay == null || overlay.IsTransitioning || overlay.IsTitlePlaying || lifetime == null)
+            {
+                StopImmediately();
+                return;
+            }
             int version = ++operationVersion;
-            playback?.Cancel();
             foreach (var row in PresentationLabBindings_Lab.Effects)
             {
                 row.Stop();
             }
             PresentationLabBindings_Lab.TimePanel.Stop();
-            if (lifetime == null)
-            {
-                return;
-            }
             busy = true;
             RefreshButtons();
             try
             {
-                await PresentationLabBindings_Lab.CinematicPanel.ExitLetterboxAsync(lifetime.Token);
-                if (version == operationVersion)
+                PresentationLabBindings_Lab.CinematicPanel.ExitLetterbox(() =>
                 {
-                    overlay?.ResetEffects();
-                }
-            }
-            catch (OperationCanceledException)
-            {
-            }
-            finally
-            {
-                if (version == operationVersion)
-                {
-                    busy = false;
-                    if (IsLoaded)
+                    if (version != operationVersion)
                     {
-                        RefreshButtons();
+                        return;
                     }
+                    CompleteOperation(version);
                     displayedScale = -1;
-                }
+                });
+            }
+            catch (Exception exception)
+            {
+                FailOperation(version, exception);
             }
         }
 
@@ -280,6 +300,7 @@ namespace Hotfix
             {
                 RefreshButtons();
             }
+            displayedScale = -1;
         }
 
         private void UpdateClock()
