@@ -408,6 +408,24 @@ namespace Core.Editor.Hotfix
                     }
                 }
             }
+            // Player 构建会写回真实宏定义及平台批处理；Prepare 同样具体化，避免 Full/Hotfix 指纹不同。
+            string symbols = PlayerSettings.GetScriptingDefineSymbols(namedTarget);
+            PlayerSettings.SetScriptingDefineSymbols(namedTarget, symbols);
+            Require(PlayerSettings.GetScriptingDefineSymbols(namedTarget) == symbols, "无法固定当前平台的真实宏定义。");
+            var coreType = Type.GetType("UnityEditor.Rendering.CoreBuildData, Unity.RenderPipelines.Core.Editor", true);
+            var coreInstance = coreType.GetProperty("instance", BindingFlags.Public | BindingFlags.Static);
+            var pipelineAssets = coreType.GetProperty("renderPipelineAssets", BindingFlags.Public | BindingFlags.Instance);
+            Require(coreInstance != null && pipelineAssets?.PropertyType == typeof(List<RenderPipelineAsset>),
+                "锁定 URP 包的平台资源集合接口不可用。");
+            ((IDisposable)coreInstance.GetValue(null)).Dispose();
+            using var buildData = (IDisposable)coreInstance.GetValue(null);
+            var assets = pipelineAssets.GetValue(buildData) as List<RenderPipelineAsset>;
+            Require(assets != null && assets.Count > 0 && assets.All(asset => asset is UniversalRenderPipelineAsset),
+                "当前平台没有完整有效的 URP 构建资源集合。");
+            bool dynamicBatching = assets.Cast<UniversalRenderPipelineAsset>().Any(asset => asset.supportsDynamicBatching);
+            PlayerSettings.SetDynamicBatchingForPlatform(Target(request), dynamicBatching);
+            Require(PlayerSettings.GetDynamicBatchingForPlatform(Target(request)) == dynamicBatching,
+                "无法固定当前平台 URP 的动态批处理配置。");
             EditorUtility.SetDirty(config);
             AssetDatabase.SaveAssets();
             return config;
