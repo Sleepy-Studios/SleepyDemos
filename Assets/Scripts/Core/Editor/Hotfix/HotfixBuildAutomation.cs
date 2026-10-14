@@ -552,7 +552,7 @@ namespace Core.Editor.Hotfix
                 VerifyBuildingResult = true,
                 FileNameStyle = EFileNameStyle.HashName,
                 CompressOption = ECompressOption.LZ4,
-                BuiltinShadersBundleName = "unityshaders",
+                BuiltinShadersBundleName = DefaultBundlePackRule.CreateShadersPackRuleResult().GetBundleName(config.PackageName, BundleCollectorSettingData.Setting.UniqueBundleName),
                 BundledCopyOption = request.BuildKind == "Hotfix" || request.ResourceMode == "OnlineDownload"
                     ? EBundledCopyOption.None : EBundledCopyOption.ClearAndCopyAll
             };
@@ -560,6 +560,15 @@ namespace Core.Editor.Hotfix
             Require(result.Success, "YooAsset 构建失败：" + result.FailedTask);
             string source = result.OutputPackageDirectory;
             string[] sourceFiles = GitHubPagesDeployment.GetSourceFiles(source, config.PackageName);
+            string reportPath = Path.Combine(source, YooAssetConfiguration.GetBuildReportFileName(config.PackageName, request.ResourceVersion));
+            GitHubPagesDeployment.EnsureNoLinks(reportPath);
+            var report = YooAsset.Editor.BuildReport.Deserialize(File.ReadAllText(reportPath));
+            Require(report?.Summary != null && report.Summary.BuildPackageName == config.PackageName &&
+                report.Summary.BuildPackageVersion == request.ResourceVersion && report.BundleInfos?.Count > 0,
+                "YooAsset 构建报告与本次资源不匹配。");
+            var sourceNames = new HashSet<string>(sourceFiles.Select(Path.GetFileName), StringComparer.Ordinal);
+            Require(report.BundleInfos.All(info => info != null && sourceNames.Contains(info.FileName)),
+                "YooAsset 清单引用了未纳入发布输出的 Bundle，请检查标准打包命名。");
             string output = Path.Combine(request.OutputDirectory, "resources");
             GitHubPagesDeployment.EnsureNoLinks(output);
             Directory.CreateDirectory(output);

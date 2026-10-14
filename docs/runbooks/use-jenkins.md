@@ -59,7 +59,7 @@ ID 是 Jenkinsfile 的当前接口，不通过 machine.json 自动改写。缺�
 | ResourceVersion | 空值自动生成唯一版本，已分配版本（含失败任务）不可重用 |
 | Publish / Provider | 默认不发布；Pages 或 Ssh |
 
-Offline 内置全部资源、不联网热更；OnlineFull 全量内置并在线更新；OnlineDownload 不内置 Bundle，首次下载资源。离线模式选择发布仅上传同批资源，不改变安装包运行模式。
+Offline 内置全部资源、不联网热更；OnlineFull 全量内置并在线更新；OnlineDownload 不内置 Bundle，保留空 BuiltinCatalog 与必要清单，首次下载资源。离线模式选择发布仅上传同批资源，不改变安装包运行模式。
 
 从任务产物下载 Player、资源、日志和摘要。30 次记录与 10 次普通产物自动保留；current 基线独立保存。失败任务也保留已生成产物和阶段日志。
 
