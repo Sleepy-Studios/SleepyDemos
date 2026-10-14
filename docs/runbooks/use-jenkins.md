@@ -35,7 +35,7 @@ Unity 6000.3.15f1 及当前用户授权、Windows IL2CPP/Android 模块、VS C++
 | --- | --- |
 | sleepydemos-source | 用户名/密码，Git HTTPS SCM，密码为 Token |
 | sleepydemos-github | Secret text，GH_TOKEN，CI checkout及Pages |
-| sleepydemos-ssh | SSH Username with private key，上传服务器 |
+| sleepydemos-ssh | SSH Username with private key，上传服务器；有口令的私钥在同一凭据填写 Passphrase |
 | sleepydemos-keystore | Secret file，自定义 Android keystore |
 | sleepydemos-store-password | Secret text，keystore 密码 |
 | sleepydemos-key-alias | Secret text，签名别名 |
@@ -55,7 +55,7 @@ ID 是 Jenkinsfile 的当前接口，不通过 machine.json 自动改写。缺�
 | AndroidFormat / AndroidSigning | Apk 或 Aab；Debug 或 Custom |
 | Development | 独立控制开发构建，默认 false |
 | PlayerVersion | Full 空值读取项目；Hotfix 空值继承基线，填写值必须匹配 |
-| AndroidVersionCode | 空/0 使用 Jenkins 构建编号，可覆盖为合法正整数 |
+| AndroidVersionCode | 空值使用 Jenkins 构建编号，可覆盖为合法正整数 |
 | ResourceVersion | 空值自动生成唯一版本，已分配版本（含失败任务）不可重用 |
 | Publish / Provider | 默认不发布；Pages 或 Ssh |
 

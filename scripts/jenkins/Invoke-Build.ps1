@@ -105,7 +105,7 @@ try {
             $androidFormat = $env:AndroidFormat
             $androidSigning = $env:AndroidSigning
             $versionCode = 0
-            if ($env:AndroidVersionCode -and (-not [int]::TryParse($env:AndroidVersionCode, [ref]$versionCode) -or $versionCode -lt 0)) { throw 'AndroidVersionCode 必须是非负整数。' }
+            if ($env:AndroidVersionCode -and (-not [int]::TryParse($env:AndroidVersionCode, [ref]$versionCode) -or $versionCode -le 0)) { throw 'AndroidVersionCode 覆盖值必须是正整数。' }
             if ($versionCode -eq 0 -and (-not [int]::TryParse($env:BUILD_NUMBER, [ref]$versionCode) -or $versionCode -le 0)) { throw 'BUILD_NUMBER 超出 AndroidVersionCode 有效范围。' }
         }
         if ([string]::IsNullOrWhiteSpace($env:SourceRef) -or $env:SourceRef.StartsWith('-') -or $env:SourceRef -match '\s|[~^:?*\[\\]') { throw 'SourceRef 只允许明确的分支、标签或提交 SHA。' }

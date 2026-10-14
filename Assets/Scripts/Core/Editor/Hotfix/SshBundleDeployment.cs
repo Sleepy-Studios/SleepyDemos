@@ -66,6 +66,8 @@ namespace Core.Editor.Hotfix
                     byte[] previous = client.Exists(destination) ? ReadVersion(client, destination) : null;
                     byte[] attempted = File.ReadAllBytes(file);
                     beforeActivate?.Invoke(previous);
+                    // 入口与恢复最多 1024 字节，避免激活后的长等待挤占回滚和退出时间。
+                    client.OperationTimeout = TimeSpan.FromMinutes(1);
                     try
                     {
                         UploadAtomic(client, file, destination);
@@ -155,7 +157,8 @@ namespace Core.Editor.Hotfix
             {
                 throw new InvalidOperationException("SSH 地址、用户、端口和可信 SHA256 主机指纹必须完整。");
             }
-            return new ConnectionInfo(host, port, user, new PrivateKeyAuthenticationMethod(user, new PrivateKeyFile(keyFile)))
+            return new ConnectionInfo(host, port, user, new PrivateKeyAuthenticationMethod(user,
+                new PrivateKeyFile(keyFile, Environment.GetEnvironmentVariable("SLEEPY_SSH_KEY_PASSPHRASE") ?? string.Empty)))
             {
                 Timeout = TimeSpan.FromSeconds(30)
             };

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -30,11 +31,13 @@ namespace Core.Editor.Hotfix
             string resourcePath,
             string bundlePath,
             string packageName,
-            bool activateVersion = true)
+            bool activateVersion = true,
+            CancellationToken cancellationToken = default)
         {
             string projectRoot = Path.GetDirectoryName(Application.dataPath);
             return Task.Run(async () =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 string repository = NormalizeDirectory(repositoryPath);
                 string target = ResolveTarget(repository, resourcePath, projectRoot);
                 string source = NormalizeDirectory(bundlePath);
@@ -46,7 +49,7 @@ namespace Core.Editor.Hotfix
                 string[] sourceFiles = GetSourceFiles(source, packageName)
                     .Where(file => activateVersion || Path.GetFileName(file) != packageName + ".version").ToArray();
                 ValidateFlatDirectory(target);
-                await ValidateRepositoryAsync(repository, resourcePath);
+                await ValidateRepositoryAsync(repository, resourcePath, cancellationToken);
                 ValidateSiteSize(repository, target, sourceFiles);
 
                 EnsureNoLinks(target);
@@ -54,6 +57,7 @@ namespace Core.Editor.Hotfix
                 // 同一资源版本必须不可变；版本指针可前进，已有清单和 Bundle 只能原样重复发布。
                 foreach (string sourceFile in sourceFiles)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string targetFile = Path.Combine(target, Path.GetFileName(sourceFile));
                     EnsureNoLinks(targetFile);
                     if (File.Exists(targetFile) && Path.GetFileName(sourceFile) != packageName + ".version" &&
@@ -64,6 +68,7 @@ namespace Core.Editor.Hotfix
                 }
                 foreach (string sourceFile in sourceFiles)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string targetFile = Path.Combine(target, Path.GetFileName(sourceFile));
                     EnsureNoLinks(sourceFile);
                     EnsureNoLinks(targetFile);
@@ -73,7 +78,7 @@ namespace Core.Editor.Hotfix
                     }
                 }
 
-                return await CommitAndPushAsync(repository, resourcePath, "更新", target);
+                return await CommitAndPushAsync(repository, resourcePath, "更新", target, cancellationToken);
             });
         }
 
@@ -107,29 +112,56 @@ namespace Core.Editor.Hotfix
             });
         }
 
-        internal static async Task<string> RestoreVersionAsync(string repositoryPath, string resourcePath, string packageName,
+        internal static Task<string> RestoreVersionAsync(string repositoryPath, string resourcePath, string packageName,
             string attemptedVersion, byte[] previousVersion, string projectRoot)
         {
+            return RestoreVersionWithCancellationAsync(repositoryPath, resourcePath, packageName,
+                attemptedVersion, previousVersion, projectRoot, CancellationToken.None);
+        }
+
+        internal static async Task<string> RestoreVersionWithCancellationAsync(string repositoryPath, string resourcePath, string packageName,
+            string attemptedVersion, byte[] previousVersion, string projectRoot, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             string repository = NormalizeDirectory(repositoryPath);
             string target = ResolveTarget(repository, resourcePath, projectRoot);
             ValidateFlatDirectory(target);
             string relative = resourcePath + "/" + packageName + ".version";
             ValidateSegment(packageName, "资源包名");
-            await GitAsync(repository, "fetch", "origin", "main");
-            var remote = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, false, "show", "FETCH_HEAD:" + relative);
+            string versionPath = Path.Combine(target, packageName + ".version");
+            EnsureNoLinks(versionPath);
+            await GitWithCancellationAsync(repository, cancellationToken, "fetch", "origin", "main");
+            var remote = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, false, cancellationToken, "show", "FETCH_HEAD:" + relative);
             string old = previousVersion == null ? null : Encoding.UTF8.GetString(previousVersion).Trim();
-            if ((remote.ExitCode != 0 && previousVersion == null) || (remote.ExitCode == 0 && remote.StandardOutput.Trim() == old))
+            string localHead = (await GitWithCancellationAsync(repository, cancellationToken, "rev-parse", "HEAD")).Trim();
+            string remoteHead = (await GitWithCancellationAsync(repository, cancellationToken, "rev-parse", "FETCH_HEAD")).Trim();
+            bool remoteIsPrevious = remote.ExitCode == 0 && remote.StandardOutput.Trim() == old;
+            if (remote.ExitCode != 0 && previousVersion == null)
             {
-                return (await GitAsync(repository, "rev-parse", "FETCH_HEAD")).Trim();
+                remoteIsPrevious = string.IsNullOrWhiteSpace(await GitWithCancellationAsync(repository, cancellationToken,
+                    "ls-tree", "--name-only", "FETCH_HEAD", "--", relative));
             }
-            if (remote.ExitCode != 0 || remote.StandardOutput.Trim() != attemptedVersion ||
-                (await GitAsync(repository, "rev-parse", "HEAD")).Trim() != (await GitAsync(repository, "rev-parse", "FETCH_HEAD")).Trim() ||
-                !string.IsNullOrWhiteSpace(await GitAsync(repository, "status", "--porcelain", "--untracked-files=all")))
+            if (!File.Exists(versionPath) || File.ReadAllText(versionPath).Trim() != attemptedVersion ||
+                !string.IsNullOrWhiteSpace(await GitWithCancellationAsync(repository, cancellationToken, "status", "--porcelain", "--untracked-files=all")))
             {
                 throw new InvalidOperationException("Pages 版本或远端提交已改变，不能安全恢复旧版本；保留本地发布提交供人工处理。");
             }
-            string versionPath = Path.Combine(target, packageName + ".version");
-            EnsureNoLinks(versionPath);
+            if (remoteIsPrevious && localHead != remoteHead)
+            {
+                var ancestor = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, false, cancellationToken,
+                    "merge-base", "--is-ancestor", remoteHead, localHead);
+                string pendingPaths = (await GitWithCancellationAsync(repository, cancellationToken,
+                    "diff", "--name-only", remoteHead + ".." + localHead)).Trim();
+                if (ancestor.ExitCode != 0 || pendingPaths != relative)
+                {
+                    throw new InvalidOperationException("Pages 远端旧版本与本地激活提交关系不明，不能安全恢复；保留提交供人工处理。");
+                }
+                // 远端暂时仍旧也必须推送激活提交的恢复后继，阻止已收请求的迟到推送再次激活。
+            }
+            else if (remote.ExitCode != 0 || remote.StandardOutput.Trim() != attemptedVersion || localHead != remoteHead)
+            {
+                throw new InvalidOperationException("Pages 版本或远端提交已改变，不能安全恢复旧版本；保留本地发布提交供人工处理。");
+            }
             if (previousVersion == null)
             {
                 File.Delete(versionPath);
@@ -138,8 +170,9 @@ namespace Core.Editor.Hotfix
             {
                 File.WriteAllBytes(versionPath, previousVersion);
             }
-            await CommitAndPushAsync(repository, resourcePath, "恢复版本入口", target);
-            return (await GitAsync(repository, "rev-parse", "HEAD")).Trim();
+            cancellationToken.ThrowIfCancellationRequested();
+            await CommitAndPushAsync(repository, resourcePath, "恢复版本入口", target, cancellationToken);
+            return (await GitWithCancellationAsync(repository, cancellationToken, "rev-parse", "HEAD")).Trim();
         }
 
         internal static string NormalizeDirectory(string path)
@@ -369,29 +402,29 @@ namespace Core.Editor.Hotfix
             return sha256.ComputeHash(source).SequenceEqual(sha256.ComputeHash(target));
         }
 
-        private static async Task ValidateRepositoryAsync(string repository, string resourcePath)
+        private static async Task ValidateRepositoryAsync(string repository, string resourcePath, CancellationToken cancellationToken = default)
         {
-            string gitRoot = (await GitAsync(repository, "rev-parse", "--show-toplevel")).Trim();
+            string gitRoot = (await GitWithCancellationAsync(repository, cancellationToken, "rev-parse", "--show-toplevel")).Trim();
             if (!string.Equals(Path.GetFullPath(gitRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
                     repository, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("发布路径必须是 Git 仓库根目录。");
             }
 
-            string branch = (await GitAsync(repository, "branch", "--show-current")).Trim();
+            string branch = (await GitWithCancellationAsync(repository, cancellationToken, "branch", "--show-current")).Trim();
             if (branch != "main")
             {
                 throw new InvalidOperationException("发布仓库必须位于 main 分支。");
             }
 
-            if (!string.IsNullOrWhiteSpace(await GitAsync(repository, "status", "--porcelain", "--untracked-files=all")))
+            if (!string.IsNullOrWhiteSpace(await GitWithCancellationAsync(repository, cancellationToken, "status", "--porcelain", "--untracked-files=all")))
             {
                 throw new InvalidOperationException("发布仓库存在未提交修改，请先处理后再操作。");
             }
 
-            await RunProcessAsync("gh", repository, GitTimeoutMilliseconds, "auth", "status");
-            await GitAsync(repository, "fetch", "origin", "main");
-            string counts = (await GitAsync(repository, "rev-list", "--left-right", "--count", "HEAD...FETCH_HEAD")).Trim();
+            await RunProcessWithCancellationAsync("gh", repository, GitTimeoutMilliseconds, cancellationToken, "auth", "status");
+            await GitWithCancellationAsync(repository, cancellationToken, "fetch", "origin", "main");
+            string counts = (await GitWithCancellationAsync(repository, cancellationToken, "rev-list", "--left-right", "--count", "HEAD...FETCH_HEAD")).Trim();
             string[] parts = counts.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length != 2 || !long.TryParse(parts[1], out long remoteCommits) || remoteCommits != 0)
             {
@@ -399,7 +432,7 @@ namespace Core.Editor.Hotfix
             }
 
             string projectName = resourcePath.Split('/')[1];
-            string pendingPaths = await GitAsync(repository, "diff", "--name-only", "FETCH_HEAD..HEAD");
+            string pendingPaths = await GitWithCancellationAsync(repository, cancellationToken, "diff", "--name-only", "FETCH_HEAD..HEAD");
             foreach (string pendingPath in pendingPaths.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 string path = pendingPath.TrimEnd('\r');
@@ -415,11 +448,12 @@ namespace Core.Editor.Hotfix
             }
         }
 
-        private static async Task<string> CommitAndPushAsync(string repository, string resourcePath, string operation, string target)
+        private static async Task<string> CommitAndPushAsync(string repository, string resourcePath, string operation, string target,
+            CancellationToken cancellationToken = default)
         {
             ValidateFlatDirectory(target);
-            await GitAsync(repository, "add", "--", resourcePath);
-            var diff = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, false, "diff", "--cached", "--quiet");
+            await GitWithCancellationAsync(repository, cancellationToken, "add", "--", resourcePath);
+            var diff = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, false, cancellationToken, "diff", "--cached", "--quiet");
             if (diff.ExitCode != 0 && diff.ExitCode != 1)
             {
                 throw new InvalidOperationException("无法检查暂存区，保留当前文件供人工处理。");
@@ -427,11 +461,11 @@ namespace Core.Editor.Hotfix
 
             if (diff.ExitCode == 1)
             {
-                await GitAsync(repository, "commit", "-m", $"chore: {operation} {resourcePath}", "--", resourcePath);
+                await GitWithCancellationAsync(repository, cancellationToken, "commit", "-m", $"chore: {operation} {resourcePath}", "--", resourcePath);
             }
 
             // 已有本地发布提交可能来自上一次失败；无文件变化时仍允许重试推送。
-            await RunProcessAsync("git", repository, PushTimeoutMilliseconds,
+            await RunProcessWithCancellationAsync("git", repository, PushTimeoutMilliseconds, cancellationToken,
                 "-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential",
                 "-c", "http.version=HTTP/1.1", "-c", "http.postBuffer=1048576",
                 "-c", "http.lowSpeedLimit=1024", "-c", "http.lowSpeedTime=60",
@@ -441,7 +475,12 @@ namespace Core.Editor.Hotfix
 
         internal static async Task<string> GitAsync(string repository, params string[] arguments)
         {
-            var result = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, arguments);
+            return await GitWithCancellationAsync(repository, CancellationToken.None, arguments);
+        }
+
+        internal static async Task<string> GitWithCancellationAsync(string repository, CancellationToken cancellationToken, params string[] arguments)
+        {
+            var result = await RunProcessWithCancellationAsync("git", repository, GitTimeoutMilliseconds, cancellationToken, arguments);
             return result.StandardOutput;
         }
 
@@ -451,16 +490,30 @@ namespace Core.Editor.Hotfix
             int timeoutMilliseconds,
             params string[] arguments)
         {
-            return RunProcessAsync(fileName, workingDirectory, timeoutMilliseconds, true, arguments);
+            return RunProcessAsync(fileName, workingDirectory, timeoutMilliseconds, true, CancellationToken.None, arguments);
         }
 
-        private static async Task<(int ExitCode, string StandardOutput)> RunProcessAsync(
+        internal static Task<(int ExitCode, string StandardOutput)> RunProcessWithCancellationAsync(
+            string fileName, string workingDirectory, int timeoutMilliseconds, CancellationToken cancellationToken, params string[] arguments)
+        {
+            return RunProcessAsync(fileName, workingDirectory, timeoutMilliseconds, true, cancellationToken, arguments);
+        }
+
+        private static Task<(int ExitCode, string StandardOutput)> RunProcessAsync(
             string fileName,
             string workingDirectory,
             int timeoutMilliseconds,
             bool requireSuccess,
             params string[] arguments)
         {
+            return RunProcessAsync(fileName, workingDirectory, timeoutMilliseconds, requireSuccess, CancellationToken.None, arguments);
+        }
+
+        private static async Task<(int ExitCode, string StandardOutput)> RunProcessAsync(
+            string fileName, string workingDirectory, int timeoutMilliseconds, bool requireSuccess,
+            CancellationToken cancellationToken, params string[] arguments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             using var process = new Process();
             process.StartInfo = new ProcessStartInfo
             {
@@ -483,18 +536,57 @@ namespace Core.Editor.Hotfix
             Task<string> standardErrorTask = process.StandardError.ReadToEndAsync();
             Task waitTask = Task.Run(() => process.WaitForExit());
             Task completion = Task.WhenAll(waitTask, standardOutputTask, standardErrorTask);
-            if (await Task.WhenAny(completion, Task.Delay(timeoutMilliseconds)) != completion)
+            using var timeout = new CancellationTokenSource(timeoutMilliseconds);
+            using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+            if (await Task.WhenAny(completion, Task.Delay(Timeout.Infinite, stop.Token)) != completion)
             {
-                if (!process.HasExited)
+                try
                 {
-                    process.Kill();
+                    if (!process.HasExited)
+                    {
+                        using var killer = new Process
+                        {
+                            StartInfo = new ProcessStartInfo
+                            {
+                                FileName = Path.Combine(Environment.SystemDirectory, "taskkill.exe"),
+                                Arguments = "/PID " + process.Id + " /T /F",
+                                UseShellExecute = false,
+                                CreateNoWindow = true,
+                                WindowStyle = ProcessWindowStyle.Hidden,
+                                RedirectStandardOutput = true,
+                                RedirectStandardError = true
+                            }
+                        };
+                        if (!killer.Start())
+                        {
+                            throw new InvalidOperationException("无法启动本次发布进程树停止操作。");
+                        }
+                        Task killerCompletion = Task.WhenAll(Task.Run(() => killer.WaitForExit()),
+                            killer.StandardOutput.ReadToEndAsync(), killer.StandardError.ReadToEndAsync());
+                        if (await Task.WhenAny(killerCompletion, Task.Delay(10000)) != killerCompletion || killer.ExitCode != 0)
+                        {
+                            throw new InvalidOperationException("本次发布进程树停止失败。");
+                        }
+                        await killerCompletion;
+                    }
+                    if (await Task.WhenAny(completion, Task.Delay(5000)) != completion)
+                    {
+                        throw new InvalidOperationException("无法确认本次发布进程完全停止。");
+                    }
+                    await completion;
                 }
-
-                await Task.WhenAny(waitTask, Task.Delay(5000));
+                catch
+                {
+                    var failure = new InvalidOperationException($"{fileName} 发布进程 PID={process.Id} 停止未确认，不能安全恢复版本入口；保留本地提交及版本备份供人工处理。");
+                    failure.Data["SleepyProcessStopUnconfirmed"] = true;
+                    throw failure;
+                }
+                cancellationToken.ThrowIfCancellationRequested();
                 throw new TimeoutException($"{fileName} 执行超时，本次进程已终止；本地文件与提交会保留。");
             }
 
             await completion;
+            cancellationToken.ThrowIfCancellationRequested();
             string standardOutput = await standardOutputTask;
             await standardErrorTask;
             if (requireSuccess && process.ExitCode != 0)

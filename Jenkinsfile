@@ -15,7 +15,7 @@ pipeline {
         choice(name: 'AndroidSigning', choices: ['Debug', 'Custom'], description: '仅 Android Full 生效')
         booleanParam(name: 'Development', defaultValue: false, description: 'Hotfix 必须与已发布基线一致')
         string(name: 'PlayerVersion', defaultValue: '', description: 'Full 空值读项目；Hotfix 空值继承基线，填写时须匹配基线')
-        string(name: 'AndroidVersionCode', defaultValue: '', description: '仅 Android Full 生效；空值或 0 使用本次 BUILD_NUMBER')
+        string(name: 'AndroidVersionCode', defaultValue: '', description: '仅 Android Full 生效；空值使用本次 BUILD_NUMBER，覆盖值必须是正整数')
         string(name: 'ResourceVersion', defaultValue: '', description: '空值自动生成唯一资源版本')
         booleanParam(name: 'Publish', defaultValue: false)
         choice(name: 'Provider', choices: ['Pages', 'Ssh'])
@@ -53,7 +53,7 @@ pipeline {
                                 powershell 'if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw "缺少 GitHub 发布凭据。" }'
                             }
                         } else {
-                            withCredentials([sshUserPrivateKey(credentialsId: 'sleepydemos-ssh', keyFileVariable: 'SLEEPY_SSH_KEY_FILE')]) {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'sleepydemos-ssh', keyFileVariable: 'SLEEPY_SSH_KEY_FILE', passphraseVariable: 'SLEEPY_SSH_KEY_PASSPHRASE')]) {
                                 powershell 'if (-not (Test-Path -LiteralPath $env:SLEEPY_SSH_KEY_FILE)) { throw "缺少 SSH 发布私钥。" }'
                             }
                         }
@@ -85,7 +85,7 @@ pipeline {
                             powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Deploy -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
                         }
                     } else {
-                        withCredentials([sshUserPrivateKey(credentialsId: 'sleepydemos-ssh', keyFileVariable: 'SLEEPY_SSH_KEY_FILE')]) {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'sleepydemos-ssh', keyFileVariable: 'SLEEPY_SSH_KEY_FILE', passphraseVariable: 'SLEEPY_SSH_KEY_PASSPHRASE')]) {
                             powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Deploy -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
                         }
                     }

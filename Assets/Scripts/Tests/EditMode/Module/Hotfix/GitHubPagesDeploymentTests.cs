@@ -51,6 +51,7 @@ namespace Tests.Module
 
         [TestCase("new", true)]
         [TestCase("concurrent", false)]
+        [TestCase("old", true)]
         public async Task PagesVersionRecovery_RestoresOwnRelease_PreservesConcurrentRelease(string onlineVersion, bool canRestore)
         {
             string root = Path.Combine(Path.GetTempPath(), "SleepyDemos-VersionRecovery-" + Guid.NewGuid().ToString("N"));
@@ -77,6 +78,13 @@ namespace Tests.Module
                 await Git(repository, "commit", "-m", "test fixture");
                 await Git(repository, "remote", "add", "origin", remote);
                 await Git(repository, "push", "origin", "main");
+                if (onlineVersion == "old")
+                {
+                    File.WriteAllText(versionPath, "new", new System.Text.UTF8Encoding(false));
+                    await Git(repository, "add", "--", resourcePath);
+                    await Git(repository, "commit", "-m", "unpublished activation");
+                }
+                string attemptedCommit = (await Git(repository, "rev-parse", "HEAD")).Trim();
                 Func<Task<string>> recover = () => (Task<string>)restore.Invoke(null,
                     new object[] { repository, resourcePath, "DefaultPackage", "new", System.Text.Encoding.UTF8.GetBytes("old"), root + "-unity" });
                 if (canRestore)
@@ -84,6 +92,11 @@ namespace Tests.Module
                     await recover();
                     Assert.That(File.ReadAllText(versionPath), Is.EqualTo("old"));
                     Assert.That((await Git(remote, "show", "main:" + resourcePath + "/DefaultPackage.version")).Trim(), Is.EqualTo("old"));
+                    if (onlineVersion == "old")
+                    {
+                        Assert.That((await Git(remote, "rev-parse", "main")).Trim(), Is.Not.EqualTo(attemptedCommit));
+                        await Git(remote, "merge-base", "--is-ancestor", attemptedCommit, "main");
+                    }
                 }
                 else
                 {

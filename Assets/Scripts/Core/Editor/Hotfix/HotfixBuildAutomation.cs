@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Core.Runtime;
 using HybridCLR.Editor.Commands;
@@ -159,15 +160,17 @@ namespace Core.Editor.Hotfix
                 failed = true;
                 // 不转发第三方认证异常；自有校验消息也移除已注入的秘密值。
                 string failure = stage + ": " + (exception is InvalidOperationException ? exception.Message : exception.GetType().Name);
-                foreach (string name in new[] { "GH_TOKEN", "SLEEPY_KEYSTORE_PASSWORD", "SLEEPY_KEY_ALIAS_PASSWORD" })
+                string stackTrace = exception.StackTrace ?? string.Empty;
+                foreach (string name in new[] { "GH_TOKEN", "SLEEPY_KEYSTORE_PASSWORD", "SLEEPY_KEY_ALIAS_PASSWORD", "SLEEPY_SSH_KEY_PASSPHRASE" })
                 {
                     string secret = Environment.GetEnvironmentVariable(name);
                     if (!string.IsNullOrEmpty(secret))
                     {
                         failure = failure.Replace(secret, "[redacted]");
+                        stackTrace = stackTrace.Replace(secret, "[redacted]");
                     }
                 }
-                Debug.LogError(failure);
+                Debug.LogError(failure + Environment.NewLine + stackTrace);
                 if (request != null && result != null)
                 {
                     if (stage == "Deploy" && File.Exists(Path.Combine(request.OutputDirectory, "result.json")))
@@ -410,6 +413,8 @@ namespace Core.Editor.Hotfix
             {
                 EnsureHybridClrInstalled();
                 PrebuildCommand.GenerateAll();
+                // GenerateAll 内部构建 Player 会卸载资产，不能继续持有构建前的 native 对象。
+                config = Configure(request, false);
                 config.AotAssemblies = HotfixAssemblyBuild.ReadAotAssemblies();
                 config.HotfixAssemblies = HotfixAssemblyBuild.ReadHotfixAssemblies();
                 Require(config.HotfixAssemblies.Length > 0, "没有热更程序集。");
@@ -468,9 +473,14 @@ namespace Core.Editor.Hotfix
                 return;
             }
 
+            string[] aotAssemblies = config.AotAssemblies;
+            string[] hotfixAssemblies = config.HotfixAssemblies;
             string before = AotHash(config);
             BuildResources(request, config);
             BuildPlayer(request);
+            config = Configure(request, false);
+            config.AotAssemblies = aotAssemblies;
+            config.HotfixAssemblies = hotfixAssemblies;
             if (before != AotHash(config))
             {
                 // Player 的实际裁剪结果才是基线；资源 link.xml 变化时重配元数据并再构建一次。
@@ -479,6 +489,9 @@ namespace Core.Editor.Hotfix
                 before = AotHash(config);
                 BuildResources(request, config, true);
                 BuildPlayer(request);
+                config = Configure(request, false);
+                config.AotAssemblies = aotAssemblies;
+                config.HotfixAssemblies = hotfixAssemblies;
                 Require(before == AotHash(config), "Player AOT 裁剪结果仍在变化，拒绝归档不配套的基线。");
             }
             CheckMetadata(config, config.AotSourcePath);
@@ -681,6 +694,8 @@ namespace Core.Editor.Hotfix
 
         private static async Task DeployArtifactsAsync(Request request)
         {
+            using var budget = new CancellationTokenSource(TimeSpan.FromMinutes(22));
+            CancellationToken token = budget.Token;
             Require(request.Publish, "Deploy 仅用于获准发布的资源。");
             string resultPath = Path.Combine(request.OutputDirectory, "result.json");
             Result result = JsonUtility.FromJson<Result>(File.ReadAllText(resultPath));
@@ -715,30 +730,39 @@ namespace Core.Editor.Hotfix
                 byte[] previousVersion = File.Exists(versionPath) ? File.ReadAllBytes(versionPath) : null;
                 RecordPreviousVersion(request, result, previousVersion);
                 await GitHubPagesDeployment.UploadAsync(request.PagesRepositoryPath,
-                    resourcePath, resources, package, false).ConfigureAwait(false);
-                await HotfixDeploymentVerification.WaitForPagesAsync(request.PagesRepositoryPath).ConfigureAwait(false);
+                    resourcePath, resources, package, false, token).ConfigureAwait(false);
+                await HotfixDeploymentVerification.WaitForPagesAsync(request.PagesRepositoryPath, cancellationToken: token).ConfigureAwait(false);
                 result.Downloads = await HotfixDeploymentVerification.VerifyAsync(resources, package, serverUrl,
-                    file => Path.GetFileName(file) != versionName).ConfigureAwait(false);
+                    file => Path.GetFileName(file) != versionName, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
                 result.ActivationAttempted = true;
                 WriteJson(resultPath, result);
                 try
                 {
-                    await GitHubPagesDeployment.UploadAsync(request.PagesRepositoryPath, resourcePath, resources, package).ConfigureAwait(false);
+                    await GitHubPagesDeployment.UploadAsync(request.PagesRepositoryPath, resourcePath, resources, package, true, token).ConfigureAwait(false);
                     result.Activated = true;
                     WriteJson(resultPath, result);
-                    await HotfixDeploymentVerification.WaitForPagesAsync(request.PagesRepositoryPath).ConfigureAwait(false);
+                    await HotfixDeploymentVerification.WaitForPagesAsync(request.PagesRepositoryPath, cancellationToken: token).ConfigureAwait(false);
                     var version = await HotfixDeploymentVerification.VerifyAsync(resources, package, serverUrl,
-                        file => Path.GetFileName(file) == versionName).ConfigureAwait(false);
+                        file => Path.GetFileName(file) == versionName, token).ConfigureAwait(false);
                     result.Downloads = result.Downloads.Concat(version).ToArray();
                 }
-                catch
+                catch (Exception exception)
                 {
+                    if (exception.Data.Contains("SleepyProcessStopUnconfirmed"))
+                    {
+                        result.RollbackFailed = true;
+                        WriteJson(resultPath, result);
+                        throw new InvalidOperationException(exception.Message);
+                    }
+                    using var recoveryBudget = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                    CancellationToken recoveryToken = recoveryBudget.Token;
                     try
                     {
-                        string recoveryCommit = await GitHubPagesDeployment.RestoreVersionAsync(request.PagesRepositoryPath, resourcePath, package,
-                            request.ResourceVersion, previousVersion, projectRoot).ConfigureAwait(false);
-                        await HotfixDeploymentVerification.WaitForPagesAsync(request.PagesRepositoryPath, recoveryCommit).ConfigureAwait(false);
-                        await HotfixDeploymentVerification.VerifyRestoredVersionAsync(serverUrl, package, previousVersion).ConfigureAwait(false);
+                        string recoveryCommit = await GitHubPagesDeployment.RestoreVersionWithCancellationAsync(request.PagesRepositoryPath, resourcePath, package,
+                            request.ResourceVersion, previousVersion, projectRoot, recoveryToken).ConfigureAwait(false);
+                        await HotfixDeploymentVerification.WaitForPagesAsync(request.PagesRepositoryPath, recoveryCommit, recoveryToken).ConfigureAwait(false);
+                        await HotfixDeploymentVerification.VerifyRestoredVersionAsync(serverUrl, package, previousVersion, recoveryToken).ConfigureAwait(false);
                         result.RolledBack = true;
                         WriteJson(resultPath, result);
                     }
@@ -758,18 +782,21 @@ namespace Core.Editor.Hotfix
                     request.Platform, resources, package,
                     previous =>
                     {
+                        token.ThrowIfCancellationRequested();
                         RecordPreviousVersion(request, result, previous);
                         result.Downloads = HotfixDeploymentVerification.VerifyAsync(resources, package, serverUrl,
-                            file => Path.GetFileName(file) != versionName).GetAwaiter().GetResult();
+                            file => Path.GetFileName(file) != versionName, token).GetAwaiter().GetResult();
+                        token.ThrowIfCancellationRequested();
                         result.ActivationAttempted = true;
                         WriteJson(resultPath, result);
+                        token.ThrowIfCancellationRequested();
                     },
                     () =>
                     {
                         result.Activated = true;
                         WriteJson(resultPath, result);
                         var version = HotfixDeploymentVerification.VerifyAsync(resources, package, serverUrl,
-                            file => Path.GetFileName(file) == versionName).GetAwaiter().GetResult();
+                            file => Path.GetFileName(file) == versionName, token).GetAwaiter().GetResult();
                         result.Downloads = result.Downloads.Concat(version).ToArray();
                     },
                     (restored, previous) =>
@@ -777,7 +804,9 @@ namespace Core.Editor.Hotfix
                         result.RollbackFailed = !restored;
                         if (restored)
                         {
-                            HotfixDeploymentVerification.VerifyRestoredVersionAsync(serverUrl, package, previous).GetAwaiter().GetResult();
+                            using var recoveryBudget = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                            HotfixDeploymentVerification.VerifyRestoredVersionAsync(serverUrl, package, previous,
+                                recoveryBudget.Token).GetAwaiter().GetResult();
                             result.RolledBack = true;
                         }
                         WriteJson(resultPath, result);
