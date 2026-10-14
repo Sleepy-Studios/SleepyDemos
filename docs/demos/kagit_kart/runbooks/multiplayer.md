@@ -83,12 +83,22 @@ HTTP地址必须能访问目录，`Rooms__PublicAddress`必须是玩家可达的
 | Windows Mono Dedicated | 已构建，PlayerSettings/HybridCLR设置/子目标完整恢复；HTTP18080创建真实Unity进程并等待UDP ready smoke成功。构建和ready只证明启动，不证明开赛或游戏状态同步。 |
 | Windows真实客户端短流程 | 此前clone Editor经正式AppEntrance，`600be6bf`、`28eeb268` 各1/1：真实KagitKart HMAC nonce重放拒绝、World断线自动resume/新载体、权限转交及原房主回来不夺权限、主动leave后HTTP401/session_expired；不是两个独立World客户端或MPM完整GP证明。AI规则 `77ebd9f8` 为34/34，单独记录。 |
 | 当前主工程局部复验 | `76e07873` 1/1：真实创建请求在授权返回前取消，晚到授权撤销、Unity子进程回收、表单恢复并可再次创建；`77c5153f` 1/1：再次验证票据重放拒绝、原身份自动恢复、新预测载体、房主转交及主动离开撤销。均为Unity Test Runner单方法运行，未跑全量。 |
-| GP结算恢复与准备超时 | `f6ae5809` 1/1：自然首章八车结果，Results原身份恢复且积分不重复；第二章故意缺一份Loaded，实际60秒超时后保持章节、非零积分/总时间/逆序网格，再以新轮次版本正常起跑。修复复用救援纸鹤仍引用旧赛车的异常；已有Fx用例扩展跨Session救援绑定，`40eac740` 18/18。 |
+| GP结算恢复与准备超时 | `f6ae5809`、最终代码复验 `4eebd14f` 各1/1：自然首章八车结果，Results原身份恢复且积分不重复；第二章故意缺一份Loaded，实际60秒超时后保持章节、非零积分/总时间/逆序网格，再以新轮次版本正常起跑。后者还验证联机暂停期间服务器完赛后，正式Results替换PauseView。修复复用救援纸鹤仍引用旧赛车的异常；已有Fx用例扩展跨Session救援绑定，`40eac740` 18/18。 |
+| 双房隔离与重连期限 | `756e07de` 1/1：两个真实Windows规则进程、不同UDP端口及四名认证客户端，分别Ready、Loaded、起跑；断线后权威AI继续前进。实际等待65秒后原身份resume返回401、比赛中新join返回409，另一房持续运行。该项是Test Runner同Editor多Peer，不能替代MPM两个独立World。 |
 | 独立.NET服务 | Release build与无框架契约检查通过，含签名、幂等/取消、动态容量、预约/重连撤销、主动leave、端口映射、崩溃和停服回收；见[服务验证记录](../../../../../SleepyDemos-Server/docs/verification-2026-10-14.md)。 |
-| Linux真实规则进程 | 只读挂载linux-x64，真实create201等待Unity ready，容器内UDP7777监听、grant宿主7781映射和私密文件600 app已核对；入场前leave204/resume401，真实status确认后3.8秒清配置与Unity子进程。未跑客户端驾驶或比赛。 |
+| Linux真实规则进程 | 只读挂载linux-x64，真实create201等待Unity ready，容器内UDP7777监听、grant宿主7781映射和私密文件600 app已核对；入场前leave204/resume401，真实status确认后3.8秒清配置与Unity子进程。完整驾驶和比赛见下行MPM记录。 |
 | Linux完整四章大奖赛 | 原生MPM主Editor PID20528与Player 2 PID50408，连接18081目录及Linux规则进程，证据目录 `SleepyDemos-ArtSource/ArtSource/kagit_kart/Previews/Dedicated_20261014/mpm-gp-1245/`。双方4章自然完赛，逐章8车成绩/积分/累计时间相等、每章积分只累计一次、逆序网格一致，Results及正式Podium实际显示，两端报告passed。之后双方主动离房，容器游戏进程已回收。该项是MPM场景运行证据，与Unity Test Runner计数分开。 |
+| 最终构建四章与新杯 | `mpm-gp-final-1355/`，主PID20528/虚拟PID65316连接最终77874c镜像与下述版本Linux构建，双报告passed。四章八车自然结算时间114.383/120.908/123.592/123.092s，逐章成绩、积分/总时间及逆序网格一致；正式Podium显示后返回大厅，Ready/Loaded并以version5开新杯。meadow、章节0、积分/总时间0、名次哨兵99、旧结果清空；双方主动离房后容器仅init/dotnet。最终源码已包含救援跨Session与暂停到Results修复。 |
 | Linux比赛资源采样 | `/proc/1756/stat`两次差分，CLK_TCK=100，401.17秒比赛采样占用约7.45%单核CPU；后段VmRSS/VmHWM=159596KiB、61线程。15个3600步日志窗口平均规则耗时0.059–0.075ms，窗口最大单步7.759ms，仅包规则Advance、不含网络发送和整个进程开销。四章主端实际RTT范围3–23ms、虚拟端8–27ms，均收到官方校正和重放；这不是公网延迟或弱网保证。 |
-| 尚待单独验收 | 真实双机/设备、公网HTTPS、60秒期限、弱网、单场重赛/新杯与客户端IL2CPP按各自实际结果记录；四章局域本机MPM通过不能替代这些项目。 |
+| Linux单场、弱网与重赛 | 最终构建、原生MPM主PID20528/虚拟PID24260，证据 `mpm-single-final-1350/` 双报告passed。三档客户端接收侧原始包延迟80–120/160–240/240–360ms、配置丢包1/3/5%各20秒；不模拟服务器入站，概率不是实测丢包率。实际RTT主端107–133/110–210/210–327ms，虚拟端113–132/117–242/210–342ms。八车自然结算均133.175s、逐车成绩一致；正式回大厅、新version=2、八车重赛且旧结果清空。 |
+| 弱网校正与共享快照 | 上轮主端/虚拟端官方校正3807/3789次、重放84215/78515次；完整共享快照4002–4546B，完整重组快照最大到达间隙约1267.65ms。可靠分片在弱网下仍会等待重传，不承诺该档低延迟驾驶；没有把局部纠错耗时当整RTT或公网性能。 |
+| 真实停服与取消重连 | 双端重赛已起跑后正常 `docker stop`，容器exit0；两端断线后保持原Networked Session且规则时间不再推进，正式重连弹窗/倒计时可见，点击正式取消按钮后回联机入口、Session清空、连接及重连收口。`mpm-single-final-1350/`各含实际重连及取消后的截图。 |
+| 最终构建资源复测 | `mpm-gp-final-1355/resource-summary.json`，真实权威进程第三/第四章跨章108.913秒窗口，单核CPU约6.60%、RSS/HWM158836KiB、61线程。最终规则日志15个3600步窗口平均0.053–0.075ms、最大单步7.096ms，不含网络和进程其他开销。四章主/虚拟端RTT范围5–25/7–28ms，官方校正14785/14801次、重放150008/137476次；与前一长窗分开记录，不作为公网或客户端性能保证。 |
+| 尚待单独验收 | 真实双机/设备、公网HTTPS及客户端IL2CPP按各自实际结果记录；本机MPM和Linux容器通过不能替代这些项目。 |
+
+交付规则构建对应主仓源码提交 `3a39bb5f0c3be3e9b3c38e2325210aa587f18126`。Windows/Linux manifest时间分别为 `2026-10-14T05:32:31.4802689Z` / `2026-10-14T05:33:15.3250405Z`，规则数据hash同为 `e6bba36b51c39c145aa34bbb2381d34e6610f4c15a9cabddf0dc0c4be6652c40`；Linux Hotfix.dll SHA256为 `EE1A2A4C9F74E45FECEF15F18627AC3A2D684D8A673C0BCB2AEB7304B3E5E49D`。服务业务提交 `12704fd3b505fcf75b5321e545a53ee977647e7e`、地址校验修复 `789a772330c2a339124267aebb81e37e6204e35c`，最终本地镜像 `sha256:77874c311726b5b325c7d4ffae6b075facf92bbae609ee9693d13a3e102c41bd`。构建、日志和密钥均不提交Git，没有push。
+
+本轮扩展现有测试程序集与文件，永久保留稳定身份/准入、连接取消与晚到授权回收、重连资格、双房隔离、GP积分保护、暂停到权威结算和救援跨Session绑定回归；它们防止席位劫持、悬挂房间、重复积分和旧对象引用等具体问题。MPM装配与自动驾驶驱动仅用于本轮验收，已清理源码、meta、临时配置及私有中转补丁；原生Scenario保留供手动联调，MPM自身Library/VP缓存保留。清理后Unity编译成功、0错误，开发目录URL恢复18080，HotfixConfig/完整PlayerSettings/HybridCLR设置与构建前hash一致。两个手工临时验证工程已退出并删除，所有后续双客户端验收均使用原生MPM。
 
 Editor与构建模式边界引用[测试架构](../../../architecture/testing.md)、[正式测试流程](../../../runbooks/run-unity-tests.md)及[热更新模块](../../../modules/hotfix.md)。EditorSimulate复用已加载Hotfix，服务器Mono直接编入规则；二者均不证明客户端独立DLL加载、IL2CPP裁剪、Android或真实设备通过。本页不把旧Host结果计入新产品链，也没有自动重跑全量测试。
 

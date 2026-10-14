@@ -241,7 +241,7 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 
 ## 验证与维护边界
 
-- 独立服务器链与实际边界见[联机手册](runbooks/multiplayer.md#2026-10-14-联机验收)：Core `22540a29` 为1/1但使用测试认证回调；Windows构建/设置恢复与真实ready已通过，产品短流程 `600be6bf`、`28eeb268` 各1/1验证真实HMAC nonce重放拒绝、World断线自动resume/新载体、房主权限不被原房主夺回及主动leave后HTTP401。AI规则 `77ebd9f8` 为34/34。Linux容器已验证真实Unity ready、UDP监听/公开端口映射与未入场取消确认回收，未以此声明完整比赛或四章GP通过。旧Host双Editor/GP/弱网只作历史追溯；客户端独立Player/IL2CPP、真实双机及完整驾驶/赛果仍按本次实测判断。
+- 独立服务器链与实际边界见[联机手册](runbooks/multiplayer.md#2026-10-14-联机验收)：Core `22540a29` 为1/1但使用测试认证回调；产品真实HMAC nonce重放拒绝、原身份恢复/新载体、权限转交、主动撤销、双房隔离及65秒过期已有定向通过记录。AI规则 `77ebd9f8` 为34/34。Windows/Linux Dedicated已构建，原生MPM两个独立客户端连接Linux服完成单场与四章自然GP，逐车结果、积分和逆序网格一致；三档接收侧弱网、重赛和真实停服取消分别留证。旧Host记录只作追溯，客户端独立Player/IL2CPP、真实双机与公网不由Editor或容器结果推断。
 - 当前玩法、源算法、坐标转换、资源地址和生命周期以上述正文与 [源码维护](runbooks/source-migration.md) 为准。存档只遵守“计时记录”中的当前完整记录契约，不恢复旧部分修补行为。
 - 定向验收覆盖与尚未验证范围见 [验收对照](runbooks/acceptance.md)；设备模拟、合成轨迹、自动驾驶、GPU样本和人工驾驶分别记录，不相互替代。
 - 2026-10-10/11阶段数量、job、早期结构与“未完成”原文保存在 [验证历史](../../agent/archive/kagit-validation-history.md)；旧结果不能证明本次治理后的代码已重新验证。
