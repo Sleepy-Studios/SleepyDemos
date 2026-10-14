@@ -15,6 +15,15 @@ namespace Hotfix.AppDelegate
             hotfixContext.LoadingView?.SetProgress(0.85f, "热更初始化", "发现业务页面");
             UITypeReflection.Scan(typeof(HotfixEntry).Assembly);
             await HotfixBootService.RunBootSystems(hotfixContext);
+            using (var loader = ResourceServices.CreateLoader())
+            {
+                var asset = await loader.LoadAssetAsync<UnityEngine.TextAsset>("LoadResources/Config/HotfixAcceptance");
+                if (asset == null)
+                {
+                    throw new InvalidOperationException("临时热更验收资源未加载。");
+                }
+                UnityEngine.Debug.Log("[Jenkins-Hotfix-Acceptance] code=H1-20261015 resource=" + asset.text.Trim());
+            }
             await UniTask.Yield();
 
             hotfixContext.LoadingView?.SetProgress(0.95f, "进入界面", "显示主界面");
