@@ -17,6 +17,10 @@
 
 正常流程：固定源码 → Luban/原生依赖 → Prepare 生成程序集 → 新 Unity 进程重新导入 → Build 资源与 Player → 可选 Deploy → 归档。生成物只落在已登记的 CI 克隆和本次产物目录，日常工程不参与 reset 或清理。
 
+机器配置的 `Root` 负责 Jenkins 数据与产物，当前为 `E:\Jenkins`；必填的 `WorkspaceRoot` 单独负责 Unity 克隆与平台缓存，当前为 `E:\Project\SleepyDemos-Build`，其中 `PC`、`Android` 各有自己的源码与 Library。日常开发工程可继续运行，不会争用 CI 工程锁；同 Windows 用户的 Android External Tools 偏好仍共享，构建期间不能手动切换工具或同时手工构建 Android。
+
+`WorkspaceRoot` 必须是无空格的本地盘符绝对路径，不能为盘根、日常工程或其祖先/后代，路径不能经过 Junction/符号链接。迁移目录不改变 `Root` 下的 home、runs、baselines、resource-versions 与 Pages。PC Full 的 CMake 缓存含绝对路径，搬迁后须重建；继续原基线的 Hotfix 不重新编译原生库，应保留原 DLL、运行库、许可证和 `.meta`。
+
 每次 Unity 启动先原子记录本次 run、项目、方法、日志、用户和启动意图，再记录 PID/创建时间。失败或取消时，Finalize 核对 Win32_Process 身份并收尾本次 Unity 及能确认归属的子进程，排除授权服务；确认退出和工程解锁后才归档、清理。身份失配或退出未确认则保留现场，仅归档收尾摘要与进程记录。不能以 Get-Process 查不到 PID 代替退出证明，也不按名称终止日常 Editor。
 
 ## 请求与结果

@@ -6,7 +6,9 @@
 
 Unity 6000.3.15f1 及当前用户授权、Windows IL2CPP/Android 模块、Visual Studio 2022 17.x 的 C++ x64 工具和 Windows SDK、.NET 8、Git、GitHub CLI。原生桥接脚本使用 `Visual Studio 17 2022`，不能只安装其他代 VS。现有本机记录为 VS Community 2022 `17.14.37628.2`、MSVC `19.44.35228.0`（VC Tools `14.44.35207`）、Windows SDK `10.0.26100.0`；迁移按对应基线的实际工具记录恢复。PC Streamline 使用现有锁文件和准备脚本；Android 使用 Unity 配套 SDK/NDK/JDK，不把 Jenkins Java 25 设为 Android JDK。
 
-`scripts/jenkins/machine.example.json` 为非秘密配置样例，复制到仓库外的 `E:\Jenkins\machine.json` 后填写实际工具路径。Root 必须为独立无空格绝对目录；Pages.Path 也须是 Root 内独立克隆，不指向日常 Pages 工程。
+`scripts/jenkins/machine.example.json` 为非秘密配置样例，复制到仓库外的 `E:\Jenkins\machine.json` 后填写实际工具路径。Root 必须为独立无空格绝对目录；Pages.Path 也须是 Root 内独立克隆，不指向日常 Pages 工程。必填 `WorkspaceRoot` 当前为 `E:\Project\SleepyDemos-Build`，其下 `PC`、`Android` 分别保存 CI 工程和 Library；Jenkins home、runs、基线、版本登记与 Pages 仍留在 `E:\Jenkins`。
+
+`WorkspaceRoot` 须为无空格的本地盘符绝对路径，不能是盘根、日常工程或其祖先/后代，路径不得经过 Junction/符号链接。不要手动打开 CI 工程；日常开发工程可保持打开。两者同属当前 Windows 用户，Android Full 期间不要手动切换 External Tools 或同时手工打 Android，独立工程不代表用户偏好隔离。
 
 ## 手动启停
 
@@ -49,7 +51,7 @@ ID 是 Jenkinsfile 的当前接口，不通过 machine.json 自动改写。缺�
 
 | 参数 | 选择 |
 | --- | --- |
-| SourceRef | 分支/Tag/SHA，默认 main |
+| SourceRef | 分支/Tag/完整40位SHA，默认 main；不要填写短SHA |
 | Platform / BuildKind | PC 或 Android；Full 或 Hotfix |
 | ResourceMode | Full 选择 Offline / OnlineFull / OnlineDownload；Hotfix 继承当前基线 |
 | AndroidFormat / AndroidSigning | Apk 或 Aab；Debug 或 Custom |
@@ -91,11 +93,13 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 
 停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线、resource-versions 登记目录和必要受保护连接材料；签名 keystore 单独备份。目录快照恢复时直接复制 home，按备份清单核对相对路径、大小与 SHA256；历史普通产物可排除，但须明确恢复后对应下载链接不可用。每平台 current 和 resource-versions 独立于 30 次记录/10 次普通产物保留，不随过期归档删除。
 
-继续原 PC 主包热更还需单独备份原独立 CI 工程 `<Root>/workspaces/PC/Assets/Plugins/Streamline/x86_64/` **整个目录**，包括 DLL、`Streamline~` 运行库、许可证及现有 `.meta`/GUID。记录全部文件相对路径、大小与 SHA256；迁移后逐文件核对，不只核对 ZIP。Library 默认重建，不用新生成的 DLL 或 `.meta` 冒充原基线依赖。
+继续原 PC 主包热更还需单独备份原独立 CI 工程 `<WorkspaceRoot>/PC/Assets/Plugins/Streamline/x86_64/` **整个目录**，包括 DLL、`Streamline~` 运行库、许可证及现有 `.meta`/GUID。记录全部文件相对路径、大小与 SHA256；迁移后逐文件核对，不只核对 ZIP。Library 默认重建，不用新生成的 DLL 或 `.meta` 冒充原基线依赖。
+
+本机搬迁 CI 目录时，先确认队列空闲、两个 CI 工程关闭并记录原生目录校验值，再整体移动 `WorkspaceRoot` 内容并修改机器配置。移动后逐文件复核原生依赖；将旧 `PC/Library/Streamline/build` 缓存移开，新 Full 重建 CMake，原基线 Hotfix 保留原生文件且不重编译。历史备份仍按原清单校验，不修改旧 manifest；从旧备份恢复后，另行给恢复的 machine.json 补上 `WorkspaceRoot` 并调整实际落点。
 
 新电脑按以下顺序恢复：
 
-1. 安装同版 Java/Jenkins、Unity/模块及记录的 VS2022/MSVC/Windows SDK 等工具，完成构建用户 Unity 授权；恢复 home、master.key、配置和受保护 API 材料，调整所有本机路径。agent secret 先保留在受保护备份位置。
+1. 安装同版 Java/Jenkins、Unity/模块及记录的 VS2022/MSVC/Windows SDK 等工具，完成构建用户 Unity 授权；恢复 home、master.key、配置和受保护 API 材料，调整所有本机路径，显式填写独立的 `WorkspaceRoot`。agent secret 先保留在受保护备份位置。
 2. 使用 `-ConfigPath` 指定新配置，先 Start 管理端，再登录检查凭据和插件。修改节点 Remote root directory、名称和标签，设置 `SLEEPY_MACHINE_CONFIG`；放好对应节点 secret 后重复 Start，确认 1 执行器在线。
 3. 恢复并校验 current 与 resource-versions。先做一次 `Publish=false` Full，准备专用克隆、工具和缓存；该任务不提升 current。然后确认任务结束、CI Unity 已关闭，再将新克隆的 `x86_64/` 目录替换为已校验的原目录，保留运行库、许可证和 `.meta`，复核全部 SHA256。
 4. 用原主包版本和 Development 执行 Hotfix 兼容检查，仍由正式指纹拒绝真实不兼容；检查包内配置后再校验发布目标。若无法恢复原二进制/元数据，或真实指纹仍不兼容，必须重新构建并发布 Full，通知旧安装包重装后使用新 current。
@@ -112,3 +116,7 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 - 保护：缺基线、Development不匹配、Core源码变化及缺自定义签名凭据正确拒绝；真实初始化/下载失败阻断 AOT、Hotfix 与业务入口。已有资源测试5/5、发布保护9/9通过，未执行全量回归。
 - 待环境：自定义正式 keystore、Android真机、真实SSH服务器、第二台电脑构建；不以调试签名或本机隔离恢复替代这些验收。清理被策略阻止的少量验证目录记录在个人实施日志，临时包体与代码/资源探针已清理。
 - 最终停机备份与18083隔离恢复通过：3609文件SHA一致、两个凭据真实解密原值验证一致，current/版本登记/原生文件一致；主密钥和现有调试keystore独立保护，普通历史archive未备份。正式18082已恢复controller0/node1，无自启动；第二台实际构建仍待环境。
+- CI 工程已从 `E:\Jenkins\workspaces` 整体迁至 `E:\Project\SleepyDemos-Build`，16 个原生文件逐项 SHA 一致，PC/Android 工程关闭、日常工程继续运行。旧 PC CMake 缓存保留为 `build.before-relocation-20261015`；搬迁后 Jenkins #41 PC Hotfix（Publish=false）实际 SUCCESS，15 项归档大小/SHA一致，资源ZIP 109811676字节；没有 Player 或发布，两个 current 共432文件及16个原生文件保持一致。新路径 PC Full、Android 构建尚未复跑。
+- WorkspaceRoot 配置与3份脚本已在 PS7.6.6、Windows PowerShell5.1解析及9种非法路径检查通过；增量配置备份 `E:\Jenkins\backups\20261015-workspace-relocation-config` 与原 `20261015-final` 全量备份配用，不改旧manifest。迁移后 #40 因填写短SHA在检出阶段失败，未启动Unity；#41 使用完整SHA执行不发布的 PC Hotfix，已最终 SUCCESS。
+
+- 旧手工安卓工作树 `E:\Project\SleepyDemos-Andriod_Bulid` 已按授权完成非缓存备份及17542文件逐项SHA校验后移除，原分支保留；备份位于 `E:\Jenkins\backups\20261015-android-manual-before-removal`，仅当前用户和SYSTEM可访问。WebGL目前仅完成浏览器接入评估，尚未实施。
