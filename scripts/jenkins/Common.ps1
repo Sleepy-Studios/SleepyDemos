@@ -79,3 +79,16 @@ function Invoke-Git([string]$Directory, [string[]]$Arguments) {
 function Write-JsonFile([string]$Path, $Value) {
     [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 12), (New-Object Text.UTF8Encoding($false)))
 }
+
+function Write-AtomicJsonFile([string]$Path, $Value) {
+    $staged = $Path + '.writing-' + [guid]::NewGuid().ToString('N')
+    try {
+        $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes(($Value | ConvertTo-Json -Depth 12))
+        $stream = [IO.File]::Open($staged, 'CreateNew', 'Write', 'None')
+        try { $stream.Write($bytes, 0, $bytes.Length); $stream.Flush($true) } finally { $stream.Dispose() }
+        if ([IO.File]::Exists($Path)) { [IO.File]::Replace($staged, $Path, [NullString]::Value) }
+        else { [IO.File]::Move($staged, $Path) }
+    } finally {
+        if ([IO.File]::Exists($staged)) { Remove-Item -LiteralPath $staged }
+    }
+}

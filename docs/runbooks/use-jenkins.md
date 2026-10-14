@@ -63,6 +63,8 @@ Offline 内置全部资源、不联网热更；OnlineFull 全量内置并在线�
 
 从任务产物下载 Player、资源、日志和摘要。30 次记录与 10 次普通产物自动保留；current 基线独立保存。失败任务也保留已生成产物和阶段日志。
 
+取消当前任务使用 Jenkins 的 Stop；不要结束管理端或手动杀 Unity。收尾记录 `unity-Prepare|Build|Deploy.process.json`，严格核对本次进程并确认工程解锁后才压缩和清理；收尾失败会保留 `runs/<任务名>-<编号>`，摘要明确失败原因。此时先检查归档进程记录、Windows CIM 进程和 UnityLockfile，不能仅凭任务显示 ABORTED 或 Get-Process 查不到就删除目录。身份无法确认的进程须人工核实，不能按 Unity.exe 名称批量结束。
+
 ## 发布
 
 Pages 使用机器配置的仓库、网站根和项目名，平台路径自动生成。推送后必须等待 Pages 部署并核对正式 HTTP 内容，不能仅看 Git push 退出码。当前规则见[Pages 发布](deploy-github-pages-hotupdate.md)。
@@ -76,6 +78,7 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；BaseUrl 为平台 HTT
 | 错误 | 操作 |
 | --- | --- |
 | 工作区已被打开 | 关闭手动打开的 CI 工程；不要关闭日常工程掩盖路径错误 |
+| 取消后收尾失败 | 按 unity-*.process.json 核对本次用户、路径、创建时间和任务参数；确认进程退出与工程解锁后再清理归属明确的本次目录 |
 | 缺工具或授权 | 修正机器工具路径及该用户 Unity 环境 |
 | Android 阶段被强制终止 | 用归档 android-tools-before.json 核对原外部工具路径/embedded 开关；正常退出会自动恢复，强制终止后先恢复再构建 |
 | 缺凭据 | 在 Jenkins 受保护入口配置对应 ID |

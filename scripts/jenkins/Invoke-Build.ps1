@@ -16,6 +16,7 @@ $marker = Join-Path $runRoot '.sleepydemos-run'
 $failed = $false
 $errorText = ''
 $request = $null
+$unitySettled = $false
 $previousPath = $env:PATH
 $env:PATH = (@($machine.Git, $machine.Gh, $machine.Dotnet | ForEach-Object { Split-Path -Parent $_ }) -join ';') + ';' + $env:PATH
 $env:GIT_TERMINAL_PROMPT = '0'
@@ -37,14 +38,184 @@ function Invoke-Unity([string]$Method) {
     Assert-ProjectClosed $project
     $env:SLEEPY_BUILD_REQUEST = $requestPath
     $target = if ($request.Platform -eq 'PC') { 'StandaloneWindows64' } else { 'Android' }
-    $process = Start-Process -FilePath $machine.Unity -WindowStyle Hidden -PassThru `
-        -ArgumentList @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'), '-buildTarget', $target,
-            '-executeMethod', "Core.Editor.Hotfix.HotfixBuildAutomation.$Method", '-logFile', ('"' + (Join-Path $output "logs/$Method.log") + '"'))
-    $null = $process.Handle
+    $log = [IO.Path]::GetFullPath((Join-Path $output "logs/$Method.log"))
+    $recordPath = Join-Path $runRoot "unity-$Method.process.json"
+    if (Test-Path -LiteralPath $recordPath) { throw "Unity $Method 已有进程记录，拒绝重复启动。" }
+    $record = [pscustomobject]@{
+        RunId = $runId; Method = $Method; Platform = $request.Platform
+        Owner = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+        ExecutablePath = [IO.Path]::GetFullPath($machine.Unity); ProjectPath = [IO.Path]::GetFullPath($project)
+        LogPath = $log; RequestPath = $requestPath; IntentUtcTicks = [DateTime]::UtcNow.Ticks
+        Id = 0; StartedUtcTicks = 0; ExitedUtcTicks = 0; State = 'Launching'; Children = @()
+    }
+    # 先落盘唯一 run/log 意图；launcher 被 Jenkins 杀死时，post 仍可严格核对未写入 PID 的启动。
+    Write-AtomicJsonFile $recordPath $record
+    $process = $null
+    try {
+        $process = Start-Process -FilePath $machine.Unity -WindowStyle Hidden -PassThru `
+            -ArgumentList @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'), '-buildTarget', $target,
+                '-executeMethod', "Core.Editor.Hotfix.HotfixBuildAutomation.$Method", '-logFile', ('"' + $log + '"'))
+        $null = $process.Handle
+        $details = Get-CimInstance Win32_Process -Filter "ProcessId=$($process.Id)"
+        if ($details) {
+            $record.Id = [int]$details.ProcessId
+            $record.StartedUtcTicks = $details.CreationDate.ToUniversalTime().Ticks
+            $record.State = 'Running'
+            Assert-UnityProcess $details $record
+        } elseif (-not $process.HasExited) { throw '无法记录新 Unity 的完整进程身份。' }
+        Write-AtomicJsonFile $recordPath $record
+    } catch {
+        # 已持有实际启动句柄；记录写入失败时先停本次进程，不能留下无记录的 Unity。
+        if ($record.Id -gt 0) {
+            Stop-RecordedProcess $record -Unity
+        } elseif ($process -and -not $process.HasExited) {
+            $process.Kill()
+            if (-not $process.WaitForExit(30000)) { throw 'Unity 记录失败且退出未确认；保留本次启动意图供 Finalize 收尾。' }
+        }
+        throw
+    }
     $process.WaitForExit()
+    $record.State = 'Exited'
+    $record.ExitedUtcTicks = [DateTime]::UtcNow.Ticks
+    Write-AtomicJsonFile $recordPath $record
     if ($process.ExitCode -ne 0) { throw "Unity $Method 失败（exit $($process.ExitCode)），详见归档日志。" }
     $resultPath = Join-Path $output 'result.json'
     if (-not (Test-Path -LiteralPath $resultPath)) { throw "Unity $Method 没有写出 result.json。" }
+}
+
+function Get-UnityArgument([string]$CommandLine, [string]$Name) {
+    $matches = [regex]::Matches($CommandLine, '(?i)(?:^|\s)-' + [regex]::Escape($Name) + '\s+(?:"([^"]+)"|([^\s]+))')
+    if ($matches.Count -ne 1) { return $null }
+    if ($matches[0].Groups[1].Success) { return $matches[0].Groups[1].Value }
+    return $matches[0].Groups[2].Value
+}
+
+function Assert-UnityProcess($Process, $Record) {
+    $owner = Invoke-CimMethod -InputObject $Process -MethodName GetOwner
+    if ($owner.ReturnValue -ne 0 -or "$($owner.Domain)\$($owner.User)" -ne $Record.Owner -or
+        $Process.ExecutablePath -ne $Record.ExecutablePath -or -not $Process.CommandLine -or
+        ($Record.StartedUtcTicks -gt 0 -and $Process.CreationDate.ToUniversalTime().Ticks -ne [long]$Record.StartedUtcTicks) -or
+        $Process.CreationDate.ToUniversalTime().Ticks -lt [long]$Record.IntentUtcTicks -or
+        (Get-UnityArgument $Process.CommandLine 'projectPath') -ne $Record.ProjectPath -or
+        (Get-UnityArgument $Process.CommandLine 'logFile') -ne $Record.LogPath -or
+        (Get-UnityArgument $Process.CommandLine 'executeMethod') -ne "Core.Editor.Hotfix.HotfixBuildAutomation.$($Record.Method)") {
+        throw "Unity PID $($Process.ProcessId) 的本人、创建时间或本次任务参数不匹配，拒绝处理。"
+    }
+}
+
+function Find-RecordedUnity($Record) {
+    if ($Record.Id -gt 0) {
+        $found = Get-CimInstance Win32_Process -Filter "ProcessId=$($Record.Id)"
+        if (-not $found) { return $null }
+        if ($found.CreationDate.ToUniversalTime().Ticks -ne [long]$Record.StartedUtcTicks) {
+            if ($Record.ExitedUtcTicks -gt 0) { return $null }
+            throw "Unity PID $($Record.Id) 已复用，拒绝处理并保留现场。"
+        }
+        Assert-UnityProcess $found $Record
+        return $found
+    }
+    $found = @(Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" | Where-Object {
+        $_.ExecutablePath -eq $Record.ExecutablePath -and $_.CommandLine -and
+        $_.CreationDate.ToUniversalTime().Ticks -ge [long]$Record.IntentUtcTicks -and
+        (Get-UnityArgument $_.CommandLine 'projectPath') -eq $Record.ProjectPath -and
+        (Get-UnityArgument $_.CommandLine 'logFile') -eq $Record.LogPath -and
+        (Get-UnityArgument $_.CommandLine 'executeMethod') -eq "Core.Editor.Hotfix.HotfixBuildAutomation.$($Record.Method)"
+    })
+    if ($found.Count -gt 1) { throw '同一启动意图匹配多个 Unity，拒绝处理。' }
+    if ($found.Count -eq 0) { return $null }
+    Assert-UnityProcess $found[0] $Record
+    return $found[0]
+}
+
+function Get-OwnedUnityChildren($Unity, [string]$Owner) {
+    $snapshot = @(Get-CimInstance Win32_Process)
+    $parents = @([pscustomobject]@{ Id = [int]$Unity.ProcessId; StartedUtcTicks = $Unity.CreationDate.ToUniversalTime().Ticks; Depth = 0 })
+    $children = @()
+    while ($parents.Count -gt 0) {
+        $next = @()
+        foreach ($parent in $parents) {
+            foreach ($child in $snapshot | Where-Object { $_.ParentProcessId -eq $parent.Id -and $_.Name -notmatch '(?i)licens' }) {
+                if ($child.CreationDate.ToUniversalTime().Ticks -lt $parent.StartedUtcTicks -or -not $child.ExecutablePath) { continue }
+                $ownerInfo = Invoke-CimMethod -InputObject $child -MethodName GetOwner
+                if ($ownerInfo.ReturnValue -ne 0 -or "$($ownerInfo.Domain)\$($ownerInfo.User)" -ne $Owner) { continue }
+                $identity = [pscustomobject]@{
+                    Id = [int]$child.ProcessId; StartedUtcTicks = $child.CreationDate.ToUniversalTime().Ticks
+                    ExecutablePath = $child.ExecutablePath; Owner = $Owner
+                    ParentId = $parent.Id; ParentStartedUtcTicks = $parent.StartedUtcTicks; Depth = $parent.Depth + 1
+                }
+                $children += $identity
+                $next += $identity
+            }
+        }
+        $parents = $next
+    }
+    return $children
+}
+
+function Stop-RecordedProcess($Identity, [switch]$Unity) {
+    $current = Get-CimInstance Win32_Process -Filter "ProcessId=$($Identity.Id)"
+    if (-not $current) { return }
+    $owner = Invoke-CimMethod -InputObject $current -MethodName GetOwner
+    if ($current.CreationDate.ToUniversalTime().Ticks -ne [long]$Identity.StartedUtcTicks -or
+        $current.ExecutablePath -ne $Identity.ExecutablePath -or $owner.ReturnValue -ne 0 -or
+        "$($owner.Domain)\$($owner.User)" -ne $Identity.Owner -or
+        (-not $Unity -and ($current.Name -match '(?i)licens' -or $current.ParentProcessId -ne $Identity.ParentId))) {
+        throw "PID $($Identity.Id) 身份不匹配，拒绝终止。"
+    }
+    if ($Unity) { Assert-UnityProcess $current $Identity }
+    # 不以 Get-Process 缺失作为退出证据；按已重新核对的 Win32_Process 实例终止。
+    $stopped = Invoke-CimMethod -InputObject $current -MethodName Terminate -Arguments @{ Reason = [uint32]1 }
+    if ($stopped.ReturnValue -ne 0) { throw "PID $($Identity.Id) 终止失败（Win32 $($stopped.ReturnValue)），保留现场。" }
+}
+
+function Complete-UnityRun([switch]$Cancel) {
+    foreach ($file in Get-ChildItem -LiteralPath $runRoot -Filter 'unity-*.process.json' -File) {
+        Assert-OwnedPath $file.FullName $machine.Root | Out-Null
+        $record = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($record.RunId -ne $runId -or $record.Method -notin @('Prepare', 'Build', 'Deploy') -or
+            $file.Name -ne "unity-$($record.Method).process.json" -or
+            $record.Platform -notin @('PC', 'Android') -or $record.Owner -ne [Security.Principal.WindowsIdentity]::GetCurrent().Name -or
+            $record.ExecutablePath -ne [IO.Path]::GetFullPath($machine.Unity) -or
+            $record.ProjectPath -ne [IO.Path]::GetFullPath((Join-Path $machine.Root "workspaces/$($record.Platform)")) -or
+            $record.LogPath -ne [IO.Path]::GetFullPath((Join-Path $output "logs/$($record.Method).log")) -or
+            $record.RequestPath -ne $requestPath -or $record.IntentUtcTicks -le 0) { throw 'Unity 记录不属于当前任务，拒绝收尾。' }
+        foreach ($child in @($record.Children)) {
+            $parents = @(@($record) + @($record.Children) | Where-Object {
+                $_.Id -eq $child.ParentId -and [long]$_.StartedUtcTicks -eq [long]$child.ParentStartedUtcTicks
+            })
+            if ($parents.Count -eq 0 -or $child.Owner -ne $record.Owner -or $child.Depth -le 0 -or
+                [long]$child.StartedUtcTicks -lt [long]$child.ParentStartedUtcTicks) { throw 'Unity 子进程记录没有本次任务的完整父进程身份，拒绝收尾。' }
+        }
+        $current = Find-RecordedUnity $record
+        if ($current) {
+            if (-not $Cancel) { throw '本任务 Unity 仍在运行，拒绝归档清理。' }
+            $record.Id = [int]$current.ProcessId
+            $record.StartedUtcTicks = $current.CreationDate.ToUniversalTime().Ticks
+            $record.Children = @($record.Children) + @(Get-OwnedUnityChildren $current $record.Owner)
+            Write-AtomicJsonFile $file.FullName $record
+            Stop-RecordedProcess $record -Unity
+        }
+        foreach ($child in @($record.Children) | Sort-Object Depth -Descending) {
+            $live = Get-CimInstance Win32_Process -Filter "ProcessId=$($child.Id)"
+            if (-not $live -or $live.CreationDate.ToUniversalTime().Ticks -ne [long]$child.StartedUtcTicks) { continue }
+            if (-not $Cancel) { throw '本任务记录的 Unity 子进程仍在运行，拒绝清理。' }
+            Stop-RecordedProcess $child
+        }
+        $deadline = [DateTime]::UtcNow.AddSeconds(30)
+        do {
+            $remaining = @(@($record) + @($record.Children) | Where-Object {
+                $live = if ($_.Id -gt 0) { Get-CimInstance Win32_Process -Filter "ProcessId=$($_.Id)" } else { $null }
+                $live -and $live.CreationDate.ToUniversalTime().Ticks -eq [long]$_.StartedUtcTicks
+            })
+            if ($remaining.Count -eq 0) { break }
+            Start-Sleep -Milliseconds 250
+        } while ([DateTime]::UtcNow -lt $deadline)
+        if ($remaining.Count -gt 0) { throw '本任务 Unity/子进程退出未确认，拒绝清理并保留现场。' }
+        Assert-ProjectClosed $record.ProjectPath
+        $record.State = if ($Cancel) { 'SettledAfterFailure' } else { 'Settled' }
+        $record.ExitedUtcTicks = [DateTime]::UtcNow.Ticks
+        Write-AtomicJsonFile $file.FullName $record
+    }
 }
 
 function Remove-OwnedRun([string]$OwnedDirectory) {
@@ -60,7 +231,7 @@ function Remove-OwnedRun([string]$OwnedDirectory) {
 
 try {
     if ($Stage -eq 'Cleanup') {
-        if (Test-Path -LiteralPath $runRoot) { Remove-OwnedRun $runRoot }
+        if (Test-Path -LiteralPath $runRoot) { Complete-UnityRun; Remove-OwnedRun $runRoot }
         $archive = Assert-OwnedPath (Join-Path $env:WORKSPACE "ci-archive/$($env:BUILD_NUMBER)") $env:WORKSPACE
         $archiveMarker = Join-Path $archive '.sleepydemos-run'
         if (Test-Path -LiteralPath $archiveMarker) {
@@ -81,7 +252,10 @@ try {
         Set-Content -LiteralPath $marker -Value $runId -Encoding ascii
     }
     New-Item -ItemType Directory -Path (Join-Path $output 'logs') -Force | Out-Null
-    if ($Stage -eq 'Checkout') {
+    if ($Stage -eq 'Finalize') {
+        Complete-UnityRun -Cancel:($env:SLEEPY_JENKINS_RESULT -in @('ABORTED', 'FAILURE'))
+        $unitySettled = $true
+    } elseif ($Stage -eq 'Checkout') {
         if ($env:Platform -notin @('PC', 'Android') -or $env:BuildKind -notin @('Full', 'Hotfix') -or
             $env:Provider -notin @('Pages', 'Ssh')) { throw '非法构建参数。' }
         $baseline = Assert-OwnedPath (Join-Path $machine.Root "baselines/$($env:Platform)/current") $machine.Root
@@ -229,6 +403,12 @@ try {
             $archive = Join-Path $env:WORKSPACE "ci-archive/$($env:BUILD_NUMBER)"
             New-Item -ItemType Directory -Path $archive -Force | Out-Null
             Set-Content -LiteralPath (Join-Path $archive '.sleepydemos-run') -Value $runId -Encoding ascii
+            Copy-Item -LiteralPath $summaryPath -Destination $archive
+            Get-ChildItem -LiteralPath $runRoot -Filter 'unity-*.process.json' -File | Copy-Item -Destination $archive
+            if (-not $unitySettled) {
+                Write-Output 'Unity 收尾未确认，仅归档收尾摘要与进程记录；本次产物现场保留，禁止清理。'
+                exit 1
+            }
             if (-not (Test-Path -LiteralPath (Join-Path $output 'result.json'))) {
                 Write-JsonFile (Join-Path $output 'result.json') @{ Success = $false; Stage = 'Pipeline'; Error = 'Unity 尚未生成结果；详见 summary.json 与日志。' }
             }
