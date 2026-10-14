@@ -28,8 +28,8 @@ function Invoke-Script([string]$Path, [string[]]$Arguments, [string]$LogName) {
     $process = Start-Process -FilePath $shell -WindowStyle Hidden -PassThru `
         -ArgumentList (@('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $Path + '"')) + $Arguments) `
         -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+    $null = $process.Handle
     $process.WaitForExit()
-    $process.Refresh()
     if ($process.ExitCode -ne 0) { throw "$LogName 失败（exit $($process.ExitCode)），详见归档日志。" }
 }
 
@@ -40,8 +40,8 @@ function Invoke-Unity([string]$Method) {
     $process = Start-Process -FilePath $machine.Unity -WindowStyle Hidden -PassThru `
         -ArgumentList @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'), '-buildTarget', $target,
             '-executeMethod', "Core.Editor.Hotfix.HotfixBuildAutomation.$Method", '-logFile', ('"' + (Join-Path $output "logs/$Method.log") + '"'))
+    $null = $process.Handle
     $process.WaitForExit()
-    $process.Refresh()
     if ($process.ExitCode -ne 0) { throw "Unity $Method 失败（exit $($process.ExitCode)），详见归档日志。" }
     $resultPath = Join-Path $output 'result.json'
     if (-not (Test-Path -LiteralPath $resultPath)) { throw "Unity $Method 没有写出 result.json。" }
@@ -202,6 +202,7 @@ try {
             'Package' {
                 Add-Type -AssemblyName System.IO.Compression.FileSystem
                 foreach ($directory in @('resources', 'player')) {
+                    if ($directory -eq 'player' -and $request.Platform -eq 'Android') { continue }
                     $source = Join-Path $output $directory
                     if (Test-Path -LiteralPath $source) {
                         $zip = Join-Path $output "$($request.Platform)-$directory.zip"
@@ -232,8 +233,13 @@ try {
                 Write-JsonFile (Join-Path $output 'result.json') @{ Success = $false; Stage = 'Pipeline'; Error = 'Unity 尚未生成结果；详见 summary.json 与日志。' }
             }
             # 失败也归档已经生成的部分产物，避免 Package 阶段未执行而丢失证据。
+            $archivePlatform = $env:Platform
+            if (Test-Path -LiteralPath $requestPath) {
+                try { $archivePlatform = (Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json).Platform } catch { }
+            }
             Add-Type -AssemblyName System.IO.Compression.FileSystem
             foreach ($directory in @('resources', 'player', 'baseline')) {
+                if ($directory -eq 'player' -and $archivePlatform -eq 'Android') { continue }
                 $source = Join-Path $output $directory
                 $zip = Join-Path $output "$directory.zip"
                 if ((Test-Path -LiteralPath $source) -and -not (Test-Path -LiteralPath $zip) -and -not (Get-ChildItem -LiteralPath $output -Filter "*-$directory.zip")) {
@@ -248,6 +254,10 @@ try {
             New-Item -ItemType Directory -Path (Join-Path $archive 'logs') -Force | Out-Null
             Get-ChildItem -LiteralPath (Join-Path $output 'logs') | Copy-Item -Destination (Join-Path $archive 'logs') -Recurse
             Get-ChildItem -LiteralPath $output -Filter '*.zip' | Copy-Item -Destination $archive
+            $player = Join-Path $output 'player'
+            if ($archivePlatform -eq 'Android' -and (Test-Path -LiteralPath $player)) {
+                Get-ChildItem -LiteralPath $player -File | Where-Object { $_.Extension -in @('.apk', '.aab') } | Copy-Item -Destination $archive
+            }
             function Read-ToolVersion([string]$Executable, [string[]]$Arguments) {
                 $preference = $ErrorActionPreference
                 try {
