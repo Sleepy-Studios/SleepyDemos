@@ -176,7 +176,7 @@ function Complete-UnityRun([switch]$Cancel) {
             $file.Name -ne "unity-$($record.Method).process.json" -or
             $record.Platform -notin @('PC', 'Android') -or $record.Owner -ne [Security.Principal.WindowsIdentity]::GetCurrent().Name -or
             $record.ExecutablePath -ne [IO.Path]::GetFullPath($machine.Unity) -or
-            $record.ProjectPath -ne [IO.Path]::GetFullPath((Join-Path $machine.Root "workspaces/$($record.Platform)")) -or
+            $record.ProjectPath -ne [IO.Path]::GetFullPath((Join-Path $machine.WorkspaceRoot $record.Platform)) -or
             $record.LogPath -ne [IO.Path]::GetFullPath((Join-Path $output "logs/$($record.Method).log")) -or
             $record.RequestPath -ne $requestPath -or $record.IntentUtcTicks -le 0) { throw 'Unity 记录不属于当前任务，拒绝收尾。' }
         foreach ($child in @($record.Children)) {
@@ -283,10 +283,10 @@ try {
             if ($versionCode -eq 0 -and (-not [int]::TryParse($env:BUILD_NUMBER, [ref]$versionCode) -or $versionCode -le 0)) { throw 'BUILD_NUMBER 超出 AndroidVersionCode 有效范围。' }
         }
         if ([string]::IsNullOrWhiteSpace($env:SourceRef) -or $env:SourceRef.StartsWith('-') -or $env:SourceRef -match '\s|[~^:?*\[\\]') { throw 'SourceRef 只允许明确的分支、标签或提交 SHA。' }
-        $project = Assert-OwnedPath (Join-Path $machine.Root "workspaces/$($env:Platform)") $machine.Root
+        $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $env:Platform) $machine.WorkspaceRoot
         if ($project.Equals([IO.Path]::GetFullPath($machine.DailyProjectPath).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) { throw '拒绝修改日常项目。' }
         Assert-ProjectClosed $project
-        $ownership = Join-Path $machine.Root "workspaces/$($env:Platform).owned"
+        $ownership = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot "$($env:Platform).owned") $machine.WorkspaceRoot
         New-Item -ItemType Directory -Path (Split-Path -Parent $project) -Force | Out-Null
         if (-not (Test-Path -LiteralPath $project)) {
             Set-Content -LiteralPath $ownership -Value $machine.RepositoryUrl -Encoding ascii
@@ -343,7 +343,7 @@ try {
         Write-Output "固定源提交 $sha；配置提交 $configCommit；版本 $resourceVersion。"
     } elseif ($Stage -ne 'Finalize') {
         $request = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $project = Assert-OwnedPath (Join-Path $machine.Root "workspaces/$($request.Platform)") $machine.Root
+        $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $request.Platform) $machine.WorkspaceRoot
         Assert-ProjectClosed $project
         if ((Invoke-Git $project @('rev-parse', 'HEAD') | Out-String).Trim() -ne $request.SourceCommit) { throw '工作区提交发生变化。' }
         switch ($Stage) {

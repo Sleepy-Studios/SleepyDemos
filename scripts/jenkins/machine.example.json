@@ -1,5 +1,6 @@
 {
   "Root": "E:\\Jenkins",
+  "WorkspaceRoot": "E:\\Project\\SleepyDemos-Build",
   "JenkinsUrl": "http://127.0.0.1:18082",
   "Java": "E:\\Jenkins\\runtime\\jdk-25\\bin\\java.exe",
   "Unity": "D:\\Unity\\Hub\\Editor\\6000.3.15f1\\Editor\\Unity.exe",

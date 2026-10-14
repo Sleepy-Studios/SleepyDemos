@@ -11,6 +11,21 @@ function Read-MachineConfig([string]$Path) {
         throw 'Jenkins Root 不能是日常项目目录。'
     }
     $config.Root = $root
+    if (-not $config.PSObject.Properties['WorkspaceRoot'] -or
+        $config.WorkspaceRoot -notmatch '\A[A-Za-z]:[\\/]' -or $config.WorkspaceRoot -match '\s') {
+        throw 'WorkspaceRoot 必须配置为无空格的本机构建目录绝对路径。'
+    }
+    $workspace = [IO.Path]::GetFullPath($config.WorkspaceRoot).TrimEnd('\', '/')
+    $daily = [IO.Path]::GetFullPath($config.DailyProjectPath).TrimEnd('\', '/')
+    if ($workspace -eq [IO.Path]::GetPathRoot($workspace).TrimEnd('\') -or
+        $workspace.Equals($daily, [StringComparison]::OrdinalIgnoreCase) -or
+        $workspace.StartsWith($daily + '\', [StringComparison]::OrdinalIgnoreCase) -or
+        $daily.StartsWith($workspace + '\', [StringComparison]::OrdinalIgnoreCase) -or
+        (Test-Path -LiteralPath $workspace -PathType Leaf)) {
+        throw 'WorkspaceRoot 必须是独立目录，不能包含日常工程或位于日常工程内。'
+    }
+    Assert-OwnedPath (Join-Path $workspace '.ownership-check') $workspace | Out-Null
+    $config.WorkspaceRoot = $workspace
     if (-not $config.PSObject.Properties['JenkinsUrl']) {
         $config | Add-Member -NotePropertyName JenkinsUrl -NotePropertyValue 'http://127.0.0.1:18082'
     }
