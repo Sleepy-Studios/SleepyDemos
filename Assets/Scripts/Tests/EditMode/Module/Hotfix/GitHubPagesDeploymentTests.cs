@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Core.Editor.Hotfix;
 using NUnit.Framework;
@@ -47,6 +51,85 @@ namespace Tests.Module
             MethodInfo resolve = type.GetMethod("GetRemotePath", BindingFlags.Static | BindingFlags.NonPublic);
             var exception = Assert.Throws<TargetInvocationException>(() => resolve.Invoke(null, new object[] { root, "PC" }));
             Assert.That(exception.InnerException, Is.TypeOf<InvalidOperationException>());
+        }
+
+        [Test]
+        public async Task HttpVerification_StalledResponseBody_CancelsWithinBudget()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "SleepyDemos-VersionRecovery-" + Guid.NewGuid().ToString("N"));
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            using var serverStop = new CancellationTokenSource();
+            using var budget = new CancellationTokenSource();
+            var headersSent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            TcpClient connection = null;
+            Task server = null;
+            Task verification = null;
+            try
+            {
+                Directory.CreateDirectory(root);
+                File.WriteAllText(Path.Combine(root, "DefaultPackage.version"), "1.0");
+                foreach (string name in new[] { "DefaultPackage_1.0.bytes", "DefaultPackage_1.0.hash", "a.bundle" })
+                {
+                    File.WriteAllText(Path.Combine(root, name), "content");
+                }
+                listener.Start();
+                int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+                server = Task.Run(async () =>
+                {
+                    connection = await listener.AcceptTcpClientAsync();
+                    using var stream = connection.GetStream();
+                    await stream.ReadAsync(new byte[4096], 0, 4096, serverStop.Token);
+                    byte[] headers = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 1024\r\nConnection: close\r\n\r\n");
+                    await stream.WriteAsync(headers, 0, headers.Length, serverStop.Token);
+                    await stream.FlushAsync(serverStop.Token);
+                    headersSent.TrySetResult(true);
+                    // 保持连接开放却不发送正文，复现 HeadersRead 后的读取挂起。
+                    await Task.Delay(Timeout.Infinite, serverStop.Token);
+                });
+                Type type = typeof(HotfixBuildWindow).Assembly.GetType("Core.Editor.Hotfix.HotfixDeploymentVerification", true);
+                MethodInfo verify = type.GetMethod("VerifyAsync", BindingFlags.Static | BindingFlags.NonPublic);
+                verification = (Task)verify.Invoke(null, new object[]
+                {
+                    root, "DefaultPackage", "http://127.0.0.1:" + port,
+                    new Func<string, bool>(file => Path.GetFileName(file) == "a.bundle"), budget.Token
+                });
+                Assert.That(await Task.WhenAny(headersSent.Task, server, Task.Delay(10000)), Is.SameAs(headersSent.Task),
+                    "验证请求必须收到服务器的成功响应头。");
+                budget.CancelAfter(250);
+                Assert.That(await Task.WhenAny(verification, Task.Delay(5000)), Is.SameAs(verification),
+                    "正文停止发送时，取消预算必须终止验证。");
+                Assert.That(budget.IsCancellationRequested, Is.True);
+                Assert.That(verification.IsFaulted || verification.IsCanceled, Is.True,
+                    "未收到正文不能被判为下载验证成功。");
+            }
+            finally
+            {
+                budget.Cancel();
+                serverStop.Cancel();
+                listener.Stop();
+                connection?.Dispose();
+                if (server != null)
+                {
+                    try
+                    {
+                        await server;
+                    }
+                    catch (Exception) when (serverStop.IsCancellationRequested)
+                    {
+                    }
+                }
+                if (verification != null && await Task.WhenAny(verification, Task.Delay(2000)) == verification)
+                {
+                    try
+                    {
+                        await verification;
+                    }
+                    catch (Exception) when (budget.IsCancellationRequested)
+                    {
+                    }
+                }
+                DeleteRecoveryFixture(root);
+            }
         }
 
         [TestCase("new", true)]

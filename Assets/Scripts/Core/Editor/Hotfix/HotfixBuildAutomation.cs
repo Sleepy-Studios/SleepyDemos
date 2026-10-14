@@ -57,6 +57,7 @@ namespace Core.Editor.Hotfix
         private sealed class Baseline
         {
             public string Fingerprint;
+            public string[] FingerprintInputs;
             public string Platform;
             public string ResourceMode;
             public bool Development;
@@ -460,7 +461,8 @@ namespace Core.Editor.Hotfix
             HotfixConfig config = Configure(request, request.BuildKind == "Full");
             var prepared = JsonUtility.FromJson<Baseline>(File.ReadAllText(Path.Combine(request.OutputDirectory, "prepared.json")));
             Require(prepared != null, "Prepare 记录为空。");
-            Require(prepared.Fingerprint == Fingerprint() && prepared.ResourceVersion == request.ResourceVersion &&
+            VerifyFingerprint(prepared, "Prepare 后构建指纹已改变，请重新 Prepare。");
+            Require(prepared.ResourceVersion == request.ResourceVersion &&
                 prepared.Platform == request.Platform && prepared.Development == request.Development && prepared.ResourceMode == request.ResourceMode &&
                 prepared.SourceCommit == request.SourceCommit,
                 "Prepare 后构建输入已改变，请重新 Prepare。");
@@ -599,24 +601,30 @@ namespace Core.Editor.Hotfix
             Require(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded, "IL2CPP Player 构建失败。");
         }
 
-        private static Baseline Snapshot(Request request, HotfixConfig config) => new Baseline
+        private static Baseline Snapshot(Request request, HotfixConfig config)
         {
-            Fingerprint = Fingerprint(), Platform = request.Platform, Development = request.Development,
-            ResourceMode = request.ResourceMode, PlayerVersion = PlayerSettings.bundleVersion,
-            ResourceVersion = request.ResourceVersion, SourceCommit = request.SourceCommit, ConfigCommit = request.ConfigCommit,
-            PackageName = config.PackageName, ServerUrl = config.RemoteBaseServerURL, StartupScene = config.StartupScene,
-            Architecture = request.Platform == "PC" ? "x64" : "ARM64", UnityVersion = Application.unityVersion, ScriptingBackend = "IL2CPP",
-            AotAssemblies = config.AotAssemblies, HotfixAssemblies = config.HotfixAssemblies
-        };
+            string fingerprint = Fingerprint(out string[] inputs);
+            return new Baseline
+            {
+                Fingerprint = fingerprint, FingerprintInputs = inputs, Platform = request.Platform, Development = request.Development,
+                ResourceMode = request.ResourceMode, PlayerVersion = PlayerSettings.bundleVersion,
+                ResourceVersion = request.ResourceVersion, SourceCommit = request.SourceCommit, ConfigCommit = request.ConfigCommit,
+                PackageName = config.PackageName, ServerUrl = config.RemoteBaseServerURL, StartupScene = config.StartupScene,
+                Architecture = request.Platform == "PC" ? "x64" : "ARM64", UnityVersion = Application.unityVersion, ScriptingBackend = "IL2CPP",
+                AotAssemblies = config.AotAssemblies, HotfixAssemblies = config.HotfixAssemblies
+            };
+        }
 
         private static Baseline LoadBaseline(Request request, HotfixConfig config)
         {
             string path = Path.Combine(request.BaselineDirectory, "baseline.json");
             GitHubPagesDeployment.EnsureNoLinks(path);
             var baseline = JsonUtility.FromJson<Baseline>(File.ReadAllText(path));
-            Require(baseline != null && baseline.ResourceMode != "Offline" && baseline.Platform == request.Platform &&
+            Require(baseline != null, "当前在线首包基线为空，必须构建并发布新的 Full。");
+            VerifyFingerprint(baseline, "当前在线首包构建指纹不兼容，必须构建并发布新的 Full。");
+            Require(baseline.ResourceMode != "Offline" && baseline.Platform == request.Platform &&
                 baseline.Development == request.Development && baseline.ResourceMode == request.ResourceMode &&
-                baseline.Fingerprint == Fingerprint() && baseline.PackageName == config.PackageName &&
+                baseline.PackageName == config.PackageName &&
                 baseline.PlayerVersion == PlayerSettings.bundleVersion &&
                 baseline.ServerUrl == config.RemoteBaseServerURL && baseline.StartupScene == config.StartupScene &&
                 baseline.HotfixAssemblies.SequenceEqual(HotfixAssemblyBuild.ReadHotfixAssemblies()),
@@ -885,7 +893,20 @@ namespace Core.Editor.Hotfix
             // previous 保留已发布首包，避免基线失败时丢失恢复证据。
         }
 
-        private static string Fingerprint()
+        private static void VerifyFingerprint(Baseline expected, string message)
+        {
+            string actual = Fingerprint(out string[] inputs);
+            if (expected.Fingerprint == actual)
+            {
+                return;
+            }
+            string changed = expected.FingerprintInputs == null ? "旧记录没有逐文件指纹" : string.Join(", ",
+                expected.FingerprintInputs.Except(inputs).Concat(inputs.Except(expected.FingerprintInputs))
+                    .Select(line => line.Substring(0, line.LastIndexOf(':'))).Distinct().OrderBy(path => path, StringComparer.Ordinal).Take(12));
+            throw new InvalidOperationException(message + " 变化项：" + changed + "；指纹 " + expected.Fingerprint + " -> " + actual);
+        }
+
+        private static string Fingerprint(out string[] inputs)
         {
             var files = new List<string>();
             foreach (string root in new[] { "Assets/Scripts/Core/Runtime", "Assets/Plugins", "Assets/Native", "Assets/Settings", "Native", "scripts/streamline", "Packages", "ProjectSettings" })
@@ -923,12 +944,33 @@ namespace Core.Editor.Hotfix
                 }
                 else
                 {
-                    hash = HotfixDeploymentVerification.HashFile(file);
+                    hash = FingerprintFile(file);
                 }
                 lines.Add(file.Replace('\\', '/') + ":" + hash);
             }
+            inputs = lines.ToArray();
             using var digest = SHA256.Create();
             return Convert.ToBase64String(digest.ComputeHash(Encoding.UTF8.GetBytes(string.Join("\n", lines))));
+        }
+
+        private static string FingerprintFile(string file)
+        {
+            string extension = Path.GetExtension(file).ToLowerInvariant();
+            bool text = new[] { ".json", ".meta", ".asmdef", ".asmref" }.Contains(extension);
+            if (extension == ".asset")
+            {
+                using var stream = File.OpenRead(file);
+                byte[] header = new byte[5];
+                text = stream.Read(header, 0, header.Length) == header.Length && Encoding.ASCII.GetString(header) == "%YAML";
+            }
+            if (!text)
+            {
+                return HotfixDeploymentVerification.HashFile(file);
+            }
+            // Unity/ProBuilder 退出时可能仅把 checkout 的 CRLF 保存为 LF；配置值仍全部参与校验。
+            string content = File.ReadAllText(file, new UTF8Encoding(false, true)).Replace("\r\n", "\n");
+            using var sha = SHA256.Create();
+            return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(content))).Replace("-", "").ToLowerInvariant();
         }
 
         private static void CopyDirectory(string source, string destination)

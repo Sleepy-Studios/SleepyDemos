@@ -10,7 +10,7 @@
 
 - `Jenkinsfile`：一个参数化任务，单节点单执行器，串行排队，6 小时总超时、30 分钟发布超时。
 - `scripts/jenkins/Manage-Jenkins.ps1`：手动 Start / Status / Stop，无服务或自启动。
-- `scripts/jenkins/Invoke-Build.ps1`：固定源与子模块提交、工具准备、分阶段 Unity、Player/资源 ZIP 及失败归档。
+- `scripts/jenkins/Invoke-Build.ps1`：固定源与子模块提交、工具准备、分阶段 Unity、PC 目录 ZIP / Android APK或AAB / 资源 ZIP 及失败归档。
 - `Core.Editor.Hotfix.HotfixBuildAutomation.Prepare / Build / Deploy`：由 `SLEEPY_BUILD_REQUEST` 指向绝对 JSON 请求，非交互 `-executeMethod` 入口。
 - `HotfixAssemblyBuild`：GUI 与 CI 共用程序集识别、AOT 剥离及同步；缺少文件失败，不静默复用旧 DLL。
 - `SshBundleDeployment` / `HotfixDeploymentVerification`：共享 SSH 上传及正式 HTTP 校验。
@@ -34,6 +34,8 @@ Offline 使用 OfflinePlayMode 并内置全量资源；OnlineFull 使用 HostPla
 每平台只维护一个当前在线主包。候选基线保存实际配套 AOT、补充元数据、程序集、平台/架构/Unity/Development/版本、兼容指纹和 SHA。只有在线 Full 发布及 HTTP 校验成功才提升 current；Offline 和失败任务不替换它。
 
 Hotfix 使用 current 的 AOT 与补充元数据，运行 HybridCLR MissingMetadataChecker；Core.Runtime、Packages、原生插件和主包构建配置采用保守指纹检查。缺基线或不匹配要求 Full，不为旧主包维持并行兼容链。
+
+准备记录与基线同时保存逐文件指纹，失配时报告变化路径。JSON、程序集定义、meta 和 YAML 资产统一文本换行后校验，避免 Unity/ProBuilder 保存时仅 CRLF/LF 转换阻断构建；配置内容与二进制依赖仍完整参与校验。
 
 Pages 沿用 `unity/SleepyDemos/hotupdate/PC|Android`，独立 CI 克隆与凭据，保留下载白名单/路径/大小保护；等待站点部署后逐文件 HTTP SHA 校验。内容与激活共用 22 分钟预算，恢复另给 5 分钟；HTTP 正文和 Git/GH 子进程均支持取消，不能让外层 30 分钟先中止恢复。远端暂仍旧版本但本地激活已提交时，普通推送恢复后继提交作为引用 CAS 屏障；并发或不明状态保留人工处理。相同资源重复发布不创建空提交。
 
