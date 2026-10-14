@@ -22,7 +22,8 @@ namespace Core.Runtime
 
             if (!report.Success)
             {
-                Debug.LogError($"资源更新失败: {report.Error}");
+                Report(0f, $"资源更新失败: {report.Error}");
+                throw new System.InvalidOperationException($"资源更新失败: {report.Error}");
             }
 
             Report(1f, report.TotalCount <= 0 ? "无需下载资源补丁" : "资源补丁下载完成");

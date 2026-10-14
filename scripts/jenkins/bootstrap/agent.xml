@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<slave>
+  <name>sleepydemos-local</name>
+  <description>同一 Windows 用户的手动本机 Unity agent</description>
+  <remoteFS>E:\Jenkins\agent</remoteFS>
+  <numExecutors>1</numExecutors>
+  <mode>EXCLUSIVE</mode>
+  <retentionStrategy class="hudson.slaves.RetentionStrategy$Always"/>
+  <launcher class="hudson.slaves.JNLPLauncher"><webSocket>true</webSocket></launcher>
+  <label>sleepydemos-local</label>
+  <nodeProperties/>
+</slave>

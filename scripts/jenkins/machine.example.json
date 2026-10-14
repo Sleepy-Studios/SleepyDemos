@@ -1,0 +1,31 @@
+{
+  "Root": "E:\\Jenkins",
+  "JenkinsUrl": "http://127.0.0.1:18082",
+  "Java": "E:\\Jenkins\\runtime\\jdk-25\\bin\\java.exe",
+  "Unity": "D:\\Unity\\Hub\\Editor\\6000.3.15f1\\Editor\\Unity.exe",
+  "Git": "C:\\Program Files\\Git\\cmd\\git.exe",
+  "Gh": "C:\\Program Files\\GitHub CLI\\gh.exe",
+  "Dotnet": "C:\\Program Files\\dotnet\\dotnet.exe",
+  "RepositoryUrl": "https://github.com/Sleepy-Studios/SleepyDemos.git",
+  "JenkinsWar": "E:\\Jenkins\\runtime\\jenkins.war",
+  "AgentJar": "E:\\Jenkins\\runtime\\agent.jar",
+  "AgentName": "sleepydemos-local",
+  "AgentSecretFile": "E:\\Jenkins\\secrets\\agent-secret.txt",
+  "JenkinsApiAuthFile": "E:\\Jenkins\\secrets\\api-auth.json",
+  "DailyProjectPath": "D:\\Unity\\Unity_Project\\SleepyDemos",
+  "Pages": {
+    "Repository": "https://github.com/H-Bole/H-Bole.io.git",
+    "Branch": "main",
+    "Path": "E:\\Jenkins\\pages\\H-Bole.io",
+    "BaseUrl": "https://h-bole.github.io/H-Bole.io",
+    "ProjectName": "SleepyDemos"
+  },
+  "Ssh": {
+    "Host": "",
+    "User": "",
+    "Port": 22,
+    "RootPath": "",
+    "BaseUrl": "",
+    "HostKeySha256": ""
+  }
+}

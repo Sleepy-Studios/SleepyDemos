@@ -29,7 +29,8 @@ namespace Core.Editor.Hotfix
             string repositoryPath,
             string resourcePath,
             string bundlePath,
-            string packageName)
+            string packageName,
+            bool activateVersion = true)
         {
             string projectRoot = Path.GetDirectoryName(Application.dataPath);
             return Task.Run(async () =>
@@ -42,13 +43,25 @@ namespace Core.Editor.Hotfix
                     throw new InvalidOperationException("资源源目录与发布仓库不能互相包含。");
                 }
 
-                string[] sourceFiles = GetSourceFiles(source, packageName);
+                string[] sourceFiles = GetSourceFiles(source, packageName)
+                    .Where(file => activateVersion || Path.GetFileName(file) != packageName + ".version").ToArray();
                 ValidateFlatDirectory(target);
                 await ValidateRepositoryAsync(repository, resourcePath);
                 ValidateSiteSize(repository, target, sourceFiles);
 
                 EnsureNoLinks(target);
                 Directory.CreateDirectory(target);
+                // 同一资源版本必须不可变；版本指针可前进，已有清单和 Bundle 只能原样重复发布。
+                foreach (string sourceFile in sourceFiles)
+                {
+                    string targetFile = Path.Combine(target, Path.GetFileName(sourceFile));
+                    EnsureNoLinks(targetFile);
+                    if (File.Exists(targetFile) && Path.GetFileName(sourceFile) != packageName + ".version" &&
+                        !HasSameContent(sourceFile, targetFile))
+                    {
+                        throw new InvalidOperationException("同名已发布资源内容不同，请使用新的资源版本：" + Path.GetFileName(sourceFile));
+                    }
+                }
                 foreach (string sourceFile in sourceFiles)
                 {
                     string targetFile = Path.Combine(target, Path.GetFileName(sourceFile));
@@ -94,7 +107,42 @@ namespace Core.Editor.Hotfix
             });
         }
 
-        private static string NormalizeDirectory(string path)
+        internal static async Task<string> RestoreVersionAsync(string repositoryPath, string resourcePath, string packageName,
+            string attemptedVersion, byte[] previousVersion, string projectRoot)
+        {
+            string repository = NormalizeDirectory(repositoryPath);
+            string target = ResolveTarget(repository, resourcePath, projectRoot);
+            ValidateFlatDirectory(target);
+            string relative = resourcePath + "/" + packageName + ".version";
+            ValidateSegment(packageName, "资源包名");
+            await GitAsync(repository, "fetch", "origin", "main");
+            var remote = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, false, "show", "FETCH_HEAD:" + relative);
+            string old = previousVersion == null ? null : Encoding.UTF8.GetString(previousVersion).Trim();
+            if ((remote.ExitCode != 0 && previousVersion == null) || (remote.ExitCode == 0 && remote.StandardOutput.Trim() == old))
+            {
+                return (await GitAsync(repository, "rev-parse", "FETCH_HEAD")).Trim();
+            }
+            if (remote.ExitCode != 0 || remote.StandardOutput.Trim() != attemptedVersion ||
+                (await GitAsync(repository, "rev-parse", "HEAD")).Trim() != (await GitAsync(repository, "rev-parse", "FETCH_HEAD")).Trim() ||
+                !string.IsNullOrWhiteSpace(await GitAsync(repository, "status", "--porcelain", "--untracked-files=all")))
+            {
+                throw new InvalidOperationException("Pages 版本或远端提交已改变，不能安全恢复旧版本；保留本地发布提交供人工处理。");
+            }
+            string versionPath = Path.Combine(target, packageName + ".version");
+            EnsureNoLinks(versionPath);
+            if (previousVersion == null)
+            {
+                File.Delete(versionPath);
+            }
+            else
+            {
+                File.WriteAllBytes(versionPath, previousVersion);
+            }
+            await CommitAndPushAsync(repository, resourcePath, "恢复版本入口", target);
+            return (await GitAsync(repository, "rev-parse", "HEAD")).Trim();
+        }
+
+        internal static string NormalizeDirectory(string path)
         {
             if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path))
             {
@@ -160,7 +208,7 @@ namespace Core.Editor.Hotfix
                                    Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void EnsureNoLinks(string path)
+        internal static void EnsureNoLinks(string path)
         {
             for (string current = Path.GetFullPath(path); !string.IsNullOrEmpty(current); current = Path.GetDirectoryName(current))
             {
@@ -203,7 +251,7 @@ namespace Core.Editor.Hotfix
             }
         }
 
-        private static string[] GetSourceFiles(string source, string packageName)
+        internal static string[] GetSourceFiles(string source, string packageName)
         {
             ValidateSegment(packageName, "资源包名");
             string versionFile = Path.Combine(source, packageName + ".version");
@@ -213,7 +261,10 @@ namespace Core.Editor.Hotfix
                 throw new FileNotFoundException("缺少资源包版本文件。", versionFile);
             }
 
-            ValidateFileSize(versionFile);
+            if (new FileInfo(versionFile).Length > 1024)
+            {
+                throw new InvalidOperationException("资源版本文件过大。");
+            }
             string version = File.ReadAllText(versionFile).Trim();
             if (!Regex.IsMatch(version, @"\A[A-Za-z0-9_-][A-Za-z0-9_.-]*\z"))
             {
@@ -230,7 +281,6 @@ namespace Core.Editor.Hotfix
                 if (name == Path.GetFileName(versionFile) || name == manifestName || name == hashName ||
                     name.EndsWith(".bundle", StringComparison.Ordinal))
                 {
-                    ValidateFileSize(file);
                     if (new FileInfo(file).Length == 0)
                     {
                         throw new InvalidOperationException($"资源文件为空，请重新构建：{file}");
@@ -291,6 +341,7 @@ namespace Core.Editor.Hotfix
 
             foreach (string sourceFile in sourceFiles)
             {
+                ValidateFileSize(sourceFile);
                 string targetFile = Path.Combine(target, Path.GetFileName(sourceFile));
                 totalSize += new FileInfo(sourceFile).Length;
                 if (File.Exists(targetFile))
@@ -388,13 +439,13 @@ namespace Core.Editor.Hotfix
             return "推送完成，等待 Pages 部署";
         }
 
-        private static async Task<string> GitAsync(string repository, params string[] arguments)
+        internal static async Task<string> GitAsync(string repository, params string[] arguments)
         {
             var result = await RunProcessAsync("git", repository, GitTimeoutMilliseconds, arguments);
             return result.StandardOutput;
         }
 
-        private static Task<(int ExitCode, string StandardOutput)> RunProcessAsync(
+        internal static Task<(int ExitCode, string StandardOutput)> RunProcessAsync(
             string fileName,
             string workingDirectory,
             int timeoutMilliseconds,

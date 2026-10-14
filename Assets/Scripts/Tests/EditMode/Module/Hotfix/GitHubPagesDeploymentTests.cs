@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -9,6 +10,151 @@ namespace Tests.Module
 {
     public sealed class GitHubPagesDeploymentTests
     {
+        [Test]
+        public void PublicationFiles_IncludeOnlyDownloadResources_RejectUnsafeVersion()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "SleepyDemos-PublishGuard-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try
+            {
+                File.WriteAllText(Path.Combine(root, "DefaultPackage.version"), "1.0");
+                foreach (string name in new[] { "DefaultPackage_1.0.bytes", "DefaultPackage_1.0.hash", "a.bundle", "game.apk", "archive.zip" })
+                {
+                    File.WriteAllText(Path.Combine(root, name), "content");
+                }
+                Type type = typeof(HotfixBuildWindow).Assembly.GetType("Core.Editor.Hotfix.GitHubPagesDeployment", true);
+                MethodInfo getFiles = type.GetMethod("GetSourceFiles", BindingFlags.Static | BindingFlags.NonPublic);
+                var files = (string[])getFiles.Invoke(null, new object[] { root, "DefaultPackage" });
+                Assert.That(files.Length, Is.EqualTo(4));
+                Assert.That(Array.Exists(files, file => file.EndsWith(".apk") || file.EndsWith(".zip")), Is.False);
+                File.WriteAllText(Path.Combine(root, "DefaultPackage.version"), "../escape");
+                var exception = Assert.Throws<TargetInvocationException>(() => getFiles.Invoke(null, new object[] { root, "DefaultPackage" }));
+                Assert.That(exception.InnerException, Is.TypeOf<InvalidOperationException>());
+                Assert.That(File.ReadAllText(Path.Combine(root, "a.bundle")), Is.EqualTo("content"));
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        [TestCase("/")]
+        [TestCase("/publish/../other")]
+        [TestCase("relative")]
+        public void SshRoot_RejectsUnsafeTarget(string root)
+        {
+            Type type = typeof(HotfixBuildWindow).Assembly.GetType("Core.Editor.Hotfix.SshBundleDeployment", true);
+            MethodInfo resolve = type.GetMethod("GetRemotePath", BindingFlags.Static | BindingFlags.NonPublic);
+            var exception = Assert.Throws<TargetInvocationException>(() => resolve.Invoke(null, new object[] { root, "PC" }));
+            Assert.That(exception.InnerException, Is.TypeOf<InvalidOperationException>());
+        }
+
+        [TestCase("new", true)]
+        [TestCase("concurrent", false)]
+        public async Task PagesVersionRecovery_RestoresOwnRelease_PreservesConcurrentRelease(string onlineVersion, bool canRestore)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "SleepyDemos-VersionRecovery-" + Guid.NewGuid().ToString("N"));
+            string repository = Path.Combine(root, "publisher");
+            string remote = Path.Combine(root, "remote.git");
+            string resourcePath = "unity/SleepyDemos/hotupdate/PC";
+            string versionPath = Path.Combine(repository, resourcePath, "DefaultPackage.version");
+            Type type = typeof(HotfixBuildWindow).Assembly.GetType("Core.Editor.Hotfix.GitHubPagesDeployment", true);
+            MethodInfo git = type.GetMethod("GitAsync", BindingFlags.Static | BindingFlags.NonPublic);
+            MethodInfo restore = type.GetMethod("RestoreVersionAsync", BindingFlags.Static | BindingFlags.NonPublic);
+            Task<string> Git(string directory, params string[] arguments) => (Task<string>)git.Invoke(null, new object[] { directory, arguments });
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(versionPath));
+                Directory.CreateDirectory(remote);
+                await Git(remote, "init", "--bare");
+                await Git(repository, "init", "-b", "main");
+                await Git(repository, "config", "user.name", "Publication Guard");
+                await Git(repository, "config", "user.email", "publication-guard@example.invalid");
+                await Git(repository, "config", "commit.gpgsign", "false");
+                await Git(repository, "config", "core.hooksPath", Path.Combine(root, "no-hooks"));
+                File.WriteAllText(versionPath, onlineVersion, new System.Text.UTF8Encoding(false));
+                await Git(repository, "add", "--", resourcePath);
+                await Git(repository, "commit", "-m", "test fixture");
+                await Git(repository, "remote", "add", "origin", remote);
+                await Git(repository, "push", "origin", "main");
+                Func<Task<string>> recover = () => (Task<string>)restore.Invoke(null,
+                    new object[] { repository, resourcePath, "DefaultPackage", "new", System.Text.Encoding.UTF8.GetBytes("old"), root + "-unity" });
+                if (canRestore)
+                {
+                    await recover();
+                    Assert.That(File.ReadAllText(versionPath), Is.EqualTo("old"));
+                    Assert.That((await Git(remote, "show", "main:" + resourcePath + "/DefaultPackage.version")).Trim(), Is.EqualTo("old"));
+                }
+                else
+                {
+                    InvalidOperationException failure = null;
+                    try
+                    {
+                        await recover();
+                    }
+                    catch (InvalidOperationException exception)
+                    {
+                        failure = exception;
+                    }
+                    Assert.That(failure, Is.Not.Null);
+                    Assert.That(File.ReadAllText(versionPath), Is.EqualTo(onlineVersion));
+                    Assert.That((await Git(remote, "show", "main:" + resourcePath + "/DefaultPackage.version")).Trim(), Is.EqualTo(onlineVersion));
+                }
+            }
+            finally
+            {
+                DeleteRecoveryFixture(root);
+            }
+        }
+
+        private static void DeleteRecoveryFixture(string root)
+        {
+            string fullRoot = Path.GetFullPath(root);
+            string temporaryRoot = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string name = Path.GetFileName(fullRoot);
+            const string prefix = "SleepyDemos-VersionRecovery-";
+            if (!string.Equals(Path.GetDirectoryName(fullRoot), temporaryRoot, StringComparison.OrdinalIgnoreCase) ||
+                !name.StartsWith(prefix, StringComparison.Ordinal) || !Guid.TryParseExact(name.Substring(prefix.Length), "N", out _))
+            {
+                throw new InvalidOperationException("拒绝清理不属于本次恢复测试的目录。");
+            }
+            if (!Directory.Exists(fullRoot))
+            {
+                return;
+            }
+
+            var entries = new List<string> { fullRoot };
+            var pending = new Stack<string>();
+            pending.Push(fullRoot);
+            while (pending.Count > 0)
+            {
+                string directory = pending.Pop();
+                if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0)
+                {
+                    throw new InvalidOperationException("测试临时目录不能经过链接。");
+                }
+                foreach (string entry in Directory.GetFileSystemEntries(directory))
+                {
+                    FileAttributes attributes = File.GetAttributes(entry);
+                    if ((attributes & FileAttributes.ReparsePoint) != 0)
+                    {
+                        throw new InvalidOperationException("测试临时目录包含链接，拒绝递归清理。");
+                    }
+                    entries.Add(entry);
+                    if ((attributes & FileAttributes.Directory) != 0)
+                    {
+                        pending.Push(entry);
+                    }
+                }
+            }
+            // Git 会把 object 标为只读；完整确认归属和链接后，仅移除本次 fixture 的只读属性。
+            foreach (string entry in entries)
+            {
+                File.SetAttributes(entry, File.GetAttributes(entry) & ~FileAttributes.ReadOnly);
+            }
+            Directory.Delete(fullRoot, true);
+        }
+
         [Test]
         public void ClearAsync_UnsafeDirectories_PreserveExistingFiles()
         {

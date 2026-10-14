@@ -20,6 +20,7 @@
 | 调用异步 UI 导航或配置组件初始化方式 | [UI 运行时](./modules/ui-runtime.md)、[接入 Core UI View](./runbooks/create-ui-view.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 使用时间、颜色、倒计时或通用 Tips | [Core.Runtime](./modules/core-runtime.md)、[UI 运行时](./modules/ui-runtime.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 修改启动或热更流程 | [启动与热更流程](./architecture/startup-flow.md)、[热更新模块](./modules/hotfix.md) |
+| Jenkins 自动构建、发布或换构建电脑 | [构建模块](./modules/jenkins-build.md)、[使用本机 Jenkins](./runbooks/use-jenkins.md) |
 | 修改资源组织或加载 | [资源命名规范](./architecture/asset-naming.md)、[资源运行时](./modules/resource-runtime.md)、[使用资源 Loader](./runbooks/use-resource-loader.md) |
 | 新增、替换或生成正式音频，选择平台导入设置 | [音频资源与导入规范](./architecture/audio-assets.md) |
 | 修改文案、多语言或公共字体 | [多语言与公共字体规范](./architecture/localization-fonts.md)、[TMP 字体生产流程](./runbooks/tmp-font-workflow.md) |
@@ -73,6 +74,7 @@
 - `runbooks/`
   - 给使用者或接入者看：新增 Demo、构建热更、模块接入、排障等操作步骤
   - [项目工具与 Agent 技能总览](./runbooks/project-tools.md)
+  - [使用本机 Jenkins 构建和发布](./runbooks/use-jenkins.md)
   - [接入公共玩法输入](./runbooks/use-gameplay-input.md)
   - [接入 Core UI View](./runbooks/create-ui-view.md)
   - [使用 Core 基础 UI 组件](./runbooks/use-core-ui-components.md)

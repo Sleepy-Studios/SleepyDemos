@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using Core.Runtime;
 using HybridCLR.Editor.Commands;
-using Renci.SshNet;
 using UnityEditor;
 using UnityEngine;
 using YooAsset.Editor;
@@ -44,6 +42,7 @@ namespace Core.Editor.Hotfix
         private string pagesSiteUrl;
         private string pagesProjectName;
         private string sshServerUrl;
+        private string sshHostKeySha256;
         private static bool isDeploying;
         private static string deploymentStatus;
 
@@ -542,6 +541,12 @@ namespace Core.Editor.Hotfix
                 return;
             }
 
+            sshHostKeySha256 = EditorGUILayout.TextField(new GUIContent("主机 SHA256 指纹", "必填，使用通过可信渠道核对的 SSH 主机公钥 SHA256:... 指纹。"), sshHostKeySha256);
+            if (GUI.changed)
+            {
+                EditorPrefs.SetString(DeploymentSettingsKey + "SshHostKeySha256", sshHostKeySha256);
+            }
+
             config.SshHost = EditorGUILayout.TextField(new GUIContent("服务器地址", "SSH 服务器主机名或 IP。"), config.SshHost);
             config.SshPort = EditorGUILayout.IntField(new GUIContent("SSH 端口", "SSH 服务端口，通常为 22。"), config.SshPort);
             config.SshUser = EditorGUILayout.TextField(new GUIContent("用户名", "SSH 登录用户名。"), config.SshUser);
@@ -671,6 +676,7 @@ namespace Core.Editor.Hotfix
         private void LoadDeploymentSettings()
         {
             string key = DeploymentSettingsKey;
+            sshHostKeySha256 = EditorPrefs.GetString(key + "SshHostKeySha256", string.Empty);
             string projectName = new DirectoryInfo(GetProjectRootPath()).Name;
             string pagesMarker = $"/unity/{projectName}/hotupdate/";
             int markerIndex = config.RemoteBaseServerURL?.IndexOf(pagesMarker, StringComparison.Ordinal) ?? -1;
@@ -814,131 +820,34 @@ namespace Core.Editor.Hotfix
 
         private void AutoFillAotAssemblies()
         {
-            string absolutePath = Path.GetFullPath(Path.Combine(GetProjectRootPath(), AotGenericReferencesPath));
-            if (!File.Exists(absolutePath))
+            try
             {
-                EditorUtility.DisplayDialog("未找到文件", $"未找到 AOT 引用文件：\n{absolutePath}", "确定");
-                return;
+                config.AotAssemblies = HotfixAssemblyBuild.ReadAotAssemblies();
+                EditorUtility.SetDirty(config);
+                ShowNotification(new GUIContent($"已自动填写 {config.AotAssemblies.Length} 个 AOT DLL"));
             }
-
-            string content = File.ReadAllText(absolutePath);
-            Match blockMatch = Regex.Match(
-                content,
-                @"PatchedAOTAssemblyList\s*=\s*new\s+List<string>\s*\{(?<body>[\s\S]*?)\}",
-                RegexOptions.Multiline);
-            if (!blockMatch.Success)
+            catch (Exception exception)
             {
-                EditorUtility.DisplayDialog("解析失败", "未能从 AOTGenericReferences.cs 中解析 PatchedAOTAssemblyList。", "确定");
-                return;
+                EditorUtility.DisplayDialog("解析失败", exception.Message, "确定");
             }
-
-            MatchCollection itemMatches = Regex.Matches(blockMatch.Groups["body"].Value, "\"([^\"]+\\.dll)\"");
-            string[] items = itemMatches
-                .Cast<Match>()
-                .Select(match => match.Groups[1].Value)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            config.AotAssemblies = items;
-            EditorUtility.SetDirty(config);
-            ShowNotification(new GUIContent($"已自动填写 {items.Length} 个 AOT DLL"));
         }
 
         private void AutoFillHotfixAssemblies()
         {
-            string scriptsRoot = Path.Combine(GetProjectRootPath(), "Assets", "Scripts");
-            string hotfixRoot = Path.Combine(scriptsRoot, "Hotfix");
-            List<string> assemblyNames = new List<string>();
-
-            if (Directory.Exists(hotfixRoot))
-            {
-                foreach (string asmdefPath in Directory.GetFiles(hotfixRoot, "*.asmdef", SearchOption.AllDirectories))
-                {
-                    if (HotfixAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
-                    {
-                        assemblyNames.Add(dllName);
-                    }
-                }
-            }
-
-            if (assemblyNames.Count == 0 && Directory.Exists(scriptsRoot))
-            {
-                foreach (string asmdefPath in Directory.GetFiles(scriptsRoot, "*.asmdef", SearchOption.AllDirectories))
-                {
-                    if (asmdefPath.IndexOf($"{Path.DirectorySeparatorChar}Editor{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        continue;
-                    }
-
-                    if (!HotfixAssemblyDefinitionFilter.TryGetDllNameFromFile(asmdefPath, out string dllName))
-                    {
-                        continue;
-                    }
-
-                    string assemblyName = Path.GetFileNameWithoutExtension(dllName);
-                    if (assemblyName.Equals("Core.Runtime", StringComparison.OrdinalIgnoreCase) ||
-                        assemblyName.Equals("Core.Editor", StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    if (assemblyName.Contains("Hotfix", StringComparison.OrdinalIgnoreCase))
-                    {
-                        assemblyNames.Add(dllName);
-                    }
-                }
-            }
-
-            config.HotfixAssemblies = assemblyNames
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+            config.HotfixAssemblies = HotfixAssemblyBuild.ReadHotfixAssemblies();
             EditorUtility.SetDirty(config);
             ShowNotification(new GUIContent($"已自动填写 {config.HotfixAssemblies.Length} 个热更 DLL"));
         }
 
         private void ReplaceAssemblies(bool useStrippedAot)
         {
-            string aotSource = useStrippedAot ? config.AotStrippedSourcePath : config.AotSourcePath;
-            CopyAssemblies(aotSource, config.AotTargetPath, config.AotAssemblies);
-            CopyAssemblies(config.HotfixSourcePath, config.HotfixTargetPath, config.HotfixAssemblies);
-            AssetDatabase.Refresh();
-            SaveConfig();
+            HotfixAssemblyBuild.Sync(config, useStrippedAot);
             ShowNotification(new GUIContent("DLL 替换完成"));
-        }
-
-        private static void CopyAssemblies(string source, string target, IEnumerable<string> files)
-        {
-            Directory.CreateDirectory(target);
-            foreach (string file in files.Where(item => !string.IsNullOrWhiteSpace(item)))
-            {
-                string sourcePath = Path.Combine(source, file);
-                string targetPath = Path.Combine(target, $"{Path.GetFileNameWithoutExtension(file)}.dll.bytes");
-                if (!File.Exists(sourcePath))
-                {
-                    Debug.LogWarning($"文件不存在: {sourcePath}");
-                    continue;
-                }
-
-                File.Copy(sourcePath, targetPath, true);
-                Debug.Log($"已复制: {sourcePath} -> {targetPath}");
-            }
         }
 
         private void StripAotAssemblies()
         {
-            Directory.CreateDirectory(config.AotStrippedSourcePath);
-            if (!Directory.Exists(config.AotSourcePath))
-            {
-                Debug.LogWarning($"AOT 源路径不存在: {config.AotSourcePath}");
-                return;
-            }
-
-            foreach (string sourcePath in Directory.GetFiles(config.AotSourcePath, "*.dll"))
-            {
-                string targetPath = Path.Combine(config.AotStrippedSourcePath, Path.GetFileName(sourcePath));
-                HybridCLR.Editor.AOT.AOTAssemblyMetadataStripper.Strip(sourcePath, targetPath);
-            }
+            HotfixAssemblyBuild.StripAotAssemblies(config);
         }
 
         private void LoadOrCreateConfig()
@@ -1072,11 +981,7 @@ namespace Core.Editor.Hotfix
         {
             try
             {
-                ValidateSshConfig();
-                using var client = new SshClient(BuildConnectionInfo());
-                client.Connect();
-                client.RunCommand("echo 'Connection test success!'");
-                client.Disconnect();
+                SshBundleDeployment.Test(config.SshHost, config.SshPort, config.SshUser, GetKeyFileAbsolutePath(), sshHostKeySha256);
                 ShowNotification(new GUIContent("SSH 连接成功"));
             }
             catch (Exception exception)
@@ -1087,113 +992,28 @@ namespace Core.Editor.Hotfix
 
         private void UploadToServer()
         {
-            string localPath = GetLocalBundleAbsolutePath();
-            if (!Directory.Exists(localPath))
-            {
-                EditorUtility.DisplayDialog("路径错误", $"本地资源路径不存在：\n{localPath}", "确定");
-                return;
-            }
-
-            string[] files = Directory.GetFiles(localPath, "*", SearchOption.AllDirectories);
-            if (files.Length == 0)
-            {
-                EditorUtility.DisplayDialog("提示", "没有找到待上传的资源文件。", "确定");
-                return;
-            }
-
             try
             {
-                ValidateSshConfig();
-                var connectionInfo = BuildConnectionInfo();
-                string remotePath = BuildRemoteBundlePath();
-
-                try
-                {
-                    EditorUtility.DisplayProgressBar("SSH 上传", "准备远程目录...", 0f);
-                    using (var ssh = new SshClient(connectionInfo))
+                SshBundleDeployment.Upload(config.SshHost, config.SshPort, config.SshUser,
+                    GetKeyFileAbsolutePath(), sshHostKeySha256, config.ServerBasePath, GetPlatformFolder(),
+                    GetLocalBundleAbsolutePath(), config.PackageName,
+                    previous => HotfixDeploymentVerification.VerifyAsync(GetLocalBundleAbsolutePath(), config.PackageName,
+                        config.RemoteBaseServerURL, file => Path.GetFileName(file) != config.PackageName + ".version").GetAwaiter().GetResult(),
+                    () => HotfixDeploymentVerification.VerifyAsync(GetLocalBundleAbsolutePath(), config.PackageName,
+                        config.RemoteBaseServerURL, file => Path.GetFileName(file) == config.PackageName + ".version").GetAwaiter().GetResult(),
+                    (restored, previous) =>
                     {
-                        ssh.Connect();
-                        string quotedPath = QuoteForShell(remotePath);
-                        ssh.RunCommand($"rm -rf -- {quotedPath} && mkdir -p -- {quotedPath}");
-                        ssh.Disconnect();
-                    }
-
-                    using (var sftp = new SftpClient(connectionInfo))
-                    {
-                        sftp.Connect();
-                        for (int i = 0; i < files.Length; i++)
+                        if (restored)
                         {
-                            string file = files[i];
-                            string relativePath = Path.GetRelativePath(localPath, file).Replace('\\', '/');
-                            string remoteFilePath = $"{remotePath}/{relativePath}";
-                            EnsureRemoteDirectory(sftp, GetRemoteDirectory(remoteFilePath));
-
-                            using var stream = File.OpenRead(file);
-                            var stopwatch = Stopwatch.StartNew();
-                            sftp.UploadFile(stream, remoteFilePath, true);
-                            stopwatch.Stop();
-
-                            double speed = stopwatch.Elapsed.TotalSeconds > 0
-                                ? stream.Length / 1024d / 1024d / stopwatch.Elapsed.TotalSeconds
-                                : 0d;
-                            EditorUtility.DisplayProgressBar("SSH 上传", $"[{i + 1}/{files.Length}] {relativePath} {speed:F2} MB/s", (i + 1f) / files.Length);
+                            HotfixDeploymentVerification.VerifyRestoredVersionAsync(config.RemoteBaseServerURL,
+                                config.PackageName, previous).GetAwaiter().GetResult();
                         }
-
-                        sftp.Disconnect();
-                    }
-                }
-                finally
-                {
-                    EditorUtility.ClearProgressBar();
-                }
-
+                    });
                 ShowNotification(new GUIContent("上传完成"));
             }
             catch (Exception exception)
             {
-                EditorUtility.ClearProgressBar();
                 HandleSshException(exception);
-            }
-        }
-
-        private ConnectionInfo BuildConnectionInfo()
-        {
-            var keyFile = new PrivateKeyFile(GetKeyFileAbsolutePath());
-            var authMethod = new PrivateKeyAuthenticationMethod(config.SshUser, keyFile);
-            return new ConnectionInfo(config.SshHost, config.SshPort, config.SshUser, authMethod);
-        }
-
-        private string BuildRemoteBundlePath()
-        {
-            string root = config.ServerBasePath.Trim().TrimEnd('/');
-            if (!root.StartsWith("/", StringComparison.Ordinal) ||
-                root.Any(char.IsControl) || root.Split('/').Any(segment => segment is "." or ".."))
-            {
-                throw new InvalidOperationException("远程根路径必须是非根目录的绝对路径，且不能包含相对跳转或控制字符。");
-            }
-
-            return $"{root}/{GetPlatformFolder()}";
-        }
-
-        private static string QuoteForShell(string path)
-        {
-            return "'" + path.Replace("'", "'\"'\"'") + "'";
-        }
-
-        private void ValidateSshConfig()
-        {
-            if (string.IsNullOrWhiteSpace(config.SshHost) ||
-                string.IsNullOrWhiteSpace(config.SshUser) ||
-                string.IsNullOrWhiteSpace(config.KeyFilePath) ||
-                string.IsNullOrWhiteSpace(config.ServerBasePath))
-            {
-                throw new InvalidOperationException("SSH 配置不完整，请检查服务器地址、用户名、私钥路径和远程根路径。");
-            }
-
-            string keyFileAbsolutePath = GetKeyFileAbsolutePath();
-            if (!File.Exists(keyFileAbsolutePath))
-            {
-                throw new FileNotFoundException($"私钥文件不存在: {keyFileAbsolutePath}", keyFileAbsolutePath);
             }
         }
 
@@ -1337,34 +1157,6 @@ namespace Core.Editor.Hotfix
             }
 
             return normalizedAbsolutePath;
-        }
-
-        private static void EnsureRemoteDirectory(SftpClient sftp, string remoteDirectory)
-        {
-            if (string.IsNullOrWhiteSpace(remoteDirectory) || remoteDirectory == "/")
-            {
-                return;
-            }
-
-            string[] segments = remoteDirectory.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            string current = remoteDirectory.StartsWith("/", StringComparison.Ordinal) ? "/" : string.Empty;
-            foreach (string segment in segments)
-            {
-                current = current.EndsWith("/", StringComparison.Ordinal) || string.IsNullOrEmpty(current)
-                    ? $"{current}{segment}"
-                    : $"{current}/{segment}";
-
-                if (!sftp.Exists(current))
-                {
-                    sftp.CreateDirectory(current);
-                }
-            }
-        }
-
-        private static string GetRemoteDirectory(string remoteFilePath)
-        {
-            int lastSlash = remoteFilePath.LastIndexOf('/');
-            return lastSlash > 0 ? remoteFilePath.Substring(0, lastSlash) : "/";
         }
 
         private static string BuildBaseServerUrl(string host, int port)

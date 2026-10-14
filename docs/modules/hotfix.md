@@ -61,6 +61,12 @@ Pages 默认只复制变更的下载文件并保留旧包；独立的“清空�
 
 ## 边界规则
 
+### Jenkins 非交互构建
+
+自动入口 `HotfixBuildAutomation.Prepare / Build / Deploy` 与窗口共用程序集和发布后端。请求由仓库外 JSON 及 Jenkins 凭据环境提供，CI 只修改独立平台工程；不会把日常窗口偏好当构建参数。在线 Full 发布成功后保存当前平台 AOT 基线，Hotfix 使用原基线检查缺失元数据；Offline 不替换在线基线。维护契约见 [Jenkins 构建模块](jenkins-build.md)，操作见 [使用本机 Jenkins](../runbooks/use-jenkins.md)。
+
+SSH 上传现采用主机 SHA256 指纹校验、内容先上传及版本最后切换，不再先清空平台目录。指纹存编辑器偏好或 CI 非秘密配置，不保存私钥内容。
+
 - Hotfix 业务代码不要直接操作 HybridCLR 或 YooAsset 的底层句柄。
 - 热更程序集列表、AOT 元数据列表优先通过 `HotfixConfig` 管理。
 - HybridCLR 上游的 `hotUpdate*` 配置键与 `HybridCLRData/HotUpdateDlls` 生成目录是插件固定约定，不属于项目自有命名，禁止改写。
