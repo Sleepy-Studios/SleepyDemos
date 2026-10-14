@@ -369,8 +369,7 @@ try {
                         throw 'Pages 克隆归属未登记，拒绝发布。'
                     }
                     if ((Invoke-Git $pagesPath @('remote', 'get-url', 'origin') | Out-String).Trim() -ne $machine.Pages.Repository) { throw 'Pages origin 与机器配置不一致。' }
-                    Invoke-Git $pagesPath @('config', '--local', 'credential.helper', '') | Out-Null
-                    Invoke-Git $pagesPath @('config', '--local', '--add', 'credential.helper', '!gh auth git-credential') | Out-Null
+                    Invoke-Git $pagesPath @('config', '--local', '--replace-all', 'credential.helper', '!gh auth git-credential') | Out-Null
                     Invoke-Git $pagesPath @('pull', '--ff-only', 'origin', $machine.Pages.Branch) | Out-Host
                 }
                 Invoke-Unity 'Deploy'
