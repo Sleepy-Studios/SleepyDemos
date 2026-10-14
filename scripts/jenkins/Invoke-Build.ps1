@@ -326,6 +326,8 @@ try {
             $registration.Flush($true)
         } finally { $registration.Dispose() }
         $pagesPath = Assert-OwnedPath $machine.Pages.Path $machine.Root
+        $sshServerUrl = ''
+        if (-not [string]::IsNullOrWhiteSpace($machine.Ssh.BaseUrl)) { $sshServerUrl = $machine.Ssh.BaseUrl.TrimEnd('/') + '/' + $env:Platform }
         $request = [ordered]@{
             Platform = $env:Platform; BuildKind = $env:BuildKind; ResourceMode = $resourceMode
             AndroidFormat = $androidFormat; AndroidSigning = $androidSigning; Development = $env:Development -eq 'true'
@@ -334,7 +336,7 @@ try {
             OutputDirectory = $output; BaselineDirectory = $baseline; PagesRepositoryPath = $pagesPath
             PagesSiteUrl = $machine.Pages.BaseUrl; PagesProjectName = $machine.Pages.ProjectName
             SshHost = $machine.Ssh.Host; SshPort = $machine.Ssh.Port; SshUser = $machine.Ssh.User
-            SshRoot = $machine.Ssh.RootPath; SshServerUrl = $machine.Ssh.BaseUrl; SshHostKeySha256 = $machine.Ssh.HostKeySha256
+            SshRoot = $machine.Ssh.RootPath; SshServerUrl = $sshServerUrl; SshHostKeySha256 = $machine.Ssh.HostKeySha256
         }
         Write-JsonFile $requestPath $request
         Write-JsonFile (Join-Path $output 'source.json') @{ SourceCommit = $sha; ConfigCommit = $configCommit; Submodules = @(Invoke-Git $project @('submodule', 'status', '--recursive')) }
