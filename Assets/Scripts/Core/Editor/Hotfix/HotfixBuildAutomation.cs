@@ -95,6 +95,17 @@ namespace Core.Editor.Hotfix
             public HotfixDeploymentVerification.DownloadRecord[] Downloads;
         }
 
+        [Serializable]
+        private sealed class AndroidToolsSnapshot
+        {
+            public string[] PathKeys;
+            public string[] EmbeddedKeys;
+            public bool[] HadPaths;
+            public bool[] HadEmbedded;
+            public string[] PreviousPaths;
+            public bool[] PreviousEmbedded;
+        }
+
         /// 生成首包程序集，或按在线首包基线检查热更兼容性。
         public static void Prepare() => Execute("Prepare", PrepareBuild);
 
@@ -108,6 +119,8 @@ namespace Core.Editor.Hotfix
         {
             Request request = null;
             Result result = null;
+            Action restoreAndroidTools = null;
+            bool failed = false;
             try
             {
                 string path = Environment.GetEnvironmentVariable("SLEEPY_BUILD_REQUEST");
@@ -127,6 +140,10 @@ namespace Core.Editor.Hotfix
                 result.ConfigCommit = request.ConfigCommit;
                 result.ResourceVersion = request.ResourceVersion;
                 ValidateRequest(request);
+                if (request.Platform == "Android" && request.BuildKind == "Full" && stage != "Deploy")
+                {
+                    UseBundledAndroidTools(request.OutputDirectory, out restoreAndroidTools);
+                }
                 action(request);
                 if (stage == "Deploy")
                 {
@@ -139,6 +156,7 @@ namespace Core.Editor.Hotfix
             }
             catch (Exception exception)
             {
+                failed = true;
                 // 不转发第三方认证异常；自有校验消息也移除已注入的秘密值。
                 string failure = stage + ": " + (exception is InvalidOperationException ? exception.Message : exception.GetType().Name);
                 foreach (string name in new[] { "GH_TOKEN", "SLEEPY_KEYSTORE_PASSWORD", "SLEEPY_KEY_ALIAS_PASSWORD" })
@@ -163,20 +181,147 @@ namespace Core.Editor.Hotfix
                     result.Failure = failure;
                     WriteJson(Path.Combine(request.OutputDirectory, "result.json"), result);
                 }
-                if (Application.isBatchMode)
-                {
-                    EditorApplication.Exit(1);
-                }
                 throw new InvalidOperationException(failure);
             }
             finally
             {
-                if (stage == "Build" && request?.Platform == "Android")
+                try
                 {
-                    PlayerSettings.Android.keystorePass = string.Empty;
-                    PlayerSettings.Android.keyaliasPass = string.Empty;
+                    try
+                    {
+                        if (stage == "Build" && request?.Platform == "Android")
+                        {
+                            PlayerSettings.Android.keystorePass = string.Empty;
+                            PlayerSettings.Android.keyaliasPass = string.Empty;
+                        }
+                    }
+                    finally
+                    {
+                        restoreAndroidTools?.Invoke();
+                    }
+                }
+                catch
+                {
+                    failed = true;
+                    const string failure = "Android 工具偏好或签名密码清理失败，请检查当前用户设置。";
+                    Debug.LogError(failure);
+                    if (request != null && result != null)
+                    {
+                        result.Success = false;
+                        result.Failure = string.IsNullOrEmpty(result.Failure) ? failure : result.Failure + "; " + failure;
+                        WriteJson(Path.Combine(request.OutputDirectory, "result.json"), result);
+                    }
+                    throw new InvalidOperationException(failure);
+                }
+                finally
+                {
+                    if (failed && Application.isBatchMode)
+                    {
+                        EditorApplication.Exit(1);
+                    }
                 }
             }
+        }
+
+        private static void UseBundledAndroidTools(string outputDirectory, out Action restore)
+        {
+            restore = null;
+#if UNITY_ANDROID
+            string player = Path.Combine(EditorApplication.applicationContentsPath, "PlaybackEngines", "AndroidPlayer");
+            string[] paths =
+            {
+                Path.Combine(player, "SDK"), Path.Combine(player, "NDK"),
+                Path.Combine(player, "OpenJDK"), Path.Combine(player, "Tools", "gradle")
+            };
+            Require(File.Exists(Path.Combine(player, "UnityEditor.Android.Extensions.dll")) && paths.All(Directory.Exists),
+                "当前 Unity 缺少配套 Android Build Support、SDK、NDK、OpenJDK 或 Gradle。");
+            Require(File.Exists(Path.Combine(paths[0], "platform-tools", "adb.exe")) &&
+                Directory.Exists(Path.Combine(paths[0], "cmdline-tools")) &&
+                Directory.GetFiles(Path.Combine(paths[0], "cmdline-tools"), "sdkmanager.bat", SearchOption.AllDirectories).Length > 0 &&
+                Directory.Exists(Path.Combine(paths[0], "build-tools")) &&
+                Directory.Exists(Path.Combine(paths[0], "platforms")) &&
+                Directory.GetDirectories(Path.Combine(paths[0], "platforms")).Length > 0 &&
+                File.Exists(Path.Combine(paths[1], "toolchains", "llvm", "prebuilt", "windows-x86_64", "bin", "clang.exe")) &&
+                File.Exists(Path.Combine(paths[2], "bin", "java.exe")) && File.Exists(Path.Combine(paths[2], "bin", "javac.exe")) &&
+                Directory.Exists(Path.Combine(paths[3], "lib")) &&
+                Directory.GetFiles(Path.Combine(paths[3], "lib"), "gradle-launcher-*.jar").Length > 0,
+                "Unity 配套 Android 工具不完整，请通过 Hub 修复当前 Editor 的模块。");
+
+            // 来自项目锁定的 Unity 6000.3 Android 扩展；升级 Editor 时重新核对这四组键。
+            string[] pathKeys = { "AndroidSdkRoot", "AndroidNdkRootR27C", "Jdk17Path", "GradlePath" };
+            string[] embeddedKeys = { "SdkUseEmbedded", "NdkUseEmbedded", "JdkUseEmbedded", "GradleUseEmbedded" };
+            bool[] hadPaths = pathKeys.Select(EditorPrefs.HasKey).ToArray();
+            bool[] hadEmbedded = embeddedKeys.Select(EditorPrefs.HasKey).ToArray();
+            string[] previousPaths = pathKeys.Select(key => EditorPrefs.GetString(key)).ToArray();
+            bool[] previousEmbedded = embeddedKeys.Select(key => EditorPrefs.GetBool(key)).ToArray();
+            WriteJson(Path.Combine(outputDirectory, "android-tools-before.json"), new AndroidToolsSnapshot
+            {
+                PathKeys = pathKeys,
+                EmbeddedKeys = embeddedKeys,
+                HadPaths = hadPaths,
+                HadEmbedded = hadEmbedded,
+                PreviousPaths = previousPaths,
+                PreviousEmbedded = previousEmbedded
+            });
+            restore = () =>
+            {
+                var failures = new List<string>();
+                for (int i = 0; i < pathKeys.Length; i++)
+                {
+                    try
+                    {
+                        if (hadPaths[i])
+                        {
+                            EditorPrefs.SetString(pathKeys[i], previousPaths[i]);
+                        }
+                        else
+                        {
+                            EditorPrefs.DeleteKey(pathKeys[i]);
+                        }
+                    }
+                    catch
+                    {
+                        failures.Add(pathKeys[i]);
+                    }
+                    try
+                    {
+                        if (hadEmbedded[i])
+                        {
+                            EditorPrefs.SetBool(embeddedKeys[i], previousEmbedded[i]);
+                        }
+                        else
+                        {
+                            EditorPrefs.DeleteKey(embeddedKeys[i]);
+                        }
+                    }
+                    catch
+                    {
+                        failures.Add(embeddedKeys[i]);
+                    }
+                }
+                Require(failures.Count == 0, "恢复 Android 工具偏好失败：" + string.Join(", ", failures));
+            };
+            UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath = paths[2];
+            UnityEditor.Android.AndroidExternalToolsSettings.sdkRootPath = paths[0];
+            UnityEditor.Android.AndroidExternalToolsSettings.ndkRootPath = paths[1];
+            UnityEditor.Android.AndroidExternalToolsSettings.gradlePath = paths[3];
+            string[] effectivePaths =
+            {
+                UnityEditor.Android.AndroidExternalToolsSettings.sdkRootPath,
+                UnityEditor.Android.AndroidExternalToolsSettings.ndkRootPath,
+                UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath,
+                UnityEditor.Android.AndroidExternalToolsSettings.gradlePath
+            };
+            for (int i = 0; i < paths.Length; i++)
+            {
+                Require(string.Equals(Path.GetFullPath(paths[i]).TrimEnd('\\', '/'),
+                    Path.GetFullPath(effectivePaths[i]).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase),
+                    "Android 工具未实际切换到 Unity 配套路径。");
+            }
+            Debug.Log("Android SDK/NDK/OpenJDK/Gradle 已固定为当前 Unity 配套工具；阶段退出前恢复用户偏好。");
+#else
+            throw new InvalidOperationException("Android 构建模块未加载，不能设置配套工具。");
+#endif
         }
 
         private static void ValidateRequest(Request request)
@@ -714,7 +859,7 @@ namespace Core.Editor.Hotfix
         private static string Fingerprint()
         {
             var files = new List<string>();
-            foreach (string root in new[] { "Assets/Scripts/Core/Runtime", "Assets/Plugins", "Assets/Native", "Assets/Settings", "Packages", "ProjectSettings" })
+            foreach (string root in new[] { "Assets/Scripts/Core/Runtime", "Assets/Plugins", "Assets/Native", "Assets/Settings", "Native", "scripts/streamline", "Packages", "ProjectSettings" })
             {
                 if (Directory.Exists(root))
                 {

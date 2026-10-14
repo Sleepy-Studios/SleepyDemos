@@ -133,6 +133,20 @@ try {
         $resourceVersion = $env:ResourceVersion
         if ([string]::IsNullOrWhiteSpace($resourceVersion)) { $resourceVersion = (Get-Date -Format 'yyyyMMdd-HHmmss') + "-$($env:BUILD_NUMBER)-" + $sha.Substring(0, 8) }
         if ($resourceVersion -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,100}$') { throw 'ResourceVersion 只能包含字母、数字、点、横线和下划线。' }
+        $registrationPath = Assert-OwnedPath (Join-Path $machine.Root "resource-versions/$($env:Platform)/$resourceVersion.json") $machine.Root
+        New-Item -ItemType Directory -Path (Split-Path -Parent $registrationPath) -Force | Out-Null
+        try {
+            $registration = [IO.File]::Open($registrationPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        } catch [IO.IOException] {
+            if (Test-Path -LiteralPath $registrationPath) { throw 'ResourceVersion 已被登记；失败任务使用过的版本也不能再次使用。' }
+            throw
+        }
+        try {
+            $record = @{ Job = $env:JOB_NAME; Build = $env:BUILD_NUMBER; SourceCommit = $sha; ConfigCommit = $configCommit }
+            $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes(($record | ConvertTo-Json))
+            $registration.Write($bytes, 0, $bytes.Length)
+            $registration.Flush($true)
+        } finally { $registration.Dispose() }
         $pagesPath = Assert-OwnedPath $machine.Pages.Path $machine.Root
         $request = [ordered]@{
             Platform = $env:Platform; BuildKind = $env:BuildKind; ResourceMode = $resourceMode
@@ -222,7 +236,7 @@ try {
                     [IO.Compression.ZipFile]::CreateFromDirectory($source, $zip, 'Optimal', $false)
                 }
             }
-            foreach ($file in @('summary.json', 'result.json', 'source.json', 'prepared.json', 'built.json', 'previous.version')) {
+            foreach ($file in @('summary.json', 'result.json', 'source.json', 'prepared.json', 'built.json', 'previous.version', 'android-tools-before.json')) {
                 $source = Join-Path $output $file
                 if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $archive }
             }
@@ -244,7 +258,7 @@ try {
             }
             $tools = [ordered]@{
                 Unity = 'unavailable'
-                Java = Read-ToolVersion $machine.Java @('-version')
+                Java = Read-ToolVersion $machine.Java @('--version')
                 Git = Read-ToolVersion $machine.Git @('--version')
                 Gh = Read-ToolVersion $machine.Gh @('--version')
                 Dotnet = Read-ToolVersion $machine.Dotnet @('--version')

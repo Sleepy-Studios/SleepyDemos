@@ -56,7 +56,7 @@ ID 是 Jenkinsfile 的当前接口，不通过 machine.json 自动改写。缺�
 | Development | 独立控制开发构建，默认 false |
 | PlayerVersion | Full 空值读取项目；Hotfix 空值继承基线，填写值必须匹配 |
 | AndroidVersionCode | 空/0 使用 Jenkins 构建编号，可覆盖为合法正整数 |
-| ResourceVersion | 空值自动生成唯一版本，不复用版本覆盖不同内容 |
+| ResourceVersion | 空值自动生成唯一版本，已分配版本（含失败任务）不可重用 |
 | Publish / Provider | 默认不发布；Pages 或 Ssh |
 
 Offline 内置全部资源、不联网热更；OnlineFull 全量内置并在线更新；OnlineDownload 不内置 Bundle，首次下载资源。离线模式选择发布仅上传同批资源，不改变安装包运行模式。
@@ -77,6 +77,7 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；BaseUrl 为平台 HTT
 | --- | --- |
 | 工作区已被打开 | 关闭手动打开的 CI 工程；不要关闭日常工程掩盖路径错误 |
 | 缺工具或授权 | 修正机器工具路径及该用户 Unity 环境 |
+| Android 阶段被强制终止 | 用归档 android-tools-before.json 核对原外部工具路径/embedded 开关；正常退出会自动恢复，强制终止后先恢复再构建 |
 | 缺凭据 | 在 Jenkins 受保护入口配置对应 ID |
 | Pages 分歧 | 人工检查专用克隆和远端，不强推或自动 reset |
 | SSH 指纹不匹配 | 向服务器管理员核实，不自动接受新 key |
@@ -84,7 +85,7 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；BaseUrl 为平台 HTT
 
 ## 备份与迁移
 
-停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线和必要受保护连接材料；签名 keystore 单独备份。新电脑安装同版 Unity/模块/工具并授权，更新工具路径和节点配置，先做仅构建验收再发布。Library 默认重建。
+停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线、resource-versions 登记目录和必要受保护连接材料；签名 keystore 单独备份。新电脑安装同版 Unity/模块/工具并授权，更新工具路径和节点配置，先做仅构建验收再发布。Library 默认重建。
 
 保留管理端换构建节点时，仅在新电脑准备工具链、授权和 agent，配置节点标签及本机配置路径。跨电脑连接须单独配置网络和认证；loopback 本机设置不会自动变成远程部署。
 

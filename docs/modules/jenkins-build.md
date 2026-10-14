@@ -21,11 +21,11 @@
 
 请求包含平台、构建类型、资源模式、Development、签名类型、版本、源与配置 SHA、独立输出/基线目录及非秘密发布参数。签名密码、私钥和 GH_TOKEN 从 Jenkins 凭据作用域的环境读取，不写入 JSON。
 
-输出 `prepared.json` 记录准备输入，`built.json` 冻结资源 SHA，`result.json` 记录阶段成败、版本和发布下载证据。`resources/` 是平面的下载白名单，`player/` 保存 Player，`baseline/` 保存整包候选基线。构建成功不等于发布成功；资源发布成功而基线提升失败须如实记录。
+输出 `prepared.json` 记录准备输入，`built.json` 冻结资源 SHA，`result.json` 记录阶段成败、版本和发布下载证据。`resources/` 是平面的下载白名单，`player/` 保存 Player，`baseline/` 保存整包候选基线。resource-versions 持久登记每个平台已分配的资源版本，失败任务的版本也不释放，不随普通归档过期删除。构建成功不等于发布成功；资源发布成功而基线提升失败须如实记录。
 
 ## 平台和资源模式
 
-PC 为 Windows x64 IL2CPP，Android 为 ARM64 IL2CPP，APK/AAB 可选；Development 与调试签名独立。
+PC 为 Windows x64 IL2CPP，Android 为 ARM64 IL2CPP，APK/AAB 可选；Development 与调试签名独立。Android Full 明确使用当前 Unity 配套 SDK/NDK/OpenJDK/Gradle，阶段退出恢复当前用户的原工具偏好。同用户日常 Editor 在构建期间会短暂看到这些偏好，不能与 CI 同时手动切换外部工具或启动 Android 构建；强制结束进程可能跳过恢复。
 
 Offline 使用 OfflinePlayMode 并内置全量资源；OnlineFull 使用 HostPlayMode 并内置全量；OnlineDownload 使用 HostPlayMode 不内置 Bundle。日常 EditorSimulateMode 和已有配置资产不会被 CI 改写。Offline 可发布同批资源，但其安装包不消费在线更新。
 
