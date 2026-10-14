@@ -83,12 +83,13 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 | Android 阶段被强制终止 | 用归档 android-tools-before.json 核对原外部工具路径/embedded 开关；正常退出会自动恢复，强制终止后先恢复再构建 |
 | 缺凭据 | 在 Jenkins 受保护入口配置对应 ID |
 | Pages 分歧 | 人工检查专用克隆和远端，不强推或自动 reset |
+| Pages 未提交修改 | 对照失败归档的资源文件 SHA/大小确认来源；只清理确认本次产生且未发布的文件，不执行全目录 clean。已冻结成功产物可通过 Jenkins Replay 仅恢复校验并 Deploy；源提交、全部归档 SHA及 APK/基线必须与原任务一致 |
 | SSH 指纹不匹配 | 向服务器管理员核实，不自动接受新 key |
 | 下载失败停止启动 | 修复网络/资源后重启；不得绕过失败进入 Hotfix |
 
 ## 备份与迁移
 
-停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线、resource-versions 登记目录和必要受保护连接材料；签名 keystore 单独备份。每平台 current 和 resource-versions 独立于 30 次记录/10 次普通产物保留，不随过期归档删除。
+停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线、resource-versions 登记目录和必要受保护连接材料；签名 keystore 单独备份。目录快照恢复时直接复制 home，按备份清单核对相对路径、大小与 SHA256；历史普通产物可排除，但须明确恢复后对应下载链接不可用。每平台 current 和 resource-versions 独立于 30 次记录/10 次普通产物保留，不随过期归档删除。
 
 继续原 PC 主包热更还需单独备份原独立 CI 工程 `<Root>/workspaces/PC/Assets/Plugins/Streamline/x86_64/` **整个目录**，包括 DLL、`Streamline~` 运行库、许可证及现有 `.meta`/GUID。记录全部文件相对路径、大小与 SHA256；迁移后逐文件核对，不只核对 ZIP。Library 默认重建，不用新生成的 DLL 或 `.meta` 冒充原基线依赖。
 
@@ -102,3 +103,12 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 保留管理端换构建节点时，仅在新电脑准备工具链、授权和 agent，配置节点标签及本机配置路径；current、resource-versions 和上述原 PC 原生目录一并迁移，仍先准备新克隆再恢复原生目录。跨电脑连接须单独配置网络和认证；loopback 本机设置不会自动变成远程部署。
 
 按[官方备份说明](https://www.jenkins.io/doc/book/system-administration/backing-up/)保护敏感备份，不把 credentials.xml 与其解密材料分离后宣称可恢复。隔离恢复演练不连接真实发布目标；第二台电脑实际验收另行记录。
+
+## 本机已验收范围（2026-10-15）
+
+- PC：三种资源模式实际构建，离线仅 EXE 出站阻断后到 Hub；在线全量及原包代码/资源热更到 Hub；在线下载空缓存首次下载到 Hub，原包文件 SHA 不变。
+- Android：离线 APK、在线全量 AAB、在线下载 APK实际产出；ARM64/IL2CPP、调试签名和版本通过，在线下载包原生 HostPlayMode/Android URL、空 Catalog 与零 Bundle 已核对。无连接设备，真机三种模式及原包热更待验收。
+- Pages：两平台正式 HTTP 逐文件校验、平台隔离、相同内容重复发布无新提交通过。APK/AAB不进热更目录；发布失败的冻结产物已实际只重发而不重建。
+- 保护：缺基线、Development不匹配、Core源码变化及缺自定义签名凭据正确拒绝；真实初始化/下载失败阻断 AOT、Hotfix 与业务入口。已有资源测试5/5、发布保护9/9通过，未执行全量回归。
+- 待环境：自定义正式 keystore、Android真机、真实SSH服务器、第二台电脑构建；不以调试签名或本机隔离恢复替代这些验收。清理被策略阻止的少量验证目录记录在个人实施日志，临时包体与代码/资源探针已清理。
+- 最终停机备份与18083隔离恢复通过：3609文件SHA一致、两个凭据真实解密原值验证一致，current/版本登记/原生文件一致；主密钥和现有调试keystore独立保护，普通历史archive未备份。正式18082已恢复controller0/node1，无自启动；第二台实际构建仍待环境。
