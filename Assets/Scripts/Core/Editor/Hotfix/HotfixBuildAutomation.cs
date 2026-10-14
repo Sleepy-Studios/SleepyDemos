@@ -69,6 +69,7 @@ namespace Core.Editor.Hotfix
             public string Architecture;
             public string UnityVersion;
             public string ScriptingBackend;
+            public string ApiCompatibilityLevel;
             public string ServerUrl;
             public string StartupScene;
             public string[] AotAssemblies;
@@ -82,6 +83,7 @@ namespace Core.Editor.Hotfix
             public bool Success;
             public string Stage;
             public string Failure;
+            public string ApiCompatibilityLevel;
             public string ResourceVersion;
             public string PlayerVersion;
             public string SourceCommit;
@@ -152,6 +154,10 @@ namespace Core.Editor.Hotfix
                     CopyPublicationResult(result, JsonUtility.FromJson<Result>(File.ReadAllText(resultPath)));
                 }
                 result.PlayerVersion = PlayerSettings.bundleVersion;
+                var apiProfile = PlayerSettings.GetApiCompatibilityLevel(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(
+                    UnityEditor.BuildPipeline.GetBuildTargetGroup(Target(request))));
+                result.ApiCompatibilityLevel = apiProfile == UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8
+                    ? nameof(UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8) : apiProfile.ToString();
                 result.Success = true;
                 WriteJson(resultPath, result);
                 Debug.Log("Sleepy build " + stage + " completed.");
@@ -367,7 +373,12 @@ namespace Core.Editor.Hotfix
             config.PlayMode = request.ResourceMode == "Offline" ? ResourcePlayMode.OfflinePlayMode : ResourcePlayMode.HostPlayMode;
             config.BaseServerURL = config.RemoteBaseServerURL = request.ResourceMode == "Offline" ? string.Empty : ServerUrl(request);
             var group = UnityEditor.BuildPipeline.GetBuildTargetGroup(Target(request));
-            PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group), ScriptingImplementation.IL2CPP);
+            var namedTarget = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group);
+            PlayerSettings.SetScriptingBackend(namedTarget, ScriptingImplementation.IL2CPP);
+            // HybridCLR 热更 DLL 必须使用 Framework，避免 Player 裁掉 netstandard Facade 后无法解析引用。
+            PlayerSettings.SetApiCompatibilityLevel(namedTarget, UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8);
+            Require(PlayerSettings.GetApiCompatibilityLevel(namedTarget) == UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8,
+                "无法固定 HybridCLR 所需的 .NET Framework API 配置。");
             EditorUserBuildSettings.development = request.Development;
             if (!string.IsNullOrWhiteSpace(request.PlayerVersion))
             {
@@ -611,6 +622,7 @@ namespace Core.Editor.Hotfix
                 ResourceVersion = request.ResourceVersion, SourceCommit = request.SourceCommit, ConfigCommit = request.ConfigCommit,
                 PackageName = config.PackageName, ServerUrl = config.RemoteBaseServerURL, StartupScene = config.StartupScene,
                 Architecture = request.Platform == "PC" ? "x64" : "ARM64", UnityVersion = Application.unityVersion, ScriptingBackend = "IL2CPP",
+                ApiCompatibilityLevel = nameof(UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8),
                 AotAssemblies = config.AotAssemblies, HotfixAssemblies = config.HotfixAssemblies
             };
         }
@@ -624,6 +636,7 @@ namespace Core.Editor.Hotfix
             VerifyFingerprint(baseline, "当前在线首包构建指纹不兼容，必须构建并发布新的 Full。");
             Require(baseline.ResourceMode != "Offline" && baseline.Platform == request.Platform &&
                 baseline.Development == request.Development && baseline.ResourceMode == request.ResourceMode &&
+                baseline.ApiCompatibilityLevel == nameof(UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8) &&
                 baseline.PackageName == config.PackageName &&
                 baseline.PlayerVersion == PlayerSettings.bundleVersion &&
                 baseline.ServerUrl == config.RemoteBaseServerURL && baseline.StartupScene == config.StartupScene &&
