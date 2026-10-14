@@ -11,6 +11,7 @@
 | 启动 Loading | [v3](startup-loading-v3.png) | 用户已确认并装配 StartupLoading；瑞士风抽象艺术背景与边缘信息 |
 | 设置页分类图标 | [v1](settings-icons-v1.png) | 用户已确认设计，并指定安装 Vector Graphics 直接复用单套 SVG；尺寸示例不作为多套资产 |
 | 纸艺卡丁车设置与触控 | [v1](kagit-settings-touch-v1.png) | 2026-10-13 用户已确认选中配色和左右按钮方向；图中方向键尺寸仅为概念，最终按用户修正缩为 160×140，原生装配和验收独立记录 |
+| 纸艺卡丁车联机码 | [v1](kagit-online-codes-v1.png) | 2026-10-14 用户确认三页均按此方向实施：昵称与六位码加入、可复制房间码、AI代驾与重连倒计时；正式 Prefab 已装配，运行外观另行验收 |
 
 按用户要求，仓库仅保留当前采用的图和提示词；早期网页式 Loading、海岛背景、误画 BtnSwitch1 的控件图及被替代的规范板已清理。原始生成输出仍保留在本机生成目录，必要的旧图副本位于 `$CODEX_HOME/generated_images/<thread-id>/retired-designs/`，不作为当前设计依据。
 

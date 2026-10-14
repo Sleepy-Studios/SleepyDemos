@@ -16,7 +16,7 @@ namespace Hotfix.KagitKart
         private readonly KagitKartRace race;
         private readonly KagitKartItems items;
         private readonly IReadOnlyList<KagitKartVehicle> karts;
-        private readonly KagitKartVehicle player;
+        private KagitKartVehicle player;
         private readonly Driver[] drivers;
         private readonly KagitKartAiShortcutProbe[] shortcuts;
         private readonly float[] hazardDistance = new float[48], hazardLateral = new float[48], hazardRadius = new float[48];
@@ -86,7 +86,7 @@ namespace Hotfix.KagitKart
             int cpuCount = 0;
             for (int i = 0; i < karts.Count; i++)
             {
-                if (karts[i].IsPlayer)
+                if (karts[i].IsHuman)
                 {
                     player = karts[i];
                 }
@@ -97,7 +97,7 @@ namespace Hotfix.KagitKart
             }
             double[] tiers = new double[cpuCount];
             double[] sourceTiers = { 0.92, 0.92, 0.8, 0.8, 0.8, 0.68, 0.68 };
-            Array.Copy(sourceTiers, tiers, cpuCount);
+            for (int i = 0; i < cpuCount; i++) tiers[i] = sourceTiers[Math.Min(i, sourceTiers.Length - 1)];
             for (int i = tiers.Length - 1; i > 0; i--)
             {
                 int j = (int)Math.Floor(random.Next() * (i + 1));
@@ -108,7 +108,7 @@ namespace Hotfix.KagitKart
             for (int i = 0; i < drivers.Length; i++)
             {
                 var kart = karts[i];
-                drivers[i] = CreateDriver(kart, random.Fork("driver:" + kart.Id), kart.IsPlayer ? 0.92 : tiers[seen++]);
+                drivers[i] = CreateDriver(kart, random.Fork("driver:" + kart.Id), kart.IsHuman ? 0.92 : tiers[seen++]);
                 drivers[i].Phase = i & 1;
             }
             Array.Fill(hazardHints, -1);
@@ -131,6 +131,12 @@ namespace Hotfix.KagitKart
             }
             now = raceTime;
             stepCount++;
+            // 多人权威服没有本地车手；CPU追赶以进度最前的真人为参照，单人规则不变。
+            player = null;
+            foreach (var kart in karts)
+            {
+                if (kart.IsHuman && (player == null || kart.Progress > player.Progress)) player = kart;
+            }
             RefreshHazards();
             foreach (var driver in drivers)
             {
@@ -184,14 +190,14 @@ namespace Hotfix.KagitKart
 
         private Driver CreateDriver(KagitKartVehicle kart, KagitKartRandom random, double skill)
         {
-            var style = kart.IsPlayer ? plan.defaultStyle : plan.styles[kart.Id];
+            var style = kart.IsHuman ? plan.defaultStyle : plan.styles[kart.Id];
             double sn = Clamp((skill - 0.68) / 0.24, 0, 1);
-            double roll = random.Next() * (kart.IsPlayer ? 1 : 100);
+            double roll = random.Next() * (kart.IsHuman ? 1 : 100);
             double low, high;
             int perfect = sn > 0.75 ? 50 : sn > 0.25 ? 35 : 20;
             int good = 35;
             int none = sn > 0.75 ? 10 : sn > 0.25 ? 20 : 30;
-            if (kart.IsPlayer || roll < perfect)
+            if (kart.IsHuman || roll < perfect)
             {
                 low = 0.7;
                 high = 0.95;
@@ -236,7 +242,7 @@ namespace Hotfix.KagitKart
             {
                 Kart = kart, Random = random, Style = style, Skill = skill, Sn = sn, Profile = profile, Handling = handling,
                 LineQ = Lerp(0.6, 1, sn), StartAt = Range(random, low, high),
-                Offset = Range(random, -1.8, 1.8) * style.offset * (kart.IsPlayer ? 0.3 : 1), SteerMin = minimum,
+                Offset = Range(random, -1.8, 1.8) * style.offset * (kart.IsHuman ? 0.3 : 1), SteerMin = minimum,
                 YawMin = DriftYaw(minimum), DriftMin = (Lerp(58, 38, sn) + style.driftMin) * Math.PI / 180,
                 TierHold = style.tierHold * (0.4 + 0.6 * sn),
                 MistakeProbability = Clamp((0.04 + 0.11 * (1 - sn)) * style.mistake, 0.04, 0.15),
@@ -264,7 +270,7 @@ namespace Hotfix.KagitKart
         {
             var kart = driver.Kart;
             double rb = 1;
-            if (!kart.IsPlayer && player != null)
+            if (!kart.IsHuman && player != null)
             {
                 var tuning = configuration.rubberBand;
                 double gap = player.Progress - kart.Progress;
@@ -517,7 +523,7 @@ namespace Hotfix.KagitKart
             }
             double error = AngleDiff(Math.Atan2(tx - kart.Position.x, tz - kart.Position.z), kart.Heading);
             double curvature = driver.Mode == ShortcutMode ? 0 : plan.lineK[pursuit];
-            double pace = kart.IsPlayer || plan.noDrift[i0] != 0 ? 1 : Lerp(0.94, 1, driver.Sn);
+            double pace = kart.IsHuman || plan.noDrift[i0] != 0 ? 1 : Lerp(0.94, 1, driver.Sn);
             double throttle = pace, brake = 0;
             if (driver.Mode == DriveMode)
             {

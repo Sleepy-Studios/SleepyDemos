@@ -48,7 +48,7 @@ namespace Hotfix.KagitKart
                 throw new ArgumentNullException(nameof(source));
             }
             var character = Array.Find(source.roster, value => value.id == characterId);
-            if (character == null)
+            if (character == null && (characterId != null || humanIds == null))
             {
                 throw new ArgumentException("玩家角色无效。", nameof(characterId));
             }
@@ -60,7 +60,7 @@ namespace Hotfix.KagitKart
             var others = new List<KagitKartCharacter>();
             foreach (var value in source.roster)
             {
-                if (value != character)
+                    if (value != character)
                 {
                     others.Add(value);
                 }
@@ -74,7 +74,7 @@ namespace Hotfix.KagitKart
             {
                 others.Clear();
             }
-            others.Add(character);
+            if (character != null) others.Add(character);
             if (mode == KagitKartRaceMode.GrandPrix && grandPrix != null && grandPrix.Index > 0)
             {
                 others.Clear();
@@ -235,7 +235,7 @@ namespace Hotfix.KagitKart
 
         internal void Predict(float seconds, KagitKartControls controls, bool replay)
         {
-            if (disposed || Player.Autopilot || Race.State == KagitKartRaceState.Done) return;
+            if (disposed || Player == null || Player.Autopilot || Race.State == KagitKartRaceState.Done) return;
             // 单次表现由权威事件确认；预测和重放只改变可回滚的运动状态。
             Player.SuppressSignals = true;
             try

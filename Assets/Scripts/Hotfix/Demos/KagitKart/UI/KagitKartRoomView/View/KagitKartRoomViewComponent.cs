@@ -43,9 +43,10 @@ namespace Hotfix
         private Button Button_Ready;
         private Button Button_Start;
         private Button Button_Configure;
-        private Button Button_CopyAddress;
+        private Button Button_CopyCode;
         private Button Button_Back;
         private TextMeshProUGUI TextMeshProUGUI_Status;
+        private TextMeshProUGUI TextMeshProUGUI_RoomCode;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -75,9 +76,10 @@ namespace Hotfix
             Button_Ready = componentItemIndex.Get<Button>(15);
             Button_Start = componentItemIndex.Get<Button>(16);
             Button_Configure = componentItemIndex.Get<Button>(17);
-            Button_CopyAddress = componentItemIndex.Get<Button>(18);
+            Button_CopyCode = componentItemIndex.Get<Button>(18);
             Button_Back = componentItemIndex.Get<Button>(19);
             TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(20);
+            TextMeshProUGUI_RoomCode = componentItemIndex.Get<TextMeshProUGUI>(21);
         }
     }
 }

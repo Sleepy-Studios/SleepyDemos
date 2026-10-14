@@ -103,7 +103,7 @@ namespace Core.Runtime.Networking
         [Replicate]
         private void RunInput(InputData data, ReplicateState state = ReplicateState.Invalid, Channel channel = Channel.Unreliable)
         {
-            if (service?.Simulation == null || !service.IsKnownMember(Owner.ClientId))
+            if (service?.Simulation == null || !service.TryGetMemberId(Owner.ClientId, out string memberId))
             {
                 return;
             }
@@ -121,14 +121,14 @@ namespace Core.Runtime.Networking
             }
             // 远端输入原 tick 属于客户端时钟；服务器业务超时判断统一使用实际应用 tick。
             uint appliedTick = IsServerStarted ? TimeManager.LocalTick : data.GetTick();
-            service.Simulation.Replicate(Owner.ClientId.ToString(), appliedTick, (float)TimeManager.TickDelta,
+            service.Simulation.Replicate(memberId, appliedTick, (float)TimeManager.TickDelta,
                 data.Payload, state.ContainsReplayed(), IsServerStarted);
         }
 
         /// <summary>服务器每四步发送校正；客户端每步保存官方本地回退历史，Host 只捕获权威状态。</summary>
         public override void CreateReconcile()
         {
-            if (service?.Simulation == null || !service.IsKnownMember(Owner.ClientId))
+            if (service?.Simulation == null || !service.TryGetMemberId(Owner.ClientId, out string memberId))
             {
                 return;
             }
@@ -136,7 +136,7 @@ namespace Core.Runtime.Networking
             {
                 return;
             }
-            byte[] payload = service.Simulation.CaptureState(Owner.ClientId.ToString());
+            byte[] payload = service.Simulation.CaptureState(memberId);
             FishNetNetworkSessionService.ValidatePayload(payload, NetworkPayloadLimits.State, allowNull: true);
             if (payload == null && IsServerStarted)
             {
@@ -149,7 +149,8 @@ namespace Core.Runtime.Networking
         [Reconcile]
         private void ApplyState(StateData data, Channel channel = Channel.Unreliable)
         {
-            if (IsServerStarted || !IsOwner || service?.Simulation == null || data.Payload == null)
+            if (IsServerStarted || !IsOwner || service?.Simulation == null || data.Payload == null ||
+                !service.TryGetMemberId(Owner.ClientId, out string memberId))
             {
                 return;
             }
@@ -158,7 +159,7 @@ namespace Core.Runtime.Networking
                 service.Fail(new InvalidOperationException("权威校正超过大小上限。"));
                 return;
             }
-            service.Simulation.Reconcile(Owner.ClientId.ToString(), data.GetTick(), data.Payload);
+            service.Simulation.Reconcile(memberId, data.GetTick(), data.Payload);
         }
     }
 }

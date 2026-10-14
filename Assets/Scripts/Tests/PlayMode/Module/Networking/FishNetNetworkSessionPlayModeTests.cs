@@ -25,6 +25,165 @@ namespace Tests.Module
             return RunContractAsync().ToCoroutine();
         }
 
+        [UnityTest, Timeout(90000)]
+        public IEnumerator DedicatedServerAuthenticatesStableMembersAndReplacesOnlyAuthorizedReconnects()
+        {
+            return RunDedicatedContractAsync().ToCoroutine();
+        }
+
+        private static async UniTask RunDedicatedContractAsync()
+        {
+            await ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default);
+            var settings = ScriptableObject.CreateInstance<NetworkSessionSettings>();
+            INetworkSessionService server = null, client = null, retry = null;
+            try
+            {
+                server = NetworkSessionServices.CreateInternet(settings);
+                client = NetworkSessionServices.CreateInternet(settings);
+                retry = NetworkSessionServices.CreateInternet(settings);
+                var authority = new ContractSimulation(true);
+                var prediction = new ContractSimulation(false);
+                server.RegisterSimulation(authority);
+                client.RegisterSimulation(prediction);
+                bool sawUnregisteredAuthentication = false;
+                server.SetAuthenticationRule(request =>
+                {
+                    if (request.Ticket != "signed-player" && request.Ticket != "signed-reconnect" && request.Ticket != "signed-new-reconnect")
+                    {
+                        return new NetworkAuthenticationResult(false, reason: "票据无效");
+                    }
+                    sawUnregisteredAuthentication |= server.Members.Count == 0 && authority.InputMembers.Count == 0 &&
+                        request.ProtocolVersion == settings.ProtocolVersion && request.ContentVersion == settings.ContentVersion &&
+                        request.DisplayName == "Client" && request.ConnectionId >= 0;
+                    return new NetworkAuthenticationResult(true,
+                        request.Ticket == "signed-new-reconnect" ? "trusted-player-B" : "trusted-player-A", "认证车手",
+                        replaceExistingConnection: request.Ticket != "signed-player");
+                });
+                ushort port = AvailablePort();
+                var options = new NetworkServerOptions
+                {
+                    Address = "127.0.0.1", Port = port, ServerId = "dedicated-race-server", MaxPlayers = 1,
+                    ProtocolVersion = settings.ProtocolVersion, ContentVersion = settings.ContentVersion,
+                    HostPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/LoadResources/Prefabs/Networking/SessionHost.prefab")
+                };
+                await server.StartServerAsync(options);
+                Assert.That(server.State, Is.EqualTo(NetworkSessionState.Joined));
+                Assert.That(server.IsAuthority, Is.True);
+                Assert.That(server.LocalMemberId, Is.Null);
+                Assert.That(server.Members, Is.Empty);
+                await WaitAsync(() => authority.AuthorityTicks.Count >= 12, "没有客户端时服务器也应推进唯一120Hz时钟。");
+                Assert.That(authority.InputMembers, Is.Empty, "纯服务器不能创建本地玩家载体。");
+
+                var invalid = JoinOptions(settings, port);
+                invalid.Ticket = "forged";
+                Exception rejection = null;
+                try
+                {
+                    await retry.JoinAsync(invalid);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    rejection = exception;
+                }
+                Assert.That(rejection, Is.Not.Null);
+                Assert.That(server.Members, Is.Empty, "认证失败不能登记成员或创建业务玩家。");
+
+                var join = JoinOptions(settings, port);
+                join.Ticket = "signed-player";
+                await client.JoinAsync(join);
+                await WaitAsync(() => server.Members.Count == 1 && prediction.SawAuthorityState && prediction.Replays > 0,
+                    "票据认证后应运行正式预测与校正载体。");
+                Assert.That(sawUnregisteredAuthentication, Is.True);
+                Assert.That(client.LocalMemberId, Is.EqualTo("trusted-player-A"));
+                Assert.That(client.Members[0].DisplayName, Is.EqualTo("认证车手"));
+                Assert.That(client.AuthorityMemberId, Is.EqualTo("dedicated-race-server"));
+                Assert.That(client.Members.Any(member => member.MemberId == client.AuthorityMemberId), Is.False);
+                CollectionAssert.AreEquivalent(new[] { "trusted-player-A" }, authority.InputMembers);
+                CollectionAssert.AreEquivalent(new[] { "trusted-player-A" }, prediction.InputMembers);
+
+                rejection = null;
+                try
+                {
+                    await retry.JoinAsync(join);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    rejection = exception;
+                }
+                Assert.That(rejection, Is.Not.Null, "同一稳定身份不能任意顶替仍在线连接。");
+                Assert.That(client.State, Is.EqualTo(NetworkSessionState.Joined));
+                Assert.That(server.Members.Count, Is.EqualTo(1));
+
+                server.SetAdmissionRule(() => false);
+                join.Ticket = "signed-reconnect";
+                var reconnectedPrediction = new ContractSimulation(false);
+                retry.RegisterSimulation(reconnectedPrediction);
+                await retry.JoinAsync(join);
+                await WaitAsync(() => client.State == NetworkSessionState.Faulted && reconnectedPrediction.SawAuthorityState,
+                    "只有认证明确授权的重连才能踢旧连接，并在开赛门闩关闭后恢复原身份。");
+                Assert.That(server.Members.Count, Is.EqualTo(1));
+                Assert.That(retry.LocalMemberId, Is.EqualTo("trusted-player-A"));
+                var received = new List<NetworkCommandEvent>();
+                server.CommandReceived += received.Add;
+                await retry.SendCommandAsync(new NetworkCommand(12, 1, Encoding.UTF8.GetBytes("sender=forged")));
+                await WaitAsync(() => received.Count == 1, "重连应使用新的命令序列且保留已认证稳定身份。");
+                Assert.That(received[0].SenderMemberId, Is.EqualTo("trusted-player-A"));
+                string avatarMember = null;
+                server.AvatarPoseReceived += value => avatarMember = value.MemberId;
+                retry.PublishAvatarPose(new NetworkAvatarPose(Vector3.zero, Quaternion.identity, 0));
+                await WaitAsync(() => avatarMember == "trusted-player-A", "服务器收到的姿态必须使用票据身份。");
+                await server.PublishSnapshotAsync(new NetworkSnapshot(23, 1, new byte[] { 17 }, reliable: true));
+                await WaitAsync(() => retry.Snapshots.ContainsKey(23), "独立权威应按现有快照通道发送状态。");
+                Assert.That(retry.Snapshots[23].AuthorityMemberId, Is.EqualTo("dedicated-race-server"));
+                Assert.That(authority.HasDuplicateAuthorityTick, Is.False);
+                Assert.That(authority.Reconciles, Is.Zero);
+                await retry.LeaveAsync();
+                await WaitAsync(() => server.Members.Count == 0, "重连客户端退出后必须移除成员与载体。");
+                rejection = null;
+                join.Ticket = "signed-new-reconnect";
+                try
+                {
+                    await retry.JoinAsync(join);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    rejection = exception;
+                }
+                Assert.That(rejection, Is.Not.Null, "新身份即使带替换标志，也不能绕过已关闭的新成员准入。");
+                join.Ticket = "signed-reconnect";
+                var resumedPrediction = new ContractSimulation(false);
+                retry.RegisterSimulation(resumedPrediction);
+                await retry.JoinAsync(join);
+                await WaitAsync(() => server.Members.Count == 1 && resumedPrediction.SawAuthorityState,
+                    "真实断开后旧身份已不在连接表中，明确授权的恢复仍应通过并重建预测载体。");
+                Assert.That(retry.LocalMemberId, Is.EqualTo("trusted-player-A"));
+                await retry.LeaveAsync();
+                await WaitAsync(() => server.Members.Count == 0, "恢复客户端退出后应再次清空成员。");
+                await client.LeaveAsync();
+                await server.LeaveAsync();
+                Assert.That(server.LocalMemberId, Is.Null);
+                Assert.That(server.AuthorityMemberId, Is.Null);
+                server.SetAuthenticationRule(_ => new NetworkAuthenticationResult(false));
+                await server.StartServerAsync(options);
+                Assert.That(server.State, Is.EqualTo(NetworkSessionState.Joined), "原端口应已释放并可再次启动。");
+            }
+            finally
+            {
+                foreach (var service in new[] { retry, client, server })
+                {
+                    if (service == null)
+                    {
+                        continue;
+                    }
+                    service.RegisterSimulation(null);
+                    await service.LeaveAsync();
+                    service.Dispose();
+                }
+                UnityEngine.Object.Destroy(settings);
+                await UniTask.Yield();
+            }
+        }
+
         private static async UniTask RunContractAsync()
         {
             await ResourceServices.Default.InitializeAsync(ResourceInitializeOptions.Default);

@@ -14,13 +14,13 @@ namespace Hotfix.KagitKart
             Race.WriteNetworkState(writer);
         }
 
-        internal void ReadNetworkState(BinaryReader reader)
+        internal void ReadNetworkState(BinaryReader reader, bool restoreLocal = false, bool notify = true)
         {
             RaceTime = reader.ReadDouble();
             foreach (var kart in karts)
             {
                 // 共享快照仅推进远端姿态，本地赛车由官方 Reconcile 恢复。
-                if (kart == Player)
+                if (kart == Player && !restoreLocal)
                 {
                     using var saved = new MemoryStream();
                     using var writer = new BinaryWriter(saved);
@@ -36,7 +36,7 @@ namespace Hotfix.KagitKart
                 }
             }
             Items.ReadNetworkState(reader);
-            Race.ReadNetworkState(reader);
+            Race.ReadNetworkState(reader, notify);
             lastNetworkSnapshot = Time.unscaledTime;
         }
 

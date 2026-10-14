@@ -14,36 +14,39 @@ using Channel = FishNet.Transporting.Channel;
 
 namespace Core.Runtime.Networking
 {
-    /// 单房间直连 Host；连接、序列、可信身份与官方预测载体归 AOT，规则归业务。
+    /// 单房间直连服务器或 Host；连接、序列、可信身份与官方预测载体归 AOT，规则归业务。
     public sealed class FishNetNetworkSessionService : INetworkSessionService
     {
         private const string HostAddress = "LoadResources/Prefabs/Networking/SessionHost";
         private readonly string defaultContentVersion;
         private readonly ushort defaultProtocol;
-        private readonly Dictionary<int, string> serverMembers = new();
+        private readonly Dictionary<int, SessionMember> serverMembers = new();
+        private readonly HashSet<string> admittedMemberIds = new(StringComparer.Ordinal);
         private readonly Dictionary<int, NetworkObject> bridges = new();
         private readonly Dictionary<int, SessionHello> pendingHellos = new();
         private readonly HashSet<FishNetPredictionBridge> predictionBridges = new();
         private readonly HashSet<int> rejectingMembers = new();
-        private readonly Dictionary<(int, ushort), ulong> commandSequences = new();
+        private readonly Dictionary<(string, ushort), ulong> commandSequences = new();
         private readonly Dictionary<ushort, NetworkSnapshotEvent> snapshots = new();
         private readonly Dictionary<ushort, SessionSnapshot> pendingSnapshots = new();
         private readonly ReadOnlyDictionary<ushort, NetworkSnapshotEvent> snapshotView;
         private IResourceLoader loader;
+        private GameObject ownedHost;
         private NetworkManager manager;
         private FishNetSessionRuntime runtime;
         private UniTaskCompletionSource<NetworkSessionInfo> joined;
         private CancellationTokenSource connectionCancellation;
         private Func<bool> admissionRule;
+        private Func<NetworkAuthenticationRequest, NetworkAuthenticationResult> authenticationRule;
         private IReadOnlyList<NetworkMemberInfo> members = Array.AsReadOnly(Array.Empty<NetworkMemberInfo>());
-        private HashSet<int> memberIds = new();
-        private string endpoint, contentVersion, displayName;
+        private Dictionary<int, string> memberIds = new();
+        private string endpoint, contentVersion, displayName, ticket;
         private ushort port, protocol;
         private int capacity;
-        private bool changing, shuttingDown;
+        private bool changing, shuttingDown, serverOnly;
         private uint lastAuthorityTick = uint.MaxValue;
 
-        /// <summary>保存公开配置，实际 SDK 对象在 Create/Join 内异步加载。</summary>
+        /// <summary>保存公开配置，实际 SDK 对象由创建、入房或服务器启动入口加载。</summary>
         /// <param name="settings">协议和内容版本。</param>
         public FishNetNetworkSessionService(NetworkSessionSettings settings)
         {
@@ -64,11 +67,11 @@ namespace Core.Runtime.Networking
         public NetworkSessionInfo CurrentSession { get; private set; }
         /// 经 Host 验证的成员列表。
         public IReadOnlyList<NetworkMemberInfo> Members => members;
-        /// 本地 Connection.ClientId 的字符串形式。
+        /// 服务器认证的本地稳定身份；仅服务器模式为空。
         public string LocalMemberId { get; private set; }
         /// 当前进程执行服务器规则，包含 Host。
         public bool IsAuthority => manager != null && manager.IsServerStarted && !shuttingDown;
-        /// 创建 Host 的本地成员身份；本版不做权威迁移。
+        /// 独立服务器身份或 Host 的本地成员身份；不要求属于成员列表。
         public string AuthorityMemberId { get; private set; }
         /// 本次会话的固定权威代次。
         public ulong AuthorityEpoch => State == NetworkSessionState.Joined ? 1UL : 0;
@@ -113,6 +116,45 @@ namespace Core.Runtime.Networking
             admissionRule = canJoin;
         }
 
+        /// <inheritdoc />
+        public void SetAuthenticationRule(Func<NetworkAuthenticationRequest, NetworkAuthenticationResult> authenticate)
+        {
+            EnsureNotDisposed();
+            authenticationRule = authenticate;
+        }
+
+        /// <inheritdoc />
+        public UniTask<NetworkSessionInfo> StartServerAsync(NetworkServerOptions options, CancellationToken cancellationToken = default)
+        {
+            EnsureNotDisposed();
+            if (changing || State != NetworkSessionState.Idle)
+            {
+                throw new InvalidOperationException("请先离开当前会话。");
+            }
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+            if (authenticationRule == null)
+            {
+                throw new InvalidOperationException("独立服务器必须配置票据认证规则。");
+            }
+            if (options.MaxPlayers < 1 || options.MaxPlayers > 8)
+            {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxPlayers));
+            }
+            string serverId = options.ServerId ?? "server-" + Guid.NewGuid().ToString("N");
+            if (string.IsNullOrWhiteSpace(serverId) || serverId.Length > 128)
+            {
+                throw new ArgumentException("服务器身份不能为空或超过128字符。", nameof(options.ServerId));
+            }
+            capacity = options.MaxPlayers;
+            return ConnectAsync(true, options.Address, options.Port,
+                options.ProtocolVersion == 0 ? defaultProtocol : options.ProtocolVersion,
+                options.ContentVersion ?? defaultContentVersion, null, cancellationToken,
+                dedicatedServerId: serverId, hostPrefab: options.HostPrefab);
+        }
+
         internal void RegisterBridge(FishNetPredictionBridge bridge) => predictionBridges.Add(bridge);
         internal void UnregisterBridge(FishNetPredictionBridge bridge) => predictionBridges.Remove(bridge);
 
@@ -132,7 +174,7 @@ namespace Core.Runtime.Networking
             {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxPlayers));
             }
-            // 传输预留八个连接，具体房间容量与开赛门闩由即时准入规则判断。
+            // 保留 Host 公共契约；具体房间名额与开赛门闩由即时准入规则判断。
             capacity = 8;
             return await ConnectAsync(true, options.Address, options.Port,
                 options.ProtocolVersion == 0 ? defaultProtocol : options.ProtocolVersion,
@@ -147,11 +189,12 @@ namespace Core.Runtime.Networking
                 throw new ArgumentNullException(nameof(options));
             }
             return ConnectAsync(false, options.Address, options.Port, options.ProtocolVersion,
-                options.ContentVersion ?? defaultContentVersion, options.DisplayName, cancellationToken);
+                options.ContentVersion ?? defaultContentVersion, options.DisplayName, cancellationToken, options.Ticket);
         }
 
         private async UniTask<NetworkSessionInfo> ConnectAsync(bool host, string address, ushort selectedPort,
-            ushort selectedProtocol, string version, string name, CancellationToken cancellationToken)
+            ushort selectedProtocol, string version, string name, CancellationToken cancellationToken,
+            string authenticationTicket = null, string dedicatedServerId = null, GameObject hostPrefab = null)
         {
             EnsureNotDisposed();
             if (changing || State != NetworkSessionState.Idle)
@@ -175,11 +218,18 @@ namespace Core.Runtime.Networking
             {
                 throw new ArgumentException("玩家名称最多32个字符。", nameof(name));
             }
+            if (authenticationTicket?.Length > 4096)
+            {
+                throw new ArgumentException("入房凭据最多4096个字符。", nameof(authenticationTicket));
+            }
             endpoint = address.Trim();
             port = selectedPort;
             protocol = selectedProtocol;
             contentVersion = version;
             displayName = name ?? string.Empty;
+            ticket = authenticationTicket;
+            serverOnly = dedicatedServerId != null;
+            AuthorityMemberId = dedicatedServerId;
             changing = true;
             shuttingDown = false;
             joined = new UniTaskCompletionSource<NetworkSessionInfo>();
@@ -187,8 +237,17 @@ namespace Core.Runtime.Networking
             SetState(NetworkSessionState.Connecting);
             try
             {
-                loader = ResourceServices.CreateLoader();
-                var hostObject = await loader.InstantiateAsync(HostAddress, null);
+                GameObject hostObject;
+                if (hostPrefab != null)
+                {
+                    ownedHost = UnityEngine.Object.Instantiate(hostPrefab);
+                    hostObject = ownedHost;
+                }
+                else
+                {
+                    loader = ResourceServices.CreateLoader();
+                    hostObject = await loader.InstantiateAsync(HostAddress, null);
+                }
                 cancellationToken.ThrowIfCancellationRequested();
                 if (hostObject == null)
                 {
@@ -205,14 +264,17 @@ namespace Core.Runtime.Networking
                     throw new InvalidOperationException("预测载体必须启用 FishNet Prediction 并挂载 AOT Bridge。");
                 }
                 runtime.Service = this;
+                // 会话统一控制端口和启动；Dedicated构建的SDK自动Start会再次重启已监听的socket。
+                manager.ServerManager.SetStartOnHeadless(false);
                 manager.TimeManager.SetTickRate(120);
-                manager.TransportManager.Transport.SetMaximumClients(8);
+                // 多留一个握手槽，满员时仍能验证并替换合法重连，而不是先被底层拒绝。
+                manager.TransportManager.Transport.SetMaximumClients(9);
                 Subscribe();
                 if (host && !manager.ServerManager.StartConnection(port))
                 {
                     throw new InvalidOperationException("无法启动 Host，请检查端口是否占用。");
                 }
-                if (!manager.ClientManager.StartConnection(host ? "127.0.0.1" : endpoint, port))
+                if (!serverOnly && !manager.ClientManager.StartConnection(host ? "127.0.0.1" : endpoint, port))
                 {
                     throw new InvalidOperationException("无法开始连接 Host。");
                 }
@@ -282,12 +344,10 @@ namespace Core.Runtime.Networking
             {
                 return;
             }
-            LocalMemberId = manager.ClientManager.Connection.ClientId.ToString();
-            if (IsAuthority)
+            manager.ClientManager.Broadcast(new SessionHello
             {
-                AuthorityMemberId = LocalMemberId;
-            }
-            manager.ClientManager.Broadcast(new SessionHello { Protocol = protocol, ContentVersion = contentVersion, DisplayName = displayName });
+                Protocol = protocol, ContentVersion = contentVersion, DisplayName = displayName, Ticket = ticket
+            });
         }
 
         private void OnHello(NetworkConnection connection, SessionHello hello, Channel channel)
@@ -296,7 +356,7 @@ namespace Core.Runtime.Networking
             {
                 return;
             }
-            if (hello.Protocol != protocol || hello.ContentVersion != contentVersion || hello.DisplayName?.Length > 32)
+            if (hello.Protocol != protocol || hello.ContentVersion != contentVersion || hello.DisplayName?.Length > 32 || hello.Ticket?.Length > 4096)
             {
                 Reject(connection, "协议、内容版本或名称不兼容。");
                 return;
@@ -311,26 +371,59 @@ namespace Core.Runtime.Networking
                 pendingHellos[connection.ClientId] = hello;
                 return;
             }
-            if (serverMembers.Count >= capacity)
-            {
-                Reject(connection, "房间人数已满。");
-                return;
-            }
-            bool allowed;
+            NetworkAuthenticationResult authentication;
             try
             {
-                allowed = admissionRule?.Invoke() ?? true;
+                authentication = authenticationRule != null
+                    ? authenticationRule(new NetworkAuthenticationRequest(connection.ClientId, hello.Ticket, hello.DisplayName,
+                        hello.Protocol, hello.ContentVersion))
+                    : new NetworkAuthenticationResult(!serverOnly, connection.ClientId.ToString(), hello.DisplayName);
             }
             catch (Exception exception)
             {
                 Debug.LogException(exception);
-                Reject(connection, "房间当前无法加入，请稍后重试。");
+                Reject(connection, "服务器认证失败。");
                 return;
             }
-            if (!allowed)
+            if (!authentication.Accepted)
             {
-                Reject(connection, "房间人数已满或比赛已开始。");
+                Reject(connection, string.IsNullOrWhiteSpace(authentication.Reason) ? "入房凭据无效。" : authentication.Reason);
                 return;
+            }
+            if (string.IsNullOrWhiteSpace(authentication.MemberId) || authentication.MemberId.Length > 128 ||
+                authentication.DisplayName?.Length > 32 || serverOnly && authentication.MemberId == AuthorityMemberId)
+            {
+                Reject(connection, "服务器认证返回的成员身份或名称无效。");
+                return;
+            }
+            var duplicate = serverMembers.Values.FirstOrDefault(member => member.Id == authentication.MemberId);
+            bool replacing = duplicate.Id != null;
+            NetworkConnection previousConnection = null;
+            if (replacing && manager.ServerManager.Clients.TryGetValue(duplicate.ConnectionId, out previousConnection) &&
+                previousConnection.IsValid && !authentication.ReplaceExistingConnection)
+            {
+                Reject(connection, "该成员已有在线连接。");
+                return;
+            }
+            if (!replacing)
+            {
+                bool allowed;
+                try
+                {
+                    bool restoring = serverOnly && authentication.ReplaceExistingConnection && admittedMemberIds.Contains(authentication.MemberId);
+                    allowed = serverMembers.Count < capacity && (restoring || (admissionRule?.Invoke() ?? true));
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
+                    Reject(connection, "房间当前无法加入，请稍后重试。");
+                    return;
+                }
+                if (!allowed)
+                {
+                    Reject(connection, "房间人数已满或比赛已开始。");
+                    return;
+                }
             }
             var instance = manager.GetPooledInstantiated(runtime.PredictionPrefab, asServer: true);
             if (instance == null)
@@ -338,7 +431,22 @@ namespace Core.Runtime.Networking
                 Reject(connection, "预测载体未加入 SpawnablePrefabs。");
                 return;
             }
-            serverMembers.Add(connection.ClientId, hello.DisplayName ?? string.Empty);
+            if (replacing)
+            {
+                // 先解除旧身份/载体，防止旧连接最后一个收包继续修改同一名车手。
+                RemoveServerMember(duplicate.ConnectionId);
+                previousConnection?.Kick(KickReason.Unset);
+            }
+            serverMembers.Add(connection.ClientId, new SessionMember
+            {
+                ConnectionId = connection.ClientId, Id = authentication.MemberId, DisplayName = authentication.DisplayName ?? string.Empty
+            });
+            admittedMemberIds.Add(authentication.MemberId);
+            if (!serverOnly && manager.ClientManager.Connection.ClientId == connection.ClientId)
+            {
+                LocalMemberId = authentication.MemberId;
+                AuthorityMemberId = authentication.MemberId;
+            }
             PublishMembers();
             manager.SceneManager.AddConnectionToScene(connection, instance.gameObject.scene);
             manager.ServerManager.Spawn(instance, connection);
@@ -359,8 +467,8 @@ namespace Core.Runtime.Networking
 
         private void PublishMembers()
         {
-            var roster = serverMembers.OrderBy(pair => pair.Key).Select(pair => new SessionMember { Id = pair.Key, DisplayName = pair.Value }).ToArray();
-            memberIds = new HashSet<int>(serverMembers.Keys);
+            var roster = serverMembers.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToArray();
+            memberIds = roster.ToDictionary(member => member.ConnectionId, member => member.Id);
             if (State == NetworkSessionState.Joined)
             {
                 UpdateLocalMembers(roster);
@@ -373,8 +481,8 @@ namespace Core.Runtime.Networking
                 }
                 manager.ServerManager.Broadcast(connection, new SessionWelcome
                 {
-                    Protocol = protocol, ContentVersion = contentVersion, Capacity = capacity, LocalId = id,
-                    AuthorityId = int.TryParse(AuthorityMemberId, out int hostId) ? hostId : -1, Members = roster
+                    Protocol = protocol, ContentVersion = contentVersion, Capacity = capacity, LocalId = serverMembers[id].Id,
+                    AuthorityId = AuthorityMemberId, Members = roster
                 });
             }
         }
@@ -391,22 +499,25 @@ namespace Core.Runtime.Networking
                 return;
             }
             int actualId = manager.ClientManager.Connection.ClientId;
-            if (welcome.Protocol != protocol || welcome.ContentVersion != contentVersion || welcome.LocalId != actualId ||
+            if (welcome.Protocol != protocol || welcome.ContentVersion != contentVersion || string.IsNullOrWhiteSpace(welcome.LocalId) ||
+                string.IsNullOrWhiteSpace(welcome.AuthorityId) || welcome.AuthorityId.Length > 128 ||
                 welcome.Capacity < 1 || welcome.Capacity > 8 || welcome.Members == null || welcome.Members.Length > welcome.Capacity ||
-                !welcome.Members.Any(member => member.Id == actualId) || !welcome.Members.Any(member => member.Id == welcome.AuthorityId) ||
-                welcome.Members.Any(member => member.Id < 0 || member.DisplayName?.Length > 32) || welcome.Members.Select(member => member.Id).Distinct().Count() != welcome.Members.Length)
+                !welcome.Members.Any(member => member.ConnectionId == actualId && member.Id == welcome.LocalId) ||
+                welcome.Members.Any(member => member.ConnectionId < 0 || string.IsNullOrWhiteSpace(member.Id) || member.Id.Length > 128 || member.DisplayName?.Length > 32) ||
+                welcome.Members.Select(member => member.Id).Distinct().Count() != welcome.Members.Length ||
+                welcome.Members.Select(member => member.ConnectionId).Distinct().Count() != welcome.Members.Length)
             {
                 Fail(new InvalidOperationException("Host 的会话信息无效或版本不兼容。"));
                 return;
             }
-            LocalMemberId = actualId.ToString();
-            AuthorityMemberId = welcome.AuthorityId.ToString();
+            LocalMemberId = welcome.LocalId;
+            AuthorityMemberId = welcome.AuthorityId;
             capacity = welcome.Capacity;
             SessionMember[] roster = IsAuthority
-                ? serverMembers.OrderBy(pair => pair.Key).Select(pair => new SessionMember { Id = pair.Key, DisplayName = pair.Value }).ToArray()
+                ? serverMembers.OrderBy(pair => pair.Key).Select(pair => pair.Value).ToArray()
                 : welcome.Members;
-            memberIds = new HashSet<int>(roster.Select(member => member.Id));
-            members = Array.AsReadOnly(roster.Select(member => new NetworkMemberInfo(member.Id.ToString(), member.DisplayName, member.Id == actualId)).ToArray());
+            memberIds = roster.ToDictionary(member => member.ConnectionId, member => member.Id);
+            members = Array.AsReadOnly(roster.Select(member => new NetworkMemberInfo(member.Id, member.DisplayName, member.Id == LocalMemberId)).ToArray());
             bool entering = State == NetworkSessionState.Connecting;
             CurrentSession ??= new NetworkSessionInfo(endpoint, port, contentVersion, capacity);
             if (entering)
@@ -424,8 +535,8 @@ namespace Core.Runtime.Networking
 
         private void UpdateLocalMembers(SessionMember[] roster)
         {
-            members = Array.AsReadOnly(roster.Select(member => new NetworkMemberInfo(member.Id.ToString(), member.DisplayName,
-                member.Id.ToString() == LocalMemberId)).ToArray());
+            members = Array.AsReadOnly(roster.Select(member => new NetworkMemberInfo(member.Id, member.DisplayName,
+                member.Id == LocalMemberId)).ToArray());
             // 服务器立即更新业务人数，两个同帧握手不能共同占用最后一个名额。
             Emit(MembersChanged, members);
         }
@@ -438,19 +549,28 @@ namespace Core.Runtime.Networking
             }
             rejectingMembers.Remove(connection.ClientId);
             pendingHellos.Remove(connection.ClientId);
-            if (!serverMembers.Remove(connection.ClientId))
+            if (RemoveServerMember(connection.ClientId))
             {
-                return;
+                PublishMembers();
             }
-            if (bridges.Remove(connection.ClientId, out var bridge) && bridge != null && bridge.IsSpawned)
+        }
+
+        private bool RemoveServerMember(int connectionId)
+        {
+            if (!serverMembers.Remove(connectionId, out var member))
+            {
+                return false;
+            }
+            memberIds.Remove(connectionId);
+            if (bridges.Remove(connectionId, out var bridge) && bridge != null && bridge.IsSpawned)
             {
                 manager.ServerManager.Despawn(bridge);
             }
-            foreach (var key in commandSequences.Keys.Where(key => key.Item1 == connection.ClientId).ToArray())
+            foreach (var key in commandSequences.Keys.Where(key => key.Item1 == member.Id).ToArray())
             {
                 commandSequences.Remove(key);
             }
-            PublishMembers();
+            return true;
         }
 
         private void OnClientState(ClientConnectionStateArgs args)
@@ -463,6 +583,14 @@ namespace Core.Runtime.Networking
 
         private void OnServerState(ServerConnectionStateArgs args)
         {
+            if (args.ConnectionState == LocalConnectionState.Started && serverOnly && !shuttingDown && State == NetworkSessionState.Connecting)
+            {
+                CurrentSession = new NetworkSessionInfo(endpoint, port, contentVersion, capacity);
+                SetState(NetworkSessionState.Joined);
+                Emit(SessionChanged, CurrentSession);
+                Emit(AuthorityChanged, new NetworkAuthorityInfo(AuthorityMemberId, 1));
+                joined.TrySetResult(CurrentSession);
+            }
             if (args.ConnectionState == LocalConnectionState.Stopped && !shuttingDown)
             {
                 Fail(new InvalidOperationException("Host 已停止。"));
@@ -500,7 +628,11 @@ namespace Core.Runtime.Networking
             }
         }
 
-        internal bool IsKnownMember(int id) => memberIds.Contains(id) && !rejectingMembers.Contains(id);
+        internal bool TryGetMemberId(int connectionId, out string memberId)
+        {
+            memberId = null;
+            return !rejectingMembers.Contains(connectionId) && memberIds.TryGetValue(connectionId, out memberId);
+        }
 
         internal void Reject(NetworkConnection connection, string error)
         {
@@ -583,7 +715,11 @@ namespace Core.Runtime.Networking
             var message = new SessionCommand { Channel = command.Channel, Sequence = command.Sequence, Payload = payload };
             if (IsAuthority)
             {
-                OnCommand(manager.ServerManager.Clients[int.Parse(LocalMemberId)], message, Channel.Reliable);
+                if (serverOnly)
+                {
+                    throw new InvalidOperationException("独立服务器没有本地玩家，不能提交玩家命令。");
+                }
+                OnCommand(manager.ClientManager.Connection, message, Channel.Reliable);
             }
             else
             {
@@ -594,7 +730,7 @@ namespace Core.Runtime.Networking
 
         private void OnCommand(NetworkConnection connection, SessionCommand command, Channel channel)
         {
-            if (State != NetworkSessionState.Joined || !IsKnownMember(connection.ClientId))
+            if (State != NetworkSessionState.Joined || !TryGetMemberId(connection.ClientId, out string memberId))
             {
                 return;
             }
@@ -603,13 +739,13 @@ namespace Core.Runtime.Networking
                 Reject(connection, "命令载荷无效或超过上限。");
                 return;
             }
-            var key = (connection.ClientId, command.Channel);
+            var key = (memberId, command.Channel);
             if (commandSequences.TryGetValue(key, out ulong latest) && command.Sequence <= latest)
             {
                 return;
             }
             commandSequences[key] = command.Sequence;
-            Emit(CommandReceived, new NetworkCommandEvent(connection.ClientId.ToString(), 1, new NetworkCommand(command.Channel, command.Sequence, command.Payload)));
+            Emit(CommandReceived, new NetworkCommandEvent(memberId, 1, new NetworkCommand(command.Channel, command.Sequence, command.Payload)));
         }
 
         /// <inheritdoc />
@@ -671,7 +807,11 @@ namespace Core.Runtime.Networking
             }
             if (IsAuthority)
             {
-                OnAvatarCommand(manager.ServerManager.Clients[int.Parse(LocalMemberId)], wire, Channel.Unreliable);
+                if (serverOnly)
+                {
+                    throw new InvalidOperationException("独立服务器没有本地玩家姿态。");
+                }
+                OnAvatarCommand(manager.ClientManager.Connection, wire, Channel.Unreliable);
             }
             else
             {
@@ -681,7 +821,7 @@ namespace Core.Runtime.Networking
 
         private void OnAvatarCommand(NetworkConnection connection, SessionAvatar wire, Channel channel)
         {
-            if (State != NetworkSessionState.Joined || !IsKnownMember(connection.ClientId))
+            if (State != NetworkSessionState.Joined || !TryGetMemberId(connection.ClientId, out string memberId))
             {
                 return;
             }
@@ -690,15 +830,19 @@ namespace Core.Runtime.Networking
                 Reject(connection, "姿态包含非有限数值。");
                 return;
             }
-            wire.Id = connection.ClientId;
+            wire.Id = memberId;
             manager.ServerManager.Broadcast(wire, channel: Channel.Unreliable);
+            if (serverOnly)
+            {
+                OnAvatar(wire, channel);
+            }
         }
 
         private void OnAvatar(SessionAvatar wire, Channel channel)
         {
-            if (State == NetworkSessionState.Joined && IsKnownMember(wire.Id) && Finite(wire))
+            if (State == NetworkSessionState.Joined && memberIds.Values.Contains(wire.Id) && Finite(wire))
             {
-                Emit(AvatarPoseReceived, new NetworkAvatarPoseEvent(wire.Id.ToString(), new NetworkAvatarPose(wire.Position, wire.Rotation, wire.HeadPitch)));
+                Emit(AvatarPoseReceived, new NetworkAvatarPoseEvent(wire.Id, new NetworkAvatarPose(wire.Position, wire.Rotation, wire.HeadPitch)));
             }
         }
 
@@ -801,12 +945,18 @@ namespace Core.Runtime.Networking
             connectionCancellation?.Dispose();
             connectionCancellation = null;
             admissionRule = null;
+            authenticationRule = null;
             Unsubscribe();
             if (runtime != null)
             {
                 runtime.Service = null;
             }
             loader?.Dispose();
+            if (ownedHost != null)
+            {
+                UnityEngine.Object.Destroy(ownedHost);
+                ownedHost = null;
+            }
             loader = null;
             manager = null;
             runtime = null;
@@ -815,6 +965,7 @@ namespace Core.Runtime.Networking
             predictionBridges.Clear();
             rejectingMembers.Clear();
             serverMembers.Clear();
+            admittedMemberIds.Clear();
             memberIds.Clear();
             commandSequences.Clear();
             snapshots.Clear();
@@ -822,6 +973,8 @@ namespace Core.Runtime.Networking
             members = Array.AsReadOnly(Array.Empty<NetworkMemberInfo>());
             CurrentSession = null;
             LocalMemberId = AuthorityMemberId = null;
+            ticket = null;
+            serverOnly = false;
             lastAuthorityTick = uint.MaxValue;
             Emit(SessionChanged, null);
             Emit(MembersChanged, members);

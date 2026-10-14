@@ -11,6 +11,14 @@ namespace Hotfix.KagitKart
     {
         /// 本 Demo 的房间规则，SDK 连接由公共网络层持有。
         public KagitKartNetworkRoom Network { get; private set; }
+        private UniTaskCompletionSource onlineConnectionCompleted;
+        private UniTaskCompletionSource onlineLeaveCompleted;
+        private bool cancelingOnlineConnection;
+
+        /// 当前表单仍拥有首次连接流程，包括目录请求与传输清理。
+        public bool ConnectingOnlineRoom => onlineConnectionCompleted != null;
+        /// 取消请求已提交，原连接尚在独占收口。
+        public bool CancelingOnlineConnection => cancelingOnlineConnection;
 
         private bool ApplyOnlineCommand(KagitKartAction action)
         {
@@ -28,7 +36,7 @@ namespace Hotfix.KagitKart
             }
             if (action is KagitKartJoinRoomAction join)
             {
-                JoinOnlineRoomAsync(join.Address, join.Port, join.DisplayName).Forget();
+                JoinOnlineRoomAsync(join.Code, join.DisplayName).Forget();
                 return true;
             }
             switch (action.Command)
@@ -55,9 +63,9 @@ namespace Hotfix.KagitKart
                 case KagitKartCommand.ChooseOnlineCharacter:
                     Network?.ChooseCharacter(action.Id);
                     return true;
-                case KagitKartCommand.CopyAddress:
-                    GUIUtility.systemCopyBuffer = Network?.Address ?? string.Empty;
-                    Feedback = "连接地址已复制。";
+                case KagitKartCommand.CopyCode:
+                    GUIUtility.systemCopyBuffer = Network?.Code ?? string.Empty;
+                    Feedback = "联机码已复制。";
                     Dispatch(KagitKartCommand.Refresh);
                     return true;
                 case KagitKartCommand.ReturnRoom:
@@ -92,7 +100,7 @@ namespace Hotfix.KagitKart
             return false;
         }
 
-        /// <summary>创建玩家 Host 房间；错误保留在当前表单。</summary>
+        /// <summary>创建独立服务器房间并以普通客户端加入；错误保留在当前表单。</summary>
         /// <param name="name">房间名称。</param>
         /// <param name="capacity">2、4或8。</param>
         /// <param name="mode">单场或大奖赛。</param>
@@ -100,6 +108,12 @@ namespace Hotfix.KagitKart
         /// <param name="trackId">原作赛道。</param>
         public async UniTask CreateOnlineRoomAsync(string name, int capacity, KagitKartRaceMode mode, int speedClass, string trackId)
         {
+            if (Busy || onlineConnectionCompleted != null)
+            {
+                return;
+            }
+            var completion = new UniTaskCompletionSource();
+            onlineConnectionCompleted = completion;
             busy = true;
             Feedback = null;
             Dispatch(KagitKartCommand.Refresh);
@@ -107,6 +121,11 @@ namespace Hotfix.KagitKart
             {
                 Network ??= new KagitKartNetworkRoom(this, lifetimeCancellation.Token);
                 await Network.CreateAsync(new KagitKartRoomState { Name = name, Capacity = capacity, Mode = mode, SpeedClass = speedClass, TrackId = trackId });
+                if (cancelingOnlineConnection)
+                {
+                    throw new OperationCanceledException();
+                }
+                lifetimeCancellation.Token.ThrowIfCancellationRequested();
                 await OpenMenuAsync(KagitKartCommand.Room);
             }
             catch (Exception exception)
@@ -116,23 +135,41 @@ namespace Hotfix.KagitKart
             finally
             {
                 busy = false;
-                Dispatch(KagitKartCommand.Refresh);
+                if (Network?.ConnectionCleanupPending != true)
+                {
+                    onlineConnectionCompleted = null;
+                }
+                completion.TrySetResult();
+                if (this != null && !exiting)
+                {
+                    Dispatch(KagitKartCommand.Refresh);
+                }
             }
         }
 
-        /// <summary>按地址连接房主；失败不自动退回离线。</summary>
-        /// <param name="address">房主IP或域名。</param>
-        /// <param name="port">监听端口。</param>
+        /// <summary>按六位联机码连接独立服务器；失败保留表单。</summary>
+        /// <param name="code">保留前导零的六位数字联机码。</param>
         /// <param name="displayName">玩家显示名。</param>
-        public async UniTask JoinOnlineRoomAsync(string address, ushort port, string displayName)
+        public async UniTask JoinOnlineRoomAsync(string code, string displayName)
         {
+            if (Busy || onlineConnectionCompleted != null)
+            {
+                return;
+            }
+            var completion = new UniTaskCompletionSource();
+            onlineConnectionCompleted = completion;
             busy = true;
             Feedback = null;
             Dispatch(KagitKartCommand.Refresh);
             try
             {
                 Network ??= new KagitKartNetworkRoom(this, lifetimeCancellation.Token);
-                await Network.JoinAsync(address, port, displayName);
+                await Network.JoinAsync(code, displayName);
+                if (cancelingOnlineConnection)
+                {
+                    throw new OperationCanceledException();
+                }
+                lifetimeCancellation.Token.ThrowIfCancellationRequested();
                 await OpenMenuAsync(KagitKartCommand.Room);
             }
             catch (Exception exception)
@@ -142,7 +179,56 @@ namespace Hotfix.KagitKart
             finally
             {
                 busy = false;
-                Dispatch(KagitKartCommand.Refresh);
+                if (Network?.ConnectionCleanupPending != true)
+                {
+                    onlineConnectionCompleted = null;
+                }
+                completion.TrySetResult();
+                if (this != null && !exiting)
+                {
+                    Dispatch(KagitKartCommand.Refresh);
+                }
+            }
+        }
+
+        /// 取消表单当前连接，等待网络和 World 原流程结束后再返回联机入口。
+        public async UniTask CancelOnlineRoomConnectionAsync()
+        {
+            var completion = onlineConnectionCompleted;
+            var network = Network;
+            if (completion == null || network == null || cancelingOnlineConnection)
+            {
+                return;
+            }
+            cancelingOnlineConnection = true;
+            Feedback = "正在取消连接，请稍候……";
+            Dispatch(KagitKartCommand.Refresh);
+            try
+            {
+                await network.CancelConnectionAsync();
+                await completion.Task;
+                // 取消恰好发生在 UDP 已成功返回之后时，仍需撤销刚得到的身份。
+                await network.LeaveAsync();
+                onlineConnectionCompleted = null;
+                if (this == null || exiting || lifetimeCancellation.IsCancellationRequested)
+                {
+                    return;
+                }
+                Feedback = "已取消连接。";
+                await OpenMenuAsync(KagitKartCommand.Online);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                Feedback = "取消连接失败：" + exception.Message;
+                Debug.LogException(exception, this);
+            }
+            finally
+            {
+                cancelingOnlineConnection = false;
+                if (this != null && !exiting)
+                {
+                    Dispatch(KagitKartCommand.Refresh);
+                }
             }
         }
 
@@ -178,14 +264,16 @@ namespace Hotfix.KagitKart
             CharacterId = player.CharacterId;
             if (Mode == KagitKartRaceMode.GrandPrix)
             {
-                if (GrandPrix == null || GrandPrix.Completed || TrackId == "meadow") GrandPrix = new KagitKartGrandPrix(source.roster);
-                else if (GrandPrix.TrackId != TrackId && !GrandPrix.NextRound()) throw new InvalidOperationException("上一场大奖赛尚未完成。");
+                GrandPrix = new KagitKartGrandPrix(source.roster);
+                if (room.CupPoints != null) GrandPrix.RestoreNetworkState(room.CupIndex, false, room.CupPoints, room.CupPlaces, room.CupTimes);
             }
             else
             {
                 GrandPrix = null;
             }
             await StartRoundAsync(preparationToken);
+            if (GrandPrix != null && room.CupRoundComplete)
+                GrandPrix.RestoreNetworkState(room.CupIndex, true, room.CupPoints, room.CupPlaces, room.CupTimes);
         }
 
         internal void BeginOnlineCountdown()
@@ -216,26 +304,103 @@ namespace Hotfix.KagitKart
             await OpenMenuAsync(KagitKartCommand.Room);
         }
 
-        private async UniTask LeaveOnlineRoomAsync()
+        private UniTask LeaveOnlineRoomAsync()
+        {
+            if (onlineLeaveCompleted != null)
+            {
+                return onlineLeaveCompleted.Task;
+            }
+            var completion = new UniTaskCompletionSource();
+            onlineLeaveCompleted = completion;
+            LeaveOnlineRoomCoreAsync(completion).Forget();
+            return completion.Task;
+        }
+
+        private async UniTask LeaveOnlineRoomCoreAsync(UniTaskCompletionSource completion)
         {
             busy = true;
             try
             {
                 if (Network != null) await Network.LeaveAsync();
+                var connection = onlineConnectionCompleted;
+                if (connection != null)
+                {
+                    await connection.Task;
+                }
+                if (this == null || exiting || lifetimeCancellation.IsCancellationRequested)
+                {
+                    return;
+                }
+                await CloseReconnectAsync();
+                await OpenMenuAsync(KagitKartCommand.Online);
+            }
+            catch (Exception exception)
+            {
+                completion.TrySetException(exception);
             }
             finally
             {
                 busy = false;
-                Dispatch(KagitKartCommand.Refresh);
+                onlineLeaveCompleted = null;
+                if (Network?.ConnectionCleanupPending != true)
+                {
+                    onlineConnectionCompleted = null;
+                }
+                if (this != null && !exiting)
+                {
+                    Dispatch(KagitKartCommand.Refresh);
+                }
+                completion.TrySetResult();
             }
-            await OpenMenuAsync(KagitKartCommand.Online);
         }
 
         internal async UniTask OnOnlineDisconnectedAsync()
         {
             if (exiting) return;
-            Feedback = "房主已离线或连接中断，房间已结束。";
+            Feedback = Network?.Status ?? "服务器连接已中断，请重新加入。";
             await LeaveOnlineRoomAsync();
+        }
+
+        internal void OnReconnectStarted()
+        {
+            Input.SetDriving(false);
+            ShowReconnectAsync().Forget(Debug.LogException);
+        }
+
+        private View reconnectView;
+
+        private async UniTask ShowReconnectAsync()
+        {
+            reconnectView = await UIManager.Instance.OpenAsync<KagitKartReconnectView>(view => view.SetData(this),
+                new UIOpenOptions(animated: false), lifetimeCancellation.Token);
+            if (Network?.Reconnecting != true) await CloseReconnectAsync();
+        }
+
+        internal void OnReconnectFinished() => CloseReconnectAsync().Forget(Debug.LogException);
+
+        internal void OnNetworkStateRestored()
+        {
+            if (Session?.Race.State == KagitKartRaceState.Countdown) BeginOnlineCountdown();
+            else if (Session != null)
+            {
+                cinematics?.SkipIntro();
+                audio.RestoreNetworkPlayback();
+                Input.SetDriving(Session.Race.State != KagitKartRaceState.Done);
+            }
+            if (Session?.Race.State == KagitKartRaceState.Done)
+            {
+                Input.SetDriving(false);
+                SynchronizeModalAsync().Forget();
+            }
+            Dispatch(KagitKartCommand.Refresh);
+        }
+
+        private async UniTask CloseReconnectAsync()
+        {
+            if (reconnectView == null) return;
+            var view = reconnectView;
+            reconnectView = null;
+            await UIManager.Instance.CloseAsync(view);
         }
     }
 }

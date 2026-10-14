@@ -38,7 +38,7 @@ namespace Hotfix.KagitKart
         Ready,
         StartOnlineRace,
         ChooseOnlineCharacter,
-        CopyAddress,
+        CopyCode,
         ReturnRoom
     }
 
@@ -99,23 +99,20 @@ namespace Hotfix.KagitKart
         }
     }
 
-    /// 连接玩家房主的地址表单。
+    /// 按联机码查找独立服务器的加入表单。
     public sealed class KagitKartJoinRoomAction : KagitKartAction
     {
-        public string Address;
-        public ushort Port;
+        public string Code;
         public string DisplayName;
 
         /// <summary>提交加入请求，身份由网络层分配。</summary>
         /// <param name="world">当前场景宿主。</param>
-        /// <param name="address">房主IP或域名。</param>
-        /// <param name="port">有效端口，默认表单为7777。</param>
+        /// <param name="code">保留前导零的六位数字联机码。</param>
         /// <param name="displayName">仅用于显示。</param>
-        public KagitKartJoinRoomAction(KagitKartWorld world, string address, ushort port, string displayName)
+        public KagitKartJoinRoomAction(KagitKartWorld world, string code, string displayName)
             : base(world, KagitKartCommand.JoinRoom)
         {
-            Address = address;
-            Port = port;
+            Code = code;
             DisplayName = displayName;
         }
     }

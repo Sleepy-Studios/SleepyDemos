@@ -1,6 +1,8 @@
 namespace Hotfix
 {
     using Core.Runtime;
+    using Cysharp.Threading.Tasks;
+    using TMPro;
     using Hotfix.KagitKart;
     using UnityEngine;
     using UnityEngine.EventSystems;
@@ -16,9 +18,11 @@ namespace Hotfix
         private KagitKartRaceMode mode;
         private bool updating;
         private string validationMessage;
+        private TMP_Text backLabel;
 
         protected override void OnGameObjectInitialize()
         {
+            backLabel = Button_Back.GetComponentInChildren<TMP_Text>(true);
             Button_Capacity.onClick.AddListener(() =>
             {
                 capacity = capacity == 2 ? 4 : capacity == 4 ? 8 : 2;
@@ -123,12 +127,30 @@ namespace Hotfix
             TMP_InputField_RoomName.interactable = Button_Capacity.interactable = Button_Mode.interactable
                 = Button_SpeedClass.interactable = Button_Confirm.interactable = editable;
             Button_Track.interactable = editable && mode == KagitKartRaceMode.SingleRace;
-            Button_Back.interactable = !world.Busy;
+            Button_Back.interactable = !world.Busy || !updating && world.ConnectingOnlineRoom && !world.CancelingOnlineConnection;
+            if (backLabel != null)
+            {
+                backLabel.text = world.CancelingOnlineConnection ? "正在取消…" : world.ConnectingOnlineRoom ? "取消连接" : "返回";
+            }
             TextMeshProUGUI_Status.text = validationMessage ?? world.Feedback
                 ?? (updating ? "修改配置会取消车手准备；点击选项切换。" : "点击选项切换；大奖赛从第一章开始。");
         }
 
-        private void Back() => world?.Dispatch(updating ? KagitKartCommand.Room : KagitKartCommand.Online);
+        private void Back()
+        {
+            if (world == null)
+            {
+                return;
+            }
+            if (!updating && world.ConnectingOnlineRoom)
+            {
+                world.CancelOnlineRoomConnectionAsync().Forget(Debug.LogException);
+            }
+            else if (!world.Busy)
+            {
+                world.Dispatch(updating ? KagitKartCommand.Room : KagitKartCommand.Online);
+            }
+        }
 
         protected override void OnHide() => world = null;
 

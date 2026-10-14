@@ -32,6 +32,7 @@ namespace Hotfix.KagitKart
             }
             // ui.js 在 raceSetup 保存积分；源 prevOrder 只按分数稳定排序，同分保留首场字典插入顺序。
             var standings = GrandPrix.SortedStandings();
+            cupResultOrder ??= standings.Select(row => row.CharacterId).ToArray();
             previousStandingOrder = cupResultOrder.OrderByDescending(id => standings.First(row => row.CharacterId == id).Points).ToArray();
         }
 

@@ -2,6 +2,8 @@ namespace Hotfix
 {
     using System;
     using Core.Runtime;
+    using Cysharp.Threading.Tasks;
+    using TMPro;
     using Hotfix.KagitKart;
     using UnityEngine;
     using UnityEngine.EventSystems;
@@ -12,19 +14,20 @@ namespace Hotfix
     {
         private KagitKartWorld world;
         private string validationMessage;
+        private TMP_Text backLabel;
 
         protected override void OnGameObjectInitialize()
         {
+            backLabel = Button_Back.GetComponentInChildren<TMP_Text>(true);
             Button_Confirm.onClick.AddListener(Submit);
             Button_Back.onClick.AddListener(Back);
-            TMP_InputField_Address.onValueChanged.AddListener(ClearValidation);
-            TMP_InputField_Port.onValueChanged.AddListener(ClearValidation);
+            TMP_InputField_Code.onValueChanged.AddListener(ClearValidation);
             TMP_InputField_DisplayName.onValueChanged.AddListener(ClearValidation);
             UIMenuScope_Sheet.Canceled += Back;
             BindData<KagitKartData>(_ => Render());
         }
 
-        /// <summary>打开地址表单，不启动网络连接。</summary>
+        /// <summary>打开联机码表单，不启动网络连接。</summary>
         /// <param name="owner">当前 Demo 宿主；连接仅在用户确认时提交。</param>
         public void SetData(KagitKartWorld owner)
         {
@@ -53,25 +56,16 @@ namespace Hotfix
             {
                 return;
             }
-            string address = TMP_InputField_Address.text.Trim();
+            string code = TMP_InputField_Code.text.Trim().Replace(" ", "");
             string displayName = TMP_InputField_DisplayName.text.Trim();
-            bool validPort = ushort.TryParse(TMP_InputField_Port.text, out ushort port) && port > 0;
-            // 复制房间地址包含端口，允许整段粘贴到地址框。
-            if (Uri.TryCreate("udp://" + address, UriKind.Absolute, out var endpoint) && endpoint.Port > 0 && endpoint.Port <= ushort.MaxValue)
+            if (code.Length != 6 || !System.Linq.Enumerable.All(code, value => value >= '0' && value <= '9') || displayName.Length is < 1 or > 32)
             {
-                address = endpoint.Host;
-                port = (ushort)endpoint.Port;
-                validPort = true;
-                TMP_InputField_Port.SetTextWithoutNotify(port.ToString());
-            }
-            if (address.Length == 0 || displayName.Length == 0 || !validPort)
-            {
-                validationMessage = "请输入车手名字、房主地址和 1-65535 的端口。";
+                validationMessage = "请输入车手名字和6位数字联机码。";
                 Render();
                 return;
             }
             validationMessage = null;
-            GlobalData.Dispatch(new KagitKartJoinRoomAction(world, address, port, displayName));
+            GlobalData.Dispatch(new KagitKartJoinRoomAction(world, code, displayName));
         }
 
         private void Render()
@@ -81,12 +75,31 @@ namespace Hotfix
                 return;
             }
             KagitKartMenuPaperMotion_Viewport.SetReducedMotion(world.ReducedMotion);
-            TMP_InputField_Address.interactable = TMP_InputField_Port.interactable = TMP_InputField_DisplayName.interactable
-                = Button_Confirm.interactable = Button_Back.interactable = !world.Busy;
-            TextMeshProUGUI_Status.text = validationMessage ?? world.Feedback ?? "输入房主地址，也可粘贴包含端口的完整地址。";
+            TMP_InputField_Code.interactable = TMP_InputField_DisplayName.interactable
+                = Button_Confirm.interactable = !world.Busy;
+            Button_Back.interactable = !world.Busy || world.ConnectingOnlineRoom && !world.CancelingOnlineConnection;
+            if (backLabel != null)
+            {
+                backLabel.text = world.CancelingOnlineConnection ? "正在取消…" : world.ConnectingOnlineRoom ? "取消连接" : "返回";
+            }
+            TextMeshProUGUI_Status.text = validationMessage ?? world.Feedback ?? "输入好友分享的6位联机码。";
         }
 
-        private void Back() => world?.Dispatch(KagitKartCommand.Online);
+        private void Back()
+        {
+            if (world == null)
+            {
+                return;
+            }
+            if (world.ConnectingOnlineRoom)
+            {
+                world.CancelOnlineRoomConnectionAsync().Forget(Debug.LogException);
+            }
+            else if (!world.Busy)
+            {
+                world.Dispatch(KagitKartCommand.Online);
+            }
+        }
 
         protected override void OnHide() => world = null;
 

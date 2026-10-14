@@ -31,8 +31,7 @@ namespace Hotfix
         private UIMenuScope UIMenuScope_Sheet;
         private TextMeshProUGUI TextMeshProUGUI_TitleLabel;
         private TMP_InputField TMP_InputField_DisplayName;
-        private TMP_InputField TMP_InputField_Address;
-        private TMP_InputField TMP_InputField_Port;
+        private TMP_InputField TMP_InputField_Code;
         private Button Button_Confirm;
         private Button Button_Back;
         private TextMeshProUGUI TextMeshProUGUI_Status;
@@ -53,11 +52,10 @@ namespace Hotfix
             UIMenuScope_Sheet = componentItemIndex.Get<UIMenuScope>(3);
             TextMeshProUGUI_TitleLabel = componentItemIndex.Get<TextMeshProUGUI>(4);
             TMP_InputField_DisplayName = componentItemIndex.Get<TMP_InputField>(5);
-            TMP_InputField_Address = componentItemIndex.Get<TMP_InputField>(6);
-            TMP_InputField_Port = componentItemIndex.Get<TMP_InputField>(7);
-            Button_Confirm = componentItemIndex.Get<Button>(8);
-            Button_Back = componentItemIndex.Get<Button>(9);
-            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(10);
+            TMP_InputField_Code = componentItemIndex.Get<TMP_InputField>(6);
+            Button_Confirm = componentItemIndex.Get<Button>(7);
+            Button_Back = componentItemIndex.Get<Button>(8);
+            TextMeshProUGUI_Status = componentItemIndex.Get<TextMeshProUGUI>(9);
         }
     }
 }

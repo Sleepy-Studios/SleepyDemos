@@ -16,11 +16,11 @@ namespace Core.Runtime.Networking
         NetworkSessionInfo CurrentSession { get; }
         /// 当前成员的只读视图；不得包含伪造的离线远端成员。
         IReadOnlyList<NetworkMemberInfo> Members { get; }
-        /// 本地成员身份；未加入时为空。
+        /// 本地成员身份；未加入或仅服务器模式为空。
         string LocalMemberId { get; }
         /// 当前进程是否执行服务器权威规则；Host 不再同时执行客户端预测。
         bool IsAuthority { get; }
-        /// 当前权威成员身份；无权威时为空。
+        /// 当前权威身份；独立服务器不在 Members 中，无权威时为空。
         string AuthorityMemberId { get; }
         /// 同一会话内递增的权威代次。
         ulong AuthorityEpoch { get; }
@@ -46,9 +46,19 @@ namespace Core.Runtime.Networking
         /// <param name="simulation">主线程规则回调，不持有 SDK 类型。</param>
         void RegisterSimulation(INetworkSimulation simulation);
 
-        /// <summary>设置服务器握手时的业务准入条件，尚未通过时不加入成员或创建预测载体。</summary>
-        /// <param name="canJoin">主线程即时判断；null 表示仅使用公共协议和八人上限。</param>
+        /// <summary>设置新成员握手时的业务准入条件；明确授权的旧身份替换或独立服务器断线恢复不受此门闩限制。</summary>
+        /// <param name="canJoin">主线程即时判断；null 只检查公共协议和会话容量，失败不登记成员或创建预测载体。</param>
         void SetAdmissionRule(Func<bool> canJoin);
+
+        /// <summary>设置同步服务器认证；成功后才登记成员并创建预测载体。</summary>
+        /// <param name="authenticate">主线程验证票据并返回可信身份；独立服务器启动前必须配置，null 解除。</param>
+        void SetAuthenticationRule(Func<NetworkAuthenticationRequest, NetworkAuthenticationResult> authenticate);
+
+        /// <summary>仅启动服务器，不创建本地客户端或玩家；失败和取消后释放传输。</summary>
+        /// <param name="options">服务器端点、版本、容量和独立权威身份。</param>
+        /// <param name="cancellationToken">取消启动，底层清理仍须完成。</param>
+        /// <returns>已启动的服务器会话信息。</returns>
+        UniTask<NetworkSessionInfo> StartServerAsync(NetworkServerOptions options, CancellationToken cancellationToken = default);
 
         /// <summary>创建并加入房间；失败或取消后不得遗留 SDK 会话。</summary>
         /// <param name="options">区域、协议、内容版本、容量与本地显示名。</param>

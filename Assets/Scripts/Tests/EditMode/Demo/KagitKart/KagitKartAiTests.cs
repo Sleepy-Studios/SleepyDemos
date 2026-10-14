@@ -13,6 +13,30 @@ namespace Tests.Demo
         private const string Root = "Assets/LoadResources/Demos/kagit_kart/Data/";
         private const double Step = KagitKartSimulationClock.Step;
 
+        [TestCase("meadow")]
+        [TestCase("bosphorus")]
+        [TestCase("glacier")]
+        [TestCase("desk")]
+        public void DedicatedAuthorityBuildsEightCarsWithoutALocalPlayer(string trackId)
+        {
+            var source = ReadSource();
+            var data = ReadTrack(trackId);
+            var grid = Array.ConvertAll(source.roster, character => character.id);
+            using var session = new KagitKartSession(source, data, ReadPlan(trackId, data), KagitKartRaceMode.SingleRace,
+                null, 120, 12345, grid: grid, humanIds: new[] { grid[0], grid[1] });
+            Assert.That(session.Player, Is.Null);
+            Assert.That(session.Karts.Count, Is.EqualTo(8));
+            var inputs = new System.Collections.Generic.Dictionary<string, KagitKartControls>
+            {
+                [grid[0]] = new KagitKartControls { Throttle = .6f, Steer = -.3f },
+                [grid[1]] = new KagitKartControls { Throttle = .7f, Steer = .4f }
+            };
+            for (int i = 0; i < 480; i++) session.AdvanceNetwork((float)Step, inputs);
+            Assert.That(session.Race.State, Is.EqualTo(KagitKartRaceState.Running));
+            Assert.That(session.Karts[0].Controls.Throttle, Is.EqualTo(.6f));
+            Assert.That(session.Karts[1].Controls.Steer, Is.EqualTo(.4f));
+        }
+
         [TestCase("meadow", 80)]
         [TestCase("meadow", 120)]
         [TestCase("meadow", 200)]

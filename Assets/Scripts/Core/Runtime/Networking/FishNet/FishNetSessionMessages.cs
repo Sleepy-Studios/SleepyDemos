@@ -9,6 +9,7 @@ namespace Core.Runtime.Networking
         public ushort Protocol;
         public string ContentVersion;
         public string DisplayName;
+        public string Ticket;
     }
 
     public struct SessionWelcome : IBroadcast
@@ -16,15 +17,16 @@ namespace Core.Runtime.Networking
         public ushort Protocol;
         public string ContentVersion;
         public int Capacity;
-        public int LocalId;
-        public int AuthorityId;
+        public string LocalId;
+        public string AuthorityId;
         public SessionMember[] Members;
         public string Error;
     }
 
     public struct SessionMember
     {
-        public int Id;
+        public int ConnectionId;
+        public string Id;
         public string DisplayName;
     }
 
@@ -45,7 +47,7 @@ namespace Core.Runtime.Networking
 
     public struct SessionAvatar : IBroadcast
     {
-        public int Id;
+        public string Id;
         public Vector3 Position;
         public Quaternion Rotation;
         public float HeadPitch;

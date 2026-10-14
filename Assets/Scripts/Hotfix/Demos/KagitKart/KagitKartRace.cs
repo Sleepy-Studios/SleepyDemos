@@ -186,7 +186,7 @@ namespace Hotfix.KagitKart
                     players++;
                 }
             }
-            if (players != 1 || mode == KagitKartRaceMode.TimeTrial && karts.Count != 1)
+            if ((multiplayer ? players > 1 : players != 1) || mode == KagitKartRaceMode.TimeTrial && karts.Count != 1)
             {
                 throw new ArgumentException("单人比赛必须且只能有一名玩家。", nameof(karts));
             }
@@ -496,9 +496,10 @@ namespace Hotfix.KagitKart
             Emit("raceEnd");
         }
 
+        private bool suppressNetworkSignals;
         private void Emit(string kind, KagitKartVehicle kart = null, int number = 0, double time = 0,
             double? split = null, bool estimated = false) =>
-            Signaled?.Invoke(new KagitKartRaceEvent(kind, kart, number, time, split, estimated));
+            (suppressNetworkSignals ? null : Signaled)?.Invoke(new KagitKartRaceEvent(kind, kart, number, time, split, estimated));
     }
 
     public sealed class KagitKartStanding
@@ -524,6 +525,21 @@ namespace Hotfix.KagitKart
         public string TrackId => Cup[Index];
         public bool Completed => Index == Cup.Length - 1 && committed;
         public bool RoundComplete => committed;
+
+        internal void RestoreNetworkState(int index, bool roundComplete, int[] points, int[] places, double[] times)
+        {
+            if (index is < 0 or > 3 || points?.Length != 8 || places?.Length != 8 || times?.Length != 8)
+                throw new ArgumentException("大奖赛恢复状态无效。");
+            Index = index;
+            committed = roundComplete;
+            for (int i = 0; i < standings.Length; i++)
+            {
+                standings[i].Points = points[i];
+                standings[i].LastPlace = places[i];
+                standings[i].TotalTime = times[i];
+            }
+            Snapshot();
+        }
 
         /// <summary>为完整八角色杯赛创建积分状态。</summary>
         /// <param name="roster">原作八角色，顺序用于完全同分时的稳定排序。</param>

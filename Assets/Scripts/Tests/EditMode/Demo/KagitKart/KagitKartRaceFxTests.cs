@@ -154,6 +154,18 @@ namespace Tests.Demo
                 }
                 Assert.That(kart.Position, Is.EqualTo(Vector3.zero));
                 Assert.Throws<ArgumentException>(() => fx.Advance(float.NaN, camera));
+                if (scenario == "rescue")
+                {
+                    Set(kart, "RescueStage", 1);
+                    signaled(kart, KagitKartVehicleSignal.RescueLift);
+                    fx.Advance(1f / 60, camera);
+                    Assert.That(fx.cranes.Has(kart), Is.True);
+                    fx.Unbind();
+                    using var restored = new KagitKartSession(source, track, plan, KagitKartRaceMode.TimeTrial, "tilki", 120, 12345);
+                    fx.Bind(restored, new[] { actor.transform }, AssetDatabase.LoadAssetAtPath<Material>(Root + "Art/Materials/Stage/Print11.mat"), sun, 12345, source.config.kart);
+                    Assert.That(fx.cranes.Has(kart), Is.False, "恢复新Session后不能保留旧赛车救援引用。");
+                    Assert.DoesNotThrow(() => fx.Advance(1f / 60, camera));
+                }
             }
             finally
             {

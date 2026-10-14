@@ -40,7 +40,7 @@ namespace Hotfix
             });
             Button_Start.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.StartOnlineRace));
             Button_Configure.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.CreateRoom));
-            Button_CopyAddress.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.CopyAddress));
+            Button_CopyCode.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.CopyCode));
             Button_Back.onClick.AddListener(Back);
             UIMenuScope_Sheet.Canceled += Back;
             BindData<KagitKartData>(_ => Render());
@@ -134,9 +134,10 @@ namespace Hotfix
             var room = network?.Room;
             KagitKartMenuPaperMotion_Viewport.SetReducedMotion(world.ReducedMotion);
             TextMeshProUGUI_TitleLabel.text = room?.Name ?? "等待车手";
-            TextMeshProUGUI_RoomInfo.text = room == null ? "" : string.Format("{0}  ·  {1}g  ·  {2}  ·  {3}/{4} 人\n{5}",
+            TextMeshProUGUI_RoomInfo.text = room == null ? "" : string.Format("{0}  ·  {1}g  ·  {2}  ·  {3}/{4} 人",
                 room.Mode == KagitKartRaceMode.GrandPrix ? "大奖赛" : "单场比赛", room.SpeedClass,
-                KagitKartCatalog.TrackName(room.TrackId), room.Players.Length, room.Capacity, network.Address);
+                KagitKartCatalog.TrackName(room.TrackId), room.Players.Length, room.Capacity);
+            TextMeshProUGUI_RoomCode.text = network?.Code ?? "------";
             for (int i = 0; i < members.Length; i++)
             {
                 if (room == null || i >= room.Players.Length)
@@ -159,7 +160,7 @@ namespace Hotfix
             Button_Start.interactable = available && network.CanStart;
             Button_Configure.gameObject.SetActive(network?.IsHost == true);
             Button_Configure.interactable = available && lobby && network.IsHost;
-            Button_CopyAddress.interactable = !world.Busy && !string.IsNullOrEmpty(network?.Address);
+            Button_CopyCode.interactable = !world.Busy && !string.IsNullOrEmpty(network?.Code);
             Button_Back.interactable = !world.Busy;
             TextMeshProUGUI_Status.text = world.Feedback ?? network?.Status ?? "";
         }

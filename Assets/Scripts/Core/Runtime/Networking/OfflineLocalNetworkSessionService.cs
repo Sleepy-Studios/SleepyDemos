@@ -68,6 +68,24 @@ namespace Core.Runtime.Networking
             EnsureNotDisposed();
         }
 
+        /// <inheritdoc />
+        public void SetAuthenticationRule(Func<NetworkAuthenticationRequest, NetworkAuthenticationResult> authenticate)
+        {
+            EnsureNotDisposed();
+            if (authenticate != null)
+            {
+                throw new NotSupportedException("离线会话不提供服务器票据认证。");
+            }
+        }
+
+        /// <inheritdoc />
+        public UniTask<NetworkSessionInfo> StartServerAsync(NetworkServerOptions options, CancellationToken cancellationToken = default)
+        {
+            EnsureNotDisposed();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new NotSupportedException("离线会话不能启动独立服务器。");
+        }
+
         /// <summary>创建仅含本地成员的离线会话，不验证区域网络可达性。</summary>
         /// <param name="options">MaxPlayers 必须为一；其它字段保留上层正式接口。</param>
         /// <param name="cancellationToken">提交前取消不会创建会话。</param>

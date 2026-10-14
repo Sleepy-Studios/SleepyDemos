@@ -52,6 +52,10 @@ namespace Hotfix.KagitKart
 
         internal void Bind(KagitKartSession value, Transform[] kartActors, KagitKartCharacterVisual[] visuals, int themeIndex)
         {
+            // 重赛与重连复用表现资源，救援槽不能继续引用上一场赛车。
+            for (int i = 0; i < slots.Length; i++) slots[i] = new Slot(i);
+            BodyCount = WingCount = 0;
+            prewarm = 3;
             block = new MaterialPropertyBlock();
             session = value;
             actors = kartActors;

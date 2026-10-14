@@ -69,7 +69,7 @@ namespace Hotfix.KagitKart
         public string TrackId { get; private set; } = "meadow";
         public string CharacterId { get; private set; } = "tilki";
         public int SpeedClass { get; private set; } = 120;
-        public bool Busy => busy || exiting;
+        public bool Busy => busy || exiting || cancelingOnlineConnection || onlineLeaveCompleted != null || onlineConnectionCompleted != null;
         public string Feedback { get; private set; }
         public bool IntroPlaying => cinematics?.IntroPlaying == true;
         public bool PodiumPlaying { get; private set; }
@@ -389,7 +389,7 @@ namespace Hotfix.KagitKart
             {
                 return;
             }
-            float alpha = Network?.IsHost == true ? 1 : (float)Session.Interpolation;
+            float alpha = (float)Session.Interpolation;
             float dt = Session.Pause.IsPaused && Network?.Connected != true ? 0 : Mathf.Min(Core.Runtime.TimeControls.GameTimeService.DeltaTime, 0.1f);
             for (int i = 0; i < actors.Length; i++)
             {
@@ -449,7 +449,7 @@ namespace Hotfix.KagitKart
 
         internal void ApplyCommand(KagitKartAction action)
         {
-            if (!ready || Busy || GameSceneNavigator.Instance?.IsTransitioning == true)
+            if (!ready || Busy && action.Command != KagitKartCommand.LeaveRoom || GameSceneNavigator.Instance?.IsTransitioning == true)
             {
                 return;
             }
@@ -832,6 +832,11 @@ namespace Hotfix.KagitKart
                     uiDirty = false;
                     bool results = Session.Race.State == KagitKartRaceState.Done;
                     bool desired = results || Session.Pause.IsPaused;
+                    if (results && modal is KagitKartPauseView)
+                    {
+                        await UIManager.Instance.CloseAsync(modal, animated: false, cancellationToken: lifetimeCancellation.Token);
+                        modal = null;
+                    }
                     if (desired && modal == null)
                     {
                         var token = lifetimeCancellation.Token;

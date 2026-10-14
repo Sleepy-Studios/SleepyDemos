@@ -8,7 +8,7 @@ namespace Core.Runtime.Networking
         byte[] ReadInput();
 
         /// <summary>接收官方 Replicate 本步或重放；服务器这里只收集输入，共享规则在 AuthorityTick 推进一次。</summary>
-        /// <param name="memberId">来自 NetworkObject.Owner 的可信身份。</param>
+        /// <param name="memberId">由 NetworkObject.Owner 的真实连接映射到认证后的稳定身份。</param>
         /// <param name="tick">服务器应用 tick；客户端为官方输入或重放 tick，不能跨时钟直接相减。</param>
         /// <param name="dt">固定 1/120 秒。</param>
         /// <param name="input">输入字节；缺包时可能为空。</param>
@@ -22,12 +22,12 @@ namespace Core.Runtime.Networking
         void AuthorityTick(uint tick, float dt);
 
         /// <summary>捕获指定拥有者完整校正状态，包含会影响后续模拟的隐藏字段。</summary>
-        /// <param name="memberId">被校正的连接身份。</param>
+        /// <param name="memberId">被校正成员的认证稳定身份。</param>
         /// <returns>独立状态，最多 256 KiB；空值表示尚未开始模拟。</returns>
         byte[] CaptureState(string memberId);
 
         /// <summary>应用官方 Reconcile 后，由 FishNet 回放已保留输入。</summary>
-        /// <param name="memberId">拥有者连接身份。</param>
+        /// <param name="memberId">拥有者的认证稳定身份。</param>
         /// <param name="tick">官方校正 tick。</param>
         /// <param name="state">完整状态；不能在回调后修改该数组。</param>
         void Reconcile(string memberId, uint tick, byte[] state);

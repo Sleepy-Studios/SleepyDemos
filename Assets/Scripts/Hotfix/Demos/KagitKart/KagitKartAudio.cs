@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -312,6 +313,17 @@ namespace Hotfix.KagitKart
             intro = false;
             StopMusic(0.9f);
             Play("count", important: true);
+        }
+
+        /// 恢复当前比赛持续声音，不重播倒计时、冲线和道具等历史事件。
+        public void RestoreNetworkPlayback()
+        {
+            if (session == null) return;
+            intro = false;
+            playerFinished = session.Player.Finished || session.Race.State == KagitKartRaceState.Done;
+            finalLap = session.Race.Entries.First(entry => entry.Vehicle == session.Player).Progress.Lap >= session.Race.Laps;
+            for (int i = 0; i < session.Karts.Count; i++) previousPlace[i] = session.Karts[i].Place;
+            PlayMusic(playerFinished ? "results" : finalLap ? "final_" + chapter : chapter);
         }
 
         /// <summary>沿用原作音量平方曲线，静音只作用于本 Demo。</summary>

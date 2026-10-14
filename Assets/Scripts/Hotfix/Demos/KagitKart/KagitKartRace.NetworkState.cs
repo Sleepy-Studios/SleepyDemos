@@ -32,8 +32,10 @@ namespace Hotfix.KagitKart
             }
         }
 
-        internal void ReadNetworkState(BinaryReader reader)
+        internal void ReadNetworkState(BinaryReader reader, bool notify = true)
         {
+            bool previousSuppression = suppressNetworkSignals;
+            suppressNetworkSignals = !notify;
             var before = State;
             int countdown = Countdown;
             State = (KagitKartRaceState)reader.ReadInt32();
@@ -85,9 +87,10 @@ namespace Hotfix.KagitKart
             if (before == KagitKartRaceState.Countdown && State != before) Emit("raceStart");
             if (before != KagitKartRaceState.Done && State == KagitKartRaceState.Done)
             {
-                if (Mode == KagitKartRaceMode.GrandPrix) grandPrix.Commit(results, configuration.race.points);
+                if (Mode == KagitKartRaceMode.GrandPrix && !grandPrix.RoundComplete) grandPrix.Commit(results, configuration.race.points);
                 Emit("raceEnd");
             }
+            suppressNetworkSignals = previousSuppression;
         }
     }
 }

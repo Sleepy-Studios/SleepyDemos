@@ -22,7 +22,8 @@
 | `KagitKartRecordStore` | 原作按赛道、组别、角色保存独立计时记录，单圈和全程独立更新，只有更快全程替换幽灵。 |
 | `KagitKartAiPlan` / `Ai` | 原版静态线路、弯道、捷径探测与实时车手决策；技能和性格、漂移、道具、追赶、避障与救援均保留。 |
 | `KagitKartSession` | 网格、独立随机流、完整固定步模拟顺序、公共暂停门闩及本场实例释放。 |
-| `KagitKartNetworkRoom` | Host房间准入、成员/角色映射、准备与资源门闩、轮次版本、权威输入/结果和大奖赛章间衔接。只调用公共网络接口。 |
+| `KagitKartNetworkRoom` | 独立服务器房间规则、六位码入房、稳定成员/角色映射、准备与资源门闩、60秒重连、房主权限转交、权威输入/结果和大奖赛章间衔接。只调用公共网络接口。 |
+| `KagitKartDedicatedServer` / `KagitKartServerBuild` | 单房零本地玩家的服务器组合根、票据认证、控制心跳与纯规则载入；Editor构建Windows/Linux Mono Dedicated产物并恢复客户端设置。 |
 | `KagitKartRaceResources` | Demo 内共享赛车、道具和效果实例；缓存当前赛道与大奖赛下一章，统一准备、切换、重置与退出释放。 |
 | `KagitKartInput` | 正式动作资产副本、原作按键和单轴死区、触控命令、自动油门、短按锁存和设备切换清理。 |
 | `KagitKartSceneryAsset` / `SceneryWorld` | 四章原生场景数据、实例纸景、折起弹簧与跳台姿态；印刷动画使用宿主的表现时间。 |
@@ -48,19 +49,29 @@
 
 作者的单帧最多八步与丢弃积压仍保留，实际快进受帧率限制：理论最大比赛推进为实际 FPS × 8 / 120。不能保证低帧率下任意请求倍率完整兑现；比赛、圈时和 Ghost 共用模拟时钟，不为快进绕过八步保护。
 
-联机规则由 FishNet 的120Hz网络tick唯一推进，Host不同时执行客户端预测或单人时钟。客户端预测自己的赛车，远端赛车/道具由30Hz共享快照呈现；本地暂停、失焦和UI过渡提交中性输入，服务器比赛继续。Host打开/关闭暂停子页时，UI的Busy状态不阻止权威规则步，也不通过断供输入保留上一油门。联机维护边界见下节，操作见[联机手册](runbooks/multiplayer.md)。
+联机规则由独立服务器 FishNet 的120Hz网络tick唯一推进，没有本地玩家、客户端预测或单人时钟。客户端预测自己的赛车，远端赛车/道具由30Hz共享快照呈现；任何玩家的本地暂停、失焦和UI过渡都提交中性输入，服务器比赛继续。客户端UI的Busy状态不阻止权威规则步，也不通过断供输入保留上一油门。联机维护边界见下节，操作见[联机手册](runbooks/multiplayer.md)。
 
 ## 联机房间与状态同步
 
-`KagitKartWorld.Network.cs` 负责页面与比赛资源生命周期，`KagitKartNetworkRoom.cs` 实现公共 `INetworkSimulation` 并解释房间命令。`KagitKartSession.NetworkState.cs`、`KagitKartVehicle.NetworkState.cs`、`KagitKartItems.NetworkState.cs`、`KagitKartRace.NetworkState.cs` 与 `KagitKartRaceProgress.NetworkState.cs` 维护当前二进制比赛协议；SDK、连接身份、可靠传输、载体Spawn和官方预测历史归[通用网络会话](../../modules/network-session.md)。
+`KagitKartWorld.Network.cs` 负责客户端页面与比赛资源生命周期，`KagitKartNetworkRoom.cs` 实现公共 `INetworkSimulation` 并解释房间命令；`KagitKartDedicatedServer.cs` 是无画面、无本地玩家的单房服务器组合根，不启动客户端资源、音频、页面或个人存档。`KagitKartSession.NetworkState.cs`、`KagitKartVehicle.NetworkState.cs`、`KagitKartItems.NetworkState.cs`、`KagitKartRace.NetworkState.cs` 与 `KagitKartRaceProgress.NetworkState.cs` 维护当前二进制比赛协议；SDK、已认证连接身份、可靠传输、载体Spawn和官方预测历史归[通用网络会话](../../modules/network-session.md)。
 
-房间状态为 `Lobby → Preparing → Racing → Results`。Host只允许大厅准入，角色不能重复，动态容量2/4/8与传输八连接上限分开。成员行使用公共 `AuthorityMemberId` 标识房主，不依赖显示名或成员顺序。开始需要至少两名连接中的真人且全员Ready；每次开始递增RoundVersion、设定种子/网格、清理旧输入和瞬时事件。各端通过真实World准备资源后发送Loaded，全部连接成员Loaded才统一倒计时；60秒准备超时或真人不足回大厅，取消旧轮次任务并清理断线名额。比赛中断线车由Host启用AI托管，Host退出结束整个房间；本版不做权威迁移、观战或比赛中重新加入。
+独立仓库 `SleepyDemos-Server` 的 .NET 10 HTTP 服务负责创建/查询六位联机码、签发 Ticket 和 resumeToken、管理房间进程与端口；一个房间对应一个 Unity Dedicated Server 进程，默认最多4房、内部UDP7777–7780。客户端只填写显示名和六位码，按 `RoomDirectoryClient` 返回的授权连接 FishNet，不让玩家配置IP或端口。当前协议为整数2，内容版本为 `kagit_server_v1`；`StreamingAssets/ServerConnection.json` 只保存开发/部署环境的目录地址。HTTP不承载比赛输入或快照。
+
+房间状态为 `Lobby → Preparing → Racing → Results`。新成员只在大厅准入，角色不能重复，动态容量2/4/8通过控制心跳同步管理器；容量包括在线玩家、离线保留与首次票据30秒预约。服务器不是玩家，`Members` 不含服务器身份。房主权限使用房间 `LeaderMemberId`，与公共会话的服务器 `AuthorityMemberId` 分开；房主断线或主动退出后转交给仍在线玩家，比赛权威进程不迁移。
+
+开始需要至少两名连接中的真人且全员Ready；每次开始递增RoundVersion、设定种子/网格、清理旧输入和瞬时事件。服务器先构造完整规则会话并设置ServerLoaded，客户端World完成资源准备后发送Loaded，服务器和全部在线成员Loaded才统一倒计时；60秒准备超时或在线真人不足回大厅，取消旧轮次任务，旧Loaded/快照不能激活新比赛。
+
+Ticket 使用每房独立密钥的HMAC-SHA256，绑定房间、稳定memberId、显示名、30秒有效期和一次性nonce；Unity认证成功时消费nonce，并拒绝已撤销身份。resumeToken不入日志，绑定原房间与成员。断线保留60秒，赛车AI代驾；客户端自动向目录换取新Ticket，再恢复同一角色、当前比赛完整baseline和杯赛状态。载入期间保留最新快照，Results也必须消费最终baseline；恢复已结算杯赛状态不能再次Commit积分。重连不作为比赛中加入新成员或观战入口。
 
 服务器Replicate只更新真实连接对应的输入，AuthorityTick推进AI、全部赛车、碰撞、道具和比赛规则一次；输入超过120个服务器tick未更新时归零。客户端只预测Vehicle，不独立决定道具命中、圈数、名次或积分。官方Reconcile包含车辆隐藏计时、上一输入、运动/漂移/救援/道具状态及道路查询Index；共享快照保留当前本地拥有者状态，避免覆盖较新的预测，比赛条目的权威Place单独交付排名及冲线事件。预测过程抑制表现信号，权威事件携带发生时的Tier、AirTime、Impact及加速/受击上下文，分发后恢复当前状态。
 
 房间准备/开始与最终赛果使用可靠快照，普通共享比赛状态请求不可靠通道。八车完整快照通常4～8KiB，超过MTU后官方会转为可靠分片并重组，丢片会带来重传与队头等待；约400B的拥有者校正可低于MTU。当前保持完整状态正确性，弱网实测后再决定是否精简呈现快照。不能通过声明不可靠或提高延迟参数忽略这个边界。
 
-联机大奖赛仍按四章积分规则运行，章间返回原房间重新准备，未完成杯赛保持Results阶段，禁止新成员加入或修改选赛。后续章节由Host选择并按积分倒序排网格；后续章准备超时后重试保留当前章节与已提交积分，按同一积分重建逆序网格，不因 `RoundComplete` 已清除而退回默认角色顺序。四章结束后可重开大厅，新杯赛从草原和新积分状态开始。退出网络时先取消准备任务、退订规则事件并解除Simulation，再等待公共LeaveAsync收口后Dispose；资源与View仍由World正常释放。
+联机大奖赛仍按四章积分规则运行，章间返回原房间重新准备，未完成杯赛保持Results阶段，禁止新成员加入或修改选赛。后续章节由房主请求、服务器推进，并按积分倒序排网格；后续章准备超时后重试保留当前章节与已提交积分，按同一积分重建逆序网格。四章结束后可重开大厅，新杯赛从草原和新积分状态开始。
+
+主动退出通过HTTP leave立即撤销resumeToken，管理器在下一心跳响应下发待离开ID；Unity清Connected/Ready/Loaded和重连资格、启用AI并转交房主权限，下一次status确认。这样断线时取消重连也能清席位，不依赖UDP退出后固定等待。客户端取消准备/重连任务、退订事件并解除Simulation，再等待公共LeaveAsync收口后Dispose；资源与View由World释放。Unity每2秒报告ready、阶段、容量、在线/保留/离开成员，管理器每5秒检查，连续15秒无心跳、进程崩溃、曾有玩家后空房或新进程60秒无人连接均回收；正常停服回收自己启动的全部进程。
+
+`Hotfix/Editor/KagitKart/KagitKartServerBuild.cs` 提供Windows/Linux x64 Mono Dedicated构建，入口场景为 `Assets/Scenes/KagitKartServer.unity`；纯规则数据和SHA256清单输出到独立仓库的 `artifacts/game-server/<platform>/`。构建期间禁用HybridCLR过滤器并选择Server Mono，结束完整恢复原PlayerSettings、HybridCLR设置和子目标。服务器直接编入Hotfix规则，不复制源码或走客户端首包；客户端继续既有HybridCLR、资源加载与AppEntrance流程。操作与平台验收见[联机手册](runbooks/multiplayer.md)。
 
 ## 纸印后处理
 
@@ -230,7 +241,7 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 
 ## 验证与维护边界
 
-- 玩家Host操作与联机验收边界见[联机手册](runbooks/multiplayer.md#2026-10-14-联机验收)。2026-10-14 同进程真实UDP公共契约、两个独立Editor完整World、四组UDP抖动/丢包、四章联机大奖赛、失败恢复及GP后续章真实60秒准备超时重试已通过定向验证；超时重试 `a2afea3b` 为1/1，确认同章、积分不变及实际逆序网格。每章八车赛果/积分及后续逆序网格两端一致，包含领奖、新杯清零与Host退出；实测使用原生NetPeer RTT，不把FishNet RTT零值或目标延迟当成真实延迟。独立Player/IL2CPP与真实双机尚未验证。
+- 独立服务器链与实际边界见[联机手册](runbooks/multiplayer.md#2026-10-14-联机验收)：Core `22540a29` 为1/1但使用测试认证回调；Windows构建/设置恢复与真实ready已通过，产品短流程 `600be6bf`、`28eeb268` 各1/1验证真实HMAC nonce重放拒绝、World断线自动resume/新载体、房主权限不被原房主夺回及主动leave后HTTP401。AI规则 `77ebd9f8` 为34/34。Linux容器已验证真实Unity ready、UDP监听/公开端口映射与未入场取消确认回收，未以此声明完整比赛或四章GP通过。旧Host双Editor/GP/弱网只作历史追溯；客户端独立Player/IL2CPP、真实双机及完整驾驶/赛果仍按本次实测判断。
 - 当前玩法、源算法、坐标转换、资源地址和生命周期以上述正文与 [源码维护](runbooks/source-migration.md) 为准。存档只遵守“计时记录”中的当前完整记录契约，不恢复旧部分修补行为。
 - 定向验收覆盖与尚未验证范围见 [验收对照](runbooks/acceptance.md)；设备模拟、合成轨迹、自动驾驶、GPU样本和人工驾驶分别记录，不相互替代。
 - 2026-10-10/11阶段数量、job、早期结构与“未完成”原文保存在 [验证历史](../../agent/archive/kagit-validation-history.md)；旧结果不能证明本次治理后的代码已重新验证。

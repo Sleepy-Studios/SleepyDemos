@@ -28,9 +28,15 @@
 | Hub/直启、自包含加载、损坏/占用存档、页面/资源生命周期与工具收口 | Main.unity / GameSceneId.KagitKart、Loader、Bootstrap、World.StopRound、公共本地存储 | RecordStore5/5，以上Hub/GP/TT/重赛/多层Modal及原生释放；资源命名/标签1/1（`10658471`）。阶段编译绿/Console0见module；一次性Bake及meta已清理。没有Player/IL2CPP构建证据。 |
 | 正常比赛帧分布/峰值/内存与最终Console | 既有四章起步采样、正常道路长圈方法及外部EditorTiming JSON | 四章正常长圈前两章`a975b049`、后两章`62f99115`均终态1/1，每章至少45秒且实际完成一圈，帧分布、自然事件、GC和内存已记入[性能记录](../../../agent/archive/kagit-editor-performance.md)。测量期间临时关闭独立Game View VSync并finally恢复原值；旧`a399f34a`含Editor呈现等待，不作当前性能依据，也不称项目/Player问题已修复。草原74.96ms单帧尚未精确定因，不据窗口通过声称整场三圈或所有特效组合稳定60帧。 |
 
-## 2026-10-14 性能修复与玩家 Host 联机复验
+## 当前独立服务器与六位联机码
 
-本轮在正式 `AppEntrance`、EditorSimulateMode 下定向验证，没有执行全量回归。网络框架落在公共 AOT 适配层，单人入口不启动网络。新页面的实际截图与使用说明见[联机手册](multiplayer.md)，音频条件、分位及事件采样边界见[本轮性能记录](performance-2026-10-14.md)。此前表格保留历史来源，不覆盖本轮的新契约。
+玩家Host与IP输入流程已由独立规则服务器、房间目录、短期入房票据和六位联机码替换。Windows/Linux Mono Dedicated构建、真实取消/重连/权限转交、两个并行独立房间和65秒资格过期已有定向验证；原生Multiplayer Play Mode主Editor与虚拟Player对Linux服完成四章自然大奖赛，两端八车赛果、积分和逆序网格逐章一致，均实际显示领奖页。
+
+当前构建、准确job、完整运行证据、性能/弱网口径及尚未验证范围统一维护在[联机验收](multiplayer.md#2026-10-14-联机验收)，不把它们混入以下历史Host计数。未执行全量测试，也不以Editor或服务器Mono结果证明客户端IL2CPP、真实设备和公网通过。
+
+## 历史：2026-10-14 性能修复与玩家 Host 联机复验
+
+以下记录针对已替换的玩家Host链，在正式 `AppEntrance`、EditorSimulateMode 下定向验证，没有执行全量回归。网络框架落在公共 AOT 适配层，单人入口不启动网络。当前页面与使用说明见[联机手册](multiplayer.md)，音频条件、分位及事件采样边界见[本轮性能记录](performance-2026-10-14.md)。这些历史表格不覆盖独立服务器的新契约。
 
 | 当前契约 | 本轮实际验证 |
 |---|---|
