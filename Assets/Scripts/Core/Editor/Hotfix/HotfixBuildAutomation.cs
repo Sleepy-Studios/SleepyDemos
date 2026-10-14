@@ -999,8 +999,8 @@ namespace Core.Editor.Hotfix
         // Full 的 Player 序列化会按平台剥离此缓存；Hotfix 只重算哈希输入，源设置和引用仍全部校验。
         private static string FingerprintRenderPipelineRuntimeSettings(string file, string content)
         {
-            var asset = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineGlobalSettings>(file);
-            Require(asset != null && asset == UniversalRenderPipelineGlobalSettings.instance, "URP 全局设置资产未正确注册。");
+            var asset = AssetDatabase.LoadAssetAtPath<RenderPipelineGlobalSettings>(file);
+            Require(asset != null && asset == GraphicsSettings.GetSettingsForRenderPipeline<UniversalRenderPipeline>(), "URP 全局设置资产未正确注册。");
             using var serialized = new SerializedObject(asset);
             var list = serialized.FindProperty("m_Settings.m_SettingsList.m_List");
             Require(list != null && list.isArray, "URP 源设置列表不存在。");
