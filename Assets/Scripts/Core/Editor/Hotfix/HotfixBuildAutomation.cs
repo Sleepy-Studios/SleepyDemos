@@ -602,6 +602,15 @@ namespace Core.Editor.Hotfix
                     File.Copy(file, Path.Combine(packageDirectory, Path.GetFileName(file)), true);
                 }
                 Require(File.Exists(Path.Combine(packageDirectory, version)), "首包缺少版本信息。");
+                // Host 默认内置文件系统必须有目录表；空表表示所有 Bundle 从远端下载。
+                var catalogHelper = typeof(ResourcePackage).Assembly.GetType("YooAsset.BuiltinCatalogHelper", true);
+                var createEmpty = catalogHelper.GetMethod("CreateEmptyFile", BindingFlags.Public | BindingFlags.Static, null,
+                    new[] { typeof(string), typeof(string), typeof(string) }, null);
+                Require(createEmpty != null && createEmpty.ReturnType == typeof(bool), "锁定 YooAsset 包的空目录表接口不可用。");
+                Require((bool)createEmpty.Invoke(null, new object[] { config.PackageName, request.ResourceVersion, packageDirectory }),
+                    "生成在线下载包的空内置目录表失败。");
+                Require(File.Exists(Path.Combine(packageDirectory, "BuiltinCatalog.bytes")) &&
+                    Directory.GetFiles(packageDirectory, "*.bundle").Length == 0, "在线下载首包缺目录表或意外内置 Bundle。");
                 AssetDatabase.Refresh();
             }
         }

@@ -31,7 +31,7 @@ PC 为 Windows x64 IL2CPP，Android 为 ARM64 IL2CPP，APK/AAB 可选；Developm
 
 CI 主包与热更 DLL 统一使用 `.NET Framework`（Unity `NET_Unity_4_8`），摘要记录实际 API profile，热更必须与基线一致。Unity 会在 Player 构建中剥除 netstandard 依赖，热更 DLL 若仍直接引用它会失败；遵循 [HybridCLR 官方说明](https://www.hybridclr.cn/docs/help/commonerrors)。Prepare 同时从 Unity 真实宏定义和平台 URP 集合同步批处理配置，并显式固定 Editor 程序集为同一 Framework profile，避免默认值在 Full 编译后具体化而造成热更指纹误差；指纹和原 AOT 基线仍严格校验。此设置只写入独立 CI 工程；继续手工构建 Player 时也须核对 API profile，日常工程设置不会由 Jenkins 改写。
 
-Offline 使用 OfflinePlayMode 并内置全量资源；OnlineFull 使用 HostPlayMode 并内置全量；OnlineDownload 使用 HostPlayMode 不内置 Bundle。日常 EditorSimulateMode 和已有配置资产不会被 CI 改写。Offline 可发布同批资源，但其安装包不消费在线更新。
+Offline 使用 OfflinePlayMode 并内置全量资源；OnlineFull 使用 HostPlayMode 并内置全量；OnlineDownload 使用 HostPlayMode 不内置 Bundle，但用锁定 YooAsset 包的官方生成器保留空 BuiltinCatalog，供默认内置文件系统初始化；缺表或混入 Bundle 即构建失败。日常 EditorSimulateMode 和已有配置资产不会被 CI 改写。Offline 可发布同批资源，但其安装包不消费在线更新。
 
 ## 基线与发布边界
 
