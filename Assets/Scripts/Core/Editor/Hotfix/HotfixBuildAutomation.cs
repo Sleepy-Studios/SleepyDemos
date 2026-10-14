@@ -397,6 +397,7 @@ namespace Core.Editor.Hotfix
                 {
                     PlayerSettings.Android.bundleVersionCode = request.AndroidVersionCode;
                     EditorUserBuildSettings.buildAppBundle = request.AndroidFormat == "Aab";
+                    EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
                     PlayerSettings.Android.useCustomKeystore = request.AndroidSigning == "Custom";
                     if (player && request.AndroidSigning == "Custom")
                     {
@@ -652,6 +653,8 @@ namespace Core.Editor.Hotfix
                 PlayerSettings.Android.keyaliasPass = string.Empty;
             }
             Require(report.summary.result == UnityEditor.Build.Reporting.BuildResult.Succeeded, "IL2CPP Player 构建失败。");
+            Require(File.Exists(playerPath) && new FileInfo(playerPath).Length > 0,
+                "Player 未生成实际安装包或可执行文件，拒绝归档和发布。");
         }
 
         private static Baseline Snapshot(Request request, HotfixConfig config)
