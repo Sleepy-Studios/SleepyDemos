@@ -379,6 +379,9 @@ namespace Core.Editor.Hotfix
             PlayerSettings.SetApiCompatibilityLevel(namedTarget, UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8);
             Require(PlayerSettings.GetApiCompatibilityLevel(namedTarget) == UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8,
                 "无法固定 HybridCLR 所需的 .NET Framework API 配置。");
+            PlayerSettings.SetEditorAssembliesCompatibilityLevel(EditorAssembliesCompatibilityLevel.NET_Unity_4_8);
+            Require(PlayerSettings.GetEditorAssembliesCompatibilityLevel() == EditorAssembliesCompatibilityLevel.NET_Unity_4_8,
+                "无法固定 CI Editor 程序集的 .NET Framework API 配置。");
             EditorUserBuildSettings.development = request.Development;
             if (!string.IsNullOrWhiteSpace(request.PlayerVersion))
             {
