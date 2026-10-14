@@ -25,9 +25,11 @@ function Invoke-Script([string]$Path, [string[]]$Arguments, [string]$LogName) {
     $shell = Join-Path $PSHOME 'powershell.exe'
     if (-not (Test-Path -LiteralPath $shell)) { $shell = Join-Path $PSHOME 'pwsh.exe' }
     $log = Join-Path $output "logs/$LogName"
-    $process = Start-Process -FilePath $shell -WindowStyle Hidden -PassThru -Wait `
+    $process = Start-Process -FilePath $shell -WindowStyle Hidden -PassThru `
         -ArgumentList (@('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $Path + '"')) + $Arguments) `
         -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+    $process.WaitForExit()
+    $process.Refresh()
     if ($process.ExitCode -ne 0) { throw "$LogName 失败（exit $($process.ExitCode)），详见归档日志。" }
 }
 
@@ -35,9 +37,11 @@ function Invoke-Unity([string]$Method) {
     Assert-ProjectClosed $project
     $env:SLEEPY_BUILD_REQUEST = $requestPath
     $target = if ($request.Platform -eq 'PC') { 'StandaloneWindows64' } else { 'Android' }
-    $process = Start-Process -FilePath $machine.Unity -WindowStyle Hidden -PassThru -Wait `
+    $process = Start-Process -FilePath $machine.Unity -WindowStyle Hidden -PassThru `
         -ArgumentList @('-batchmode', '-nographics', '-quit', '-projectPath', ('"' + $project + '"'), '-buildTarget', $target,
             '-executeMethod', "Core.Editor.Hotfix.HotfixBuildAutomation.$Method", '-logFile', ('"' + (Join-Path $output "logs/$Method.log") + '"'))
+    $process.WaitForExit()
+    $process.Refresh()
     if ($process.ExitCode -ne 0) { throw "Unity $Method 失败（exit $($process.ExitCode)），详见归档日志。" }
     $resultPath = Join-Path $output 'result.json'
     if (-not (Test-Path -LiteralPath $resultPath)) { throw "Unity $Method 没有写出 result.json。" }
