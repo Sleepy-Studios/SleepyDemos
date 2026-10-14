@@ -69,7 +69,8 @@ function Invoke-Git([string]$Directory, [string[]]$Arguments) {
     $ErrorActionPreference = 'Continue'
     try {
         $credentialArguments = if ($env:GH_TOKEN) { @('-c', 'credential.helper=', '-c', 'credential.helper=!gh auth git-credential') } else { @() }
-        $result = & $script:machine.Git @credentialArguments -C $Directory @Arguments 2>&1
+        # WinPS 将原生 stderr 包装为 ErrorRecord；返回前转成文本，避免 Out-Host 向 Jenkins 外层再次发送错误流。
+        $result = & $script:machine.Git @credentialArguments -C $Directory @Arguments 2>&1 | ForEach-Object { $_.ToString() }
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = $preference }
     if ($code -ne 0) { throw "Git 操作失败（exit $code）：$($result -join [Environment]::NewLine)" }
