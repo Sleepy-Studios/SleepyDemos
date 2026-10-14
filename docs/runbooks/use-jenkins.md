@@ -67,7 +67,7 @@ Offline 内置全部资源、不联网热更；OnlineFull 全量内置并在线�
 
 ## 发布
 
-Pages 使用机器配置的仓库、网站根和项目名，平台路径自动生成。推送后必须等待 Pages 部署并核对正式 HTTP 内容，不能仅看 Git push 退出码。当前规则见[Pages 发布](deploy-github-pages-hotupdate.md)。
+Pages 使用机器配置的仓库、网站根和项目名，平台路径自动生成。新构建用户须在专用 Pages 克隆中配置 Git 提交作者（`git -C <Pages克隆路径> config --local user.name <CI作者名>` 与 `user.email <CI作者邮箱>`）；Jenkins 备份不会自动包含当前用户的全局 Git 配置，不复制个人凭据配置来替代此步骤。推送后必须等待 Pages 部署并核对正式 HTTP 内容，不能仅看 Git push 退出码。当前规则见[Pages 发布](deploy-github-pages-hotupdate.md)。
 
 SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 RootPath 与 BaseUrl 均填写共用资源根，流水线为上传目录和 HTTP 地址同步追加 `PC` / `Android`。例如 `/var/www/hotupdate` 与 `https://cdn.example.com/hotupdate` 对应 PC 的 `/var/www/hotupdate/PC` 与 `https://cdn.example.com/hotupdate/PC`，不要在根字段重复填平台。主机指纹须可信核实。没有真实 SSH/HTTP 服务器时只验证实现和失败保护，不声称实发通过。
 

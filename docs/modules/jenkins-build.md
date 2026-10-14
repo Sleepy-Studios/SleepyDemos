@@ -37,7 +37,7 @@ Offline 使用 OfflinePlayMode 并内置全量资源；OnlineFull 使用 HostPla
 
 每平台只维护一个当前在线主包。候选基线保存实际配套 AOT、补充元数据、程序集、平台/架构/Unity/Development/版本、兼容指纹和 SHA。只有在线 Full 发布及 HTTP 校验成功才提升 current；Offline 和失败任务不替换它。
 
-Hotfix 使用 current 的 AOT 与补充元数据，运行 HybridCLR MissingMetadataChecker；Core.Runtime、Packages、原生插件和主包构建配置采用保守指纹检查。缺基线或不匹配要求 Full，不为旧主包维持并行兼容链。
+Hotfix 使用 current 的 AOT 与补充元数据，运行 HybridCLR MissingMetadataChecker；Core.Runtime、Packages、原生插件和主包构建配置采用保守指纹检查。URP GlobalSettings 的派生运行时列表按锁定包的官方平台剥离器重算后纳入哈希，源设置、引用和 GUID 仍完整校验；不写回资产或基线。剥离接口或序列化格式变化时直接失败。缺基线或不匹配要求 Full，不为旧主包维持并行兼容链。
 
 准备记录与基线同时保存逐文件指纹，失配时报告变化路径。JSON、程序集定义、meta 和 YAML 资产统一文本换行后校验，避免 Unity/ProBuilder 保存时仅 CRLF/LF 转换阻断构建；配置内容与二进制依赖仍完整参与校验。
 

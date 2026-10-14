@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -13,6 +14,8 @@ using HybridCLR.Editor.HotUpdate;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using YooAsset;
 using YooAsset.Editor;
 using Debug = UnityEngine.Debug;
@@ -985,8 +988,72 @@ namespace Core.Editor.Hotfix
             }
             // Unity/ProBuilder 退出时可能仅把 checkout 的 CRLF 保存为 LF；配置值仍全部参与校验。
             string content = File.ReadAllText(file, new UTF8Encoding(false, true)).Replace("\r\n", "\n");
+            if (file.Replace('\\', '/') == "Assets/Settings/UniversalRenderPipelineGlobalSettings.asset")
+            {
+                content = FingerprintRenderPipelineRuntimeSettings(file, content);
+            }
             using var sha = SHA256.Create();
             return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(content))).Replace("-", "").ToLowerInvariant();
+        }
+
+        // Full 的 Player 序列化会按平台剥离此缓存；Hotfix 只重算哈希输入，源设置和引用仍全部校验。
+        private static string FingerprintRenderPipelineRuntimeSettings(string file, string content)
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineGlobalSettings>(file);
+            Require(asset != null && asset == UniversalRenderPipelineGlobalSettings.instance, "URP 全局设置资产未正确注册。");
+            using var serialized = new SerializedObject(asset);
+            var list = serialized.FindProperty("m_Settings.m_SettingsList.m_List");
+            Require(list != null && list.isArray, "URP 源设置列表不存在。");
+            var settings = new List<IRenderPipelineGraphicsSettings>();
+            var references = new Dictionary<IRenderPipelineGraphicsSettings, long>();
+            for (int index = 0; index < list.arraySize; index++)
+            {
+                var item = list.GetArrayElementAtIndex(index);
+                if (item.managedReferenceValue == null)
+                {
+                    Require(item.managedReferenceId == -2, "URP 源设置存在失效引用。");
+                    continue;
+                }
+                var setting = item.managedReferenceValue as IRenderPipelineGraphicsSettings;
+                Require(setting != null && item.managedReferenceId >= 0 && !references.ContainsKey(setting), "URP 源设置引用不合法。");
+                settings.Add(setting);
+                references.Add(setting, item.managedReferenceId);
+            }
+            var matches = Regex.Matches(content, @"(?m)^    m_RuntimeSettings:\n      m_List:(?: \[\]\n|\n(?:      - rid: -?\d+\n)*)(?=  \S)");
+            Require(matches.Count == 1 && settings.Count > 0, "URP 运行时缓存列表格式不唯一或源设置为空。");
+            var stripper = Type.GetType("UnityEngine.Rendering.RenderPipelineGraphicsSettingsStripper, Unity.RenderPipelines.Core.Runtime", true);
+            var perform = stripper.GetMethod("PerformStripping", BindingFlags.Public | BindingFlags.Static, null,
+                new[] { typeof(List<IRenderPipelineGraphicsSettings>), typeof(List<IRenderPipelineGraphicsSettings>) }, null);
+            var core = Type.GetType("UnityEditor.Rendering.CoreBuildData, Unity.RenderPipelines.Core.Editor", true).GetProperty("instance");
+            var urp = Type.GetType("UnityEditor.Rendering.Universal.URPBuildData, Unity.RenderPipelines.Universal.Editor", true);
+            var buildingUrp = urp.GetProperty("buildingPlayerForUniversalRenderPipeline");
+            Require(perform != null && perform.ReturnType == typeof(void) && core != null && buildingUrp?.PropertyType == typeof(bool),
+                "锁定 URP 包的构建剥离接口不可用。");
+            ((IDisposable)core.GetValue(null)).Dispose();
+            IDisposable buildData = null;
+            try
+            {
+                buildData = (IDisposable)Activator.CreateInstance(urp, EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.development);
+                Require((bool)buildingUrp.GetValue(buildData), "当前平台没有有效 URP 构建配置。");
+                var runtime = new List<IRenderPipelineGraphicsSettings>();
+                perform.Invoke(null, new object[] { settings, runtime });
+                Require(runtime.All(setting => setting != null && references.ContainsKey(setting)), "URP 剥离结果包含未知引用。");
+                string block = "    m_RuntimeSettings:\n      m_List:" + (runtime.Count == 0 ? " []\n" : "\n" +
+                    string.Concat(runtime.Select(setting => "      - rid: " + references[setting] + "\n")));
+                var match = matches[0];
+                return content.Substring(0, match.Index) + block + content.Substring(match.Index + match.Length);
+            }
+            finally
+            {
+                if (buildData != null)
+                {
+                    buildData.Dispose();
+                }
+                else
+                {
+                    ((IDisposable)core.GetValue(null)).Dispose();
+                }
+            }
         }
 
         private static void CopyDirectory(string source, string destination)
