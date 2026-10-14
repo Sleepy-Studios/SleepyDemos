@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Core.Runtime
 {
+    // 临时 Jenkins 主包兼容性拒绝验收，完成后删除。
     public sealed class ResourceDownloadSystem : StartupSystemBase
     {
         public ResourceDownloadSystem(StartupStateBase state) : base(state)
