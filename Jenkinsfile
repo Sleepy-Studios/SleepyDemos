@@ -99,11 +99,14 @@ pipeline {
     post {
         always {
             script {
-                withEnv(["SLEEPY_JENKINS_RESULT=${currentBuild.currentResult}"]) {
-                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Finalize -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                try {
+                    withEnv(["SLEEPY_JENKINS_RESULT=${currentBuild.currentResult}"]) {
+                        powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Finalize -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                    }
+                } finally {
+                    archiveArtifacts artifacts: "ci-archive/${env.BUILD_NUMBER}/**", allowEmptyArchive: false, fingerprint: true
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Cleanup -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
                 }
-                archiveArtifacts artifacts: "ci-archive/${env.BUILD_NUMBER}/**", allowEmptyArchive: false, fingerprint: true
-                powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Cleanup -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
             }
         }
     }

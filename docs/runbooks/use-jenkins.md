@@ -16,7 +16,7 @@ Unity 6000.3.15f1 及当前用户授权、Windows IL2CPP/Android 模块、VS C++
 ./scripts/jenkins/Manage-Jenkins.ps1 -Action Stop
 ```
 
-可用 `-ConfigPath` 指定新电脑的配置。启动检查端口和进程归属；停止会查询排队/运行任务，有任务时拒绝停止。不要手动结束正在构建的 Unity。账号、API 和 agent 连接材料仅放仓库外受保护目录，不复制到文档或公开日志。
+可用 `-ConfigPath` 指定新电脑的配置。启动检查端口和进程归属；停止会查询排队/运行任务，有任务时拒绝停止。不要手动结束正在构建的 Unity。启动 Java 时会提供 Windows PowerShell 5.1 的模块目录，避免从 PowerShell 7 启动后子脚本找不到 Get-FileHash；调用者自身环境会恢复。账号、API 和 agent 连接材料仅放仓库外受保护目录，不复制到文档或公开日志。
 
 ## 初次创建任务
 

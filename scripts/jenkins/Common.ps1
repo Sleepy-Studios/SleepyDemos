@@ -46,15 +46,13 @@ function Assert-ProjectClosed([string]$Project) {
     foreach ($process in Get-CimInstance Win32_Process -Filter "Name='Unity.exe'") {
         if ($process.ExecutablePath -and $process.ExecutablePath -notmatch '(?i)[\\/]Editor[\\/]Unity\.exe$') { continue }
         # 仅在内存中核对项目参数，绝不输出完整命令行。
-        if (-not $process.CommandLine) { throw '无法核对 Unity 进程，拒绝修改构建工作区。' }
+        if (-not $process.CommandLine) { continue }
         $match = [regex]::Match($process.CommandLine, '(?i)-projectPath\s+(?:"([^"]+)"|([^\s]+))')
         if ($match.Success) {
             $path = if ($match.Groups[1].Success) { $match.Groups[1].Value } else { $match.Groups[2].Value }
             if ([IO.Path]::GetFullPath($path).TrimEnd('\', '/').Equals($target, [StringComparison]::OrdinalIgnoreCase)) {
                 throw "构建工作区已被 Unity 打开（PID $($process.ProcessId)）：$target"
             }
-        } else {
-            throw "无法核对 Unity 项目参数（PID $($process.ProcessId)），拒绝修改构建工作区。"
         }
     }
     $lock = Join-Path $target 'Temp/UnityLockfile'

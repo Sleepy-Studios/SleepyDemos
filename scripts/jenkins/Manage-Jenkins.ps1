@@ -29,8 +29,17 @@ function Get-OwnedProcess($Record, [string]$Jar) {
 function Start-Java([string[]]$Arguments, [string]$Name) {
     $logRoot = Join-Path $machine.Root 'logs'
     New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
-    $process = Start-Process -FilePath $machine.Java -ArgumentList $Arguments -WindowStyle Hidden -PassThru `
-        -RedirectStandardOutput (Join-Path $logRoot "$Name.out.log") -RedirectStandardError (Join-Path $logRoot "$Name.err.log")
+    $previousPSModulePath = $env:PSModulePath
+    try {
+        # Java 与 agent 的子进程使用 Windows PowerShell 5.1，不能继承 PowerShell 7 的模块目录。
+        $env:PSModulePath = @(
+            (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/Modules'),
+            (Join-Path $env:ProgramFiles 'WindowsPowerShell/Modules'),
+            (Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'WindowsPowerShell/Modules')
+        ) -join ';'
+        $process = Start-Process -FilePath $machine.Java -ArgumentList $Arguments -WindowStyle Hidden -PassThru `
+            -RedirectStandardOutput (Join-Path $logRoot "$Name.out.log") -RedirectStandardError (Join-Path $logRoot "$Name.err.log")
+    } finally { $env:PSModulePath = $previousPSModulePath }
     $details = Get-CimInstance Win32_Process -Filter "ProcessId=$($process.Id)"
     return @{ Id = $process.Id; Started = $details.CreationDate.ToUniversalTime().ToString('o') }
 }

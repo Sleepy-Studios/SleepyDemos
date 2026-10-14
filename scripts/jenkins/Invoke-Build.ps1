@@ -227,7 +227,8 @@ try {
                 if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $archive }
             }
             if (Test-Path -LiteralPath $requestPath) { Copy-Item -LiteralPath $requestPath -Destination $archive }
-            Copy-Item -LiteralPath (Join-Path $output 'logs') -Destination $archive -Recurse
+            New-Item -ItemType Directory -Path (Join-Path $archive 'logs') -Force | Out-Null
+            Get-ChildItem -LiteralPath (Join-Path $output 'logs') | Copy-Item -Destination (Join-Path $archive 'logs') -Recurse
             Get-ChildItem -LiteralPath $output -Filter '*.zip' | Copy-Item -Destination $archive
             function Read-ToolVersion([string]$Executable, [string[]]$Arguments) {
                 $preference = $ErrorActionPreference
