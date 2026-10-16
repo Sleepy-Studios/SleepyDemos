@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow-definition plugin="workflow-job">
+  <description>手动 SleepyDemos 整包构建：PC / Android / TapTap H5；共用单节点单执行器</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition plugin="git-parameter">
+          <name>SourceRef</name>
+          <description>选择远端分支或标签；默认 main，执行时固定提交</description>
+          <uuid>7e788c97-81c7-4d76-a113-674742a613a9</uuid>
+          <type>PT_BRANCH_TAG</type>
+          <branch/>
+          <branchFilter>origin/(.*)</branchFilter>
+          <tagFilter>*</tagFilter>
+          <sortMode>ASCENDING_SMART</sortMode>
+          <defaultValue>main</defaultValue>
+          <selectedValue>DEFAULT</selectedValue>
+          <quickFilterEnabled>true</quickFilterEnabled>
+          <listSize>10</listSize>
+          <requiredParameter>false</requiredParameter>
+        </net.uaznia.lukanus.hudson.plugins.gitparameter.GitParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>SourceCommit</name>
+          <description>可选：完整 40 位提交 SHA；填写后优先于 SourceRef，用于复现历史构建</description>
+          <defaultValue></defaultValue><trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>GameId</name>
+          <description>正式 ReleaseProfiles 白名单；TapTapH5 必须选择独立游戏</description>
+          <choices class="java.util.Arrays$ArrayList"><a class="string-array"><string>hub</string><string>drone_flight</string><string>wall_squeeze</string><string>kagit_kart</string></a></choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>ReleaseTarget</name>
+          <description>PC / Android 使用 Native 渠道；TapTapH5 使用 TapTap + WebGL</description>
+          <choices class="java.util.Arrays$ArrayList"><a class="string-array"><string>PC</string><string>Android</string><string>TapTapH5</string></a></choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>ResourceMode</name>
+          <description>OnlineFull 内置资源并支持热更；Offline 不生成在线热更基线</description>
+          <choices class="java.util.Arrays$ArrayList"><a class="string-array"><string>OnlineFull</string><string>OnlineDownload</string><string>Offline</string></a></choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>Development</name>
+          <description></description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PlayerVersion</name>
+          <description>空值读取项目版本</description>
+          <defaultValue></defaultValue><trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>AndroidFormat</name>
+          <description>仅 Android Full 生效</description>
+          <choices class="java.util.Arrays$ArrayList"><a class="string-array"><string>Apk</string><string>Aab</string></a></choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>AndroidSigning</name>
+          <description>仅 Android Full 生效</description>
+          <choices class="java.util.Arrays$ArrayList"><a class="string-array"><string>Debug</string><string>Custom</string></a></choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>AndroidVersionCode</name>
+          <description>仅 Android Full：空值自动递增；显式值必须大于该游戏和渠道已登记值</description>
+          <defaultValue></defaultValue><trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ResourceVersion</name>
+          <description>空值自动生成唯一资源版本</description>
+          <defaultValue></defaultValue><trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>Publish</name>
+          <description>发布热更资源；TapTap H5 上传 ZIP 仍需手动提交平台审核</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>Provider</name>
+          <description>Native 可选 Pages / Ssh；TapTapH5 只允许 Pages</description>
+          <choices class="java.util.Arrays$ArrayList"><a class="string-array"><string>Pages</string><string>Ssh</string></a></choices>
+        </hudson.model.ChoiceParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs><hudson.plugins.git.UserRemoteConfig><url>https://github.com/Sleepy-Studios/SleepyDemos.git</url><credentialsId>sleepydemos-source</credentialsId></hudson.plugins.git.UserRemoteConfig></userRemoteConfigs>
+      <branches><hudson.plugins.git.BranchSpec><name>*/main</name></hudson.plugins.git.BranchSpec></branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="empty-list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>Jenkinsfile.Full</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

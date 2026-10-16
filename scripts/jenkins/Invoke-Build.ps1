@@ -234,7 +234,12 @@ function Remove-OwnedRun([string]$OwnedDirectory) {
 
 try {
     if ($Stage -eq 'Cleanup') {
-        if (Test-Path -LiteralPath $runRoot) { Complete-UnityRun; Remove-OwnedRun $runRoot }
+        if (Test-Path -LiteralPath $runRoot) { Complete-UnityRun }
+        if ($env:SLEEPY_FINALIZE_SUCCEEDED -cne 'true' -or $env:SLEEPY_ARCHIVE_SUCCEEDED -cne 'true') {
+            Write-Output 'Finalize 或 Jenkins 归档未确认成功，保留本次运行和 ci-archive 现场，跳过清理。'
+            exit 0
+        }
+        if (Test-Path -LiteralPath $runRoot) { Remove-OwnedRun $runRoot }
         $archive = Assert-OwnedPath (Join-Path $env:WORKSPACE "ci-archive/$($env:BUILD_NUMBER)") $env:WORKSPACE
         $archiveMarker = Join-Path $archive '.sleepydemos-run'
         if (Test-Path -LiteralPath $archiveMarker) {
@@ -260,32 +265,39 @@ try {
         Complete-UnityRun -Cancel:($env:SLEEPY_JENKINS_RESULT -in @('ABORTED', 'FAILURE'))
         $unitySettled = $true
     } elseif ($Stage -eq 'Checkout') {
-        $identity = Get-BuildIdentity $env:BuildChannel $env:Platform $env:GameId
+        if ($env:SLEEPY_RUNNER_COMMIT -notmatch '^[0-9a-fA-F]{40}$' -or
+            (Invoke-Git $env:WORKSPACE @('rev-parse', 'HEAD') | Out-String).Trim() -ine $env:SLEEPY_RUNNER_COMMIT) {
+            throw '流水线脚本提交未固定或 Jenkins 脚本工作区提交已变化。'
+        }
+        $identity = Get-ReleaseIdentity $env:ReleaseTarget $env:GameId
         if ($env:BuildKind -notin @('Full', 'Hotfix') -or
             $env:Provider -notin @('Pages', 'Ssh')) { throw '非法构建参数。' }
         if ($identity.BuildChannel -eq 'TapTap' -and $env:Provider -ne 'Pages') { throw 'TapTap H5 当前仅支持 GitHub Pages 热更资源发布。' }
         $baseline = Assert-OwnedPath (Join-Path $machine.Root "baselines/$($identity.StateKey)/current") $machine.Root
         $resourceMode = $env:ResourceMode
         $playerVersion = $env:PlayerVersion
+        $development = $env:Development -eq 'true'
         $tapTapAppId = ''
         if ($env:BuildKind -eq 'Hotfix') {
             $baselinePath = Assert-OwnedPath (Join-Path $baseline 'baseline.json') $machine.Root
             if (-not (Test-Path -LiteralPath $baselinePath -PathType Leaf)) { throw '没有已发布的在线 Full 基线，请先构建并发布 Full。' }
             $baselineInfo = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
-            if ($baselineInfo.Platform -ne $env:Platform -or $baselineInfo.ResourceMode -notin @('OnlineFull', 'OnlineDownload')) { throw '当前基线不是本平台的在线 Full。' }
-            if ($identity.GameId -ne 'hub' -and ($baselineInfo.GameId -ne $identity.GameId -or $baselineInfo.BuildChannel -ne $identity.BuildChannel)) {
+            if ($baselineInfo.Platform -ne $identity.Platform -or $baselineInfo.ResourceMode -notin @('OnlineFull', 'OnlineDownload')) { throw '当前基线不是本平台的在线 Full。' }
+            $baselineGameId = if ($baselineInfo.PSObject.Properties['GameId']) { $baselineInfo.GameId } else { 'hub' }
+            $baselineChannel = if ($baselineInfo.PSObject.Properties['BuildChannel']) { $baselineInfo.BuildChannel } else { 'Native' }
+            if ($baselineGameId -ne $identity.GameId -or $baselineChannel -ne $identity.BuildChannel) {
                 throw '当前基线不属于本次渠道和游戏。'
             }
-            if ($baselineInfo.Development -ne ($env:Development -eq 'true')) { throw 'Development 必须与当前在线 Full 基线一致。' }
             $resourceMode = $baselineInfo.ResourceMode
+            $development = [bool]$baselineInfo.Development
+            $playerVersion = $baselineInfo.PlayerVersion
             if ($identity.BuildChannel -eq 'TapTap') {
                 if (-not $baselineInfo.PSObject.Properties['TapTapFormat'] -or $baselineInfo.TapTapFormat -cne 'H5') {
                     throw '当前基线不是 TapTap H5，请先构建并发布 H5 Full。'
                 }
                 $tapTapAppId = $baselineInfo.TapTapAppId
             }
-            if ([string]::IsNullOrWhiteSpace($playerVersion)) { $playerVersion = $baselineInfo.PlayerVersion }
-            elseif ($playerVersion -cne $baselineInfo.PlayerVersion) { throw 'Hotfix PlayerVersion 必须匹配当前在线 Full 基线。' }
+            Write-Output "Hotfix 继承已发布 Full：GameId=$($identity.GameId)；Platform=$($identity.Platform)；BuildChannel=$($identity.BuildChannel)；ResourceMode=$resourceMode；Development=$development；PlayerVersion=$playerVersion；基线资源版本=$($baselineInfo.ResourceVersion)。页面主包参数不生效。"
         } elseif ($resourceMode -notin @('Offline', 'OnlineFull', 'OnlineDownload')) { throw '非法 ResourceMode。' }
         if ($identity.BuildChannel -eq 'TapTap' -and $env:BuildKind -eq 'Full') {
             $tapTapSettings = $machine.PSObject.Properties['TapTap']
@@ -297,15 +309,18 @@ try {
         $androidFormat = 'Apk'
         $androidSigning = 'Debug'
         $versionCode = 1
-        if ($env:Platform -eq 'Android' -and $env:BuildKind -eq 'Full') {
+        if ($identity.Platform -eq 'Android' -and $env:BuildKind -eq 'Full') {
             if ($env:AndroidFormat -notin @('Apk', 'Aab') -or $env:AndroidSigning -notin @('Debug', 'Custom')) { throw '非法 Android 格式或签名参数。' }
             $androidFormat = $env:AndroidFormat
             $androidSigning = $env:AndroidSigning
-            $versionCode = 0
-            if ($env:AndroidVersionCode -and (-not [int]::TryParse($env:AndroidVersionCode, [ref]$versionCode) -or $versionCode -le 0)) { throw 'AndroidVersionCode 覆盖值必须是正整数。' }
-            if ($versionCode -eq 0 -and (-not [int]::TryParse($env:BUILD_NUMBER, [ref]$versionCode) -or $versionCode -le 0)) { throw 'BUILD_NUMBER 超出 AndroidVersionCode 有效范围。' }
         }
-        if ([string]::IsNullOrWhiteSpace($env:SourceRef) -or $env:SourceRef.StartsWith('-') -or $env:SourceRef -match '\s|[~^:?*\[\\]') { throw 'SourceRef 只允许明确的分支、标签或提交 SHA。' }
+        $source = $env:SourceRef
+        if (-not [string]::IsNullOrWhiteSpace($env:SourceCommit)) {
+            if ($env:SourceCommit -notmatch '^[0-9a-fA-F]{40}$') { throw 'SourceCommit 必须是完整 40 位提交 SHA。' }
+            $source = $env:SourceCommit.ToLowerInvariant()
+        } elseif ([string]::IsNullOrWhiteSpace($source) -or $source.StartsWith('-') -or $source -match '\s|[~^:?*\[\\]') {
+            throw 'SourceRef 只允许明确的分支或标签，指定提交请填写 SourceCommit。'
+        }
         $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $identity.Workspace) $machine.WorkspaceRoot
         if ($project.Equals([IO.Path]::GetFullPath($machine.DailyProjectPath).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) { throw '拒绝修改日常项目。' }
         Assert-ProjectClosed $project
@@ -318,9 +333,10 @@ try {
             throw 'CI 工作区未登记归属，拒绝检出。'
         }
         if ((Invoke-Git $project @('remote', 'get-url', 'origin') | Out-String).Trim() -ne $machine.RepositoryUrl) { throw 'CI origin 与机器配置不一致。' }
-        Invoke-Git $project @('fetch', '--prune', 'origin', $env:SourceRef) | Out-Host
+        Invoke-Git $project @('fetch', '--prune', 'origin', $source) | Out-Host
         $sha = (Invoke-Git $project @('rev-parse', 'FETCH_HEAD^{commit}') | Out-String).Trim()
         if ($sha -notmatch '^[0-9a-f]{40}$') { throw '无法解析固定源提交。' }
+        if ($env:SourceCommit -and $sha -ine $env:SourceCommit) { throw '实际检出提交与 SourceCommit 不一致。' }
         # 原生 DLL 与其 importer meta 成对保留，避免热更检出重新生成 GUID 而改变首包指纹。
         $links = Get-ChildItem -LiteralPath $project -Force | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }
         if ($links) { throw 'CI 工作区含根级链接，拒绝 Git 清理。' }
@@ -328,6 +344,8 @@ try {
         Invoke-Git $project @('clean', '-fd', '-e', 'Library/', '-e', 'Logs/', '-e', 'Temp/', '-e', 'UserSettings/', '-e', 'obj/', '-e', 'Assets/Plugins/Streamline/x86_64/') | Out-Host
         Invoke-Git $project @('submodule', 'sync', '--recursive') | Out-Host
         Invoke-Git $project @('submodule', 'update', '--init', '--recursive', '--force') | Out-Host
+        $submodules = @(Invoke-Git $project @('submodule', 'status', '--recursive'))
+        if ($submodules | Where-Object { -not $_.StartsWith(' ') }) { throw '子模块未固定到源码登记的提交。' }
         $profiles = Get-Content -LiteralPath (Join-Path $project 'Assets/Settings/ReleaseProfiles.json') -Raw -Encoding UTF8 | ConvertFrom-Json
         if (@($profiles.Profiles | Where-Object { $_.GameId -ceq $identity.GameId }).Count -ne 1) {
             throw 'GameId 未在固定源码的 ReleaseProfiles 中唯一登记。'
@@ -354,6 +372,14 @@ try {
             $registration.Write($bytes, 0, $bytes.Length)
             $registration.Flush($true)
         } finally { $registration.Dispose() }
+        if ($identity.Platform -eq 'Android' -and $env:BuildKind -eq 'Full') {
+            $versionCodePath = Assert-OwnedPath (Join-Path $machine.Root "android-version-codes/$($identity.StateKey)/current.json") $machine.Root
+            $versionCode = Register-AndroidVersionCode $versionCodePath $baseline $env:AndroidVersionCode @{
+                Job = $env:JOB_NAME; Build = $env:BUILD_NUMBER; SourceCommit = $sha
+                ResourceVersion = $resourceVersion; GameId = $identity.GameId; Platform = $identity.Platform
+            }
+            Write-Output "AndroidVersionCode=$versionCode（持久登记，失败和取消不释放；不使用任务 BUILD_NUMBER）。"
+        }
         $pagesPath = Assert-OwnedPath $machine.Pages.Path $machine.Root
         $publicationSuffix = if ($identity.BuildChannel -eq 'TapTap') { "TapTap/$($identity.GameId)" }
             elseif ($identity.GameId -eq 'hub') { '' } else { $identity.GameId }
@@ -371,8 +397,8 @@ try {
         $request = [ordered]@{
             BuildChannel = $identity.BuildChannel; GameId = $identity.GameId
             TapTapAppId = $tapTapAppId; TapTapFormat = $identity.TapTapFormat
-            Platform = $env:Platform; BuildKind = $env:BuildKind; ResourceMode = $resourceMode
-            AndroidFormat = $androidFormat; AndroidSigning = $androidSigning; Development = $env:Development -eq 'true'
+            Platform = $identity.Platform; BuildKind = $env:BuildKind; ResourceMode = $resourceMode
+            AndroidFormat = $androidFormat; AndroidSigning = $androidSigning; Development = $development
             PlayerVersion = $playerVersion; AndroidVersionCode = $versionCode; ResourceVersion = $resourceVersion
             Publish = $env:Publish -eq 'true'; Provider = $env:Provider; SourceCommit = $sha; ConfigCommit = $configCommit
             OutputDirectory = $output; BaselineDirectory = $baseline; PagesRepositoryPath = $pagesPath
@@ -382,16 +408,25 @@ try {
         }
         Write-JsonFile $requestPath $request
         Write-JsonFile (Join-Path $output 'source.json') @{ SourceCommit = $sha; ConfigCommit = $configCommit
+            SourceRef = $env:SourceRef; RequestedSourceCommit = $env:SourceCommit; RunnerCommit = $env:SLEEPY_RUNNER_COMMIT
             BuildChannel = $identity.BuildChannel; Platform = $identity.Platform; GameId = $identity.GameId
             TapTapFormat = $identity.TapTapFormat
-            Submodules = @(Invoke-Git $project @('submodule', 'status', '--recursive')) }
+            Submodules = $submodules }
         Write-Output "固定源提交 $sha；配置提交 $configCommit；版本 $resourceVersion。"
     } elseif ($Stage -ne 'Finalize') {
+        if ($env:SLEEPY_RUNNER_COMMIT -notmatch '^[0-9a-fA-F]{40}$' -or
+            (Invoke-Git $env:WORKSPACE @('rev-parse', 'HEAD') | Out-String).Trim() -ine $env:SLEEPY_RUNNER_COMMIT) {
+            throw '流水线脚本提交未固定或 Jenkins 脚本工作区提交已变化。'
+        }
         $request = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $identity = Get-BuildIdentity $request.BuildChannel $request.Platform $request.GameId
         $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $identity.Workspace) $machine.WorkspaceRoot
         Assert-ProjectClosed $project
         if ((Invoke-Git $project @('rev-parse', 'HEAD') | Out-String).Trim() -ne $request.SourceCommit) { throw '工作区提交发生变化。' }
+        if ((Invoke-Git (Join-Path $project 'SleepyConfigs') @('rev-parse', 'HEAD') | Out-String).Trim() -ne $request.ConfigCommit -or
+            @(Invoke-Git $project @('submodule', 'status', '--recursive') | Where-Object { -not $_.StartsWith(' ') }).Count -gt 0) {
+            throw '配置或子模块提交发生变化。'
+        }
         switch ($Stage) {
             'Prepare' {
                 Invoke-Script (Join-Path $project 'SleepyConfigs/gen.ps1') @('-ParentProjectRoot', ('"' + $project + '"')) 'Luban'
@@ -466,8 +501,8 @@ try {
                 Write-JsonFile (Join-Path $output 'result.json') @{ Success = $false; Stage = 'Pipeline'; Error = 'Unity 尚未生成结果；详见 summary.json 与日志。' }
             }
             # 失败也归档已经生成的部分产物，避免 Package 阶段未执行而丢失证据。
-            $archivePlatform = $env:Platform
-            $archiveChannel = $env:BuildChannel
+            $archivePlatform = ''
+            $archiveChannel = ''
             if (Test-Path -LiteralPath $requestPath) {
                 try {
                     $archiveRequest = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
