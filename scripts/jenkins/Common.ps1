@@ -56,6 +56,15 @@ function Assert-OwnedPath([string]$Path, [string]$Root) {
     return $resolved
 }
 
+function Get-ReleaseIdentity([string]$ReleaseTarget, [string]$GameId) {
+    switch -CaseSensitive ($ReleaseTarget) {
+        'PC' { return Get-BuildIdentity 'Native' 'PC' $GameId }
+        'Android' { return Get-BuildIdentity 'Native' 'Android' $GameId }
+        'TapTapH5' { return Get-BuildIdentity 'TapTap' 'WebGL' $GameId }
+        default { throw 'ReleaseTarget 必须是 PC / Android / TapTapH5。' }
+    }
+}
+
 function Get-BuildIdentity([string]$BuildChannel, [string]$Platform, [string]$GameId) {
     if ([string]::IsNullOrWhiteSpace($BuildChannel)) { $BuildChannel = 'Native' }
     if ([string]::IsNullOrWhiteSpace($GameId)) { $GameId = 'hub' }
@@ -127,4 +136,30 @@ function Write-AtomicJsonFile([string]$Path, $Value) {
     } finally {
         if ([IO.File]::Exists($staged)) { Remove-Item -LiteralPath $staged }
     }
+}
+
+function Register-AndroidVersionCode([string]$Path, [string]$Baseline, [string]$RequestedCode, $Record) {
+    $previous = 0
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        $registration = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (-not $registration.PSObject.Properties['LastVersionCode'] -or
+            -not [int]::TryParse([string]$registration.LastVersionCode, [ref]$previous) -or $previous -le 0) {
+            throw 'Android versionCode 登记无效，拒绝重新从低版本开始。'
+        }
+    } elseif (Test-Path -LiteralPath (Join-Path $Baseline 'baseline.json') -PathType Leaf) {
+        throw '旧 Android 在线基线尚未登记 versionCode 下限，请先根据已发布 APK/AAB 的 request.json 初始化登记。'
+    }
+    $versionCode = 0
+    if (-not [string]::IsNullOrWhiteSpace($RequestedCode)) {
+        if (-not [int]::TryParse($RequestedCode, [ref]$versionCode) -or $versionCode -le 0) { throw 'AndroidVersionCode 必须是正整数。' }
+    } else {
+        if ($previous -eq [int]::MaxValue) { throw 'Android versionCode 已达到整数上限。' }
+        $versionCode = $previous + 1
+    }
+    if ($versionCode -le $previous) { throw "AndroidVersionCode 必须大于已登记值 $previous。" }
+    $Record.LastVersionCode = $versionCode
+    New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
+    # 单执行器串行分配；失败和取消也保留登记，已分发的安装包不会被后续低版本覆盖。
+    Write-AtomicJsonFile $Path $Record
+    return $versionCode
 }

@@ -1,0 +1,109 @@
+pipeline {
+    agent { label 'sleepydemos-local' }
+    options {
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+        timeout(time: 6, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
+    }
+    parameters {
+        gitParameter(name: 'SourceRef', type: 'PT_BRANCH_TAG', defaultValue: 'main', branchFilter: 'origin/(.*)', tagFilter: '*', sortMode: 'ASCENDING_SMART', selectedValue: 'DEFAULT', quickFilterEnabled: true, listSize: '10', description: '选择远端分支或标签；默认 main，执行时固定提交')
+        string(name: 'SourceCommit', defaultValue: '', trim: true, description: '可选：完整 40 位提交 SHA；填写后优先于 SourceRef，用于复现历史构建')
+        choice(name: 'GameId', choices: ['hub', 'drone_flight', 'wall_squeeze', 'kagit_kart'], description: '正式 ReleaseProfiles 白名单；TapTapH5 必须选择独立游戏')
+        choice(name: 'ReleaseTarget', choices: ['PC', 'Android', 'TapTapH5'], description: 'PC / Android 使用 Native 渠道；TapTapH5 使用 TapTap + WebGL')
+        string(name: 'ResourceVersion', defaultValue: '', trim: true, description: '空值自动生成唯一资源版本')
+        booleanParam(name: 'Publish', defaultValue: false, description: '发布热更资源；TapTap H5 上传 ZIP 仍需手动提交平台审核')
+        choice(name: 'Provider', choices: ['Pages', 'Ssh'], description: 'Native 可选 Pages / Ssh；TapTapH5 只允许 Pages')
+    }
+    environment {
+        SLEEPY_MACHINE_CONFIG = "${env.SLEEPY_MACHINE_CONFIG ?: 'E:/Jenkins/machine.json'}"
+        BuildKind = 'Hotfix'
+        SourceRef = "${params.SourceRef}"
+        SourceCommit = "${params.SourceCommit}"
+        GameId = "${params.GameId}"
+        ReleaseTarget = "${params.ReleaseTarget}"
+        ResourceVersion = "${params.ResourceVersion}"
+        Publish = "${params.Publish}"
+        Provider = "${params.Provider}"
+    }
+    stages {
+        stage('固定源码与配置') {
+            steps {
+                script {
+                    // 流水线脚本只检出一次；游戏源码由 Checkout 独立固定到请求中的 SHA。
+                    def runner = checkout scm
+                    if (!(runner.GIT_COMMIT ==~ /[0-9a-fA-F]{40}/)) {
+                        error('SCM 未返回有效的流水线提交 SHA。')
+                    }
+                    env.SLEEPY_RUNNER_COMMIT = runner.GIT_COMMIT.toLowerCase()
+                    env.SLEEPY_RUNNER_READY = 'true'
+                }
+                withCredentials([string(credentialsId: 'sleepydemos-github', variable: 'GH_TOKEN')]) {
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Checkout -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                }
+            }
+        }
+        stage('准备与构建') {
+            steps {
+                script {
+                    if (params.Publish) {
+                        if (params.Provider == 'Pages') {
+                            withCredentials([string(credentialsId: 'sleepydemos-github', variable: 'GH_TOKEN')]) {
+                                powershell 'if ([string]::IsNullOrWhiteSpace($env:GH_TOKEN)) { throw "缺少 GitHub 发布凭据。" }'
+                            }
+                        } else {
+                            withCredentials([sshUserPrivateKey(credentialsId: 'sleepydemos-ssh', keyFileVariable: 'SLEEPY_SSH_KEY_FILE', passphraseVariable: 'SLEEPY_SSH_KEY_PASSPHRASE')]) {
+                                powershell 'if (-not (Test-Path -LiteralPath $env:SLEEPY_SSH_KEY_FILE)) { throw "缺少 SSH 发布私钥。" }'
+                            }
+                        }
+                    }
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Prepare -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Build -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                }
+            }
+        }
+        stage('发布资源') {
+            when { expression { params.Publish } }
+            options { timeout(time: 30, unit: 'MINUTES') }
+            steps {
+                script {
+                    if (params.Provider == 'Pages') {
+                        withCredentials([string(credentialsId: 'sleepydemos-github', variable: 'GH_TOKEN')]) {
+                            powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Deploy -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                        }
+                    } else {
+                        withCredentials([sshUserPrivateKey(credentialsId: 'sleepydemos-ssh', keyFileVariable: 'SLEEPY_SSH_KEY_FILE', passphraseVariable: 'SLEEPY_SSH_KEY_PASSPHRASE')]) {
+                            powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Deploy -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                        }
+                    }
+                }
+            }
+        }
+        stage('打包归档') {
+            steps { powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Package -ConfigPath $env:SLEEPY_MACHINE_CONFIG' }
+        }
+    }
+    post {
+        always {
+            script {
+                if (env.SLEEPY_RUNNER_READY == 'true') {
+                    env.SLEEPY_ARCHIVE_SUCCEEDED = 'false'
+                    env.SLEEPY_FINALIZE_SUCCEEDED = 'false'
+                    try {
+                        withEnv(["SLEEPY_JENKINS_RESULT=${currentBuild.currentResult}"]) {
+                            powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Finalize -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                            env.SLEEPY_FINALIZE_SUCCEEDED = 'true'
+                        }
+                    } finally {
+                        try {
+                            archiveArtifacts artifacts: "ci-archive/${env.BUILD_NUMBER}/**", allowEmptyArchive: false, fingerprint: true
+                            env.SLEEPY_ARCHIVE_SUCCEEDED = 'true'
+                        } finally {
+                            powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Cleanup -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

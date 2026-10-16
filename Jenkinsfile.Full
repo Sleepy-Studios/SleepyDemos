@@ -7,32 +7,32 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
     }
     parameters {
-        string(name: 'SourceRef', defaultValue: 'main', description: '源码分支、标签或提交 SHA；执行时固定提交')
-        string(name: 'GameId', defaultValue: 'hub', description: 'hub 保持原 Hub 包；独立游戏使用正式 ReleaseProfiles 中的 GameId')
-        choice(name: 'Platform', choices: ['PC', 'Android'])
-        choice(name: 'BuildKind', choices: ['Full', 'Hotfix'])
-        choice(name: 'ResourceMode', choices: ['Offline', 'OnlineFull', 'OnlineDownload'], description: '仅 Full 生效；Hotfix 继承已发布基线')
+        gitParameter(name: 'SourceRef', type: 'PT_BRANCH_TAG', defaultValue: 'main', branchFilter: 'origin/(.*)', tagFilter: '*', sortMode: 'ASCENDING_SMART', selectedValue: 'DEFAULT', quickFilterEnabled: true, listSize: '10', description: '选择远端分支或标签；默认 main，执行时固定提交')
+        string(name: 'SourceCommit', defaultValue: '', trim: true, description: '可选：完整 40 位提交 SHA；填写后优先于 SourceRef，用于复现历史构建')
+        choice(name: 'GameId', choices: ['hub', 'drone_flight', 'wall_squeeze', 'kagit_kart'], description: '正式 ReleaseProfiles 白名单；TapTapH5 必须选择独立游戏')
+        choice(name: 'ReleaseTarget', choices: ['PC', 'Android', 'TapTapH5'], description: 'PC / Android 使用 Native 渠道；TapTapH5 使用 TapTap + WebGL')
+        choice(name: 'ResourceMode', choices: ['OnlineFull', 'OnlineDownload', 'Offline'], description: 'OnlineFull 内置资源并支持热更；Offline 不生成在线热更基线')
+        booleanParam(name: 'Development', defaultValue: false)
+        string(name: 'PlayerVersion', defaultValue: '', trim: true, description: '空值读取项目版本')
         choice(name: 'AndroidFormat', choices: ['Apk', 'Aab'], description: '仅 Android Full 生效')
         choice(name: 'AndroidSigning', choices: ['Debug', 'Custom'], description: '仅 Android Full 生效')
-        booleanParam(name: 'Development', defaultValue: false, description: 'Hotfix 必须与已发布基线一致')
-        string(name: 'PlayerVersion', defaultValue: '', description: 'Full 空值读项目；Hotfix 空值继承基线，填写时须匹配基线')
-        string(name: 'AndroidVersionCode', defaultValue: '', description: '仅 Android Full 生效；空值使用本次 BUILD_NUMBER，覆盖值必须是正整数')
-        string(name: 'ResourceVersion', defaultValue: '', description: '空值自动生成唯一资源版本')
-        booleanParam(name: 'Publish', defaultValue: false)
-        choice(name: 'Provider', choices: ['Pages', 'Ssh'])
+        string(name: 'AndroidVersionCode', defaultValue: '', trim: true, description: '仅 Android Full：空值自动递增；显式值必须大于该游戏和渠道已登记值')
+        string(name: 'ResourceVersion', defaultValue: '', trim: true, description: '空值自动生成唯一资源版本')
+        booleanParam(name: 'Publish', defaultValue: false, description: '发布热更资源；TapTap H5 上传 ZIP 仍需手动提交平台审核')
+        choice(name: 'Provider', choices: ['Pages', 'Ssh'], description: 'Native 可选 Pages / Ssh；TapTapH5 只允许 Pages')
     }
     environment {
         SLEEPY_MACHINE_CONFIG = "${env.SLEEPY_MACHINE_CONFIG ?: 'E:/Jenkins/machine.json'}"
-        BuildChannel = 'Native'
+        BuildKind = 'Full'
         SourceRef = "${params.SourceRef}"
+        SourceCommit = "${params.SourceCommit}"
         GameId = "${params.GameId}"
-        Platform = "${params.Platform}"
-        BuildKind = "${params.BuildKind}"
+        ReleaseTarget = "${params.ReleaseTarget}"
         ResourceMode = "${params.ResourceMode}"
-        AndroidFormat = "${params.AndroidFormat}"
-        AndroidSigning = "${params.AndroidSigning}"
         Development = "${params.Development}"
         PlayerVersion = "${params.PlayerVersion}"
+        AndroidFormat = "${params.AndroidFormat}"
+        AndroidSigning = "${params.AndroidSigning}"
         AndroidVersionCode = "${params.AndroidVersionCode}"
         ResourceVersion = "${params.ResourceVersion}"
         Publish = "${params.Publish}"
@@ -41,7 +41,15 @@ pipeline {
     stages {
         stage('固定源码与配置') {
             steps {
-                checkout scm
+                script {
+                    // 流水线脚本只检出一次；游戏源码由 Checkout 独立固定到请求中的 SHA。
+                    def runner = checkout scm
+                    if (!(runner.GIT_COMMIT ==~ /[0-9a-fA-F]{40}/)) {
+                        error('SCM 未返回有效的流水线提交 SHA。')
+                    }
+                    env.SLEEPY_RUNNER_COMMIT = runner.GIT_COMMIT.toLowerCase()
+                    env.SLEEPY_RUNNER_READY = 'true'
+                }
                 withCredentials([string(credentialsId: 'sleepydemos-github', variable: 'GH_TOKEN')]) {
                     powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Checkout -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
                 }
@@ -61,7 +69,7 @@ pipeline {
                             }
                         }
                     }
-                    if (params.Platform == 'Android' && params.BuildKind == 'Full' && params.AndroidSigning == 'Custom') {
+                    if (params.ReleaseTarget == 'Android' && params.AndroidSigning == 'Custom') {
                         withCredentials([
                             file(credentialsId: 'sleepydemos-keystore', variable: 'SLEEPY_KEYSTORE_FILE'),
                             string(credentialsId: 'sleepydemos-store-password', variable: 'SLEEPY_KEYSTORE_PASSWORD'),
@@ -78,7 +86,7 @@ pipeline {
                 }
             }
         }
-        stage('发布') {
+        stage('发布资源') {
             when { expression { params.Publish } }
             options { timeout(time: 30, unit: 'MINUTES') }
             steps {
@@ -102,13 +110,22 @@ pipeline {
     post {
         always {
             script {
-                try {
-                    withEnv(["SLEEPY_JENKINS_RESULT=${currentBuild.currentResult}"]) {
-                        powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Finalize -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                if (env.SLEEPY_RUNNER_READY == 'true') {
+                    env.SLEEPY_ARCHIVE_SUCCEEDED = 'false'
+                    env.SLEEPY_FINALIZE_SUCCEEDED = 'false'
+                    try {
+                        withEnv(["SLEEPY_JENKINS_RESULT=${currentBuild.currentResult}"]) {
+                            powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Finalize -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                            env.SLEEPY_FINALIZE_SUCCEEDED = 'true'
+                        }
+                    } finally {
+                        try {
+                            archiveArtifacts artifacts: "ci-archive/${env.BUILD_NUMBER}/**", allowEmptyArchive: false, fingerprint: true
+                            env.SLEEPY_ARCHIVE_SUCCEEDED = 'true'
+                        } finally {
+                            powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Cleanup -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                        }
                     }
-                } finally {
-                    archiveArtifacts artifacts: "ci-archive/${env.BUILD_NUMBER}/**", allowEmptyArchive: false, fingerprint: true
-                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Cleanup -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
                 }
             }
         }
