@@ -233,11 +233,6 @@ namespace Core.Runtime
 
         private bool EnsureInitialized()
         {
-            if (!YooAssetResourceSystem.IsInitialized)
-            {
-                service.InitializeAsync(ResourceInitializeOptions.Default).GetAwaiter().GetResult();
-            }
-
             return YooAssetResourceSystem.IsInitialized && YooAssetResourceSystem.DefaultPackage != null;
         }
 

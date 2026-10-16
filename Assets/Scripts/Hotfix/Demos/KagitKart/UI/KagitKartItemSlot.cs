@@ -112,8 +112,8 @@ namespace Hotfix.KagitKart
             if (player.ItemHeld && !wasHeld) borderAge = 0;
             wasHeld = player.ItemHeld;
             heldBorder.gameObject.SetActive(wasHeld);
-            window.color = player.ItemHeld ? UIColors.KagitKart.ItemHeld
-                : UIColors.KagitKart.ItemEmpty;
+            window.color = player.ItemHeld ? KagitKartUIColors.ItemHeld
+                : KagitKartUIColors.ItemEmpty;
             borderAge += Time.unscaledDeltaTime;
             float march = borderAge % 1;
             heldBorder.localRotation = Quaternion.Euler(0, 0, -2 * march);

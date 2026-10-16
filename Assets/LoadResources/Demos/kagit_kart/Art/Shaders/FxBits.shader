@@ -1,15 +1,43 @@
 Shader "KagitKart/FxBits" {
  Properties { uInk("墨色",Vector)=(0,0,0,1) uSunDir("太阳方向",Vector)=(0,1,0,0) uSunCol("太阳色",Vector)=(2,2,2,1) uAmb("环境光",Vector)=(1,1,1,1) _FogColor("雾",Vector)=(1,1,1,1) _FogRange("雾范围",Vector)=(170,760,0,0) uColor("速度线",Vector)=(0,0,0,1) uEdge("速度线边",Vector)=(1,1,1,1) uOpacity("不透明度",Float)=0.72 }
- SubShader { Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Transparent" } Cull Off ZWrite Off Blend SrcAlpha OneMinusSrcAlpha 
- Pass { HLSLPROGRAM
- #pragma target 4.5
- #pragma multi_compile_instancing
- #pragma vertex Vertex
- #pragma fragment Fragment
+ HLSLINCLUDE
  #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
  float uTime,uIntensity,uAspect,uOpacity;float2 uRes;float4 uInk,uSunDir,uSunCol,uAmb,uColor,uEdge,_FogColor,_FogRange,_CameraRight,_CameraUp,_CameraBack,_CameraPosition;
- struct FxState { float4 P0,V0,Phys,Shape,Look,ColA,ColB; }; StructuredBuffer<FxState> _Fx;
- struct Attributes { float4 positionOS:POSITION;uint instanceID:SV_InstanceID; };
+ struct FxState { float4 P0,V0,Phys,Shape,Look,ColA,ColB; };
+ #if SHADER_TARGET >= 45
+ StructuredBuffer<FxState> _Fx;
+ #endif
+ struct Attributes
+ {
+  float4 positionOS:POSITION;
+  #if SHADER_TARGET >= 45
+  uint instanceID:SV_InstanceID;
+  #else
+  float4 p0:TEXCOORD0;
+  float4 v0:TEXCOORD1;
+  float4 phys:TEXCOORD2;
+  float4 shape:TEXCOORD3;
+  float4 look:TEXCOORD4;
+  float4 colA:TEXCOORD5;
+  float4 colB:TEXCOORD6;
+  #endif
+ };
+ FxState ReadFxState(Attributes input)
+ {
+  #if SHADER_TARGET >= 45
+  return _Fx[input.instanceID];
+  #else
+  FxState state;
+  state.P0=input.p0;
+  state.V0=input.v0;
+  state.Phys=input.phys;
+  state.Shape=input.shape;
+  state.Look=input.look;
+  state.ColA=input.colA;
+  state.ColB=input.colB;
+  return state;
+  #endif
+ }
  struct Varyings {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float3 normal:TEXCOORD1;float4 colA:TEXCOORD2;float4 colB:TEXCOORD3;float3 info:TEXCOORD4;float depth:TEXCOORD5;};
  float fxMod(float a,float b){return a-b*floor(a/b);}
  float4 SourceView(float3 p){return float4(TransformWorldToView(float3(-p.x,p.y,p.z)),1);}
@@ -108,7 +136,7 @@ float sdZap( float2 p, float seed ) {
 }
 
 
- Varyings Vertex(Attributes input) {Varyings o=(Varyings)0;float3 position=input.positionOS.xyz;FxState itemState=_Fx[input.instanceID]; float4 aP0=itemState.P0,aV0=itemState.V0,aPhys=itemState.Phys,aShape=itemState.Shape,aLook=itemState.Look,aColA=itemState.ColA,aColB=itemState.ColB;
+ Varyings Vertex(Attributes input) {Varyings o=(Varyings)0;float3 position=input.positionOS.xyz;FxState itemState=ReadFxState(input); float4 aP0=itemState.P0,aV0=itemState.V0,aPhys=itemState.Phys,aShape=itemState.Shape,aLook=itemState.Look,aColA=itemState.ColA,aColB=itemState.ColB;
 
   float age = uTime - aP0.w;
   float life = aV0.w;
@@ -259,4 +287,32 @@ o.depth=-mvPosition.z;return o;}
   
 
 outputColor.rgb=lerp(outputColor.rgb,_FogColor.rgb,smoothstep(_FogRange.x,_FogRange.y,i.depth));return outputColor;}
- ENDHLSL } } }
+ ENDHLSL
+ SubShader
+ {
+  Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Transparent" }
+  Cull Off ZWrite Off Blend SrcAlpha OneMinusSrcAlpha
+  Pass
+  {
+   HLSLPROGRAM
+   #pragma target 4.5
+   #pragma multi_compile_instancing
+   #pragma vertex Vertex
+   #pragma fragment Fragment
+   ENDHLSL
+  }
+ }
+ SubShader
+ {
+  Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Transparent" }
+  Cull Off ZWrite Off Blend SrcAlpha OneMinusSrcAlpha
+  Pass
+  {
+   HLSLPROGRAM
+   #pragma target 3.5
+   #pragma vertex Vertex
+   #pragma fragment Fragment
+   ENDHLSL
+  }
+ }
+}

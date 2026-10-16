@@ -18,6 +18,8 @@ namespace Tests.Module
             var fontState = typeof(LanguageService).GetField("fonts", BindingFlags.NonPublic | BindingFlags.Static);
             var originalTexts = textState.GetValue(null);
             var originalFonts = fontState.GetValue(null);
+            var catalogState = typeof(LanguageService).GetField("catalogs", BindingFlags.NonPublic | BindingFlags.Static);
+            var originalCatalogs = catalogState.GetValue(null);
             string originalLanguage = LanguageService.CurrentLanguage;
             var chinese = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LoadResources/Fonts/TMP_FontAssets/CN/HarmonyOS_CN.asset");
             var english = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LoadResources/Fonts/TMP_FontAssets/EN/BebasNeue_EN.asset");
@@ -93,6 +95,7 @@ namespace Tests.Module
                 // 测试替换静态配置后恢复原服务，避免污染同一 Editor 的 Hub 或其它回归。
                 textState.SetValue(null, originalTexts);
                 fontState.SetValue(null, originalFonts);
+                catalogState.SetValue(null, originalCatalogs);
                 languageState.SetValue(null, originalLanguages);
                 typeof(LanguageService).GetProperty(nameof(LanguageService.CurrentLanguage)).SetValue(null, originalLanguage);
                 Object.DestroyImmediate(root);
@@ -105,6 +108,137 @@ namespace Tests.Module
                 third.atlasTextures = Array.Empty<Texture2D>();
                 third.material = null;
                 Object.DestroyImmediate(third);
+            }
+        }
+
+        [Test]
+        public void CatalogScopesShareRegistrationUntilLastLeaseAndPreserveLanguage()
+        {
+            WithInitializedService((common, fonts) =>
+            {
+                var demo = ScriptableObject.CreateInstance<LanguageCatalog>();
+                IDisposable first = null;
+                IDisposable second = null;
+                try
+                {
+                    demo.Configure(new[] { new LanguageCatalog.Entry("demo", 0, "玩法", "Demo") });
+                    LanguageService.SelectLanguage("en");
+                    first = LanguageService.RegisterCatalog(demo);
+                    second = LanguageService.RegisterCatalog(demo);
+                    Assert.That(LanguageService.Get("demo"), Is.EqualTo("Demo"));
+                    first.Dispose();
+                    first.Dispose();
+                    Assert.That(LanguageService.Get("demo"), Is.EqualTo("Demo"));
+                    Assert.That(LanguageService.CurrentLanguage, Is.EqualTo("en"));
+                    Assert.That(LanguageService.CurrentCulture.Name, Is.EqualTo("en-US"));
+                    second.Dispose();
+                    Assert.That(LanguageService.Get("demo"), Is.EqualTo("demo"));
+                    Assert.That(LanguageService.Get("common"), Is.EqualTo("Common"));
+                    using (LanguageService.RegisterCatalog(demo))
+                    {
+                        LanguageService.SelectLanguage("zh-CN");
+                        Assert.That(LanguageService.Get("demo"), Is.EqualTo("玩法"));
+                    }
+                }
+                finally
+                {
+                    first?.Dispose();
+                    second?.Dispose();
+                    Object.DestroyImmediate(demo);
+                }
+            });
+        }
+
+        [Test]
+        public void CatalogRegistrationFailsAtomicallyAndOldLeasesCannotRemoveNewState()
+        {
+            WithInitializedService((common, fonts) =>
+            {
+                var demo = ScriptableObject.CreateInstance<LanguageCatalog>();
+                var invalid = ScriptableObject.CreateInstance<LanguageCatalog>();
+                IDisposable old = null;
+                IDisposable current = null;
+                try
+                {
+                    invalid.Configure(new[]
+                    {
+                        new LanguageCatalog.Entry("partial", 0, "临时", "Partial"),
+                        new LanguageCatalog.Entry("common", 0, "冲突", "Conflict")
+                    });
+                    Assert.Throws<ArgumentException>(() => LanguageService.RegisterCatalog(invalid));
+                    Assert.That(LanguageService.Get("partial"), Is.EqualTo("partial"));
+                    Assert.That(LanguageService.Get("common"), Is.EqualTo("公共"));
+                    invalid.Configure(new[]
+                    {
+                        new LanguageCatalog.Entry("partial", 0, "临时", "Partial"),
+                        new LanguageCatalog.Entry("missing-font", 99, "缺字体", "Missing font")
+                    });
+                    Assert.Throws<ArgumentException>(() => LanguageService.RegisterCatalog(invalid));
+                    Assert.That(LanguageService.Get("partial"), Is.EqualTo("partial"));
+
+                    demo.Configure(new[] { new LanguageCatalog.Entry("demo", 0, "玩法", "Demo") });
+                    old = LanguageService.RegisterCatalog(demo);
+                    invalid.Configure(new[] { new LanguageCatalog.Entry("demo", 0, "冲突", "Conflict") });
+                    Assert.Throws<ArgumentException>(() => LanguageService.RegisterCatalog(invalid));
+                    LanguageService.Initialize(common, fonts, "zh-CN");
+                    current = LanguageService.RegisterCatalog(demo);
+                    old.Dispose();
+                    Assert.That(LanguageService.Get("demo"), Is.EqualTo("玩法"));
+
+                    typeof(LanguageService).GetMethod("Reset", BindingFlags.NonPublic | BindingFlags.Static).Invoke(null, null);
+                    LanguageService.Initialize(common, fonts, "en");
+                    using (LanguageService.RegisterCatalog(demo))
+                    {
+                        current.Dispose();
+                        Assert.That(LanguageService.Get("demo"), Is.EqualTo("Demo"));
+                    }
+                    Assert.That(LanguageService.Get("demo"), Is.EqualTo("demo"));
+                }
+                finally
+                {
+                    old?.Dispose();
+                    current?.Dispose();
+                    Object.DestroyImmediate(demo);
+                    Object.DestroyImmediate(invalid);
+                }
+            });
+        }
+
+        private static void WithInitializedService(Action<LanguageCatalog, FontMappingCatalog> action)
+        {
+            var fields = new[] { "texts", "fonts", "languages", "catalogs" };
+            var previous = new object[fields.Length];
+            for (int i = 0; i < fields.Length; i++)
+            {
+                previous[i] = typeof(LanguageService).GetField(fields[i], BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            }
+            string language = LanguageService.CurrentLanguage;
+            var common = ScriptableObject.CreateInstance<LanguageCatalog>();
+            var fonts = ScriptableObject.CreateInstance<FontMappingCatalog>();
+            try
+            {
+                var chinese = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LoadResources/Fonts/TMP_FontAssets/CN/HarmonyOS_CN.asset");
+                var english = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/LoadResources/Fonts/TMP_FontAssets/EN/BebasNeue_EN.asset");
+                Assert.That(chinese, Is.Not.Null);
+                Assert.That(english, Is.Not.Null);
+                common.Configure(new[] { new LanguageCatalog.Entry("common", 0, "公共", "Common") });
+                fonts.Configure(new[]
+                {
+                    new FontMappingCatalog.Entry(0, "zh-CN", chinese, chinese.material),
+                    new FontMappingCatalog.Entry(0, "en", english, english.material)
+                });
+                LanguageService.Initialize(common, fonts, "zh-CN");
+                action(common, fonts);
+            }
+            finally
+            {
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    typeof(LanguageService).GetField(fields[i], BindingFlags.NonPublic | BindingFlags.Static).SetValue(null, previous[i]);
+                }
+                typeof(LanguageService).GetProperty(nameof(LanguageService.CurrentLanguage)).SetValue(null, language);
+                Object.DestroyImmediate(common);
+                Object.DestroyImmediate(fonts);
             }
         }
 

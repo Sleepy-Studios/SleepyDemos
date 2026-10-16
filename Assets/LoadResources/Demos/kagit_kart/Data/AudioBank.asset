@@ -16,36 +16,6 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 06bf8e4580f5dd04586e382b95e7acd0, type: 3}
   - {fileID: 8300000, guid: ed1fc7abe8cae184aaf811e6991c17e6, type: 3}
   - {fileID: 8300000, guid: bf0f6e9cbf250a345ac19e08c77b5fba, type: 3}
-  - {fileID: 8300000, guid: 9c8c6c4255554eb419569b5f2994602d, type: 3}
-  - {fileID: 8300000, guid: 0e058cbe6b418d144b28c4a385f31711, type: 3}
-  - {fileID: 8300000, guid: 5ec489a2ec1184448a584afc6662e289, type: 3}
-  - {fileID: 8300000, guid: adf676d6b05c71d4c99c3098f3b72a91, type: 3}
-  - {fileID: 8300000, guid: 6d54dc2eddf85a540bcad8ce816aaa76, type: 3}
-  - {fileID: 8300000, guid: b787e0d95073f7544b92d4003f17f36f, type: 3}
-  - {fileID: 8300000, guid: 221402e8a4314b54383209711d7c9fa6, type: 3}
-  - {fileID: 8300000, guid: ac790a793c2627e459fd56042ed5034b, type: 3}
-  - {fileID: 8300000, guid: 1a526a650b4f349439a17f78fc3a499f, type: 3}
-  - {fileID: 8300000, guid: 8d205f126c1fd8246afa170e091dda2d, type: 3}
-  - {fileID: 8300000, guid: 71c84a49d0fc03f4cbce05ca2e7540d4, type: 3}
-  - {fileID: 8300000, guid: ec9e3d25beea2c0488578702f602adad, type: 3}
-  - {fileID: 8300000, guid: 2cc9eddd1b4d4e749951fcb82b004084, type: 3}
-  - {fileID: 8300000, guid: e36783ad6a3caa94283b357b0deb973b, type: 3}
-  - {fileID: 8300000, guid: 1efa7f23e23476941a508ccf1347979e, type: 3}
-  - {fileID: 8300000, guid: 8e8d8b54ae8524c4aae0d44db3d75ebb, type: 3}
-  - {fileID: 8300000, guid: 47427248f515d0f498087ff7f0aeff82, type: 3}
-  - {fileID: 8300000, guid: 2c78582d31bd7e041aeefee71cb936c3, type: 3}
-  - {fileID: 8300000, guid: 25067031554536a4a97a5a7db865187b, type: 3}
-  - {fileID: 8300000, guid: 84928726fd94ffc4c9f501cb3d098767, type: 3}
-  - {fileID: 8300000, guid: 861668875b522d047a3d33a8200c34e4, type: 3}
-  - {fileID: 8300000, guid: 9ab9dccfd792ad7409e658a0dc08a82f, type: 3}
-  - {fileID: 8300000, guid: 0e2c289f3b86fba4c9d1c9a80a3ea174, type: 3}
-  - {fileID: 8300000, guid: 7a8a47e239987a0428ab13ce2dcbcbce, type: 3}
-  - {fileID: 8300000, guid: 3a671acaf11231e4b9e26ea24791187c, type: 3}
-  - {fileID: 8300000, guid: 2fa6da071a113084cb9bf6f2c627c678, type: 3}
-  - {fileID: 8300000, guid: 7c47ed7b7aeeef64fae8f7f0e7a4dc0e, type: 3}
-  - {fileID: 8300000, guid: d26c9f40abd9e284394a8527a9148619, type: 3}
-  - {fileID: 8300000, guid: 388df608b722b7e4185c8e6c165d6087, type: 3}
-  - {fileID: 8300000, guid: 9c70a5ac3b683564cb8c797bb130d943, type: 3}
   - {fileID: 8300000, guid: 027e2b615ab2b714ba108a9068060d12, type: 3}
   - {fileID: 8300000, guid: 35a44eddc204aa14fab0d87a199a53c1, type: 3}
   - {fileID: 8300000, guid: 76071365ca5b3244595dd188fc189520, type: 3}
@@ -110,3 +80,37 @@ MonoBehaviour:
   - {fileID: 8300000, guid: e0a46203941d56d4db6788ba131f137f, type: 3}
   - {fileID: 8300000, guid: 3ad3ccd7fb810014da3ae30f8f61e65c, type: 3}
   - {fileID: 8300000, guid: c2f6f1d8377f02347a734ec3224f0ecd, type: 3}
+  - {fileID: 8300000, guid: 3c9020cb691c8fb4b9e7189208855803, type: 3}
+  - {fileID: 8300000, guid: ef06c7aa8b6130542a4995ead7fb2870, type: 3}
+  - {fileID: 8300000, guid: 38fcda649c210cf418471368f235e735, type: 3}
+  musicAddresses:
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Bosphorus_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Bosphorus_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Desk_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Desk_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Bosphorus_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Bosphorus_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Desk_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Desk_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Glacier_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Glacier_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Meadow_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Final_Meadow_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Glacier_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Glacier_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Bosphorus_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Bosphorus_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Desk_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Desk_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Glacier_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Glacier_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Meadow_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Intro_Meadow_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Meadow_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Meadow_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Podium_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Podium_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Results_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Results_Start
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Title_Loop
+  - LoadResources/Demos/kagit_kart/Audio/SFX/Music/Music_Title_Start

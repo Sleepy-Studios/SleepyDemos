@@ -28,6 +28,10 @@ unity/SleepyDemos/hotupdate/
 
 ## 窗口发布步骤
 
+以下窗口步骤用于 Hub。独立游戏正式发布使用[Jenkins](use-jenkins.md)的 GameId 隔离流程；TapTap H5 仅发布 `unity/SleepyDemos/TapTap/<GameId>/hotupdate/WebGL` 下的 YooAsset 资源。完整网页及 Build/StreamingAssets 随 h5.zip 上传创意工坊，不另发 Player CDN。默认 Publish=false；资源发布与 HTTP 校验成功不代表 H5 已上传平台或通过审核。旧 SDK 已发布的 Player 目录保留历史记录，不使用本页的平面热更清空按钮删除。
+
+发布仓库必须原样保存冻结文件。当前 Pages 仓库根 `.gitattributes` 使用 `unity/SleepyDemos/TapTap/** -text`，禁止 Git 的 `core.autocrlf` 改写该目录的版本、清单和其它文件；这条规则只作用于 TapTap 交付目录。换用发布仓库时先核对该规则，保留源字节，不通过修改冻结清单消除 SHA256 差异。仅推送成功不代表下载校验通过。
+
 **点击上传或确认清空会执行 Git 提交、推送流程，将内容发布到公开仓库**；相同包无内容变化时不会新建提交。
 
 1. 安装 `git`、`gh` 并完成 GitHub CLI 登录。确认发布仓库为 `main`、工作区干净且远端没有领先或分歧；工具不自动合并。若存在发布范围外的未推送文件，工具会拒绝。仓库 `Settings > Pages` 核对 `Deploy from a branch`、`main`、`/(root)`，见 [GitHub 官方发布源说明](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)。

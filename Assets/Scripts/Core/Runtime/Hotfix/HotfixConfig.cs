@@ -9,6 +9,9 @@ namespace Core.Runtime
         [Tooltip("为空时进入Hub；非空名称由Hotfix场景目录解析，Core不依赖业务场景类型。")]
         public string StartupScene = string.Empty;
 
+        [Tooltip("正式发布配置标识；独立游戏只加载其自身程序集与资源。")]
+        public string GameId = "hub";
+
         [Header("Resources")]
         public ResourcePlayMode PlayMode = ResourcePlayMode.EditorSimulateMode;
         public string PackageName = ResourceInitializeOptions.DefaultPackageName;

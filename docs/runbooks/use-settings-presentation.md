@@ -8,7 +8,7 @@
 
 每次打开主设置 View 从 Current 创建完整独立候选。分类直接使用 `ViewTab.Init(labels, views: views)`，传入 GraphicsSettingsPanelView、AudioSettingsPanelView、InputSettingsPanelView、LanguageSettingsPanelView、AccessibilitySettingsPanelView。先 SetData 交付候选，再交给 ViewTab 按选择异步加载；Main Prefab 只保留公共挂载根，不制作 pageRoots 或 SettingsPage。AddSubView 持有子页销毁所有权，分页自身显示时回显、隐藏时释放编辑会话。分页资源位于 `UI/Settings/Panels/`。新增项在对应 View 直接使用 UISettingRow 与基础控件，修改引用后通过正式 UIBind 重新生成。
 
-应用由 SettingsFlow 经 SettingsApplyAction 协调，Core 使用者也可直接等待 GameSettingsService.ApplyAsync。检查 SettingsApplyResult，不以控件请求值替代生效状态。显示模式或分辨率改变时，正式 DisplayConfirmView 在未缩放的 15 秒内等待保留或恢复；任务由 Flow 持有，尊重取消令牌。超时、拒绝、取消或失败恢复实际显示与旧偏好。正在提交或监听改键时禁用重复应用，关页按原生命周期取消编辑。
+应用由 SettingsFlow 经 SettingsApplyAction 协调，Core 使用者也可直接等待 GameSettingsService.ApplyAsync。检查 SettingsApplyResult，不以控件请求值替代生效状态。显示模式或分辨率改变时，正式 DisplayConfirmView 在未缩放的 15 秒内等待保留或恢复；任务由 Flow 持有，尊重取消令牌。超时、拒绝、取消或失败恢复实际显示与旧偏好。正在提交时禁用重复应用，关页按原生命周期取消编辑。
 
 恢复分类默认值从 GetDefaults 取该分类，覆盖当前候选对应部分，随后仍须用户应用。关页丢掉候选，不向制作 SO 写玩家数据。Demo 不提供公共设置入口；专属飞控／赛车参数继续放原 Demo 页面，保留纸卡、触控和业务菜单的原布局。
 
@@ -28,9 +28,7 @@ DLSS/DLAA 实际生效后禁用手动抗锯齿控件，并展示 `IsAntialiasing
 
 GameplayInputRouter / InputActionSession 直接读取自身 Settings；不要给 Demo 再复制死区、反转和震动底座。提示绑定会话 Asset，不能绑定未生效的源动作。InputBindingPrompt.SetCaptionKey 在页面绑定时赋说明，SetBindingsVisible 控制辅助偏好；触控按钮仍保留可读 caption。
 
-输入页使用 LoopScrollView 与 SettingsBindingItemView 显示同类绑定行；正式模板为 `UI/Settings/SettingsBindingItemView.prefab`，InputSettingsBindingRow 保存提示、上下文和按钮引用。根据正式 InputSettingsCatalog.Entry.Actions 的动作 GUID／文案键枚举单绑定和复合子项，行 Key 包含 SourceId、action.id 与 binding.id。每行调用 BindBinding 显示准确索引，不把同动作中的其他键位别名画成当前绑定。公共 UI／Menu 的安全动作通过 CanRebind 保持不可编辑。
-
-改键使用 InputRebindSession 构造候选，Begin 监听单个普通/复合子绑定，取消调用 Cancel，重置调用 ResetAction。回收行时 Clear 原候选与按钮回调，隐藏输入页或关闭宿主时释放会话。ExportOverrides 保存到候选 BindingOverrides[SourceId]，只有统一设置提交成功后才生效；运行会话保留原上下文，并等待提交时已按住的新绑定松开。提示 Prefab、Kenney 图标和新手柄映射的具体接入见[公共输入接入](use-gameplay-input.md)。
+公共输入页只维护灵敏度、死区、反转、震动和图标风格，不配置 Demo 动作目录，不展示集中改键列表。恢复公共输入默认不删除旧改键。本期不新增 Demo 改键 UI；已有 InputRebindSession、InputSettingsCatalog 类型、SettingsBindingItemView 和 InputSettingsBindingRow 继续保留，未来宿主按自己的源资产使用候选编辑和 GameSettingsService.ApplyBindingOverridesAsync 提交，详见[公共输入接入](use-gameplay-input.md)。
 
 普通 AudioSource 接 AudioBusSource 分类；动态本地音量调用 SetLocalVolume。DSP 自己在音乐/音效/UI 分类处使用 AudioSettingsRuntime.GetGain，保留自己的静音与音量限制，保留播放进度。
 

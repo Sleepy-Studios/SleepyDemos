@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -8,12 +9,58 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.Editor.Hotfix;
+using Core.Runtime;
 using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
 
 namespace Tests.Module
 {
     public sealed class GitHubPagesDeploymentTests
     {
+        [Test]
+        public void AutomationRequest_OpeningBuildWindowPreservesSharedConfiguration()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<HotfixConfig>("Assets/LoadResources/Config/HotfixConfig.asset");
+            string original = EditorJsonUtility.ToJson(config);
+            string request = Environment.GetEnvironmentVariable("SLEEPY_BUILD_REQUEST");
+            HotfixBuildWindow window = null;
+            try
+            {
+                config.GameId = "kagit_kart";
+                config.BaseServerURL = config.RemoteBaseServerURL = "https://example.com/TapTap/kagit_kart/hotupdate/WebGL";
+                config.HotfixSourcePath = "Automation/Fixed/Hotfix";
+                string expected = EditorJsonUtility.ToJson(config);
+                Environment.SetEnvironmentVariable("SLEEPY_BUILD_REQUEST", "automation-request.json");
+                window = ScriptableObject.CreateInstance<HotfixBuildWindow>();
+                Assert.That(EditorJsonUtility.ToJson(config), Is.EqualTo(expected), "打开窗口不得用本地偏好覆盖自动化配置");
+            }
+            finally
+            {
+                if (window != null) UnityEngine.Object.DestroyImmediate(window);
+                EditorJsonUtility.FromJsonOverwrite(original, config);
+                Environment.SetEnvironmentVariable("SLEEPY_BUILD_REQUEST", request);
+            }
+        }
+
+        [TestCase("AGFzbQEAAAABBAFgAAADAwIAAAciAhBfX21haW5fYXJnY19hcmd2AAALU2VuZE1lc3NhZ2UAAQoHAgIACwIACw==", true)]
+        [TestCase("AGFzbQEAAAABBAFgAAADAgEABwgBBHNicmsAAAoEAQIACw==", false)]
+        public void TapTapWasm_RequiresGameEntryAndUnityMessageBridge(string module, bool accepted)
+        {
+            // 两份最小合法模块分别导出 Unity 入口和 SendMessage、或仅导出 sbrk。
+            string path = Path.Combine(Path.GetTempPath(), "SleepyDemos-Wasm-" + Guid.NewGuid().ToString("N") + ".wasm");
+            try
+            {
+                File.WriteAllBytes(path, Convert.FromBase64String(module));
+                if (accepted) Assert.DoesNotThrow(() => TapTapBuildAdapter.ValidateWasm(path));
+                else Assert.Throws<InvalidOperationException>(() => TapTapBuildAdapter.ValidateWasm(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
         [Test]
         public void PublicationFiles_IncludeOnlyDownloadResources_RejectUnsafeVersion()
         {
@@ -40,6 +87,71 @@ namespace Tests.Module
             {
                 Directory.Delete(root, true);
             }
+        }
+
+        [Test]
+        public void TapTapH5Archive_RequiresIndexAndPreservesNestedBytesUnderSingleGameRoot()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "SleepyDemos-H5Archive-" + Guid.NewGuid().ToString("N"));
+            string webgl = Path.Combine(root, "webgl");
+            string archive = Path.Combine(root, "h5.zip");
+            var files = new Dictionary<string, byte[]>
+            {
+                ["index.html"] = Encoding.UTF8.GetBytes("<html>Unity</html>"),
+                ["Build/game.wasm.unityweb"] = new byte[] { 0, 97, 115, 109, 255 },
+                ["Build/game.data.unityweb"] = new byte[] { 128, 0, 255, 1 },
+                ["StreamingAssets/yoo/BuiltinCatalog.bytes"] = new byte[] { 0, 1, 2, 3 }
+            };
+            try
+            {
+                foreach (var file in files)
+                {
+                    if (file.Key == "index.html")
+                    {
+                        continue;
+                    }
+                    string path = Path.Combine(webgl, file.Key);
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    File.WriteAllBytes(path, file.Value);
+                }
+                Assert.Throws<InvalidOperationException>(() => TapTapBuildAdapter.CreateArchive(webgl, archive));
+                Assert.That(File.Exists(archive), Is.False);
+                File.WriteAllBytes(Path.Combine(webgl, "index.html"), files["index.html"]);
+                Assert.Throws<InvalidOperationException>(() => TapTapBuildAdapter.CreateArchive(webgl, Path.Combine(webgl, "h5.zip")));
+                Assert.That(File.Exists(Path.Combine(webgl, "h5.zip")), Is.False);
+                TapTapBuildAdapter.CreateArchive(webgl, archive);
+
+                using var zip = ZipFile.OpenRead(archive);
+                Assert.That(zip.Entries.Count, Is.EqualTo(files.Count));
+                Assert.That(zip.GetEntry("game/index.html"), Is.Not.Null);
+                foreach (var entry in zip.Entries)
+                {
+                    Assert.That(entry.FullName, Does.StartWith("game/"));
+                    string relative = entry.FullName.Substring("game/".Length);
+                    Assert.That(files.ContainsKey(relative), Is.True);
+                    using var input = entry.Open();
+                    using var bytes = new MemoryStream();
+                    input.CopyTo(bytes);
+                    Assert.That(bytes.ToArray(), Is.EqualTo(files[relative]));
+                }
+            }
+            finally
+            {
+                Directory.Delete(root, true);
+            }
+        }
+
+        [Test]
+        public void PublicationPath_SeparatesNativeAndTapTap_RejectsTraversal()
+        {
+            Assert.That(GitHubPagesDeployment.GetResourcePath("SleepyDemos/TapTap/kagit_kart", "WebGL"),
+                Is.EqualTo("unity/SleepyDemos/TapTap/kagit_kart/hotupdate/WebGL"));
+            Assert.That(GitHubPagesDeployment.GetResourcePath("SleepyDemos", "PC"),
+                Is.EqualTo("unity/SleepyDemos/hotupdate/PC"));
+            Assert.Throws<InvalidOperationException>(() =>
+                GitHubPagesDeployment.GetResourcePath("SleepyDemos/TapTap/../other", "WebGL"));
+            Assert.Throws<InvalidOperationException>(() =>
+                GitHubPagesDeployment.GetResourcePath("SleepyDemos/TapTap/kagit_kart", "../PC"));
         }
 
         [TestCase("/")]

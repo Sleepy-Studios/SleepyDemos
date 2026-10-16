@@ -4,6 +4,7 @@ using Core.Runtime;
 using Core.Runtime.Localization;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Hotfix.SceneManagement
 {
@@ -12,15 +13,24 @@ namespace Hotfix.SceneManagement
     {
         private readonly IGameSceneRuntime runtime;
         private readonly IGameSceneLoadingPresenter loadingPresenter;
+        private readonly Func<UniTask> prepareScene;
+        private readonly Func<GameSceneDefinition, UniTask<GameSceneLanguageScope>> loadContext;
+        private GameSceneLanguageScope currentContext;
         private bool isTransitioning;
         private bool isEditorDirect;
 
         internal GameSceneNavigator(
             IGameSceneRuntime runtime,
-            IGameSceneLoadingPresenter loadingPresenter)
+            IGameSceneLoadingPresenter loadingPresenter,
+            Func<UniTask> prepareScene = null,
+            GameSceneId? standaloneScene = null,
+            Func<GameSceneDefinition, UniTask<GameSceneLanguageScope>> loadContext = null)
         {
             this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
             this.loadingPresenter = loadingPresenter ?? throw new ArgumentNullException(nameof(loadingPresenter));
+            this.prepareScene = prepareScene ?? PrepareActiveSceneAsync;
+            this.loadContext = loadContext ?? (definition => GameSceneLanguageScope.LoadAsync(definition));
+            StandaloneScene = standaloneScene;
         }
 
         /// 已初始化的全局导航实例。
@@ -32,7 +42,7 @@ namespace Hotfix.SceneManagement
         /// 当前是否正在切换场景。
         public bool IsTransitioning => isTransitioning;
 
-        /// 独立包的业务入口；null保持Hub入口，具体Demo据此提供返回主菜单。
+        /// 独立包的唯一业务入口；返回 Hub 请求重载本游戏，null 保持正常 Hub 导航。
         public GameSceneId? StandaloneScene { get; private set; }
 
         /// 当前是否由 Editor Demo 直启宿主管理。
@@ -61,20 +71,22 @@ namespace Hotfix.SceneManagement
                 throw new System.ArgumentException("独立入口必须是已登记的Demo。", nameof(standaloneScene));
             Instance ??= new GameSceneNavigator(
                 new GameSceneRuntime(ResourceServices.CreateSceneLoader()),
-                new GameSceneLoadingPresenter()) { StandaloneScene = standaloneScene };
+                new GameSceneLoadingPresenter(), standaloneScene: standaloneScene);
         }
 
 #if UNITY_EDITOR
-        internal static void InitializeEditorDirect(IEditorDirectGameSceneRuntime runtime, GameSceneId sceneId)
+        internal static void InitializeEditorDirect(IEditorDirectGameSceneRuntime runtime, GameSceneId sceneId, GameSceneLanguageScope context = null)
         {
             if (Instance != null)
             {
+                context?.Dispose();
                 return;
             }
 
             Instance = new GameSceneNavigator(runtime, new GameSceneLoadingPresenter())
             {
                 CurrentScene = sceneId,
+                currentContext = context,
                 isEditorDirect = true
             };
         }
@@ -105,18 +117,38 @@ namespace Hotfix.SceneManagement
                 return GameSceneSwitchResult.Busy(target);
             }
 
+            if (StandaloneScene.HasValue)
+            {
+                if (target == GameSceneId.Hub)
+                {
+                    return await ReloadCurrentAsync();
+                }
+                if (target != StandaloneScene.Value)
+                {
+                    return GameSceneSwitchResult.Failed(target, "独立游戏包未包含该场景：" + target);
+                }
+            }
+
             if (CurrentScene == target)
             {
                 return GameSceneSwitchResult.Ignored(target);
             }
 
             isTransitioning = true;
+            bool preparingCommittedScene = false;
+            GameSceneLanguageScope targetContext = null;
             try
             {
                 var uiError = await loadingPresenter.BeginAsync(definition);
                 if (!string.IsNullOrEmpty(uiError))
                 {
                     return await RestoreFailedAsync(target, uiError);
+                }
+
+                if (!definition.IsHub)
+                {
+                    // 必须在资源场景加载前注册，覆盖目标 Awake/OnEnable 的读取。
+                    targetContext = await loadContext(definition);
                 }
 
                 string name = LanguageService.IsInitialized ? LanguageService.Get(definition.DisplayNameKey) : definition.DisplayName;
@@ -146,8 +178,19 @@ namespace Hotfix.SceneManagement
                     return await RestoreFailedAsync(target, runtimeResult.Error);
                 }
 
+                var previousContext = currentContext;
+                currentContext = targetContext;
+                targetContext = null;
+                currentContext?.BindScene(SceneManager.GetActiveScene());
+                previousContext?.Dispose();
                 CurrentScene = target;
-                loadingPresenter.SetProgress(0.95f, "切换场景", "正在完成场景初始化", "Loading.SwitchScene", "Loading.Initialize");
+                if (!definition.IsHub)
+                {
+                    preparingCommittedScene = true;
+                    await prepareScene();
+                    preparingCommittedScene = false;
+                }
+                loadingPresenter.SetProgress(0.99f, "切换场景", "正在完成场景初始化", "Loading.SwitchScene", "Loading.Initialize");
                 uiError = await loadingPresenter.CompleteAsync(target);
                 if (!string.IsNullOrEmpty(uiError))
                 {
@@ -159,11 +202,20 @@ namespace Hotfix.SceneManagement
             catch (Exception exception)
             {
                 Debug.LogException(exception);
-                return await RestoreFailedAsync(target, exception.Message);
+                return preparingCommittedScene
+                    ? await RecoverPreparationFailedAsync(target, exception.Message)
+                    : await RestoreFailedAsync(target, exception.Message);
             }
             finally
             {
-                isTransitioning = false;
+                try
+                {
+                    targetContext?.Dispose();
+                }
+                finally
+                {
+                    isTransitioning = false;
+                }
             }
         }
 
@@ -190,6 +242,8 @@ namespace Hotfix.SceneManagement
             }
 
             isTransitioning = true;
+            bool preparingCommittedScene = false;
+            GameSceneLanguageScope targetContext = null;
             try
             {
                 var uiError = await loadingPresenter.BeginAsync(definition);
@@ -208,6 +262,7 @@ namespace Hotfix.SceneManagement
                     loadingPresenter.SetProgress(displayedProgress, step, description, stepKey, descriptionKey, args);
                 }
 
+                targetContext = await loadContext(definition);
                 loadingPresenter.SetProgress(0.1f, "重新运行场景", $"正在卸载{definition.DisplayName}", "Loading.ReloadScene", "Loading.UnloadingScene", name);
                 if (runtime is IEditorDirectGameSceneRuntime editorDirectRuntime)
                 {
@@ -228,6 +283,8 @@ namespace Hotfix.SceneManagement
                         return await RestoreFailedAsync(target, unloadResult.Error);
                     }
 
+                    currentContext?.Dispose();
+                    currentContext = null;
                     CurrentScene = GameSceneId.Hub;
                     ReportProgress(0, 0.45f, 0.9f, "重新运行场景", $"正在重新加载{definition.DisplayName}", "Loading.ReloadScene", "Loading.ReloadingScene", name);
                     var loadResult = await runtime.LoadAsync(definition.Address, progress =>
@@ -238,8 +295,16 @@ namespace Hotfix.SceneManagement
                     }
                 }
 
+                var previousContext = currentContext;
+                currentContext = targetContext;
+                targetContext = null;
+                currentContext?.BindScene(SceneManager.GetActiveScene());
+                previousContext?.Dispose();
                 CurrentScene = target;
-                loadingPresenter.SetProgress(0.95f, "重新运行场景", "正在完成场景初始化", "Loading.ReloadScene", "Loading.Initialize");
+                preparingCommittedScene = true;
+                await prepareScene();
+                preparingCommittedScene = false;
+                loadingPresenter.SetProgress(0.99f, "重新运行场景", "正在完成场景初始化", "Loading.ReloadScene", "Loading.Initialize");
                 uiError = await loadingPresenter.CompleteAsync(target);
                 return string.IsNullOrEmpty(uiError)
                     ? GameSceneSwitchResult.Succeeded(target)
@@ -248,20 +313,125 @@ namespace Hotfix.SceneManagement
             catch (Exception exception)
             {
                 Debug.LogException(exception);
-                return await RestoreFailedAsync(target, exception.Message);
+                return preparingCommittedScene
+                    ? await RecoverPreparationFailedAsync(target, exception.Message)
+                    : await RestoreFailedAsync(target, exception.Message);
             }
             finally
             {
-                isTransitioning = false;
+                try
+                {
+                    targetContext?.Dispose();
+                }
+                finally
+                {
+                    isTransitioning = false;
+                }
             }
         }
 
-        private async UniTask<GameSceneSwitchResult> RestoreFailedAsync(GameSceneId target, string error)
+        private async UniTask PrepareActiveSceneAsync()
+        {
+            if (CurrentScene == GameSceneId.Hub)
+            {
+                return;
+            }
+            foreach (var root in SceneManager.GetActiveScene().GetRootGameObjects())
+            {
+                foreach (var behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
+                {
+                    if (behaviour is IGameScenePreparation preparation)
+                    {
+                        await preparation.PrepareSceneAsync((progress, step) =>
+                            loadingPresenter.SetProgress(Mathf.Lerp(0.9f, 0.99f, Mathf.Clamp01(progress)), step, string.Empty, null, null),
+                            behaviour.GetCancellationTokenOnDestroy());
+                    }
+                }
+            }
+            await UniTask.NextFrame(PlayerLoopTiming.LastPostLateUpdate);
+        }
+
+        /// <summary>以现有场景 Loading 遮挡场内准备，结束或失败均恢复当前页面。</summary>
+        /// <param name="title">本次准备标题。</param>
+        /// <param name="prepare">在主线程报告实际进度的准备操作。</param>
+        /// <param name="cancellationToken">取消准备；UI 清理不随取消中断。</param>
+        public async UniTask RunPreparationAsync(string title,
+            Func<Action<float, string>, CancellationToken, UniTask> prepare,
+            CancellationToken cancellationToken = default)
+        {
+            if (prepare == null)
+            {
+                throw new ArgumentNullException(nameof(prepare));
+            }
+            if (isTransitioning)
+            {
+                throw new InvalidOperationException("场景切换尚未结束。");
+            }
+            if (!GameSceneCatalog.TryGet(CurrentScene, out var current))
+            {
+                throw new InvalidOperationException("当前场景未登记。");
+            }
+            isTransitioning = true;
+            var presenter = new GameSceneLoadingPresenter();
+            try
+            {
+                string error = await presenter.BeginAsync(new GameSceneDefinition(CurrentScene, title, null, current.Address));
+                if (!string.IsNullOrEmpty(error))
+                {
+                    throw new InvalidOperationException(error);
+                }
+                await prepare((progress, step) => presenter.SetProgress(progress, step, string.Empty, null, null), cancellationToken);
+                await UniTask.NextFrame(PlayerLoopTiming.LastPostLateUpdate, cancellationToken);
+            }
+            finally
+            {
+                try
+                {
+                    await presenter.RestoreAsync(CurrentScene);
+                }
+                finally
+                {
+                    isTransitioning = false;
+                }
+            }
+        }
+
+        private async UniTask<GameSceneSwitchResult> RecoverPreparationFailedAsync(GameSceneId target, string error)
+        {
+            try
+            {
+                // 来源已经卸载；准备失败必须先卸载目标，不能仅关闭 Loading 留下不可用的 Demo。
+                var result = await runtime.ReturnToHubAsync(null);
+                if (result.Succeeded)
+                {
+                    currentContext?.Dispose();
+                    currentContext = null;
+                    CurrentScene = GameSceneId.Hub;
+                    if (isEditorDirect && !ReferenceEquals(Instance, this))
+                    {
+                        // Hub 页面由正式启动链创建；旧 Presenter 仅清理自己的 Loading 和持久化 UI 遮挡。
+                        return await RestoreFailedAsync(target, error, target);
+                    }
+                }
+                else
+                {
+                    error = $"{error}; 准备失败后返回 Hub 失败: {result.Error}";
+                }
+            }
+            catch (Exception exception)
+            {
+                error = $"{error}; 准备失败后返回 Hub 异常: {exception.Message}";
+            }
+
+            return await RestoreFailedAsync(target, error);
+        }
+
+        private async UniTask<GameSceneSwitchResult> RestoreFailedAsync(GameSceneId target, string error, GameSceneId? restoreScene = null)
         {
             try
             {
                 // 场景提交后只恢复当前 UI，不能把已卸载的来源当作回滚目标。
-                await loadingPresenter.RestoreAsync(CurrentScene);
+                await loadingPresenter.RestoreAsync(restoreScene ?? CurrentScene);
             }
             catch (Exception exception)
             {

@@ -11,8 +11,8 @@ namespace Hotfix.KagitKart
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class KagitKartHudInk : MaskableGraphic
     {
-        private static readonly Color Ink = UIColors.KagitKart.ScreenInk;
-        private static readonly Color Highlight = UIColors.KagitKart.ScreenInkHighlight;
+        private static readonly Color Ink = KagitKartUIColors.ScreenInk;
+        private static readonly Color Highlight = KagitKartUIColors.ScreenInkHighlight;
         private readonly List<Part> parts = new();
         private readonly Drip[] drips = new Drip[6];
         private float duration;

@@ -29,6 +29,8 @@ Unity 6000.3.15f1 及当前用户授权、Windows IL2CPP/Android 模块、Visual
 5. 按 `scripts/jenkins/bootstrap/job.xml` 创建 `SleepyDemos-Build`，从源码仓 main 读取 Jenkinsfile；填写正确源码凭据。
 6. Jenkinsfile 必须已存在于配置的仓库提交中。本地提交未推送时，远端 main 不会自动得到新流水线。
 
+TapTap 另按 `scripts/jenkins/bootstrap/job-taptap.xml` 创建 `SleepyDemos-TapTap`，SCM 固定分支仍为 main，脚本路径为 `Jenkinsfile.TapTap`；该文件必须先按授权进入远端对应提交。SourceRef 独立指定要构建的同仓游戏源码，默认 `main`；指定其它分支、标签或提交时必须已推送，才能被 CI fetch。两任务使用同一个 `sleepydemos-local` 单执行器，不修改原任务为多平台混合任务。
+
 本机实际版本、账号文件位置、安装结果和验收记录在个人 Obsidian“Jenkins 自动构建与发布”，不将一台机器的历史结果当通用步骤的通过证明。
 
 ## 凭据
@@ -52,6 +54,7 @@ ID 是 Jenkinsfile 的当前接口，不通过 machine.json 自动改写。缺�
 | 参数 | 选择 |
 | --- | --- |
 | SourceRef | 分支/Tag/完整40位SHA，默认 main；不要填写短SHA |
+| GameId | 原任务默认 hub；独立游戏填写固定源码 ReleaseProfiles 中的正式 GameId |
 | Platform / BuildKind | PC 或 Android；Full 或 Hotfix |
 | ResourceMode | Full 选择 Offline / OnlineFull / OnlineDownload；Hotfix 继承当前基线 |
 | AndroidFormat / AndroidSigning | Apk 或 Aab；Debug 或 Custom |
@@ -63,7 +66,24 @@ ID 是 Jenkinsfile 的当前接口，不通过 machine.json 自动改写。缺�
 
 Offline 内置全部资源、不联网热更；OnlineFull 全量内置并在线更新；OnlineDownload 不内置 Bundle，保留空 BuiltinCatalog 与必要清单，首次下载资源。离线模式选择发布仅上传同批资源，不改变安装包运行模式。
 
+TapTap 任务默认选择 OnlineFull：首包 Bundle 与官方完整 BuiltinCatalog 随 H5 ZIP 内置，避免冷启动逐个跨域下载；后续仍通过 Pages 清单按内容 Hash 更新。OnlineDownload 仍可显式选择，但 Web 默认没有预下载策略，资源使用时才实际请求，不能将下载阶段结束当作所有资源已缓存。H5 的 Bundle 使用宿主包缓存与普通 HTTP 缓存，通过 cacheControl=no-store 绕过 Unity 额外的 IndexedDB、响应流克隆和跨域 HEAD 链；这里的 no-store 只控制 Unity 缓存层，并未关闭浏览器 HTTP 缓存。Player data 文件仍使用原有 Unity 版本校验策略。
+
 从任务产物下载 Player、资源、日志和摘要。30 次记录与 10 次普通产物自动保留；current 基线独立保存。失败任务也保留已生成产物和阶段日志。
+
+TapTap 任务固定 BuildChannel=TapTap、Platform=WebGL、TapTapFormat=H5、Provider=Pages，默认 GameId=kagit_kart；不提供 Android 签名或格式参数。安装匹配 Unity 的 WebGL 模块，采用标准 Unity H5 构建，不需要小游戏 SDK。工程和缓存位于 `E:\Project\SleepyDemos-Build\TapTap\Project`，持久交付包位于 `TapTap\Artifacts\<GameId>\<任务名-编号>`；失败也归档已生成部分，结果以 summary.json/result.json 为准。其基线、资源版本、资源发布目录均与原生和其它 GameId 隔离。SCM 必须能读取本轮 Jenkinsfile.TapTap 与固定源提交；本地未推送改动不能被远端检出。
+
+本轮沿用创意工坊应用 971575。仓库外 machine.json 的 `TapTap.Apps.<GameId>.AppId` 可记录该应用编号，示例为 971575；这是可选记录，H5 构建不需要原生小游戏 MiniAppId 或 CdnUrl。首次 H5 使用新的 ResourceVersion 构建 Full，在线发布成功后才建立 `baselines/TapTap/<GameId>/WebGL/H5/current`；Hotfix 只继承这个带 H5 格式标记的在线基线，拒绝旧 SDK 小游戏基线。
+
+TapTap 首次验证按顺序进行：
+
+1. 先执行 Publish=false Full，核对 `player/webgl/index.html`、Build/StreamingAssets 等完整网页，以及 `player/h5.zip`。ZIP 解压后仅有 game/ 一个顶层目录，入口为 game/index.html，不要重新套目录或改后缀。压缩包不得超过 300 MB（300,000,000 字节）；核对 built.json 的 H5Archive 大小/SHA、TapTapFormat=H5 和固定源码/配置 SHA。
+2. OnlineFull/OnlineDownload 包在平台启动前，需要发布本次配套 YooAsset 资源。确认产物后显式选择 Publish=true 构建/发布正式 Full，使用该次版本配套的 H5 ZIP；已成功归档的固定产物也可按既有恢复流程只执行 Deploy，不改变 SourceCommit、ConfigCommit、版本或冻结文件。Offline 包不消费在线更新。
+3. 在应用 971575 的 H5 上传入口上传 h5.zip，以解析完成并出现在开发版本列表为准；上传进度 100% 不能代替解析成功。该包使用 Unity 默认加载页与全屏画布，不执行小游戏 SDK 代码分包或函数采集。
+4. 分别在 Android/iOS 容器验证首次启动、触屏、首个交互后出声、切后台静音与回前台、玩家确认继续、存档重启和存储失败反馈；在线包再验证同一 H5 包消费自身基线的 Hotfix。当前单机不使用平台身份，不强制调用小游戏登录；后续若接入身份功能，再按实际 H5 接口和审核要求处理，不将当前实现解释为平台对所有 H5 免登录的保证。
+
+Pages 仅发布 `unity/SleepyDemos/TapTap/kagit_kart/hotupdate/WebGL/` 下的 YooAsset 下载白名单，不上传 H5 ZIP 或额外 Player CDN。GitHub 单文件 100 MiB、站点总量 1 GB 限制仍生效，检查 result.json 的 Published/Downloads 与 HTTP SHA 校验。旧 SDK 已发布目录保留历史状态，不清空、不覆盖，也不与新 H5 资源版本混用。
+
+当前发布状态与验证边界见[热更模块](../modules/hotfix.md#发布目标与-taptap)，各阶段产物、Pages 提交、桌面验证及 iQOO 用户反馈见[H5 验收记录](../agent/archive/demo-release-taptap-2026-10-15.md#full05-最终交付与回归)。平台上传确认、资源发布和实际运行各自记录；不以旧阶段包或桌面结果代替最新包的真机验收。
 
 取消当前任务使用 Jenkins 的 Stop；不要结束管理端或手动杀 Unity。收尾记录 `unity-Prepare|Build|Deploy.process.json`，严格核对本次进程并确认工程解锁后才压缩和清理；收尾失败会保留 `runs/<任务名>-<编号>`，摘要明确失败原因。此时先检查归档进程记录、Windows CIM 进程和 UnityLockfile，不能仅凭任务显示 ABORTED 或 Get-Process 查不到就删除目录。身份无法确认的进程须人工核实，不能按 Unity.exe 名称批量结束。
 
@@ -91,7 +111,7 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 
 ## 备份与迁移
 
-停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线、resource-versions 登记目录和必要受保护连接材料；签名 keystore 单独备份。目录快照恢复时直接复制 home，按备份清单核对相对路径、大小与 SHA256；历史普通产物可排除，但须明确恢复后对应下载链接不可用。每平台 current 和 resource-versions 独立于 30 次记录/10 次普通产物保留，不随过期归档删除。
+停机后备份 home（含凭据加密材料，master.key 分离到单独受保护备份，恢复时补回 home/secrets/master.key）、非秘密 machine.json、工具/插件版本记录、current 基线、resource-versions 登记目录和必要受保护连接材料；签名 keystore 单独备份。目录快照恢复时直接复制 home，按备份清单核对相对路径、大小与 SHA256；历史普通产物可排除，但须明确恢复后对应下载链接不可用。各渠道、游戏和平台的 current 与 resource-versions 独立于 30 次记录/10 次普通产物保留，不随过期归档删除。
 
 继续原 PC 主包热更还需单独备份原独立 CI 工程 `<WorkspaceRoot>/PC/Assets/Plugins/Streamline/x86_64/` **整个目录**，包括 DLL、`Streamline~` 运行库、许可证及现有 `.meta`/GUID。记录全部文件相对路径、大小与 SHA256；迁移后逐文件核对，不只核对 ZIP。Library 默认重建，不用新生成的 DLL 或 `.meta` 冒充原基线依赖。
 
@@ -119,4 +139,4 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 - CI 工程已从 `E:\Jenkins\workspaces` 整体迁至 `E:\Project\SleepyDemos-Build`，16 个原生文件逐项 SHA 一致，PC/Android 工程关闭、日常工程继续运行。旧 PC CMake 缓存保留为 `build.before-relocation-20261015`；搬迁后 Jenkins #41 PC Hotfix（Publish=false）实际 SUCCESS，15 项归档大小/SHA一致，资源ZIP 109811676字节；没有 Player 或发布，两个 current 共432文件及16个原生文件保持一致。新路径 PC Full、Android 构建尚未复跑。
 - WorkspaceRoot 配置与3份脚本已在 PS7.6.6、Windows PowerShell5.1解析及9种非法路径检查通过；增量配置备份 `E:\Jenkins\backups\20261015-workspace-relocation-config` 与原 `20261015-final` 全量备份配用，不改旧manifest。迁移后 #40 因填写短SHA在检出阶段失败，未启动Unity；#41 使用完整SHA执行不发布的 PC Hotfix，已最终 SUCCESS。
 
-- 旧手工安卓工作树 `E:\Project\SleepyDemos-Andriod_Bulid` 已按授权完成非缓存备份及17542文件逐项SHA校验后移除，原分支保留；备份位于 `E:\Jenkins\backups\20261015-android-manual-before-removal`，仅当前用户和SYSTEM可访问。WebGL目前仅完成浏览器接入评估，尚未实施。
+- 旧手工安卓工作树 `E:\Project\SleepyDemos-Andriod_Bulid` 已按授权完成非缓存备份及17542文件逐项SHA校验后移除，原分支保留；备份位于 `E:\Jenkins\backups\20261015-android-manual-before-removal`，仅当前用户和SYSTEM可访问。当时 WebGL 仅完成浏览器接入评估；本轮 TapTap 流水线入口与待验收项见前文。

@@ -33,6 +33,118 @@ namespace Hotfix.KagitKart
             public Vector4 A, B, Color, Variant;
         }
 
+        // Unity 最多四条顶点流；静态模板位置和交错的特效属性分成两条。
+        private sealed class TemplateMesh<T> : IDisposable where T : struct
+        {
+            private const MeshUpdateFlags UpdateFlags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices;
+            private readonly Mesh mesh;
+            private readonly T[] vertices;
+            private readonly int verticesPerInstance;
+            private readonly int indicesPerInstance;
+            private int drawnInstances = -1;
+
+            internal TemplateMesh(Mesh template, int capacity, int channels)
+            {
+                if (template == null || !template.isReadable || template.subMeshCount != 1
+                    || template.GetTopology(0) != MeshTopology.Triangles
+                    || Marshal.SizeOf<T>() != channels * 16)
+                {
+                    throw new ArgumentException("特效模板必须可读、仅含三角形子网格且顶点属性布局一致。");
+                }
+                var positions = template.vertices;
+                var indices = template.GetIndices(0);
+                verticesPerInstance = positions.Length;
+                indicesPerInstance = indices.Length;
+                int vertexCount = checked(verticesPerInstance * capacity);
+                if (verticesPerInstance == 0 || indicesPerInstance == 0 || indicesPerInstance % 3 != 0
+                    || vertexCount > ushort.MaxValue)
+                {
+                    throw new ArgumentException("特效模板顶点或索引数量无效。");
+                }
+                foreach (int index in indices)
+                {
+                    if (index < 0 || index >= verticesPerInstance)
+                    {
+                        throw new ArgumentException("特效模板索引超出顶点范围。");
+                    }
+                }
+
+                vertices = new T[vertexCount];
+                var repeatedPositions = new Vector3[vertexCount];
+                var repeatedIndices = new ushort[checked(indicesPerInstance * capacity)];
+                for (int instance = 0; instance < capacity; instance++)
+                {
+                    int vertexStart = instance * verticesPerInstance;
+                    Array.Copy(positions, 0, repeatedPositions, vertexStart, verticesPerInstance);
+                    for (int i = 0; i < indicesPerInstance; i++)
+                    {
+                        repeatedIndices[instance * indicesPerInstance + i] = (ushort)(vertexStart + indices[i]);
+                    }
+                }
+                var attributes = new VertexAttributeDescriptor[channels + 1];
+                attributes[0] = new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, 0);
+                for (int channel = 0; channel < channels; channel++)
+                {
+                    attributes[channel + 1] = new VertexAttributeDescriptor(
+                        (VertexAttribute)((int)VertexAttribute.TexCoord0 + channel), VertexAttributeFormat.Float32, 4, 1);
+                }
+                mesh = new Mesh { name = template.name + " VertexData", bounds = FxBounds };
+                try
+                {
+                    mesh.MarkDynamic();
+                    mesh.SetVertexBufferParams(vertexCount, attributes);
+                    mesh.SetVertexBufferData(repeatedPositions, 0, 0, vertexCount, 0, UpdateFlags);
+                    mesh.SetIndexBufferParams(repeatedIndices.Length, IndexFormat.UInt16);
+                    mesh.SetIndexBufferData(repeatedIndices, 0, 0, repeatedIndices.Length, UpdateFlags);
+                    mesh.subMeshCount = 1;
+                    mesh.bounds = FxBounds;
+                    SetDrawCount(0);
+                }
+                catch
+                {
+                    UnityEngine.Object.Destroy(mesh);
+                    throw;
+                }
+            }
+
+            internal void Upload(T[] states, int from, int count)
+            {
+                int end = from + count;
+                for (int instance = from; instance < end; instance++)
+                {
+                    int vertexStart = instance * verticesPerInstance;
+                    for (int vertex = 0; vertex < verticesPerInstance; vertex++)
+                    {
+                        vertices[vertexStart + vertex] = states[instance];
+                    }
+                }
+                int start = from * verticesPerInstance;
+                mesh.SetVertexBufferData(vertices, start, start, count * verticesPerInstance, 1, UpdateFlags);
+            }
+
+            internal void Draw(int count, Material material, MaterialPropertyBlock block, int layer, Camera camera)
+            {
+                SetDrawCount(count);
+                Graphics.DrawMesh(mesh, Matrix4x4.identity, material, layer, camera, 0, block, ShadowCastingMode.Off, false);
+            }
+
+            private void SetDrawCount(int count)
+            {
+                if (drawnInstances == count)
+                {
+                    return;
+                }
+                mesh.SetSubMesh(0, new SubMeshDescriptor(0, count * indicesPerInstance, MeshTopology.Triangles)
+                {
+                    bounds = FxBounds,
+                    vertexCount = count * verticesPerInstance
+                }, UpdateFlags);
+                drawnInstances = count;
+            }
+
+            public void Dispose() => UnityEngine.Object.Destroy(mesh);
+        }
+
         private sealed class Spec
         {
             public float x, y, z, vx, vy, vz, life, delay, drag, grav, floor, shape, size, mode, spin, fold, aspect, flutter, glow, grow;
@@ -54,6 +166,7 @@ namespace Hotfix.KagitKart
         }
 
         private const int Capacity = 3072;
+        private static readonly Bounds FxBounds = new(Vector3.zero, Vector3.one * 1e6f);
         private const int Tri = 0, Sliver = 1, Star = 2, Rect = 3, Puff = 4, Stroke = 5, Zap = 6;
         private const int TumbleMode = 0, SpinMode = 1, FlipMode = 2, StreakMode = 3;
         private static readonly int[] Perm = { 0, 2, 1, 3, 2, 0, 3, 1 };
@@ -64,6 +177,10 @@ namespace Hotfix.KagitKart
         internal readonly CardGpu[] cardStates = new CardGpu[96];
         private MaterialPropertyBlock bitsBlock, cardsBlock, linesBlock;
         private ComputeBuffer bitBuffer, cardBuffer;
+        private TemplateMesh<BitGpu> bitsMesh;
+        private TemplateMesh<CardGpu> cardsMesh;
+        private TemplateMesh<Vector4> linesMesh;
+        private bool useMeshData;
         private MaterialPropertyBlock[] cameraBlocks;
         private KagitKartSession session;
         private KagitKartKartTuning tuning;
@@ -156,11 +273,35 @@ namespace Hotfix.KagitKart
                 bitStates[i].P0.w = 1e4f;
                 bitStates[i].V0.w = 1;
             }
-            bitBuffer ??= new ComputeBuffer(Capacity, Marshal.SizeOf<BitGpu>());
-            cardBuffer ??= new ComputeBuffer(96, Marshal.SizeOf<CardGpu>());
-            bitBuffer.SetData(bitStates);
-            bitsBlock.SetBuffer("_Fx", bitBuffer);
-            cardsBlock.SetBuffer("_Fx", cardBuffer);
+#if UNITY_WEBGL && !UNITY_EDITOR
+            useMeshData = true;
+#else
+            useMeshData = SystemInfo.graphicsShaderLevel < 45;
+#endif
+            if (useMeshData)
+            {
+                bitsMesh ??= new TemplateMesh<BitGpu>(bitsShape, Capacity, 7);
+                cardsMesh ??= new TemplateMesh<CardGpu>(cardsShape, cardStates.Length, 4);
+                bitsMesh.Upload(bitStates, 0, Capacity);
+                if (linesMesh == null)
+                {
+                    linesMesh = new TemplateMesh<Vector4>(linesShape, 34, 1);
+                    var indices = new Vector4[34];
+                    for (int i = 0; i < indices.Length; i++)
+                    {
+                        indices[i].x = i;
+                    }
+                    linesMesh.Upload(indices, 0, indices.Length);
+                }
+            }
+            else
+            {
+                bitBuffer ??= new ComputeBuffer(Capacity, Marshal.SizeOf<BitGpu>());
+                cardBuffer ??= new ComputeBuffer(cardStates.Length, Marshal.SizeOf<CardGpu>());
+                bitBuffer.SetData(bitStates);
+                bitsBlock.SetBuffer("_Fx", bitBuffer);
+                cardsBlock.SetBuffer("_Fx", cardBuffer);
+            }
             cranes.Bind(value, actors, visuals, theme);
             session.Race.Signaled += OnRaceSignal;
         }
@@ -958,20 +1099,41 @@ namespace Hotfix.KagitKart
             if (dirtyHi >= 0)
             {
                 int from = wrapped ? 0 : dirtyLo, count = wrapped ? Capacity : dirtyHi - dirtyLo + 1;
-                bitBuffer.SetData(bitStates, from, from, count);
+                if (useMeshData)
+                {
+                    bitsMesh.Upload(bitStates, from, count);
+                }
+                else
+                {
+                    bitBuffer.SetData(bitStates, from, from, count);
+                }
                 dirtyLo = Capacity;
                 dirtyHi = -1;
                 wrapped = false;
             }
-            var bounds = new Bounds(Vector3.zero, Vector3.one * 1e6f);
             if (time < lastDeath)
             {
-                Graphics.DrawMeshInstancedProcedural(bitsShape, 0, bitsMaterial, bounds, highest, bitsBlock, ShadowCastingMode.Off, false, gameObject.layer, camera);
+                if (useMeshData)
+                {
+                    bitsMesh.Draw(highest, bitsMaterial, bitsBlock, gameObject.layer, camera);
+                }
+                else
+                {
+                    Graphics.DrawMeshInstancedProcedural(bitsShape, 0, bitsMaterial, FxBounds, highest, bitsBlock, ShadowCastingMode.Off, false, gameObject.layer, camera);
+                }
             }
             if (cardCount > 0)
             {
-                cardBuffer.SetData(cardStates, 0, 0, cardCount);
-                Graphics.DrawMeshInstancedProcedural(cardsShape, 0, cardsMaterial, bounds, cardCount, cardsBlock, ShadowCastingMode.Off, false, gameObject.layer, camera);
+                if (useMeshData)
+                {
+                    cardsMesh.Upload(cardStates, 0, cardCount);
+                    cardsMesh.Draw(cardCount, cardsMaterial, cardsBlock, gameObject.layer, camera);
+                }
+                else
+                {
+                    cardBuffer.SetData(cardStates, 0, 0, cardCount);
+                    Graphics.DrawMeshInstancedProcedural(cardsShape, 0, cardsMaterial, FxBounds, cardCount, cardsBlock, ShadowCastingMode.Off, false, gameObject.layer, camera);
+                }
             }
             var player = session.Player;
             bool cut = reduceMotion || !chaseView || player.Controls.LookBack && !player.Autopilot;
@@ -986,7 +1148,14 @@ namespace Hotfix.KagitKart
                 linesBlock.SetFloat("uTime", (float)time);
                 linesBlock.SetFloat("uIntensity", (float)lineIntensity);
                 linesBlock.SetFloat("uAspect", camera.aspect);
-                Graphics.DrawMeshInstancedProcedural(linesShape, 0, linesMaterial, bounds, 34, linesBlock, ShadowCastingMode.Off, false, gameObject.layer, camera);
+                if (useMeshData)
+                {
+                    linesMesh.Draw(34, linesMaterial, linesBlock, gameObject.layer, camera);
+                }
+                else
+                {
+                    Graphics.DrawMeshInstancedProcedural(linesShape, 0, linesMaterial, FxBounds, 34, linesBlock, ShadowCastingMode.Off, false, gameObject.layer, camera);
+                }
             }
         }
 
@@ -1034,6 +1203,9 @@ namespace Hotfix.KagitKart
             Unbind();
             bitBuffer?.Dispose();
             cardBuffer?.Dispose();
+            bitsMesh?.Dispose();
+            cardsMesh?.Dispose();
+            linesMesh?.Dispose();
         }
     }
 }

@@ -20,6 +20,7 @@ namespace Core.Editor.Hotfix
         private HotfixConfig config;
         private BuildTarget buildTarget;
         private Vector2 scrollPosition;
+        private string resourceVersion = DateTime.Now.ToString("yyyy-MM-dd-HHmmss");
 
         private bool showGeneralSection = true;
         private bool showHybridClrSection = true;
@@ -45,6 +46,11 @@ namespace Core.Editor.Hotfix
         private string sshHostKeySha256;
         private static bool isDeploying;
         private static string deploymentStatus;
+        private bool initializationPending;
+
+        private static bool SharedConfigurationLocked => EditorApplication.isPlayingOrWillChangePlaymode ||
+            EditorApplication.isCompiling || BuildPipeline.isBuildingPlayer ||
+            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLEEPY_BUILD_REQUEST"));
 
         private string DeploymentSettingsKey => $"HotfixBuildWindow.{Application.dataPath}.{AssetDatabase.GetAssetPath(config)}.";
 
@@ -82,13 +88,22 @@ namespace Core.Editor.Hotfix
 
         private void OnEnable()
         {
+            initializationPending = true;
+            if (SharedConfigurationLocked)
+            {
+                config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(ConfigAssetPath);
+                buildTarget = EditorUserBuildSettings.activeBuildTarget;
+                return;
+            }
             LoadOrCreateConfig();
             LoadDeploymentSettings();
             SyncPlatformConfig();
+            initializationPending = false;
         }
 
         private void SyncPlatformConfig()
         {
+            if (SharedConfigurationLocked || config == null) return;
             buildTarget = EditorUserBuildSettings.activeBuildTarget;
             ApplyPlatformDefaults(config);
             RefreshLocalBundlePathToLatest();
@@ -103,6 +118,17 @@ namespace Core.Editor.Hotfix
 
         private void OnGUI()
         {
+            if (SharedConfigurationLocked)
+            {
+                EditorGUILayout.HelpBox("运行、编译或自动化构建期间配置只读，窗口不会覆盖构建请求。", MessageType.Info);
+                if (config != null)
+                {
+                    EditorGUILayout.LabelField("发布游戏", config.GameId);
+                    EditorGUILayout.LabelField("当前生效 URL", config.BaseServerURL);
+                }
+                return;
+            }
+            if (initializationPending) OnEnable();
             if (config != null && !isDeploying && buildTarget != EditorUserBuildSettings.activeBuildTarget)
             {
                 SyncPlatformConfig();
@@ -168,11 +194,13 @@ namespace Core.Editor.Hotfix
             {
                 bool isPc = buildTarget == BuildTarget.StandaloneWindows64;
                 bool isAndroid = buildTarget == BuildTarget.Android;
+                bool isWeb = buildTarget == BuildTarget.WebGL;
                 bool nextPc = GUILayout.Toggle(isPc, "PC 平台", "Button", GUILayout.Width(120), GUILayout.Height(28));
                 bool nextAndroid = GUILayout.Toggle(isAndroid, "Android 平台", "Button", GUILayout.Width(120), GUILayout.Height(28));
-                if ((nextPc && !isPc) || (nextAndroid && !isAndroid))
+                bool nextWeb = GUILayout.Toggle(isWeb, "WebGL / TapTap", "Button", GUILayout.Width(140), GUILayout.Height(28));
+                if ((nextPc && !isPc) || (nextAndroid && !isAndroid) || (nextWeb && !isWeb))
                 {
-                    string platform = nextAndroid && !isAndroid ? "Android" : "Windows (64-bit)";
+                    string platform = nextWeb && !isWeb ? "WebGL" : nextAndroid && !isAndroid ? "Android" : "Windows (64-bit)";
                     EditorUtility.DisplayDialog(
                         "请先切换 Unity 构建平台",
                         $"请在 File > Build Profiles 中将当前平台切换为 {platform}。\n切换完成后，此窗口会自动更新平台状态及 DLL、Bundle 路径。",
@@ -190,6 +218,22 @@ namespace Core.Editor.Hotfix
             }
 
             EditorGUI.indentLevel++;
+            var profiles = ReleaseProfiles.All;
+            int currentProfile = Array.FindIndex(profiles, item => item.GameId == config.GameId);
+            int selectedProfile = EditorGUILayout.Popup("发布游戏", Mathf.Max(0, currentProfile), profiles.Select(item => item.GameId + " / " + item.Group).ToArray());
+            if (selectedProfile != currentProfile)
+            {
+                string previous = config.GameId;
+                config.GameId = profiles[selectedProfile].GameId;
+                if (!PrepareRelease())
+                {
+                    config.GameId = previous;
+                }
+                else
+                {
+                    SyncPlatformConfig();
+                }
+            }
             config.PlayMode = (ResourcePlayMode)EditorGUILayout.EnumPopup(
                 new GUIContent("PlayMode", "资源运行模式。远端下载请选择 HostPlayMode，本地编辑器预览通常用 EditorSimulateMode。"),
                 config.PlayMode);
@@ -219,10 +263,28 @@ namespace Core.Editor.Hotfix
                     }
                 }
 
-                if (GUILayout.Button(new GUIContent("打开 YooAssets 打包窗口", "打开 YooAssets 官方的资源打包窗口")))
+                if (config.GameId == "hub" && GUILayout.Button(new GUIContent("校验并打开 YooAssets 打包窗口", "应用当前发布目标并检查跨游戏依赖，然后打开 YooAssets 官方资源打包窗口")) && PrepareRelease(true))
                 {
                     BundleBuilderWindow.OpenWindow();
                 }
+            }
+
+            if (config.GameId != "hub")
+            {
+                resourceVersion = EditorGUILayout.TextField("本地资源版本", resourceVersion);
+                if (GUILayout.Button("构建当前游戏本地资源") && PrepareRelease())
+                {
+                    // 从当前游戏的隔离归档刷新公共暂存区，不能复用上一次游戏的 DLL。
+                    StripAotAssemblies();
+                    ReplaceAssemblies(true);
+                    var result = ReleaseProfiles.BuildResources(config, buildTarget, resourceVersion,
+                        ResolvePath(GetBundleOutputRoot(config)), EBundledCopyOption.None);
+                    config.LocalBundlePath = ConvertToRelativePathIfPossible(result.OutputPackageDirectory);
+                    EditorUtility.SetDirty(config);
+                    AssetDatabase.SaveAssets();
+                    RevealPath(result.OutputPackageDirectory);
+                }
+                EditorGUILayout.HelpBox("本地资源按 GameId 隔离，不写入首包 StreamingAssets。正式整包、基线与远端发布请使用对应 Jenkins 任务。", MessageType.Info);
             }
 
             showAdvancedPaths = EditorGUILayout.Foldout(showAdvancedPaths, "路径详情", true);
@@ -335,19 +397,20 @@ namespace Core.Editor.Hotfix
             EditorGUI.indentLevel++;
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button(new GUIContent("生成并编译全部 DLL", "执行 HybridCLR 全量生成与编译流程")))
+                if (GUILayout.Button(new GUIContent("生成并编译全部 DLL", "执行 HybridCLR 全量生成与编译流程")) && PrepareRelease())
                 {
-                    PrebuildCommand.GenerateAll();
-                    AssetDatabase.Refresh();
+                    GenerateAllAssemblies();
                     AutoFillAotAssemblies();
                     AutoFillHotfixAssemblies();
+                    HotfixAssemblyBuild.CaptureReleaseAssemblies(config, buildTarget, true);
                 }
 
-                if (GUILayout.Button(new GUIContent("仅编译热更 DLL", "只编译热更新程序集，不重新生成全部 AOT 相关内容")))
+                if (GUILayout.Button(new GUIContent("仅编译热更 DLL", "只编译热更新程序集，不重新生成全部 AOT 相关内容")) && PrepareRelease())
                 {
                     CompileDllCommand.CompileDllActiveBuildTarget();
                     AssetDatabase.Refresh();
                     AutoFillHotfixAssemblies();
+                    HotfixAssemblyBuild.CaptureReleaseAssemblies(config, buildTarget, false);
                 }
             }
 
@@ -367,12 +430,12 @@ namespace Core.Editor.Hotfix
 
             EditorGUILayout.HelpBox("左边: 直接同步当前编译结果，不做 AOT 剥离。右边: 先生成剥离后的 AOT 元数据资源，再同步到资源目录。", MessageType.None);
 
-            if (GUILayout.Button(new GUIContent("一键编译并同步", "执行全量编译，自动刷新 AOT/热更列表，剥离 AOT，再将剥离后的 AOT DLL 和热更 DLL 同步到资源目录。")))
+            if (GUILayout.Button(new GUIContent("一键编译并同步", "执行全量编译，自动刷新 AOT/热更列表，剥离 AOT，再将剥离后的 AOT DLL 和热更 DLL 同步到资源目录。")) && PrepareRelease())
             {
-                PrebuildCommand.GenerateAll();
-                AssetDatabase.Refresh();
+                GenerateAllAssemblies();
                 AutoFillAotAssemblies();
                 AutoFillHotfixAssemblies();
+                HotfixAssemblyBuild.CaptureReleaseAssemblies(config, buildTarget, true);
                 StripAotAssemblies();
                 ReplaceAssemblies(true);
             }
@@ -467,6 +530,15 @@ namespace Core.Editor.Hotfix
 
         private void DrawRemoteSection()
         {
+            if (config.GameId != "hub")
+            {
+                EditorGUILayout.HelpBox("独立游戏远端配置由对应 Jenkins 请求按渠道、GameId 与平台管理，此窗口保留当前请求 URL。", MessageType.Info);
+                using (new EditorGUI.DisabledScope(true))
+                {
+                    EditorGUILayout.TextField("真实远端 URL", config.RemoteBaseServerURL);
+                }
+                return;
+            }
             showRemoteSection = EditorGUILayout.Foldout(showRemoteSection, "真实远端服务器 / 上传方式", true);
             if (!showRemoteSection)
             {
@@ -519,13 +591,9 @@ namespace Core.Editor.Hotfix
                 sshServerUrl = config.RemoteBaseServerURL;
             }
 
-            if (!config.UseLocalMockServer)
-            {
-                SyncBaseServerUrlFromMode(true);
-            }
-
             if (EditorGUI.EndChangeCheck())
             {
+                SyncBaseServerUrlFromMode(true);
                 SaveDeploymentSettings();
                 EditorUtility.SetDirty(config);
             }
@@ -582,6 +650,12 @@ namespace Core.Editor.Hotfix
                 return;
             }
 
+            if (config.GameId != "hub")
+            {
+                EditorGUILayout.HelpBox("独立游戏的正式发布由 Jenkins 按渠道、GameId 与平台隔离。此窗口仅用于本地 DLL 和资源构建，不提供独立游戏远端发布。", MessageType.Info);
+                return;
+            }
+
             EditorGUI.indentLevel++;
             if (config.UseLocalMockServer)
             {
@@ -618,6 +692,10 @@ namespace Core.Editor.Hotfix
 
         private async void DeployPagesAsync(bool clearDirectory)
         {
+            if (config.GameId != "hub")
+            {
+                return;
+            }
             if (isDeploying)
             {
                 return;
@@ -675,6 +753,7 @@ namespace Core.Editor.Hotfix
 
         private void LoadDeploymentSettings()
         {
+            if (SharedConfigurationLocked || config == null) return;
             string key = DeploymentSettingsKey;
             sshHostKeySha256 = EditorPrefs.GetString(key + "SshHostKeySha256", string.Empty);
             string projectName = new DirectoryInfo(GetProjectRootPath()).Name;
@@ -693,7 +772,7 @@ namespace Core.Editor.Hotfix
             pagesSiteUrl = EditorPrefs.GetString(key + "PagesSiteUrl", configuredSiteUrl);
             pagesProjectName = EditorPrefs.GetString(key + "PagesProjectName", projectName);
             sshServerUrl = EditorPrefs.GetString(key + "SshServerUrl", markerIndex > 0 ? string.Empty : config.RemoteBaseServerURL);
-            if (uploadMethod == UploadMethod.Ssh)
+            if (config.GameId == "hub" && uploadMethod == UploadMethod.Ssh)
             {
                 config.RemoteBaseServerURL = sshServerUrl;
             }
@@ -834,9 +913,43 @@ namespace Core.Editor.Hotfix
 
         private void AutoFillHotfixAssemblies()
         {
-            config.HotfixAssemblies = HotfixAssemblyBuild.ReadHotfixAssemblies();
+            config.HotfixAssemblies = HotfixAssemblyBuild.ReadHotfixAssemblies(config.GameId, buildTarget);
             EditorUtility.SetDirty(config);
             ShowNotification(new GUIContent($"已自动填写 {config.HotfixAssemblies.Length} 个热更 DLL"));
+        }
+
+        private void GenerateAllAssemblies()
+        {
+            string configPath = AssetDatabase.GetAssetPath(config);
+            HotfixBuildAutomation.EnsureHybridClrInstalled();
+            PrebuildCommand.GenerateAll();
+            AssetDatabase.Refresh();
+            // GenerateAll 构建内部 Player 后可能卸载原 native 对象。
+            config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(configPath)
+                ?? throw new InvalidOperationException("全量生成后无法重新加载 HotfixConfig。");
+        }
+
+        private bool PrepareRelease(bool validateDependencies = false)
+        {
+            if (SharedConfigurationLocked) return false;
+            try
+            {
+                ReleaseProfiles.Apply(config, buildTarget, buildTarget == BuildTarget.WebGL);
+                if (buildTarget == BuildTarget.WebGL)
+                {
+                    TapTapBuildAdapter.ConfigurePlayerSettings();
+                }
+                if (validateDependencies)
+                {
+                    ReleaseProfiles.ValidateDependencies(config, buildTarget);
+                }
+                return true;
+            }
+            catch (Exception exception)
+            {
+                EditorUtility.DisplayDialog("发布配置无效", exception.Message, "确定");
+                return false;
+            }
         }
 
         private void ReplaceAssemblies(bool useStrippedAot)
@@ -852,6 +965,7 @@ namespace Core.Editor.Hotfix
 
         private void LoadOrCreateConfig()
         {
+            if (SharedConfigurationLocked) return;
             EnsureFolder("Assets/LoadResources");
             EnsureFolder("Assets/LoadResources/Config");
             config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(ConfigAssetPath);
@@ -874,7 +988,14 @@ namespace Core.Editor.Hotfix
             target.AotSourcePath = $"HybridCLRData/AssembliesPostIl2CppStrip/{platform}";
             target.AotStrippedSourcePath = $"HybridCLRData/StrippedAOTAssembly2/{platform}";
             target.HotfixSourcePath = $"HybridCLRData/HotUpdateDlls/{platform}";
-            target.LocalBundlePath = $"Bundles/{platform}/{target.PackageName}";
+            if (target.GameId != "hub")
+            {
+                string root = $"HybridCLRData/ReleaseTargets/{ReleaseProfiles.Get(target.GameId).GameId}/{platform}";
+                target.AotSourcePath = root + "/Aot";
+                target.AotStrippedSourcePath = root + "/StrippedAot";
+                target.HotfixSourcePath = root + "/Hotfix";
+            }
+            target.LocalBundlePath = $"{GetBundleOutputRoot(target)}/{platform}/{target.PackageName}";
 
             if (string.IsNullOrWhiteSpace(target.KeyFilePath))
             {
@@ -885,21 +1006,26 @@ namespace Core.Editor.Hotfix
         private void RefreshLocalBundlePathToLatest()
         {
             string projectRoot = GetProjectRootPath();
-            string basePath = Path.GetFullPath(Path.Combine(projectRoot, $"Bundles/{EditorUserBuildSettings.activeBuildTarget}/{config.PackageName}"));
+            string basePath = Path.GetFullPath(Path.Combine(projectRoot,
+                $"{GetBundleOutputRoot(config)}/{EditorUserBuildSettings.activeBuildTarget}/{config.PackageName}"));
             if (!Directory.Exists(basePath))
             {
                 config.LocalBundlePath = Path.GetRelativePath(projectRoot, basePath).Replace('\\', '/');
                 return;
             }
 
-            string latest = Directory.GetDirectories(basePath)
+            string latest = Directory.GetDirectories(basePath).Where(path => File.Exists(Path.Combine(path, config.PackageName + ".version")))
                 .OrderByDescending(path => new DirectoryInfo(path).CreationTimeUtc)
                 .FirstOrDefault();
             config.LocalBundlePath = Path.GetRelativePath(projectRoot, latest ?? basePath).Replace('\\', '/');
         }
 
+        private static string GetBundleOutputRoot(HotfixConfig source) => source.GameId == "hub"
+            ? "Bundles" : "Bundles/ReleaseTargets/" + ReleaseProfiles.Get(source.GameId).GameId;
+
         private void SaveConfig()
         {
+            if (SharedConfigurationLocked || config == null) return;
             EnsureDefaults();
             SyncBaseServerUrlFromMode(false);
             SaveDeploymentSettings();
@@ -992,6 +1118,10 @@ namespace Core.Editor.Hotfix
 
         private void UploadToServer()
         {
+            if (config.GameId != "hub")
+            {
+                return;
+            }
             try
             {
                 SshBundleDeployment.Upload(config.SshHost, config.SshPort, config.SshUser,
@@ -1099,7 +1229,8 @@ namespace Core.Editor.Hotfix
 
         private void SyncBaseServerUrlFromMode(bool markDirty)
         {
-            if (uploadMethod == UploadMethod.GitHubPages && TryGetPagesRemoteUrl(out string pagesUrl))
+            if (SharedConfigurationLocked || config == null) return;
+            if (config.GameId == "hub" && uploadMethod == UploadMethod.GitHubPages && TryGetPagesRemoteUrl(out string pagesUrl))
             {
                 config.RemoteBaseServerURL = pagesUrl;
             }

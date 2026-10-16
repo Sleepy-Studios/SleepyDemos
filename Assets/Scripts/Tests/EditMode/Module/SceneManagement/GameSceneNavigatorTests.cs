@@ -1,15 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Core.Runtime;
 using Core.Runtime.Localization;
 using Cysharp.Threading.Tasks;
 using Hotfix;
+using Hotfix.AppDelegate;
 using Hotfix.SceneManagement;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace Tests.Module
 {
@@ -99,8 +102,10 @@ namespace Tests.Module
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.Hub, out var hub), Is.True);
             Assert.That(hub.IsHub, Is.True);
             Assert.That(hub.Address, Is.Null);
+            Assert.That(hub.LanguageCatalogAddress, Is.Null);
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.DroneFlight, out var demo), Is.True);
             Assert.That(demo.Address, Is.EqualTo(GameSceneCatalog.DroneFlightAddress));
+            Assert.That(demo.LanguageCatalogAddress, Is.EqualTo("LoadResources/Demos/drone_flight/Data/LanguageCatalog"));
             Assert.That(demo.DisplayNameKey, Is.EqualTo("Hub.drone_flight.Title"));
             Assert.That(hub.DisplayNameKey, Is.EqualTo("Scene.Hub"));
             Assert.That(GameSceneCatalog.TryGet(GameSceneId.Dlss, out var dlss), Is.True);
@@ -113,7 +118,7 @@ namespace Tests.Module
         {
             var runtime = new FakeSceneRuntime();
             var presenter = new FakeLoadingPresenter();
-            var navigator = new GameSceneNavigator(runtime, presenter);
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask);
 
             var result = await navigator.SwitchAsync(GameSceneId.Hub);
 
@@ -131,7 +136,7 @@ namespace Tests.Module
                 NextResult = GameSceneRuntimeResult.Failure("测试加载失败")
             };
             var presenter = new FakeLoadingPresenter { RestoreError = restoreFails ? "测试恢复失败" : null };
-            var navigator = new GameSceneNavigator(runtime, presenter);
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask);
 
             var result = await navigator.SwitchAsync(GameSceneId.DroneFlight);
 
@@ -152,7 +157,7 @@ namespace Tests.Module
         {
             var runtime = new FakeSceneRuntime();
             var presenter = new FakeLoadingPresenter();
-            var navigator = new GameSceneNavigator(runtime, presenter);
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask);
             if (reload)
             {
                 await navigator.SwitchAsync(GameSceneId.DroneFlight);
@@ -172,6 +177,103 @@ namespace Tests.Module
             Assert.That((await navigator.SwitchAsync(GameSceneId.Hub)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public async Task PreparationFailure_UnloadsCommittedSceneBeforeRestoringHub(bool reload, bool recoveryFails)
+        {
+            var runtime = new FakeSceneRuntime();
+            var presenter = new FakeLoadingPresenter();
+            bool failPreparation = false;
+            GameSceneNavigator navigator = null;
+            navigator = CreateNavigator(runtime, presenter, () =>
+            {
+                Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.DroneFlight));
+                Assert.That(navigator.IsTransitioning, Is.True);
+                return failPreparation
+                    ? UniTask.FromException(new InvalidOperationException("测试准备失败"))
+                    : UniTask.CompletedTask;
+            });
+            if (reload)
+            {
+                await navigator.SwitchAsync(GameSceneId.DroneFlight);
+            }
+            failPreparation = true;
+            // 重载的第一次 Return 是正常卸载来源，第二次才是准备失败恢复。
+            runtime.FailReturnNumber = recoveryFails ? (reload ? 2 : 1) : 0;
+            LogAssert.Expect(LogType.Exception, new Regex("测试准备失败"));
+
+            var result = reload
+                ? await navigator.ReloadCurrentAsync()
+                : await navigator.SwitchAsync(GameSceneId.DroneFlight);
+
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            Assert.That(result.Error, Does.Contain("测试准备失败"));
+            Assert.That(runtime.ReturnCount, Is.EqualTo(reload ? 2 : 1));
+            var actualScene = recoveryFails ? GameSceneId.DroneFlight : GameSceneId.Hub;
+            Assert.That(navigator.CurrentScene, Is.EqualTo(actualScene));
+            Assert.That(presenter.RestoredScene, Is.EqualTo(actualScene));
+            Assert.That(navigator.IsTransitioning, Is.False);
+            if (recoveryFails)
+            {
+                Assert.That(result.Error, Does.Contain("测试卸载失败"));
+                runtime.FailReturnNumber = 0;
+                Assert.That((await navigator.SwitchAsync(GameSceneId.Hub)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            }
+            failPreparation = false;
+            Assert.That((await navigator.SwitchAsync(GameSceneId.DroneFlight)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+        }
+
+        [Test]
+        public async Task EditorDirectPreparationFailure_AfterOfficialHandoff_DoesNotOpenHubThroughOldPresenter()
+        {
+            var runtime = new FakeSceneRuntime();
+            var presenter = new FakeLoadingPresenter();
+            var navigator = CreateNavigator(runtime, presenter,
+                () => UniTask.FromException(new InvalidOperationException("测试直启准备失败")));
+            typeof(GameSceneNavigator).GetField("isEditorDirect", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(navigator, true);
+            var instanceField = typeof(GameSceneNavigator).GetField("<Instance>k__BackingField", BindingFlags.Static | BindingFlags.NonPublic);
+            var previousInstance = instanceField.GetValue(null);
+            instanceField.SetValue(null, navigator);
+            runtime.AfterReturn = GameSceneNavigator.ReleaseEditorDirect;
+            try
+            {
+                LogAssert.Expect(LogType.Exception, new Regex("测试直启准备失败"));
+                var result = await navigator.SwitchAsync(GameSceneId.DroneFlight);
+
+                Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+                Assert.That(result.Error, Does.Contain("测试直启准备失败"));
+                Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.Hub));
+                Assert.That(GameSceneNavigator.Instance, Is.Null);
+                Assert.That(presenter.RestoredScene, Is.EqualTo(GameSceneId.DroneFlight), "旧 Presenter 清理 Loading/遮挡，但不能按 Hub 抢建页面。");
+                Assert.That(navigator.IsTransitioning, Is.False);
+            }
+            finally
+            {
+                instanceField.SetValue(null, previousInstance);
+            }
+        }
+
+        [Test]
+        public async Task SwitchAsync_LoadFailureFromDemo_PreservesSourceWithoutUnloadingIt()
+        {
+            var runtime = new FakeSceneRuntime();
+            var presenter = new FakeLoadingPresenter();
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask);
+            await navigator.SwitchAsync(GameSceneId.DroneFlight);
+            runtime.NextResult = GameSceneRuntimeResult.Failure("测试加载失败");
+
+            var result = await navigator.SwitchAsync(GameSceneId.WallSqueeze);
+
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.DroneFlight));
+            Assert.That(presenter.RestoredScene, Is.EqualTo(GameSceneId.DroneFlight));
+            Assert.That(runtime.ReturnCount, Is.Zero);
+            Assert.That(navigator.IsTransitioning, Is.False);
+        }
+
         [Test]
         public async Task SwitchAsync_RuntimeProgress_IsReportedMonotonically()
         {
@@ -180,7 +282,7 @@ namespace Tests.Module
                 ProgressValues = new[] { 0.8f, 0.2f, 1f }
             };
             var presenter = new FakeLoadingPresenter();
-            var navigator = new GameSceneNavigator(runtime, presenter);
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask);
 
             var result = await navigator.SwitchAsync(GameSceneId.DroneFlight);
 
@@ -204,7 +306,7 @@ namespace Tests.Module
         {
             var completion = new UniTaskCompletionSource<GameSceneRuntimeResult>();
             var runtime = new FakeSceneRuntime { PendingCompletion = completion };
-            var navigator = new GameSceneNavigator(runtime, new FakeLoadingPresenter());
+            var navigator = CreateNavigator(runtime, new FakeLoadingPresenter(), () => UniTask.CompletedTask);
 
             var first = navigator.SwitchAsync(GameSceneId.DroneFlight);
             await UniTask.Yield();
@@ -227,7 +329,7 @@ namespace Tests.Module
                 ProgressValues = reportsLoadProgress ? new[] { 0f, 1f } : Array.Empty<float>()
             };
             var presenter = new FakeLoadingPresenter();
-            var navigator = new GameSceneNavigator(runtime, presenter);
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask);
             await navigator.SwitchAsync(GameSceneId.DroneFlight);
             var loadCountBeforeReload = runtime.LoadCount;
 
@@ -246,17 +348,166 @@ namespace Tests.Module
             Assert.That(presenter.DescriptionKeys, Does.Contain("Loading.ReturnHub"));
         }
 
+        [TestCase(GameSceneId.DroneFlight)]
+        [TestCase(GameSceneId.WallSqueeze)]
+        [TestCase(GameSceneId.KagitKart)]
+        public async Task Standalone_ReturnHubReloadsOwnSceneAndRejectsOtherDemos(GameSceneId ownScene)
+        {
+            var runtime = new FakeSceneRuntime();
+            var presenter = new FakeLoadingPresenter();
+            var navigator = CreateNavigator(runtime, presenter, () => UniTask.CompletedTask, ownScene);
+            Assert.That((await navigator.SwitchAsync(ownScene)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            var otherScene = ownScene == GameSceneId.DroneFlight ? GameSceneId.WallSqueeze : GameSceneId.DroneFlight;
+            int beginCount = presenter.BeginCount;
+
+            Assert.That((await navigator.SwitchAsync(otherScene)).Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            Assert.That(presenter.BeginCount, Is.EqualTo(beginCount));
+            Assert.That(runtime.LoadCount, Is.EqualTo(1));
+            var returned = await navigator.SwitchAsync(GameSceneId.Hub);
+
+            Assert.That(returned.Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(ownScene));
+            Assert.That(runtime.ReturnCount, Is.EqualTo(1));
+            Assert.That(runtime.LoadCount, Is.EqualTo(2));
+            Assert.That(navigator.IsTransitioning, Is.False);
+        }
+
+        [Test]
+        public async Task Standalone_PreparationFailureReturnsToRestrictedHubAndAllowsOwnRetry()
+        {
+            bool failPreparation = true;
+            var navigator = CreateNavigator(new FakeSceneRuntime(), new FakeLoadingPresenter(),
+                () => failPreparation ? UniTask.FromException(new InvalidOperationException("独立场景准备失败")) : UniTask.CompletedTask,
+                GameSceneId.KagitKart);
+            LogAssert.Expect(LogType.Exception, new Regex("独立场景准备失败"));
+
+            Assert.That((await navigator.SwitchAsync(GameSceneId.KagitKart)).Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.Hub));
+            var menu = new MainMenuData();
+            MainMenuView.RestrictStandaloneEntries(menu, navigator.StandaloneScene);
+            Assert.That(menu.Entries.Count, Is.EqualTo(1));
+            Assert.That(menu.Entries[0].SceneId, Is.EqualTo(GameSceneId.KagitKart));
+            Assert.That(menu.Entries[0].IsSelected, Is.True);
+            Assert.That(menu.SelectedIndex, Is.Zero);
+            Assert.That((await navigator.SwitchAsync(GameSceneId.WallSqueeze)).Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            failPreparation = false;
+            Assert.That((await navigator.SwitchAsync(menu.Entries[0].SceneId.Value)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+        }
+
+        [Test]
+        public async Task HubDiagnosticInitialScenePreservesNormalHubPolicyAndEntries()
+        {
+            var standaloneScene = HotfixEntry.ResolveStandaloneScene("hub", GameSceneId.Dlss);
+            Assert.That(standaloneScene, Is.Null);
+            Assert.That(HotfixEntry.ResolveStandaloneScene("kagit_kart", GameSceneId.KagitKart), Is.EqualTo(GameSceneId.KagitKart));
+            var menu = new MainMenuData();
+            int count = menu.Entries.Count;
+            MainMenuView.RestrictStandaloneEntries(menu, standaloneScene);
+            Assert.That(menu.Entries.Count, Is.EqualTo(count));
+            var runtime = new FakeSceneRuntime();
+            var navigator = CreateNavigator(runtime, new FakeLoadingPresenter(), () => UniTask.CompletedTask, standaloneScene);
+
+            Assert.That((await navigator.SwitchAsync(GameSceneId.Dlss)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            Assert.That((await navigator.SwitchAsync(GameSceneId.Hub)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.Hub));
+            Assert.That(runtime.LoadCount, Is.EqualTo(1));
+            Assert.That(runtime.ReturnCount, Is.EqualTo(1));
+        }
+
         [Test]
         public async Task ReloadCurrentAsync_Hub_IsIgnoredWithoutRuntimeWork()
         {
             var runtime = new FakeSceneRuntime();
-            var navigator = new GameSceneNavigator(runtime, new FakeLoadingPresenter());
+            var navigator = CreateNavigator(runtime, new FakeLoadingPresenter(), () => UniTask.CompletedTask);
 
             var result = await navigator.ReloadCurrentAsync();
 
             Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Ignored));
             Assert.That(runtime.LoadCount, Is.Zero);
             Assert.That(runtime.ReturnCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task CatalogLease_IsReadyBeforeSceneLoadAndPreservesSourceOnTargetFailure()
+        {
+            var leases = new List<TrackingCatalogLease>();
+            var runtime = new FakeSceneRuntime();
+            var navigator = CreateNavigator(runtime, new FakeLoadingPresenter(), () => UniTask.CompletedTask,
+                loadContext: definition =>
+                {
+                    Assert.That(definition.LanguageCatalogAddress, Is.Not.Null);
+                    var lease = new TrackingCatalogLease();
+                    leases.Add(lease);
+                    return UniTask.FromResult(new GameSceneLanguageScope(lease));
+                });
+            runtime.BeforeLoad = () => Assert.That(leases[leases.Count - 1].Disposed, Is.False,
+                "场景加载以及其 Awake/OnEnable 之前词表租约已存在");
+            try
+            {
+                Assert.That((await navigator.SwitchAsync(GameSceneId.DroneFlight)).Status, Is.EqualTo(GameSceneSwitchStatus.Succeeded));
+                runtime.NextResult = GameSceneRuntimeResult.Failure("目标场景加载失败");
+                Assert.That((await navigator.SwitchAsync(GameSceneId.WallSqueeze)).Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+                Assert.That(leases[0].Disposed, Is.False, "来源未卸载，保留来源词表");
+                Assert.That(leases[1].Disposed, Is.True, "失败目标的词表配对释放");
+                runtime.NextResult = GameSceneRuntimeResult.Success();
+                await navigator.SwitchAsync(GameSceneId.WallSqueeze);
+                Assert.That(leases[0].Disposed, Is.True);
+                Assert.That(leases[2].Disposed, Is.False);
+                await navigator.SwitchAsync(GameSceneId.Hub);
+                Assert.That(leases[2].Disposed, Is.True);
+            }
+            finally
+            {
+                var context = (GameSceneLanguageScope)typeof(GameSceneNavigator)
+                    .GetField("currentContext", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(navigator);
+                context?.Dispose();
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task PreparationFailure_CatalogLeaseSurvivesUntilActualSceneUnload(bool recoveryFails)
+        {
+            var runtime = new FakeSceneRuntime { FailReturnNumber = recoveryFails ? 1 : 0 };
+            var lease = new TrackingCatalogLease();
+            var context = new GameSceneLanguageScope(lease);
+            var navigator = CreateNavigator(runtime, new FakeLoadingPresenter(),
+                () => UniTask.FromException(new InvalidOperationException("私有词表生命周期准备失败")),
+                loadContext: _ => UniTask.FromResult(context));
+            try
+            {
+                LogAssert.Expect(LogType.Exception, new Regex("私有词表生命周期准备失败"));
+                Assert.That((await navigator.SwitchAsync(GameSceneId.KagitKart)).Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+                Assert.That(lease.Disposed, Is.EqualTo(!recoveryFails));
+                if (recoveryFails)
+                {
+                    runtime.FailReturnNumber = 0;
+                    await navigator.SwitchAsync(GameSceneId.Hub);
+                    Assert.That(lease.Disposed, Is.True);
+                }
+            }
+            finally
+            {
+                context.Dispose();
+            }
+        }
+
+        private sealed class TrackingCatalogLease : IDisposable
+        {
+            internal bool Disposed { get; private set; }
+
+            public void Dispose()
+            {
+                Disposed = true;
+            }
+        }
+
+        private static GameSceneNavigator CreateNavigator(IGameSceneRuntime runtime, IGameSceneLoadingPresenter presenter,
+            Func<UniTask> prepareScene = null, GameSceneId? standaloneScene = null,
+            Func<GameSceneDefinition, UniTask<GameSceneLanguageScope>> loadContext = null)
+        {
+            return new GameSceneNavigator(runtime, presenter, prepareScene, standaloneScene,
+                loadContext ?? (_ => UniTask.FromResult<GameSceneLanguageScope>(null)));
         }
 
         private sealed class FakeSceneRuntime : IGameSceneRuntime
@@ -266,11 +517,15 @@ namespace Tests.Module
             internal UniTaskCompletionSource<GameSceneRuntimeResult> PendingCompletion { get; set; }
             internal int LoadCount { get; private set; }
             internal int ReturnCount { get; private set; }
+            internal int FailReturnNumber { get; set; }
+            internal Action AfterReturn { get; set; }
+            internal Action BeforeLoad { get; set; }
 
             public async UniTask<GameSceneRuntimeResult> LoadAsync(
                 string address,
                 Action<float> onProgress)
             {
+                BeforeLoad?.Invoke();
                 LoadCount++;
                 foreach (var progress in ProgressValues)
                 {
@@ -284,7 +539,10 @@ namespace Tests.Module
             {
                 ReturnCount++;
                 onProgress?.Invoke(1f);
-                return UniTask.FromResult(NextResult);
+                AfterReturn?.Invoke();
+                return UniTask.FromResult(ReturnCount == FailReturnNumber
+                    ? GameSceneRuntimeResult.Failure("测试卸载失败")
+                    : NextResult);
             }
         }
 

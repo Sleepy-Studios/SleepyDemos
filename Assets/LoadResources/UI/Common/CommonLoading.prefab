@@ -833,6 +833,7 @@ MonoBehaviour:
   useUnifiedRadius: 1
   unifiedRadius: 10
   separateRadius: {x: 10, y: 10, z: 10, w: 10}
+  edgeFeather: 0
   enableOutline: 0
   useSpriteAlpha: 0
   outlineWidth: 2
@@ -1120,7 +1121,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 02e7461bad008604a93775861fc42580, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 56c87700928d6f3479365fb53ac5944d, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1409,6 +1410,7 @@ MonoBehaviour:
   useUnifiedRadius: 1
   unifiedRadius: 10
   separateRadius: {x: 10, y: 10, z: 10, w: 10}
+  edgeFeather: 0
   enableOutline: 0
   useSpriteAlpha: 0
   outlineWidth: 2

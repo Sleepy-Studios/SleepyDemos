@@ -50,9 +50,12 @@ namespace Tests.Module
             var defaults = GameSettingsService.Config.GetDefaults();
             var next = GameSettingsService.Current;
             next.Audio.Master = 0.37f;
-            var inputEntry = GameSettingsService.Config.Inputs.Entries.Single(entry => entry.DisplayKey == "Input.WallSqueeze");
-            using var router = new GameplayInputRouter(inputEntry.Asset);
-            using var rebind = new InputRebindSession(inputEntry.Asset);
+            using var loader = ResourceServices.CreateLoader();
+            InputActionAsset source = null;
+            yield return loader.LoadAssetAsync<InputActionAsset>("LoadResources/Demos/wall_squeeze/Data/PlayerInput").ContinueWith(value => source = value).ToCoroutine();
+            Assert.That(source, Is.Not.Null);
+            using var router = new GameplayInputRouter(source);
+            using var rebind = new InputRebindSession(source);
             var action = rebind.Asset.FindAction("Interaction/NextGroup", true);
             int bindingIndex = action.bindings.ToList().FindIndex(binding => binding.effectivePath.StartsWith("<Keyboard>"));
             rebind.SetBinding(action.actionMap.name + "/" + action.name, bindingIndex, "<Keyboard>/f12");
@@ -108,7 +111,10 @@ namespace Tests.Module
         public IEnumerator RebindingHeldRouterButtonRequiresReleaseAndParameterChangesKeepPendingInput()
         {
             yield return GameSettingsService.InitializeAsync().ToCoroutine();
-            var entry = GameSettingsService.Config.Inputs.Entries.Single(value => value.DisplayKey == "Input.WallSqueeze");
+            using var loader = ResourceServices.CreateLoader();
+            InputActionAsset original = null;
+            yield return loader.LoadAssetAsync<InputActionAsset>("LoadResources/Demos/wall_squeeze/Data/PlayerInput").ContinueWith(value => original = value).ToCoroutine();
+            Assert.That(original, Is.Not.Null);
             var originalInputSettings = InputSystem.settings;
             var testInputSettings = Object.Instantiate(originalInputSettings);
             testInputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
@@ -117,10 +123,10 @@ namespace Tests.Module
 #endif
             InputSystem.settings = testInputSettings;
             var keyboard = InputSystem.AddDevice<Keyboard>();
-            var source = Object.Instantiate(entry.Asset);
+            var source = Object.Instantiate(original);
             source.devices = new InputDevice[] { keyboard };
             using var router = new GameplayInputRouter(source);
-            using var candidate = new InputRebindSession(entry.Asset);
+            using var candidate = new InputRebindSession(original);
             try
             {
                 router.SetContext(GameplayInputContext.Interaction);
@@ -132,10 +138,8 @@ namespace Tests.Module
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Q, Key.F12));
                 yield return null;
                 // Q 的旧动作尚未消费，新 F12 在设置生效前已经保持按住。
-                var settings = GameSettingsService.Current;
-                settings.BindingOverrides[candidate.SourceId] = candidate.ExportOverrides();
                 SettingsApplyResult result = default;
-                yield return GameSettingsService.ApplyAsync(settings).ContinueWith(value => result = value).ToCoroutine();
+                yield return GameSettingsService.ApplyBindingOverridesAsync(original, candidate.ExportOverrides()).ContinueWith(value => result = value).ToCoroutine();
                 Assert.That(result.Succeeded, Is.True, result.Message);
                 yield return null;
                 router.ReadFrame(0.016f);
@@ -153,7 +157,7 @@ namespace Tests.Module
                 InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.F12, Key.RightArrow));
                 yield return null;
                 Assert.That(router.ReadFrame(0.016f).InteractionNavigation.x, Is.GreaterThan(0));
-                settings = GameSettingsService.Current;
+                var settings = GameSettingsService.Current;
                 settings.Audio.Master = 0.45f;
                 settings.Input.GamepadDeadzone = 0.31f;
                 settings.BindingOverrides[candidate.SourceId] = "\n" + settings.BindingOverrides[candidate.SourceId] + "\n";
@@ -171,6 +175,66 @@ namespace Tests.Module
                 Object.Destroy(source);
             }
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator BindingOverrideCommitValidatesSourceAndPreservesOtherHosts()
+        {
+            yield return GameSettingsService.InitializeAsync().ToCoroutine();
+            var source = ScriptableObject.CreateInstance<InputActionAsset>();
+            var map = source.AddActionMap("Gameplay");
+            var jump = map.AddAction("Jump", InputActionType.Button, "<Keyboard>/space");
+            string untouchedSource = System.Guid.NewGuid().ToString();
+            const string UntouchedOverrides = "{\"bindings\":[]}";
+            try
+            {
+                var saved = GameSettingsService.Current;
+                saved.BindingOverrides[untouchedSource] = UntouchedOverrides;
+                LocalDataManager.SaveData(GameSettingsService.PreferenceKey, saved);
+                GameSettingsService.Shutdown();
+                yield return GameSettingsService.InitializeAsync().ToCoroutine();
+                Assert.That(GameSettingsService.Current.BindingOverrides[untouchedSource], Is.EqualTo(UntouchedOverrides),
+                    "未加载宿主的合法旧改键不能因公共配置移除而丢失。");
+
+                using var candidate = new InputRebindSession(source);
+                candidate.SetBinding("Gameplay/Jump", 0, "<Keyboard>/f12");
+                int notifications = 0;
+                System.Action<GameSettingsSnapshot> observe = _ => notifications++;
+                SettingsApplyResult result = default;
+                GameSettingsService.Changed += observe;
+                try
+                {
+                    yield return GameSettingsService.ApplyBindingOverridesAsync(source, candidate.ExportOverrides())
+                        .ContinueWith(value => result = value).ToCoroutine();
+                }
+                finally
+                {
+                    GameSettingsService.Changed -= observe;
+                }
+                Assert.That(result.Succeeded, Is.True, result.Message);
+                Assert.That(notifications, Is.EqualTo(1));
+                Assert.That(jump.bindings[0].effectivePath, Is.EqualTo("<Keyboard>/space"), "提交不能修改源资产。");
+                Assert.That(GameSettingsService.Current.BindingOverrides[untouchedSource], Is.EqualTo(UntouchedOverrides));
+                string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
+                yield return GameSettingsService.ApplyBindingOverridesAsync(source, "{broken")
+                    .ContinueWith(value => result = value).ToCoroutine();
+                Assert.That(result.Succeeded, Is.False);
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preference));
+                yield return GameSettingsService.ApplyBindingOverridesAsync(source, null, new System.Threading.CancellationToken(true))
+                    .ContinueWith(value => result = value).ToCoroutine();
+                Assert.That(result.Canceled, Is.True);
+                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preference));
+                yield return GameSettingsService.ApplyBindingOverridesAsync(source, null)
+                    .ContinueWith(value => result = value).ToCoroutine();
+                Assert.That(result.Succeeded, Is.True, result.Message);
+                using var reset = new InputRebindSession(source, GameSettingsService.Current.BindingOverrides[candidate.SourceId]);
+                Assert.That(reset.Asset.FindAction("Gameplay/Jump", true).bindings[0].effectivePath, Is.EqualTo("<Keyboard>/space"));
+                Assert.That(GameSettingsService.Current.BindingOverrides[untouchedSource], Is.EqualTo(UntouchedOverrides));
+            }
+            finally
+            {
+                Object.Destroy(source);
+            }
         }
 
         [UnityTest]

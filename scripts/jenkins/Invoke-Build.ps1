@@ -37,12 +37,14 @@ function Invoke-Script([string]$Path, [string[]]$Arguments, [string]$LogName) {
 function Invoke-Unity([string]$Method) {
     Assert-ProjectClosed $project
     $env:SLEEPY_BUILD_REQUEST = $requestPath
-    $target = if ($request.Platform -eq 'PC') { 'StandaloneWindows64' } else { 'Android' }
+    $identity = Get-BuildIdentity $request.BuildChannel $request.Platform $request.GameId
+    $target = $identity.BuildTarget
     $log = [IO.Path]::GetFullPath((Join-Path $output "logs/$Method.log"))
     $recordPath = Join-Path $runRoot "unity-$Method.process.json"
     if (Test-Path -LiteralPath $recordPath) { throw "Unity $Method 已有进程记录，拒绝重复启动。" }
     $record = [pscustomobject]@{
         RunId = $runId; Method = $Method; Platform = $request.Platform
+        BuildChannel = $request.BuildChannel; GameId = $request.GameId
         Owner = [Security.Principal.WindowsIdentity]::GetCurrent().Name
         ExecutablePath = [IO.Path]::GetFullPath($machine.Unity); ProjectPath = [IO.Path]::GetFullPath($project)
         LogPath = $log; RequestPath = $requestPath; IntentUtcTicks = [DateTime]::UtcNow.Ticks
@@ -172,11 +174,12 @@ function Complete-UnityRun([switch]$Cancel) {
     foreach ($file in Get-ChildItem -LiteralPath $runRoot -Filter 'unity-*.process.json' -File) {
         Assert-OwnedPath $file.FullName $machine.Root | Out-Null
         $record = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        $identity = Get-BuildIdentity $record.BuildChannel $record.Platform $record.GameId
         if ($record.RunId -ne $runId -or $record.Method -notin @('Prepare', 'Build', 'Deploy') -or
             $file.Name -ne "unity-$($record.Method).process.json" -or
-            $record.Platform -notin @('PC', 'Android') -or $record.Owner -ne [Security.Principal.WindowsIdentity]::GetCurrent().Name -or
+            $record.Owner -ne [Security.Principal.WindowsIdentity]::GetCurrent().Name -or
             $record.ExecutablePath -ne [IO.Path]::GetFullPath($machine.Unity) -or
-            $record.ProjectPath -ne [IO.Path]::GetFullPath((Join-Path $machine.WorkspaceRoot $record.Platform)) -or
+            $record.ProjectPath -ne [IO.Path]::GetFullPath((Join-Path $machine.WorkspaceRoot $identity.Workspace)) -or
             $record.LogPath -ne [IO.Path]::GetFullPath((Join-Path $output "logs/$($record.Method).log")) -or
             $record.RequestPath -ne $requestPath -or $record.IntentUtcTicks -le 0) { throw 'Unity 记录不属于当前任务，拒绝收尾。' }
         foreach ($child in @($record.Children)) {
@@ -253,24 +256,44 @@ try {
     }
     New-Item -ItemType Directory -Path (Join-Path $output 'logs') -Force | Out-Null
     if ($Stage -eq 'Finalize') {
+        if (Test-Path -LiteralPath $requestPath) { $request = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json }
         Complete-UnityRun -Cancel:($env:SLEEPY_JENKINS_RESULT -in @('ABORTED', 'FAILURE'))
         $unitySettled = $true
     } elseif ($Stage -eq 'Checkout') {
-        if ($env:Platform -notin @('PC', 'Android') -or $env:BuildKind -notin @('Full', 'Hotfix') -or
+        $identity = Get-BuildIdentity $env:BuildChannel $env:Platform $env:GameId
+        if ($env:BuildKind -notin @('Full', 'Hotfix') -or
             $env:Provider -notin @('Pages', 'Ssh')) { throw '非法构建参数。' }
-        $baseline = Assert-OwnedPath (Join-Path $machine.Root "baselines/$($env:Platform)/current") $machine.Root
+        if ($identity.BuildChannel -eq 'TapTap' -and $env:Provider -ne 'Pages') { throw 'TapTap H5 当前仅支持 GitHub Pages 热更资源发布。' }
+        $baseline = Assert-OwnedPath (Join-Path $machine.Root "baselines/$($identity.StateKey)/current") $machine.Root
         $resourceMode = $env:ResourceMode
         $playerVersion = $env:PlayerVersion
+        $tapTapAppId = ''
         if ($env:BuildKind -eq 'Hotfix') {
             $baselinePath = Assert-OwnedPath (Join-Path $baseline 'baseline.json') $machine.Root
             if (-not (Test-Path -LiteralPath $baselinePath -PathType Leaf)) { throw '没有已发布的在线 Full 基线，请先构建并发布 Full。' }
             $baselineInfo = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
             if ($baselineInfo.Platform -ne $env:Platform -or $baselineInfo.ResourceMode -notin @('OnlineFull', 'OnlineDownload')) { throw '当前基线不是本平台的在线 Full。' }
+            if ($identity.GameId -ne 'hub' -and ($baselineInfo.GameId -ne $identity.GameId -or $baselineInfo.BuildChannel -ne $identity.BuildChannel)) {
+                throw '当前基线不属于本次渠道和游戏。'
+            }
             if ($baselineInfo.Development -ne ($env:Development -eq 'true')) { throw 'Development 必须与当前在线 Full 基线一致。' }
             $resourceMode = $baselineInfo.ResourceMode
+            if ($identity.BuildChannel -eq 'TapTap') {
+                if (-not $baselineInfo.PSObject.Properties['TapTapFormat'] -or $baselineInfo.TapTapFormat -cne 'H5') {
+                    throw '当前基线不是 TapTap H5，请先构建并发布 H5 Full。'
+                }
+                $tapTapAppId = $baselineInfo.TapTapAppId
+            }
             if ([string]::IsNullOrWhiteSpace($playerVersion)) { $playerVersion = $baselineInfo.PlayerVersion }
             elseif ($playerVersion -cne $baselineInfo.PlayerVersion) { throw 'Hotfix PlayerVersion 必须匹配当前在线 Full 基线。' }
         } elseif ($resourceMode -notin @('Offline', 'OnlineFull', 'OnlineDownload')) { throw '非法 ResourceMode。' }
+        if ($identity.BuildChannel -eq 'TapTap' -and $env:BuildKind -eq 'Full') {
+            $tapTapSettings = $machine.PSObject.Properties['TapTap']
+            $apps = if ($tapTapSettings) { $tapTapSettings.Value.PSObject.Properties['Apps'] } else { $null }
+            $app = if ($apps) { $apps.Value.PSObject.Properties[$identity.GameId] } else { $null }
+            $appId = if ($app) { $app.Value.PSObject.Properties['AppId'] } else { $null }
+            if ($appId -and -not [string]::IsNullOrWhiteSpace($appId.Value)) { $tapTapAppId = $appId.Value.Trim() }
+        }
         $androidFormat = 'Apk'
         $androidSigning = 'Debug'
         $versionCode = 1
@@ -283,10 +306,10 @@ try {
             if ($versionCode -eq 0 -and (-not [int]::TryParse($env:BUILD_NUMBER, [ref]$versionCode) -or $versionCode -le 0)) { throw 'BUILD_NUMBER 超出 AndroidVersionCode 有效范围。' }
         }
         if ([string]::IsNullOrWhiteSpace($env:SourceRef) -or $env:SourceRef.StartsWith('-') -or $env:SourceRef -match '\s|[~^:?*\[\\]') { throw 'SourceRef 只允许明确的分支、标签或提交 SHA。' }
-        $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $env:Platform) $machine.WorkspaceRoot
+        $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $identity.Workspace) $machine.WorkspaceRoot
         if ($project.Equals([IO.Path]::GetFullPath($machine.DailyProjectPath).TrimEnd('\'), [StringComparison]::OrdinalIgnoreCase)) { throw '拒绝修改日常项目。' }
         Assert-ProjectClosed $project
-        $ownership = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot "$($env:Platform).owned") $machine.WorkspaceRoot
+        $ownership = Assert-OwnedPath ($project + '.owned') $machine.WorkspaceRoot
         New-Item -ItemType Directory -Path (Split-Path -Parent $project) -Force | Out-Null
         if (-not (Test-Path -LiteralPath $project)) {
             Set-Content -LiteralPath $ownership -Value $machine.RepositoryUrl -Encoding ascii
@@ -305,13 +328,17 @@ try {
         Invoke-Git $project @('clean', '-fd', '-e', 'Library/', '-e', 'Logs/', '-e', 'Temp/', '-e', 'UserSettings/', '-e', 'obj/', '-e', 'Assets/Plugins/Streamline/x86_64/') | Out-Host
         Invoke-Git $project @('submodule', 'sync', '--recursive') | Out-Host
         Invoke-Git $project @('submodule', 'update', '--init', '--recursive', '--force') | Out-Host
+        $profiles = Get-Content -LiteralPath (Join-Path $project 'Assets/Settings/ReleaseProfiles.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (@($profiles.Profiles | Where-Object { $_.GameId -ceq $identity.GameId }).Count -ne 1) {
+            throw 'GameId 未在固定源码的 ReleaseProfiles 中唯一登记。'
+        }
         $configCommit = (Invoke-Git (Join-Path $project 'SleepyConfigs') @('rev-parse', 'HEAD') | Out-String).Trim()
         $expectedConfig = (Invoke-Git $project @('rev-parse', 'HEAD:SleepyConfigs') | Out-String).Trim()
         if ($configCommit -ne $expectedConfig) { throw 'SleepyConfigs 未检出主仓库固定提交。' }
         $resourceVersion = $env:ResourceVersion
         if ([string]::IsNullOrWhiteSpace($resourceVersion)) { $resourceVersion = (Get-Date -Format 'yyyyMMdd-HHmmss') + "-$($env:BUILD_NUMBER)-" + $sha.Substring(0, 8) }
         if ($resourceVersion -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,100}$') { throw 'ResourceVersion 只能包含字母、数字、点、横线和下划线。' }
-        $registrationPath = Assert-OwnedPath (Join-Path $machine.Root "resource-versions/$($env:Platform)/$resourceVersion.json") $machine.Root
+        $registrationPath = Assert-OwnedPath (Join-Path $machine.Root "resource-versions/$($identity.StateKey)/$resourceVersion.json") $machine.Root
         New-Item -ItemType Directory -Path (Split-Path -Parent $registrationPath) -Force | Out-Null
         try {
             $registration = [IO.File]::Open($registrationPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
@@ -320,30 +347,49 @@ try {
             throw
         }
         try {
-            $record = @{ Job = $env:JOB_NAME; Build = $env:BUILD_NUMBER; SourceCommit = $sha; ConfigCommit = $configCommit }
+            $record = @{ Job = $env:JOB_NAME; Build = $env:BUILD_NUMBER; SourceCommit = $sha; ConfigCommit = $configCommit
+                BuildChannel = $identity.BuildChannel; Platform = $identity.Platform; GameId = $identity.GameId
+                TapTapFormat = $identity.TapTapFormat }
             $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes(($record | ConvertTo-Json))
             $registration.Write($bytes, 0, $bytes.Length)
             $registration.Flush($true)
         } finally { $registration.Dispose() }
         $pagesPath = Assert-OwnedPath $machine.Pages.Path $machine.Root
+        $publicationSuffix = if ($identity.BuildChannel -eq 'TapTap') { "TapTap/$($identity.GameId)" }
+            elseif ($identity.GameId -eq 'hub') { '' } else { $identity.GameId }
+        $pagesProjectName = $machine.Pages.ProjectName
+        if ($identity.BuildChannel -eq 'TapTap') { $pagesProjectName += '/' + $publicationSuffix }
+        elseif ($publicationSuffix) { $pagesProjectName += '-' + $publicationSuffix }
+        $sshRoot = $machine.Ssh.RootPath
         $sshServerUrl = ''
-        if (-not [string]::IsNullOrWhiteSpace($machine.Ssh.BaseUrl)) { $sshServerUrl = $machine.Ssh.BaseUrl.TrimEnd('/') + '/' + $env:Platform }
+        if ($publicationSuffix -and -not [string]::IsNullOrWhiteSpace($sshRoot)) { $sshRoot = $sshRoot.TrimEnd('/') + '/' + $publicationSuffix }
+        if (-not [string]::IsNullOrWhiteSpace($machine.Ssh.BaseUrl)) {
+            $sshServerUrl = $machine.Ssh.BaseUrl.TrimEnd('/')
+            if ($publicationSuffix) { $sshServerUrl += '/' + $publicationSuffix }
+            $sshServerUrl += '/' + $identity.Platform
+        }
         $request = [ordered]@{
+            BuildChannel = $identity.BuildChannel; GameId = $identity.GameId
+            TapTapAppId = $tapTapAppId; TapTapFormat = $identity.TapTapFormat
             Platform = $env:Platform; BuildKind = $env:BuildKind; ResourceMode = $resourceMode
             AndroidFormat = $androidFormat; AndroidSigning = $androidSigning; Development = $env:Development -eq 'true'
             PlayerVersion = $playerVersion; AndroidVersionCode = $versionCode; ResourceVersion = $resourceVersion
             Publish = $env:Publish -eq 'true'; Provider = $env:Provider; SourceCommit = $sha; ConfigCommit = $configCommit
             OutputDirectory = $output; BaselineDirectory = $baseline; PagesRepositoryPath = $pagesPath
-            PagesSiteUrl = $machine.Pages.BaseUrl; PagesProjectName = $machine.Pages.ProjectName
+            PagesSiteUrl = $machine.Pages.BaseUrl; PagesProjectName = $pagesProjectName
             SshHost = $machine.Ssh.Host; SshPort = $machine.Ssh.Port; SshUser = $machine.Ssh.User
-            SshRoot = $machine.Ssh.RootPath; SshServerUrl = $sshServerUrl; SshHostKeySha256 = $machine.Ssh.HostKeySha256
+            SshRoot = $sshRoot; SshServerUrl = $sshServerUrl; SshHostKeySha256 = $machine.Ssh.HostKeySha256
         }
         Write-JsonFile $requestPath $request
-        Write-JsonFile (Join-Path $output 'source.json') @{ SourceCommit = $sha; ConfigCommit = $configCommit; Submodules = @(Invoke-Git $project @('submodule', 'status', '--recursive')) }
+        Write-JsonFile (Join-Path $output 'source.json') @{ SourceCommit = $sha; ConfigCommit = $configCommit
+            BuildChannel = $identity.BuildChannel; Platform = $identity.Platform; GameId = $identity.GameId
+            TapTapFormat = $identity.TapTapFormat
+            Submodules = @(Invoke-Git $project @('submodule', 'status', '--recursive')) }
         Write-Output "固定源提交 $sha；配置提交 $configCommit；版本 $resourceVersion。"
     } elseif ($Stage -ne 'Finalize') {
         $request = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $request.Platform) $machine.WorkspaceRoot
+        $identity = Get-BuildIdentity $request.BuildChannel $request.Platform $request.GameId
+        $project = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot $identity.Workspace) $machine.WorkspaceRoot
         Assert-ProjectClosed $project
         if ((Invoke-Git $project @('rev-parse', 'HEAD') | Out-String).Trim() -ne $request.SourceCommit) { throw '工作区提交发生变化。' }
         switch ($Stage) {
@@ -377,12 +423,18 @@ try {
             'Package' {
                 Add-Type -AssemblyName System.IO.Compression.FileSystem
                 foreach ($directory in @('resources', 'player')) {
-                    if ($directory -eq 'player' -and $request.Platform -eq 'Android') { continue }
+                    if ($directory -eq 'player' -and ($request.Platform -eq 'Android' -or $request.BuildChannel -eq 'TapTap')) { continue }
                     $source = Join-Path $output $directory
                     if (Test-Path -LiteralPath $source) {
                         $zip = Join-Path $output "$($request.Platform)-$directory.zip"
                         if (Test-Path -LiteralPath $zip) { throw "归档已经存在：$zip" }
                         [IO.Compression.ZipFile]::CreateFromDirectory($source, $zip, 'Optimal', $false)
+                    }
+                }
+                if ($request.BuildChannel -eq 'TapTap' -and $request.BuildKind -eq 'Full') {
+                    $h5Zip = Join-Path $output 'player/h5.zip'
+                    if (-not (Test-Path -LiteralPath $h5Zip -PathType Leaf) -or (Get-Item -LiteralPath $h5Zip).Length -eq 0) {
+                        throw 'TapTap H5 Full 未生成非空 player/h5.zip。'
                     }
                 }
             }
@@ -415,12 +467,19 @@ try {
             }
             # 失败也归档已经生成的部分产物，避免 Package 阶段未执行而丢失证据。
             $archivePlatform = $env:Platform
+            $archiveChannel = $env:BuildChannel
             if (Test-Path -LiteralPath $requestPath) {
-                try { $archivePlatform = (Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json).Platform } catch { }
+                try {
+                    $archiveRequest = Get-Content -LiteralPath $requestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                    $archivePlatform = $archiveRequest.Platform
+                    $archiveChannel = $archiveRequest.BuildChannel
+                } catch { }
             }
             Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $h5Zip = Join-Path $output 'player/h5.zip'
+            $hasH5Zip = $archiveChannel -eq 'TapTap' -and (Test-Path -LiteralPath $h5Zip -PathType Leaf) -and (Get-Item -LiteralPath $h5Zip).Length -gt 0
             foreach ($directory in @('resources', 'player', 'baseline')) {
-                if ($directory -eq 'player' -and $archivePlatform -eq 'Android') { continue }
+                if ($directory -eq 'player' -and ($archivePlatform -eq 'Android' -or $hasH5Zip)) { continue }
                 $source = Join-Path $output $directory
                 $zip = Join-Path $output "$directory.zip"
                 if ((Test-Path -LiteralPath $source) -and -not (Test-Path -LiteralPath $zip) -and -not (Get-ChildItem -LiteralPath $output -Filter "*-$directory.zip")) {
@@ -435,6 +494,9 @@ try {
             New-Item -ItemType Directory -Path (Join-Path $archive 'logs') -Force | Out-Null
             Get-ChildItem -LiteralPath (Join-Path $output 'logs') | Copy-Item -Destination (Join-Path $archive 'logs') -Recurse
             Get-ChildItem -LiteralPath $output -Filter '*.zip' | Copy-Item -Destination $archive
+            if ($hasH5Zip) {
+                Copy-Item -LiteralPath $h5Zip -Destination $archive
+            }
             $player = Join-Path $output 'player'
             if ($archivePlatform -eq 'Android' -and (Test-Path -LiteralPath $player)) {
                 Get-ChildItem -LiteralPath $player -File | Where-Object { $_.Extension -in @('.apk', '.aab') } | Copy-Item -Destination $archive
@@ -482,6 +544,21 @@ try {
                     }
                 })
             Write-JsonFile $checksumPath @{ Files = $checksums }
+            if ($unitySettled -and $request -and $request.BuildChannel -eq 'TapTap') {
+                $identity = Get-BuildIdentity $request.BuildChannel $request.Platform $request.GameId
+                $artifact = Assert-OwnedPath (Join-Path $machine.WorkspaceRoot "TapTap/Artifacts/$($identity.GameId)/$runId") $machine.WorkspaceRoot
+                if (Test-Path -LiteralPath $artifact) { throw 'TapTap 本次持久归档已存在，拒绝覆盖。' }
+                New-Item -ItemType Directory -Path $artifact | Out-Null
+                Get-ChildItem -LiteralPath $archive -Force | Copy-Item -Destination $artifact -Recurse
+                foreach ($checksum in $checksums) {
+                    $copied = Assert-OwnedPath (Join-Path $artifact $checksum.File) $artifact
+                    if ((Get-Item -LiteralPath $copied).Length -ne $checksum.Bytes -or
+                        (Get-FileHash -LiteralPath $copied -Algorithm SHA256).Hash.ToLowerInvariant() -ne $checksum.Sha256) {
+                        throw 'TapTap 持久归档大小或 SHA256 校验失败，保留现场。'
+                    }
+                }
+                Write-Output "TapTap 持久归档：$artifact。"
+            }
             Write-Output "最终构建摘要：$($summary.Result)，归档 $archive。"
         }
     }

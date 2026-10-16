@@ -76,7 +76,7 @@ namespace Hotfix.WallSqueeze
             if (world.HasTimeLimit)
             {
                 clock.text = $"倒计时 {Mathf.CeilToInt(world.Simulation.RemainingSeconds):00}";
-                clock.color = world.Simulation.RemainingSeconds <= 10 ? UIColors.WallSqueeze.ClockWarning : UIColors.WallSqueeze.Ink;
+                clock.color = world.Simulation.RemainingSeconds <= 10 ? WallSqueezeUIColors.ClockWarning : WallSqueezeUIColors.Ink;
             }
             bool playing = !world.Paused && world.Simulation.Result == WallSqueezeResult.Playing;
             pause.interactable = playing;

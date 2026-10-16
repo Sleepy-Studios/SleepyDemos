@@ -22,6 +22,21 @@ namespace Hotfix.KagitKart
 
         private bool ApplyOnlineCommand(KagitKartAction action)
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (action.Command == KagitKartCommand.PlayModes)
+            {
+                OpenMenuAsync(KagitKartCommand.Modes).Forget();
+                return true;
+            }
+            if (action is KagitKartRoomConfigurationAction or KagitKartJoinRoomAction ||
+                action.Command is KagitKartCommand.Online or KagitKartCommand.CreateRoom or KagitKartCommand.JoinRoom
+                    or KagitKartCommand.Room or KagitKartCommand.LeaveRoom or KagitKartCommand.Ready
+                    or KagitKartCommand.StartOnlineRace or KagitKartCommand.ChooseOnlineCharacter
+                    or KagitKartCommand.CopyCode or KagitKartCommand.ReturnRoom)
+            {
+                return true;
+            }
+#endif
             if (action is KagitKartRoomConfigurationAction configuration)
             {
                 if (configuration.UpdateExistingRoom)
@@ -108,6 +123,7 @@ namespace Hotfix.KagitKart
         /// <param name="trackId">原作赛道。</param>
         public async UniTask CreateOnlineRoomAsync(string name, int capacity, KagitKartRaceMode mode, int speedClass, string trackId)
         {
+            EnsureOnlinePlatform();
             if (Busy || onlineConnectionCompleted != null)
             {
                 return;
@@ -152,6 +168,7 @@ namespace Hotfix.KagitKart
         /// <param name="displayName">玩家显示名。</param>
         public async UniTask JoinOnlineRoomAsync(string code, string displayName)
         {
+            EnsureOnlinePlatform();
             if (Busy || onlineConnectionCompleted != null)
             {
                 return;
@@ -189,6 +206,13 @@ namespace Hotfix.KagitKart
                     Dispatch(KagitKartCommand.Refresh);
                 }
             }
+        }
+
+        private static void EnsureOnlinePlatform()
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            throw new PlatformNotSupportedException("Web 小游戏仅提供单人模式。");
+#endif
         }
 
         /// 取消表单当前连接，等待网络和 World 原流程结束后再返回联机入口。

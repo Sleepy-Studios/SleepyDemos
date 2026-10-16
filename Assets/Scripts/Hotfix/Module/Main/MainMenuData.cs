@@ -35,8 +35,7 @@ namespace Hotfix
         public MainMenuData()
         {
             const string art = "LoadResources/UI/Hall/Art/Gallery/";
-            Entries.Add(new MainMenuDemoEntry("drone_flight", "无人机飞行", "在训练场探索飞行手感。\n选择机型，开始你的飞行体验。", art + "DroneFlight", GameSceneId.DroneFlight, "起飞、穿越与精准操控"));
-            Entries.Add(new MainMenuDemoEntry("dlss", "DLSS 实验室", "切换画质模式，比较画面与性能。\n体验实时渲染技术带来的差异。", art + "Dlss", GameSceneId.Dlss, "探索画质与性能的平衡"));
+            Entries.Add(new MainMenuDemoEntry("drone_flight", "无人机飞行", "在训练场探索飞行手感。\n选择机型，开始你的飞行体验。", "LoadResources/Demos/drone_flight/Art/UI/HubPreview", GameSceneId.DroneFlight, "起飞、穿越与精准操控"));
             Entries.Add(new MainMenuDemoEntry("ui_validation", "UI 交互展台", "界面与导航的交互体验。\n展台正在准备中，敬请期待。", art + "UiValidation", null, "新的体验，即将开放"));
             Entries[0].IsSelected = true;
             Entries.Add(new MainMenuDemoEntry("wall_squeeze", "夹爆它", "拖动滑墙，把红怪赶拢夹爆。\n移开蓝色住户，留出安全空间。", "LoadResources/Demos/wall_squeeze/Art/UI/HubPreview", GameSceneId.WallSqueeze, "推墙夹击，保护住户"));

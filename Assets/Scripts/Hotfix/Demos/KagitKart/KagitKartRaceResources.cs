@@ -62,8 +62,9 @@ namespace Hotfix.KagitKart
         /// <summary>准备当前选择；同章复用任务与实例，取消选择后的旧章不激活。</summary>
         /// <param name="id">有效赛道标识。</param>
         /// <param name="next">大奖赛下一章；单场与计时赛不准备后续赛道。</param>
-        /// <returns>已完成数据解析与实例初始化的一章。</returns>
-        public async UniTask<Round> PrepareAsync(string id, string next = null)
+        /// <param name="report">只报告本次必需资源的已完成阶段。</param>
+        /// <returns>已完成数据解析与实例初始化的当前章，不等待下一章。</returns>
+        public async UniTask<Round> PrepareAsync(string id, string next = null, Action<float, string> report = null)
         {
             token.ThrowIfCancellationRequested();
             if (disposed)
@@ -78,9 +79,14 @@ namespace Hotfix.KagitKart
                 commonTask = new AsyncLazy(PrepareCommonAsync);
             }
             await commonTask;
+            report?.Invoke(0.35f, "赛车与道具资源就绪");
             var round = await GetRoundAsync(id);
-            if (next != null) await GetRoundAsync(next);
             token.ThrowIfCancellationRequested();
+            if (desiredTrack != id)
+            {
+                throw new OperationCanceledException("比赛选择已变更。", token);
+            }
+            report?.Invoke(0.85f, "当前赛道数据与场景就绪");
             if (!effectsPrepared)
             {
                 using var session = new KagitKartSession(source, round.Data, round.Plan, KagitKartRaceMode.SingleRace, source.roster[0].id, 120, 1);
@@ -94,7 +100,38 @@ namespace Hotfix.KagitKart
                 effectsPrepared = true;
             }
             Prune();
+            report?.Invoke(1, "当前章资源就绪");
+            if (next != null)
+            {
+                PrepareNextRoundAsync(next).Forget();
+            }
             return round;
+        }
+
+        private async UniTask PrepareNextRoundAsync(string id)
+        {
+            try
+            {
+                // 当前章已就绪后才启动可选预热；未来章失败不能阻止本场开赛。
+                await UniTask.NextFrame(PlayerLoopTiming.Update, token);
+                if (disposed || nextTrack != id)
+                {
+                    return;
+                }
+                await GetRoundAsync(id);
+                token.ThrowIfCancellationRequested();
+                Prune();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                if (!disposed)
+                {
+                    Debug.LogWarning("下一章预热失败，换章时将重试：" + exception.Message);
+                }
+            }
         }
 
         private UniTask<Round> GetRoundAsync(string id)
@@ -154,6 +191,11 @@ namespace Hotfix.KagitKart
                 token.ThrowIfCancellationRequested();
                 // Unity资产在主线程取文本，工作线程仅解析独立字符串与托管数据。
                 string trackJson = data.text;
+#if UNITY_WEBGL && !UNITY_EDITOR
+                // Web 没有托管线程池；两份独立JSON分帧解析，保留同一数据校验契约。
+                await UniTask.NextFrame(PlayerLoopTiming.Update, token);
+                var parsedTrack = KagitKartTrackData.Parse(trackJson);
+#else
                 var parsedTrack = await UniTask.RunOnThreadPool(() =>
                 {
                     using (ParseTrack.Auto())
@@ -161,11 +203,16 @@ namespace Hotfix.KagitKart
                         return KagitKartTrackData.Parse(trackJson);
                     }
                 }, configureAwait: true, cancellationToken: token);
+#endif
                 token.ThrowIfCancellationRequested();
                 round.Data = parsedTrack;
                 var plan = await owned.LoadAssetAsync<TextAsset>(Root + "Data/AiPlans/" + name);
                 token.ThrowIfCancellationRequested();
                 string planJson = plan.text;
+#if UNITY_WEBGL && !UNITY_EDITOR
+                await UniTask.NextFrame(PlayerLoopTiming.Update, token);
+                var parsedPlan = KagitKartAiPlan.Parse(planJson, parsedTrack);
+#else
                 var parsedPlan = await UniTask.RunOnThreadPool(() =>
                 {
                     using (ParseAiPlan.Auto())
@@ -173,6 +220,7 @@ namespace Hotfix.KagitKart
                         return KagitKartAiPlan.Parse(planJson, parsedTrack);
                     }
                 }, configureAwait: true, cancellationToken: token);
+#endif
                 token.ThrowIfCancellationRequested();
                 round.Plan = parsedPlan;
                 var instance = await owned.InstantiateAsync(Root + "Prefabs/Tracks/" + name, parent);

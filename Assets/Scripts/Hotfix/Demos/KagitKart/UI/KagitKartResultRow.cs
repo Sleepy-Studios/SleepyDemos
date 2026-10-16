@@ -24,7 +24,7 @@ namespace Hotfix.KagitKart
         [SerializeField] private KagitKartResultShape pointsBar;
         [SerializeField] private Sprite[] portraits;
         [SerializeField] private string[] portraitIds;
-        private static readonly Color Ink = UIColors.KagitKart.Ink;
+        private static readonly Color Ink = KagitKartUIColors.Ink;
         private CanvasGroup group;
         private RectTransform rect;
         private Vector2 position;
@@ -101,7 +101,7 @@ namespace Hotfix.KagitKart
             pointsBar.SetFill((float)standing.Points / maximum, bodyColor);
             int change = previousPlace > 0 ? previousPlace - place : 0;
             movementText.text = change > 0 ? "▲" + change : change < 0 ? "▼" + -change : "";
-            movementText.color = change > 0 ? UIColors.KagitKart.Rising : UIColors.KagitKart.Accent;
+            movementText.color = change > 0 ? KagitKartUIColors.Rising : KagitKartUIColors.Accent;
             movementText.gameObject.SetActive(change != 0);
             playerHighlight.gameObject.SetActive(isPlayer);
         }
@@ -141,6 +141,6 @@ namespace Hotfix.KagitKart
             portrait.gameObject.SetActive(true);
         }
 
-        private static Color PlaceInk(int value) => value == 1 ? UIColors.KagitKart.FirstPlace : value == 2 ? UIColors.KagitKart.SecondPlace : value == 3 ? UIColors.KagitKart.ThirdPlace : Ink;
+        private static Color PlaceInk(int value) => value == 1 ? KagitKartUIColors.FirstPlace : value == 2 ? KagitKartUIColors.SecondPlace : value == 3 ? KagitKartUIColors.ThirdPlace : Ink;
 }
 }

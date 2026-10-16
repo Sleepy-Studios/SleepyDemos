@@ -19,6 +19,8 @@ namespace Hotfix.SceneManagement
     internal sealed class GameSceneLoadingPresenter : IGameSceneLoadingPresenter
     {
         private CommonLoadingView loadingView;
+        private Canvas tipCanvas;
+        private int tipSortingOrder;
         private readonly List<(Canvas Canvas, bool Enabled, GraphicRaycaster Raycaster, bool RaycasterEnabled)> upperLayers = new();
         private readonly List<(CanvasGroup Group, bool Interactable, bool BlocksRaycasts)> upperGroups = new();
 
@@ -42,7 +44,18 @@ namespace Hotfix.SceneManagement
                 return exception.Message;
             }
 
-            // Loading 保持 Base Page；只遮蔽现有高层绘制，不退出来源页面或目标控件生命周期。
+            // 逻辑导航仍是 Base Page，显示期间借用现有最高层 Canvas，避免给业务 View 添加根 Canvas。
+            loadingView.transform.SetParent(UIRootManager.Instance.GetRoot(UILayer.Tip), false);
+            loadingView.transform.SetAsLastSibling();
+            tipCanvas = UIRootManager.Instance.GetRoot(UILayer.Tip).GetComponent<Canvas>();
+            tipSortingOrder = tipCanvas.sortingOrder;
+            var tipRaycaster = tipCanvas.GetComponent<GraphicRaycaster>();
+            upperLayers.Add((tipCanvas, tipCanvas.enabled, tipRaycaster, tipRaycaster != null && tipRaycaster.enabled));
+            tipCanvas.enabled = true;
+            tipCanvas.sortingOrder = 32760;
+            if (tipRaycaster != null) tipRaycaster.enabled = true;
+
+            // Loading 保持 Base Page；准备期间目标页面可以完成首帧，遮挡层始终在最上方。
             foreach (var view in UIManager.Instance.GetAllViews())
             {
                 if (!view.IsLoaded || view.Level <= UILayer.Base) continue;
@@ -52,7 +65,7 @@ namespace Hotfix.SceneManagement
                 group.interactable = false;
                 group.blocksRaycasts = false;
             }
-            foreach (var layer in new[] { UILayer.Foreground, UILayer.Pop, UILayer.Decorate, UILayer.Tip })
+            foreach (var layer in new[] { UILayer.Foreground, UILayer.Pop, UILayer.Decorate })
             {
                 var root = UIRootManager.Instance.GetRoot(layer);
                 var canvas = root.GetComponent<Canvas>();
@@ -62,7 +75,8 @@ namespace Hotfix.SceneManagement
                 if (raycaster != null) raycaster.enabled = false;
             }
 
-            string name = LanguageService.IsInitialized ? LanguageService.Get(target.DisplayNameKey) : target.DisplayName;
+            string name = LanguageService.IsInitialized && !string.IsNullOrEmpty(target.DisplayNameKey)
+                ? LanguageService.Get(target.DisplayNameKey) : target.DisplayName;
             SetProgress(0.05f, "准备切换", $"即将进入{target.DisplayName}", "Loading.Prepare", "Loading.Enter", name);
             // 无动画导航可以同步完成，先跨过完整下一帧，让 Loading 获得呈现机会。
             await UniTask.NextFrame(PlayerLoopTiming.LastPostLateUpdate);
@@ -71,8 +85,8 @@ namespace Hotfix.SceneManagement
 
         private static string BackgroundAddress(GameSceneId scene) => scene switch
         {
-            GameSceneId.DroneFlight => "LoadResources/UI/Common/Loading/Art/SceneBackdropDrone",
-            GameSceneId.Dlss => "LoadResources/UI/Hall/Art/Gallery/Dlss",
+            GameSceneId.DroneFlight => "LoadResources/Demos/drone_flight/Art/UI/LoadingBackdrop",
+            GameSceneId.Dlss => "LoadResources/Diagnostics/DlssLab/Art/UI/Preview",
             GameSceneId.WallSqueeze => "LoadResources/UI/Common/Loading/Art/StartupBackdrop",
             GameSceneId.KagitKart => "LoadResources/Demos/kagit_kart/Art/UI/HubPreview",
             _ => "LoadResources/UI/Common/Loading/Art/StartupBackdrop"
@@ -142,6 +156,11 @@ namespace Hotfix.SceneManagement
                     if (layer.Raycaster != null) layer.Raycaster.enabled = layer.RaycasterEnabled;
                 }
                 upperLayers.Clear();
+                if (tipCanvas != null)
+                {
+                    tipCanvas.sortingOrder = tipSortingOrder;
+                    tipCanvas = null;
+                }
             }
         }
     }

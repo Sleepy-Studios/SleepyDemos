@@ -27,7 +27,7 @@
 | `KagitKartRaceResources` | Demo 内共享赛车、道具和效果实例；缓存当前赛道与大奖赛下一章，统一准备、切换、重置与退出释放。 |
 | `KagitKartInput` | 正式动作资产副本、原作按键和单轴死区、触控命令、自动油门、短按锁存和设备切换清理。 |
 | `KagitKartSceneryAsset` / `SceneryWorld` | 四章原生场景数据、实例纸景、折起弹簧与跳台姿态；印刷动画使用宿主的表现时间。 |
-| `KagitKartWorld` | 等待公共启动与场景导航稳定，持有 Demo Loader、准备缓存和当前 Session，返回前关闭具体 View并释放共享实例。 |
+| `KagitKartWorld` | 实现公共场景准备接口，持有 Demo Loader、准备缓存和当前 Session；与导航共享首菜单初始化，返回前关闭具体 View并释放共享实例。 |
 | `KagitKartData` / `Action` / `Handler` | 核对页面来源，提交暂停、重赛、下一章和返回；UI 读取唯一 Session。 |
 | `KagitKartCameraRig` | 原作镜头半衰期跟随、加速视野、回头和撞击震动，随本场解除规则订阅。 |
 | `KagitKartMinimap` | HUD 铅笔路线与本场车辆位置，不复制规则。 |
@@ -35,11 +35,13 @@
 
 ## 比赛准备与复用
 
-场景固定宿主保留正式场景预置；进入封面和更换选择时，`KagitKartRaceResources` 使用正式 Loader 提前解析数据、构造赛道查询及 AI 计划、实例化赛道、八角色、道具和效果。大奖赛准备当前章与下一章，不让四章全部常驻；正在使用的旧章在新章激活后清理。共享实例随 Demo 复用，重赛解除旧规则订阅并重置动画、纸景、道具与效果，再绑定新 Session。幽灵独立缓存，准备入口串行处理菜单预热与正式开赛请求，避免异步实例化重复创建；角色改变后替换该缓存。
+场景固定宿主保留正式场景预置；进入封面和更换选择时，`KagitKartRaceResources` 使用正式 Loader 提前解析数据、构造赛道查询及 AI 计划、实例化赛道、八角色、道具和效果。当前章必需资源完成后才启动大奖赛下一章的可选预热，不让未来章的加载失败阻止本场开赛，也不让四章全部常驻；正在使用的旧章在新章激活后清理。共享实例随 Demo 复用，重赛解除旧规则订阅并重置动画、纸景、道具与效果，再绑定新 Session。幽灵独立缓存，准备入口串行处理菜单预热与正式开赛请求，避免异步实例化重复创建；角色改变后替换该缓存。
 
 相同准备请求共用 UniTask `AsyncLazy`，选择版本和退出令牌阻止过期任务激活比赛。失败释放局部资源并允许下次准备重试。HUD、成绩、总榜和领奖页面通过 `UIManager.PreloadAsync` 准备并在关闭后隐藏缓存，退出 Demo 才关闭具体实例；领奖舞台也共用一次准备任务。菜单准备与正式开赛共用页面准备入口，快速开始时也会等待这四页和 GP 领奖舞台完成，避免旧选择任务提前退出后漏掉页面预热。章节音频准备与缓存见[音频维护](runbooks/audio.md)，实测范围见[本轮性能记录](runbooks/performance-2026-10-14.md)。
 
-`LoadRoundAsync` 在主线程读取赛道与AI路线 `TextAsset.text`，随后使用现有 `UniTask.RunOnThreadPool` 执行纯字符串反序列化与数据校验，完成后回到主线程、检查退出令牌，再发布结果和实例化场景。工作线程不访问Unity资产或修改准备缓存；异常和取消统一回主线程释放Loader。解析本身不接受中断令牌，已开始的解析会完成，但取消后的结果不能激活比赛。正式Profiler标记 `KagitKart.Resources.ParseTrack` 与 `KagitKart.Resources.ParseAiPlan` 用于核对工作线程耗时与分配；此调整转移主线程解析峰值，不能等同于消除总GC，需同条件复测结算/下一章准备阶段。
+`LoadRoundAsync` 在主线程读取赛道与AI路线 `TextAsset.text`，原生平台使用 `UniTask.RunOnThreadPool` 执行纯字符串解析与校验，再回主线程发布数据和实例化；Web平台没有托管线程池，赛道与AI路线在不同帧的主线程解析，同一JSON解析本身仍不能中断或保证固定毫秒预算。退出令牌和选择身份阻止旧结果激活；异常统一回主线程释放Loader。
+
+`KagitKartWorld` 的 `Start` 与公共 `IGameScenePreparation.PrepareSceneAsync` 共用 `AsyncLazy`，不再等待“导航稳定”才开始业务加载。公共Loading覆盖配置、原生音频准备、立体书、首菜单与完整首帧；正式开赛、重赛、换章和原生联机资源准备通过 `RunPreparationAsync` 报告必需资源、页面、音频、绑定及首帧的真实阶段。业务Page以 `hidePrevious:false` 打开，Loading在准备收口前保持覆盖，不新增卡丁车加载页面。
 
 漂移在地面、速度和转向条件满足后直接开始，取消启动弹跳与等待落地。AI 同样直接漂移，动画与声效不再订阅启动 Hop；蓄力、松开加速、取消条件和跳台独立特技仍保留。归档原作数据里的 hopVy 仅用于来源追溯，当前规则不读取它。
 
@@ -50,6 +52,12 @@
 作者的单帧最多八步与丢弃积压仍保留，实际快进受帧率限制：理论最大比赛推进为实际 FPS × 8 / 120。不能保证低帧率下任意请求倍率完整兑现；比赛、圈时和 Ghost 共用模拟时钟，不为快进绕过八步保护。
 
 联机规则由独立服务器 FishNet 的120Hz网络tick唯一推进，没有本地玩家、客户端预测或单人时钟。客户端预测自己的赛车，远端赛车/道具由30Hz共享快照呈现；任何玩家的本地暂停、失焦和UI过渡都提交中性输入，服务器比赛继续。客户端UI的Busy状态不阻止权威规则步，也不通过断供输入保留上一油门。联机维护边界见下节，操作见[联机手册](runbooks/multiplayer.md)。
+
+## 平台入口
+
+原生平台保留封面 → 单人/联机 → 对应模式与房间流程。`UNITY_WEBGL && !UNITY_EDITOR` 首期仅提供单人：封面的 `PlayModes` 命令直接进入 `Modes`，保留开书时序，返回仍回封面，不加载单人/联机选择页。中央 `ApplyOnlineCommand` 消费并拒绝联机页面、创建/修改房间、加入及比赛房间命令；直接调用公开 Create/Join API 也在目录 HTTP 请求之前返回不支持异常。Editor 验证继续走原生流程，不代表 Web 真机已经验收。
+
+Web 资源过滤除 `Prefabs/Networking/` 外，还排除 `Prefabs/UI/` 下的 `KagitKartPlayModeView`、`KagitKartOnlineView`、`KagitKartCreateRoomView`、`KagitKartJoinRoomView`、`KagitKartRoomView`、`KagitKartReconnectView` 六份 Prefab；共享 Foundation 风格库仍保留。原生联机契约如下。
 
 ## 联机房间与状态同步
 
@@ -117,15 +125,15 @@ Ticket 使用每房独立密钥的HMAC-SHA256，绑定房间、稳定memberId、
 
 ### 设置与操作说明
 
-公共偏好由启动和直启的同一设置入口准备，赛车保留自动油门、触控布局及本地音量。普通输入参数和改键来自公共会话；操作提示绑定实际动作，键鼠使用 Kenney 键帽，说明文案在页面绑定时读取当前语言。隐藏公共说明提示不影响触控操作区。
+公共偏好由启动和直启的同一设置入口准备，赛车保留自动油门、触控布局及本地音量。灵敏度、死区、震动与图标参数来自公共输入，会话使用本场动作资产的默认绑定，不提供公共或 Demo 本地改键；操作提示绑定实际动作，键鼠使用 Kenney 键帽，说明文案在页面绑定时读取当前语言。隐藏公共说明提示不影响触控操作区。
 
-主音量与音乐/音效分类增益在 DSP 各分类混音处与本地增益相乘，静音保留播放位置。全局减少动态和禁用相机抖动优先于赛车选项。规则推进、立体书和赛前/领奖表现使用公共玩法时长；UI、输入采样、帧率及 DSP 时钟保留未缩放语义，冻结期间暂停与退出仍可操作。API 与配置真源见[公共设置与表现](../../modules/settings-presentation.md)。
+主音量与音乐/音效分类增益在各原生音源上与本地增益相乘，静音保留播放位置。全局减少动态和禁用相机抖动优先于赛车选项。规则推进、立体书和赛前/领奖表现使用公共玩法时长；UI、输入采样、帧率及 DSP 时钟保留未缩放语义，冻结期间暂停与退出仍可操作。API 与配置真源见[公共设置与表现](../../modules/settings-presentation.md)。
 
 模式页和暂停页均可打开独立 `KagitKartSettingsView` / `KagitKartControlsView`，各自保存正式 Prefab 与生命周期和纸艺设计。专属设置复用公共 `LocalDataManager`，键为 `LocalDataKeys.KagitKartPreferences`；音乐默认 0.7、音效 0.9、自动油门和帧率默认关。保存成功才替换场景偏好，损坏记录回退默认而不覆盖存储，失败显示本地化反馈。公共显示与画质只在 Hub 设置，赛车专属设置不提供公共画质入口。
 
 音乐/音效和静音交付现有音频宿主，自动油门仍允许主动刹车，触控显示独立于真实输入设备。帧率按真实 `Time.unscaledDeltaTime` 每半秒采样，独立于固定步比赛时钟。低动态显式开关覆盖纸卡、立体书、角色、纸景、赛前与冲线演出，并关闭镜头震动；切换赛前路线保留原有进度。`ReducedMotion=auto` 通过 Core.Runtime 的 `SystemMotionPreference` 在启动及修改该选项时读取：Windows 使用原生客户区动画开关，Android 使用系统动画尺度是否为零；查询失败使用正常动态，不修改系统偏好。
 
-暂停页与设置页在叠加 Modal 的 `OnHide` 时保留场景来源，在销毁时解除。UIManager 关闭上层 Modal 后只重新显示下层实例，不再交付 SetData，故隐藏时清空 world 会使恢复后的按钮失效。操作说明读取本场动作副本及 override，设备图标沿用公共绑定提示，菜单确认和返回仍走公共作用域。
+暂停页与设置页在叠加 Modal 的 `OnHide` 时保留场景来源，在销毁时解除。UIManager 关闭上层 Modal 后只重新显示下层实例，不再交付 SetData，故隐藏时清空 world 会使恢复后的按钮失效。操作说明读取本场默认动作副本，设备图标沿用公共绑定提示，菜单确认和返回仍走公共作用域。
 
 暂停、失焦、切换设备与退出时复用公共输入清理，防止保持动作残留；运行时不生成默认动作资产。
 
@@ -149,7 +157,7 @@ Paper / Items 的屏幕 halftone 将输出像素间距按实际渲染目标高�
 
 ## 场景与页面生命周期
 
-`World` 等待 `DemoIslandEditorBootstrap.EnsureReadyAsync` 和 `GameSceneNavigator.WaitUntilStableAsync`，通过公共 Loader 加载原作配置、赛道、AI 路线和角色资产。比赛共享实例与章节 Loader 由 `KagitKartRaceResources` 持有，按当前章、下一章和使用中章节裁剪，退出 Demo 时统一释放；本场重开解除旧输入、暂停与镜头订阅并重新绑定。不在 MonoBehaviour 字段初始化中读取本地存储路径。大奖赛下一章使用现有积分状态，重赛调用原作回滚；计时赛读取最佳幽灵，并在实际完赛后按当前完整记录契约保存。
+`World` 等待 `DemoIslandEditorBootstrap.EnsureReadyAsync` 后通过公共 Loader 加载原作配置、赛道、AI 路线和角色资产；首场准备与导航共享任务，不先等待导航稳定。比赛共享实例与章节 Loader 由 `KagitKartRaceResources` 持有，按当前章、下一章和使用中章节裁剪，退出 Demo 时统一释放；本场重开解除旧输入、暂停与镜头订阅并重新绑定。不在 MonoBehaviour 字段初始化中读取本地存储路径。大奖赛下一章使用现有积分状态，重赛调用原作回滚；计时赛读取最佳幽灵，并在实际完赛后按当前完整记录契约保存。
 
 HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建全局 Canvas/EventSystem，触控按钮复用 `InputCommandButton`，左右转向按钮从本 Demo Foundation 嵌套并通过正式 UIBind 生成引用；提示绑定实际动作并复用 `InputBindingPrompt` 和项目图标目录。驾驶使用公共 `MenuInputScope.Interaction` 关闭菜单 Submit，暂停和结算通过 `UIMenuScope` 接管焦点，避免漂移 Space 同时确认 HUD 按钮。
 
@@ -167,9 +175,11 @@ HUD、暂停和结算各自持有 View、Prefab 和生成绑定。HUD 不创建�
 
 `KagitKartRaceCinematics` 将赛前时间与比赛模拟分开，六秒镜头结束或键盘/手柄/触屏跳过后才倒计时。中文章节卡复用统一副标题。暂停不推进演出；冲线环绕沿用原作构图，为结算表让出玩家位置。
 
-音频接入 `KagitKartAudio` / `AudioBank`，包含 97 个原作 Clip、连续加速配方、实时引擎和两级总线 DSP；引擎使用原作粉噪声与实时合成。音乐离线保留滤波前采样，由运行时处理一次正常/暂停低通。
+音频接入 `KagitKartAudio` / `AudioBank`，原作章节与短音效加三份引擎循环采样由所有平台统一使用原生AudioSource播放；转速变调、怠速/行驶交叉淡化、漂移采样与有限音效池替代运行时DSP。暂停只降音乐音量和渐静引擎，不再进行自定义逐采样低通。
 
 `KagitKartRaceFx` / `KagitKartRescueCrane` 接入原作纸屑、尘迹、速度线、落地与碰撞纸卡、漂移和纸鹤救援。
+
+`KagitKartRaceFx` 在原生高等级 Shader 后端保留 StructuredBuffer 与程序化实例绘制；WebGL 和低等级后端使用模板扩展的动态网格，将同一状态通过顶点通道交给 Shader，复用运动、形状和着色公式。两条顶点流分别保存静态位置和交错状态；火花只上传脏区间，纸卡只上传当前数量，速度线索引只初始化一次。三份 FX Shader 分别提供 4.5 和 3.5 SubShader；不能只把 Shader target 降低而保留 StructuredBuffer。重绑重置粒子池，退出复用网格，销毁时释放。 WebGL 验证需实际检查漂移火花、松键加速尾流、速度线和重赛，不能用 Editor 高能力路径的结果替代；新增 AOT 调用须通过发布基线检查，缺少成员时重建 Full。
 
 `KagitKartPodiumStage` 接入原作三层纸台、前三车手落台、失落玩家、纸屑和推进镜头；最后一场先显示本场成绩和独立总积分榜，再由积分榜按钮进入颁奖，结束后显示独立 `KagitKartPodiumView`，可返回封面。
 
@@ -237,7 +247,7 @@ World在Demo设置/操作子页仍处理P/Start继续，先关闭子页再恢复
 
 静止纸景和坡台在弹簧到达目标且速度归零后跳过姿态重算，目标变化或 flutter 立即唤醒。实例局部姿态变化时标记对应批次，根变换变化时重算所有世界矩阵；章节动态、摄像机相关更新、材质时间与逐帧绘制继续执行。不能通过冻结动态纸景或减少可见更新频率取得性能收益。
 
-输入直接使用完整动作名常量，保持公共输入绑定和短按锁存。HUD 数字复用 TMP 格式化，数量和静态文本只在值变化时提交，时间仍逐帧按百分秒向下截取；Editor 的 TMP Inspector 字符串与 Player 热路径分配分别计量。音效缓存、加速双缓冲和音频线程参数交接见 [音频维护](runbooks/audio.md)。
+输入直接使用完整动作名常量，保持公共输入绑定和短按锁存。HUD 数字复用 TMP 格式化，数量和静态文本只在值变化时提交，时间仍逐帧按百分秒向下截取；Editor 的 TMP Inspector 字符串与 Player 热路径分配分别计量。有限音源、分阶段曲目预热与释放见 [音频维护](runbooks/audio.md)。
 
 ## 验证与维护边界
 

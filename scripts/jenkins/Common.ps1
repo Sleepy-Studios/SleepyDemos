@@ -56,6 +56,26 @@ function Assert-OwnedPath([string]$Path, [string]$Root) {
     return $resolved
 }
 
+function Get-BuildIdentity([string]$BuildChannel, [string]$Platform, [string]$GameId) {
+    if ([string]::IsNullOrWhiteSpace($BuildChannel)) { $BuildChannel = 'Native' }
+    if ([string]::IsNullOrWhiteSpace($GameId)) { $GameId = 'hub' }
+    if ($GameId -notmatch '^[a-z][a-z0-9_]{0,63}$' -or
+        ($BuildChannel -eq 'Native' -and $Platform -notin @('PC', 'Android')) -or
+        ($BuildChannel -eq 'TapTap' -and ($Platform -ne 'WebGL' -or $GameId -eq 'hub')) -or
+        $BuildChannel -notin @('Native', 'TapTap')) {
+        throw '非法构建渠道、平台或游戏标识。'
+    }
+    $workspace = if ($BuildChannel -eq 'TapTap') { 'TapTap/Project' } else { $Platform }
+    $stateKey = if ($BuildChannel -eq 'TapTap') { "TapTap/$GameId/$Platform/H5" }
+        elseif ($GameId -eq 'hub') { $Platform } else { "$Platform/$GameId" }
+    $buildTarget = switch ($Platform) { 'PC' { 'StandaloneWindows64' } 'Android' { 'Android' } 'WebGL' { 'WebGL' } }
+    return [pscustomobject]@{
+        BuildChannel = $BuildChannel; Platform = $Platform; GameId = $GameId
+        TapTapFormat = $(if ($BuildChannel -eq 'TapTap') { 'H5' } else { '' })
+        Workspace = $workspace; StateKey = $stateKey; BuildTarget = $buildTarget
+    }
+}
+
 function Assert-ProjectClosed([string]$Project) {
     $target = [IO.Path]::GetFullPath($Project).TrimEnd('\', '/')
     foreach ($process in Get-CimInstance Win32_Process -Filter "Name='Unity.exe'") {

@@ -13,7 +13,11 @@
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.Collections",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Hotfix.DroneFlight",
+        "Hotfix.WallSqueeze",
+        "Hotfix.KagitKart",
+        "Hotfix.Diagnostics.PC"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

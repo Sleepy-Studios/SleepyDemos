@@ -1,3 +1,4 @@
+using Hotfix.SceneManagement;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -43,6 +44,7 @@ namespace Hotfix.WallSqueeze
             {
                 return;
             }
+            hub.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             var result = world.Simulation.Result;
             bool timedOut = world.Simulation.Reason == WallSqueezeLossReason.Timeout;
             title.text = result == WallSqueezeResult.Won ? "夹爆成功" : result == WallSqueezeResult.Lost ? timedOut ? "时间到了" : "住户被夹碎了" : "已暂停";

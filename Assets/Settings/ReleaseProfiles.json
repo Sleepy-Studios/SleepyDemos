@@ -1,0 +1,53 @@
+{
+  "Profiles": [
+    {
+      "GameId": "hub",
+      "Group": "Hotfix",
+      "StartupScene": "",
+      "ApplicationId": "com.sleepystudios.sleepydemos",
+      "Assemblies": [
+        "Hotfix.dll",
+        "Hotfix.DroneFlight.dll",
+        "Hotfix.WallSqueeze.dll",
+        "Hotfix.KagitKart.dll"
+      ],
+      "PcAssemblies": [
+        "Hotfix.Diagnostics.PC.dll"
+      ]
+    },
+    {
+      "GameId": "drone_flight",
+      "Group": "Demo1",
+      "StartupScene": "DroneFlight",
+      "ApplicationId": "com.sleepystudios.droneflight",
+      "Assemblies": [
+        "Hotfix.dll",
+        "Hotfix.DroneFlight.dll"
+      ]
+    },
+    {
+      "GameId": "wall_squeeze",
+      "Group": "Demo2",
+      "StartupScene": "WallSqueeze",
+      "ApplicationId": "com.sleepystudios.wallsqueeze",
+      "Assemblies": [
+        "Hotfix.dll",
+        "Hotfix.WallSqueeze.dll"
+      ]
+    },
+    {
+      "GameId": "kagit_kart",
+      "Group": "Demo3",
+      "StartupScene": "KagitKart",
+      "ApplicationId": "com.sleepystudios.kagitkart",
+      "Assemblies": [
+        "Hotfix.dll",
+        "Hotfix.KagitKart.dll"
+      ]
+    }
+  ],
+  "ReservedGroups": [
+    "Demo4",
+    "Demo5"
+  ]
+}

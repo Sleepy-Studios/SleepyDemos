@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -457,7 +458,8 @@ namespace Hotfix.KagitKart
             if (Room.Phase is "Lobby" or "Results") Room.Players = Room.Players.Where(p => p.Connected || p.ResumeUntil > Time.realtimeSinceStartupAsDouble).ToArray();
             if (GrandPrix != null)
             {
-                var standings = Roster.Select(character => GrandPrix.SortedStandings().First(value => value.CharacterId == character.id)).ToArray();
+                var sorted = GrandPrix.SortedStandings();
+                var standings = Roster.Select(character => sorted.First(value => value.CharacterId == character.id)).ToArray();
                 Room.CupIndex = GrandPrix.Index;
                 Room.CupRoundComplete = GrandPrix.RoundComplete;
                 Room.CupPoints = standings.Select(value => value.Points).ToArray();
@@ -637,11 +639,15 @@ namespace Hotfix.KagitKart
         public byte[] ReadInput()
         {
             if (!Racing || Session == null || reconnecting || !receivedRaceBaseline) return null;
-            using var stream = new MemoryStream(20);
-            using var writer = new BinaryWriter(stream);
-            writer.Write(Room.RoundVersion);
-            KagitKartNetworkCodec.WriteControls(writer, world.Busy || Session.Pause.IsPaused ? default : world.Input.ReadControls(Session.Race.State == KagitKartRaceState.Countdown));
-            return stream.ToArray();
+            var controls = world.Busy || Session.Pause.IsPaused ? default : world.Input.ReadControls(Session.Race.State == KagitKartRaceState.Countdown);
+            // 预测历史和发送队列持有此包，返回独占数组，不复用仍在途的字节。
+            var payload = new byte[17];
+            BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(0, 4), Room.RoundVersion);
+            BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(4, 4), BitConverter.SingleToInt32Bits(controls.Steer));
+            BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(8, 4), BitConverter.SingleToInt32Bits(controls.Throttle));
+            BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(12, 4), BitConverter.SingleToInt32Bits(controls.Brake));
+            payload[16] = (byte)((controls.Drift ? 1 : 0) | (controls.Item ? 2 : 0) | (controls.LookBack ? 4 : 0));
+            return payload;
         }
 
         public void Replicate(string memberId, uint tick, float dt, byte[] input, bool replay, bool isAuthority)

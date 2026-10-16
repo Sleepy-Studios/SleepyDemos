@@ -6,6 +6,7 @@ namespace Hotfix
     using Core.Runtime;
     using Core.Runtime.Inputs;
     using Core.Runtime.Settings;
+    using Hotfix.SceneManagement;
     using DroneFlight;
 
     [Module("DroneFlight")]
@@ -62,7 +63,7 @@ namespace Hotfix
             TextMeshProUGUI_DistanceText.text = $"{hud.Distance:F1} <size=65%>m</size>";
             TextMeshProUGUI_HorizontalText.text = $"{hud.HorizontalSpeed:F1} <size=65%>m/s</size>";
             TextMeshProUGUI_VerticalText.text = $"{hud.VerticalSpeed:+0.0;-0.0;0.0} <size=65%>m/s</size>";
-            TextMeshProUGUI_GearText.text = $"起落架  {ColorUtil.WrapText(DroneHudPresentation.Gear(hud.LandingGearState), UIColors.DroneFlight.TelemetryAccent)}";
+            TextMeshProUGUI_GearText.text = $"起落架  {ColorUtil.WrapText(DroneHudPresentation.Gear(hud.LandingGearState), DroneFlightUIColors.TelemetryAccent)}";
             bool equipped = snapshot.Equipment.Kind != DroneEquipmentKind.None;
             RectTransform_EquipmentPanel.gameObject.SetActive(equipped);
             TextMeshProUGUI_EquipmentText.text = snapshot.EquipmentText;
@@ -185,6 +186,7 @@ namespace Hotfix
             {
                 bool show = button.Command switch
                 {
+                    "Exit" => GameSceneNavigator.Instance?.StandaloneScene == null,
                     "Equipment" or "ReelIn" or "ReelOut" => kind != DroneEquipmentKind.None,
                     "Aim" => kind == DroneEquipmentKind.Harpoon,
                     "Activate" => input != null && !input.isActiveAndEnabled,

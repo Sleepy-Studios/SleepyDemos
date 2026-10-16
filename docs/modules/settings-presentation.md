@@ -6,7 +6,7 @@
 
 制作配置位于 `Assets/LoadResources/Config/Settings`；电影演出直接使用方法参数，不再维护预设 SO。设置 SO 只保存制作数据。`GameSettingsService.Current` 和 `GetDefaults()` 返回独立快照，玩家候选写入 `LocalDataManager` 的 `SleepyDemos.Settings`，不修改 SO。当前没有 Luban 双来源。
 
-制作允许范围和帧率选项由 SettingsOptions 配置，服务 Options 返回副本；候选仍通过公共安全边界校验，制作数据只能收紧范围。InputHosts 给控制页面提供宿主身份与源动作，页面先克隆再编辑；语言名称和格式文化来自 LanguageService.Languages。
+制作允许范围和帧率选项由 SettingsOptions 配置，服务 Options 返回副本；候选仍通过公共安全边界校验，制作数据只能收紧范围。公共配置不引用 Demo 动作资产或集中输入目录；语言名称和格式文化来自 LanguageService.Languages。
 
 ## Hub 设置界面
 
@@ -16,14 +16,16 @@
 
 Main View 直接持有 UITab／ViewTab、候选和提交生命周期。Graphics、Audio、Input、Language、Accessibility 各自是独立 `*SettingsPanelView`，直接使用 UIBind 生成的基础控件引用。主页面只创建 View 对象并交付候选，先登记 ViewTab，再同步绑定五个 UITab 分类；ViewTab 在选中时异步加载对应 Prefab，避免逐帧分类初始化覆盖早点击。不内嵌五页，也不保留 SettingsScreen／SettingsPage 包装层或多宿主根基类。五页共享一份独立候选，显示时回显、隐藏时释放编辑会话；AddSubView 持有销毁所有权。
 
-子页位于 `UI/Settings/Panels/`。固定表单复用 UISettingRow、Dropdown、Slider、Switch、Button；控制页的同类绑定条目使用 LoopScrollView 和 `UI/Settings/SettingsBindingItemView.prefab` 回收复用。引用按实际节点通过正式 UIBind 生成，不维护额外地址路由。公共输入提示和各 Demo 原有基础 UI Variant 继续维护各自外观，卡丁车保留纸艺风格。
+子页位于 `UI/Settings/Panels/`。固定表单复用 UISettingRow、Dropdown、Slider、Switch、Button；公共输入页仅保留灵敏度、死区、反转、震动和手柄图标等通用参数；`UI/Settings/SettingsBindingItemView.prefab` 作为复用条目保留。引用按实际节点通过正式 UIBind 生成，不维护额外地址路由。公共输入提示和各 Demo 原有基础 UI Variant 继续维护各自外观，卡丁车保留纸艺风格。
 ## 启动与事务
 
 资源服务就绪后，正式启动的 `GameSettingsInitializeSystem` 在公共 UI 初始化之前加载 `GameSettingsConfig`。Editor Demo 直启调用同一个 `InitializeAsync`；并发等待共用完成源，不能用只适合顺序复用的 UniTask Preserve 代替并发共享。
 
+`InitializationStage` 只读暴露当前实际初始化步骤，启动页等待共享任务时按变化显示，同时写入启动日志；成功或 Shutdown 清空，失败保留最后一步。它不参与设置持久化或运行期参数通知。
+
 本机记录不存在、读取/反序列化失败或完整候选校验失败时，统一使用制作默认值，不暴露读取故障分类，也不自动写默认值；`Feedback` 初始化为空，只记录实际应用反馈。仅维护当前 `SleepyDemos.Settings` 契约，不迁移旧独立 DLSS 键。保存失败继续抛给应用流程，页面提示一次；成功保存后才提交当前快照。
 
-设置页持有完整候选，应用顺序为显示/画质、音量、后处理、保存、语言选择、发布公共参数通知。关闭或取消页面丢弃候选；恢复本页默认只改该页候选。SettingsFlow 通过 SettingsApplyAction 等待实际提交结果，忙碌或改键监听期间不接受第二次应用。显示模式与分辨率改变打开独立 `DisplayConfirmView`，使用未缩放的 15 秒确认期限；超时、取消、拒绝或确认失败恢复之前实际显示及旧偏好。确认任务由外部 Flow 持有，退出时归还确认 View。输入会话在提交通知后应用验证过的参数与 override。通知不用于文本刷新。
+设置页持有完整候选，应用顺序为显示/画质、音量、后处理、保存、语言选择、发布公共参数通知。关闭或取消页面丢弃候选；恢复本页默认只改该页候选。SettingsFlow 通过 SettingsApplyAction 等待实际提交结果，忙碌期间不接受第二次应用。显示模式与分辨率改变打开独立 `DisplayConfirmView`，使用未缩放的 15 秒确认期限；超时、取消、拒绝或确认失败恢复之前实际显示及旧偏好。确认任务由外部 Flow 持有，退出时归还确认 View。输入会话在提交通知后应用验证过的参数与 override。通知不用于文本刷新。
 
 显示服务克隆管线、RendererData 和制作 Feature，释放 DLSS 后再换管线，最终重绑相机。共享资产不写回。公共 Overlay 相机栈不能使用原生 TAA；能力查询返回禁用原因，强制请求时反馈 SMAA 实际状态。请求 DLSS 档位与 SDK 实际档位分别读取，不因设备不支持丢掉请求。
 
@@ -37,15 +39,17 @@ FXAA/SMAA/TAA 必须启用实际后处理路径；仅为抗锯齿开启时，不
 
 `LanguageService.Get/Format/SetText` 在页面创建、数据刷新和条目绑定时一次性执行。SetText 只设文案、字体和材质。字重、字号、颜色及对齐由 TMP/Prefab 维护，不给每个文本添加监听组件。
 
+公共词表只包含公共能力和 Hub 导航，Demo 私有词表放各自 `Data/LanguageCatalog.asset`，由场景导航通过字符串地址加载和 `RegisterCatalog` 作用域注册；公共设置不持有或扫描 Demo 词表。私有词条复用相同的 FontId 映射，详见[多语言规范](../architecture/localization-fonts.md)。
+
 公共场景 Loading 由导航源交付稳定文案键与名称参数，View 更新进度时一次性赋值文字与 FontId；语言尚未准备时保留原文行为，启动壳的 StartupLoadingView 继续独立。Hub 常规反馈使用 FeedbackKey，任意诊断文本使用 Feedback；两者互斥，页面重建清理派生状态。
 
 语言入口仅 Hub 开放。`HubLanguageFlow` 在场景导航空闲时校验资源，关闭并销毁全部 Hub 页面（含缓存），移除语言派生的 MainMenuData，应用保存语言，再显示新的 Hub 和语言设置页。协调任务不属于旧设置页。失败尝试恢复旧偏好并重建，反馈实际恢复结果；不会虚报成功。Demo 内固定当前语言，返回 Hub 后才能再次切换。
 
 ## 输入、音频与时间
 
-现有 InputActionSession / GameplayInputRouter 复用公共参数和有效绑定。InputSettingsCatalog.Entry.Actions 明确保存实际动作 GUID 与文案键，设置页按宿主／设备生成稳定绑定条目；每行用 BindBinding 显示精确索引，别名、复合子项和不同 Map 的同名动作保持独立身份。InputRebindSession 只改未启用候选副本，按稳定源动作 ID 和绑定 ID 导出；CanRebind 保留确认、返回和 UI 导航安全入口。公共 InputPrompt／InputPromptButton 与各 Demo Variant 提供图标及动作说明，InputPromptGroup 保存明确制作引用。最近实际使用的设备决定提示类别与物理用途，漂移和连接本身不提交动作。输入页的“手柄图标”下拉选择 Xbox／PS5／NS，当前绑定列表局部预览候选，成功应用后由 GameSettingsService.Changed 刷新其他提示；默认 Xbox，不按硬件品牌自动切换。旧记录缺字段或0仅补 Xbox，不丢弃其余设置。完整接入见[公共输入](gameplay-input.md)。
+现有 InputActionSession / GameplayInputRouter 复用公共参数和有效绑定。公共输入页不展示宿主、设备和改键列表，也不负责 Demo 重绑定；本期不增加 Demo 改键界面。InputRebindSession、InputSettingsCatalog 类型及复用条目保留给按需接入的宿主。GameSettingsService.ApplyBindingOverridesAsync(source, overrides, token) 根据传入源资产克隆验证绑定身份、冲突和固定菜单，再复用 ApplyAsync 保存并通知；不长期持有源资产。全局加载和通用参数保存只验证记录结构，不要求旧 SourceId 存在于当前包；未加载宿主的合法旧改键保留，InputActionSession 按自己的源资产验证并应用。恢复公共输入默认仅重置 Input 参数，不清除 BindingOverrides。公共 InputPrompt／InputPromptButton 和 InputPromptGroup 继续提供实际输入提示。输入页的“手柄图标”选择 Xbox／PS5／NS，应用成功后由 Changed 刷新提示；默认 Xbox，旧记录缺字段或0仅补 Xbox，不丢弃其余设置。完整接入见[公共输入](gameplay-input.md)。
 
-普通音源使用 AudioBusSource；音乐、音效和 UI 分类增益与音源自己的音量相乘。KagitKart 的 DSP 在分类混音处乘公共增益，不调整 DSP 时钟，不用 Stop 实现静音。辅助偏好约束 Demo 表现，专属开关继续可进一步限制。
+普通音源使用 AudioBusSource；音乐、音效和 UI 分类增益与音源自己的音量相乘。KagitKart 的有限 AudioSource 池读取同一分类增益，不再使用自定义 DSP，不用 Stop 实现静音。辅助偏好约束 Demo 表现，专属开关继续可进一步限制。
 
 GameTimeService 是 timeScale 的唯一公共演出入口，手动玩法使用 DeltaTime；Unity 物理保留固定步长，不再重复乘倍率。最近倍率作用域生效，任何冻结租约优先。Scope 由调用方拥有，页面/场景退出释放。UI、采样、门闩、长按、渐变和演出使用未缩放时间；LocalPauseState 继续保存失焦/断连及明确确认继续规则。
 

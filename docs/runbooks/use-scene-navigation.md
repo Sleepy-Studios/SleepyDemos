@@ -13,10 +13,14 @@
 ## 操作步骤
 
 1. 在 `GameSceneId` 增加业务枚举值。
-2. 在 `GameSceneCatalog` 登记显示名和 LoadResources 场景地址。
+2. 在 `GameSceneCatalog` 的 `GameSceneDefinition` 登记显示名和 LoadResources 场景地址；如有私有文案，将 `LanguageCatalogAddress` 配为 `LoadResources/Demos/<demo_id>/Data/LanguageCatalog`，使用不带扩展名的字符串地址，不硬引用 SO。
 3. 入口调用并等待 `GameSceneNavigator.Instance.SwitchAsync(target)`。
 4. 按 `GameSceneSwitchStatus` 处理结果：`Succeeded` 已完成，`Ignored` 已在目标，`Busy` 稍后重试，`Failed` 展示或记录 `Error`。
 5. Demo 返回入口统一切换到 `GameSceneId.Hub`。
+
+私有文案资产位于 `Assets/LoadResources/Demos/<demo_id>/Data/LanguageCatalog.asset`，通过 `LanguageCatalog.Configure` 或正式 Editor 资产入口维护 Key、FontId 与中英文，复用公共字体映射。通用文案保留在公共词表，Hub 的 `LanguageCatalogAddress` 留空。
+
+Navigator 在调用场景加载或重载前，由 `GameSceneLanguageScope` 异步加载词表并调用 `LanguageService.RegisterCatalog`，使目标 `Awake/OnEnable` 已能读取私有文案。Scope 配对持有登记租约与 Loader：加载失败或等待取消时清理候选，来源未卸载时保留来源；成功后随实际场景卸载释放。重载期间同 Demo 新旧场景可以同时持有租约，业务调用方不重复登记或释放。Editor 直接运行场景时由 `DemoIslandEditorBootstrap` 在 `EnsureReadyAsync` 完成前登记，Demo 等待就绪后再打开 UI。
 
 需要完整卸载并重新建立当前 Demo 时等待 `ReloadCurrentAsync()`；玩法内重置车辆、赛局或关卡继续走 Demo 自身逻辑。切换及重载共用 Loading Presenter，打开后跨过完整下一帧获得呈现机会再执行场景操作，不在调用方添加延时、另开 Loading 或模拟百分比。未完成的 Switch / Reload 期间均返回 `Busy`。
 
@@ -45,6 +49,7 @@ if (result.Status == GameSceneSwitchStatus.Failed)
 - UI 在新场景不可见：检查目标 Camera 是否为 URP Base Camera，并确认切换经过全局 Navigator。
 - 返回 Hub 后重复初始化：说明仍有代码在用 `LoadSceneMode.Single` 重载 `AppEntrance`，应删除直载入口。
 - Player 找不到 Demo：检查 YooAsset `Demos` Collector，不要用“加入 Build Settings”绕过采集问题。
+- 私有文案显示为 Key：检查词表是否被收集、`LanguageCatalogAddress` 是否正确，以及直启 UI 是否等待 `EnsureReadyAsync`；不要把私有词条复制回公共词表绕过接线。
 
 ## 验证方式
 
@@ -52,6 +57,7 @@ if (result.Status == GameSceneSwitchStatus.Failed)
 - 正式入口的视觉证据从实际 Game View 帧末即时取图，记录 PNG 尺寸、活动场景、相机、可见 View 与 World 结构；等待设置分类条目、当前分页及图片/Shader 就绪，再跨真实渲染帧采样。设置分类当前采用同步 `UITab.Init`，不能把稳定后仍空白的侧栏归因于条目异步创建。
 - 按本次要求核对 1920×1080、1280×720、2560×1080、2340×1080 的 Hub/设置页；改变临时 Game View 画幅后须恢复原选择，不修改生产显示设置或保存偏好。图03设置行已装配，使用当前正式页面截图核对；此前PRE-03记录只用于追溯，不能用基础板预览替代页面验收。
 - 检查 Active Scene、相机输出、UI、输入和 AudioListener。
+- 有私有词表时，分别核对中英文进入、重载、失败恢复及退出后的词条生命周期；支持 Editor 直启的 Demo 同时核对 Bootstrap 就绪后打开的 UI。
 - 分别核对快速成功、加载失败、UI 收口失败、连续点击和当前场景重载：Loading 获得渲染机会，进度由实际操作回调推进，收口后不残留；失败后可再次操作。Editor 直启返回 Hub 需同时核对正式启动交接。
 - 运行场景导航 EditMode 测试与 `GameSceneRuntimePlayModeTests`。
 - 修改 Demo 来源生命周期时运行 `Tests.Demo.WallSqueezeRuntimeTests.DemoNavigationFailureAndBusyPreserveSourceViewsAndCommands`：正式启动与真实来源 View，资源事务故障注入，覆盖 Wall/Kart 公共重载、跨 Demo、返回失败及忙碌拒绝，验证原页面实例和业务命令恢复。成功卸载清理由同类 `PublicSceneReloadAndSwitchReleaseOwnedWidgetsAndModals` 验证。

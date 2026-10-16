@@ -59,22 +59,33 @@ Assets/Scripts/Hotfix/Demos/<DemoName>/
 Assets/Scripts/Hotfix/Editor/<DemoName>/
 ```
 
-它们继续归属 `Hotfix.Editor`。不要让 `Core.Editor` 为业务工具反向依赖 Hotfix，也不要为单个 Demo 新建生产程序集。
+它们继续归属 `Hotfix.Editor`。不要让 `Core.Editor` 为业务工具反向依赖 Hotfix。
+
+独立发布的 Demo 在自己的运行时根建立 `Hotfix.<DemoName>.asmdef`，引用公共 `Hotfix`、`Core.Runtime` 及实际使用的库，不引用其它 Demo。发布宏约束沿用 `UNITY_EDITOR || !SLEEPY_RELEASE || SLEEPY_DEMO_<GAMEID大写>`，保证 Editor 日常开发可访问所有岛，正式 Player 只编译所选游戏。Hotfix.Editor 按实际编辑器工具需要引用 Demo 程序集，运行时不得引用它。
+
+在 `Assets/Settings/ReleaseProfiles.json` 的 Profiles 中登记 GameId、Group、StartupScene、ApplicationId 与有序 Assemblies（公共 `Hotfix.dll` 在前），并把 DLL 加入 Hub 配置。`Hotfix` 与 `Demo1`—`Demo5` 是分组，DLL 数量可扩展；空槽只保留 ReservedGroups 标识，不建空 DLL。占用预留组时移除对应 ReservedGroups 项。PC 专用 DLL 放 PcAssemblies，不加入 Android/WebGL 的基础 Assemblies。
 
 ## 4. 创建场景和资源
 
 - 可加载场景使用纯语义名，例如 `Scenes/Main.unity`。
 - 启动入口 `AppEntrance.unity` 继续留在 `Assets/Scenes`，不要把 Demo 场景混入启动目录。
 - Prefab、材质、贴图、配置和音效按[资源命名规范](../architecture/asset-naming.md)放入对应子目录。
+- Demo 专属文案放在 `Data/LanguageCatalog.asset`，保留词条的 Key、FontId 和中英文内容；通用文案留在公共词表。私有词表复用公共 `FontMappingCatalog`，不复制字体或建立 Demo 字体映射。
 - UIBind 生成的 `*Component.cs` 不可手改；需要自定义输出时使用现有 UIBind 自定义 Module 目录能力。
 
 ## 5. 接入 YooAsset 与场景导航
 
 1. 确认 Demo 资源位于 YooAsset `Demos` Collector 覆盖范围。
 2. 在 `GameSceneId` 增加业务枚举值。
-3. 在 `GameSceneCatalog` 登记场景地址。
+3. 在 `GameSceneCatalog` 的 `GameSceneDefinition` 登记场景地址；有私有词表时，把 `LanguageCatalogAddress` 设为不带扩展名的 `LoadResources/Demos/<DemoId>/Data/LanguageCatalog` 字符串，不保存词表 SO 硬引用。
 4. 从 Hub 入口调用 `GameSceneNavigator.Instance.SwitchAsync(...)`。
 5. Demo 内提供切换到 `GameSceneId.Hub` 的明确返回入口。
+
+Navigator 在加载目标场景前异步加载并登记私有词表，`GameSceneLanguageScope` 持有登记租约和 Loader，实际场景卸载后释放；目标加载失败则释放候选词表、保留来源词表。Demo 不自行重复登记或释放，Hub 不配置私有词表。完整操作见[接入运行期场景导航](use-scene-navigation.md)。
+
+独立包由发布配置的 StartupScene 直接进入自身玩法。返回入口不能访问被裁掉的其它 Demo；独立包应返回本游戏菜单或由现有导航的独立包规则处理，Hub 集合包才返回大厅。保持公共 Hotfix 使用场景名、地址与公共准备接口，不反向引用具体 Demo 的实现类型。
+
+构建前使用 Hotfix Build 选择 GameId 和真实平台。独立游戏的 DLL 源归档位于 `HybridCLRData/ReleaseTargets/<GameId>/<BuildTarget>/`，本地资源输出和版本查找位于 `Bundles/ReleaseTargets/<GameId>/<BuildTarget>/<Package>/`；窗口构建入口会应用统一的 Collector 过滤并递归检查资源依赖。跨 Demo Prefab、材质、配置 SO 或脚本引用必须拆除或转为真正公共能力，不能仅把依赖目录从 Collector 排除。独立游戏正式出包与发布使用[对应 Jenkins 任务](use-jenkins.md)，GUI 不承担正式基线和远端发布。
 
 Demo 场景不加入 Build Settings。当前 Build Settings 只保留 `Assets/Scenes/AppEntrance.unity`；不要通过加入场景绕过 Collector、地址或加载问题。业务组件也不要直接调用 `SceneManager.LoadSceneAsync` 绕开导航事务。
 
@@ -90,7 +101,9 @@ Demo 场景不加入 Build Settings。当前 Build Settings 只保留 `Assets/Sc
 
 如果开发时需要直接打开 Demo 场景后 Play，按[在 Unity Editor 直接运行 Demo 岛](./run-demo-island-directly.md)接入现有 `DemoIslandEditorBootstrap`。
 
-这条旁路只在 Editor 补齐最小运行时，不执行完整 HybridCLR 装配，也不得扩展到 Development 或 Release。正式运行仍从 `AppEntrance → Hub` 进入。
+Bootstrap 会在直启准备完成前登记该场景的私有词表；Demo 等待 `EnsureReadyAsync` 成功后再打开读取私有文案的 UI。
+
+这条旁路只在 Editor 补齐最小运行时，不执行完整 HybridCLR 装配，也不得扩展到 Development 或 Release。正式运行从 `AppEntrance` 进入，集合包到 Hub，独立包到发布配置指定的游戏入口。
 
 ## 7. 选择验证
 

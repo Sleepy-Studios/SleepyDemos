@@ -2,6 +2,7 @@ namespace Hotfix
 {
     using Core.Runtime;
     using Hotfix.KagitKart;
+    using Hotfix.SceneManagement;
     using UnityEngine;
     using UnityEngine.EventSystems;
 
@@ -13,6 +14,7 @@ namespace Hotfix
 
         protected override void OnGameObjectInitialize()
         {
+            Button_Hub.transform.parent.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             Button_Open.onClick.AddListener(Open);
             Button_CoverHit.onClick.AddListener(Open);
             Button_Hub.onClick.AddListener(Back);
@@ -43,7 +45,13 @@ namespace Hotfix
         }
 
         private void Open() => world?.Dispatch(KagitKartCommand.PlayModes);
-        private void Back() => world?.Dispatch(KagitKartCommand.Hub);
+        private void Back()
+        {
+            if (GameSceneNavigator.Instance?.StandaloneScene == null)
+            {
+                world?.Dispatch(KagitKartCommand.Hub);
+            }
+        }
 
         protected override void OnHide() => world = null;
 

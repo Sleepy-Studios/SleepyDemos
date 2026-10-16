@@ -1,0 +1,76 @@
+pipeline {
+    agent { label 'sleepydemos-local' }
+    options {
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+        timeout(time: 6, unit: 'HOURS')
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
+    }
+    parameters {
+        string(name: 'SourceRef', defaultValue: 'main', description: '同仓源码分支、标签或提交 SHA；必须已存在远端，执行时固定提交')
+        string(name: 'GameId', defaultValue: 'kagit_kart', description: '正式 ReleaseProfiles 中的独立游戏，不允许 hub')
+        choice(name: 'BuildKind', choices: ['Full', 'Hotfix'])
+        choice(name: 'ResourceMode', choices: ['OnlineFull', 'OnlineDownload', 'Offline'], description: 'Full 默认内置首包资源并支持后续热更；Hotfix 继承本游戏已发布基线')
+        booleanParam(name: 'Development', defaultValue: false)
+        string(name: 'PlayerVersion', defaultValue: '', description: 'Full 空值读项目；Hotfix 空值继承本游戏基线')
+        string(name: 'ResourceVersion', defaultValue: '', description: '空值自动生成唯一资源版本')
+        booleanParam(name: 'Publish', defaultValue: false, description: '发布 YooAsset 热更资源；H5 ZIP 需另行上传 TapTap 创意工坊审核')
+        choice(name: 'Provider', choices: ['Pages'])
+    }
+    environment {
+        SLEEPY_MACHINE_CONFIG = "${env.SLEEPY_MACHINE_CONFIG ?: 'E:/Jenkins/machine.json'}"
+        BuildChannel = 'TapTap'
+        Platform = 'WebGL'
+        SourceRef = "${params.SourceRef}"
+        GameId = "${params.GameId}"
+        BuildKind = "${params.BuildKind}"
+        ResourceMode = "${params.ResourceMode}"
+        Development = "${params.Development}"
+        PlayerVersion = "${params.PlayerVersion}"
+        ResourceVersion = "${params.ResourceVersion}"
+        Publish = "${params.Publish}"
+        Provider = "${params.Provider}"
+    }
+    stages {
+        stage('固定源码与配置') {
+            steps {
+                checkout scm
+                withCredentials([string(credentialsId: 'sleepydemos-github', variable: 'GH_TOKEN')]) {
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Checkout -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                }
+            }
+        }
+        stage('准备与构建') {
+            steps {
+                powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Prepare -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Build -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+            }
+        }
+        stage('发布资源') {
+            when { expression { params.Publish } }
+            options { timeout(time: 30, unit: 'MINUTES') }
+            steps {
+                withCredentials([string(credentialsId: 'sleepydemos-github', variable: 'GH_TOKEN')]) {
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Deploy -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                }
+            }
+        }
+        stage('打包归档') {
+            steps { powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Package -ConfigPath $env:SLEEPY_MACHINE_CONFIG' }
+        }
+    }
+    post {
+        always {
+            script {
+                try {
+                    withEnv(["SLEEPY_JENKINS_RESULT=${currentBuild.currentResult}"]) {
+                        powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Finalize -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                    }
+                } finally {
+                    archiveArtifacts artifacts: "ci-archive/${env.BUILD_NUMBER}/**", allowEmptyArchive: false, fingerprint: true
+                    powershell '& ./scripts/jenkins/Invoke-Build.ps1 -Stage Cleanup -ConfigPath $env:SLEEPY_MACHINE_CONFIG'
+                }
+            }
+        }
+    }
+}

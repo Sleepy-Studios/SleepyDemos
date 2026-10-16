@@ -7,6 +7,7 @@
 - [2026-10-05 Flux / UIBind 重构](flux-ui-refactor-2026-10-05.md)：阶段提交与当时失败。
 - [2026-10-06 Flux 风格整理](flux-style-cleanup-2026-10-06.md)：整理范围与当时验证。
 - [Hotfix 构建历史快照](hotfix-build-history.md)：2026-09-22 / 2026-10-12 基线与机器修复记录。
+- [Demo 独立发布与 TapTap 改造](demo-release-taptap-2026-10-15.md)：旧 SDK 路线、H5 切换、启动修复和真机反馈；当前契约见[热更模块](../../modules/hotfix.md)。
 - [纸艺卡丁车阶段验证历史](kagit-validation-history.md)：规则/场景/UI/音频的阶段数量、job与早期结构，当前契约见正式模块。
 - [纸艺卡丁车 Editor 性能历史](kagit-editor-performance.md)：真实长圈数字与Editor呈现等待对照；正式长期采样方法继续维护，CPU临时探针已清理。
 - [夹爆它 MVP 验证历史](wall-squeeze-validation.md)：v0.1/v0.2 定向结果与外部证据范围。

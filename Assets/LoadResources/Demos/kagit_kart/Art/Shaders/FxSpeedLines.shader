@@ -1,15 +1,18 @@
 Shader "KagitKart/FxSpeedLines" {
  Properties { uInk("墨色",Vector)=(0,0,0,1) uSunDir("太阳方向",Vector)=(0,1,0,0) uSunCol("太阳色",Vector)=(2,2,2,1) uAmb("环境光",Vector)=(1,1,1,1) _FogColor("雾",Vector)=(1,1,1,1) _FogRange("雾范围",Vector)=(170,760,0,0) uColor("速度线",Vector)=(0,0,0,1) uEdge("速度线边",Vector)=(1,1,1,1) uOpacity("不透明度",Float)=0.72 }
- SubShader { Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Transparent" } Cull Off ZWrite Off Blend SrcAlpha OneMinusSrcAlpha ZTest Always
- Pass { HLSLPROGRAM
- #pragma target 4.5
- #pragma multi_compile_instancing
- #pragma vertex Vertex
- #pragma fragment Fragment
+ HLSLINCLUDE
  #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
  float uTime,uIntensity,uAspect,uOpacity;float2 uRes;float4 uInk,uSunDir,uSunCol,uAmb,uColor,uEdge,_FogColor,_FogRange,_CameraRight,_CameraUp,_CameraBack,_CameraPosition;
   
- struct Attributes { float4 positionOS:POSITION;uint instanceID:SV_InstanceID; };
+ struct Attributes
+ {
+  float4 positionOS:POSITION;
+  #if SHADER_TARGET >= 45
+  uint instanceID:SV_InstanceID;
+  #else
+  float4 index:TEXCOORD0;
+  #endif
+ };
  struct Varyings {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float alpha:TEXCOORD1;float depth:TEXCOORD5;};
  float fxMod(float a,float b){return a-b*floor(a/b);}
  float4 SourceView(float3 p){return float4(TransformWorldToView(float3(-p.x,p.y,p.z)),1);}
@@ -31,7 +34,12 @@ float hash( float n ) { return frac( sin( n * 12.9898 + 4.1414 ) * 43758.5453 );
 
 
 
- Varyings Vertex(Attributes input) {Varyings o=(Varyings)0;float3 position=input.positionOS.xyz;float aIdx=input.instanceID;
+ Varyings Vertex(Attributes input) {Varyings o=(Varyings)0;float3 position=input.positionOS.xyz;
+ #if SHADER_TARGET >= 45
+ float aIdx=input.instanceID;
+ #else
+ float aIdx=input.index.x;
+ #endif
 
   float i = aIdx;
   float period = 0.26 + 0.14 * hash( i + 3.1 );
@@ -62,4 +70,32 @@ return o;}
   
 
 return outputColor;}
- ENDHLSL } } }
+ ENDHLSL
+ SubShader
+ {
+  Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Transparent" }
+  Cull Off ZWrite Off Blend SrcAlpha OneMinusSrcAlpha ZTest Always
+  Pass
+  {
+   HLSLPROGRAM
+   #pragma target 4.5
+   #pragma multi_compile_instancing
+   #pragma vertex Vertex
+   #pragma fragment Fragment
+   ENDHLSL
+  }
+ }
+ SubShader
+ {
+  Tags { "RenderPipeline"="UniversalPipeline" "Queue"="Transparent" }
+  Cull Off ZWrite Off Blend SrcAlpha OneMinusSrcAlpha ZTest Always
+  Pass
+  {
+   HLSLPROGRAM
+   #pragma target 3.5
+   #pragma vertex Vertex
+   #pragma fragment Fragment
+   ENDHLSL
+  }
+ }
+}

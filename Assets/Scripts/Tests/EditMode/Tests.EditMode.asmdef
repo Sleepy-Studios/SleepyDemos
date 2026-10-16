@@ -5,6 +5,7 @@
         "SleepyStudios.LoopScroll",
         "Core.Runtime",
         "Core.Editor",
+        "YooAsset.Editor",
         "Unity.Collections",
         "Hotfix",
         "Hotfix.Editor",
@@ -14,7 +15,11 @@
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",
         "Unity.RenderPipelines.Core.Runtime",
-        "UniTask"
+        "UniTask",
+        "Hotfix.DroneFlight",
+        "Hotfix.WallSqueeze",
+        "Hotfix.KagitKart",
+        "Hotfix.Diagnostics.PC"
     ],
     "includePlatforms": [
         "Editor"

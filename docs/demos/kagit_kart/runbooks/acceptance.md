@@ -1,5 +1,7 @@
 # 纸艺卡丁车需求与验收对照
 
+2026-10-15 播放器统一改为原生AudioSource与循环采样，场景/开赛Loading及Web解析路径同时调整。下文旧DSP算法、PCM分页和既往性能通过记录保留为历史证据，不能充当当前播放器或TapTap小游戏验收；当前维护与待验范围见[音频维护](audio.md)。本轮不采集Profiler。
+
 本清单用于收口和后续定向回归。来源固定为 `da100b21ae1c5332d2843d21a9bb7b68b97e9c2a` 的 [Kâğıt Kart](https://github.com/BurakErdemci/kagit-kart/tree/da100b21ae1c5332d2843d21a9bb7b68b97e9c2a)；[原始 Goal](../../../agent/prompts/demos/kagit_kart/original-goal.md) 只追溯需求，逐页效果图审批已取消。当前实现详见 [模块说明](../module.md) 和 [源模块对应](source-migration.md)。截至 2026-10-11，完整单人内容已接入并有下表定向证据；仍保留末节的未验证项，不能据此声称百分之百像素一致或完成全部平台验收。
 
 正式运行代码为 `Assets/Scripts/Hotfix/Demos/KagitKart/`，资源为 `Assets/LoadResources/Demos/kagit_kart/`。下表使用当前文档记录的 Unity Test Runner 实际结果，不将外部候选、正在运行的作业或离线公式等同于原生玩法通过。测试均沿用 `Tests.EditMode` / `Tests.PlayMode`，没有执行全量测试。表内 job 与通过数量保留相应日期证据，不证明后续治理修改已经重验；当前本地存储只维护完整当前记录，读取失败视为暂无数据，最新契约见 [模块说明](../module.md#计时记录)。
@@ -23,7 +25,7 @@
 | 纸纹、网点、硬阴影、深度描边与整像素错版 | Paper/Road/Water/Sky/Post源Shader、URP本场Feature与透明后CopyDepth | 后处理过滤/线宽/生命周期2/2（`88220e62`），真实GPU深度/墨边/错版1/1（`9a87b8b2`）；四章实际驾驶与切换1/1（`f153aef9`）。Windows Editor RenderGraph路径；兼容模式明确关闭效果，Vulkan/Player未验。正常起步后的透明幽灵与纸印轮廓已实拍确认（`7488e02f`），不覆盖所有距离和角度。 |
 | 八世界道具、轨迹/命中/保持/释放与比赛特效 | ItemVisuals、RaceFx正式源Mesh/Shader/材质，订阅真实规则事件 | 源道具14场景/56实例14/14（`fb6ae50e`），FX20/20（`846bde10`）；原生八道具1/1（`19bc564c`）：真实E、held/drop、目标、墨瓶爆墨、剪刀俯冲/剪断、护盾、弹体清理与14图。库存/摆车是明确前置，不证明自然抽奖或所有特效同时出现的性能。 |
 | 真实落空与纸鹤四阶段、安全回路、保护及释放 | Vehicle正式重力/Query、RaceFx、RescueCrane | 原生冰川掉落1/1（`72715ba7`）：先真实安全点，再合法无地面位置，重力触发提/搬/放/落；五张NativeRescue图、回路保护、鹤引用和音频载体释放。没有直接StartRescue；草原围栏不能作为悬崖前置。 |
-| 原章音乐/音效/实时引擎、漂移/道具/救援/终点、暂停混音、纸景声 | 97 Clip、Audio/EngineSynth/BoostSynth/AudioDsp、Scenery真实Popup与源1401项size | 算法/原生WebAudio/资产11/11（`912553ee`）；原生Intro→Countdown→Race及真实P/UI继续1/1（`9c1f1c0d`），Listener最终PCM peak=0.6997126；八道具新use_*路由及PCM peak=0.6655096（`19bc564c`）。载体AudioSource历史采样为零，最终Listener采样有效；总线非零不等于孤立SFX或人工听感，详见[audio.md](audio.md)。 |
+| 原章音乐/音效/采样引擎、漂移/道具/救援/终点、暂停音量、纸景声 | AudioSource统一播放器、原作Clip与3份引擎循环、Scenery真实Popup | 算法/原生WebAudio/资产11/11（`912553ee`）；原生Intro→Countdown→Race及真实P/UI继续1/1（`9c1f1c0d`），Listener最终PCM peak=0.6997126；八道具新use_*路由及PCM peak=0.6655096（`19bc564c`）。载体AudioSource历史采样为零，最终Listener采样有效；总线非零不等于孤立SFX或人工听感，详见[audio.md](audio.md)。 |
 | GP暂停退出确认、Demo标题/Hub区分、子页P/Start继续、Esc/B返回、TT R阶段 | PauseView、World.PauseRoutes与已有公共菜单/Cancellation | 原生1/1（`61e8c7bd`）：GP二次确认/移焦取消、正常标题返回与独立Hub入口、设置/操作子页继续、电影期间R无效、倒计时子页实际重赛，SkipIntro整组隐藏。没有新公共导航框架。 |
 | Hub/直启、自包含加载、损坏/占用存档、页面/资源生命周期与工具收口 | Main.unity / GameSceneId.KagitKart、Loader、Bootstrap、World.StopRound、公共本地存储 | RecordStore5/5，以上Hub/GP/TT/重赛/多层Modal及原生释放；资源命名/标签1/1（`10658471`）。阶段编译绿/Console0见module；一次性Bake及meta已清理。没有Player/IL2CPP构建证据。 |
 | 正常比赛帧分布/峰值/内存与最终Console | 既有四章起步采样、正常道路长圈方法及外部EditorTiming JSON | 四章正常长圈前两章`a975b049`、后两章`62f99115`均终态1/1，每章至少45秒且实际完成一圈，帧分布、自然事件、GC和内存已记入[性能记录](../../../agent/archive/kagit-editor-performance.md)。测量期间临时关闭独立Game View VSync并finally恢复原值；旧`a399f34a`含Editor呈现等待，不作当前性能依据，也不称项目/Player问题已修复。草原74.96ms单帧尚未精确定因，不据窗口通过声称整场三圈或所有特效组合稳定60帧。 |

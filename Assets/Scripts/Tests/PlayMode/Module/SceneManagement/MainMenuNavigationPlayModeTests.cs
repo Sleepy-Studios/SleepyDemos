@@ -49,6 +49,7 @@ namespace Tests.Module
                 .Select(layer => UIRootManager.Instance.GetRoot(layer)).ToArray();
             var original = layers.Select(root => (Canvas: root.GetComponent<Canvas>(), Enabled: root.GetComponent<Canvas>().enabled,
                 Raycaster: root.GetComponent<GraphicRaycaster>(), RaycasterEnabled: root.GetComponent<GraphicRaycaster>().enabled)).ToArray();
+            int tipOrder = layers[3].GetComponent<Canvas>().sortingOrder;
             var source = new GameObject("Loading Source Modal Witness", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
             source.layer = layers[1].gameObject.layer;
             source.transform.SetParent(layers[1], false);
@@ -77,10 +78,14 @@ namespace Tests.Module
                     Assert.That(error, Is.Null);
                     Assert.That(UIManager.Instance.Get<CommonLoadingView>().State, Is.EqualTo(ViewState.Visible));
                     Assert.That(UIRootManager.Instance.GetRoot(UILayer.Base).GetComponent<Canvas>().enabled, Is.True);
-                    foreach (var layer in authored)
+                    var loading = UIManager.Instance.Get<CommonLoadingView>();
+                    Assert.That(loading.transform.parent, Is.SameAs(layers[3]));
+                    Assert.That(loading.gameObject.GetComponent<Canvas>(), Is.Null, "Loading 复用公共层 Canvas。");
+                    Assert.That(layers[3].GetComponent<Canvas>().sortingOrder, Is.GreaterThan(tipOrder));
+                    for (int index = 0; index < authored.Length; index++)
                     {
-                        Assert.That(layer.Canvas.enabled, Is.False);
-                        Assert.That(layer.Raycaster.enabled, Is.False);
+                        Assert.That(authored[index].Canvas.enabled, Is.EqualTo(index == 3));
+                        Assert.That(authored[index].Raycaster.enabled, Is.EqualTo(index == 3));
                     }
                     Assert.That(source.activeInHierarchy, Is.True, "遮蔽不能退出来源 UI 激活生命周期。");
                     Assert.That(source.GetComponent<CanvasGroup>().alpha, Is.EqualTo(0.37f));
@@ -97,6 +102,7 @@ namespace Tests.Module
                     if (restoreFailure) yield return presenter.RestoreAsync(GameSceneId.Hub).ToCoroutine();
                     else yield return presenter.CompleteAsync(GameSceneId.Hub).ContinueWith(value => error = value).ToCoroutine();
                     Assert.That(error, Is.Null);
+                    Assert.That(layers[3].GetComponent<Canvas>().sortingOrder, Is.EqualTo(tipOrder));
                     Assert.That(source, Is.Not.Null, "失败恢复保留原实例。");
                     Assert.That(UIManager.Instance.Get<CommonTipsView>(), Is.SameAs(sourceTip));
                     Assert.That(sourceGroup.interactable, Is.True);
@@ -168,7 +174,7 @@ namespace Tests.Module
                     try
                     {
                         SetNavigator(null);
-                        GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                        GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.WallSqueeze));
                         Assert.That(GlobalData.Get<MainMenuData>().FeedbackKey, Is.EqualTo("Hub.EntryNotReady"));
                         AssertMappedText(Field<TMPro.TextMeshProUGUI>(UIManager.Instance.Get<MainMenuView>(), "TextMeshProUGUI_Status"), "Hub.EntryNotReady");
                     }
@@ -177,23 +183,23 @@ namespace Tests.Module
                         SetNavigator(navigator);
                     }
 
-                    GlobalData.Dispatch(new MainMenuSelectAction(1));
-                    GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                    GlobalData.Dispatch(new MainMenuSelectAction(SceneIndex(GameSceneId.WallSqueeze)));
+                    GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.WallSqueeze));
                     await UniTask.WaitUntil(() => runtime.HasPendingEntry).Timeout(TimeSpan.FromSeconds(15));
                     var loading = UIManager.Instance.Get<CommonLoadingView>();
                     Assert.That(loading, Is.Not.Null);
-                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Title"), "Hub.dlss.Title");
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Title"), "Hub.wall_squeeze.Title");
                     AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Step"), "Loading.LoadScene");
-                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.LoadingScene", LanguageService.Get("Hub.dlss.Title"));
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.LoadingScene", LanguageService.Get("Hub.wall_squeeze.Title"));
                     AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_ProgressText"), "Loading.Progress", 10);
                     loading.SetProgress(0.7f, "重新运行场景", "正在重新加载 DLSS", stepKey: "Loading.ReloadScene",
-                        descriptionKey: "Loading.ReloadingScene", args: new object[] { LanguageService.Get("Hub.dlss.Title") });
-                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.ReloadingScene", LanguageService.Get("Hub.dlss.Title"));
+                        descriptionKey: "Loading.ReloadingScene", args: new object[] { LanguageService.Get("Hub.wall_squeeze.Title") });
+                    AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description"), "Loading.ReloadingScene", LanguageService.Get("Hub.wall_squeeze.Title"));
                     loading.SetProgress(0.2f, "加载完成", "", stepKey: "Loading.Complete");
                     Assert.That(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_Description").text, Is.Empty);
                     AssertMappedText(Field<TMPro.TextMeshProUGUI>(loading, "TextMeshProUGUI_ProgressText"), "Loading.Progress", 70);
 
-                    ExpectEntryFailure(GameSceneId.Dlss);
+                    ExpectEntryFailure(GameSceneId.WallSqueeze);
                     runtime.FailEntry();
                     await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
                     var menu = UIManager.Instance.Get<MainMenuView>();
@@ -213,7 +219,7 @@ namespace Tests.Module
             {
                 if (runtime.HasPendingEntry)
                 {
-                    ExpectEntryFailure(GameSceneId.Dlss);
+                    ExpectEntryFailure(GameSceneId.WallSqueeze);
                     runtime.FailEntry();
                     await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
                 }
@@ -262,7 +268,7 @@ namespace Tests.Module
         {
             var previous = GameSettingsService.Current;
             var oldMenu = UIManager.Instance.Get<MainMenuView>();
-            GlobalData.Dispatch(new MainMenuSelectAction(1));
+            GlobalData.Dispatch(new MainMenuSelectAction(SceneIndex(GameSceneId.WallSqueeze)));
             Func<UniTask<HubSettingsView>> reopen = () => UniTask.FromResult<HubSettingsView>(null);
             try
             {
@@ -273,9 +279,9 @@ namespace Tests.Module
                 Assert.That(oldMenu.State, Is.EqualTo(ViewState.Destroyed));
                 var rebuilt = UIManager.Instance.Get<MainMenuView>();
                 Assert.That(rebuilt, Is.Not.SameAs(oldMenu));
-                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(SceneIndex(GameSceneId.WallSqueeze)));
                 Assert.That(Field<TMPro.TextMeshProUGUI>(rebuilt, "TextMeshProUGUI_Title").text,
-                    Is.EqualTo(LanguageService.Get("Hub.dlss.Title")));
+                    Is.EqualTo(LanguageService.Get("Hub.wall_squeeze.Title")));
 
                 var failedCandidate = next.Copy();
                 failedCandidate.Language = previous.Language;
@@ -325,7 +331,6 @@ namespace Tests.Module
             next.Audio.Muted = false;
             Assert.DoesNotThrow(next.Validate);
             Assert.DoesNotThrow(() => GameSettingsService.Options.ValidateCandidate(next));
-            Assert.DoesNotThrow(() => GameSettingsService.Config.Inputs.ValidateOverrides(next.BindingOverrides));
             Assert.DoesNotThrow(() => LanguageService.ValidateLanguage(next.Language));
             bool runtimeAppliedAfterClose = false;
             int reopenCount = 0;
@@ -334,7 +339,7 @@ namespace Tests.Module
             AudioSettingsRuntime.Changed += observeAudio;
             try
             {
-                GlobalData.Dispatch(new MainMenuSelectAction(1));
+                GlobalData.Dispatch(new MainMenuSelectAction(SceneIndex(GameSceneId.WallSqueeze)));
                 var result = await HubLanguageFlow.ApplyAsync(next, () =>
                 {
                     reopenCount++;
@@ -352,7 +357,7 @@ namespace Tests.Module
                 Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(previous.Language));
                 Assert.That(GameSettingsService.Current.Audio.Master, Is.EqualTo(previous.Audio.Master));
                 Assert.That(AudioSettingsRuntime.GetGain(AudioBus.Music), Is.EqualTo(previous.Audio.Muted ? 0 : previous.Audio.Master * previous.Audio.Music).Within(0.0001f));
-                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(SceneIndex(GameSceneId.WallSqueeze)));
                 Assert.That(UIManager.Instance.Get<MainMenuView>().State, Is.EqualTo(ViewState.Visible));
                 Assert.That(UIManager.Instance.Get<MainMenuView>(), Is.Not.SameAs(oldMenu));
                 Assert.That(HubLanguageFlow.IsChanging, Is.False);
@@ -397,7 +402,7 @@ namespace Tests.Module
             bool reopening = false;
             try
             {
-                GlobalData.Dispatch(new MainMenuSelectAction(1));
+                GlobalData.Dispatch(new MainMenuSelectAction(SceneIndex(GameSceneId.WallSqueeze)));
                 var next = previous.Copy();
                 next.Language = previous.Language == "en" ? "zh-CN" : "en";
                 languageTask = HubLanguageFlow.ApplyAsync(next, () =>
@@ -409,7 +414,7 @@ namespace Tests.Module
                 await UniTask.WaitUntil(() => reopening).Timeout(TimeSpan.FromSeconds(15));
                 Assert.That(HubLanguageFlow.IsChanging, Is.True);
                 string pendingPreference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
-                GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.WallSqueeze));
                 Assert.That(runtime.LoadCount, Is.Zero, "语言页面重建等待中必须拒绝新的 Demo 进入命令。");
                 Assert.That(GlobalData.Get<MainMenuData>().IsEntering, Is.False);
                 var rejected = await HubLanguageFlow.ApplyAsync(previous, reopen);
@@ -423,7 +428,7 @@ namespace Tests.Module
                 Assert.That(HubLanguageFlow.IsChanging, Is.False);
 
                 // 直接持有导航任务，清理也会 await；不留下 MainMenu 的 fire-and-forget 请求。
-                entryTask = GameSceneNavigator.Instance.SwitchAsync(GameSceneId.Dlss).Preserve();
+                entryTask = GameSceneNavigator.Instance.SwitchAsync(GameSceneId.WallSqueeze).Preserve();
                 entryStarted = true;
                 await UniTask.WaitUntil(() => runtime.HasPendingEntry).Timeout(TimeSpan.FromSeconds(15));
                 var loading = UIManager.Instance.Get<CommonLoadingView>();
@@ -438,14 +443,14 @@ namespace Tests.Module
                 Assert.That(UIManager.Instance.Get<CommonLoadingView>(), Is.SameAs(loading));
                 Assert.That(loading.State, Is.EqualTo(ViewState.Visible));
                 Assert.That(HubLanguageFlow.IsChanging, Is.False);
-                GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.Dlss));
+                GlobalData.Dispatch(new MainMenuEnterAction(GameSceneId.WallSqueeze));
                 Assert.That(runtime.LoadCount, Is.EqualTo(1), "导航等待期间不能再启动第二次加载。");
                 runtime.FailEntry();
                 var entryResult = await entryTask;
                 entryAwaited = true;
                 Assert.That(entryResult.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
                 await UniTask.WaitUntil(IsStableHub).Timeout(TimeSpan.FromSeconds(15));
-                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(SceneIndex(GameSceneId.WallSqueeze)));
             }
             finally
             {
@@ -505,7 +510,8 @@ namespace Tests.Module
             yield return PrepareHub();
             var firstMenu = UIManager.Instance.Get<MainMenuView>();
             // 直接使用保存的绑定，避免把 Prefab 的层级路径变成测试契约。
-            var button = CardForScene(firstMenu, GameSceneId.Dlss);
+            yield return RevealCard(firstMenu, GameSceneId.WallSqueeze);
+            var button = CardForScene(firstMenu, GameSceneId.WallSqueeze);
             yield return null; yield return null;
             Vector2 position = ButtonPosition(button);
             yield return Click(position);
@@ -516,7 +522,7 @@ namespace Tests.Module
             yield return Click(position);
             Assert.That(runtime.LoadCount, Is.EqualTo(1), "加载期间重复点击不能再发起进入请求。");
 
-            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 Dlss：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 WallSqueeze：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "加载失败恢复 Hub", 15);
             var restoredMenu = UIManager.Instance.Get<MainMenuView>();
@@ -531,14 +537,14 @@ namespace Tests.Module
 
             // 新实例需要经过帧末 Canvas 注册/布局；随后仍验证真实射线并通过 InputSystem 点击。
             yield return null; yield return null;
-            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo(LanguageService.Get("Hub.dlss.Title")), "失败恢复应保留待重试玩法。");
+            Assert.That(Field<TMPro.TextMeshProUGUI>(restoredMenu, "TextMeshProUGUI_Title").text, Is.EqualTo(LanguageService.Get("Hub.wall_squeeze.Title")), "失败恢复应保留待重试玩法。");
             yield return Click(ButtonPosition(Field<Button>(restoredMenu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 2, "新 Hub 可以实际点击重试", 15);
-            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 Dlss：测试场景加载失败"));
+            LogAssert.Expect(LogType.Error, new Regex(@"\[MainMenu\] 无法进入 WallSqueeze：测试场景加载失败"));
             runtime.FailEntry();
             yield return Wait(IsStableHub, "重试失败也能恢复", 15);
             yield return null; yield return null;
-            Assert.That(CardForScene(UIManager.Instance.Get<MainMenuView>(), GameSceneId.Dlss).interactable, Is.True);
+            Assert.That(CardForScene(UIManager.Instance.Get<MainMenuView>(), GameSceneId.WallSqueeze).interactable, Is.True);
         }
 
         [UnityTest, Timeout(180000)]
@@ -552,6 +558,7 @@ namespace Tests.Module
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null; yield return null;
             Assert.That(EventSystem.current.currentSelectedGameObject, Is.Not.EqualTo(firstSelection), "方向键应移动真实焦点。");
             yield return Wait(() => SelectedCardIsVisible(), "键盘焦点滚入视口", 5);
+            yield return MoveToOpenCard(firstMenu, false);
             var keyboardTarget = SelectedScene(firstMenu);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.Enter)); yield return null;
             InputSystem.QueueStateEvent(keyboard, new KeyboardState()); yield return null;
@@ -573,6 +580,7 @@ namespace Tests.Module
             InputSystem.QueueStateEvent(gamepad, new GamepadState()); yield return null; yield return null;
             Assert.That(EventSystem.current.currentSelectedGameObject, Is.Not.EqualTo(firstSelection), "方向键应移动真实手柄焦点。");
             yield return Wait(() => SelectedCardIsVisible(), "手柄焦点滚入视口", 5);
+            yield return MoveToOpenCard(restoredMenu, true);
             var gamepadTarget = SelectedScene(restoredMenu);
             InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.South)); yield return null;
             yield return Wait(() => runtime.LoadCount == 2 && restoredMenu.State == ViewState.Destroyed, "A 进入当前选中 Demo", 15);
@@ -663,11 +671,12 @@ namespace Tests.Module
         {
             yield return PrepareHub();
             var menu = UIManager.Instance.Get<MainMenuView>();
-            var button = CardForScene(menu, GameSceneId.Dlss);
+            yield return RevealCard(menu, GameSceneId.WallSqueeze);
+            var button = CardForScene(menu, GameSceneId.WallSqueeze);
             yield return Click(ButtonPosition(button));
             Assert.That(runtime.LoadCount, Is.Zero);
-            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("DLSS 实验室"));
-            var selectedIndex = Field<List<MainMenuDemoEntry>>(menu, "entries").FindIndex(entry => entry.SceneId == GameSceneId.Dlss);
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo(LanguageService.Get("Hub.wall_squeeze.Title")));
+            var selectedIndex = Field<List<MainMenuDemoEntry>>(menu, "entries").FindIndex(entry => entry.SceneId == GameSceneId.WallSqueeze);
             var hero = Field<UIImageLoader>(menu, "UIImageLoader_Hero");
             var list = Field<LoopScrollView>(menu, "LoopScrollView_DemoList");
             yield return Wait(() => hero.TargetImage.sprite != null &&
@@ -698,13 +707,14 @@ namespace Tests.Module
             InputDeviceState.Notify(touchscreen);
             yield return null; yield return null;
             var menu = UIManager.Instance.Get<MainMenuView>();
-            yield return Tap(ButtonPosition(CardForScene(menu, GameSceneId.Dlss)));
+            yield return RevealCard(menu, GameSceneId.WallSqueeze);
+            yield return Tap(ButtonPosition(CardForScene(menu, GameSceneId.WallSqueeze)));
             Assert.That(runtime.LoadCount, Is.Zero, "触控选择卡片不能直接进入场景。");
-            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo("DLSS 实验室"));
+            Assert.That(Field<TMPro.TextMeshProUGUI>(menu, "TextMeshProUGUI_Title").text, Is.EqualTo(LanguageService.Get("Hub.wall_squeeze.Title")));
             yield return Tap(ButtonPosition(Field<Button>(menu, "Button_Start")));
             yield return Wait(() => runtime.LoadCount == 1, "触控开始按钮进入当前预览", 15);
-            AssertRequestedScene(GameSceneId.Dlss);
-            ExpectEntryFailure(GameSceneId.Dlss);
+            AssertRequestedScene(GameSceneId.WallSqueeze);
+            ExpectEntryFailure(GameSceneId.WallSqueeze);
             runtime.FailEntry();
             yield return Wait(IsStableHub, "触控进入失败收口", 15);
         }
@@ -894,248 +904,72 @@ namespace Tests.Module
         }
 
         [UnityTest, Timeout(180000)]
-        public IEnumerator InputBindingUiCancelsEditsAndRecycledResetTargetsCurrentActionBeforeApply()
+        public IEnumerator InputSettingsPageOnlyEditsCommonParametersAndPreservesSavedBindings()
         {
             yield return PrepareHub();
-            yield return VerifyInputBindingUiAsync().ToCoroutine();
+            yield return VerifyCommonInputSettingsAsync().ToCoroutine();
         }
 
-        private async UniTask VerifyInputBindingUiAsync()
+        private async UniTask VerifyCommonInputSettingsAsync()
         {
             var previous = GameSettingsService.Current;
             bool hadPreference = PlayerPrefs.HasKey(GameSettingsService.PreferenceKey);
             string preference = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
-            var hosts = GameSettingsService.InputHosts;
-            int hostIndex = Enumerable.Range(0, hosts.Count).Single(index => hosts[index].DisplayKey == "Input.Dlss");
-            var source = hosts[hostIndex];
-            string sourceOverrides = source.Asset.SaveBindingOverridesAsJson();
+            var source = ScriptableObject.CreateInstance<InputActionAsset>();
+            source.AddActionMap("Gameplay").AddAction("Jump", InputActionType.Button, "<Keyboard>/space");
             InputActionSession running = null;
             try
             {
-                // 只隔离本用例选择的正式源；其它偏好及原存档在 finally 原样归还。
-                var baseline = previous.Copy();
-                baseline.BindingOverrides.Remove(source.SourceId);
-                var prepared = await GameSettingsService.ApplyAsync(baseline, _ => UniTask.FromResult(true));
-                Assert.That(prepared.Succeeded, Is.True, prepared.Message);
-                running = new InputActionSession(source.Asset);
-                running.Asset.devices = new InputDevice[] { keyboard };
-                running.SetMap("Observe");
-                var liveReset = running.Asset.FindAction("Observe/Reset", true);
-                int resetBinding = Enumerable.Range(0, liveReset.bindings.Count)
-                    .Single(index => liveReset.bindings[index].path == "<Keyboard>/r");
-                string defaultResetPath = liveReset.bindings[resetBinding].path;
-                var savedBaseline = GameSettingsService.Current;
-                string preferenceBeforeEdit = PlayerPrefs.GetString(GameSettingsService.PreferenceKey);
-                var entry = Field<Button>(UIManager.Instance.Get<MainMenuView>(), "Button_Settings");
-                await Wait(() => entry.IsInteractable(), "设置事务结束后恢复入口", 5);
+                using var rebind = new InputRebindSession(source);
+                rebind.SetBinding("Gameplay/Jump", 0, "<Keyboard>/f12");
+                var committed = await GameSettingsService.ApplyBindingOverridesAsync(source, rebind.ExportOverrides());
+                Assert.That(committed.Succeeded, Is.True, committed.Message);
+                string savedOverrides = GameSettingsService.Current.BindingOverrides[rebind.SourceId];
+                running = new InputActionSession(source);
+                var menu = UIManager.Instance.Get<MainMenuView>();
+                var entry = Field<Button>(menu, "Button_Settings");
+                // 提交完成续体先于大厅的下一轮 LastPostLateUpdate；等待入口退出提交期间的禁用态。
+                await Wait(() => !SettingsFlow.IsSubmitting && entry.isActiveAndEnabled && entry.IsInteractable(), "提交后恢复设置入口", 5);
                 await Click(ButtonPosition(entry));
-                await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开正式改键宿主", 10);
-                var settings = UIManager.Instance.Get<HubSettingsView>();
-                var screen = settings;
+                await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开正式设置宿主", 10);
+                var screen = UIManager.Instance.Get<HubSettingsView>();
+                await Wait(() => Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView is GraphicsSettingsPanelView
+                    && Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView.State == ViewState.Visible,
+                    "初选画质页懒加载", 10);
                 await SelectSettingsPageAsync(screen, SettingsCategory.Input);
                 var page = (InputSettingsPanelView)Field<ViewTab>(screen, "ViewTab_Editor_controls").CurrentClickView;
-                var host = page.Rows.Single(row => row.Key == "Host");
-                await UniTask.Yield();
-                await UniTask.Yield();
-                Canvas.ForceUpdateCanvases();
-                await Click(ButtonPosition((Button)host.Control));
-                var hostChoices = Field<UITab>(host, "options");
-                await Wait(() => hostChoices.Items.Count == hosts.Count, "正式宿主下拉选项", 5);
-                await Click(ButtonPosition(hostChoices.Items[hostIndex].GetComponent<Button>()));
-                await Wait(() => Field<InputRebindSession>(page, "session").SourceId == source.SourceId, "切换真实改键数据源", 5);
-                var list = Field<LoopScrollView>(page, "LoopScrollView_Bindings");
-
-                InputRebindSession Candidate() => Field<InputRebindSession>(page, "session");
-                int FindRow(Guid actionId, int bindingIndex)
+                Assert.That(page.Rows.Select(row => row.Key), Is.EquivalentTo(new[]
                 {
-                    var entries = Field<IList>(page, "bindings");
-                    return Enumerable.Range(0, entries.Count).Single(index =>
-                    {
-                        var entry = entries[index];
-                        var action = (InputAction)entry.GetType().GetField("Action").GetValue(entry);
-                        int binding = (int)entry.GetType().GetField("Index").GetValue(entry);
-                        return action.id == actionId && binding == bindingIndex;
-                    });
-                }
-                async UniTask<InputSettingsBindingRow> RevealRow(int index)
-                {
-                    EventSystem.current.SetSelectedGameObject(null);
-                    list.ScrollToCell(index, ScrollAlignment.Center);
-                    await Wait(() => list.GetVisibleCell(index)?.Context.IsCurrent == true, "正式绑定行显示", 5);
-                    await UniTask.Yield();
-                    return list.GetVisibleCell(index).GetComponentInChildren<InputSettingsBindingRow>(true);
-                }
-                async UniTask ListenAndBind(InputSettingsBindingRow row, Key key, string path)
-                {
-                    var prompt = Field<InputBindingPrompt>(row, "prompt");
-                    var action = prompt.Action;
-                    int bindingIndex = Field<int?>(prompt, "displayBindingIndex").Value;
-                    await Click(ButtonPosition(Field<Button>(row, "rebind")));
-                    await Wait(() => page.IsListening, "真实改键按钮开始监听", 5);
-                    Assert.That(EventSystem.current.sendNavigationEvents, Is.False, "监听期间保留指针，暂停原生确认与方向导航。");
-                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(key));
-                    await Wait(() => !page.IsListening, "实际键盘输入完成监听", 5);
-                    if (key == Key.Enter)
-                    {
-                        Assert.That(EventSystem.current.sendNavigationEvents, Is.False, "确认键保持时不能提前恢复导航。");
-                        Assert.That(screen.Category, Is.EqualTo(SettingsCategory.Input));
-                    }
-                    InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                    await UniTask.Yield();
-                    Assert.That(action.bindings[bindingIndex].effectivePath, Is.EqualTo(path));
-                }
-                async UniTask Apply()
-                {
-                    int version = Field<int>(GlobalData.Get<SettingsData>(), "Version");
-                    await Click(ButtonPosition(Field<Button>(screen, "Button_Apply")));
-                    await Wait(() => !SettingsFlow.IsSubmitting
-                        && Field<int>(GlobalData.Get<SettingsData>(), "Version") == version + 1, "正式页面保存绑定", 15);
-                    AssertMappedText(Field<TMPro.TMP_Text>(screen, "TextMeshProUGUI_Feedback"), "Settings.Applied");
-                }
-
-                var resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                string beforeCancel = Candidate().ExportOverrides();
-                await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
-                await Wait(() => page.IsListening, "进入候选监听", 5);
-                Assert.That(Field<Button>(screen, "Button_Apply").interactable, Is.False);
-                await UniTask.Yield();
-                await Click(ButtonPosition((Button)page.Rows.Single(row => row.Key == "CancelRebind").Control));
-                await Wait(() => !page.IsListening, "页面取消按钮释放监听", 5);
-                Assert.That(settings.State, Is.EqualTo(ViewState.Visible));
-                Assert.That(Candidate().ExportOverrides(), Is.EqualTo(beforeCancel));
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
-                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preferenceBeforeEdit));
-
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
-                await Wait(() => page.IsListening, "开始长按控件取消检查", 5);
-                var heldCancel = new MouseState
-                {
-                    position = ButtonPosition((Button)page.Rows.Single(row => row.Key == "CancelRebind").Control)
-                };
-                InputSystem.QueueStateEvent(mouse, heldCancel.WithButton(MouseButton.Left));
-                await Wait(() => !page.IsListening, "长按控件超过匹配期仍取消", 5);
-                InputSystem.QueueStateEvent(mouse, heldCancel);
-                await UniTask.Yield();
-                Assert.That(Candidate().ExportOverrides(), Is.EqualTo(beforeCancel));
-
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await Click(ButtonPosition(Field<Button>(resetRow, "rebind")));
-                await Wait(() => page.IsListening, "再次开始鼠标绑定", 5);
-                var paper = (RectTransform)Field<RectTransform>(screen, "RectTransform_Design").Find("Paper");
-                var blank = new Vector2(paper.rect.xMin + paper.rect.width * 0.92f, paper.rect.center.y);
-                var pointer = new MouseState
-                {
-                    position = RectTransformUtility.WorldToScreenPoint(paper.GetComponentInParent<Canvas>().worldCamera,
-                        paper.TransformPoint(blank))
-                };
-                InputSystem.QueueStateEvent(mouse, pointer.WithButton(MouseButton.Left));
-                await Wait(() => !page.IsListening, "界面控件外仍允许鼠标绑定", 5);
-                InputSystem.QueueStateEvent(mouse, pointer);
-                await UniTask.Yield();
-                Assert.That(Candidate().Asset.FindAction(liveReset.id.ToString(), true)
-                    .bindings[resetBinding].effectivePath, Is.EqualTo("<Mouse>/leftButton"));
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await Click(ButtonPosition(Field<Button>(resetRow, "reset")));
-
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await ListenAndBind(resetRow, Key.Enter, "<Keyboard>/enter");
-                Assert.That(screen.Category, Is.EqualTo(SettingsCategory.Input), "菜单确认键可绑定，不能提交其它分类。");
-                await Wait(() => EventSystem.current.sendNavigationEvents, "松键后恢复既有导航门闩", 5);
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await Click(ButtonPosition(Field<Button>(resetRow, "reset")));
-
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await ListenAndBind(resetRow, Key.F12, "<Keyboard>/f12");
-                Assert.That(screen.Capture().BindingOverrides[source.SourceId], Is.EqualTo(Candidate().ExportOverrides()));
-                Assert.That(JsonUtility.ToJson(GameSettingsService.Current), Is.EqualTo(JsonUtility.ToJson(savedBaseline)),
-                    "监听成功只编辑页面候选，不能提前发布或保存。");
-                Assert.That(GameSettingsService.Current.BindingOverrides.ContainsKey(source.SourceId), Is.False,
-                    "JsonUtility 不序列化 Dictionary，绑定隔离必须独立检查。");
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
-                Assert.That(PlayerPrefs.GetString(GameSettingsService.PreferenceKey), Is.EqualTo(preferenceBeforeEdit));
-                await Apply();
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"));
-                var saved = LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey);
-                Assert.That(saved.BindingOverrides[source.SourceId], Is.EqualTo(GameSettingsService.Current.BindingOverrides[source.SourceId]));
-                Assert.That(running.Pressed("Reset"), Is.False);
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.F12));
-                await UniTask.Yield();
-                Assert.That(running.Pressed("Reset"), Is.True, "提交后正式动作副本读取新绑定的真实按下边沿。");
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
-                await UniTask.Yield();
-
-                // 先编辑头部动作，再回收尾部行；监听完成会重绑所有行，不能跨监听保留行身份。
-                var movedAction = Candidate().Asset.FindAction("Observe/Move", true);
-                int movedBinding = Enumerable.Range(0, movedAction.bindings.Count)
-                    .Single(index => movedAction.bindings[index].path == "<Keyboard>/w");
-                string movedDefault = movedAction.bindings[movedBinding].path;
-                await ListenAndBind(await RevealRow(FindRow(movedAction.id, movedBinding)), Key.F11, "<Keyboard>/f11");
-                await RevealRow(FindRow(liveReset.id, resetBinding));
-                var oldButtons = new Dictionary<Button, (Guid Action, int Binding)>();
-                for (int index = 0; index < list.Count; index++)
-                {
-                    var cell = list.GetVisibleCell(index);
-                    if (cell?.Context.IsCurrent != true) continue;
-                    var row = cell.GetComponentInChildren<InputSettingsBindingRow>(true);
-                    var prompt = Field<InputBindingPrompt>(row, "prompt");
-                    oldButtons[Field<Button>(row, "reset")] = (prompt.Action.id, Field<int?>(prompt, "displayBindingIndex").Value);
-                }
-                EventSystem.current.SetSelectedGameObject(null);
-                list.ScrollToCell(0);
-                await UniTask.Yield();
-                Canvas.ForceUpdateCanvases();
-                InputSettingsBindingRow recycled = null;
-                await Wait(() =>
-                {
-                    for (int index = 0; index < list.Count; index++)
-                    {
-                        var cell = list.GetVisibleCell(index);
-                        if (cell?.Context.IsCurrent != true) continue;
-                        var row = cell.GetComponentInChildren<InputSettingsBindingRow>(true);
-                        var button = Field<Button>(row, "reset");
-                        var prompt = Field<InputBindingPrompt>(row, "prompt");
-                        int binding = Field<int?>(prompt, "displayBindingIndex").Value;
-                        var canvas = button.GetComponentInParent<Canvas>();
-                        var rect = (RectTransform)button.transform;
-                        var center = RectTransformUtility.WorldToScreenPoint(canvas.worldCamera, rect.TransformPoint(rect.rect.center));
-                        if (button.IsInteractable() && prompt.Action.id == movedAction.id && binding == movedBinding
-                            && RectTransformUtility.RectangleContainsScreenPoint(list.ScrollRect.viewport, center, canvas.worldCamera)
-                            && oldButtons.TryGetValue(button, out var old)
-                            && (old.Action != prompt.Action.id || old.Binding != binding))
-                        {
-                            recycled = row;
-                            return true;
-                        }
-                    }
-                    return false;
-                }, "列表物理行回收为另一绑定身份", 5);
-                Assert.That(movedAction.bindings[movedBinding].effectivePath, Is.EqualTo("<Keyboard>/f11"));
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"));
-                await Click(ButtonPosition(Field<Button>(recycled, "reset")));
-                await Wait(() => !page.IsListening && Candidate().Asset.FindAction(movedAction.id.ToString(), true)
-                    .bindings[movedBinding].effectivePath == movedDefault, "次按钮重置当前回收行", 5);
-                Assert.That(Candidate().Asset.FindAction(liveReset.id.ToString(), true).bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"),
-                    "回收次按钮不能重置它之前绑定的动作。");
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"));
-
-                resetRow = await RevealRow(FindRow(liveReset.id, resetBinding));
-                await Click(ButtonPosition(Field<Button>(resetRow, "reset")));
-                Assert.That(Candidate().Asset.FindAction(liveReset.id.ToString(), true).bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo("<Keyboard>/f12"),
-                    "重置同样只改变候选，应用前保持正式会话。");
-                await Apply();
-                Assert.That(liveReset.bindings[resetBinding].effectivePath, Is.EqualTo(defaultResetPath));
-                Assert.That(source.Asset.SaveBindingOverridesAsJson(), Is.EqualTo(sourceOverrides), "正式制作资产始终不被改键写入。");
+                    "GamepadStyle", "MouseLookMultiplier", "TouchLookMultiplier", "GamepadLookMultiplier",
+                    "GamepadLookDegreesPerSecond", "GamepadDeadzone", "GamepadMaximum", "RumbleStrength",
+                    "GamepadInvertY", "RumbleEnabled"
+                }), "公共输入页只保留通用参数，不集中引用或编辑Demo动作。");
+                var styleRow = page.Rows.Single(row => row.Key == "GamepadStyle");
+                int selected = (int)GameSettingsService.CurrentGamepadStyle == 1 ? 1 : 0;
+                var appliedStyle = GameSettingsService.CurrentGamepadStyle;
+                await Click(ButtonPosition((Button)styleRow.Control));
+                var choices = Field<UITab>(styleRow, "options");
+                await Wait(() => choices.Items.Count == 3, "图标选项显示", 5);
+                await Click(ButtonPosition(choices.Items[selected].GetComponent<Button>()));
+                Assert.That(screen.Capture().Input.GamepadStyle, Is.EqualTo((GamepadStyle)(selected + 1)));
+                Assert.That(GameSettingsService.CurrentGamepadStyle, Is.EqualTo(appliedStyle), "编辑图标仍只修改页面候选。");
+                await Click(ButtonPosition(Field<Button>(screen, "Button_Reset")));
+                Assert.That(JsonUtility.ToJson(screen.Capture().Input), Is.EqualTo(JsonUtility.ToJson(GameSettingsService.GetDefaults().Input)));
+                Assert.That(screen.Capture().BindingOverrides[rebind.SourceId], Is.EqualTo(savedOverrides), "恢复公共输入参数不清除宿主改键。");
+                int version = Field<int>(GlobalData.Get<SettingsData>(), "Version");
+                await Click(ButtonPosition(Field<Button>(screen, "Button_Apply")));
+                await Wait(() => !SettingsFlow.IsSubmitting && Field<int>(GlobalData.Get<SettingsData>(), "Version") == version + 1,
+                    "应用公共输入参数", 15);
+                Assert.That(GameSettingsService.Current.BindingOverrides[rebind.SourceId], Is.EqualTo(savedOverrides));
+                Assert.That(LocalDataManager.LoadData<GameSettingsSnapshot>(GameSettingsService.PreferenceKey).BindingOverrides[rebind.SourceId], Is.EqualTo(savedOverrides));
+                Assert.That(running.Asset.FindAction("Gameplay/Jump", true).bindings[0].effectivePath, Is.EqualTo("<Keyboard>/f12"));
             }
             finally
             {
-                InputSystem.QueueStateEvent(keyboard, new KeyboardState());
                 try
                 {
                     await UIManager.Instance.CloseAsync<HubSettingsView>(animated: false);
-                    await Wait(() => !SettingsFlow.IsSubmitting, "收口改键页面事务", 15);
+                    await Wait(() => !SettingsFlow.IsSubmitting, "收口输入参数事务", 15);
                     running?.Dispose();
                     var restored = await GameSettingsService.ApplyAsync(previous, _ => UniTask.FromResult(true));
                     Assert.That(restored.Succeeded, Is.True, restored.Message);
@@ -1143,6 +977,7 @@ namespace Tests.Module
                 finally
                 {
                     running?.Dispose();
+                    UnityEngine.Object.Destroy(source);
                     RestoreSettingsPreference(hadPreference, preference);
                 }
             }
@@ -1165,8 +1000,9 @@ namespace Tests.Module
             try
             {
                 var oldMenu = UIManager.Instance.Get<MainMenuView>();
-                await Click(ButtonPosition(CardForScene(oldMenu, GameSceneId.Dlss)));
-                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                await RevealCard(oldMenu, GameSceneId.WallSqueeze);
+                await Click(ButtonPosition(CardForScene(oldMenu, GameSceneId.WallSqueeze)));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(SceneIndex(GameSceneId.WallSqueeze)));
                 await Click(ButtonPosition(Field<Button>(oldMenu, "Button_Settings")));
                 await Wait(() => UIManager.Instance.Get<HubSettingsView>()?.State == ViewState.Visible, "打开真实语言分页宿主", 10);
                 foreach (string language in new[] { previous.Language == "en" ? "zh-CN" : "en", previous.Language })
@@ -1191,7 +1027,7 @@ namespace Tests.Module
                     Assert.That(oldMenu.State, Is.EqualTo(ViewState.Destroyed));
                     Assert.That(GameSettingsService.Current.Language, Is.EqualTo(language));
                     Assert.That(LanguageService.CurrentLanguage, Is.EqualTo(language));
-                    Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                    Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(SceneIndex(GameSceneId.WallSqueeze)));
                     oldMenu = UIManager.Instance.Get<MainMenuView>();
                     var rebuilt = UIManager.Instance.Get<HubSettingsView>();
                     screen = rebuilt;
@@ -1228,7 +1064,7 @@ namespace Tests.Module
                 await Wait(() => EventSystem.current.currentSelectedGameObject != null
                     && EventSystem.current.currentSelectedGameObject.transform.IsChildOf(oldMenu.transform), "返回新 Hub 的有效菜单焦点", 5);
                 Assert.That(GameSettingsService.Current.Language, Is.EqualTo(previous.Language));
-                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(1));
+                Assert.That(GlobalData.Get<MainMenuData>().SelectedIndex, Is.EqualTo(SceneIndex(GameSceneId.WallSqueeze)));
             }
             finally
             {
@@ -1646,6 +1482,54 @@ namespace Tests.Module
                 if (cell != null && cell.Context.IsCurrent)
                     yield return (cell.GetComponentInChildren<LoopScrollMenuButton>(true), entries[i]);
             }
+        }
+
+        private static int SceneIndex(GameSceneId target)
+        {
+            int index = GlobalData.Get<MainMenuData>().Entries.FindIndex(entry => entry.SceneId == target);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0), "测试需要已登记的实际Demo。");
+            return index;
+        }
+
+        private static IEnumerator RevealCard(MainMenuView menu, GameSceneId target)
+        {
+            var entries = Field<List<MainMenuDemoEntry>>(menu, "entries");
+            int index = entries.FindIndex(entry => entry.SceneId == target);
+            Assert.That(index, Is.GreaterThanOrEqualTo(0));
+            var list = Field<LoopScrollView>(menu, "LoopScrollView_DemoList");
+            list.ScrollToCell(index, ScrollAlignment.Center);
+            yield return Wait(() => list.GetVisibleCell(index)?.Context.IsCurrent == true, "目标卡片实际进入视口", 5);
+            yield return null;
+        }
+
+        private IEnumerator MoveToOpenCard(MainMenuView menu, bool useGamepad)
+        {
+            var entries = Field<List<MainMenuDemoEntry>>(menu, "entries");
+            for (int attempt = 0; attempt < entries.Count; attempt++)
+            {
+                var selected = EventSystem.current.currentSelectedGameObject;
+                var cell = selected != null ? selected.GetComponentInParent<LoopCell>() : null;
+                if (cell != null && cell.Context.IsCurrent && entries[cell.Context.Index].SceneId.HasValue)
+                {
+                    yield break;
+                }
+                if (useGamepad)
+                {
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(GamepadButton.DpadRight));
+                    yield return null;
+                    InputSystem.QueueStateEvent(gamepad, new GamepadState());
+                }
+                else
+                {
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.RightArrow));
+                    yield return null;
+                    InputSystem.QueueStateEvent(keyboard, new KeyboardState());
+                }
+                yield return null;
+                yield return null;
+                yield return Wait(SelectedCardIsVisible, "跳过未开放卡片后恢复真实焦点", 5);
+            }
+            Assert.Fail("没有通过真实导航到达已开放Demo。");
         }
 
         private static Button CardForScene(MainMenuView menu, GameSceneId target)

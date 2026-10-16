@@ -34,6 +34,7 @@ MonoBehaviour:
       Muted: 0
     Input:
       SchemaVersion: 1
+      GamepadStyle: 1
       GamepadDeadzone: 0.2
       GamepadMaximum: 1
       GamepadLookDegreesPerSecond: 90
@@ -62,4 +63,3 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9e7fe401a44ab1043878e81c4829d627, type: 2}
   language: {fileID: 11400000, guid: 9b05c1fcea3dfb942916c089b9c2950e, type: 2}
   fonts: {fileID: 11400000, guid: 24785acbfae51184da87d389438becfc, type: 2}
-  inputs: {fileID: 11400000, guid: 97ae0f4d36f93fc44ad80dd87e953d6c, type: 2}

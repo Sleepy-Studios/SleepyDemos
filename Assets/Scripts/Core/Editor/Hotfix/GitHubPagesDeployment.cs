@@ -21,7 +21,7 @@ namespace Core.Editor.Hotfix
 
         internal static string GetResourcePath(string projectName, string platformFolder)
         {
-            ValidateSegment(projectName, "项目名");
+            ValidateProjectPath(projectName);
             ValidateSegment(platformFolder, "平台名");
             return $"unity/{projectName}/hotupdate/{platformFolder}";
         }
@@ -195,13 +195,14 @@ namespace Core.Editor.Hotfix
         private static string ResolveTarget(string repository, string resourcePath, string projectRoot)
         {
             string[] segments = (resourcePath ?? string.Empty).Split('/');
-            if (segments.Length != 4 || segments[0] != "unity" || segments[2] != "hotupdate")
+            if ((segments.Length != 4 && segments.Length != 6) || segments[0] != "unity" ||
+                segments[segments.Length - 2] != "hotupdate")
             {
-                throw new InvalidOperationException("资源目录必须是 unity/<项目>/hotupdate/<平台>。");
+                throw new InvalidOperationException("发布目录必须位于 unity/<项目> 或 unity/<项目>/TapTap/<GameId> 下的受控 hotupdate 路径。");
             }
 
-            ValidateSegment(segments[1], "项目名");
-            ValidateSegment(segments[3], "平台名");
+            string projectName = string.Join("/", segments.Skip(1).Take(segments.Length - 3));
+            GetResourcePath(projectName, segments[segments.Length - 1]);
             if (IsWithin(repository, Path.GetFullPath(projectRoot)) ||
                 (Directory.Exists(Path.Combine(repository, "Assets")) &&
                  Directory.Exists(Path.Combine(repository, "ProjectSettings"))))
@@ -217,6 +218,19 @@ namespace Core.Editor.Hotfix
 
             EnsureNoLinks(target);
             return target;
+        }
+
+        private static void ValidateProjectPath(string projectName)
+        {
+            string[] segments = (projectName ?? string.Empty).Split('/');
+            if (segments.Length != 1 && (segments.Length != 3 || segments[1] != "TapTap"))
+            {
+                throw new InvalidOperationException("项目发布路径只允许 <项目> 或 <项目>/TapTap/<GameId>。");
+            }
+            foreach (string segment in segments)
+            {
+                ValidateSegment(segment, "项目发布路径");
+            }
         }
 
         private static void ValidateSegment(string segment, string description)
@@ -431,14 +445,15 @@ namespace Core.Editor.Hotfix
                 throw new InvalidOperationException("远端 main 已领先或产生分歧，请人工同步发布仓库后重试。");
             }
 
-            string projectName = resourcePath.Split('/')[1];
+            string[] segments = resourcePath.Split('/');
+            string publicationRoot = string.Join("/", segments.Take(segments.Length - 2));
             string pendingPaths = await GitWithCancellationAsync(repository, cancellationToken, "diff", "--name-only", "FETCH_HEAD..HEAD");
             foreach (string pendingPath in pendingPaths.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries))
             {
                 string path = pendingPath.TrimEnd('\r');
                 if (path == ".nojekyll" || path == "index.html" ||
-                    path == $"unity/{projectName}/hotupdate/PC/.gitkeep" ||
-                    path == $"unity/{projectName}/hotupdate/Android/.gitkeep" ||
+                    path == $"{publicationRoot}/hotupdate/PC/.gitkeep" ||
+                    path == $"{publicationRoot}/hotupdate/Android/.gitkeep" ||
                     path.StartsWith(resourcePath + "/", StringComparison.Ordinal))
                 {
                     continue;

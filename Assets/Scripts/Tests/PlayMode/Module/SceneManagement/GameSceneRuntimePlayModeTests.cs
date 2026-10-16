@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Core.Runtime;
 using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
@@ -100,6 +101,32 @@ namespace Tests.Module
         }
 
         [UnityTest]
+        public IEnumerator PreparationFailure_UnloadsTargetAndRestoresHubPresentation()
+        {
+            var loader = new FakeSceneLoader();
+            var presenter = new RecoveryLoadingPresenter();
+            var navigator = new GameSceneNavigator(new GameSceneRuntime(loader), presenter,
+                () => UniTask.FromException(new InvalidOperationException("模拟场景准备失败")),
+                loadContext: _ => UniTask.FromResult<GameSceneLanguageScope>(null));
+            GameSceneSwitchResult result = default;
+            LogAssert.Expect(LogType.Exception, new Regex("模拟场景准备失败"));
+
+            yield return navigator.SwitchAsync(GameSceneId.DroneFlight)
+                .ContinueWith(value => result = value).ToCoroutine();
+
+            Assert.That(result.Status, Is.EqualTo(GameSceneSwitchStatus.Failed));
+            Assert.That(result.Error, Does.Contain("模拟场景准备失败"));
+            Assert.That(navigator.CurrentScene, Is.EqualTo(GameSceneId.Hub));
+            Assert.That(presenter.RestoredScene, Is.EqualTo(GameSceneId.Hub));
+            Assert.That(SceneManager.GetActiveScene(), Is.EqualTo(hubScene));
+            Assert.That(loader.ContentScene.isLoaded, Is.False);
+            Assert.That(UIRootManager.Instance.BaseCamera, Is.SameAs(hubCamera));
+            Assert.That(hubCamera.enabled, Is.True);
+            Assert.That(CountEnabledAudioListeners(), Is.EqualTo(1));
+            Assert.That(navigator.IsTransitioning, Is.False);
+        }
+
+        [UnityTest]
         public IEnumerator LoaderExceptionRestoresSourceAudioAndAllowsRetry()
         {
             var loader = new FakeSceneLoader { ThrowNextLoad = true };
@@ -152,6 +179,23 @@ namespace Tests.Module
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
                 .Count(listener => listener.enabled);
+        }
+
+        private sealed class RecoveryLoadingPresenter : IGameSceneLoadingPresenter
+        {
+            internal GameSceneId? RestoredScene { get; private set; }
+
+            public UniTask<string> BeginAsync(GameSceneDefinition target) => UniTask.FromResult<string>(null);
+
+            public void SetProgress(float progress, string step, string description, string stepKey, string descriptionKey, params object[] args) { }
+
+            public UniTask<string> CompleteAsync(GameSceneId target) => UniTask.FromResult<string>(null);
+
+            public UniTask RestoreAsync(GameSceneId source)
+            {
+                RestoredScene = source;
+                return UniTask.CompletedTask;
+            }
         }
 
         private sealed class FakeSceneHandle : IResourceSceneHandle

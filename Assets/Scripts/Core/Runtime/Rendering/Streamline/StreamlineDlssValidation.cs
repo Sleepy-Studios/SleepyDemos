@@ -191,6 +191,7 @@ namespace Core.Runtime.Rendering.Streamline
             return exception is DllNotFoundException || exception is EntryPointNotFoundException || exception is BadImageFormatException;
         }
 
+#if UNITY_EDITOR_WIN || (UNITY_STANDALONE_WIN && !UNITY_EDITOR)
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetFrameSize();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetOptimalSettingsEventId();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SleepyStreamlineGetDlssEvent();
@@ -199,5 +200,15 @@ namespace Core.Runtime.Rendering.Streamline
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern ulong SleepyStreamlineQueueFrame(ref StreamlineDlssFrame frame);
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern void SleepyStreamlineCancelFrame(ulong request);
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineCopyFrameReport([Out] byte[] destination, int capacity);
+#else
+        private static int SleepyStreamlineGetFrameSize() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineGetOptimalSettingsEventId() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static IntPtr SleepyStreamlineGetDlssEvent() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineGetProbeEventId() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineGetReleaseViewportEventId() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static ulong SleepyStreamlineQueueFrame(ref StreamlineDlssFrame frame) => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static void SleepyStreamlineCancelFrame(ulong request) => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineCopyFrameReport([Out] byte[] destination, int capacity) => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+#endif
     }
 }

@@ -610,8 +610,8 @@ namespace Hotfix.DroneFlight
             }
 
             var color = !hasSurface
-                ? UIColors.DroneFlight.GrappleNoSurface
-                : nearestCaptureCandidate != null ? UIColors.DroneFlight.EquipmentValid : UIColors.DroneFlight.GrappleSearching;
+                ? DroneFlightUIColors.GrappleNoSurface
+                : nearestCaptureCandidate != null ? DroneFlightUIColors.EquipmentValid : DroneFlightUIColors.GrappleSearching;
             assistRing.startColor = assistRing.endColor = color;
             assistLabel.color = color;
             SetAssistVisible(true);

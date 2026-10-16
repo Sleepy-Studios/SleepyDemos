@@ -1,0 +1,27 @@
+{
+    "name": "Hotfix.Diagnostics.PC",
+    "rootNamespace": "Hotfix.Dlss",
+    "references": [
+        "SleepyStudios.LoopScroll",
+        "Core.Runtime",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "UnityEngine.UI",
+        "Hotfix"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

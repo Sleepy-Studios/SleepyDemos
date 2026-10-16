@@ -39,7 +39,15 @@ namespace Core.Runtime
                 CurrentState = state;
                 Debug.Log($"[Startup] enter state: {state.Title}");
                 UpdateLoading(state, 0f);
-                await state.EnterAsync();
+                try
+                {
+                    await state.EnterAsync();
+                }
+                catch (System.Exception exception)
+                {
+                    ReportStateProgress(state.Progress, "启动失败", $"{state.Description}：{exception.Message}", null);
+                    throw;
+                }
                 UpdateLoading(state, 1f);
                 await state.ExitAsync();
 

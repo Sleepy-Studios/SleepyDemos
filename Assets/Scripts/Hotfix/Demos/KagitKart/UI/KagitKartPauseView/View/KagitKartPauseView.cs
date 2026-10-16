@@ -2,6 +2,7 @@ namespace Hotfix
 {
     using Core.Runtime;
     using Hotfix.KagitKart;
+    using Hotfix.SceneManagement;
 
     [Module("KagitKart")]
     [UIBind("KagitKartPauseView")]
@@ -13,6 +14,7 @@ namespace Hotfix
 
         protected override void OnGameObjectInitialize()
         {
+            Button_Hub.transform.parent.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             Button_Resume.onClick.AddListener(Resume);
             Button_Restart.onClick.AddListener(() => world?.Dispatch(KagitKartCommand.Restart));
             Button_Title.onClick.AddListener(ReturnToTitle);

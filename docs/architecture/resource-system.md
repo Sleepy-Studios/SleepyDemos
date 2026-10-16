@@ -62,6 +62,18 @@ YooAssets 是当前资源框架实现，不是业务层协议。
 
 将来如果需要预加载批次、缓存策略或原生文件加载，继续扩展现有资源抽象，不新增并行入口。
 
+## 独立游戏发布边界
+
+`Assets/Settings/ReleaseProfiles.json` 是发布白名单：`GameId` 关联分组、启动场景、应用标识和有序程序集；`PcAssemblies` 只追加到 Windows64。`Hotfix`、`Demo1` 至 `Demo5` 是六个管理分组，不等于六个 CLR 程序集。每个独立游戏有自己的 DLL，公共代码保留 `Hotfix.dll`，空分组不创建空 asmdef。当前 Demo1/2/3 分别是无人机、夹爆它、纸艺卡丁车，Demo4/5 预留。
+
+拆 DLL 只隔离编译单元。完整边界还包括应用标识、启动目标、程序集加载列表、资源依赖、平台代码宏、远端版本入口与在线首包基线。Core.Editor 的 `ReleaseProfiles.Apply` 统一配置启动目标、程序集、应用标识、宏与 HybridCLR；`ReleaseAssetFilter` 只收集当前游戏和公共资源，打包前 `ValidateDependencies` 递归拒绝流向其它 Demo 的资源或脚本引用。不能依靠 Collector 排除规则悄悄掩盖跨 Demo 的真实依赖。
+
+资源地址保持现有约定。`Codes/Hotfix` 每个 DLL 单独打包，防止公共 DLL 和其它游戏 DLL 合并到同一 Bundle。YooAsset 3.0.6 会缓存过滤规则实例，每次 GUI 或 CI 资源构建都通过 `ConfigureCollectors(config, target)` 刷新当前 profile 与真实 BuildTarget；单个资源判断不重新读取 JSON。PC 诊断资源及 DLL 仅进入 Hub 的 Windows 包；WebGL 排除原生联机公共资源与卡丁车联机页面。
+
+独立游戏的版本目录和 AOT 基线按渠道、GameId、平台隔离。修改卡丁车自己的代码或资源不会进入无人机的 DLL/资源收集集合；修改公共 Core、公共 Hotfix 或共享资源仍可能影响所有消费方。更新平台 SDK、AOT 或公共主包输入时必须重新 Full，不能将另一个游戏的基线用于 Hotfix。具体入口与目录见[热更新模块](../modules/hotfix.md)及[Jenkins 构建模块](../modules/jenkins-build.md)。
+
+Windows 的持久化目录与 PlayerPrefs 还受 productName 影响，不能只区分 ApplicationId。发布配置保留 Hub 的 `SleepyDemos`，独立游戏使用 `SleepyDemos-<GameId>`，因此独立 PC 包使用自己的存档、偏好与默认资源缓存目录，不迁移旧共享目录。TapTap H5 完整网页依赖随平台 ZIP 内置，Pages 只发布当前游戏的 YooAsset 热更资源；H5 基线按 `TapTap/<GameId>/WebGL/H5` 隔离，不消费旧 SDK 小游戏基线或 Player CDN。旧已发布目录保持历史状态，新 H5 使用新的资源版本。
+
 ## 与其它模块的关系
 
 - 启动流程：资源系统在 `ResourceStartupState` 阶段初始化和下载。

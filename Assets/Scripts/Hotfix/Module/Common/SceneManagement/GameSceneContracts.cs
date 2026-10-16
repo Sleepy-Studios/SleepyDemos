@@ -53,18 +53,20 @@ namespace Hotfix.SceneManagement
 
     internal readonly struct GameSceneDefinition
     {
-        internal GameSceneDefinition(GameSceneId id, string displayName, string displayNameKey, string address)
+        internal GameSceneDefinition(GameSceneId id, string displayName, string displayNameKey, string address, string languageCatalogAddress = null)
         {
             Id = id;
             DisplayName = displayName;
             DisplayNameKey = displayNameKey;
             Address = address;
+            LanguageCatalogAddress = languageCatalogAddress;
         }
 
         internal GameSceneId Id { get; }
         internal string DisplayName { get; }
         internal string DisplayNameKey { get; }
         internal string Address { get; }
+        internal string LanguageCatalogAddress { get; }
         internal bool IsHub => Id == GameSceneId.Hub;
     }
 
@@ -72,7 +74,7 @@ namespace Hotfix.SceneManagement
     {
         internal const string DroneFlightAddress =
             "Assets/LoadResources/Demos/drone_flight/Scenes/Main.unity";
-        internal const string DlssAddress = "Assets/LoadResources/Demos/dlss/Scenes/Main.unity";
+        internal const string DlssAddress = "Assets/LoadResources/Diagnostics/DlssLab/Scenes/Main.unity";
 
         internal const string WallSqueezeAddress = "Assets/LoadResources/Demos/wall_squeeze/Scenes/Main.unity";
         internal const string KagitKartAddress = "Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity";
@@ -104,16 +106,18 @@ namespace Hotfix.SceneManagement
                         GameSceneId.DroneFlight,
                         "无人机飞行",
                         "Hub.drone_flight.Title",
-                        DroneFlightAddress);
+                        DroneFlightAddress, "LoadResources/Demos/drone_flight/Data/LanguageCatalog");
                     return true;
                 case GameSceneId.Dlss:
                     definition = new GameSceneDefinition(GameSceneId.Dlss, "DLSS 实验室", "Hub.dlss.Title", DlssAddress);
                     return true;
                 case GameSceneId.WallSqueeze:
-                    definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", "Hub.wall_squeeze.Title", WallSqueezeAddress);
+                    definition = new GameSceneDefinition(GameSceneId.WallSqueeze, "夹爆它", "Hub.wall_squeeze.Title", WallSqueezeAddress,
+                        "LoadResources/Demos/wall_squeeze/Data/LanguageCatalog");
                     return true;
                 case GameSceneId.KagitKart:
-                    definition = new GameSceneDefinition(GameSceneId.KagitKart, "纸艺卡丁车", "Hub.kagit_kart.Title", KagitKartAddress);
+                    definition = new GameSceneDefinition(GameSceneId.KagitKart, "纸艺卡丁车", "Hub.kagit_kart.Title", KagitKartAddress,
+                        "LoadResources/Demos/kagit_kart/Data/LanguageCatalog");
                     return true;
                 default:
                     definition = default;

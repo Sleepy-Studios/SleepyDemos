@@ -185,9 +185,10 @@ namespace Hotfix.Editor
                     throw new InvalidOperationException("独立服务器构建失败：" + report.summary.result);
                 }
                 string data = Path.Combine(output, "KagitKartServer_Data");
-                if (!File.Exists(Path.Combine(data, "Managed/Hotfix.dll")))
+                if (!File.Exists(Path.Combine(data, "Managed/Hotfix.dll")) ||
+                    !File.Exists(Path.Combine(data, "Managed/Hotfix.KagitKart.dll")))
                 {
-                    throw new InvalidOperationException("服务器缺少直接编入的 Hotfix.dll。");
+                    throw new InvalidOperationException("服务器缺少公共或卡丁车规则程序集。");
                 }
                 string streaming = Path.GetFullPath(Path.Combine(data, "StreamingAssets"));
                 if (!streaming.StartsWith(output + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))

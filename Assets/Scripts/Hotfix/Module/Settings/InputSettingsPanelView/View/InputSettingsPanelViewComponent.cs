@@ -7,8 +7,6 @@ namespace Hotfix
     using Core.Runtime;
     using UnityEngine;
     using UnityEngine.UI;
-    using SleepyStudios.LoopScroll;
-    using TMPro;
 
     [Source("LoadResources/UI/Settings/Panels/InputSettingsPanelView")]
     public partial class InputSettingsPanelView
@@ -34,11 +32,6 @@ namespace Hotfix
         private UISettingRow UISettingRow_RumbleStrength;
         private UISettingRow UISettingRow_GamepadInvertY;
         private UISettingRow UISettingRow_RumbleEnabled;
-        private UISettingRow UISettingRow_Host;
-        private UISettingRow UISettingRow_Device;
-        private TextMeshProUGUI TextMeshProUGUI_Binding_feedback;
-        private UISettingRow UISettingRow_CancelRebind;
-        private LoopScrollView LoopScrollView_Bindings;
 
         private ComponentItemIndex componentItemIndex;
 
@@ -60,11 +53,6 @@ namespace Hotfix
             UISettingRow_RumbleStrength = componentItemIndex.Get<UISettingRow>(7);
             UISettingRow_GamepadInvertY = componentItemIndex.Get<UISettingRow>(8);
             UISettingRow_RumbleEnabled = componentItemIndex.Get<UISettingRow>(9);
-            UISettingRow_Host = componentItemIndex.Get<UISettingRow>(10);
-            UISettingRow_Device = componentItemIndex.Get<UISettingRow>(11);
-            TextMeshProUGUI_Binding_feedback = componentItemIndex.Get<TextMeshProUGUI>(12);
-            UISettingRow_CancelRebind = componentItemIndex.Get<UISettingRow>(13);
-            LoopScrollView_Bindings = componentItemIndex.Get<LoopScrollView>(14);
         }
     }
 }

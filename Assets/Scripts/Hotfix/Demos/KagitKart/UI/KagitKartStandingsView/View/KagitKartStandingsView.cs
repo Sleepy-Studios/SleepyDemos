@@ -31,7 +31,7 @@ namespace Hotfix
             foreach (var row in standings) maximum = Mathf.Max(maximum, row.Points);
             for (int i = 0; i < standings.Count; i++)
             {
-                Color body = UIColors.KagitKart.Ink;
+                Color body = KagitKartUIColors.Ink;
                 foreach (var character in owner.Roster)
                 {
                     if (character.id == standings[i].CharacterId) ColorUtility.TryParseHtmlString(character.colors.body, out body);

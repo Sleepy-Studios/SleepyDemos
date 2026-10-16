@@ -16,7 +16,17 @@ namespace Core.Runtime
         public override async UniTask ExecuteAsync()
         {
             Report(0f, "加载公共设置");
-            await GameSettingsService.InitializeAsync();
+            var initialization = GameSettingsService.InitializeAsync();
+            while (initialization.Status == UniTaskStatus.Pending)
+            {
+                string stage = GameSettingsService.InitializationStage;
+                if (stage != null && stage != Description)
+                {
+                    Report(0f, stage);
+                }
+                await UniTask.Yield();
+            }
+            await initialization;
             Report(1f, "公共设置就绪");
         }
     }

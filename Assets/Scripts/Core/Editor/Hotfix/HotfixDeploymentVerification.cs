@@ -55,8 +55,14 @@ namespace Core.Editor.Hotfix
             }
         }
 
-        internal static async Task<DownloadRecord[]> VerifyAsync(string source, string package, string serverUrl,
+        internal static Task<DownloadRecord[]> VerifyAsync(string source, string package, string serverUrl,
             Func<string, bool> includeFile = null, CancellationToken cancellationToken = default)
+        {
+            return VerifyFilesAsync(source, GitHubPagesDeployment.GetSourceFiles(source, package), serverUrl, includeFile, cancellationToken);
+        }
+
+        private static async Task<DownloadRecord[]> VerifyFilesAsync(string source, string[] files, string serverUrl,
+            Func<string, bool> includeFile, CancellationToken cancellationToken)
         {
             if (!Uri.TryCreate(serverUrl, UriKind.Absolute, out Uri site) ||
                 (site.Scheme != Uri.UriSchemeHttps && site.Scheme != Uri.UriSchemeHttp) ||
@@ -70,7 +76,7 @@ namespace Core.Editor.Hotfix
             budget.CancelAfter(TimeSpan.FromMinutes(20));
             CancellationToken token = budget.Token;
             using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
-            foreach (string file in GitHubPagesDeployment.GetSourceFiles(source, package))
+            foreach (string file in files)
             {
                 token.ThrowIfCancellationRequested();
                 if (includeFile != null && !includeFile(file))
@@ -78,10 +84,12 @@ namespace Core.Editor.Hotfix
                     continue;
                 }
                 string expected = HashFile(file);
+                string relative = Path.GetRelativePath(source, file).Replace('\\', '/');
+                string escaped = string.Join("/", relative.Split('/').Select(Uri.EscapeDataString));
                 bool matched = false;
                 for (int attempt = 0; attempt < 4; attempt++)
                 {
-                    using var response = await client.GetAsync(serverUrl.TrimEnd('/') + "/" + Uri.EscapeDataString(Path.GetFileName(file)) +
+                    using var response = await client.GetAsync(serverUrl.TrimEnd('/') + "/" + escaped +
                         "?verification=" + Guid.NewGuid().ToString("N"), HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
                     using var cancelResponse = token.Register(response.Dispose);
                     if (response.IsSuccessStatusCode)
@@ -99,7 +107,7 @@ namespace Core.Editor.Hotfix
                         string actual = BitConverter.ToString(sha.Hash).Replace("-", "").ToLowerInvariant();
                         if (actual == expected)
                         {
-                            records.Add(new DownloadRecord { File = Path.GetFileName(file), Sha256 = actual, Bytes = new FileInfo(file).Length });
+                            records.Add(new DownloadRecord { File = relative, Sha256 = actual, Bytes = new FileInfo(file).Length });
                             matched = true;
                             break;
                         }
@@ -108,7 +116,7 @@ namespace Core.Editor.Hotfix
                 }
                 if (!matched)
                 {
-                    throw new InvalidOperationException("远端下载 SHA256 不匹配：" + Path.GetFileName(file));
+                    throw new InvalidOperationException("远端下载 SHA256 不匹配：" + relative);
                 }
             }
             token.ThrowIfCancellationRequested();

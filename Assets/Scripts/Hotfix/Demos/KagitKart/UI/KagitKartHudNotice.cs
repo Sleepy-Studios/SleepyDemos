@@ -33,11 +33,11 @@ namespace Hotfix.KagitKart
         [SerializeField] private RectTransform threatEndCap;
         [SerializeField] private KagitKartItemSlot itemSlot;
 
-        private static readonly Color Ink = UIColors.KagitKart.Ink;
-        private static readonly Color Paper = UIColors.KagitKart.Paper;
-        private static readonly Color Red = UIColors.KagitKart.Accent;
-        private static readonly Color Blue = UIColors.KagitKart.Blue;
-        private static readonly Color Mustard = UIColors.KagitKart.Mustard;
+        private static readonly Color Ink = KagitKartUIColors.Ink;
+        private static readonly Color Paper = KagitKartUIColors.Paper;
+        private static readonly Color Red = KagitKartUIColors.Accent;
+        private static readonly Color Blue = KagitKartUIColors.Blue;
+        private static readonly Color Mustard = KagitKartUIColors.Mustard;
         private readonly List<Notice> notices = new();
         private KagitKartWorld world;
         private KagitKartSession session;
@@ -397,7 +397,7 @@ namespace Hotfix.KagitKart
         {
             shownPlace = value;
             placeText.text = value + ".";
-            placeText.color = value == 1 ? UIColors.KagitKart.FirstPlace : value == 2 ? UIColors.KagitKart.SecondPlace : value == 3 ? UIColors.KagitKart.ThirdPlace : Ink;
+            placeText.color = value == 1 ? KagitKartUIColors.FirstPlace : value == 2 ? KagitKartUIColors.SecondPlace : value == 3 ? KagitKartUIColors.ThirdPlace : Ink;
             placeStamped = stamp && !world.ReducedMotion;
             if (stamp && !world.ReducedMotion)
             {
@@ -566,7 +566,7 @@ namespace Hotfix.KagitKart
                 nearWall = 0;
             }
             nearWall += wallDt;
-            threatDisc.color = near ? UIColors.KagitKart.NearThreat : Paper;
+            threatDisc.color = near ? KagitKartUIColors.NearThreat : Paper;
             threat.localScale = Vector3.one * (reduced || !near ? 1 : 1 + 0.12f * Alternate(nearWall / 0.25f));
         }
 

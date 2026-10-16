@@ -3,6 +3,7 @@ namespace Hotfix
     using Core.Runtime;
     using System;
     using Hotfix.KagitKart;
+    using Hotfix.SceneManagement;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.UI;
@@ -20,6 +21,7 @@ namespace Hotfix
 
         protected override void OnGameObjectInitialize()
         {
+            Button_Hub.transform.parent.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             choices = new[] { Button_Character0, Button_Character1, Button_Character2, Button_Character3,
                 Button_Character4, Button_Character5, Button_Character6, Button_Character7 };
             cards = new[] { KagitKartChoiceCard_Character0, KagitKartChoiceCard_Character1, KagitKartChoiceCard_Character2, KagitKartChoiceCard_Character3,
@@ -100,7 +102,7 @@ namespace Hotfix
                 int count = Mathf.Clamp(Mathf.FloorToInt(values[row] + 0.5f), 0, 5);
                 for (int k = 0; k < ticks[row].Length; k++)
                 {
-                    ticks[row][k].color = k < count ? UIColors.KagitKart.StatFilled : UIColors.KagitKart.StatEmpty;
+                    ticks[row][k].color = k < count ? KagitKartUIColors.StatFilled : KagitKartUIColors.StatEmpty;
                 }
             }
             foreach (var choice in choices)

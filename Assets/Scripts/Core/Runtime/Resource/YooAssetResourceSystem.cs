@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Networking;
 using YooAsset;
 
 namespace Core.Runtime
@@ -58,6 +59,8 @@ namespace Core.Runtime
         {
             switch (playMode)
             {
+                case ResourcePlayMode.WebPlayMode:
+                    return EPlayMode.WebPlayMode;
                 case ResourcePlayMode.HostPlayMode:
                     return EPlayMode.HostPlayMode;
                 case ResourcePlayMode.OfflinePlayMode:
@@ -188,6 +191,25 @@ namespace Core.Runtime
         {
             switch (playMode)
             {
+                case EPlayMode.WebPlayMode:
+                    var webOptions = new WebPlayModeOptions
+                    {
+                        WebServerFileSystemParameters = FileSystemParameters.CreateDefaultWebServerFileSystemParameters(),
+                        WebNetworkFileSystemParameters = string.IsNullOrWhiteSpace(hostServerURL) ? null
+                            : FileSystemParameters.CreateDefaultWebNetworkFileSystemParameters(new RemoteService(hostServerURL, hostServerURL))
+                    };
+                    foreach (var fileSystem in new[] { webOptions.WebServerFileSystemParameters, webOptions.WebNetworkFileSystemParameters })
+                    {
+                        if (fileSystem == null)
+                        {
+                            continue;
+                        }
+                        fileSystem.AddParameter(EFileSystemParameter.UnityWebRequestCreator,
+                            new UnityWebRequestCreator((url, method) => new UnityWebRequest(url, method) { timeout = 120 }));
+                        // Web 加载默认无限重试；失败交给启动或页面处理，不能让一次 await 永远不返回。
+                        fileSystem.AddParameter(EFileSystemParameter.DownloadRetryPolicy, new WebLoadRetryPolicy());
+                    }
+                    return webOptions;
                 case EPlayMode.EditorSimulateMode:
 #if UNITY_EDITOR
                     var buildResult = EditorSimulateBuildInvoker.Build(package.PackageName, (int)EBundleType.VirtualAssetBundle);
@@ -227,6 +249,13 @@ namespace Core.Runtime
             }
 
             return location.Replace('\\', '/');
+        }
+
+        private sealed class WebLoadRetryPolicy : IDownloadRetryPolicy
+        {
+            public bool IsRetryableError(string url, long httpCode, string httpError) => false;
+
+            public float CalculateRetryDelay(int retryCount, float previousDelay) => 0f;
         }
 
         private sealed class RemoteService : IRemoteService
