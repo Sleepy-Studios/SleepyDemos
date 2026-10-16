@@ -157,7 +157,7 @@ SSH 配置 Host/User/Port/RootPath/BaseUrl/HostKeySha256；机器配置中的 Ro
 ## 双任务迁移验收（2026-10-16）
 
 - 本机 Jenkins 2.580.1 已启用 Git Parameter `462.463.v496a_59f698e5` 及依赖，插件 SHA256 进入仓库外插件锁。两个任务首次零次构建时即显示 Full 13 项、Hotfix 7 项参数，远端分支列表读取无错误；两份 Declarative linter 通过。
-- `SleepyDemos-Full`、`SleepyDemos-Hotfix` 已启用，旧 Build/TapTap 任务停用且历史保留。当前任务 SCM 使用 `codex/jenkins-full-hotfix` 的两份流水线，游戏 SourceRef 默认仍为 main；PR 合并后再将任务 SCM 切回 main。
+- `SleepyDemos-Full`、`SleepyDemos-Hotfix` 已启用，旧 Build/TapTap 任务停用且历史保留。PR #2 已合入 main，两项任务保存的 SCM 已从实施分支切回 main，游戏 SourceRef 默认同为 main。修改配置时 Jenkins 处于手动停止状态，未启动服务或触发构建；下次手动启动后读取新配置，原配置备份位于 `E:\Jenkins\backups\jenkins-main-after-pr2-20261016`。
 - Android 下限由旧 current 与 #39 归档请求交叉核对为 38，已写持久登记。原 PC/Android current 共 432 文件保持一致；Full05 手工 H5 基线 209 文件复制到 Jenkins current 后逐项核对，旧目录保留。既有 TapTap CI 克隆改用正式远端并登记归属，Library 未重建。迁移备份与校验记录：`E:\Jenkins\backups\full-hotfix-20261016`。
 - 真实 Jenkins 拒绝路径：Full #1 拒绝 TapTapH5 + hub，#2 拒绝 Android versionCode=38；Hotfix #1 拒绝缺基线，#2 拒绝 TapTapH5 + Ssh，#3 成功读取旧 Hub 基线并继承 OnlineDownload / false / 0.1.0 后拒绝短 SHA。五次均为预期 FAILURE，已在任务描述标记；每次归档 4 项内容的 HTTP 大小/SHA256 通过，运行现场正常清理。Full #2 实际 fetch 指定完整 SHA，优先于 SourceRef。
 - PS5.1 定向验证版本递增/回退拒绝，以及 Finalize/归档四种成功组合；未完成归档的三种组合保留现场，双成功才清理。源码、配置子模块与 runner 漂移拒绝另有隔离验证；一次性验证文件已清理。
