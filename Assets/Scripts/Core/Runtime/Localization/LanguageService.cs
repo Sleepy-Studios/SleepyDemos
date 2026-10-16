@@ -12,6 +12,7 @@ namespace Core.Runtime.Localization
         private static Dictionary<string, LanguageCatalog.Entry> texts;
         private static Dictionary<int, Dictionary<string, FontMappingCatalog.Entry>> fonts;
         private static IReadOnlyList<LanguageCatalog.LanguageDefinition> languages;
+        private static Dictionary<LanguageCatalog, CatalogRegistration> catalogs = new();
 
         public static string CurrentLanguage { get; private set; }
         public static bool IsInitialized => texts != null;
@@ -72,6 +73,38 @@ namespace Core.Runtime.Localization
             fonts = nextFonts;
             languages = catalog.Languages;
             CurrentLanguage = language;
+            catalogs = new Dictionary<LanguageCatalog, CatalogRegistration>();
+        }
+
+        /// <summary>在场景作用域内追加词表；同一词表重叠注册，最后一个句柄释放时移除词条。</summary>
+        /// <param name="catalog">使用现有公共字体映射的词表，键不得与其它已加载词表重复。</param>
+        /// <returns>幂等释放的注册句柄；重新初始化后旧句柄不影响新状态。</returns>
+        public static IDisposable RegisterCatalog(LanguageCatalog catalog)
+        {
+            EnsureInitialized();
+            if (catalog == null)
+            {
+                throw new ArgumentNullException(nameof(catalog));
+            }
+            if (catalogs.TryGetValue(catalog, out var registration))
+            {
+                registration.Count++;
+                return new CatalogLease(catalogs, catalog, registration);
+            }
+
+            catalog.Validate();
+            var entries = catalog.Entries;
+            var nextTexts = new Dictionary<string, LanguageCatalog.Entry>(texts, StringComparer.Ordinal);
+            foreach (var entry in entries)
+            {
+                RequireFont(fonts, entry.FontId);
+                nextTexts.Add(entry.Key, entry);
+            }
+
+            registration = new CatalogRegistration(entries);
+            catalogs.Add(catalog, registration);
+            texts = nextTexts;
+            return new CatalogLease(catalogs, catalog, registration);
         }
 
         /// <summary>拒绝当前未制作的语言，不改变已选择状态。</summary>
@@ -174,6 +207,47 @@ namespace Core.Runtime.Localization
             }
         }
 
+        private sealed class CatalogRegistration
+        {
+            public readonly IReadOnlyList<LanguageCatalog.Entry> Entries;
+            public int Count = 1;
+
+            public CatalogRegistration(IReadOnlyList<LanguageCatalog.Entry> entries)
+            {
+                Entries = entries;
+            }
+        }
+
+        private sealed class CatalogLease : IDisposable
+        {
+            private readonly Dictionary<LanguageCatalog, CatalogRegistration> owner;
+            private readonly LanguageCatalog catalog;
+            private CatalogRegistration registration;
+
+            public CatalogLease(Dictionary<LanguageCatalog, CatalogRegistration> owner,
+                LanguageCatalog catalog, CatalogRegistration registration)
+            {
+                this.owner = owner;
+                this.catalog = catalog;
+                this.registration = registration;
+            }
+
+            public void Dispose()
+            {
+                var current = registration;
+                registration = null;
+                if (current == null || !ReferenceEquals(owner, catalogs) || --current.Count != 0)
+                {
+                    return;
+                }
+                foreach (var entry in current.Entries)
+                {
+                    texts.Remove(entry.Key);
+                }
+                owner.Remove(catalog);
+            }
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Reset()
         {
@@ -181,6 +255,7 @@ namespace Core.Runtime.Localization
             fonts = null;
             CurrentLanguage = null;
             languages = null;
+            catalogs = new Dictionary<LanguageCatalog, CatalogRegistration>();
         }
     }
 }

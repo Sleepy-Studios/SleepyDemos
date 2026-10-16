@@ -14,6 +14,13 @@
   "AgentSecretFile": "E:\\Jenkins\\secrets\\agent-secret.txt",
   "JenkinsApiAuthFile": "E:\\Jenkins\\secrets\\api-auth.json",
   "DailyProjectPath": "D:\\Unity\\Unity_Project\\SleepyDemos",
+  "TapTap": {
+    "Apps": {
+      "kagit_kart": {
+        "AppId": "971575"
+      }
+    }
+  },
   "Pages": {
     "Repository": "https://github.com/H-Bole/H-Bole.io.git",
     "Branch": "main",

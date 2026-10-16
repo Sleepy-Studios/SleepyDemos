@@ -41,6 +41,10 @@
 
 初始化或必需资源下载失败时，资源阶段报告失败并抛出异常，停止后续 AOT 元数据、Hotfix 和业务入口。启动加载界面保留失败说明，不将失败报告成完成；恢复网络后重新启动应用重试。
 
+所有启动状态的异常均保留当前实际进度，显示“启动失败”、当前步骤及异常原因，再向上传递。Web 文件系统为 UnityWebRequest 设置120秒超时，加载失败不自动无限重试；由启动或页面报告失败，恢复网络后重新进入。该限制不改变原生 Host 模式，也不能替代 Unity 资源解码或浏览器缓存实现的实机验证。Web 默认没有预下载策略时，下载阶段结束不代表资源已下载，真正加载仍发生在各资源使用点。
+
+TapTap H5 构建显式开启 `PlayerSettings.runInBackground`，避免宿主失焦时 Unity 暂停 PlayerLoop，使资源 await、失败反馈也无法推进。玩法、输入和音频仍由 `TapTapPlatform` 与已有暂停状态处理；该选项不能阻止浏览器冻结真正的后台页面。
+
 ### 阶段 3：BeforeHotfix
 
 职责：
@@ -57,6 +61,8 @@
 - `HotfixAssemblySystem`
 - `RuntimeServiceRegisterSystem`
 - `HotfixEntrySystem`
+
+公共设置等待期间根据 `GameSettingsService.InitializationStage` 展示配置与字体资源、本机偏好、语言映射、画质音量等实际步骤；仅在步骤改变时刷新，进度不按时间伪造。相同步骤写入 `[Startup] settings:` 日志，初始化失败保留最后一步用于定位。
 
 `RuntimeServiceRegisterSystem` 注册 `StreamlineRuntime`，不再由某个 Demo 管理 DLSS 生命周期。全局设置默认关闭；用户曾保存启用档位时，公共主相机绑定后应用。Hub、Demo 和已有 Editor 直启共用同一渲染服务与公共画质设置。
 

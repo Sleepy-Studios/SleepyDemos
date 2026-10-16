@@ -4,57 +4,58 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using Core.Runtime;
 using Core.Runtime.Settings;
 
 namespace Hotfix.KagitKart
 {
-    /// 原作 audio.js 的事件桥接；所有声音随场景释放，不建立全局音频框架。
+    /// 比赛事件与原生音源桥接；所有平台共用采样、变调和交叉淡化。
     public sealed class KagitKartAudio : MonoBehaviour
     {
+        private static readonly Dictionary<AudioClip, int> musicOwners = new();
         private readonly Dictionary<string, double> lastPlayed = new();
         private readonly Dictionary<string, AudioClip> effectClips = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> worldBuckets = new(StringComparer.Ordinal);
+        private readonly Dictionary<AudioClip, AsyncLazy> loading = new();
+        private readonly Dictionary<AudioClip, string> ownedMusic = new();
+        private readonly Dictionary<string, int> pendingMusic = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, AudioClip> musicClips = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, AsyncLazy<AudioClip>> musicLoads = new(StringComparer.Ordinal);
+        private readonly List<AudioClip> unusedMusic = new();
+        private readonly CancellationTokenSource lifetime = new();
         private readonly double[] wallAt = new double[8];
         private readonly double[] bumpSeen = new double[64];
         private readonly double[] bumpPlayed = new double[64];
         private readonly int[] previousPlace = new int[8];
-        private readonly KagitKartAudioDsp.Voice[] effects = new KagitKartAudioDsp.Voice[28];
+        private readonly AudioSource[] effects = new AudioSource[28];
         private readonly double[] ends = new double[28];
         private readonly float[] effectGains = new float[28];
         private readonly bool[] effectMusic = new bool[28];
         private readonly bool[] effectUi = new bool[28];
-        private float globalMusic = 1;
-        private float globalEffects = 1;
-        private float globalUi = 1;
-        private KagitKartEngineSynth engine;
-        private readonly bool[] cpuFresh = new bool[3];
+        private readonly AudioSource[] music = new AudioSource[4];
+        private readonly AudioSource[] engines = new AudioSource[6];
         private readonly KagitKartVehicle[] cpuKart = new KagitKartVehicle[3];
         private readonly float[] cpuDistance = new float[3];
         private readonly KagitKartVehicle[] nearest = new KagitKartVehicle[3];
-        private readonly KagitKartAudioDsp.Voice[] music = new KagitKartAudioDsp.Voice[4];
         private readonly double[] pairStart = new double[2];
-        private readonly double[] pairLoopStart = new double[2];
         private readonly double[] pairEnd = { double.PositiveInfinity, double.PositiveInfinity };
         private readonly float[] pairFade = new float[2];
         private readonly float[] pairOutFade = new float[2];
-        private readonly float[] pairStingDuck = { 1, 1 };
-        private readonly double[] pairDuckStart = new double[2];
         private int musicPair;
+        private int musicGeneration;
         private KagitKartAudioBank bank;
-        private KagitKartAudioDsp dsp;
-        private float[] white;
-        private float[] crackle;
-        private readonly System.Random audioRandom = new();
+        private IResourceLoader musicLoader;
         private KagitKartSession session;
         private Camera listener;
         private string chapter;
         private string musicKey;
-        private string preparedChapter;
-        private string preparingChapter;
-        private int preparationGeneration;
-        private UniTask preparationTask;
-        private readonly SemaphoreSlim preparationGate = new(1, 1);
+        private string warmMusicKey;
+        private AudioClip warmStart;
+        private AudioClip warmLoop;
         private double musicStart;
+        private float globalMusic = 1;
+        private float globalEffects = 1;
+        private float globalUi = 1;
         private float musicVolume = 0.7f;
         private float sfxVolume = 0.9f;
         private float duck = 1;
@@ -72,9 +73,6 @@ namespace Hotfix.KagitKart
         private float popupSize;
         private double nextPopup;
 
-        /// 当前场已预备的托管 PCM 字节数；不包含短音效、噪声与加速缓冲。
-        public long PreparedPcmBytes => dsp != null ? dsp.PreparedPcmBytes : 0;
-
         private void OnEnable()
         {
             AudioSettingsRuntime.Changed += RefreshGlobalVolumes;
@@ -84,6 +82,8 @@ namespace Hotfix.KagitKart
         private void OnDisable()
         {
             AudioSettingsRuntime.Changed -= RefreshGlobalVolumes;
+            ++musicGeneration;
+            StopSources();
         }
 
         private void RefreshGlobalVolumes()
@@ -93,10 +93,11 @@ namespace Hotfix.KagitKart
             globalUi = AudioSettingsRuntime.GetGain(AudioBus.Ui);
         }
 
-        /// <summary>借用 Loader 持有的原作音频 Bank 和摄像机，初始化一次。</summary>
-        /// <param name="asset">固定原作提交导出的音频资产；由宿主保持加载句柄。</param>
-        /// <param name="camera">计算源坐标事件的距离与声像，不修改其 AudioListener。</param>
-        public void Initialize(KagitKartAudioBank asset, Camera camera)
+        /// <summary>准备原作短音效、引擎采样和标题曲；由宿主 Loader 保持 Bank 句柄。</summary>
+        /// <param name="asset">正式采样 Bank，不在运行时复制 PCM。</param>
+        /// <param name="camera">距离与声像参考相机，不修改 AudioListener。</param>
+        /// <param name="cancellationToken">宿主准备等待；销毁时结束所有音频请求。</param>
+        public async UniTask InitializeAsync(KagitKartAudioBank asset, Camera camera, CancellationToken cancellationToken)
         {
             if (bank != null)
             {
@@ -104,11 +105,7 @@ namespace Hotfix.KagitKart
             }
             bank = asset != null ? asset : throw new ArgumentNullException(nameof(asset));
             listener = camera != null ? camera : throw new ArgumentNullException(nameof(camera));
-            dsp = gameObject.AddComponent<KagitKartAudioDsp>();
-            dsp.Initialize();
-            dsp.PrepareEffects(bank.Clips);
-            white = ReadNoise("bank_white");
-            crackle = ReadNoise("bank_crackle");
+            musicLoader = ResourceServices.CreateLoader();
             bank.CopyEffectsTo(effectClips);
             foreach (string name in effectClips.Keys)
             {
@@ -118,24 +115,213 @@ namespace Hotfix.KagitKart
             worldBuckets.Add("tier", "tier:world");
             for (int i = 0; i < effects.Length; i++)
             {
-                effects[i] = dsp.CreateVoice();
-                effects[i].PrepareBoost();
+                effects[i] = CreateSource("Effect" + i, false, 80);
             }
             for (int i = 0; i < music.Length; i++)
             {
-                music[i] = dsp.CreateVoice();
-                var filter = music[i];
-                filter.FilterEnabled = true;
-                filter.Cutoff = 20000;
+                music[i] = CreateSource("Music" + i, false, 0);
             }
-            engine = new KagitKartEngineSynth(AudioSettings.outputSampleRate, white, ReadNoise("bank_pink"), bank.GetClip("bank_white").frequency);
-            dsp.Engine = engine;
-            PlayMenu();
+            for (int i = 0; i < engines.Length; i++)
+            {
+                engines[i] = CreateSource("Engine" + i, true, i < 3 ? 32 : 120);
+                engines[i].clip = bank.GetClip(i == 0 ? "engineIdle" : i == 2 ? "engineDrift" : "engineDrive");
+            }
+            foreach (var clip in bank.Clips)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (clip.name.StartsWith("Sfx_", StringComparison.Ordinal) || clip.name.StartsWith("Sting_", StringComparison.Ordinal)
+                    || clip.name.StartsWith("Engine", StringComparison.Ordinal))
+                {
+                    await LoadClipAsync(clip).AttachExternalCancellation(cancellationToken);
+                }
+            }
+            await PrepareMusicAsync("title").AttachExternalCancellation(cancellationToken);
             initialized = true;
+            PlayMenu();
         }
 
-        /// <summary>订阅比赛、道具、赛车和暂停事件；绑定前取消上一场订阅。</summary>
-        /// <param name="value">已组装且尚未开始倒计时的比赛；不得为 null。</param>
+        private AudioSource CreateSource(string name, bool loop, int priority)
+        {
+            var child = new GameObject(name);
+            child.transform.SetParent(transform, false);
+            var source = child.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = loop;
+            source.spatialBlend = 0;
+            source.dopplerLevel = 0;
+            source.ignoreListenerPause = true;
+            source.priority = priority;
+            source.volume = 0;
+            return source;
+        }
+
+        private UniTask LoadClipAsync(AudioClip clip)
+        {
+            if (clip.loadState == AudioDataLoadState.Loaded)
+            {
+                return UniTask.CompletedTask;
+            }
+            if (!loading.TryGetValue(clip, out var pending))
+            {
+                pending = new AsyncLazy(() => LoadClipDataAsync(clip));
+                loading.Add(clip, pending);
+            }
+            return pending.Task;
+        }
+
+        private async UniTask LoadClipDataAsync(AudioClip clip)
+        {
+            var token = lifetime.Token;
+            try
+            {
+#if !UNITY_WEBGL || UNITY_EDITOR
+                if (!clip.LoadAudioData() && clip.loadState != AudioDataLoadState.Loading)
+                {
+                    throw new InvalidOperationException("音频加载失败：" + clip.name);
+                }
+#endif
+                // Web 导入开启预加载，资源加载触发浏览器解码；未发起加载直接失败，避免永久等待。
+                while (clip != null && clip.loadState == AudioDataLoadState.Loading)
+                {
+                    await UniTask.NextFrame(PlayerLoopTiming.Update, token);
+                }
+                token.ThrowIfCancellationRequested();
+                if (clip == null || clip.loadState != AudioDataLoadState.Loaded)
+                {
+                    throw new InvalidOperationException("音频未完成加载；Web 音频须启用 WebGL 预加载覆盖。");
+                }
+            }
+            finally
+            {
+                loading.Remove(clip);
+            }
+        }
+
+        /// <summary>只准备所选章节的开场曲；后续音乐随比赛阶段预热，不整章常驻。</summary>
+        /// <param name="chapterId">有效章节标识。</param>
+        /// <param name="cancellationToken">取消当前等待，不取消仍被其他请求使用的加载。</param>
+        public UniTask PrepareRaceAudioAsync(string chapterId, CancellationToken cancellationToken)
+        {
+            KagitKartCatalog.TrackName(chapterId);
+            SetWarmMusic("intro_" + chapterId);
+            return PrepareMusicAsync(warmMusicKey).AttachExternalCancellation(cancellationToken);
+        }
+
+        private async UniTask PrepareMusicAsync(string key)
+        {
+            lifetime.Token.ThrowIfCancellationRequested();
+            pendingMusic.TryGetValue(key, out int pending);
+            pendingMusic[key] = pending + 1;
+            try
+            {
+                await LoadMusicClipAsync("music_" + key + "_start");
+                await LoadMusicClipAsync("music_" + key + "_loop");
+                if (warmMusicKey == key)
+                {
+                    warmStart = musicClips["music_" + key + "_start"];
+                    warmLoop = musicClips["music_" + key + "_loop"];
+                }
+            }
+            finally
+            {
+                int remaining = pendingMusic[key] - 1;
+                if (remaining == 0)
+                {
+                    pendingMusic.Remove(key);
+                }
+                else
+                {
+                    pendingMusic[key] = remaining;
+                }
+            }
+        }
+
+        private UniTask<AudioClip> LoadMusicClipAsync(string name)
+        {
+            if (musicClips.TryGetValue(name, out var clip))
+            {
+                return UniTask.FromResult(clip);
+            }
+            if (!musicLoads.TryGetValue(name, out var pending))
+            {
+                pending = new AsyncLazy<AudioClip>(() => LoadMusicAssetAsync(name));
+                musicLoads.Add(name, pending);
+            }
+            return pending.Task;
+        }
+
+        private async UniTask<AudioClip> LoadMusicAssetAsync(string name)
+        {
+            var token = lifetime.Token;
+            AudioClip clip = null;
+            bool retained = false;
+            try
+            {
+                clip = await musicLoader.LoadAssetAsync<AudioClip>(bank.GetMusicAddress(name));
+                token.ThrowIfCancellationRequested();
+                if (clip == null)
+                {
+                    throw new InvalidOperationException("音乐资源加载失败：" + name);
+                }
+                // 在数据加载前持有共享 Clip，防止重叠宿主释放其他实例仍需使用的数据。
+                RetainMusic(name, clip);
+                retained = true;
+                await LoadClipAsync(clip);
+                token.ThrowIfCancellationRequested();
+                musicClips.Add(name, clip);
+                return clip;
+            }
+            catch
+            {
+                if (retained)
+                {
+                    ReleaseMusic(clip);
+                }
+                else if (clip != null)
+                {
+                    musicLoader.ReleaseAsset(clip);
+                }
+                throw;
+            }
+            finally
+            {
+                musicLoads.Remove(name);
+            }
+        }
+
+        private void WarmMusic(string key)
+        {
+            SetWarmMusic(key);
+            WarmMusicAsync(key).Forget();
+        }
+
+        private void SetWarmMusic(string key)
+        {
+            warmMusicKey = key;
+            warmStart = warmLoop = null;
+        }
+
+        private async UniTask WarmMusicAsync(string key)
+        {
+            try
+            {
+                await PrepareMusicAsync(key);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning("音乐预热失败，播放时将重试：" + exception.Message, this);
+            }
+            finally
+            {
+                ReleaseUnusedMusic();
+            }
+        }
+
+        /// <summary>绑定本场规则事件，取消上一场订阅。</summary>
+        /// <param name="value">已组装且尚未开始倒计时的比赛。</param>
         public void Bind(KagitKartSession value)
         {
             Unbind();
@@ -159,7 +345,7 @@ namespace Hotfix.KagitKart
             OnPause();
         }
 
-        /// 取消本场事件并停止比赛持续声音；宿主随后可打开菜单音乐。
+        /// 退订本场事件并停止持续引擎与音效，音乐由下一次播放请求接管。
         public void Unbind()
         {
             if (session != null)
@@ -168,21 +354,18 @@ namespace Hotfix.KagitKart
                 session.Items.Signaled -= OnItem;
                 session.Collisions.Bumped -= OnBump;
                 session.Pause.Changed -= OnPause;
-                for (int kartIndex = 0; kartIndex < session.Karts.Count; kartIndex++)
+                foreach (var kart in session.Karts)
                 {
-                    var kart = session.Karts[kartIndex];
                     kart.Signaled -= OnVehicle;
                 }
             }
             session = null;
-            intro = false;
-            paused = false;
+            intro = paused = false;
             rouletteTime = 0;
             popupCount = 0;
             popupSize = 0;
             popupSum = Vector3.zero;
             lastPlayed.Clear();
-            engine?.Silence();
             foreach (var source in effects)
             {
                 if (source != null)
@@ -190,124 +373,33 @@ namespace Hotfix.KagitKart
                     source.Stop();
                 }
             }
+            foreach (var source in engines)
+            {
+                if (source != null)
+                {
+                    source.Stop();
+                    source.volume = 0;
+                }
+            }
             Array.Clear(ends, 0, ends.Length);
             Array.Clear(cpuKart, 0, cpuKart.Length);
         }
 
-        /// <summary>播放原作标题八音盒或大奖赛领奖音乐，重复调用不会重新起曲。</summary>
-        /// <param name="podium">true 为大奖赛领奖；默认 false 为标题及选择页面。</param>
-        public void PlayMenu(bool podium = false)
-        {
-            PlayMusic(podium ? "podium" : "title", podium ? 0 : 0.4f, podium ? AudioSettings.dspTime + 0.1 : 0);
-        }
+        /// <summary>播放标题或大奖赛领奖音乐，重复请求不重播。</summary>
+        /// <param name="podium">true 为大奖赛领奖，默认标题曲。</param>
+        public void PlayMenu(bool podium = false) => PlayMusic(podium ? "podium" : "title", 0.4f);
 
-        /// <summary>逐帧准备当前章节及结算 PCM；同章共用缓存，换章保留公共曲并解除旧章预留。</summary>
-        /// <param name="chapterId">meadow、bosphorus、glacier 或 desk；应在 Bind 和 PlayIntro 前调用。</param>
-        /// <param name="cancellationToken">场景生命周期令牌；取消解除当前准备的 PCM 预留，已有播放继续持有其样本。</param>
-        /// <returns>当前章节开场、比赛、末圈、完赛短曲、结算与领奖音乐全部可播放后完成；被换章替代的等待取消。</returns>
-        public UniTask PrepareRaceAudioAsync(string chapterId, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!initialized)
-            {
-                throw new InvalidOperationException("音频尚未初始化。");
-            }
-            KagitKartCatalog.TrackName(chapterId);
-            if (preparedChapter == chapterId && preparingChapter == null)
-            {
-                return UniTask.CompletedTask;
-            }
-            if (preparingChapter == chapterId)
-            {
-                return preparationTask.AttachExternalCancellation(cancellationToken);
-            }
-            int generation = ++preparationGeneration;
-            preparingChapter = chapterId;
-            preparationTask = PrepareChapterAudioAsync(chapterId, generation, cancellationToken).ToAsyncLazy().Task;
-            return preparationTask;
-        }
-
-        private async UniTask PrepareChapterAudioAsync(string chapterId, int generation, CancellationToken cancellationToken)
-        {
-            bool acquired = false;
-            try
-            {
-                await preparationGate.WaitAsync(cancellationToken);
-                acquired = true;
-                if (generation != preparationGeneration)
-                {
-                    throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
-                }
-                preparedChapter = null;
-                var clips = new[]
-                {
-                    bank.GetClip("music_intro_" + chapterId + "_start"),
-                    bank.GetClip("music_intro_" + chapterId + "_loop"),
-                    bank.GetClip("music_" + chapterId + "_start"),
-                    bank.GetClip("music_" + chapterId + "_loop"),
-                    bank.GetClip("music_final_" + chapterId + "_start"),
-                    bank.GetClip("music_final_" + chapterId + "_loop"),
-                    bank.GetClip("sting_finalLap_" + chapterId),
-                    bank.GetClip("sting_finishWin"),
-                    bank.GetClip("sting_finishGood"),
-                    bank.GetClip("sting_finishOk"),
-                    bank.GetClip("music_results_start"),
-                    bank.GetClip("music_results_loop"),
-                    bank.GetClip("music_podium_start"),
-                    bank.GetClip("music_podium_loop")
-                };
-                dsp.ClearPreparedClips(clips);
-                Func<bool> isCurrent = () => generation == preparationGeneration;
-                foreach (var clip in clips)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (generation != preparationGeneration)
-                    {
-                        throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
-                    }
-                    await dsp.PrepareRaceClipAsync(clip, cancellationToken, isCurrent);
-                    await UniTask.NextFrame(PlayerLoopTiming.Update, cancellationToken);
-                }
-                if (generation == preparationGeneration)
-                {
-                    preparedChapter = chapterId;
-                }
-                else
-                {
-                    throw new OperationCanceledException("章节音频准备已被新的选择替代。", cancellationToken);
-                }
-            }
-            catch
-            {
-                if (acquired)
-                {
-                    dsp.ClearPreparedClips();
-                }
-                throw;
-            }
-            finally
-            {
-                if (generation == preparationGeneration)
-                {
-                    preparingChapter = null;
-                }
-                if (acquired)
-                {
-                    preparationGate.Release();
-                }
-            }
-        }
-
-        /// <summary>播放对应章节的原作开场段落。</summary>
-        /// <param name="chapterId">meadow、bosphorus、glacier 或 desk。</param>
+        /// <summary>播放章节开场，并提前准备比赛曲。</summary>
+        /// <param name="chapterId">有效章节标识。</param>
         public void PlayIntro(string chapterId)
         {
             intro = true;
             chapter = chapterId;
             PlayMusic("intro_" + chapterId, 0.8f);
+            WarmMusic(chapterId);
         }
 
-        /// 赛前镜头结束后启用引擎，并播放原作倒计时的第一声。
+        /// 结束赛前演出，启用引擎并播放第一声倒计时。
         public void BeginCountdown()
         {
             intro = false;
@@ -315,21 +407,27 @@ namespace Hotfix.KagitKart
             Play("count", important: true);
         }
 
-        /// 恢复当前比赛持续声音，不重播倒计时、冲线和道具等历史事件。
+        /// 恢复持续声音，不重复历史比赛事件。
         public void RestoreNetworkPlayback()
         {
-            if (session == null) return;
+            if (session == null)
+            {
+                return;
+            }
             intro = false;
             playerFinished = session.Player.Finished || session.Race.State == KagitKartRaceState.Done;
             finalLap = session.Race.Entries.First(entry => entry.Vehicle == session.Player).Progress.Lap >= session.Race.Laps;
-            for (int i = 0; i < session.Karts.Count; i++) previousPlace[i] = session.Karts[i].Place;
+            for (int i = 0; i < session.Karts.Count; i++)
+            {
+                previousPlace[i] = session.Karts[i].Place;
+            }
             PlayMusic(playerFinished ? "results" : finalLap ? "final_" + chapter : chapter);
         }
 
-        /// <summary>沿用原作音量平方曲线，静音只作用于本 Demo。</summary>
-        /// <param name="musicLevel">音乐滑块 0 到 1。</param>
-        /// <param name="effectsLevel">音效与引擎滑块 0 到 1。</param>
-        /// <param name="isMuted">是否整体静音；不修改其它 Demo 或系统音量。</param>
+        /// <summary>设置本 Demo 音量，沿用平方曲线与公共总线。</summary>
+        /// <param name="musicLevel">音乐滑块0到1。</param>
+        /// <param name="effectsLevel">音效与引擎滑块0到1。</param>
+        /// <param name="isMuted">仅本Demo静音。</param>
         public void SetVolumes(float musicLevel, float effectsLevel, bool isMuted)
         {
             musicVolume = Mathf.Clamp01(musicLevel);
@@ -337,15 +435,15 @@ namespace Hotfix.KagitKart
             muted = isMuted;
         }
 
-        /// 原作笔帽点击反馈。
+        /// 原作笔帽点击。
         public void Click() => Play("click", gap: 0.04f, important: true);
 
-        /// 原作菜单翻页反馈。
+        /// 原作翻页反馈。
         public void PageTurn() => Play("pageTurn", gap: 0.15f, important: true);
 
-        /// <summary>汇聚原作弹起纸景，按不规则波次发出纸页窸窣声。</summary>
-        /// <param name="sourcePosition">原作坐标；内部统一转换 Unity 坐标。</param>
-        /// <param name="size">弹起景物尺寸，最大尺寸与数量共同影响音量。</param>
+        /// <summary>合并同一波纸景弹起反馈。</summary>
+        /// <param name="sourcePosition">原作坐标，内部转换Unity坐标。</param>
+        /// <param name="size">景物尺寸。</param>
         public void Popup(Vector3 sourcePosition, float size)
         {
             popupCount++;
@@ -382,30 +480,39 @@ namespace Hotfix.KagitKart
             }
             float dt = Mathf.Min(Time.unscaledDeltaTime, 0.1f);
             double now = AudioSettings.dspTime;
-            dsp.ReleaseFinishedVoices();
             duck = Mathf.Lerp(duck, paused ? 0.28f : 1, 1 - Mathf.Exp(-dt / 0.12f));
             float musicGain = muted ? 0 : musicVolume * musicVolume * duck * globalMusic;
-            engine.SetVolume(sfxVolume * sfxVolume * globalEffects, muted);
             for (int i = 0; i < music.Length; i++)
             {
-                var source = music[i];
-                int pair = i / 2;
-                float fade = now >= pairEnd[pair] ? 0 : Mathf.Clamp01((float)(now - pairStart[pair]) / Mathf.Max(0.001f, pairFade[pair]));
-                if (!double.IsPositiveInfinity(pairEnd[pair]) && pairOutFade[pair] > 0)
+                if (music[i].clip == null)
                 {
-                    fade *= Mathf.Clamp01((float)(pairEnd[pair] - now) / pairOutFade[pair]);
+                    continue;
                 }
-                fade *= Mathf.Lerp(1, pairStingDuck[pair], Mathf.Clamp01((float)(now - pairDuckStart[pair]) / 0.05f));
-                source.Volume = musicGain * fade;
-                source.Cutoff = Mathf.Lerp(source.Cutoff, paused ? 650 : 20000, 1 - Mathf.Exp(-dt / (paused ? 0.1f : 0.25f)));
+                int pair = i / 2;
+                if (now >= pairEnd[pair] && music[i].clip != null)
+                {
+                    music[i].Stop();
+                    music[i].clip = null;
+                }
+                float fade = Mathf.Clamp01((float)(now - pairStart[pair]) / Mathf.Max(0.001f, pairFade[pair]));
+                if (!double.IsPositiveInfinity(pairEnd[pair]))
+                {
+                    fade *= Mathf.Clamp01((float)(pairEnd[pair] - now) / Mathf.Max(0.001f, pairOutFade[pair]));
+                }
+                music[i].volume = musicGain * fade * 0.75f;
             }
             for (int i = 0; i < effects.Length; i++)
             {
-                effects[i].Volume = effectGains[i] * (effectMusic[i] ? musicGain : muted ? 0
-                    : sfxVolume * sfxVolume * (effectUi[i] ? globalUi : globalEffects));
-                if (effectMusic[i])
+                if (effects[i].clip == null)
                 {
-                    effects[i].Cutoff = music[0].Cutoff;
+                    continue;
+                }
+                effects[i].volume = effectGains[i] * (effectMusic[i] ? musicGain : muted ? 0
+                    : sfxVolume * sfxVolume * (effectUi[i] ? globalUi : globalEffects)) * 0.75f;
+                if (now >= ends[i] && effects[i].clip != null)
+                {
+                    effects[i].Stop();
+                    effects[i].clip = null;
                 }
             }
             if (session != null)
@@ -422,96 +529,158 @@ namespace Hotfix.KagitKart
                 popupSize = 0;
                 popupSum = Vector3.zero;
             }
-        }
-
-        private float[] ReadNoise(string name)
-        {
-            var clip = bank.GetClip(name);
-            clip.LoadAudioData();
-            var values = new float[clip.samples];
-            if (!clip.GetData(values, 0))
-            {
-                throw new InvalidOperationException("原作噪声采样读取失败：" + name);
-            }
-            clip.UnloadAudioData();
-            return values;
-        }
-
-        private void RetireMusicPair(int pair, double at, float fade)
-        {
-            if (pairEnd[pair] <= at)
-            {
-                return;
-            }
-            double end = Math.Min(pairEnd[pair], at + fade);
-            pairEnd[pair] = end;
-            pairOutFade[pair] = fade;
-            for (int i = 0; i < 2; i++)
-            {
-                var voice = music[pair * 2 + i];
-                double begins = i == 0 ? pairStart[pair] : pairLoopStart[pair];
-                if (voice.Clip == null || begins >= end)
-                {
-                    voice.Stop();
-                }
-                else
-                {
-                    voice.SetScheduledEndTime(end);
-                }
-            }
+            ReleaseUnusedMusic();
         }
 
         private void StopMusic(float fade)
         {
-            double now = AudioSettings.dspTime;
-            RetireMusicPair(0, now, fade);
-            RetireMusicPair(1, now, fade);
+            ++musicGeneration;
+            for (int pair = 0; pair < 2; pair++)
+            {
+                RetireMusicPair(pair, AudioSettings.dspTime, fade);
+            }
             musicKey = null;
         }
 
-        private void PlayMusic(string key, float fade = 0, double at = 0)
+        private void RetireMusicPair(int pair, double at, float fade)
+        {
+            pairEnd[pair] = Math.Min(pairEnd[pair], at + fade);
+            pairOutFade[pair] = fade;
+        }
+
+        private void PlayMusic(string key, float fade = 0.15f, double at = 0)
         {
             if (musicKey == key)
             {
                 return;
             }
-            double now = AudioSettings.dspTime;
-            double start = at > 0 ? at : now + 0.05;
-            int previous = musicPair;
-            if (musicKey != null)
+            musicKey = key;
+            PlayMusicAsync(key, fade, at, ++musicGeneration).Forget();
+        }
+
+        private async UniTask PlayMusicAsync(string key, float fade, double at, int generation)
+        {
+            try
             {
+                await PrepareMusicAsync(key);
+                if (generation != musicGeneration || lifetime.IsCancellationRequested)
+                {
+                    return;
+                }
+                double now = AudioSettings.dspTime;
+                double start = Math.Max(now + 0.08, at);
+                RetireMusicPair(musicPair, at > now ? start : now, fade);
+                musicPair = 1 - musicPair;
+                for (int i = 0; i < 2; i++)
+                {
+                    music[musicPair * 2 + i].Stop();
+                }
+                musicStart = pairStart[musicPair] = start;
+                pairFade[musicPair] = fade;
+                pairOutFade[musicPair] = 0;
+                pairEnd[musicPair] = double.PositiveInfinity;
+                var first = music[musicPair * 2];
+                first.clip = musicClips["music_" + key + "_start"];
+                first.loop = false;
+                first.PlayScheduled(start);
+                var loop = music[musicPair * 2 + 1];
+                loop.clip = musicClips["music_" + key + "_loop"];
+                loop.loop = true;
+                loop.PlayScheduled(start + (double)first.clip.samples / first.clip.frequency);
+                if (warmMusicKey == key)
+                {
+                    warmMusicKey = null;
+                    warmStart = warmLoop = null;
+                }
                 if (key.StartsWith("final_", StringComparison.Ordinal))
                 {
-                    RetireMusicPair(previous, start, 0);
-                    pairStingDuck[previous] = 0.3f;
-                    pairDuckStart[previous] = now;
-                }
-                else
-                {
-                    RetireMusicPair(previous, now, key == chapter ? 0.15f : 0.9f);
+                    WarmMusic("results");
                 }
             }
-            musicPair = 1 - musicPair;
-            for (int i = 0; i < 2; i++)
+            catch (OperationCanceledException)
             {
-                music[musicPair * 2 + i].Stop();
             }
-            musicKey = key;
-            musicStart = pairStart[musicPair] = start;
-            pairFade[musicPair] = fade;
-            pairOutFade[musicPair] = 0;
-            pairStingDuck[musicPair] = 1;
-            pairEnd[musicPair] = double.PositiveInfinity;
-            var first = music[musicPair * 2];
-            first.Clip = bank.GetClip("music_" + key + "_start");
-            first.Loop = false;
-            first.PlayScheduled(start);
-            double introEnds = start + (double)first.Clip.samples / first.Clip.frequency;
-            pairLoopStart[musicPair] = introEnds;
-            var repeat = music[musicPair * 2 + 1];
-            repeat.Clip = bank.GetClip("music_" + key + "_loop");
-            repeat.Loop = true;
-            repeat.PlayScheduled(introEnds);
+            catch (Exception exception)
+            {
+                if (generation == musicGeneration)
+                {
+                    musicKey = null;
+                }
+                Debug.LogException(exception, this);
+            }
+            finally
+            {
+                ReleaseUnusedMusic();
+            }
+        }
+
+        private void ReleaseUnusedMusic()
+        {
+            if (bank == null || lifetime.IsCancellationRequested)
+            {
+                return;
+            }
+            unusedMusic.Clear();
+            foreach (var clip in ownedMusic.Keys)
+            {
+                bool used = false;
+                foreach (var source in music)
+                {
+                    if (source != null && source.clip == clip)
+                    {
+                        used = true;
+                    }
+                }
+                if (!used && warmMusicKey != null)
+                {
+                    used = clip == warmStart || clip == warmLoop;
+                }
+                if (!used && pendingMusic.Count == 0 && !loading.ContainsKey(clip))
+                {
+                    unusedMusic.Add(clip);
+                }
+            }
+            foreach (var clip in unusedMusic)
+            {
+                ReleaseMusic(clip);
+            }
+        }
+
+        private void RetainMusic(string name, AudioClip clip)
+        {
+            if (ownedMusic.ContainsKey(clip))
+            {
+                return;
+            }
+            ownedMusic.Add(clip, name);
+            musicOwners.TryGetValue(clip, out int owners);
+            musicOwners[clip] = owners + 1;
+        }
+
+        private void ReleaseMusic(AudioClip clip)
+        {
+            if (!ownedMusic.TryGetValue(clip, out var name))
+            {
+                return;
+            }
+            ownedMusic.Remove(clip);
+            musicClips.Remove(name);
+            int owners = musicOwners[clip] - 1;
+            if (owners > 0)
+            {
+                musicOwners[clip] = owners;
+            }
+            else
+            {
+                musicOwners.Remove(clip);
+#if !UNITY_WEBGL || UNITY_EDITOR
+                if (clip != null)
+                {
+                    clip.UnloadAudioData();
+                }
+#endif
+            }
+            musicLoader.ReleaseAsset(clip);
         }
 
         private bool Play(string name, KagitKartVehicle kart = null, Vector3? position = null, float gain = 1,
@@ -555,7 +724,7 @@ namespace Hotfix.KagitKart
                 return false;
             }
             int slot = -1;
-            for (int i = 0; i < effects.Length; i++)
+            for (int i = 0; i < ends.Length; i++)
             {
                 if (ends[i] <= now)
                 {
@@ -579,33 +748,28 @@ namespace Hotfix.KagitKart
                 }
             }
             var source = effects[slot];
+            source.Stop();
             bool isMusic = name.StartsWith("sting_", StringComparison.Ordinal);
+            string sample = name;
             if (name == "boost")
             {
-                source.SetBoost(kart.BoostSource, kart.LastBoostDuration, white, crackle, audioRandom.Next());
+                sample = "boost_" + (kart?.BoostSource switch { "pad" => 1, "start" => 2, "trick" => 3, "draft" => 4, _ => 0 });
             }
-            else
-            {
-                source.Clip = isMusic ? bank.GetClip(name) : effectClips.TryGetValue(name, out var clip)
-                    ? clip : throw new ArgumentException("纸艺卡丁车原作音频缺失：sfx_" + name, nameof(name));
-            }
-            source.Pan = pan;
+            source.clip = isMusic ? bank.GetClip(sample) : effectClips.TryGetValue(sample, out var clip)
+                ? clip : throw new ArgumentException("纸艺卡丁车音频缺失：sfx_" + sample, nameof(name));
+            source.panStereo = pan;
+            source.pitch = name == "boost" ? Mathf.Clamp(1.1f - (kart?.LastBoostDuration ?? 1) * 0.1f, 0.85f, 1.1f) : 1;
             effectGains[slot] = gain * intensity;
             effectMusic[slot] = isMusic;
             effectUi[slot] = name == "click" || name == "pageTurn";
-            source.FilterEnabled = effectMusic[slot];
-            source.Cutoff = music[0].Cutoff;
-            source.Volume = muted ? 0 : effectGains[slot] * (isMusic ? musicVolume * musicVolume * duck * globalMusic
-                : sfxVolume * sfxVolume * (effectUi[slot] ? globalUi : globalEffects));
+            source.volume = effectGains[slot] * (isMusic ? musicVolume * musicVolume * duck * globalMusic
+                : sfxVolume * sfxVolume * (effectUi[slot] ? globalUi : globalEffects)) * 0.75f;
             if (at > now)
             {
                 source.PlayScheduled(at);
             }
-            else
-            {
-                source.Play();
-            }
-            ends[slot] = Math.Max(now, at) + source.Duration;
+            else source.Play();
+            ends[slot] = Math.Max(now, at) + source.clip.length / source.pitch;
             lastPlayed[bucket] = now;
             return true;
         }
@@ -618,7 +782,7 @@ namespace Hotfix.KagitKart
                 return;
             }
             paused = next;
-            // 原作暂停仅冻结比赛与引擎，音乐继续播放并降音量、低通。
+            // 暂停只冻结比赛与引擎，音乐继续播放并降音量。
             Play(paused ? "pause" : "unpause", important: true);
         }
 
@@ -637,6 +801,10 @@ namespace Hotfix.KagitKart
                     if (mine && signal.Number < session.Race.Laps)
                     {
                         Play("lap", important: true);
+                        if (signal.Number == session.Race.Laps - 1)
+                        {
+                            WarmMusic("final_" + chapter);
+                        }
                     }
                     break;
                 case "finalLap":
@@ -863,28 +1031,38 @@ namespace Hotfix.KagitKart
 
         private void UpdateEngines(float dt)
         {
-            engine.SetActive(!paused && !intro);
-            if (paused || intro)
-            {
-                return;
-            }
+            float level = paused || intro ? 0 : session.Race.State == KagitKartRaceState.Done ? 0.5f : 1;
             var kart = session.Player;
-            float level = session.Race.State == KagitKartRaceState.Done ? 0.5f : 1;
-            float speed = Mathf.Abs(kart.Speed), ratio = speed / kart.BaseTop, throttle = Mathf.Clamp01(kart.Controls.Throttle);
+            float speed = Mathf.Abs(kart.Speed), ratio = speed / kart.BaseTop;
+            float throttle = Mathf.Clamp01(kart.Controls.Throttle);
             float nextRpm = Rpm(ratio, throttle) + (!kart.Grounded ? 0.12f * throttle : 0) + (kart.BoostTime > 0 ? 0.1f : 0);
-            if (kart.SpinTime > 0)
-            {
-                nextRpm *= 0.8f + 0.1f * Mathf.Sin((float)AudioSettings.dspTime * 40);
-            }
             rpm = Mathf.Lerp(rpm, nextRpm, 1 - Mathf.Exp(-dt / 0.05f));
-            float pan = kart.SteerInput * 0.12f + (kart.Drifting ? kart.DriftDirection * 0.08f : 0);
-            engine.SetPlayer(rpm, speed, ratio, throttle, level, !kart.Grounded, kart.Rescuing, kart.Surface,
-                kart.Drifting, kart.DriftTier, kart.BoostTime, kart.BoostStrength,
-                session.Collisions.GetDraftCharge(IndexOf(kart)), kart.InvincibleTime > 0, pan);
-            UpdateCpus(level);
+            float drive = Mathf.Clamp01((rpm - 0.25f) / 0.65f);
+            float gain = level * (kart.Rescuing ? 0.2f : 1);
+            float pan = kart.SteerInput * 0.12f;
+            SetEngine(engines[0], Mathf.Lerp(0.9f, 1.25f, drive), gain * (1 - drive), pan, dt);
+            SetEngine(engines[1], Mathf.Clamp(Mathf.Pow(2, (rpm - 0.8f) * 1.1f), 0.65f, 1.6f), gain * drive, pan, dt);
+            SetEngine(engines[2], 1 + kart.DriftTier * 0.08f, gain * (kart.Drifting && kart.Grounded ? 0.55f : 0), pan, dt);
+            UpdateCpus(level, dt);
         }
 
-        private void UpdateCpus(float level)
+        private void SetEngine(AudioSource source, float pitch, float gain, float pan, float dt)
+        {
+            float target = muted ? 0 : gain * sfxVolume * sfxVolume * globalEffects;
+            source.volume = Mathf.Lerp(source.volume, target, 1 - Mathf.Exp(-dt / 0.06f));
+            source.pitch = Mathf.Lerp(source.pitch, Mathf.Clamp(pitch, 0.5f, 2), 1 - Mathf.Exp(-dt / 0.05f));
+            source.panStereo = pan;
+            if (source.volume > 0.0001f && !source.isPlaying)
+            {
+                source.Play();
+            }
+            else if (source.volume <= 0.0001f && source.isPlaying)
+            {
+                source.Stop();
+            }
+        }
+
+        private void UpdateCpus(float level, float dt)
         {
             Array.Clear(nearest, 0, nearest.Length);
             Array.Fill(cpuDistance, float.PositiveInfinity);
@@ -931,7 +1109,6 @@ namespace Hotfix.KagitKart
                 {
                     int slot = Array.IndexOf(cpuKart, null);
                     cpuKart[slot] = kart;
-                    cpuFresh[slot] = true;
                 }
             }
             for (int i = 0; i < cpuKart.Length; i++)
@@ -939,7 +1116,7 @@ namespace Hotfix.KagitKart
                 var kart = cpuKart[i];
                 if (kart == null)
                 {
-                    engine.SetCpu(i, 70, 900, 0, 0, false, present: false);
+                    SetEngine(engines[i + 3], 1, 0, 0, dt);
                     continue;
                 }
                 Vector3 offset = KagitKartVehicle.ToUnity(kart.Position) - listener.transform.position;
@@ -951,14 +1128,52 @@ namespace Hotfix.KagitKart
                 float doppler = Mathf.Clamp(1 / (1 + relative / 140), 0.86f, 1.14f);
                 float persona = 0.9f + 0.05f * (IndexOf(kart) % 5);
                 float frequency = 62 * Mathf.Pow(2, nextRpm * 1.9f) * doppler * persona;
-                float cutoff = 500 + 1800 * Mathf.Min(1.2f, nextRpm) * (0.5f + 0.5f * throttle);
                 float volume = distance > 160 ? 0 : level * 0.065f * Mathf.Pow(Mathf.Min(1, 10 / Mathf.Max(distance, 10)), 1.15f) * (0.6f + 0.4f * throttle);
                 float pan = Mathf.Clamp(Vector3.Dot(offset / distance, listener.transform.right) * 0.85f, -0.85f, 0.85f);
-                engine.SetCpu(i, frequency, cutoff, volume, pan, cpuFresh[i]);
-                cpuFresh[i] = false;
+                SetEngine(engines[i + 3], frequency / 160, volume * 1.5f, pan, dt);
             }
         }
 
-        private void OnDestroy() => Unbind();
+        private void StopSources()
+        {
+            foreach (var source in music)
+            {
+                if (source != null)
+                {
+                    source.Stop();
+                }
+            }
+            foreach (var source in effects)
+            {
+                if (source != null)
+                {
+                    source.Stop();
+                }
+            }
+            foreach (var source in engines)
+            {
+                if (source != null)
+                {
+                    source.Stop();
+                }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            initialized = false;
+            lifetime.Cancel();
+            Unbind();
+            StopSources();
+            unusedMusic.Clear();
+            unusedMusic.AddRange(ownedMusic.Keys);
+            foreach (var clip in unusedMusic)
+            {
+                ReleaseMusic(clip);
+            }
+            unusedMusic.Clear();
+            musicLoader?.Dispose();
+            lifetime.Dispose();
+        }
     }
 }

@@ -51,7 +51,8 @@
 - `Module/Common`
 - `Module/User`、`Module/GraphicsSettings`
 - `Module/LoopScroll/Examples`：Loop Scroll 模块的宿主输入与 UIBind 接入示例，仍归属 Hotfix
-- `Demos/`：无人机、DLSS、夹爆它与纸艺卡丁车
+- `Demos/`：无人机、夹爆它与纸艺卡丁车，各自使用独立热更程序集
+- `Module/Diagnostics/DlssLab`：PC 验证工具，使用 `Hotfix.Diagnostics.PC.dll`，不属于 Demo
 
 不要放：
 - 通用资源加载框架
@@ -66,7 +67,7 @@
 
 ### `Assets/Scripts/Hotfix/Demos/<DemoName>`
 
-放独立 Demo 的运行时代码。Demo 内可以继续按职责拆分控制、物理、输入、装备和宿主适配，但仍归属 `Hotfix.dll`；不要为了单个 Demo 新建生产程序集。
+放独立 Demo 的运行时代码，分别归 `Hotfix.DroneFlight.dll`、`Hotfix.WallSqueeze.dll` 和 `Hotfix.KagitKart.dll`。Demo 单向引用 `Hotfix` / Core，不互相引用。归属分组 Hotfix、Demo1–Demo5 由 `Assets/Settings/ReleaseProfiles.json` 登记，Demo4/5 预留且不生成空 DLL。
 
 Demo 内按玩法规则、场景表现和界面职责组织代码。外部服务接入负责接口转换；规则通过业务数据流驱动场景和页面，公共能力复用 Core。
 
@@ -114,4 +115,4 @@ Demo 内按玩法规则、场景表现和界面职责组织代码。外部服务
 
 场景、UI、Prefab 批量生成和一次性迁移可在开发期间临时执行；保存生成资产并验证后删除脚本、菜单和对应 meta，不将临时 Builder 固化为维护入口。人工打磨后的资产是当前真源，不能靠重跑旧生成器覆盖。正式平台构建、资源导入、业务 Inspector 等有持续调用方的工具继续保留；删除临时工具时同时清除其独占 helper、无效测试和当前文档入口，历史 Git 记录不必重写。
 
-公共本机读写位于 `Core/Runtime/Storage`；业务键与相对文件名位于 `Hotfix/Module/Common/LocalDataKeys.cs`。Demo 只保留快照、领域校验、默认值和保存时机。
+公共本机读写位于 `Core/Runtime/Storage`；卡丁车业务键与相对文件名位于 `Hotfix/Demos/KagitKart/LocalDataKeys.cs`。Demo 只保留快照、领域校验、默认值和保存时机。

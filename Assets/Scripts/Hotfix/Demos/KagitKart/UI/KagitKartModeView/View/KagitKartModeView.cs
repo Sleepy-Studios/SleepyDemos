@@ -2,6 +2,7 @@
 {
     using Core.Runtime;
     using Hotfix.KagitKart;
+    using Hotfix.SceneManagement;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.UI;
@@ -15,6 +16,7 @@
 
         protected override void OnGameObjectInitialize()
         {
+            Button_Hub.transform.parent.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             choices = new[] { Button_GrandPrix, Button_SingleRace, Button_TimeTrial };
             for (int i = 0; i < choices.Length; i++)
             {

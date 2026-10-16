@@ -27,13 +27,12 @@ def write_music(target, payload, ffmpeg):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
-    parser.add_argument("--checks-only", action="store_true", help="Refresh native WebAudio regression fixtures without re-rendering songs")
-    parser.add_argument("--reference-dir", type=Path, help="Optional fixture folder; defaults to Tests/EditMode/Demo/KagitKart/Fixtures")
+    parser.add_argument("--engines-only", action="store_true", help="Render the three compact native engine loops without re-rendering songs")
     parser.add_argument("--output-dir", type=Path, help="Optional staging folder; defaults to the Demo resource folder")
     parser.add_argument("--ffmpeg", type=Path, default=shutil.which("ffmpeg"), help="FFmpeg with libvorbis; required for music export")
     parser.add_argument("--edge", type=Path, default=Path(os.environ.get("PROGRAMFILES(X86)", "C:/Program Files (x86)")) / "Microsoft/Edge/Application/msedge.exe")
     args = parser.parse_args()
-    if not args.checks_only and (args.ffmpeg is None or not args.ffmpeg.is_file()):
+    if not args.engines_only and (args.ffmpeg is None or not args.ffmpeg.is_file()):
         parser.error("Music export requires FFmpeg: put it on PATH or supply --ffmpeg.")
     revision = subprocess.check_output(["git", "-C", str(args.source), "rev-parse", "HEAD"], text=True).strip()
     if revision != REVISION:
@@ -49,7 +48,7 @@ def main():
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == "/" or self.path == "/?checks":
+            if self.path in ("/", "/?engines"):
                 payload = b'<script type="module" src="/export_audio.mjs"></script>'
                 content_type = "text/html"
             elif self.path == "/export_audio.mjs":
@@ -79,21 +78,12 @@ def main():
                 done.set()
             elif name == "done":
                 done.set()
-            elif name == "reference.json":
-                reference_dir = args.reference_dir or project / "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures"
-                reference_dir.mkdir(parents=True, exist_ok=True)
-                (reference_dir / "OriginalAudioDynamics.json").write_bytes(payload)
-            elif name == "boost-reference.json":
-                reference_dir = args.reference_dir or project / "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures"
-                reference_dir.mkdir(parents=True, exist_ok=True)
-                (reference_dir / "OriginalAudioBoost.json").write_bytes(payload)
-            elif name == "shaper-reference.json":
-                reference_dir = args.reference_dir or project / "Assets/Scripts/Tests/EditMode/Demo/KagitKart/Fixtures"
-                reference_dir.mkdir(parents=True, exist_ok=True)
-                (reference_dir / "OriginalEngineSoftClip.json").write_bytes(payload)
             elif name == "manifest.json":
                 manifest = json.loads(payload)
                 manifest["sourceRevision"] = REVISION
+                if args.engines_only:
+                    previous = json.loads((destination / "Data/AudioManifest.json").read_text(encoding="utf-8-sig"))
+                    manifest["clips"] = [clip for clip in previous["clips"] if not clip["name"].startswith("engine")] + manifest["clips"]
                 (destination / "Data/AudioManifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
                 done.set()
             elif name.endswith(".wav") and Path(name).name == name:
@@ -125,14 +115,20 @@ def main():
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     with tempfile.TemporaryDirectory(prefix="kagit-audio-") as profile:
-        browser = subprocess.Popen([str(args.edge), "--headless=new", "--disable-gpu", "--no-first-run", "--disable-features=msEdgeSidebarV2", f"--user-data-dir={profile}", f"http://127.0.0.1:{server.server_port}/" + ("?checks" if args.checks_only else "")], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        query = "?engines" if args.engines_only else ""
+        browser = subprocess.Popen([str(args.edge), "--headless=new", "--edge-skip-compat-layer-relaunch", "--disable-gpu", "--no-first-run", "--disable-features=msEdgeSidebarV2", f"--user-data-dir={profile}", f"http://127.0.0.1:{server.server_port}/" + query], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         try:
             if not done.wait(1200):
                 raise TimeoutError("Original audio rendering did not complete in 20 minutes")
             if failure:
                 raise RuntimeError(failure[0])
         finally:
-            browser.terminate()
+            # Edge owns child processes that can keep its temporary profile locked after the parent exits.
+            if os.name == "nt" and browser.poll() is None:
+                subprocess.run(["taskkill", "/PID", str(browser.pid), "/T", "/F"], stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW, check=False)
+            else:
+                browser.terminate()
             browser.wait(timeout=20)
             server.shutdown()
     print("Original audio export complete.")

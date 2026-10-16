@@ -215,19 +215,19 @@ namespace Hotfix.DroneFlight
             if (defaultFont != null)
             {
                 labelMaterial = new Material(defaultFont.material) { name = "F2 World Vector Label Material" };
-                labelMaterial.SetColor(ShaderUtilities.ID_OutlineColor, UIColors.DroneFlight.VectorOutline);
+                labelMaterial.SetColor(ShaderUtilities.ID_OutlineColor, DroneFlightUIColors.VectorOutline);
                 labelMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.28f);
                 labelMaterial.EnableKeyword(ShaderUtilities.Keyword_Underlay);
-                labelMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, UIColors.DroneFlight.VectorShadow);
+                labelMaterial.SetColor(ShaderUtilities.ID_UnderlayColor, DroneFlightUIColors.VectorShadow);
                 labelMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.18f);
                 labelMaterial.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.18f);
                 labelMaterial.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.08f);
                 labelMaterial.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.12f);
             }
-            var colors = new[] { UIColors.DroneFlight.RotorForce, UIColors.DroneFlight.RotorForce,
-                UIColors.DroneFlight.RotorForce, UIColors.DroneFlight.RotorForce, UIColors.DroneFlight.TotalThrust,
-                UIColors.DroneFlight.Gravity, UIColors.DroneFlight.ActualVelocity,
-                UIColors.DroneFlight.DesiredVelocity, UIColors.DroneFlight.DesiredAcceleration };
+            var colors = new[] { DroneFlightUIColors.RotorForce, DroneFlightUIColors.RotorForce,
+                DroneFlightUIColors.RotorForce, DroneFlightUIColors.RotorForce, DroneFlightUIColors.TotalThrust,
+                DroneFlightUIColors.Gravity, DroneFlightUIColors.ActualVelocity,
+                DroneFlightUIColors.DesiredVelocity, DroneFlightUIColors.DesiredAcceleration };
             for (var index = 0; index < visuals.Length; index++)
                 visuals[index] = WorldVectorVisual.Create(
                     visualRoot,

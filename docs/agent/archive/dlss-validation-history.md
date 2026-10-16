@@ -1,6 +1,6 @@
 # DLSS 验证历史
 
-> 下述原文描述当时测试、页面与黑帧结果。本次治理未重跑，不作为当前通过或失败证明；当前职责见 [DLSS 模块](../../demos/dlss/module.md)。
+> 下述原文描述当时测试、页面与黑帧结果。本次治理未重跑，不作为当前通过或失败证明；当前职责见 [DLSS 模块](../../modules/dlss-lab.md)。
 
 相关 PlayMode 用例 `Tests.Demo.DlssDemoFlowTests.FormalStartupModesAndHubReturn` 检查正式启动、DroneFlight 实际选择和退出、Hub 与实验室沿用设置、各档画面、面板开关、窗口变化、暂停恢复、屏幕坐标及不支持相机回退。2026-09-22 双后端公共流程已通过，另已通过失败回滚、Editor 直启与设置持久化检查。未执行全量测试。
 

@@ -1,0 +1,26 @@
+{
+    "name": "Hotfix.KagitKart",
+    "rootNamespace": "Hotfix.KagitKart",
+    "references": [
+        "SleepyStudios.LoopScroll",
+        "Core.Runtime",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "UnityEngine.UI",
+        "Hotfix"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_EDITOR || !SLEEPY_RELEASE || SLEEPY_DEMO_KAGIT_KART"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -26,11 +26,16 @@ namespace Core.Editor.Hotfix
     public static class HotfixBuildAutomation
     {
         private const string ConfigPath = "Assets/LoadResources/Config/HotfixConfig.asset";
+        private const string ParameterMetadataLookup = "GetParameterDefinitionFromIndex(methodDefinition, methodDefinition.parameterStart + paramIndex)";
 
         [Serializable]
         private sealed class Request
         {
             public string Platform;
+            public string BuildChannel = "Native";
+            public string GameId = "hub";
+            public string TapTapAppId;
+            public string TapTapFormat;
             public string BuildKind;
             public string ResourceMode;
             public string AndroidFormat;
@@ -59,9 +64,13 @@ namespace Core.Editor.Hotfix
         [Serializable]
         private sealed class Baseline
         {
+            public string TapTapAppId;
+            public string TapTapFormat;
             public string Fingerprint;
             public string[] FingerprintInputs;
             public string Platform;
+            public string BuildChannel = "Native";
+            public string GameId = "hub";
             public string ResourceMode;
             public bool Development;
             public string PlayerVersion;
@@ -78,6 +87,7 @@ namespace Core.Editor.Hotfix
             public string[] AotAssemblies;
             public string[] HotfixAssemblies;
             public HotfixDeploymentVerification.DownloadRecord[] Files;
+            public HotfixDeploymentVerification.DownloadRecord H5Archive;
         }
 
         [Serializable]
@@ -100,6 +110,7 @@ namespace Core.Editor.Hotfix
             public bool RollbackFailed;
             public bool PreviousVersionAbsent;
             public HotfixDeploymentVerification.DownloadRecord[] Downloads;
+            public string TapTapFormat;
         }
 
         [Serializable]
@@ -143,6 +154,7 @@ namespace Core.Editor.Hotfix
                 result.Failure = string.Empty;
                 result.Platform = request.Platform;
                 result.BuildKind = request.BuildKind;
+                result.TapTapFormat = request.TapTapFormat;
                 result.SourceCommit = request.SourceCommit;
                 result.ConfigCommit = request.ConfigCommit;
                 result.ResourceVersion = request.ResourceVersion;
@@ -317,13 +329,13 @@ namespace Core.Editor.Hotfix
             UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath = paths[2];
             UnityEditor.Android.AndroidExternalToolsSettings.sdkRootPath = paths[0];
             UnityEditor.Android.AndroidExternalToolsSettings.ndkRootPath = paths[1];
-            UnityEditor.Android.AndroidExternalToolsSettings.gradlePath = paths[3];
+            UnityEditor.Android.AndroidExternalToolsSettings.Gradle.path = paths[3];
             string[] effectivePaths =
             {
                 UnityEditor.Android.AndroidExternalToolsSettings.sdkRootPath,
                 UnityEditor.Android.AndroidExternalToolsSettings.ndkRootPath,
                 UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath,
-                UnityEditor.Android.AndroidExternalToolsSettings.gradlePath
+                UnityEditor.Android.AndroidExternalToolsSettings.Gradle.path
             };
             for (int i = 0; i < paths.Length; i++)
             {
@@ -340,12 +352,24 @@ namespace Core.Editor.Hotfix
         private static void ValidateRequest(Request request)
         {
             Require(request != null, "请求为空。");
-            Require(request.Platform == "PC" || request.Platform == "Android", "仅支持 PC / Android。");
+            request.BuildChannel = string.IsNullOrWhiteSpace(request.BuildChannel) ? "Native" : request.BuildChannel;
+            request.GameId = ReleaseProfiles.Get(request.GameId).GameId;
+            Require(request.BuildChannel == "Native" || request.BuildChannel == "TapTap", "发布渠道无效。");
+            Require(request.BuildChannel == "TapTap" ? request.Platform == "WebGL" && request.GameId != "hub" : request.Platform == "PC" || request.Platform == "Android", "发布渠道与平台不匹配。");
             Require(request.BuildKind == "Full" || request.BuildKind == "Hotfix", "BuildKind 必须是 Full / Hotfix。");
             Require(new[] { "Offline", "OnlineFull", "OnlineDownload" }.Contains(request.ResourceMode), "资源模式无效。");
             Require(request.BuildKind != "Hotfix" || request.ResourceMode != "Offline", "离线首包不能发布热更。");
             Require(Regex.IsMatch(request.ResourceVersion ?? string.Empty, @"\A[A-Za-z0-9_-][A-Za-z0-9_.-]*\z"), "资源版本无效。");
             Require(request.Provider == "Pages" || request.Provider == "Ssh", "Provider 无效。");
+            if (request.BuildChannel == "TapTap")
+            {
+                Require(request.Provider == "Pages", "TapTap 当前使用 GitHub Pages 发布热更资源，网页包交给平台托管。");
+                string[] publication = (request.PagesProjectName ?? string.Empty).Split('/');
+                Require(publication.Length == 3 && publication[1] == "TapTap" && publication[2] == request.GameId,
+                    "TapTap Pages 发布目录必须为 <项目>/TapTap/<本次GameId>。");
+                Require(request.TapTapFormat == TapTapBuildAdapter.Format,
+                    "TapTap 当前仅发布 H5 网页包；旧 SDK 请求必须重新 Full。");
+            }
             Require(Path.IsPathFullyQualified(request.OutputDirectory ?? string.Empty), "输出必须是绝对路径。");
             Require(Path.IsPathFullyQualified(request.BaselineDirectory ?? string.Empty), "基线必须是绝对路径。");
             GitHubPagesDeployment.EnsureNoLinks(request.OutputDirectory);
@@ -362,18 +386,27 @@ namespace Core.Editor.Hotfix
             Directory.CreateDirectory(request.OutputDirectory);
         }
 
-        private static BuildTarget Target(Request request) => request.Platform == "PC" ? BuildTarget.StandaloneWindows64 : BuildTarget.Android;
+        private static BuildTarget Target(Request request) => request.Platform switch
+        {
+            "PC" => BuildTarget.StandaloneWindows64,
+            "Android" => BuildTarget.Android,
+            "WebGL" => BuildTarget.WebGL,
+            _ => throw new InvalidOperationException("未知构建平台。")
+        };
 
         private static HotfixConfig Configure(Request request, bool player)
         {
             var config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(ConfigPath);
             Require(config != null, "缺少正式 HotfixConfig。");
+            config.GameId = request.GameId;
+            ReleaseProfiles.Apply(config, Target(request), request.BuildChannel == "TapTap");
             string platform = Target(request).ToString();
             config.AotSourcePath = "HybridCLRData/AssembliesPostIl2CppStrip/" + platform;
             config.AotStrippedSourcePath = "HybridCLRData/StrippedAOTAssembly2/" + platform;
             config.HotfixSourcePath = "HybridCLRData/HotUpdateDlls/" + platform;
             config.UseLocalMockServer = false;
-            config.PlayMode = request.ResourceMode == "Offline" ? ResourcePlayMode.OfflinePlayMode : ResourcePlayMode.HostPlayMode;
+            config.PlayMode = request.Platform == "WebGL" ? ResourcePlayMode.WebPlayMode
+                : request.ResourceMode == "Offline" ? ResourcePlayMode.OfflinePlayMode : ResourcePlayMode.HostPlayMode;
             config.BaseServerURL = config.RemoteBaseServerURL = request.ResourceMode == "Offline" ? string.Empty : ServerUrl(request);
             var group = UnityEditor.BuildPipeline.GetBuildTargetGroup(Target(request));
             var namedTarget = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group);
@@ -386,6 +419,10 @@ namespace Core.Editor.Hotfix
             Require(PlayerSettings.GetEditorAssembliesCompatibilityLevel() == EditorAssembliesCompatibilityLevel.NET_Unity_4_8,
                 "无法固定 CI Editor 程序集的 .NET Framework API 配置。");
             EditorUserBuildSettings.development = request.Development;
+            if (request.BuildChannel == "TapTap")
+            {
+                TapTapBuildAdapter.ConfigurePlayerSettings();
+            }
             if (!string.IsNullOrWhiteSpace(request.PlayerVersion))
             {
                 PlayerSettings.bundleVersion = request.PlayerVersion;
@@ -453,7 +490,7 @@ namespace Core.Editor.Hotfix
                 // GenerateAll 内部构建 Player 会卸载资产，不能继续持有构建前的 native 对象。
                 config = Configure(request, false);
                 config.AotAssemblies = HotfixAssemblyBuild.ReadAotAssemblies();
-                config.HotfixAssemblies = HotfixAssemblyBuild.ReadHotfixAssemblies();
+                config.HotfixAssemblies = HotfixAssemblyBuild.ReadHotfixAssemblies(request.GameId, Target(request));
                 Require(config.HotfixAssemblies.Length > 0, "没有热更程序集。");
                 HotfixAssemblyBuild.StripAotAssemblies(config);
                 HotfixAssemblyBuild.Sync(config, true);
@@ -475,7 +512,7 @@ namespace Core.Editor.Hotfix
             WriteJson(Path.Combine(request.OutputDirectory, "prepared.json"), Snapshot(request, config));
         }
 
-        private static void EnsureHybridClrInstalled()
+        internal static void EnsureHybridClrInstalled()
         {
             var installer = new HybridCLR.Editor.Installer.InstallerController();
             Require(Regex.IsMatch(installer.HybridclrLocalVersion ?? string.Empty, @"\Av[0-9][A-Za-z0-9_.-]*\z") &&
@@ -489,6 +526,21 @@ namespace Core.Editor.Hotfix
             }
             Require(installer.HasInstalledHybridCLR() && installer.InstalledLibil2cppVersion == installer.PackageVersion,
                 "HybridCLR 初始化失败，不能继续生成首包。");
+
+            string metadataPath = Path.Combine(HybridCLR.Editor.SettingsUtil.LocalIl2CppDir, "libil2cpp/vm/GlobalMetadata.cpp");
+            GitHubPagesDeployment.EnsureNoLinks(metadataPath);
+            string metadata = File.ReadAllText(metadataPath);
+            const string originalLookup = "GetParameterDefinitionFromIndex(klass->image, methodDefinition.parameterStart + paramIndex)";
+            if (!metadata.Contains(ParameterMetadataLookup))
+            {
+                int start = metadata.IndexOf(originalLookup, StringComparison.Ordinal);
+                Require(start >= 0 && metadata.IndexOf(originalLookup, start + originalLookup.Length, StringComparison.Ordinal) < 0,
+                    "HybridCLR 参数元数据实现已改变，请重新核对数组反射兼容补丁。");
+                // 热更元素数组复用 AOT 数组方法；形参归属由方法定义决定，不能使用数组的 image。
+                metadata = metadata.Replace(originalLookup, ParameterMetadataLookup);
+                File.WriteAllText(metadataPath, metadata, new UTF8Encoding(false));
+            }
+            Require(!metadata.Contains(originalLookup), "HybridCLR 参数元数据补丁未完整应用。");
         }
 
         private static void BuildArtifacts(Request request)
@@ -499,7 +551,8 @@ namespace Core.Editor.Hotfix
             Require(prepared != null, "Prepare 记录为空。");
             VerifyFingerprint(prepared, "Prepare 后构建指纹已改变，请重新 Prepare。");
             Require(prepared.ResourceVersion == request.ResourceVersion &&
-                prepared.Platform == request.Platform && prepared.Development == request.Development && prepared.ResourceMode == request.ResourceMode &&
+                (request.BuildChannel != "TapTap" || prepared.TapTapAppId == request.TapTapAppId && prepared.TapTapFormat == request.TapTapFormat) &&
+                prepared.Platform == request.Platform && prepared.GameId == request.GameId && prepared.BuildChannel == request.BuildChannel && prepared.Development == request.Development && prepared.ResourceMode == request.ResourceMode &&
                 prepared.SourceCommit == request.SourceCommit,
                 "Prepare 后构建输入已改变，请重新 Prepare。");
             if (request.BuildKind == "Hotfix")
@@ -540,25 +593,10 @@ namespace Core.Editor.Hotfix
         private static void BuildResources(Request request, HotfixConfig config, bool finalPass = false)
         {
             string streaming = BundleBuilderHelper.GetStreamingAssetsRoot();
-            GitHubPagesDeployment.EnsureNoLinks(streaming);
-            var parameters = new ScriptableBuildParameters
-            {
-                BuildOutputRoot = Path.Combine(request.OutputDirectory, finalPass ? "bundles-final" : "bundles"),
-                BundledFileRoot = streaming,
-                BuildPipeline = nameof(YooAsset.Editor.ScriptableBuildPipeline),
-                BuildBundleType = (int)YooAsset.EBundleType.AssetBundle,
-                BuildTarget = Target(request),
-                PackageName = config.PackageName,
-                PackageVersion = request.ResourceVersion,
-                VerifyBuildingResult = true,
-                FileNameStyle = EFileNameStyle.HashName,
-                CompressOption = ECompressOption.LZ4,
-                BuiltinShadersBundleName = DefaultBundlePackRule.CreateShadersPackRuleResult().GetBundleName(config.PackageName, BundleCollectorSettingData.Setting.UniqueBundleName),
-                BundledCopyOption = request.BuildKind == "Hotfix" || request.ResourceMode == "OnlineDownload"
-                    ? EBundledCopyOption.None : EBundledCopyOption.ClearAndCopyAll
-            };
-            var result = new YooAsset.Editor.ScriptableBuildPipeline().Run(parameters, true);
-            Require(result.Success, "YooAsset 构建失败：" + result.FailedTask);
+            var result = ReleaseProfiles.BuildResources(config, Target(request), request.ResourceVersion,
+                Path.Combine(request.OutputDirectory, finalPass ? "bundles-final" : "bundles"),
+                request.BuildKind == "Hotfix" || request.ResourceMode == "OnlineDownload"
+                    ? EBundledCopyOption.None : EBundledCopyOption.ClearAndCopyAll);
             string source = result.OutputPackageDirectory;
             string[] sourceFiles = GitHubPagesDeployment.GetSourceFiles(source, config.PackageName);
             string reportPath = Path.Combine(source, YooAssetConfiguration.GetBuildReportFileName(config.PackageName, request.ResourceVersion));
@@ -632,6 +670,11 @@ namespace Core.Editor.Hotfix
                 PlayerSettings.Android.keystorePass = RequiredEnvironment("SLEEPY_KEYSTORE_PASSWORD");
                 PlayerSettings.Android.keyaliasPass = RequiredEnvironment("SLEEPY_KEY_ALIAS_PASSWORD");
             }
+            if (request.BuildChannel == "TapTap")
+            {
+                TapTapBuildAdapter.Build(Path.Combine(request.OutputDirectory, "player"), request.Development);
+                return;
+            }
             string directory = Path.Combine(request.OutputDirectory, "player");
             string playerPath = request.Platform == "PC" ? Path.Combine(directory, "PC", "SleepyDemos.exe")
                 : Path.Combine(directory, "SleepyDemos." + (request.AndroidFormat == "Aab" ? "aab" : "apk"));
@@ -662,13 +705,23 @@ namespace Core.Editor.Hotfix
             string fingerprint = Fingerprint(out string[] inputs);
             return new Baseline
             {
-                Fingerprint = fingerprint, FingerprintInputs = inputs, Platform = request.Platform, Development = request.Development,
+                Fingerprint = fingerprint, FingerprintInputs = inputs, Platform = request.Platform, BuildChannel = request.BuildChannel,
+                GameId = request.GameId, Development = request.Development,
+                TapTapAppId = request.TapTapAppId, TapTapFormat = request.TapTapFormat,
                 ResourceMode = request.ResourceMode, PlayerVersion = PlayerSettings.bundleVersion,
                 ResourceVersion = request.ResourceVersion, SourceCommit = request.SourceCommit, ConfigCommit = request.ConfigCommit,
                 PackageName = config.PackageName, ServerUrl = config.RemoteBaseServerURL, StartupScene = config.StartupScene,
-                Architecture = request.Platform == "PC" ? "x64" : "ARM64", UnityVersion = Application.unityVersion, ScriptingBackend = "IL2CPP",
+                Architecture = request.Platform == "WebGL" ? "wasm32" : request.Platform == "PC" ? "x64" : "ARM64", UnityVersion = Application.unityVersion, ScriptingBackend = "IL2CPP",
                 ApiCompatibilityLevel = nameof(UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8),
-                AotAssemblies = config.AotAssemblies, HotfixAssemblies = config.HotfixAssemblies
+                AotAssemblies = config.AotAssemblies, HotfixAssemblies = config.HotfixAssemblies,
+                H5Archive = request.BuildChannel == "TapTap" && request.BuildKind == "Full" &&
+                    File.Exists(Path.Combine(request.OutputDirectory, "player", "h5.zip"))
+                    ? new HotfixDeploymentVerification.DownloadRecord
+                    {
+                        File = "player/h5.zip",
+                        Sha256 = HotfixDeploymentVerification.HashFile(Path.Combine(request.OutputDirectory, "player", "h5.zip")),
+                        Bytes = new FileInfo(Path.Combine(request.OutputDirectory, "player", "h5.zip")).Length
+                    } : null
             };
         }
 
@@ -680,12 +733,14 @@ namespace Core.Editor.Hotfix
             Require(baseline != null, "当前在线首包基线为空，必须构建并发布新的 Full。");
             VerifyFingerprint(baseline, "当前在线首包构建指纹不兼容，必须构建并发布新的 Full。");
             Require(baseline.ResourceMode != "Offline" && baseline.Platform == request.Platform &&
+                baseline.GameId == request.GameId && baseline.BuildChannel == request.BuildChannel &&
+                (request.BuildChannel != "TapTap" || baseline.TapTapAppId == request.TapTapAppId && baseline.TapTapFormat == request.TapTapFormat) &&
                 baseline.Development == request.Development && baseline.ResourceMode == request.ResourceMode &&
                 baseline.ApiCompatibilityLevel == nameof(UnityEditor.ApiCompatibilityLevel.NET_Unity_4_8) &&
                 baseline.PackageName == config.PackageName &&
                 baseline.PlayerVersion == PlayerSettings.bundleVersion &&
                 baseline.ServerUrl == config.RemoteBaseServerURL && baseline.StartupScene == config.StartupScene &&
-                baseline.HotfixAssemblies.SequenceEqual(HotfixAssemblyBuild.ReadHotfixAssemblies()),
+                baseline.HotfixAssemblies.SequenceEqual(HotfixAssemblyBuild.ReadHotfixAssemblies(request.GameId, Target(request))),
                 "当前在线首包基线不兼容，必须构建并发布新的 Full。");
             VerifyArchive(request.BaselineDirectory, baseline.Files);
             return baseline;
@@ -699,6 +754,7 @@ namespace Core.Editor.Hotfix
                 string path = Path.GetFullPath(Path.Combine(directory, file.File));
                 Require(IsWithin(path, directory), "归档文件越界。");
                 GitHubPagesDeployment.EnsureNoLinks(path);
+                Require(File.Exists(path) && new FileInfo(path).Length == file.Bytes, "归档文件大小已改变。");
                 Require(HotfixDeploymentVerification.HashFile(path) == file.Sha256, "归档内容已改变。");
             }
         }
@@ -767,9 +823,15 @@ namespace Core.Editor.Hotfix
             Result result = JsonUtility.FromJson<Result>(File.ReadAllText(resultPath));
             Baseline built = JsonUtility.FromJson<Baseline>(File.ReadAllText(Path.Combine(request.OutputDirectory, "built.json")));
             Require(result != null && built != null && built.ResourceVersion == request.ResourceVersion &&
-                built.Platform == request.Platform && result.BuildKind == request.BuildKind && built.SourceCommit == request.SourceCommit &&
-                built.ConfigCommit == request.ConfigCommit && built.ResourceMode == request.ResourceMode && built.Development == request.Development,
+                built.Platform == request.Platform && built.GameId == request.GameId && built.BuildChannel == request.BuildChannel && result.BuildKind == request.BuildKind && built.SourceCommit == request.SourceCommit &&
+                built.ConfigCommit == request.ConfigCommit && built.ResourceMode == request.ResourceMode && built.Development == request.Development &&
+                (request.BuildChannel != "TapTap" || built.TapTapAppId == request.TapTapAppId && built.TapTapFormat == request.TapTapFormat),
                 "资源未构建成功或发布请求已改变，拒绝发布。");
+            if (request.BuildChannel == "TapTap" && request.BuildKind == "Full")
+            {
+                Require(built.H5Archive != null && built.H5Archive.File == "player/h5.zip", "缺少已冻结的 H5 ZIP。");
+                VerifyArchive(request.OutputDirectory, new[] { built.H5Archive });
+            }
             var config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(ConfigPath);
             string projectRoot = Path.GetDirectoryName(Application.dataPath);
             string package = config.PackageName;
@@ -984,10 +1046,16 @@ namespace Core.Editor.Hotfix
             files.AddRange(Directory.GetFiles("Assets", "*.asmdef", SearchOption.AllDirectories)
                 .Where(file => !file.Replace('\\', '/').StartsWith("Assets/Scripts/Hotfix/", StringComparison.Ordinal) &&
                     !file.Replace('\\', '/').Contains("/Editor/") && !file.Replace('\\', '/').Contains("/Tests/")));
-            var lines = new List<string> { "Unity:" + Application.unityVersion, "Architecture:PC64/AndroidARM64" };
+            var lines = new List<string> { "Unity:" + Application.unityVersion, "Architecture:" + EditorUserBuildSettings.activeBuildTarget,
+                "HybridCLRParameterMetadata:" + ParameterMetadataLookup,
+                "ReleaseProfile:" + JsonUtility.ToJson(ReleaseProfiles.Current) };
             foreach (string file in files.Distinct().OrderBy(file => file, StringComparer.Ordinal))
             {
                 if (file.Replace('\\', '/').StartsWith("Assets/Settings/Hotfix/", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                if (file.Replace('\\', '/') == ReleaseProfiles.Path)
                 {
                     continue;
                 }

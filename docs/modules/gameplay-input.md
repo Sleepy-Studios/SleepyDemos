@@ -73,14 +73,16 @@ Caption 使用 LanguageService 一次性设置文案，没有语言监听；字�
 
 ## 输入设置与重绑定
 
-`InputSettingsCatalog.Entry` 保存宿主 DisplayKey、正式源动作资产与 SourceId；`Entry.Actions` 通过 ActionId GUID 与 DisplayKey 明确选择该宿主实际消费的动作。同 Caption 的不同动作 GUID 均保留，例如 Kart 的 Drive 与 Global 快捷键。Hub 只列实际使用的 UI 动作，源资产里的 Player 动作不作为 Hub 改键入口；无绑定占位和内部指针动作不列入候选。
+公共设置不再引用集中 InputSettingsCatalog 资产，也不提供 Demo 改键页；本期不新增 Demo 改键界面。InputSettingsCatalog 类型、InputRebindSession 与可复用条目保留。未来宿主可通过 `InputSettingsCatalog.Entry` 保存 DisplayKey、自身源动作资产与 SourceId；`Entry.Actions` 通过 ActionId GUID 与 DisplayKey 明确选择该宿主实际消费的动作。同 Caption 的不同动作 GUID 均保留，例如不同 Map 的同名快捷键。宿主只选择实际使用的动作；无绑定占位和内部指针动作不列入候选。
 
-设置页按宿主、动作与实际单绑定展示，保存身份为 SourceId 与 binding.id，绑定索引用于当前候选动作的显示和编辑。复合根只作分组，子绑定分别编辑；同方向的多个键位别名保持独立。行上的文案来自 Actions 映射，物理键来自实际候选，避免显示名称、译文或列表顺序成为保存身份。
+宿主接入改键时按动作与实际单绑定展示，保存身份为 SourceId 与 binding.id，绑定索引用于当前候选动作的显示和编辑。复合根只作分组，子绑定分别编辑；同方向的多个键位别名保持独立。行上的文案来自 Actions 映射，物理键来自实际候选，避免显示名称、译文或列表顺序成为保存身份。
 
-`InputRebindSession` 独占禁用的候选副本，监听、重置和冲突校验不改源资产或正在运行的会话。行交互先查询 `CanRebind`，UI／Menu Map 以及 Submit、Cancel、Point、Click 等安全动作保持固定；可展示其绑定但不可修改。监听以公共 Cancel 用途取消，取消、退出或销毁时释放操作和副本。`ExportOverrides` 在监听结束后校验导出，再交由公共设置提交；保存边界按正式目录验证 SourceId、绑定 GUID、冲突和固定入口。
+`InputRebindSession` 独占禁用的候选副本，监听、重置和冲突校验不改源资产或正在运行的会话。行交互先查询 `CanRebind`，UI／Menu Map 以及 Submit、Cancel、Point、Click 等安全动作保持固定；可展示其绑定但不可修改。监听以公共 Cancel 用途取消，取消、退出或销毁时释放操作和副本。`ExportOverrides` 在监听结束后校验导出，再交由 GameSettingsService.ApplyBindingOverridesAsync(source, overrides, token) 提交；保存边界按传入源资产验证 SourceId、绑定 GUID、冲突和固定入口，不长期持有源资产。公共全局校验只保留结构约束，未加载宿主的旧 SourceId 不被清除或判为无效。
 
 监听保留原生 UI 输入事件，使取消按钮可操作；调用页面继续通过既有菜单作用域阻断玩法输入，并用 `UIMenuScope.SetNavigationEnabled` 暂停 Submit/Navigate、结束后等待松键恢复。指针匹配结束时若命中可交互 UI Selectable，恢复原候选并报告取消，长按界面控件也不能被记为鼠标绑定；控件外的鼠标按键保持可绑定。
 
 InputActionSession 的参数和覆盖来自 GameSettingsService 成功提交快照。覆盖确实改变时 Router 清理旧边沿，并在当前上下文重建松键门闩；提交时已按住的新绑定必须松开再按才执行。音量等设置变化不会重置输入。详见[公共设置与表现](settings-presentation.md)。
+
+TapTap H5 由 Core.Runtime.Platform.TapTap 的正式桥监听浏览器 visibilitychange、pagehide/pageshow、blur/focus，合并当前隐藏状态后转发给已加载场景与常驻 UI 的 OnApplicationPause/OnApplicationFocus，复用触控释放与 LocalPauseState 门闩。切后台暂停 AudioListener 与浏览器 AudioContext，回前台恢复隐藏前的监听器状态并请求音频恢复；浏览器自动播放策略可能仍要求再次触摸。回前台只解除物理阻塞，继续仍由玩家明确确认，不从平台回调调用 TryResume。Editor 与原生继续使用 Unity 原生生命周期；真实容器的前后台、触控释放和音频仍待验收。
 
 UIBind 可以生成 InputCommandButton 的点击与保持回调；RegisterExtend 将回调交给 View 持有并在销毁时退订。InputBindingPrompt.BindAsset 按源动作 GUID 绑定实际会话副本；TouchInputPad 在禁用、失焦与应用暂停时释放指针。

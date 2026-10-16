@@ -23,6 +23,7 @@ namespace Core.Runtime
     {
         EditorSimulateMode,
         OfflinePlayMode,
-        HostPlayMode
+        HostPlayMode,
+        WebPlayMode
     }
 }

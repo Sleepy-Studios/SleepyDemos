@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Core.Runtime.Inputs;
 using Core.Runtime.Localization;
@@ -7,6 +6,7 @@ using Core.Runtime.Rendering;
 using Core.Runtime.Rendering.Streamline;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Core.Runtime.Settings
 {
@@ -29,15 +29,14 @@ namespace Core.Runtime.Settings
         public static GamepadStyle CurrentGamepadStyle => current.Input.GamepadStyle;
         /// 配置与偏好均已完成初始化。
         public static bool IsInitialized { get; private set; }
+        /// 冷启动当前实际步骤，供启动加载页显示；成功或退出后清空。
+        public static string InitializationStage { get; private set; }
         /// 正在提交，界面不能再次提交。
         public static bool IsApplying => applying;
         /// 正式制作配置，业务只读其公开入口。
         public static GameSettingsConfig Config => config;
         /// 制作侧编辑范围的独立副本。
         public static SettingsOptions Options => config != null ? config.GetOptions()
-            : throw new InvalidOperationException("公共设置尚未初始化。");
-        /// 可改键宿主的只读制作身份；用 InputRebindSession 克隆动作后编辑。
-        public static IReadOnlyList<InputSettingsCatalog.Entry> InputHosts => config != null ? config.Inputs.Entries
             : throw new InvalidOperationException("公共设置尚未初始化。");
         /// 最近一次设置应用的反馈。
         public static string Feedback { get; private set; }
@@ -81,24 +80,29 @@ namespace Core.Runtime.Settings
             try
             {
                 configLoader = ResourceServices.CreateLoader();
+                ReportInitializationStage("加载设置配置与字体资源");
                 config = await configLoader.LoadAssetAsync<GameSettingsConfig>(ConfigAddress);
                 if (config == null)
                 {
                     throw new InvalidOperationException("公共设置配置加载失败：" + ConfigAddress);
                 }
 
+                ReportInitializationStage("校验设置并读取本机偏好");
                 config.Validate();
                 var defaults = config.GetDefaults();
                 current = LocalDataManager.LoadData(PreferenceKey, defaults, ValidateLoaded);
                 Feedback = null;
 
+                ReportInitializationStage("初始化语言与字体映射");
                 LanguageService.Initialize(config.Language, config.Fonts, current.Language);
+                ReportInitializationStage("应用画质、音量与后处理");
                 await ApplyRuntimeAsync(current, CancellationToken.None);
                 var driverObject = new GameObject("Game Settings Runtime");
                 UnityEngine.Object.DontDestroyOnLoad(driverObject);
                 driver = driverObject.AddComponent<GameSettingsRuntimeDriver>();
                 IsInitialized = true;
                 PublishChanged();
+                InitializationStage = null;
             }
             catch
             {
@@ -110,6 +114,12 @@ namespace Core.Runtime.Settings
                 config = null;
                 throw;
             }
+        }
+
+        private static void ReportInitializationStage(string stage)
+        {
+            InitializationStage = stage;
+            Debug.Log($"[Startup] settings: {stage}");
         }
 
         /// 取得当前制作默认值。
@@ -205,6 +215,40 @@ namespace Core.Runtime.Settings
             }
         }
 
+        /// <summary>验证单个宿主的改键候选后统一保存并通知会话；不修改或长期持有源资产。</summary>
+        /// <param name="source">当前宿主的正式源动作资产，用其稳定 SourceId 保存覆盖。</param>
+        /// <param name="overrides">候选 override JSON；空值恢复该宿主的制作绑定，其它宿主记录保留。</param>
+        /// <param name="cancellationToken">取消本次提交，保留原设置。</param>
+        /// <returns>候选校验与公共设置提交的成功、取消或失败反馈。</returns>
+        public static async UniTask<SettingsApplyResult> ApplyBindingOverridesAsync(InputActionAsset source,
+            string overrides, CancellationToken cancellationToken = default)
+        {
+            await InitializeAsync();
+            string sourceId;
+            string validatedOverrides;
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (overrides != null && overrides.Length > 65536)
+                {
+                    throw new ArgumentException("按键覆盖记录过长。", nameof(overrides));
+                }
+                using var candidate = new InputRebindSession(source, overrides);
+                sourceId = candidate.SourceId;
+                validatedOverrides = candidate.ExportOverrides();
+            }
+            catch (Exception exception)
+            {
+                bool canceled = exception is OperationCanceledException;
+                Feedback = canceled ? "设置已取消，保留原设置。" : "设置应用失败：" + exception.Message;
+                return new SettingsApplyResult(false, Feedback, canceled);
+            }
+
+            var next = Current;
+            next.BindingOverrides[sourceId] = validatedOverrides;
+            return await ApplyAsync(next, cancellationToken: cancellationToken);
+        }
+
         private static void ValidateLoaded(GameSettingsSnapshot value)
         {
             // 旧偏好缺少图标字段或保存为0时，仅补Xbox，不丢弃其余玩家设置。
@@ -225,7 +269,6 @@ namespace Core.Runtime.Settings
             value.Validate();
             config?.GetOptions().ValidateCandidate(value);
             LanguageService.ValidateLanguage(value.Language);
-            config?.Inputs.ValidateOverrides(value.BindingOverrides);
             if (value.Graphics.DlssMode != 0 && StreamlineRuntime.DecodePreference(value.Graphics.DlssMode) == null)
             {
                 throw new ArgumentException("DLSS 档位无效。");
@@ -275,6 +318,7 @@ namespace Core.Runtime.Settings
             config = null;
             current = new GameSettingsSnapshot();
             IsInitialized = false;
+            InitializationStage = null;
             hasInitialization = false;
             applying = false;
             Changed = null;

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Core.Runtime;
-using Core.Runtime.Inputs;
 using Core.Runtime.Localization;
 using Core.Runtime.Rendering.Streamline;
 using Core.Runtime.Settings;
@@ -31,15 +30,6 @@ namespace Hotfix
         private Vector2 layoutSize;
 
         public SettingsCategory Category => category;
-        public bool IsListening => InputPage?.IsListening == true;
-        private InputSettingsPanelView InputPage
-        {
-            get
-            {
-                int index = categories.IndexOf(SettingsCategory.Input);
-                return index >= 0 ? views[index] as InputSettingsPanelView : null;
-            }
-        }
 
         protected override void OnGameObjectInitialize()
         {
@@ -106,7 +96,7 @@ namespace Hotfix
 
         private void OnApply()
         {
-            if (submitting != null || lifetime == null || IsListening || SettingsFlow.IsSubmitting)
+            if (submitting != null || lifetime == null || SettingsFlow.IsSubmitting)
             {
                 return;
             }
@@ -156,11 +146,6 @@ namespace Hotfix
 
         private void OnCancel()
         {
-            if (IsListening)
-            {
-                CancelRebind();
-                return;
-            }
             CancelAndCloseAsync().Forget();
         }
 
@@ -275,9 +260,6 @@ namespace Hotfix
             RefreshButtons();
         }
 
-        /// 菜单返回优先退出监听，下一次返回才取消整个设置页。
-        private void CancelRebind() => InputPage?.CancelRebind();
-
         private void SelectCategory()
         {
             var names = new List<string>();
@@ -345,7 +327,6 @@ namespace Hotfix
                     break;
                 case SettingsCategory.Input:
                     candidate.Input = defaults.Input.Copy();
-                    candidate.BindingOverrides = new Dictionary<string, string>(defaults.BindingOverrides);
                     break;
                 case SettingsCategory.Language:
                     candidate.Language = defaults.Language;
@@ -376,7 +357,7 @@ namespace Hotfix
         {
             if (Button_Apply != null)
             {
-                Button_Apply.interactable = dirty && !busy && !IsListening;
+                Button_Apply.interactable = dirty && !busy;
             }
             if (Button_Reset != null)
             {

@@ -4,6 +4,7 @@ import { createInstruments } from '/src/audio/instruments.js';
 import { createMusic, compileTheme } from '/src/audio/music.js';
 import { createSfx, SFX } from '/src/audio/sfx.js';
 import { THEMES, CHAPTERS, STINGERS } from '/src/audio/themes.js';
+import { createEngines } from '/src/audio/engine.js';
 
 const sr = 44100;
 const clips = [];
@@ -100,67 +101,39 @@ async function music(name, theme, options = {}) {
     return instance;
 }
 
-async function dynamicsReference() {
-    const rate = 48000, frames = 16384, step = 16;
-    const ctx = new OfflineAudioContext(2, frames, rate);
-    const input = ctx.createBuffer(2, frames, rate), l = input.getChannelData(0), r = input.getChannelData(1);
-    for (let i = 0; i < frames; i++) {
-        const amp = i < 4096 ? 0.04 : i < 8192 ? 0.9 : 0.03;
-        l[i] = 1.25 * amp * Math.sin(2 * Math.PI * 440 * i / rate);
-        r[i] = 1.25 * amp * Math.sin(2 * Math.PI * 880 * i / rate);
+async function engines() {
+    for (const [name, speed, throttle, drifting] of [
+        ['idle', 0, 0, false], ['drive', 18, 1, false], ['drift', 18, 0.8, true],
+    ]) {
+        const ctx = context(4), bank = createBank(ctx);
+        const engine = createEngines(ctx, ctx.destination, bank);
+        engine.setActive(true);
+        const player = { baseTop: 25, speed, grounded: true, controls: { throttle }, drift: { active: drifting, tier: 1 } };
+        engine.update({ player, karts: [] }, { x: 0, y: 0, z: 0 }, drifting ? 0.8 : 1, 1);
+        const audio = await ctx.startRendering();
+        const length = sr * 2, overlap = Math.round(sr * 0.08);
+        const loop = ctx.createBuffer(2, length, sr);
+        for (let channel = 0; channel < 2; channel++) {
+            const input = audio.getChannelData(channel), output = loop.getChannelData(channel);
+            output.set(input.subarray(sr, sr + length));
+            // Blend the tail into the samples immediately before the loop start; preserve continuous phase at the seam.
+            for (let i = 0; i < overlap; i++) {
+                const mix = i / (overlap - 1);
+                output[length - overlap + i] = output[length - overlap + i] * (1 - mix) + input[sr - overlap + i] * mix;
+            }
+        }
+        await save('engine' + name[0].toUpperCase() + name.slice(1), loop, 0, 2, true);
+        engine.dispose();
     }
-    l[6000] += 1;
-    const source = ctx.createBufferSource(); source.buffer = input;
-    const glue = ctx.createDynamicsCompressor(), limiter = ctx.createDynamicsCompressor();
-    Object.assign(glue.threshold, { value: -18 }); glue.knee.value = 10; glue.ratio.value = 3; glue.attack.value = 0.005; glue.release.value = 0.2;
-    limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.001; limiter.release.value = 0.1;
-    source.connect(glue).connect(limiter).connect(ctx.destination); source.start(0);
-    const output = await ctx.startRendering();
-    const outputLeft = [], outputRight = [];
-    for (let i = 0; i < frames; i += step) {
-        outputLeft.push(output.getChannelData(0)[i]); outputRight.push(output.getChannelData(1)[i]);
-    }
-    await fetch('/reference.json', { method: 'POST', body: JSON.stringify({ sampleRate: rate, step, left: [...l], right: [...r], outputLeft, outputRight }) });
-}
-
-async function boostReference() {
-    const ctx = context(2.5), bank = createBank(ctx), step = 32, duration = Math.fround(1.14);
-    // Native Unity decodes our PCM16 WAVs as signed integers / 32768.
-    for (const name of ['white', 'crackle']) {
-        const data = bank[name].getChannelData(0);
-        for (let i = 0; i < data.length; i++) data[i] = Math.round(data[i] * 32767) / 32768;
-    }
-    const out = ctx.createGain(); out.gain.value = 0.85; out.connect(ctx.destination);
-    const sfx = createSfx(ctx, out, bank, prng(1234));
-    sfx.play('boost', { source: 'start', duration, minGap: 0 }, 0.02);
-    const result = await ctx.startRendering();
-    const frames = Math.ceil((0.85 + 0.45 * duration / 1.4 + 0.3) * sr), expected = [];
-    for (let i = 0; i < frames; i += step) expected.push(result.getChannelData(0)[882 + i]);
-    await fetch('/boost-reference.json', { method: 'POST', body: JSON.stringify({ duration, sampleRate: sr, seed: 1234, step, expected }) });
-}
-
-async function shaperReference() {
-    const rate = 48000, frames = 4096, ctx = new OfflineAudioContext(1, frames, rate);
-    const buffer = ctx.createBuffer(1, frames, rate), input = buffer.getChannelData(0);
-    for (let i = 0; i < frames; i++) input[i] = 0.8 * Math.sin(2 * Math.PI * 173 * i / rate) + 0.4 * Math.sin(2 * Math.PI * 901 * i / rate);
-    input[300] += 0.7;
-    const source = ctx.createBufferSource(); source.buffer = buffer;
-    const shaper = ctx.createWaveShaper(), curve = new Float32Array(1024);
-    for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh((i / (curve.length - 1) * 2 - 1) * 2.2) / Math.tanh(2.2);
-    shaper.curve = curve; shaper.oversample = '2x';
-    source.connect(shaper).connect(ctx.destination); source.start(0);
-    const output = await ctx.startRendering();
-    await fetch('/shaper-reference.json', { method: 'POST', body: JSON.stringify({ input: [...input], expected: [...output.getChannelData(0)] }) });
 }
 
 try {
-    await dynamicsReference();
-    await boostReference();
-    await shaperReference();
-    if (window.location.search === '?checks') {
-        await fetch('/done', { method: 'POST', body: '' });
+    if (window.location.search === '?engines') {
+        await engines();
+        await fetch('/manifest.json', { method: 'POST', body: JSON.stringify({ sampleRate: sr, clips }) });
     } else {
     await sfx();
+    await engines();
     const noiseContext = context(3), noiseBank = createBank(noiseContext);
     await save('bank_white', noiseBank.white);
     await save('bank_pink', noiseBank.pink);

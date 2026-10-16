@@ -1,9 +1,15 @@
 {
     "name": "Core.Networking.FishNet",
     "rootNamespace": "Core.Runtime.Networking",
-    "references": ["Core.Runtime", "FishNet.Runtime", "UniTask"],
+    "references": [
+        "Core.Runtime",
+        "FishNet.Runtime",
+        "UniTask"
+    ],
     "includePlatforms": [],
-    "excludePlatforms": [],
+    "excludePlatforms": [
+        "WebGL"
+    ],
     "allowUnsafeCode": false,
     "overrideReferences": false,
     "precompiledReferences": [],

@@ -38,8 +38,7 @@ namespace Core.Runtime
                 var result = await ResourceServices.Default.LoadTextAssetAsync(assemblyName);
                 if (!result.Success)
                 {
-                    Debug.LogWarning($"[Hotfix] 跳过热更程序集，未找到资源: {assemblyName}");
-                    continue;
+                    throw new InvalidOperationException($"必需热更程序集不存在: {assemblyName}");
                 }
 
                 var bytes = result.Asset.bytes;

@@ -18,22 +18,31 @@ namespace Hotfix.AppDelegate
             await UniTask.Yield();
 
             hotfixContext.LoadingView?.SetProgress(0.95f, "进入界面", "显示主界面");
-            GameSceneId? standaloneScene = null;
+            GameSceneId? initialScene = null;
             string requestedScene = hotfixContext.Config?.StartupScene;
+#if UNITY_EDITOR
+            string editorScene = UnityEditor.SessionState.GetString("SleepyDemos.EditorStartupScene", string.Empty);
+            UnityEditor.SessionState.EraseString("SleepyDemos.EditorStartupScene");
+            if (!string.IsNullOrEmpty(editorScene))
+            {
+                requestedScene = editorScene;
+            }
+#endif
             if (!string.IsNullOrWhiteSpace(requestedScene))
             {
                 if (!Enum.TryParse(requestedScene, false, out GameSceneId target) || !GameSceneCatalog.TryGet(target, out _))
                     throw new InvalidOperationException("启动目标未登记：" + requestedScene);
-                if (target != GameSceneId.Hub) standaloneScene = target;
+                if (target != GameSceneId.Hub) initialScene = target;
             }
+            var standaloneScene = ResolveStandaloneScene(hotfixContext.Config?.GameId, initialScene);
             GameSceneNavigator.Initialize(standaloneScene);
             UIManager.Instance.RegisterWorldTransitionProvider(new HotfixWorldTransitionProvider());
-            if (standaloneScene.HasValue)
+            if (initialScene.HasValue)
             {
                 hotfixContext.LoadingView?.SetProgress(0.95f, "进入游戏", "加载游戏主菜单");
-                var navigation = await GameSceneNavigator.Instance.SwitchAsync(standaloneScene.Value);
+                var navigation = await GameSceneNavigator.Instance.SwitchAsync(initialScene.Value);
                 if (navigation.Status != GameSceneSwitchStatus.Succeeded && navigation.Status != GameSceneSwitchStatus.Ignored)
-                    throw new InvalidOperationException("独立游戏启动失败：" + navigation.Error);
+                    throw new InvalidOperationException("初始场景进入失败：" + navigation.Error);
             }
             else
             {
@@ -45,6 +54,19 @@ namespace Hotfix.AppDelegate
             {
                 Object.Destroy(hotfixContext.LoadingView.gameObject);
             }
+        }
+
+        internal static GameSceneId? ResolveStandaloneScene(string gameId, GameSceneId? initialScene)
+        {
+            if (string.IsNullOrWhiteSpace(gameId) || gameId == "hub")
+            {
+                return null;
+            }
+            if (!initialScene.HasValue || initialScene == GameSceneId.Hub)
+            {
+                throw new InvalidOperationException("独立游戏配置缺少有效的启动场景。");
+            }
+            return initialScene;
         }
     }
 }

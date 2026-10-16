@@ -776,8 +776,31 @@
       "channels": 1,
       "peak": 0.89996337890625,
       "rms": 0.20716513148009316
+    },
+    {
+      "name": "engineIdle",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.16739533841609955,
+      "rms": 0.05962939206119912,
+      "loop": true
+    },
+    {
+      "name": "engineDrive",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.26536351442337036,
+      "rms": 0.11275623070429215,
+      "loop": true
+    },
+    {
+      "name": "engineDrift",
+      "duration": 2,
+      "channels": 2,
+      "peak": 0.2185111790895462,
+      "rms": 0.08354929670971145,
+      "loop": true
     }
   ],
-  "sourceRevision": "da100b21ae1c5332d2843d21a9bb7b68b97e9c2a",
-  "metrics": "PCM16"
+  "sourceRevision": "da100b21ae1c5332d2843d21a9bb7b68b97e9c2a"
 }

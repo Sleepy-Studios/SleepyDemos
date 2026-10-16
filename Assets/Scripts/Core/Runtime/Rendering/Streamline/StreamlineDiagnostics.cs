@@ -131,6 +131,7 @@ namespace Core.Runtime.Rendering.Streamline
             return exception is DllNotFoundException || exception is EntryPointNotFoundException || exception is BadImageFormatException;
         }
 
+#if UNITY_EDITOR_WIN || (UNITY_STANDALONE_WIN && !UNITY_EDITOR)
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr SleepyStreamlineGetProbeEvent();
 
@@ -143,5 +144,13 @@ namespace Core.Runtime.Rendering.Streamline
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern IntPtr SleepyStreamlineGetResourceProbeEvent();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineGetResourceProbeEventId();
         [DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)] private static extern int SleepyStreamlineCopyResourceReport([Out] byte[] destination, int capacity);
+#else
+        private static IntPtr SleepyStreamlineGetProbeEvent() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineGetProbeEventId() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineCopyReport([Out] byte[] destination, int capacity) => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static IntPtr SleepyStreamlineGetResourceProbeEvent() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineGetResourceProbeEventId() => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+        private static int SleepyStreamlineCopyResourceReport([Out] byte[] destination, int capacity) => throw new PlatformNotSupportedException("Streamline 仅支持 Windows。");
+#endif
     }
 }

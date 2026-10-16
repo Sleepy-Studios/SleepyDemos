@@ -8,6 +8,7 @@ pipeline {
     }
     parameters {
         string(name: 'SourceRef', defaultValue: 'main', description: '源码分支、标签或提交 SHA；执行时固定提交')
+        string(name: 'GameId', defaultValue: 'hub', description: 'hub 保持原 Hub 包；独立游戏使用正式 ReleaseProfiles 中的 GameId')
         choice(name: 'Platform', choices: ['PC', 'Android'])
         choice(name: 'BuildKind', choices: ['Full', 'Hotfix'])
         choice(name: 'ResourceMode', choices: ['Offline', 'OnlineFull', 'OnlineDownload'], description: '仅 Full 生效；Hotfix 继承已发布基线')
@@ -22,7 +23,9 @@ pipeline {
     }
     environment {
         SLEEPY_MACHINE_CONFIG = "${env.SLEEPY_MACHINE_CONFIG ?: 'E:/Jenkins/machine.json'}"
+        BuildChannel = 'Native'
         SourceRef = "${params.SourceRef}"
+        GameId = "${params.GameId}"
         Platform = "${params.Platform}"
         BuildKind = "${params.BuildKind}"
         ResourceMode = "${params.ResourceMode}"

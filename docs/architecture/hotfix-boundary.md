@@ -93,3 +93,9 @@ Hotfix 的关键词是：
 ## 本机存储
 
 公共 PlayerPrefs/文件读写属于 Core.Runtime 的 LocalDataManager，业务键与文件名、快照 DTO、领域校验、默认值及保存时机属于 Hotfix。输入模块不自行建立存储记录；宿主通过公共存储保存本机偏好。接口与损坏处理见[公共本地存储](../modules/local-data.md)。
+
+## Demo 程序集与发布
+
+公共业务入口、导航和设置留在 `Hotfix.dll`，各 Demo 使用自己的程序集并单向引用公共业务/Core。Demo 专属色板和存档键随程序集归属，不让公共设置或目录资产集中持有 Demo 动作资产。改键监听、校验、覆盖保存和应用底座仍归 Core，由 Demo 后续接自己的页面。
+
+Streamline 运行底座归 Core；DLSS 实验室归 PC 诊断程序集和公共诊断资源，只有 Hub Windows 目标收集。TapTap H5 的浏览器生命周期、音频暂停恢复和本地存储适配归 Core，具体玩法仍留在 Demo；当前单机启动不依赖平台身份。

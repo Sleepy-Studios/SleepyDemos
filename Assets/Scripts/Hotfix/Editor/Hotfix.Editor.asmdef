@@ -12,7 +12,12 @@
         "UnityEngine.UI",
         "Unity.InputSystem",
         "Unity.RenderPipelines.Universal.Runtime",
-        "Unity.RenderPipelines.Core.Runtime"
+        "Unity.RenderPipelines.Core.Runtime",
+        "Hotfix.DroneFlight",
+        "Hotfix.WallSqueeze",
+        "Hotfix.KagitKart",
+        "UniTask",
+        "Hotfix.Diagnostics.PC"
     ],
     "includePlatforms": [
         "Editor"

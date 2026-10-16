@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Core.Runtime;
+using Core.Runtime.Platform.TapTap;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -107,6 +108,17 @@ namespace Tests.Module
             Assert.That(LocalDataManager.LoadFile("Corrupt.json", directory), Is.Null);
             Assert.Throws<ArgumentException>(() => LocalDataManager.LoadFile("../Outside.json", directory));
             Assert.Throws<ArgumentException>(() => LocalDataManager.SaveFile(Path.GetFullPath("Outside.json"), "{}", directory));
+        }
+
+        [Test]
+        public void TapTapPathsKeepExistingBusinessDirectoriesInsideUserDataRoot()
+        {
+            string root = Path.Combine(directory, "Persistent");
+            string path = Path.Combine(root, "KagitKart", "Records", "Race.json");
+            Assert.That(TapTapStorage.ToRelativePath(path, root), Is.EqualTo("KagitKart/Records/Race.json"));
+            Assert.Throws<ArgumentException>(() => TapTapStorage.ToRelativePath(Path.Combine(directory, "Outside.json"), root));
+            Assert.Throws<ArgumentException>(() => TapTapStorage.ToRelativePath(root + "Sibling/Outside.json", root));
+            Assert.Throws<ArgumentException>(() => TapTapStorage.ToRelativePath(Path.Combine(root, "..", "Outside.json"), root));
         }
     }
 }

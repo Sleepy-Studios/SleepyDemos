@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using Core.Runtime.Platform.TapTap;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -26,11 +27,20 @@ namespace Core.Runtime
             ValidateKey(key);
             try
             {
+#if UNITY_WEBGL && SLEEPY_TAPTAP && !UNITY_EDITOR
+                string json = TapTapStorage.LoadValue(key);
+                if (string.IsNullOrEmpty(json))
+                {
+                    return defaultValue;
+                }
+#else
                 if (!PlayerPrefs.HasKey(key))
                 {
                     return defaultValue;
                 }
-                var value = JsonConvert.DeserializeObject<T>(PlayerPrefs.GetString(key), JsonSettings);
+                string json = PlayerPrefs.GetString(key);
+#endif
+                var value = JsonConvert.DeserializeObject<T>(json, JsonSettings);
                 if (value == null)
                 {
                     return defaultValue;
@@ -44,7 +54,7 @@ namespace Core.Runtime
             }
         }
 
-        /// <summary>校验并立即保存本机值；失败恢复本键内存值，异常交由业务显示。</summary>
+        /// <summary>校验并立即保存本机值；原生保存失败恢复本键内存值，浏览器存储失败保留旧记录并抛出供业务显示。</summary>
         /// <typeparam name="T">基础类型、集合或普通数据对象。</typeparam>
         /// <param name="key">非空本机键。</param>
         /// <param name="value">待保存的合法完整值。</param>
@@ -58,6 +68,9 @@ namespace Core.Runtime
             }
             validate?.Invoke(value);
             string json = JsonConvert.SerializeObject(value, JsonSettings);
+#if UNITY_WEBGL && SLEEPY_TAPTAP && !UNITY_EDITOR
+            TapTapStorage.SaveValue(key, json);
+#else
             bool existed = PlayerPrefs.HasKey(key);
             string previous = existed ? PlayerPrefs.GetString(key) : null;
             try
@@ -77,6 +90,7 @@ namespace Core.Runtime
                 }
                 throw;
             }
+#endif
         }
 
         /// <summary>读取文件内容；读取失败或空内容返回 null，业务负责解析与校验。</summary>
@@ -88,7 +102,11 @@ namespace Core.Runtime
             string path = GetFilePath(relativePath, directory);
             try
             {
+#if UNITY_WEBGL && SLEEPY_TAPTAP && !UNITY_EDITOR
+                string content = TapTapStorage.LoadFile(path);
+#else
                 string content = File.ReadAllText(path, Utf8);
+#endif
                 return string.IsNullOrWhiteSpace(content) ? null : content;
             }
             catch (Exception)
@@ -97,7 +115,7 @@ namespace Core.Runtime
             }
         }
 
-        /// <summary>写完文件后替换目标；失败抛出供业务提示，不创建备份或恢复记录。</summary>
+        /// <summary>完整快照写入后替换目标；浏览器使用原子记录，失败抛出供业务提示，不创建备份。</summary>
         /// <param name="relativePath">相对于存储根目录的文件路径。</param>
         /// <param name="json">业务已经完成领域校验的完整快照。</param>
         /// <param name="directory">默认 persistentDataPath；测试可传独立临时根目录。</param>
@@ -108,6 +126,10 @@ namespace Core.Runtime
             {
                 throw new ArgumentException("存档内容不能为空。", nameof(json));
             }
+#if UNITY_WEBGL && SLEEPY_TAPTAP && !UNITY_EDITOR
+            Utf8.GetByteCount(json);
+            TapTapStorage.SaveFile(path, json);
+#else
             byte[] bytes = Utf8.GetBytes(json);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             string temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
@@ -142,12 +164,21 @@ namespace Core.Runtime
                     }
                 }
             }
+#endif
         }
 
         /// <summary>取得同一安全路径的最后写入时间，供存档列表展示。</summary>
         /// <param name="relativePath">相对于存储根目录的文件路径。</param>
         /// <param name="directory">默认 persistentDataPath；测试可传独立临时根目录。</param>
-        public static DateTime GetFileWriteTimeUtc(string relativePath, string directory = null) => File.GetLastWriteTimeUtc(GetFilePath(relativePath, directory));
+        public static DateTime GetFileWriteTimeUtc(string relativePath, string directory = null)
+        {
+            string path = GetFilePath(relativePath, directory);
+#if UNITY_WEBGL && SLEEPY_TAPTAP && !UNITY_EDITOR
+            return TapTapStorage.GetFileWriteTimeUtc(path);
+#else
+            return File.GetLastWriteTimeUtc(path);
+#endif
+        }
         private static void ValidateKey(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
@@ -168,7 +199,11 @@ namespace Core.Runtime
             {
                 throw new ArgumentException("存档路径不能越出存储目录。", nameof(relativePath));
             }
+#if UNITY_WEBGL && SLEEPY_TAPTAP && !UNITY_EDITOR
+            return TapTapStorage.ToRelativePath(path, Application.persistentDataPath);
+#else
             return path;
+#endif
         }
     }
 }

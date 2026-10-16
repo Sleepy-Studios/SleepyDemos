@@ -68,65 +68,6 @@ namespace Tests.Demo
         }
 
         [UnityTest]
-        public IEnumerator PagedMusicPreservesStereoInterpolationAcrossPagesAndLoopEnds()
-        {
-            const int pageFrames = 1024 * 1024 / sizeof(float) / 2;
-            const int frames = pageFrames + 3;
-            var pcm = new float[frames * 2];
-            for (int i = 0; i < frames; i++)
-            {
-                pcm[i * 2] = i % 97 / 96f - 0.5f;
-                pcm[i * 2 + 1] = 0.5f - i % 89 / 88f;
-            }
-            var clip = AudioClip.Create("Music_PagingTone", frames, 2, 44100, false);
-            var flatClip = AudioClip.Create("Music_Title_PagingReference", frames, 2, 44100, false);
-            var host = new GameObject("音乐页边界音色测试");
-            try
-            {
-                Assert.That(clip.SetData(pcm, 0), Is.True);
-                Assert.That(flatClip.SetData(pcm, 0), Is.True);
-                var dsp = host.AddComponent<KagitKartAudioDsp>();
-                typeof(KagitKartAudioDsp).GetField("sampleRate", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .SetValue(dsp, 44100);
-                yield return dsp.PrepareRaceClipAsync(clip, CancellationToken.None).ToCoroutine();
-                dsp.PrepareRaceClip(flatClip);
-                Assert.That(dsp.PreparedPcmBytes, Is.EqualTo((long)pcm.Length * sizeof(float) * 2), "分页仍保留完整PCM预算");
-                var actual = dsp.CreateVoice();
-                var reference = dsp.CreateVoice();
-                actual.Clip = clip;
-                reference.Clip = flatClip;
-                actual.Volume = reference.Volume = 1;
-                foreach (bool loop in new[] { false, true })
-                {
-                    foreach (double startFrame in new[] { pageFrames - 1.25, frames - 1.25 })
-                    {
-                        actual.Loop = reference.Loop = loop;
-                        actual.PlayScheduled(-startFrame / 44100);
-                        reference.PlayScheduled(-startFrame / 44100);
-                        actual.Capture();
-                        reference.Capture();
-                        actual.Prepare();
-                        reference.Prepare();
-                        for (int i = 0; i < 8; i++)
-                        {
-                            float left = 0, right = 0, expectedLeft = 0, expectedRight = 0;
-                            actual.Mix((double)i / 44100, ref left, ref right);
-                            reference.Mix((double)i / 44100, ref expectedLeft, ref expectedRight);
-                            Assert.That(left, Is.EqualTo(expectedLeft).Within(0.000001f), "跨页、循环接头和非循环结尾的左声道插值");
-                            Assert.That(right, Is.EqualTo(expectedRight).Within(0.000001f), "立体声右声道不能串页或串声道");
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(host);
-                UnityEngine.Object.DestroyImmediate(clip);
-                UnityEngine.Object.DestroyImmediate(flatClip);
-            }
-        }
-
-        [UnityTest]
         public IEnumerator OriginalAudioManifestResolvesCompletePlayableBank()
         {
             const string root = "Assets/LoadResources/Demos/kagit_kart/Data/";
@@ -134,10 +75,27 @@ namespace Tests.Demo
             Assert.That(manifest.sourceRevision, Is.EqualTo("da100b21ae1c5332d2843d21a9bb7b68b97e9c2a"));
             var bank = AssetDatabase.LoadAssetAtPath<KagitKartAudioBank>(root + "AudioBank.asset");
             Assert.That(bank, Is.Not.Null);
+            Assert.That(manifest.clips.Length, Is.EqualTo(100));
+            Assert.That(bank.Clips.All(clip => clip != null && !clip.name.StartsWith("Music_", StringComparison.Ordinal)), Is.True,
+                "常驻 Bank 不硬引用整曲音乐");
+            Assert.That(bank.Clips.Count + bank.MusicAddresses.Count, Is.EqualTo(manifest.clips.Length));
+            Assert.That(AssetDatabase.GetDependencies(root + "AudioBank.asset")
+                .Any(path => path.Contains("/Audio/SFX/Music/")), Is.False,
+                "Bank 资源依赖不包含任何音乐文件");
+            AudioClip ResolveClip(string name) => name.StartsWith("music_", StringComparison.Ordinal)
+                ? AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/" + bank.GetMusicAddress(name) + ".ogg")
+                : bank.GetClip(name);
             foreach (var item in manifest.clips)
             {
                 string name = item.name;
-                var clip = bank.GetClip(name);
+                var clip = ResolveClip(name);
+                Assert.That(clip, Is.Not.Null, name);
+                var clipImporter = (AudioImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(clip));
+                var web = clipImporter.GetOverrideSampleSettings("WebGL");
+                Assert.That(web.compressionFormat, Is.EqualTo(AudioCompressionFormat.AAC), name);
+                Assert.That(web.loadType, Is.EqualTo(AudioClipLoadType.DecompressOnLoad), name);
+                Assert.That(web.preloadAudioData, Is.True,
+                    "Web 资源加载自动发起解码：" + name);
                 Assert.That(clip.length, Is.EqualTo(item.duration).Within(0.01f), name);
                 Assert.That(clip.channels, Is.EqualTo(item.channels), name);
                 Assert.That(item.rms, Is.GreaterThan(0.00001f), name);
@@ -149,37 +107,45 @@ namespace Tests.Demo
                     // Unity 导入 WAV/OGG 均可能有一个采样的长度舍入，不能容忍编码器整块补帧。
                     Assert.That(clip.samples, Is.EqualTo((int)Math.Round(item.duration * manifest.sampleRate)).Within(1), name);
                     var importer = (AudioImporter)AssetImporter.GetAtPath(path);
-                    Assert.That(importer.defaultSampleSettings.loadType, Is.EqualTo(AudioClipLoadType.DecompressOnLoad), name);
-                    try
-                    {
-                        Assert.That(clip.LoadAudioData(), Is.True, name);
-                        while (clip.loadState == AudioDataLoadState.Loading)
-                        {
-                            yield return null;
-                        }
-                        Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Loaded), name);
-                        Assert.That(clip.GetData(new float[4096 * clip.channels], clip.samples / 2), Is.True, name);
-                    }
-                    finally
-                    {
-                        clip.UnloadAudioData();
-                    }
+                    Assert.That(importer.defaultSampleSettings.loadType, Is.EqualTo(AudioClipLoadType.Streaming), name);
+                    Assert.That(importer.defaultSampleSettings.preloadAudioData, Is.False, name);
+                    Assert.That(importer.loadInBackground, Is.True, name);
                 }
             }
             foreach (string chapter in new[] { "meadow", "bosphorus", "glacier", "desk" })
             {
                 foreach (string prefix in new[] { "music_", "music_intro_", "music_final_" })
                 {
-                    Assert.That(bank.GetClip(prefix + chapter + "_start"), Is.Not.Null);
-                    Assert.That(bank.GetClip(prefix + chapter + "_loop"), Is.Not.Null);
+                    Assert.That(ResolveClip(prefix + chapter + "_start"), Is.Not.Null);
+                    Assert.That(ResolveClip(prefix + chapter + "_loop"), Is.Not.Null);
                 }
                 Assert.That(bank.GetClip("sting_finalLap_" + chapter), Is.Not.Null);
             }
             foreach (string cue in new[] { "title", "results", "podium" })
             {
-                Assert.That(bank.GetClip("music_" + cue + "_start"), Is.Not.Null);
-                Assert.That(bank.GetClip("music_" + cue + "_loop"), Is.Not.Null);
+                Assert.That(ResolveClip("music_" + cue + "_start"), Is.Not.Null);
+                Assert.That(ResolveClip("music_" + cue + "_loop"), Is.Not.Null);
             }
+            foreach (string name in new[] { "engineIdle", "engineDrive", "engineDrift" })
+            {
+                var clip = ResolveClip(name);
+                Assert.That(clip, Is.Not.Null, name);
+                Assert.That(clip.length, Is.EqualTo(2).Within(0.001f), name);
+                Assert.That(clip.LoadAudioData(), Is.True, name);
+                while (clip.loadState == AudioDataLoadState.Loading) yield return null;
+                Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Loaded), name);
+                var samples = new float[clip.samples * clip.channels];
+                Assert.That(clip.GetData(samples, 0), Is.True, name);
+                Assert.That(samples.Any(sample => Mathf.Abs(sample) > 0.001f), Is.True, name);
+                for (int channel = 0; channel < clip.channels; channel++)
+                {
+                    Assert.That(Mathf.Abs(samples[channel] - samples[samples.Length - clip.channels + channel]),
+                        Is.LessThan(0.1f), "引擎循环接缝连续：" + name);
+                }
+                clip.UnloadAudioData();
+            }
+            Assert.That(() => bank.GetClip("music_title_start"), Throws.ArgumentException);
+            Assert.That(() => bank.GetMusicAddress("music_missing_start"), Throws.ArgumentException);
             Assert.That(() => bank.GetClip("missing_original_recipe"), Throws.ArgumentException);
         }
 

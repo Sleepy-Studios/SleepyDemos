@@ -39,7 +39,7 @@
 
 依赖 `AudioClip.GetData` 读取压缩音频采样时，必须使用 Decompress On Load，并处理加载就绪与读取失败；不能套用 Compressed In Memory 或 Streaming 模板。需要精确采样的算法还须单独确定编码、声道与采样率，在所属模块文档记录原因。
 
-纸艺卡丁车的独立 DSP 属于该情况，继续遵守其[音频维护文档](../demos/kagit_kart/runbooks/audio.md)，不批量套用普通音乐模板。`GetData` 的加载限制不豁免 WAV 源文件大小规则，也不意味着 OGG 导入后无需解码。
+纸艺卡丁车现使用 AudioSource 播放与循环采样，音乐采用 Streaming，不再适用整曲 GetData 的 DSP 例外，见其[音频维护文档](../demos/kagit_kart/runbooks/audio.md)。其他专用 DSP 的加载限制不豁免 WAV 源文件大小规则。
 
 ## 验证与性能口径
 

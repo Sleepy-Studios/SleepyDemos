@@ -755,7 +755,7 @@ namespace Hotfix.DroneFlight
             aimReticle.enabled = true;
             aimReticle.positionCount = segmentCount;
             aimReticle.loop = true;
-            aimReticle.startColor = aimReticle.endColor = aimValid ? UIColors.DroneFlight.EquipmentValid : UIColors.DroneFlight.HarpoonAimInvalid;
+            aimReticle.startColor = aimReticle.endColor = aimValid ? DroneFlightUIColors.EquipmentValid : DroneFlightUIColors.HarpoonAimInvalid;
             for (var index = 0; index < segmentCount; index++)
             {
                 var angle = index * Mathf.PI * 2f / segmentCount;

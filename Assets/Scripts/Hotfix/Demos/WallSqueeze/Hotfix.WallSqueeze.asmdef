@@ -1,0 +1,26 @@
+{
+    "name": "Hotfix.WallSqueeze",
+    "rootNamespace": "Hotfix.WallSqueeze",
+    "references": [
+        "SleepyStudios.LoopScroll",
+        "Core.Runtime",
+        "UniTask",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "UnityEngine.UI",
+        "Hotfix"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_EDITOR || !SLEEPY_RELEASE || SLEEPY_DEMO_WALL_SQUEEZE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

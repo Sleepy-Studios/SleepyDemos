@@ -22,7 +22,8 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 - `Core.Runtime`：运行时底座
 - `Core.Editor`：编辑器工具
 - `Hotfix/Module`：主菜单、公共业务模块和业务 View
-- `Hotfix/Demos/<DemoName>`：独立 Demo 的玩法、场景交互和界面
+- `Hotfix/Demos/<DemoName>`：独立 Demo 的玩法、场景交互和界面，使用自身 `Hotfix.<DemoName>.dll`
+- `Hotfix/Module/Diagnostics/DlssLab`：仅 Windows / Editor 的公共渲染验证工具
 - `Hotfix/Editor/<DemoName>`：只服务对应 Demo 的长期 Inspector、导入与构建工具
 
 ### 资源轴线
@@ -47,7 +48,7 @@ SleepyDemos 是一个多人协作的 Unity 练习项目。整体形态是：
 5. `BeforeHotfixStartupState`
 6. `HotfixEntry`
 7. `HotfixBootService`
-8. `MainMenuView`
+8. Hub 打开 `MainMenuView`，独立游戏由同一 `AppEntrance` 直接进入配置中的 Demo 菜单
 
 也就是说：
 - Core 先完成准备、资源初始化、元数据和程序集装配
@@ -70,3 +71,9 @@ View 在初始化时声明 BindData，由 Core 管理显示订阅、立即刷新
 - 自动化测试统一进入 `Tests.EditMode` / `Tests.PlayMode`，不按 Demo 增加测试程序集
 - 网络 SDK 与需要代码生成的网络组件归入 AOT 通用适配；具体游戏规则仍在 Hotfix，接口与当前验证边界见[通用会话模块](../modules/network-session.md)
 - 文档以导航和边界为主，不追求“每个目录一个 md”
+
+## 独立发布
+
+编辑器与 Jenkins 共用 `Assets/Settings/ReleaseProfiles.json` 选择 GameId、归属、入口、程序集和应用标识。每个游戏仍使用一个完整 YooAsset Package；公共 DLL 先装配，Demo DLL 后装配，必需 DLL 缺失阻断启动。资源收集拒绝未选择 Demo 的直接或间接依赖，输出、基线和发布入口按游戏及平台隔离。公共 ABI / AOT 变化需要重建受影响游戏的完整包，不能只发热更 DLL。
+
+TapTap 创意工坊使用标准 Unity WebGL H5 网页 ZIP，单机版本排除原生联机与 Windows 插件；HTTP、Web 文件系统、主线程分帧、浏览器存储及前后台处理由 Core 提供。完整网页随平台 ZIP 内置，Pages 仅发布 YooAsset 热更资源。H5 构建、平台上传解析、Android/iOS 容器与实际音频需分别验收。

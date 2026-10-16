@@ -21,6 +21,7 @@
 | 使用时间、颜色、倒计时或通用 Tips | [Core.Runtime](./modules/core-runtime.md)、[UI 运行时](./modules/ui-runtime.md)、[公共 UI 使用手册](./runbooks/use-core-ui-components.md) |
 | 修改启动或热更流程 | [启动与热更流程](./architecture/startup-flow.md)、[热更新模块](./modules/hotfix.md) |
 | Jenkins 自动构建、发布或换构建电脑 | [构建模块](./modules/jenkins-build.md)、[使用本机 Jenkins](./runbooks/use-jenkins.md) |
+| 独立游戏分组、DLL 与资源发布隔离 | [资源发布边界](./architecture/resource-system.md#独立游戏发布边界)、[热更新模块](./modules/hotfix.md#发布目标与-taptap)、[新增 Demo](./runbooks/add-demo.md) |
 | 修改资源组织或加载 | [资源命名规范](./architecture/asset-naming.md)、[资源运行时](./modules/resource-runtime.md)、[使用资源 Loader](./runbooks/use-resource-loader.md) |
 | 新增、替换或生成正式音频，选择平台导入设置 | [音频资源与导入规范](./architecture/audio-assets.md) |
 | 修改文案、多语言或公共字体 | [多语言与公共字体规范](./architecture/localization-fonts.md)、[TMP 字体生产流程](./runbooks/tmp-font-workflow.md) |
@@ -34,7 +35,7 @@
 
 ## 文档结构
 
-公共 DLSS：[体验 Demo](demos/dlss/module.md)、[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
+公共 DLSS：[PC实验室](modules/dlss-lab.md)、[设计与路线](./architecture/streamline-integration.md)、[模块状态](./modules/streamline.md)、[构建与验证](./runbooks/use-streamline.md)。
 
 - `architecture/`
   - 给开发人员看思路：全局规则、分层边界、启动流程、设计原则、文档维护规则
@@ -52,6 +53,7 @@
   - [Core.Runtime](./modules/core-runtime.md)
   - [公共玩法输入](./modules/gameplay-input.md)
   - [公共设置与表现](./modules/settings-presentation.md)
+  - [PC DLSS 实验室](./modules/dlss-lab.md)
   - [热更新模块](./modules/hotfix.md)
   - [性能采集与分析工具](./modules/performance-tools.md)
   - [Core 资源运行时](./modules/resource-runtime.md)
@@ -95,7 +97,6 @@
 | Demo | 统一入口 |
 |---|---|
 | 无人机飞行仿真 | [drone_flight](demos/drone_flight/README.md) |
-| DLSS 实验室 | [dlss](demos/dlss/README.md) |
 | 夹爆它（MVP 验证版） | [wall_squeeze](demos/wall_squeeze/README.md) |
 | 纸艺卡丁车 | [kagit_kart](demos/kagit_kart/README.md) |
 

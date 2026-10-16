@@ -3,6 +3,7 @@
     using Core.Runtime;
     using System;
     using Hotfix.KagitKart;
+    using Hotfix.SceneManagement;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.UI;
@@ -20,6 +21,7 @@
 
         protected override void OnGameObjectInitialize()
         {
+            Button_Hub.transform.parent.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             choices = new[] { Button_Track0, Button_Track1, Button_Track2, Button_Track3 };
             cards = new[] { KagitKartChoiceCard_Track0, KagitKartChoiceCard_Track1, KagitKartChoiceCard_Track2, KagitKartChoiceCard_Track3 };
             sketches = new[] { Image_Sketch0.sprite, Image_Sketch1.sprite, Image_Sketch2.sprite, Image_Sketch3.sprite };

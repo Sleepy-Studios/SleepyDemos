@@ -76,6 +76,10 @@
 - 下载器通过 `ResourceDownloaderOptions` 创建，监听 `DownloadProgressChanged` 后调用 `StartDownload`。
 - 项目始终显式持有 `ResourcePackage`，不依赖静态默认包快捷入口。
 
+TapTap 发布使用 `WebPlayMode`：Web server 文件系统读取内置资源，Web network 文件系统请求对应游戏的远端版本及资源，不使用原生 Sandbox 文件缓存。内置目录表的 Full/OnlineDownload 处理仍由统一构建链负责。游戏的本地业务存档由公共 LocalDataManager 的 TapTap 存储分支处理，不把 YooAsset 下载缓存当业务存档。
+
+资源构建的 `ReleaseAssetFilter`、跨游戏依赖校验与各渠道基线在 Core.Editor 中维护，不进入业务 loader。运行时仍使用相同地址与加载契约；发布隔离原则见[资源系统设计](../architecture/resource-system.md#独立游戏发布边界)，构建入口见[热更新模块](hotfix.md)。
+
 `IResourceLoader` 是局部生命周期入口。当前主要由 `View` 持有：
 
 - `View.Loader` 通过 `ResourceServices.CreateLoader()` 创建。
@@ -127,3 +131,5 @@
 - `docs/modules/hotfix.md`
 - `docs/runbooks/use-resource-loader.md`
 - `docs/runbooks/run-unity-tests.md`
+
+WebPlayMode 在远端 URL 为空时仅创建 WebServer 文件系统，读取随首包交付的资源；在线模式额外创建 WebNetwork 文件系统并保留 Unity Web Cache。缓存持久化与连续启动仍需在 TapTap Android/iOS 容器分别验证。

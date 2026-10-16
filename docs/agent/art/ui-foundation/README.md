@@ -19,7 +19,7 @@
 
 Loading 参考 [Game UI Database 的 GTA V 自动加载画面](https://www.gameuidatabase.com/gameData.php?id=115&autoload=1599)与[荒野大镖客 2 加载画面](https://www.gameuidatabase.com/gameData.php?id=34&autoload=5759)，两页真实截图已浏览核对。GTA V 采用全屏插画、左下品牌、右下加载状态；其中右侧活动宣传块不套用本项目。借鉴画面优先和边缘状态布局，不使用这些游戏的版权图片作为项目资产。
 
-启动 v3 与运行期 v2 均已正式装配，图片和提示词保留为审批材料。去字正式背景分别为 `Assets/LoadResources/UI/Common/Loading/Art/StartupBackdrop.png` 与 `SceneBackdropDrone.png`，由 `Assets/Scenes/StartupLoading.prefab`、`Assets/LoadResources/UI/Common/CommonLoading.prefab` 使用；文字、说明、百分比与 Filled 均为独立 UI。背景使用等比覆盖，信息层不参与裁切。运行期 DLSS 与纸艺卡丁车复用现有无文字预览图，夹爆它复用已确认抽象背景，具体映射见[场景导航](../../../modules/scene-runtime.md)。启动 v2 仅布局获认可，海岛背景不实施；Loading v1 均已否决。
+启动 v3 与运行期 v2 均已正式装配，图片和提示词保留为审批材料。去字正式背景分别为 `Assets/LoadResources/UI/Common/Loading/Art/StartupBackdrop.png` 与 `Assets/LoadResources/Demos/drone_flight/Art/UI/LoadingBackdrop.png`，启动背景由 `Assets/Scenes/StartupLoading.prefab` 使用；运行期由公共 `CommonLoading.prefab` 按场景载入，公共 Prefab 的默认图仅引用启动背景；文字、说明、百分比与 Filled 均为独立 UI。背景使用等比覆盖，信息层不参与裁切。运行期 DLSS 与纸艺卡丁车复用现有无文字预览图，夹爆它复用已确认抽象背景，具体映射见[场景导航](../../../modules/scene-runtime.md)。启动 v2 仅布局获认可，海岛背景不实施；Loading v1 均已否决。
 
 原生装配及 Canvas 预览已完成，原生资源收口报告为 `Library/UIArt/finalization-report.txt`；预览不是正式入口运行截图。最新四 Demo 往返、重载、失败恢复、多画幅可读性与性能结果须按实际运行另行记录，不以效果图批准或 Prefab 保存代替。
 

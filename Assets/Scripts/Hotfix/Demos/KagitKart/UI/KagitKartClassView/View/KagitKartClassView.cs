@@ -2,6 +2,7 @@
 {
     using Core.Runtime;
     using Hotfix.KagitKart;
+    using Hotfix.SceneManagement;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.UI;
@@ -16,6 +17,7 @@
 
         protected override void OnGameObjectInitialize()
         {
+            Button_Hub.transform.parent.gameObject.SetActive(GameSceneNavigator.Instance?.StandaloneScene == null);
             choices = new[] { Button_Class80, Button_Class120, Button_Class200 };
             for (int i = 0; i < choices.Length; i++)
             {

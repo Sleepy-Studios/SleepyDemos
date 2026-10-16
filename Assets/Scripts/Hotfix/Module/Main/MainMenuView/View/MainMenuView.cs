@@ -30,6 +30,7 @@ namespace Hotfix
         protected override void OnGameObjectInitialize()
         {
             data = GlobalData.Get<MainMenuData>() ?? GlobalData.Add<MainMenuData>();
+            RestrictStandaloneEntries(data, GameSceneNavigator.Instance?.StandaloneScene);
             entries = data.Entries;
             LanguageService.SetText(Button_Settings.transform.Find("Label").GetComponent<TMPro.TMP_Text>(), "Settings.Title");
             LanguageService.SetText(Button_Effects.GetComponentInChildren<TMPro.TMP_Text>(true), "Hub.Effects");
@@ -45,6 +46,20 @@ namespace Hotfix
             navigation.Initialize(LoopScrollView_DemoList);
             LoopScrollView_DemoList.SetTotalCount(entries, getItemKey: item => ((MainMenuDemoEntry)item).Key);
             EventDispatcher.AddEventListener(EventConst.MainOpenView, OnMainOpenView);
+        }
+
+        internal static void RestrictStandaloneEntries(MainMenuData state, GameSceneId? standaloneScene)
+        {
+            if (!standaloneScene.HasValue)
+            {
+                return;
+            }
+            state.Entries.RemoveAll(entry => entry.SceneId != standaloneScene);
+            if (state.Entries.Count == 0)
+            {
+                throw new InvalidOperationException("独立游戏缺少自身的重试入口：" + standaloneScene);
+            }
+            state.ClearData();
         }
 
         protected override void OnShow()

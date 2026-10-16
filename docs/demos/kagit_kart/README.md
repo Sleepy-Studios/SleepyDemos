@@ -19,10 +19,10 @@
 
 选赛使用原作桌面立体书：封面开合、曲面卷页、纸景铰链弹出、车手切换与转盘、镜头过渡均已接入。纸卡入场与焦点表现保留原作时序，布局露出 3D 舞台。已有键盘、模拟手柄与多指触屏的场景流程记录；范围与限制见验收对照，阶段数量与job只保留在 [验证历史](../../agent/archive/kagit-validation-history.md)。
 
-场景入口：`Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity`，登记为 `GameSceneId.KagitKart`。Hub 显示“纸艺卡丁车”，Editor 直启复用公共 Bootstrap。封面开始后选择单人或联机；单人继续选择模式、80g／120g／200g 与八名车手，大奖赛从首章开始，单场与计时赛可选四条赛道。联机创建后分享六位数字码，加入只填显示名与码；房间容量2／4／8人，至少两名在线真人且全部准备后由房主请求开赛，其余赛车由AI补齐八车网格。一个房间对应一个零本地玩家的Unity独立服务器；掉线保留60秒并由AI代驾，房主断线/退出转交操作权限，比赛权威留在服务器。部署地址、HTTPS与UDP端口见联机手册，玩家页面不填写IP。角色和章节焦点按原作同步当前选择与3D预览，确认才推进页面或开赛。
+场景入口：`Assets/LoadResources/Demos/kagit_kart/Scenes/Main.unity`，登记为 `GameSceneId.KagitKart`。Hub 显示“纸艺卡丁车”，Editor 直启复用公共 Bootstrap。原生平台封面开始后选择单人或联机；Web/TapTap H5 首期只提供单人，封面直接进入模式页，联机请求与资源由平台入口及构建配置排除。单人继续选择模式、80g／120g／200g 与八名车手，大奖赛从首章开始，单场与计时赛可选四条赛道。联机创建后分享六位数字码，加入只填显示名与码；房间容量2／4／8人，至少两名在线真人且全部准备后由房主请求开赛，其余赛车由AI补齐八车网格。一个房间对应一个零本地玩家的Unity独立服务器；掉线保留60秒并由AI代驾，房主断线/退出转交操作权限，比赛权威留在服务器。部署地址、HTTPS与UDP端口见联机手册，玩家页面不填写IP。角色和章节焦点按原作同步当前选择与3D预览，确认才推进页面或开赛。
 
 联机复用公共 FishNet AOT 会话，以120Hz权威固定步、30Hz共享快照和官方拥有者预测/校正运行。独立 .NET 10 房间服务负责HTTP目录、票据与每房进程，Unity负责UDP规则。2026-10-14 Windows/Linux Dedicated构建及设置恢复、身份票据/重连/权限、双房隔离和65秒过期已有定向通过记录；原生MPM两个独立客户端对Linux服完成单场、四章自然GP、三档弱网、重赛及真实停服取消。实际赛果、性能口径及客户端HybridCLR/IL2CPP边界见[联机验收记录](runbooks/multiplayer.md#2026-10-14-联机验收)。
 
 公共输入、资源加载、UI、导航与测试继续以项目公共文档为真源，不建立第二套框架。
 
-基础 UI 风格库：`Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Foundation/`，以 `KagitKart` 前缀按用途命名，完整公共控件与本 Demo 组合子变体均从这里复用；准确字号、业务参数与页面布局保留。固定 UI/HUD 源码颜色在 `UIColors.KagitKart`，规则与清单见[界面美术维护](architecture/art-direction.md)及[基础资源维护](../../modules/ui-foundation-assets.md#四-demo-完整风格库)。
+基础 UI 风格库：`Assets/LoadResources/Demos/kagit_kart/Prefabs/UI/Foundation/`，以 `KagitKart` 前缀按用途命名，完整公共控件与本 Demo 组合子变体均从这里复用；准确字号、业务参数与页面布局保留。固定 UI/HUD 源码颜色在 `KagitKartUIColors`，规则与清单见[界面美术维护](architecture/art-direction.md)及[基础资源维护](../../modules/ui-foundation-assets.md#四-demo-完整风格库)。

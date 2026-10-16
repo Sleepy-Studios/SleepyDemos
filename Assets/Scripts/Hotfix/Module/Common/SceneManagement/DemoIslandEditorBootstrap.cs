@@ -44,7 +44,10 @@ namespace Hotfix.SceneManagement
             }
         }
 
-        internal static async UniTask<bool> EnsureReadyAsync(CancellationToken cancellationToken)
+        /// <summary>等待直启宿主或正式入口完成公共服务初始化。</summary>
+        /// <param name="cancellationToken">取消当前等待，退出时不重新启动服务。</param>
+        /// <returns>是否已有可用场景导航。</returns>
+        public static async UniTask<bool> EnsureReadyAsync(CancellationToken cancellationToken)
         {
             if (GameSceneNavigator.Instance != null)
             {
@@ -77,6 +80,7 @@ namespace Hotfix.SceneManagement
 #if UNITY_EDITOR
         private async UniTaskVoid InitializeDirectAsync(CancellationToken cancellationToken)
         {
+            GameSceneLanguageScope context = null;
             try
             {
                 var config = AssetDatabase.LoadAssetAtPath<HotfixConfig>(
@@ -98,6 +102,14 @@ namespace Hotfix.SceneManagement
                 await Core.Runtime.Settings.GameSettingsService.InitializeAsync();
                 await UIManager.Instance.InitializeAsync();
                 UITypeReflection.Init(typeof(View).Assembly, typeof(DemoIslandEditorBootstrap).Assembly);
+                foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    if (assembly.GetName().Name.StartsWith("Hotfix.", System.StringComparison.Ordinal) &&
+                        !assembly.GetName().Name.EndsWith(".Editor", System.StringComparison.Ordinal))
+                    {
+                        UITypeReflection.Scan(assembly);
+                    }
+                }
                 var startupContext = new StartupContext(config, null, this);
                 await HotfixBootService.RunBootSystems(new HotfixStartupContext(startupContext));
                 UIManager.Instance.RegisterWorldTransitionProvider(new HotfixWorldTransitionProvider());
@@ -106,14 +118,22 @@ namespace Hotfix.SceneManagement
                 {
                     throw new System.InvalidOperationException("当前直启场景未在 GameSceneCatalog 登记：" + scene.path);
                 }
+                GameSceneCatalog.TryGet(sceneId, out var definition);
+                context = await GameSceneLanguageScope.LoadAsync(definition, cancellationToken);
+                context?.BindScene(scene);
                 var runtime = new EditorDirectGameSceneRuntime(ResourceServices.CreateSceneLoader(), scene);
-                GameSceneNavigator.InitializeEditorDirect(runtime, sceneId);
+                GameSceneNavigator.InitializeEditorDirect(runtime, sceneId, context);
+                context = null;
                 readySource.TrySetResult(true);
             }
             catch (System.Exception exception)
             {
                 Debug.LogException(exception, this);
                 readySource.TrySetResult(false);
+            }
+            finally
+            {
+                context?.Dispose();
             }
         }
 #endif

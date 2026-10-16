@@ -29,13 +29,60 @@ namespace Tests.Demo
             KagitKartWorld world = null;
             yield return EnterNativeEffectsWorld(value => world = value, KagitKartRaceMode.TimeTrial);
             var audio = world.GetComponent<KagitKartAudio>();
-            var dsp = world.GetComponent<KagitKartAudioDsp>();
-            var output = dsp.GetComponent<AudioSource>();
+            var outputs = world.GetComponentsInChildren<AudioSource>();
+            var output = outputs.First(source => source.name == "Engine0");
             var samples = new float[1024];
             float peak = 0;
             double start = AudioSettings.dspTime;
+            GameObject firstAudioOwner = null;
+            GameObject secondAudioOwner = null;
             try
             {
+                var bank = NativeField<KagitKartAudioBank>(audio, "bank");
+                var camera = NativeField<Camera>(audio, "listener");
+                firstAudioOwner = new GameObject("First overlapping audio owner");
+                secondAudioOwner = new GameObject("Second overlapping audio owner");
+                firstAudioOwner.transform.SetParent(world.transform, false);
+                secondAudioOwner.transform.SetParent(world.transform, false);
+                var firstAudio = firstAudioOwner.AddComponent<KagitKartAudio>();
+                var secondAudio = secondAudioOwner.AddComponent<KagitKartAudio>();
+                firstAudio.SetVolumes(0, 0, false);
+                secondAudio.SetVolumes(0, 0, false);
+                yield return firstAudio.InitializeAsync(bank, camera, default).ToCoroutine();
+                yield return secondAudio.InitializeAsync(bank, camera, default).ToCoroutine();
+                yield return firstAudio.PrepareRaceAudioAsync("desk", default).ToCoroutine();
+                yield return secondAudio.PrepareRaceAudioAsync("desk", default).ToCoroutine();
+                var firstClips = NativeField<Dictionary<string, AudioClip>>(firstAudio, "musicClips");
+                var secondClips = NativeField<Dictionary<string, AudioClip>>(secondAudio, "musicClips");
+                var sharedStart = secondClips["music_intro_desk_start"];
+                var sharedLoop = secondClips["music_intro_desk_loop"];
+                Assert.That(firstClips["music_intro_desk_start"], Is.SameAs(sharedStart));
+                Assert.That(firstClips.ContainsKey("music_intro_glacier_start"), Is.False,
+                    "预热本章不持有未请求章节的音乐句柄");
+
+                // 场内淘汰与销毁都不能卸载另一宿主仍预热持有、尚未播放的共享音乐。
+                yield return firstAudio.PrepareRaceAudioAsync("glacier", default).ToCoroutine();
+                yield return null;
+                Assert.That(sharedStart.loadState, Is.EqualTo(AudioDataLoadState.Loaded));
+                Assert.That(sharedLoop.loadState, Is.EqualTo(AudioDataLoadState.Loaded));
+                Assert.That(firstClips.ContainsKey("music_intro_desk_start"), Is.False,
+                    "淘汰章节释放本宿主的句柄，另一宿主仍保有自己的同 Clip 句柄");
+                Assert.That(secondClips.ContainsKey("music_intro_desk_start"), Is.True);
+                yield return firstAudio.PrepareRaceAudioAsync("desk", default).ToCoroutine();
+                Object.Destroy(firstAudioOwner);
+                yield return null;
+                Assert.That(firstAudioOwner == null, Is.True);
+                Assert.That(sharedStart.loadState, Is.EqualTo(AudioDataLoadState.Loaded));
+                Assert.That(sharedLoop.loadState, Is.EqualTo(AudioDataLoadState.Loaded));
+                secondAudio.PlayIntro("desk");
+                yield return Wait(() => secondAudio.GetComponentsInChildren<AudioSource>()
+                    .Any(source => source.clip == sharedStart && source.isPlaying), "重叠宿主退出后仍可播放共享音乐");
+                Object.Destroy(secondAudioOwner);
+                yield return null;
+                Assert.That(secondClips, Is.Empty, "销毁释放本宿主持有的全部音乐句柄");
+                Assert.That(sharedStart == null || sharedStart.loadState == AudioDataLoadState.Unloaded, Is.True);
+                Assert.That(sharedLoop == null || sharedLoop.loadState == AudioDataLoadState.Unloaded, Is.True);
+
                 audio.SetVolumes(1, 1, false);
                 double beforeClick = NativeRouteTime(audio, "click");
                 yield return KeyPress(Key.P);
@@ -55,7 +102,7 @@ namespace Tests.Demo
                     yield return new WaitForSecondsRealtime(0.05f);
                 }
                 var voices = NativeField<Array>(audio, "music");
-                string cursors = string.Join(",", voices.Cast<object>().Select(voice => NativeField<double>(voice, "cursor") + "/" + NativeField<float>(voice, "Volume")));
+                string cursors = string.Join(",", voices.Cast<AudioSource>().Select(source => source.time + "/" + source.volume));
                 string environment = $"peak={peak}, editorMute={UnityEditor.EditorUtility.audioMasterMute}, listener={AudioListener.volume}/{AudioListener.pause}, "
                     + $"source={output.volume}/{output.mute}/{output.isVirtual}, dsp={start}->{AudioSettings.dspTime}, cursors={cursors}";
                 Debug.Log("KagitKart 实际音频链路 " + environment);
@@ -63,6 +110,8 @@ namespace Tests.Demo
             }
             finally
             {
+                if (firstAudioOwner != null) Object.Destroy(firstAudioOwner);
+                if (secondAudioOwner != null) Object.Destroy(secondAudioOwner);
                 audio.SetVolumes(world.Settings.MusicVolume, world.Settings.SfxVolume, world.Settings.Muted);
             }
         }
@@ -79,8 +128,7 @@ namespace Tests.Demo
             var crane = Object.FindFirstObjectByType<KagitKartRescueCrane>();
             var effects = Object.FindFirstObjectByType<KagitKartRaceFx>();
             var items = Object.FindFirstObjectByType<KagitKartItemVisuals>();
-            var dsp = world.GetComponent<KagitKartAudioDsp>();
-            var carrier = dsp.GetComponent<AudioSource>().clip;
+            var outputs = world.GetComponentsInChildren<AudioSource>();
             Assert.That(crane, Is.Not.Null);
             Assert.That(NativeField<Mesh>(crane, "bodyShape"), Is.Not.Null);
             Assert.That(NativeField<Mesh>(crane, "wingShape"), Is.Not.Null);
@@ -147,8 +195,7 @@ namespace Tests.Demo
                 }
             }
             world.Dispatch(KagitKartCommand.Hub);
-            yield return Wait(() => world == null && crane == null && effects == null && items == null && dsp == null
-                && carrier == null, "救援场景、表现实例与混音载体释放");
+            yield return Wait(() => world == null && crane == null && effects == null && items == null && outputs.All(source => source == null), "救援场景、表现实例与原生音源释放");
         }
 
         [UnityTest, Timeout(240000)]
@@ -163,9 +210,8 @@ namespace Tests.Demo
             var effects = Object.FindFirstObjectByType<KagitKartRaceFx>();
             var crane = Object.FindFirstObjectByType<KagitKartRescueCrane>();
             var audio = world.GetComponent<KagitKartAudio>();
-            var dsp = world.GetComponent<KagitKartAudioDsp>();
-            var output = dsp.GetComponent<AudioSource>();
-            var carrier = output.clip;
+            var outputs = world.GetComponentsInChildren<AudioSource>();
+            var output = outputs.First(source => source.name == "Engine0");
             var samples = new float[1024];
             float peak = 0;
             var events = new List<KagitKartItemEvent>();
@@ -174,7 +220,7 @@ namespace Tests.Demo
             try
             {
                 audio.SetVolumes(0, 1, false);
-                Assert.That(output.isPlaying && output.loop && output.ignoreListenerPause, Is.True);
+                Assert.That(outputs.Any(source => source.isPlaying && source.loop && source.ignoreListenerPause), Is.True);
                 Assert.That(Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None)
                     .Count(listener => listener.isActiveAndEnabled), Is.EqualTo(1));
                 Assert.That(world.GetComponentsInChildren<SkinnedMeshRenderer>().Any(renderer => renderer.enabled
@@ -298,8 +344,7 @@ namespace Tests.Demo
                 }
             }
             world.Dispatch(KagitKartCommand.Hub);
-            yield return Wait(() => world == null && visuals == null && effects == null && crane == null && dsp == null
-                && output == null && carrier == null, "八道具场景与原生音频载体释放");
+            yield return Wait(() => world == null && visuals == null && effects == null && crane == null && outputs.All(source => source == null), "八道具场景与原生音源释放");
         }
 
         private IEnumerator EnterNativeEffectsWorld(Action<KagitKartWorld> receive, KagitKartRaceMode mode, string trackId = "meadow")

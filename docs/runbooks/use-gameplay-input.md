@@ -29,7 +29,7 @@
    | Demo | Assets/LoadResources 下的目录 | Prefab 名称 |
    | --- | --- | --- |
    | DroneFlight | `Demos/drone_flight/Prefabs/UI/Foundation/` | `DroneInputPrompt`、`DroneInputPromptButton` |
-   | DLSS | `Demos/dlss/Prefabs/UI/Foundation/` | `DlssInputPrompt`、`DlssInputPromptButton` |
+   | DLSS | `Diagnostics/DlssLab/Prefabs/UI/Foundation/` | `DlssInputPrompt`、`DlssInputPromptButton` |
    | WallSqueeze | `Demos/wall_squeeze/Prefabs/UI/Foundation/` | `WallInputPrompt`、`WallInputPromptButton` |
    | KagitKart | `Demos/kagit_kart/Prefabs/UI/Foundation/` | `KagitKartInputPrompt`、`KagitKartInputPromptButton` |
 
@@ -42,7 +42,9 @@
 
 ## 展示与编辑精确绑定
 
-1. 在正式 `InputSettingsCatalog` 中保留各宿主的源资产和 SourceId。使用 `Entry.ConfigureActions` 制作实际动作 GUID 到文案 Key 的映射，`Entry.Actions` 是设置页的动作入口。排除未消费动作、空绑定占位和内部指针；同文案的不同动作身份仍分别保留。
+本期公共设置只提供通用输入参数，不新增 Demo 改键 UI。以下为未来宿主复用公共候选能力的接入契约。
+
+1. 由宿主自己持有源资产和 SourceId，需要动作文案映射时可复用 `InputSettingsCatalog` 类型；不要重新接入公共设置配置。使用 `Entry.ConfigureActions` 制作实际动作 GUID 到文案 Key 的映射，`Entry.Actions` 是宿主可选的动作入口。排除未消费动作、空绑定占位和内部指针；同文案的不同动作身份仍分别保留。
 2. 根据 ActionId 在重绑定候选资产中找到动作，再枚举其单绑定与复合子绑定。行身份使用 SourceId／binding.id，当前 bindingIndex 用于操作候选。复合根不作为可编辑行，同方向的 W、方向键等别名各有独立绑定行。
 3. 行提示使用精确绑定 API：
 
@@ -55,13 +57,13 @@
 
    需要纯显示数据时调用 `InputBindingDisplay.GetParts/Get` 的可选 bindingIndex。它只解析指定的非复合根绑定，不返回这个动作的第一组键位。复用为完整动作时调用 Bind，复用为指定复合子项时调用 BindPart；两者都会清除精确索引选择。
 4. 在候选 `InputRebindSession` 上查询 CanRebind，再开始 Begin；固定 UI／Menu 绑定显示为不可编辑。监听取消交给公共 Cancel 用途，冲突回退当前候选绑定。指针事件保留给 UI，点击取消按钮或长按界面控件不能写成鼠标绑定；控件外的鼠标按键仍可绑定。使用 ConflictingActionId 匹配正式动作文案，不解析诊断字符串来寻找动作。
-5. 监听结束后 ExportOverrides，写入公共设置候选的 BindingOverrides[SourceId]，由设置页统一提交或取消。源资产与运行会话在候选阶段保持原绑定；退出释放候选。成功提交后公共会话接收覆盖，Router 仍等待提交时保持的新键松开再执行。
+5. 监听结束后 ExportOverrides，调用并等待 `GameSettingsService.ApplyBindingOverridesAsync(source, overrides, token)`；检查 SettingsApplyResult。该入口局部验证源资产、绑定身份、冲突与固定菜单，再复用公共事务保存和通知，不会清除其它 SourceId 的记录。源资产与运行会话在候选阶段保持原绑定；退出释放候选。成功提交后公共会话接收覆盖，Router 仍等待提交时保持的新键松开再执行。
 
 ## 图标资源与设备扩展
 
 正式图标位于 `Assets/LoadResources/UI/Common/Sprites/Input/Kenney/`，随目录保存 CC0 许可。键盘使用下载包里的实际字母、数字、F 键、修饰键、方向键和常用特殊键 PNG，鼠标使用对应按钮 PNG；已有图形时不在空键帽上重新绘制同一键名。字母按真实键盘布局的显示名选择，只有没有图形的键才使用空键帽和实际文本。
 
-手柄图标由 Hub 输入设置里的 Xbox／PS5／NS 候选选择，只有应用成功才刷新全局；当前绑定列表通过 `SetDisplayGamepadStyle(candidate.Input.GamepadStyle)` 局部预览。默认 Xbox，真实硬件品牌不自动改偏好；风格值保持 Xbox=1、PlayStation=2、Switch=3，Generic 不再参与制作。取消／恢复默认沿现有设置候选流程执行，条目回收清除局部预览。
+手柄图标由 Hub 输入设置里的 Xbox／PS5／NS 候选选择，只有应用成功才刷新全局；宿主未来使用绑定条目时，可通过 `SetDisplayGamepadStyle(candidate.Input.GamepadStyle)` 局部预览。默认 Xbox，真实硬件品牌不自动改偏好；风格值保持 Xbox=1、PlayStation=2、Switch=3，Generic 不再参与制作。取消／恢复默认沿现有设置候选流程执行，条目回收清除局部预览。
 
 新增手柄先确认 Input System 的真实布局与控件路径，再核对现有 InputGlyphCatalog 的三种风格映射，保留正式 Catalog GUID 和地址。确认／返回依据原生用途解析，Switch A 的物理位置与 Xbox A 不同，选择品牌只影响图片。未连接设备预览也把摇杆子轴归到父摇杆图标。真机验证对应动作、用途、图标和震动支持，Editor 合成设备只覆盖已声明布局的行为。
 
@@ -71,8 +73,8 @@
 
 从 `Assets/Scenes/AppEntrance.unity` 使用 EditorSimulateMode 启动，等待正式 Hub 和资源服务完成初始化，不替换资源服务或临时实例化页面。Hub 输入页可由 `SettingsFlow.OpenAsync(SettingsCategory.Input)` 打开；等待 `ViewTab.CurrentClickView` 为已显示的 `InputSettingsPanelView`。
 
-- 将输入页设备选为手柄，再切换“手柄图标”下拉的 Xbox／PS5／NS。当前绑定列表应立即预览候选，已应用的 `GameSettingsService.CurrentGamepadStyle`、其他页面提示与保存记录应保持原值。`UIDropdown.SetSelectedIndex` 是静默回显，自动验收应点击真实选项按钮，不能用它代替用户选择。
-- 点击“应用”后等待 `SettingsFlow.IsSubmitting` 结束，核对已应用偏好、保存记录和公共提示图标一致。再次编辑后“放弃”应保留最后一次已应用的偏好；“恢复默认”先只把候选重置到 `GameSettingsService.GetDefaults().Input`，应用后才全局生效。
+- 切换“手柄图标”下拉的 Xbox／PS5／NS。公共页不再展示设备或改键列表；已应用的 `GameSettingsService.CurrentGamepadStyle`、其他页面提示与保存记录应保持原值。`UIDropdown.SetSelectedIndex` 是静默回显，自动验收应点击真实选项按钮，不能用它代替用户选择。
+- 点击“应用”后等待 `SettingsFlow.IsSubmitting` 结束，核对已应用偏好、保存记录和公共提示图标一致。再次编辑后“放弃”应保留最后一次已应用的偏好；“恢复默认”先只把候选重置到 `GameSettingsService.GetDefaults().Input`，保留全部 BindingOverrides，应用后才全局生效。
 - 从正式 Hub 进入纸艺卡丁车，封面“打开”进入模式页，再用其“操作说明”打开 Controls。手柄分类应显示真实当前会话绑定，Mute／Restart 的整行标题与提示收起；切回键鼠或触屏应恢复各自说明。不要为验收启动比赛或越过本场菜单命令直接装配 Controls。
 - 从正式 Hub 进入 DLSS 场景，核对保存的 `MovePrompt` 和 `LookPrompt`。键鼠分别使用当前 Move 组合绑定与 LookHold 鼠标保持键；手柄分别使用 Move 左摇杆和 Look 右摇杆，均属于当前观察会话副本。切到触屏收起这两条物理提示，保留原触控区域。
 

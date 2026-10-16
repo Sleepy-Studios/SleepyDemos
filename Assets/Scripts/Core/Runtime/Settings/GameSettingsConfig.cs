@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Core.Runtime.Localization;
-using Core.Runtime.Inputs;
 using UnityEngine;
 
 namespace Core.Runtime.Settings
@@ -15,7 +14,6 @@ namespace Core.Runtime.Settings
         [SerializeField] private GraphicsQualityPreset[] qualityPresets = Array.Empty<GraphicsQualityPreset>();
         [SerializeField] private LanguageCatalog language;
         [SerializeField] private FontMappingCatalog fonts;
-        [SerializeField] private InputSettingsCatalog inputs;
 
         /// 画质预设由显示服务只读使用。
         public IReadOnlyList<GraphicsQualityPreset> QualityPresets => qualityPresets;
@@ -23,8 +21,6 @@ namespace Core.Runtime.Settings
         public LanguageCatalog Language => language;
         /// 各语言字体组。
         public FontMappingCatalog Fonts => fonts;
-        /// 实际宿主动作资产与改键候选校验。
-        public InputSettingsCatalog Inputs => inputs;
 
         /// 取得独立默认候选。
         public GameSettingsSnapshot GetDefaults() => defaults.Copy();
@@ -34,7 +30,7 @@ namespace Core.Runtime.Settings
         /// 验证正式配置，缺失的资源不能用运行时临时资产掩盖。
         public void Validate()
         {
-            if (defaults == null || options == null || language == null || fonts == null || inputs == null || qualityPresets == null)
+            if (defaults == null || options == null || language == null || fonts == null || qualityPresets == null)
             {
                 throw new ArgumentException("公共设置配置或语言资源缺失。");
             }
@@ -42,7 +38,6 @@ namespace Core.Runtime.Settings
             defaults.Validate();
             options.Validate();
             options.ValidateCandidate(defaults);
-            inputs.Validate();
         }
 
         /// <summary>编辑器创建正式配置时设置资源引用，不用于保存玩家偏好。</summary>
@@ -50,15 +45,13 @@ namespace Core.Runtime.Settings
         /// <param name="languageCatalog">语言词表。</param>
         /// <param name="fontCatalog">字体映射。</param>
         /// <param name="presets">当前平台的质量预设。</param>
-        /// <param name="inputCatalog">正式宿主动作资产目录。</param>
         public void Configure(GameSettingsSnapshot value, LanguageCatalog languageCatalog,
-            FontMappingCatalog fontCatalog, GraphicsQualityPreset[] presets, InputSettingsCatalog inputCatalog)
+            FontMappingCatalog fontCatalog, GraphicsQualityPreset[] presets)
         {
             defaults = value?.Copy();
             language = languageCatalog;
             fonts = fontCatalog;
             qualityPresets = presets ?? Array.Empty<GraphicsQualityPreset>();
-            inputs = inputCatalog;
             Validate();
         }
     }

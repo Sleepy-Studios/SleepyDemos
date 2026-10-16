@@ -27,7 +27,7 @@ MonoBehaviour:
     Groups:
     - GroupName: UI
       GroupDesc: "UI\u76F8\u5173"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/UI
@@ -35,38 +35,38 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Dll
-      GroupDesc: 
-      AssetTags: 
+      GroupDesc:
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Codes
         CollectorGUID: c56507930d007774392623af98b5382e
         CollectorType: 0
         AddressRuleName: AddressByFileName
-        PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        PackRuleName: PackSeparately
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Demos
       GroupDesc: "Demo \u53EF\u52A0\u8F7D\u8D44\u6E90"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Demos
         CollectorGUID: 282270f04a560de4496a8d805c4a392d
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
-        PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        PackRuleName: ReleaseDemoPackRule
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Art
       GroupDesc: "\u516C\u5171\u7F8E\u672F"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Art
@@ -74,12 +74,12 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Audio
       GroupDesc: "\u97F3\u9891"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Audio
@@ -87,12 +87,12 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: VFX
       GroupDesc: "\u7279\u6548"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/VFX
@@ -100,12 +100,12 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Scenes
       GroupDesc: "\u53EF\u52A0\u8F7D\u573A\u666F"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Scenes
@@ -113,12 +113,12 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Config
       GroupDesc: "\u914D\u7F6E"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Config
@@ -126,12 +126,12 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Fonts
       GroupDesc: "\u5B57\u4F53"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Fonts
@@ -139,12 +139,12 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
     - GroupName: Networking
       GroupDesc: "\u516C\u5171\u7F51\u7EDC\u5BBF\u4E3B\u4E0E\u9884\u6D4B\u8F7D\u4F53"
-      AssetTags: 
+      AssetTags:
       ActiveRuleName: EnableGroup
       Collectors:
       - CollectPath: Assets/LoadResources/Prefabs/Networking
@@ -152,6 +152,19 @@ MonoBehaviour:
         CollectorType: 0
         AddressRuleName: YooAssetFullPathAddressRule
         PackRuleName: PackDirectory
-        FilterRuleName: CollectAll
-        AssetTags: 
-        UserData: 
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
+    - GroupName: Diagnostics
+      GroupDesc: "PC \u9A8C\u8BC1\u5DE5\u5177"
+      AssetTags:
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/LoadResources/Diagnostics
+        CollectorGUID: 57f55025a4a5c8b46846880354635aa5
+        CollectorType: 0
+        AddressRuleName: YooAssetFullPathAddressRule
+        PackRuleName: PackDirectory
+        FilterRuleName: ReleaseAssetFilter
+        AssetTags:
+        UserData:
